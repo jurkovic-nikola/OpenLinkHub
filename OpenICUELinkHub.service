@@ -1,0 +1,13 @@
+[Unit]
+Description=Open source interface for iCUE LINK System Hub
+
+[Service]
+User=your-user
+Group=your-user-group
+WorkingDirectory=/path-tp-executable-directory/
+ExecStart=/path-tp-executable-directory/OpenICUELink
+ExecReload=/bin/kill -s HUP $MAINPID
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

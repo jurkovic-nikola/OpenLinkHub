@@ -189,8 +189,10 @@ Tccd2:        +31.2°C
     - You can use this ability to create positive pressure in case and reduce dust. 
     - For AIO, usually fans and pump
     - For custom loop, Pump/Res combo and fans
-  - color: RGB color for specified temperature range. This is useful when the temperature reaches critical level on your system.
+  - color: RGB color for specified temperature range. 
+    - This is useful when the temperature reaches critical level on your system.
     - Making color array empty will disable RGB changes via temperature level.
+    - It Can be used to modify your device color per temperature range
 - defaultColor: Default RGB color for all devices in integer format
   - 255,255,255, 0.1 - White with 10 % of brightness
   - 255,255,255, 0.5 - White with 50 % of brightness

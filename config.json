@@ -1,4 +1,6 @@
 {
+  "vendorId": "1b1c",
+  "productId": "0c3f",
   "standalone": false,
   "listenPort": 27003,
   "defaultFanValue": 50,

@@ -39,6 +39,8 @@ type ChannelIdData struct {
 }
 
 type Configuration struct {
+	VendorId                     string                `json:"vendorId"`
+	ProductId                    string                `json:"productId"`
 	ListenPort                   int                   `json:"listenPort"`
 	ListenAddress                string                `json:"listenAddress"`
 	PullingIntervalMs            int                   `json:"pullingIntervalMs"`

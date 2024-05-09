@@ -56,6 +56,8 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 ## Configuration
 ```json
 {
+  "vendorId": "1b1c",
+  "productId": "0c3f",
   "standalone": false,
   "listenPort": 27003,
   "defaultFanValue": 50,
@@ -139,6 +141,8 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
   }
 }
 ```
+- vendorId: ID of device vendor
+- productId: ID of a device
 - standalone: The program will independently monitor CPU temperature and adjust fan and pump speed based on temperatureCurve array.
 - listenPort: HTTP server port.
 - defaultFanChannelSpeed: Default percentage of fan speed when the application is running.

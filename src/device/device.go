@@ -20,8 +20,6 @@ import (
 var (
 	device        *structs.Device
 	AF            chan bool
-	VendorId      uint16 = 0x1b1c
-	ProductId     uint16 = 0x0c3f
 	deviceMonitor *structs.DeviceMonitor
 )
 
@@ -49,9 +47,19 @@ func Init() {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to initialize HID interface")
 	}
 
+	vendorId, err := common.ConvertHexToUint16(config.GetConfig().VendorId)
+	if err := hid.Init(); err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to parse vendorId")
+	}
+
+	productId, err := common.ConvertHexToUint16(config.GetConfig().ProductId)
+	if err := hid.Init(); err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to parse productId")
+	}
+
 	dev, err := hid.Open(
-		VendorId,
-		ProductId,
+		vendorId,
+		productId,
 		config.GetConfig().Serial,
 	)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"OpenICUELinkHub/src/config"
 	"OpenICUELinkHub/src/structs"
 	"sort"
+	"strconv"
 	"unsafe"
 )
 
@@ -146,4 +147,13 @@ func ProcessMultiChunkPacket(data []byte, maxChunkSize int) [][]byte {
 	}
 
 	return result
+}
+
+// ConvertHexToUint16 takes a hexadecimal string and converts it to an uint16.
+func ConvertHexToUint16(hexStr string) (uint16, error) {
+	value, err := strconv.ParseUint(hexStr, 16, 16)
+	if err != nil {
+		return 0, err // Return the zero value of uint16 and the error
+	}
+	return uint16(value), nil
 }

@@ -71,6 +71,23 @@ func Init() {
 										return
 									}
 
+									// Custom color is defined on a temperature curve.
+									// This is when a certain temperature is reached, and the user needs to know that.
+									// You can also use this as different lightning for the temperature range of a CPU.
+									if (curve.Color == structs.Color{}) {
+										// No defined color, go back to default
+										device.SetDeviceColor(nil)
+									} else {
+										// Color is defined, override everything else
+										color := &structs.Color{
+											Red:        curve.Color.Red,
+											Green:      curve.Color.Green,
+											Blue:       curve.Color.Blue,
+											Brightness: curve.Color.Brightness,
+										}
+										device.SetDeviceColor(color)
+									}
+
 									if len(curve.ChannelIds) > 0 {
 										// Custom IDs
 										for ch := range curve.ChannelIds {

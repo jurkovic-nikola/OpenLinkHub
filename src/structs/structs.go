@@ -18,6 +18,7 @@ type TemperatureCurve struct {
 	Fans       uint16  `json:"fans"`
 	Pump       uint16  `json:"pump"`
 	ChannelIds []uint8 `json:"channelIds"`
+	Color      Color   `json:"color"`
 }
 
 type Color struct {

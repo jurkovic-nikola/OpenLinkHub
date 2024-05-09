@@ -91,7 +91,7 @@ func Init() {
 	ChannelsDefault(dev, device.Devices)
 
 	// Device color
-	SetDeviceColor()
+	SetDeviceColor(nil)
 
 	// Speed and temp refresh
 	AF = SetAutoRefresh(dev)
@@ -166,10 +166,38 @@ func InitDevices(dev *hid.Device) map[int]structs.LinkDevice {
 }
 
 // SetDeviceColor will set device color
-func SetDeviceColor() {
-	buf := map[int][]byte{}
+func SetDeviceColor(customColor *structs.Color) {
 	var i uint8 = 0
 	var m = 0
+	buf := map[int][]byte{}
+
+	if customColor != nil {
+		for _, linkDevice := range device.Devices {
+			LedChannels := linkDevice.LedChannels
+			if LedChannels > 0 {
+				for i = 0; i < LedChannels; i++ {
+					buf[m] = []byte{
+						byte(customColor.Red),
+						byte(customColor.Green),
+						byte(customColor.Blue),
+					}
+					m++
+				}
+			}
+		}
+
+		// Send it!
+		data := common.SetColor(buf)
+		comm.Write(
+			device.Handle,
+			opcodes.GetOpcode(opcodes.OpcodeSetColor),
+			opcodes.GetOpcode(opcodes.OpcodeColor),
+			data,
+			comm.EndpointTypeColor,
+		)
+		return
+	}
+
 	if config.GetConfig().UseCustomChannelIdColor {
 		// Custom colors from configuration
 		customChannelIdData := config.GetConfig().CustomChannelIdData

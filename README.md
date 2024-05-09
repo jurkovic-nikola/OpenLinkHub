@@ -70,14 +70,14 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
   "cpuPackageIdent": "Tctl",
   "temperaturePullingIntervalMs": 3000,
   "temperatureCurve": [
-    {"id":1, "min": 20, "max": 30, "mode": 0, "fans": 30, "pump": 70, "channelIds": [1, 13, 14, 15]},
-    {"id":2, "min": 30, "max": 40, "mode": 0, "fans": 40, "pump": 70, "channelIds": [1, 13, 14, 15]},
-    {"id":3, "min": 40, "max": 50, "mode": 0, "fans": 40, "pump": 70, "channelIds": [1, 13, 14, 15]},
-    {"id":4, "min": 50, "max": 60, "mode": 0, "fans": 45, "pump": 70, "channelIds": [1, 13, 14, 15]},
-    {"id":5, "min": 60, "max": 70, "mode": 0, "fans": 55, "pump": 80, "channelIds": [1, 13, 14, 15]},
-    {"id":6, "min": 70, "max": 80, "mode": 0, "fans": 70, "pump": 90, "channelIds": [1, 13, 14, 15]},
-    {"id":7, "min": 80, "max": 90, "mode": 0, "fans": 90, "pump": 100, "channelIds": [1, 13, 14, 15]},
-    {"id":8, "min": 90, "max": 115, "mode": 0, "fans": 100, "pump": 100, "channelIds": [1, 13, 14, 15]}
+    {"id":1, "min": 20, "max": 30, "mode": 0, "fans": 30, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":2, "min": 30, "max": 40, "mode": 0, "fans": 40, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":3, "min": 40, "max": 50, "mode": 0, "fans": 40, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":4, "min": 50, "max": 60, "mode": 0, "fans": 45, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":5, "min": 60, "max": 70, "mode": 0, "fans": 55, "pump": 80, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":6, "min": 70, "max": 80, "mode": 0, "fans": 70, "pump": 90, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":7, "min": 80, "max": 90, "mode": 0, "fans": 90, "pump": 100, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
+    {"id":8, "min": 90, "max": 115, "mode": 0, "fans": 100, "pump": 100, "channelIds": [1, 2, 3, 13, 14, 15], "color": {"red": 255, "green": 0, "blue": 0, "brightness": 1}}
   ],
   "defaultColor": {
     "red": 255,
@@ -189,6 +189,8 @@ Tccd2:        +31.2°C
     - You can use this ability to create positive pressure in case and reduce dust. 
     - For AIO, usually fans and pump
     - For custom loop, Pump/Res combo and fans
+  - color: RGB color for specified temperature range. This is useful when the temperature reaches critical level on your system.
+    - Making color array empty will disable RGB changes via temperature level.
 - defaultColor: Default RGB color for all devices in integer format
   - 255,255,255, 0.1 - White with 10 % of brightness
   - 255,255,255, 0.5 - White with 50 % of brightness

@@ -48,12 +48,12 @@ func Init() {
 	}
 
 	vendorId, err := common.ConvertHexToUint16(config.GetConfig().VendorId)
-	if err := hid.Init(); err != nil {
+	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to parse vendorId")
 	}
 
 	productId, err := common.ConvertHexToUint16(config.GetConfig().ProductId)
-	if err := hid.Init(); err != nil {
+	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to parse productId")
 	}
 

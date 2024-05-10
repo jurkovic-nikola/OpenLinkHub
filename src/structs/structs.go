@@ -61,10 +61,11 @@ type Configuration struct {
 
 // Device primary struct for a Corsair iCUE Link device
 type Device struct {
-	Manufacturer string
-	Product      string
-	Serial       string
-	Firmware     string
+	Manufacturer string             `json:"manufacturer"`
+	Product      string             `json:"product"`
+	Serial       string             `json:"serial"`
+	Firmware     string             `json:"firmware"`
+	Standalone   bool               `json:"standalone"`
 	Devices      map[int]LinkDevice `json:"devices"`
 	Handle       *hid.Device        `json:"-"`
 }

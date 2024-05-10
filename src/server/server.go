@@ -71,7 +71,6 @@ func Routes() *mux.Router {
 	r.Methods(http.MethodGet).Path("/").HandlerFunc(HomePage)
 	r.Methods(http.MethodGet).Path("/devices").HandlerFunc(Devices)
 	r.Methods(http.MethodPost).Path("/speed").HandlerFunc(SetDeviceSpeed)
-
 	return r
 }
 

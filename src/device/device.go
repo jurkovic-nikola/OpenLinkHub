@@ -87,6 +87,7 @@ func Init() {
 		Product:      product,
 		Serial:       serial,
 		Firmware:     GetDeviceFirmware(dev),
+		Standalone:   config.GetConfig().Standalone,
 	}
 
 	// Activate software mode on device
@@ -180,6 +181,7 @@ func SetDeviceColor(customColor *structs.Color) {
 	buf := map[int][]byte{}
 
 	if customColor != nil {
+		// All channels
 		for _, linkDevice := range device.Devices {
 			LedChannels := linkDevice.LedChannels
 			if LedChannels > 0 {

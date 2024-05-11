@@ -132,21 +132,6 @@ func ProcessChangeColor(r *http.Request) *structs.Payload {
 		}
 	}
 
-	if req.Mode < 0 || req.Mode > 1 {
-		return &structs.Payload{
-			Message: "Non-existing speed mode",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
-	dev := device.GetDevice().Devices[req.ChannelId]
-	if dev.Type == 0x07 && req.Mode == 1 { // Liquid cooler (AIO)
-		return &structs.Payload{
-			Message: "Pump speed can not be controlled via RPM",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
 	color := &structs.Color{
 		Red:        req.Color.Red,
 		Green:      req.Color.Green,

@@ -123,6 +123,7 @@ type Payload struct {
 	ChannelId int    `json:"channelId"`
 	Mode      uint8  `json:"mode"`
 	Value     uint16 `json:"value"`
+	Color     Color  `json:"color"`
 	Code      int
 	Message   string
 }

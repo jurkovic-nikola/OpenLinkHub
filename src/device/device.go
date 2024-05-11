@@ -21,6 +21,7 @@ var (
 	device        *structs.Device
 	AF            chan bool
 	deviceMonitor *structs.DeviceMonitor
+	currentColors map[int]*structs.Color
 )
 
 // GetDevice will return structs.Device
@@ -100,7 +101,7 @@ func Init() {
 	ChannelsDefault(dev, device.Devices)
 
 	// Device color
-	SetDeviceColor(nil)
+	SetDeviceColor(0, nil)
 
 	// Speed and temp refresh
 	AF = SetAutoRefresh(dev)
@@ -171,27 +172,63 @@ func InitDevices(dev *hid.Device) map[int]structs.LinkDevice {
 		}
 		deviceList[hubDevice.ChannelId] = hubDeviceInfo
 	}
+
+	currentColors = make(map[int]*structs.Color, len(deviceList))
 	return deviceList
 }
 
 // SetDeviceColor will set device color
-func SetDeviceColor(customColor *structs.Color) {
+func SetDeviceColor(channelId int, customColor *structs.Color) {
 	var i uint8 = 0
 	var m = 0
 	buf := map[int][]byte{}
 
 	if customColor != nil {
-		// All channels
-		for _, linkDevice := range device.Devices {
-			LedChannels := linkDevice.LedChannels
-			if LedChannels > 0 {
-				for i = 0; i < LedChannels; i++ {
-					buf[m] = []byte{
-						byte(customColor.Red),
-						byte(customColor.Green),
-						byte(customColor.Blue),
+		color := brightness.ModifyBrightness(
+			*customColor,
+			customColor.Brightness,
+		)
+		if channelId == 0 {
+			// All channels
+			for _, linkDevice := range device.Devices {
+				LedChannels := linkDevice.LedChannels
+				if LedChannels > 0 {
+					for i = 0; i < LedChannels; i++ {
+						buf[m] = []byte{
+							byte(color.Red),
+							byte(color.Green),
+							byte(color.Blue),
+						}
+						m++
 					}
-					m++
+				}
+			}
+		} else {
+			// Change color on a specified channel
+			currentColors[channelId] = color
+
+			keys := make([]int, 0)
+			for k := range currentColors {
+				keys = append(keys, k)
+			}
+			sort.Ints(keys)
+
+			// Loop through ordered keys
+			for _, k := range keys {
+				val, ok := device.Devices[k]
+				if ok {
+					LedChannels := val.LedChannels
+
+					// Generate color bytes for each channel & led
+					for i = 0; i < LedChannels; i++ {
+						buf[m] = []byte{
+							byte(currentColors[k].Red),
+							byte(currentColors[k].Green),
+							byte(currentColors[k].Blue),
+						}
+						m++
+					}
+
 				}
 			}
 		}
@@ -243,6 +280,9 @@ func SetDeviceColor(customColor *structs.Color) {
 						color.Color.Brightness,
 					)
 
+					// Add current colors
+					currentColors[k] = deviceColor
+
 					// Generate color bytes for each channel & led
 					for i = 0; i < LedChannels; i++ {
 						buf[m] = []byte{
@@ -265,6 +305,10 @@ func SetDeviceColor(customColor *structs.Color) {
 			config.GetConfig().DefaultColor.Brightness,
 		)
 		for _, linkDevice := range device.Devices {
+			// Add current colors
+			currentColors[linkDevice.ChannelId] = color
+
+			// Get LED channels
 			LedChannels := linkDevice.LedChannels
 			if LedChannels > 0 {
 				for i = 0; i < LedChannels; i++ {

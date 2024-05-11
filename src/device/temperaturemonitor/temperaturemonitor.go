@@ -76,7 +76,7 @@ func Init() {
 									// You can also use this as different lightning for the temperature range of a CPU.
 									if (curve.Color == structs.Color{}) {
 										// No defined color, go back to default
-										device.SetDeviceColor(nil)
+										device.SetDeviceColor(0, nil)
 									} else {
 										// Color is defined, override everything else
 										color := &structs.Color{
@@ -85,7 +85,7 @@ func Init() {
 											Blue:       curve.Color.Blue,
 											Brightness: curve.Color.Brightness,
 										}
-										device.SetDeviceColor(color)
+										device.SetDeviceColor(0, color)
 									}
 
 									if len(curve.ChannelIds) > 0 {

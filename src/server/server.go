@@ -66,11 +66,22 @@ func SetDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	Send(resp, w)
 }
 
+// SetDeviceColor handles device color changes
+func SetDeviceColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeColor(r)
+	resp := &structs.Response{
+		Code:    request.Code,
+		Message: request.Message,
+	}
+	Send(resp, w)
+}
+
 func Routes() *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
 	r.Methods(http.MethodGet).Path("/").HandlerFunc(HomePage)
 	r.Methods(http.MethodGet).Path("/devices").HandlerFunc(Devices)
 	r.Methods(http.MethodPost).Path("/speed").HandlerFunc(SetDeviceSpeed)
+	r.Methods(http.MethodPost).Path("/color").HandlerFunc(SetDeviceColor)
 	return r
 }
 

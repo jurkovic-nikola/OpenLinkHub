@@ -311,6 +311,14 @@ $ curl -X POST http://127.0.0.1:27003/speed -d '{"channelId":1,"mode":1,"value":
   "message": "Device speed successfully changed"
 }
 ```
+### Modify device color
+```bash
+$ curl -X POST http://127.0.0.1:27003/color -d '{"channelId":1,"color": {"red": 255, "green": 0, "blue": 0, "brightness": 1}}' --silent | jq
+{
+  "code": 200,
+  "message": "Device color successfully changed"
+}
+```
 ## Automatic startup
 ### systemd config
 - This is a plain basic systemd example to get you running. You can create systemd service how you like. 

@@ -40,7 +40,7 @@ $ sudo sensors-detect
 ```
 ### Build
 ```bash
-# Required packages
+# Build
 git clone https://github.com/jurkovic-nikola/OpenICUELinkHub.git
 cd OpenICUELinkHub/
 go build .
@@ -311,9 +311,17 @@ $ curl -X POST http://127.0.0.1:27003/speed -d '{"channelId":1,"mode":1,"value":
   "message": "Device speed successfully changed"
 }
 ```
-### Modify device color
+### Modify device color - specific channel
 ```bash
 $ curl -X POST http://127.0.0.1:27003/color -d '{"channelId":1,"color": {"red": 255, "green": 0, "blue": 0, "brightness": 1}}' --silent | jq
+{
+  "code": 200,
+  "message": "Device color successfully changed"
+}
+```
+### Modify device color - all channels
+```bash
+$ curl -X POST http://127.0.0.1:27003/color -d '{"channelId":0,"color": {"red": 255, "green": 0, "blue": 0, "brightness": 1}}' --silent | jq
 {
   "code": 200,
   "message": "Device color successfully changed"

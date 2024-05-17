@@ -111,14 +111,16 @@ func Write(dev *hid.Device, endpoint, bufferType, data []byte, endpointType uint
 			}
 
 			// Process buffer and create a chunked array if needed
-			nextEndpoint := opcodes.GetOpcode(opcodes.OpcodeWriteColor)
+			writeColorEp := opcodes.GetOpcode(opcodes.OpcodeWriteColor)
+			colorEp := make([]byte, len(writeColorEp))
+			copy(colorEp, writeColorEp)
+
 			chunks := common.ProcessMultiChunkPacket(buffer, MaxBufferSizePerRequest)
 			for i, chunk := range chunks {
 				// Next color endpoint based on number of chunks
-				nextEndpoint[0] = nextEndpoint[0] + byte(i)
-
+				colorEp[0] = colorEp[0] + byte(i)
 				// Send it
-				_, err = Transfer(dev, nextEndpoint, chunk, nil)
+				_, err = Transfer(dev, colorEp, chunk, nil)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
 					return 0

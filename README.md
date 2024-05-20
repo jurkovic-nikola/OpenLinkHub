@@ -1,6 +1,8 @@
 # OpenICUELinkHub interface for Linux
 Open source interface for iCUE LINK Hub device and Linux with built-in API for overview and device control.
 
+![Build](https://github.com/jurkovic-nikola/OpenICUELinkHub/actions/workflows/go.yml/badge.svg)
+
 # Info
 - This project was created out of own necessity to control fans and pumps on workstations after switching everything to Linux.
 - I take no responsibility for this code at all. Use this at your own risk. 

@@ -38,7 +38,7 @@ func GetDevice() *structs.Device {
 // Stop will send the device back to hardware mode, usually when the program exits
 func Stop() {
 	authRefreshChan <- true
-	SetDeviceMode(opcodes.GetOpcode(opcodes.OpcodeHardwareMode))
+	SetDeviceMode(opcodes.CmdHardwareMode)
 	comm.Close()
 }
 
@@ -59,7 +59,7 @@ func Init() {
 	}
 
 	// Activate software mode on device
-	SetDeviceMode(opcodes.GetOpcode(opcodes.OpcodeSoftwareMode))
+	SetDeviceMode(opcodes.CmdSoftwareMode)
 
 	// Init all channels
 	device.Devices = InitDevices()
@@ -85,13 +85,13 @@ func Init() {
 // InitColorEndpoint will initialize color endpoint for RGB
 func InitColorEndpoint() {
 	// Close any RGB endpoint
-	_, err := comm.Transfer(opcodes.GetOpcode(opcodes.OpcodeCloseEndpoint), opcodes.GetOpcode(opcodes.OpcodeSetColor), nil)
+	_, err := comm.Transfer(opcodes.CmdCloseEndpoint, opcodes.ModeSetColor, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
-	_, err = comm.Transfer(opcodes.GetOpcode(opcodes.OpcodeOpenColorEndpoint), opcodes.GetOpcode(opcodes.OpcodeSetColor), nil)
+	_, err = comm.Transfer(opcodes.CmdOpenColorEndpoint, opcodes.ModeSetColor, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
 	}
@@ -102,11 +102,7 @@ func InitDevices() map[int]structs.LinkDevice {
 	deviceList := make(map[int]structs.LinkDevice)
 	var devices []structs.Devices
 
-	response := comm.Read(
-		opcodes.GetOpcode(opcodes.OpcodeGetDevices),
-		opcodes.GetOpcode(opcodes.OpcodeDevices),
-	)
-
+	response := comm.Read(opcodes.ModeGetDevices, opcodes.DataTypeGetDevices)
 	channel := response.Data[6]
 	index := response.Data[7:]
 	position := 0
@@ -223,7 +219,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 
 		// Send it!
 		data := common.SetColor(buf)
-		comm.WriteColor(opcodes.GetOpcode(opcodes.OpcodeColor), data)
+		comm.WriteColor(opcodes.DataTypeSetColor, data)
 		return
 	}
 
@@ -307,7 +303,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 
 	// Send it!
 	data := common.SetColor(buf)
-	comm.WriteColor(opcodes.GetOpcode(opcodes.OpcodeColor), data)
+	comm.WriteColor(opcodes.DataTypeSetColor, data)
 }
 
 // SetDeviceSpeed will set device speed based on client input
@@ -316,11 +312,7 @@ func SetDeviceSpeed(channelId int, value uint16, mode uint8) int {
 	channelSpeeds := map[int][]byte{}
 	channelSpeeds[channelId] = speed
 	data := common.SetSpeed(channelSpeeds, mode)
-	return comm.Write(
-		opcodes.GetOpcode(opcodes.OpcodeSetSpeed),
-		opcodes.GetOpcode(opcodes.OpcodeSpeed),
-		data,
-	)
+	return comm.Write(opcodes.ModeSetSpeed, opcodes.DataTypeSetSpeed, data)
 }
 
 // ChannelsDefault will initialize all channels default power when the program starts
@@ -344,19 +336,15 @@ func ChannelsDefault(linkDevices map[int]structs.LinkDevice) {
 			channelDefaults[linkDevice] = []byte{linkDevices[linkDevice].DefaultValue}
 		}
 		data = common.SetSpeed(channelDefaults, 0)
-		comm.Write(
-			opcodes.GetOpcode(opcodes.OpcodeSetSpeed),
-			opcodes.GetOpcode(opcodes.OpcodeSpeed),
-			data,
-		)
+		comm.Write(opcodes.ModeSetSpeed, opcodes.DataTypeSetSpeed, data)
 	}
 }
 
 // GetDeviceTemperature will retrieve all temperature sensors from devices
 func GetDeviceTemperature() {
 	response := comm.Read(
-		opcodes.GetOpcode(opcodes.OpcodeGetTemperatures),
-		opcodes.GetOpcode(opcodes.OpcodeTemperatures),
+		opcodes.ModeGetTemperatures,
+		opcodes.DataTypeGetTemperatures,
 	).Data
 
 	amount := response[6]
@@ -392,8 +380,8 @@ func GetDeviceTemperature() {
 // GetDeviceSpeed will retrieve all speed sensors from devices
 func GetDeviceSpeed() {
 	response := comm.Read(
-		opcodes.GetOpcode(opcodes.OpcodeGetSpeeds),
-		opcodes.GetOpcode(opcodes.OpcodeSpeeds),
+		opcodes.ModeGetSpeeds,
+		opcodes.DataTypeGetSpeeds,
 	).Data
 
 	amount := response[6]
@@ -428,7 +416,7 @@ func GetDeviceSpeed() {
 // GetDeviceFirmware will return a device firmware version out as string
 func GetDeviceFirmware() string {
 	fw, err := comm.Transfer(
-		opcodes.GetOpcode(opcodes.OpcodeGetFirmware),
+		opcodes.CmdGetFirmware,
 		nil,
 		nil,
 	)
@@ -446,12 +434,7 @@ func GetDeviceMode() byte {
 		1 - Device is powered on, and it's being initialized.
 		This will be triggered when the machine wakes up from sleep.
 	*/
-	mode, err := comm.Transfer(
-		opcodes.GetOpcode(opcodes.OpcodeGetDeviceMode),
-		nil,
-		nil,
-	)
-
+	mode, err := comm.Transfer(opcodes.CmdGetDeviceMode, nil, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
 	}
@@ -516,7 +499,7 @@ func SetDeviceRGBMode() {
 					}
 				}
 				data := common.SetColor(buf)
-				comm.WriteColor(opcodes.GetOpcode(opcodes.OpcodeColor), data)
+				comm.WriteColor(opcodes.DataTypeSetColor, data)
 			case <-rgbChan:
 				ticker.Stop()
 			}

@@ -98,25 +98,25 @@ func Read(endpoint, bufferType []byte) structs.DeviceData {
 	var buffer []byte
 
 	// Close specified endpoint
-	_, err := Transfer(opcodes.GetOpcode(opcodes.OpcodeCloseEndpoint), endpoint, nil)
+	_, err := Transfer(opcodes.CmdCloseEndpoint, endpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 	}
 
 	// Open endpoint
-	_, err = Transfer(opcodes.GetOpcode(opcodes.OpcodeOpenEndpoint), endpoint, nil)
+	_, err = Transfer(opcodes.CmdOpenEndpoint, endpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
 	}
 
 	// Read data from endpoint
-	buffer, err = Transfer(opcodes.GetOpcode(opcodes.OpcodeRead), endpoint, bufferType)
+	buffer, err = Transfer(opcodes.CmdRead, endpoint, bufferType)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to read endpoint")
 	}
 
 	// Close specified endpoint
-	_, err = Transfer(opcodes.GetOpcode(opcodes.OpcodeCloseEndpoint), endpoint, nil)
+	_, err = Transfer(opcodes.CmdCloseEndpoint, endpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 	}
@@ -137,7 +137,7 @@ func WriteColor(bufferType, data []byte) int {
 	copy(buffer[HeaderWriteSize+len(bufferType):], data)
 
 	// Process buffer and create a chunked array if needed
-	writeColorEp := opcodes.GetOpcode(opcodes.OpcodeWriteColor)
+	writeColorEp := opcodes.CmdWriteColor
 	colorEp := make([]byte, len(writeColorEp))
 	copy(colorEp, writeColorEp)
 
@@ -165,28 +165,28 @@ func Write(endpoint, bufferType, data []byte) int {
 	copy(buffer[HeaderWriteSize+len(bufferType):], data)
 
 	// Close endpoint
-	_, err := Transfer(opcodes.GetOpcode(opcodes.OpcodeCloseEndpoint), endpoint, nil)
+	_, err := Transfer(opcodes.CmdCloseEndpoint, endpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 		return 0
 	}
 
 	// Open endpoint
-	_, err = Transfer(opcodes.GetOpcode(opcodes.OpcodeOpenEndpoint), endpoint, nil)
+	_, err = Transfer(opcodes.CmdOpenEndpoint, endpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
 		return 0
 	}
 
 	// Send it
-	_, err = Transfer(opcodes.GetOpcode(opcodes.OpcodeWrite), buffer, nil)
+	_, err = Transfer(opcodes.CmdWrite, buffer, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
 		return 0
 	}
 
 	// Close endpoint
-	_, err = Transfer(opcodes.GetOpcode(opcodes.OpcodeCloseEndpoint), endpoint, nil)
+	_, err = Transfer(opcodes.CmdCloseEndpoint, endpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 		return 0

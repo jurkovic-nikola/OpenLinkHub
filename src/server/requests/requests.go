@@ -3,6 +3,7 @@ package requests
 import (
 	"OpenICUELinkHub/src/config"
 	"OpenICUELinkHub/src/device"
+	"OpenICUELinkHub/src/device/rgb"
 	"OpenICUELinkHub/src/logger"
 	"OpenICUELinkHub/src/structs"
 	"encoding/json"
@@ -112,6 +113,13 @@ func ProcessChangeColor(r *http.Request) *structs.Payload {
 	if config.GetConfig().UseCustomChannelIdColor {
 		return &structs.Payload{
 			Message: "UseCustomChannelIdColor mode active, color modifications are not possible.",
+			Code:    http.StatusMethodNotAllowed,
+		}
+	}
+
+	if rgb.IsRGBEnabled() {
+		return &structs.Payload{
+			Message: "rgbMode mode enabled, color modifications are not possible.",
 			Code:    http.StatusMethodNotAllowed,
 		}
 	}

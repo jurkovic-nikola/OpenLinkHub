@@ -27,6 +27,15 @@ func Init() {
 		fmt.Println("Ignoring standalone flag due to useCustomChannelIdSpeed is set to true")
 		configuration.Standalone = false
 	}
+
+	rgbMode := configuration.RGBMode
+	if _, ok := configuration.RGBModes[rgbMode]; !ok {
+		fmt.Println(fmt.Sprintf("RGB mode %s not found in configuration. Setting to default (nothing)", rgbMode))
+		configuration.RGBMode = ""
+	} else {
+		fmt.Println(fmt.Sprintf("RGB mode %s found in configuration. Setting UseCustomChannelIdColor to false", rgbMode))
+		configuration.UseCustomChannelIdColor = false
+	}
 }
 
 // GetConfig will return Configuration struct

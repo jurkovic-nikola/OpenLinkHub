@@ -3,6 +3,7 @@ package temperaturemonitor
 import (
 	"OpenICUELinkHub/src/config"
 	"OpenICUELinkHub/src/device"
+	"OpenICUELinkHub/src/device/rgb"
 	"OpenICUELinkHub/src/logger"
 	"OpenICUELinkHub/src/structs"
 	"github.com/ssimunic/gosensors"
@@ -71,21 +72,24 @@ func Init() {
 										return
 									}
 
-									// Custom color is defined on a temperature curve.
-									// This is when a certain temperature is reached, and the user needs to know that.
-									// You can also use this as different lightning for the temperature range of a CPU.
-									if (curve.Color == structs.Color{}) {
-										// No defined color, go back to default
-										device.SetDeviceColor(0, nil)
-									} else {
-										// Color is defined, override everything else
-										color := &structs.Color{
-											Red:        curve.Color.Red,
-											Green:      curve.Color.Green,
-											Blue:       curve.Color.Blue,
-											Brightness: curve.Color.Brightness,
+									// Change color if there is no custom RGB mode set
+									if !rgb.IsRGBEnabled() {
+										// Custom color is defined on a temperature curve.
+										// This is when a certain temperature is reached, and the user needs to know that.
+										// You can also use this as different lightning for the temperature range of a CPU.
+										if (curve.Color == structs.Color{}) {
+											// No defined color, go back to default
+											device.SetDeviceColor(0, nil)
+										} else {
+											// Color is defined, override everything else
+											color := &structs.Color{
+												Red:        curve.Color.Red,
+												Green:      curve.Color.Green,
+												Blue:       curve.Color.Blue,
+												Brightness: curve.Color.Brightness,
+											}
+											device.SetDeviceColor(0, color)
 										}
-										device.SetDeviceColor(0, color)
 									}
 
 									if len(curve.ChannelIds) > 0 {

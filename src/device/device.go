@@ -6,11 +6,13 @@ import (
 	"OpenICUELinkHub/src/device/comm"
 	"OpenICUELinkHub/src/device/common"
 	"OpenICUELinkHub/src/device/opcodes"
+	"OpenICUELinkHub/src/device/rgb"
+	"OpenICUELinkHub/src/device/rgb/rainbow"
+	"OpenICUELinkHub/src/device/rgb/watercolor"
 	"OpenICUELinkHub/src/logger"
 	"OpenICUELinkHub/src/structs"
 	"encoding/binary"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
 	"sync"
@@ -18,10 +20,14 @@ import (
 )
 
 var (
-	device        *structs.Device
-	AF            chan bool
-	deviceMonitor *structs.DeviceMonitor
-	currentColors map[int]*structs.Color
+	ticker          *time.Ticker
+	rgbChan         chan bool
+	authRefreshChan chan bool
+	device          *structs.Device
+	deviceMonitor   *structs.DeviceMonitor
+	currentColors   map[int]*structs.Color
+	startTime       = time.Now()
+	rgbSpeed        = 40
 )
 
 // GetDevice will return structs.Device
@@ -31,80 +37,44 @@ func GetDevice() *structs.Device {
 
 // Stop will send the device back to hardware mode, usually when the program exits
 func Stop() {
-	AF <- true
-	SetDeviceMode(device.Handle, opcodes.GetOpcode(opcodes.OpcodeHardwareMode))
-	err := device.Handle.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID interface")
-	}
-	if err := hid.Exit(); err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to exit HID interface")
-	}
+	authRefreshChan <- true
+	SetDeviceMode(opcodes.GetOpcode(opcodes.OpcodeHardwareMode))
+	comm.Close()
 }
 
 // Init will initialize a device and prepare a device for receiving commands
 func Init() {
-	if err := hid.Init(); err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to initialize HID interface")
-	}
+	comm.Open()
 
-	vendorId, err := common.ConvertHexToUint16(config.GetConfig().VendorId)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to parse vendorId")
-	}
-
-	productId, err := common.ConvertHexToUint16(config.GetConfig().ProductId)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to parse productId")
-	}
-
-	dev, err := hid.Open(
-		vendorId,
-		productId,
-		config.GetConfig().Serial,
-	)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": "", "deviceId": ""}).Fatal("Unable to open HID device")
-	}
-
-	manufacturer, err := dev.GetMfrStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": "", "deviceId": ""}).Fatal("Unable to get manufacturer")
-	}
-
-	product, err := dev.GetProductStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": "", "deviceId": ""}).Fatal("Unable to get product")
-	}
-
-	serial, err := dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": "", "deviceId": ""}).Fatal("Unable to get device serial number")
-	}
+	manufacturer := comm.GetManufacturer()
+	product := comm.GetProduct()
+	serial := comm.GetSerial()
 
 	device = &structs.Device{
-		Handle:       dev,
 		Manufacturer: manufacturer,
 		Product:      product,
 		Serial:       serial,
-		Firmware:     GetDeviceFirmware(dev),
+		Firmware:     GetDeviceFirmware(),
 		Standalone:   config.GetConfig().Standalone,
 	}
 
 	// Activate software mode on device
-	SetDeviceMode(dev, opcodes.GetOpcode(opcodes.OpcodeSoftwareMode))
+	SetDeviceMode(opcodes.GetOpcode(opcodes.OpcodeSoftwareMode))
 
 	// Init all channels
-	device.Devices = InitDevices(dev)
+	device.Devices = InitDevices()
 
 	// Default channel data
-	ChannelsDefault(dev, device.Devices)
+	ChannelsDefault(device.Devices)
+
+	// Init RGB endpoint
+	InitColorEndpoint()
 
 	// Device color
 	SetDeviceColor(0, nil)
 
 	// Speed and temp refresh
-	AF = SetAutoRefresh(dev)
+	SetAutoRefresh()
 
 	// Monitor for device
 	deviceMonitor = NewDeviceMonitor()
@@ -112,13 +82,27 @@ func Init() {
 	logger.Log(logger.Fields{"device": device}).Info("Device successfully initialized")
 }
 
+// InitColorEndpoint will initialize color endpoint for RGB
+func InitColorEndpoint() {
+	// Close any RGB endpoint
+	_, err := comm.Transfer(opcodes.GetOpcode(opcodes.OpcodeCloseEndpoint), opcodes.GetOpcode(opcodes.OpcodeSetColor), nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+	}
+
+	// Open RGB endpoint
+	_, err = comm.Transfer(opcodes.GetOpcode(opcodes.OpcodeOpenColorEndpoint), opcodes.GetOpcode(opcodes.OpcodeSetColor), nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
+	}
+}
+
 // InitDevices will retrieve all available devices from a device
-func InitDevices(dev *hid.Device) map[int]structs.LinkDevice {
+func InitDevices() map[int]structs.LinkDevice {
 	deviceList := make(map[int]structs.LinkDevice)
 	var devices []structs.Devices
 
 	response := comm.Read(
-		dev,
 		opcodes.GetOpcode(opcodes.OpcodeGetDevices),
 		opcodes.GetOpcode(opcodes.OpcodeDevices),
 	)
@@ -179,6 +163,11 @@ func InitDevices(dev *hid.Device) map[int]structs.LinkDevice {
 
 // SetDeviceColor will set device color
 func SetDeviceColor(channelId int, customColor *structs.Color) {
+	if rgb.IsRGBEnabled() {
+		SetDeviceRGBMode()
+		return
+	}
+
 	var i uint8 = 0
 	var m = 0
 	buf := map[int][]byte{}
@@ -228,20 +217,13 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 						}
 						m++
 					}
-
 				}
 			}
 		}
 
 		// Send it!
 		data := common.SetColor(buf)
-		comm.Write(
-			device.Handle,
-			opcodes.GetOpcode(opcodes.OpcodeSetColor),
-			opcodes.GetOpcode(opcodes.OpcodeColor),
-			data,
-			comm.EndpointTypeColor,
-		)
+		comm.WriteColor(opcodes.GetOpcode(opcodes.OpcodeColor), data)
 		return
 	}
 
@@ -325,13 +307,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 
 	// Send it!
 	data := common.SetColor(buf)
-	comm.Write(
-		device.Handle,
-		opcodes.GetOpcode(opcodes.OpcodeSetColor),
-		opcodes.GetOpcode(opcodes.OpcodeColor),
-		data,
-		comm.EndpointTypeColor,
-	)
+	comm.WriteColor(opcodes.GetOpcode(opcodes.OpcodeColor), data)
 }
 
 // SetDeviceSpeed will set device speed based on client input
@@ -341,16 +317,14 @@ func SetDeviceSpeed(channelId int, value uint16, mode uint8) int {
 	channelSpeeds[channelId] = speed
 	data := common.SetSpeed(channelSpeeds, mode)
 	return comm.Write(
-		device.Handle,
 		opcodes.GetOpcode(opcodes.OpcodeSetSpeed),
 		opcodes.GetOpcode(opcodes.OpcodeSpeed),
 		data,
-		comm.EndpointTypeDefault,
 	)
 }
 
 // ChannelsDefault will initialize all channels default power when the program starts
-func ChannelsDefault(dev *hid.Device, linkDevices map[int]structs.LinkDevice) {
+func ChannelsDefault(linkDevices map[int]structs.LinkDevice) {
 	var data []byte
 	channelDefaults := map[int][]byte{}
 
@@ -371,11 +345,9 @@ func ChannelsDefault(dev *hid.Device, linkDevices map[int]structs.LinkDevice) {
 		}
 		data = common.SetSpeed(channelDefaults, 0)
 		comm.Write(
-			dev,
 			opcodes.GetOpcode(opcodes.OpcodeSetSpeed),
 			opcodes.GetOpcode(opcodes.OpcodeSpeed),
 			data,
-			comm.EndpointTypeDefault,
 		)
 	}
 }
@@ -383,7 +355,6 @@ func ChannelsDefault(dev *hid.Device, linkDevices map[int]structs.LinkDevice) {
 // GetDeviceTemperature will retrieve all temperature sensors from devices
 func GetDeviceTemperature() {
 	response := comm.Read(
-		device.Handle,
 		opcodes.GetOpcode(opcodes.OpcodeGetTemperatures),
 		opcodes.GetOpcode(opcodes.OpcodeTemperatures),
 	).Data
@@ -421,7 +392,6 @@ func GetDeviceTemperature() {
 // GetDeviceSpeed will retrieve all speed sensors from devices
 func GetDeviceSpeed() {
 	response := comm.Read(
-		device.Handle,
 		opcodes.GetOpcode(opcodes.OpcodeGetSpeeds),
 		opcodes.GetOpcode(opcodes.OpcodeSpeeds),
 	).Data
@@ -456,9 +426,8 @@ func GetDeviceSpeed() {
 }
 
 // GetDeviceFirmware will return a device firmware version out as string
-func GetDeviceFirmware(dev *hid.Device) string {
+func GetDeviceFirmware() string {
 	fw, err := comm.Transfer(
-		dev,
 		opcodes.GetOpcode(opcodes.OpcodeGetFirmware),
 		nil,
 		nil,
@@ -471,14 +440,13 @@ func GetDeviceFirmware(dev *hid.Device) string {
 	return fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
 
-func GetDeviceMode(dev *hid.Device) byte {
+func GetDeviceMode() byte {
 	/*
 		0 - Device is powered on and initialized
 		1 - Device is powered on, and it's being initialized.
 		This will be triggered when the machine wakes up from sleep.
 	*/
 	mode, err := comm.Transfer(
-		dev,
 		opcodes.GetOpcode(opcodes.OpcodeGetDeviceMode),
 		nil,
 		nil,
@@ -492,29 +460,73 @@ func GetDeviceMode(dev *hid.Device) byte {
 
 // SetAutoRefresh will automatically refresh data from a device. We need to refresh device data constantly,
 // since if a device is left without communication, it will automatically switch back to default hardware mode.
-func SetAutoRefresh(dev *hid.Device) chan bool {
-	ticker := time.NewTicker(time.Duration(config.GetConfig().PullingIntervalMs) * time.Millisecond)
-	quit := make(chan bool)
+func SetAutoRefresh() {
+	timer := time.NewTicker(time.Duration(config.GetConfig().PullingIntervalMs) * time.Millisecond)
+	authRefreshChan = make(chan bool)
 
 	go func() {
 		for {
 			select {
-			case <-ticker.C:
-				SetDeviceStatus(GetDeviceMode(dev))
+			case <-timer.C:
+				SetDeviceStatus(GetDeviceMode())
 				GetDeviceSpeed()
 				GetDeviceTemperature()
-			case <-quit:
-				ticker.Stop()
+			case <-authRefreshChan:
+				timer.Stop()
 				return
 			}
 		}
 	}()
-	return quit
+}
+
+// SetDeviceRGBMode will configure custom RGB mode based from service configuration
+func SetDeviceRGBMode() {
+	ticker = time.NewTicker(time.Duration(rgbSpeed) * time.Millisecond)
+	rgbChan = make(chan bool)
+
+	// Get the number of LED channels we have
+	ledChannels := 0
+	for _, linkDevice := range device.Devices {
+		ledChannels += int(linkDevice.LedChannels)
+	}
+
+	rgbModeSpeed := rgb.GetRGBSpeed()
+	rgbModeName := rgb.GetRGBModeName()
+	rgbModeBrightness := rgb.GetRGBBrightness()
+
+	go func(lc int, mode string) {
+		for {
+			select {
+			case <-ticker.C:
+				buf := map[int][]byte{}
+				elapsed := time.Since(startTime).Seconds() * float64(rgbModeSpeed)
+				colors := make([]struct{ R, G, B float64 }, 0)
+				switch mode {
+				case "rainbow":
+					colors = rainbow.GenerateRainbowColors(lc, elapsed, rgbModeBrightness)
+				case "watercolor":
+					colors = watercolor.GenerateWatercolorColors(lc, elapsed, rgbModeBrightness)
+				}
+
+				for i, color := range colors {
+					buf[i] = []byte{
+						byte(color.R),
+						byte(color.G),
+						byte(color.B),
+					}
+				}
+				data := common.SetColor(buf)
+				comm.WriteColor(opcodes.GetOpcode(opcodes.OpcodeColor), data)
+			case <-rgbChan:
+				ticker.Stop()
+			}
+		}
+	}(ledChannels, rgbModeName)
 }
 
 // SetDeviceMode will switch a device to Hardware or Software mode
-func SetDeviceMode(dev *hid.Device, mode []byte) {
-	_, err := comm.Transfer(dev, mode, nil, nil)
+func SetDeviceMode(mode []byte) {
+	_, err := comm.Transfer(mode, nil, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}

@@ -140,6 +140,17 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
         "value": 80
       }
     }
+  },
+  "rgbMode": "rainbow",
+  "rgbModes": {
+    "rainbow": {
+      "speed": 5,
+      "brightness": 0.5
+    },
+    "watercolor": {
+      "speed": 5,
+      "brightness": 0.5
+    }
   }
 }
 ```
@@ -204,14 +215,25 @@ Tccd2:        +31.2°C
   - 255,255,255, 0.5 - White with 50 % of brightness
   - 255,255,255, 1 - White with 100 % of brightness
   - Note: Setting brightness to 0 will result in no color on a device
+  - This mode will be ignored if rgbMode is defined
 - useCustomChannelIdColor: if set to true, default color will be ignored, and you will be able to define color for each device
   - config example contains multiple channelIds, aka "1", "13", "14" and "15"
   - those IDs are from `curl http://127.0.0.1:27003 --silent | jq` under devices section.
   - Each ID is channelId connected to a iCUE Link Hub
-- Currently, there is only support for static RGB colors and brightness. 
+  - This mode will be ignored if rgbMode is defined
+- Currently, there is only support for static RGB colors and a couple of custom modes (see bellow rgbMode field). 
 - useCustomChannelIdSpeed: is set to true, each device will have a static speed defined in config. 
   - In this mode, a standalone flag is ignored and CPU monitoring is not enabled.
-
+- rgbMode: This will enable custom RGB mode for all devices. 
+  - If you do not want to use custom RGB mode, leave this field empty. 
+  - If this mode is enabled, REST API color modification is not possible. 
+  - Currently supported RGB modes:
+    - rainbow
+    - watercolor
+- rgbModes: Custom RGB mode data
+  - key: RGB mode name from `rgbMode`
+    - speed: RGB effect speed, from 1 to 10
+    - brightness: Color brightness, from 0.1 to 1
 ### How to identify channels ?
 - In most cases, your channel will have a name
 - In cases of FANs, the best way to identify a channel is to set custom color on each channel. 

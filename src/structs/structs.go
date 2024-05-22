@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"github.com/sstallion/go-hid"
 	"sync"
 )
 
@@ -38,6 +37,11 @@ type ChannelIdData struct {
 	Speed Speed `json:"speed"`
 }
 
+type RGBModes struct {
+	Speed      uint8   `json:"speed"`
+	Brightness float64 `json:"brightness"`
+}
+
 type Configuration struct {
 	VendorId                     string                `json:"vendorId"`
 	ProductId                    string                `json:"productId"`
@@ -57,6 +61,8 @@ type Configuration struct {
 	UseCustomChannelIdColor      bool                  `json:"useCustomChannelIdColor"`
 	UseCustomChannelIdSpeed      bool                  `json:"useCustomChannelIdSpeed"`
 	CustomChannelIdData          map[int]ChannelIdData `json:"customChannelIdData"`
+	RGBMode                      string                `json:"rgbMode"`
+	RGBModes                     map[string]RGBModes   `json:"rgbModes"`
 }
 
 // Device primary struct for a Corsair iCUE Link device
@@ -67,7 +73,6 @@ type Device struct {
 	Firmware     string             `json:"firmware"`
 	Standalone   bool               `json:"standalone"`
 	Devices      map[int]LinkDevice `json:"devices"`
-	Handle       *hid.Device        `json:"-"`
 }
 
 // LinkDevice contains information about devices connected to an iCUE Link

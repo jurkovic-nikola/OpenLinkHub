@@ -6,8 +6,8 @@ import (
 	"math"
 )
 
-// RainbowColor function returns an RGB color corresponding to a given position in the rainbow
-func RainbowColor(position float64) (int, int, int) {
+// rainbowColor function returns an RGB color corresponding to a given position in the rainbow
+func rainbowColor(position float64) (int, int, int) {
 	// Normalize position to be between 0 and 1
 	position = math.Mod(position, 1.0)
 
@@ -39,18 +39,18 @@ func interpolate(r1, g1, b1, r2, g2, b2 float64, fraction float64) (int, int, in
 }
 
 // GenerateRainbowColors generates a list of RGB colors for the given number of LEDs at the current time
-func GenerateRainbowColors(numLEDs int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
+func GenerateRainbowColors(numLEDs int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, numLEDs)
 	for i := 0; i < numLEDs; i++ {
 		position := (float64(i) / float64(numLEDs)) + (elapsedTime / 4.0)
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
-		r, g, b := RainbowColor(position)
+		r, g, b := rainbowColor(position)
 
 		color := &structs.Color{
 			Red:        float64(r),
 			Green:      float64(g),
 			Blue:       float64(b),
-			Brightness: brightnessValue,
+			Brightness: bts,
 		}
 
 		modify := brightness.ModifyBrightness(*color)

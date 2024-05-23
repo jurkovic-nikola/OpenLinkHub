@@ -47,6 +47,11 @@ func GetDevice(deviceId byte, deviceModel byte) *structs.DeviceList {
 	return nil
 }
 
+// Lerp performs linear interpolation between two values
+func Lerp(a, b, t float64) float64 {
+	return a + t*(b-a)
+}
+
 // Clamp will check if value is in specified range
 func Clamp(value, min, max int) int {
 	if value < min {

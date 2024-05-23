@@ -1,4 +1,4 @@
-package colorshift
+package circle
 
 import (
 	"OpenICUELinkHub/src/device/brightness"
@@ -15,8 +15,8 @@ func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	}
 }
 
-// GenerateColorShiftColors will generate color based on start and end color
-func GenerateColorShiftColors(numLEDs int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
+// GenerateCircleColors will generate color based on start and end color
+func GenerateCircleColors(numLEDs int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, numLEDs)
 	for i := 0; i < numLEDs; i++ {
 		color := interpolateColor(c1, c2, factor)

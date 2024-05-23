@@ -83,6 +83,7 @@ type Device struct {
 type LinkDevice struct {
 	ChannelId    int     `json:"channelId"`
 	Type         byte    `json:"type"`
+	Model        byte    `json:"-"`
 	DeviceId     string  `json:"deviceId"`
 	Name         string  `json:"name"`
 	DefaultValue byte    `json:"-"`

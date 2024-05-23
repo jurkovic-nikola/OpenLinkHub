@@ -6,17 +6,17 @@ import (
 	"math"
 )
 
-// WatercolorColor function returns an RGB color corresponding to a given position in the watercolor spectrum
-func WatercolorColor(position float64) (int, int, int) {
+// watercolorColor function returns an RGB color corresponding to a given position in the watercolor spectrum
+func watercolorColor(position float64) (int, int, int) {
 	// Normalize position to be between 0 and 1
 	position = math.Mod(position, 1.0)
 
 	// Adjust hue, saturation, and brightness to create pastel colors
 	hue := position * 360 // Convert position to hue angle (0-360 degrees)
 	saturation := 0.4     // Lower saturation for watercolor effect
-	brightness := 1.0     // Full brightness for watercolor effect
+	bts := 1.0            // Full brightness for watercolor effect
 
-	return HSBToRGB(hue, saturation, brightness)
+	return HSBToRGB(hue, saturation, bts)
 }
 
 // HSBToRGB function converts HSB/HSV color space to RGB color space
@@ -55,7 +55,7 @@ func GenerateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64)
 	for i := 0; i < numLEDs; i++ {
 		position := (float64(i) / float64(numLEDs)) + (elapsedTime / 4.0)
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
-		r, g, b := WatercolorColor(position)
+		r, g, b := watercolorColor(position)
 
 		color := &structs.Color{
 			Red:        float64(r),

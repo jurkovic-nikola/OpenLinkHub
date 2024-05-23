@@ -126,6 +126,40 @@
         "blue": 0,
         "brightness": 1
       }
+    },
+    "circle": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "circleshift": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
     }
   }
 }

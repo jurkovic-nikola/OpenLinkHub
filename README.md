@@ -187,6 +187,40 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
         "blue": 0,
         "brightness": 1
       }
+    },
+    "circle": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "circleshift": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
     }
   }
 }
@@ -264,11 +298,7 @@ Tccd2:        +31.2°C
 - useRgbEffects: Trigger usage of custom RGB effects
 - rgbMode: This will enable custom RGB mode for all devices. 
   - If you do not want to use custom RGB mode, leave this field empty. 
-  - If this mode is enabled, REST API color modification is not possible. 
-  - Currently supported RGB modes:
-    - rainbow
-    - watercolor
-    - colorshift
+  - If this mode is enabled, REST API color modification is not possible.
 - rgbModes: Custom RGB mode data
   - key: RGB mode name from `rgbMode`
     - speed: RGB effect speed, from 1 to 10
@@ -281,6 +311,20 @@ Tccd2:        +31.2°C
 ### How to identify channels ?
 - In most cases, your channel will have a name
 - In cases of FANs, the best way to identify a channel is to set custom color on each channel. 
+## RGB Modes
+- List of supported RGB modes:
+  - rainbow
+  - watercolor
+  - colorshift
+  - colorpulse
+  - circle
+  - circleshift
+- `rainbow` - Self explanatory, rainbow colors
+- `watercolor` - Self explanatory, water colors
+- `colorshift` - Shifts color from field `start` to `end`
+- `colorpulse` - Self explanatory, color pulse
+- `circle` - Cycles color for each device until an end of device list, then repeat
+- `circleshift` - Cycles color for each device until an end of device list with second color shift, then repeat
 ## API
 - OpenICUELinkHub ships with built-in HTTP server for device overview and control.
 ### Overview
@@ -395,6 +439,7 @@ $ curl -X POST http://127.0.0.1:27003/color -d '{"channelId":0,"color": {"red": 
   "message": "Device color successfully changed"
 }
 ```
+
 ## Automatic startup
 ### systemd config
 - This is a plain basic systemd example to get you running. You can create systemd service how you like. 

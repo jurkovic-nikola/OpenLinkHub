@@ -7,6 +7,7 @@ import (
 	"OpenICUELinkHub/src/device/common"
 	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/device/rgb"
+	"OpenICUELinkHub/src/device/rgb/circle"
 	"OpenICUELinkHub/src/device/rgb/colorpulse"
 	"OpenICUELinkHub/src/device/rgb/colorshift"
 	"OpenICUELinkHub/src/device/rgb/rainbow"
@@ -144,6 +145,7 @@ func InitDevices() map[int]structs.LinkDevice {
 		hubDeviceInfo := structs.LinkDevice{
 			ChannelId:    hubDevice.ChannelId,
 			Type:         hubDevice.DeviceType,
+			Model:        hubDevice.DeviceModel,
 			DeviceId:     hubDevice.DeviceId,
 			Name:         match.Name,
 			DefaultValue: common.SetDefaultChannelData(hubDevice.DeviceType),
@@ -486,7 +488,7 @@ func SetDeviceRGBMode() {
 		rgbEndColor = &rgbCustomColorEnd
 	}
 
-	//rgbSmoothness = common.Clamp(rgbSmoothness, 1, 40)
+	rgbSmoothness = common.Clamp(rgbSmoothness, 1, 40)
 
 	// Timer
 	ticker = time.NewTicker(time.Duration(rgbSpeed) * time.Millisecond)
@@ -578,6 +580,36 @@ func SetDeviceRGBMode() {
 						}
 						time.Sleep(rgbLoopDuration) // Loop duration
 					}
+				case "circle", "circleshift":
+					st := time.Now()
+					for {
+						buf = make(map[int][]byte, 0)
+						currentTime := time.Since(st)
+						if currentTime >= rgbLoopDuration {
+							break
+						}
+
+						for i := 0; i < lc; i++ {
+							t := float64(i) / float64(lc) // Calculate interpolation factor
+							colors = circle.GenerateCircleColors(lc, rgbStartColor, rgbEndColor, t, bts)
+							for j, color := range colors {
+								if i < j-2 {
+									buf[j] = []byte{0, 0, 0}
+								} else {
+									buf[j] = []byte{
+										byte(color.R),
+										byte(color.G),
+										byte(color.B),
+									}
+								}
+							}
+
+							data := common.SetColor(buf)
+							comm.WriteColor(opcodes.DataTypeSetColor, data)
+							time.Sleep(40 * time.Millisecond)
+						}
+					}
+
 				}
 
 				for i, color := range colors {
@@ -587,6 +619,7 @@ func SetDeviceRGBMode() {
 						byte(color.B),
 					}
 				}
+
 				data := common.SetColor(buf)
 				comm.WriteColor(opcodes.DataTypeSetColor, data)
 			case <-rgbChan:

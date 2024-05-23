@@ -63,7 +63,7 @@ func GenerateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64)
 			Blue:       float64(b),
 			Brightness: brightnessValue,
 		}
-		modify := brightness.ModifyBrightness(*color, color.Brightness)
+		modify := brightness.ModifyBrightness(*color)
 		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
 	}
 	return colors

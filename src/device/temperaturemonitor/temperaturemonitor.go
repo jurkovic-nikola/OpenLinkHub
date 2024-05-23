@@ -73,7 +73,7 @@ func Init() {
 									}
 
 									// Change color if there is no custom RGB mode set
-									if !rgb.IsRGBEnabled() {
+									if !rgb.IsGRBEnabled() {
 										// Custom color is defined on a temperature curve.
 										// This is when a certain temperature is reached, and the user needs to know that.
 										// You can also use this as different lightning for the temperature range of a CPU.

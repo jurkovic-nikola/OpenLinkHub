@@ -117,7 +117,7 @@ func ProcessChangeColor(r *http.Request) *structs.Payload {
 		}
 	}
 
-	if rgb.IsRGBEnabled() {
+	if rgb.IsGRBEnabled() {
 		return &structs.Payload{
 			Message: "rgbMode mode enabled, color modifications are not possible.",
 			Code:    http.StatusMethodNotAllowed,

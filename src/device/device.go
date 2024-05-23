@@ -7,6 +7,8 @@ import (
 	"OpenICUELinkHub/src/device/common"
 	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/device/rgb"
+	"OpenICUELinkHub/src/device/rgb/colorpulse"
+	"OpenICUELinkHub/src/device/rgb/colorshift"
 	"OpenICUELinkHub/src/device/rgb/rainbow"
 	"OpenICUELinkHub/src/device/rgb/watercolor"
 	"OpenICUELinkHub/src/logger"
@@ -159,7 +161,7 @@ func InitDevices() map[int]structs.LinkDevice {
 
 // SetDeviceColor will set device color
 func SetDeviceColor(channelId int, customColor *structs.Color) {
-	if rgb.IsRGBEnabled() {
+	if rgb.IsGRBEnabled() {
 		SetDeviceRGBMode()
 		return
 	}
@@ -169,10 +171,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 	buf := map[int][]byte{}
 
 	if customColor != nil {
-		color := brightness.ModifyBrightness(
-			*customColor,
-			customColor.Brightness,
-		)
+		color := brightness.ModifyBrightness(*customColor)
 		if channelId == 0 {
 			// All channels
 			for _, linkDevice := range device.Devices {
@@ -253,10 +252,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 					color := customChannelIdData[k]
 
 					// Generate color based on config file
-					deviceColor := brightness.ModifyBrightness(
-						color.Color,
-						color.Color.Brightness,
-					)
+					deviceColor := brightness.ModifyBrightness(color.Color)
 
 					// Add current colors
 					currentColors[k] = deviceColor
@@ -278,10 +274,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 		}
 	} else {
 		// default color on all devices
-		color := brightness.ModifyBrightness(
-			config.GetConfig().DefaultColor,
-			config.GetConfig().DefaultColor.Brightness,
-		)
+		color := brightness.ModifyBrightness(config.GetConfig().DefaultColor)
 		for _, linkDevice := range device.Devices {
 			// Add current colors
 			currentColors[linkDevice.ChannelId] = color
@@ -464,6 +457,38 @@ func SetAutoRefresh() {
 
 // SetDeviceRGBMode will configure custom RGB mode based from service configuration
 func SetDeviceRGBMode() {
+	rgbMode := rgb.GetRGBMode()
+	if rgbMode == nil {
+		logger.Log(logger.Fields{}).Info("Unable to find specified RGB mode. Check your configuration")
+		return
+	}
+
+	// RGB data
+	rgbCustomColor := true
+	rgbModeSpeed := rgbMode.Speed
+	rgbModeName := rgb.GetRGBModeName()
+	rgbModeBrightness := rgbMode.Brightness
+	rgbLoopDuration := time.Duration(rgbModeSpeed) * time.Second
+	rgbStartColor := common.GenerateRandomColor(rgbModeBrightness)
+	rgbEndColor := common.GenerateRandomColor(rgbModeBrightness)
+	rgbSmoothness := rgbMode.Smoothness
+	rgbCustomColorStart := rgbMode.StartColor
+	rgbCustomColorEnd := rgbMode.EndColor
+
+	// Check if we have custom colors
+	if (structs.Color{}) == rgbCustomColorStart || (structs.Color{}) == rgbCustomColorEnd {
+		rgbCustomColor = false
+	}
+
+	// Custom color is set, override values
+	if rgbCustomColor {
+		rgbStartColor = &rgbCustomColorStart
+		rgbEndColor = &rgbCustomColorEnd
+	}
+
+	//rgbSmoothness = common.Clamp(rgbSmoothness, 1, 40)
+
+	// Timer
 	ticker = time.NewTicker(time.Duration(rgbSpeed) * time.Millisecond)
 	rgbChan = make(chan bool)
 
@@ -473,11 +498,7 @@ func SetDeviceRGBMode() {
 		ledChannels += int(linkDevice.LedChannels)
 	}
 
-	rgbModeSpeed := rgb.GetRGBSpeed()
-	rgbModeName := rgb.GetRGBModeName()
-	rgbModeBrightness := rgb.GetRGBBrightness()
-
-	go func(lc int, mode string) {
+	go func(lc, smoothness int, mode string, bts float64) {
 		for {
 			select {
 			case <-ticker.C:
@@ -486,9 +507,77 @@ func SetDeviceRGBMode() {
 				colors := make([]struct{ R, G, B float64 }, 0)
 				switch mode {
 				case "rainbow":
-					colors = rainbow.GenerateRainbowColors(lc, elapsed, rgbModeBrightness)
+					colors = rainbow.GenerateRainbowColors(lc, elapsed, bts)
 				case "watercolor":
-					colors = watercolor.GenerateWatercolorColors(lc, elapsed, rgbModeBrightness)
+					colors = watercolor.GenerateWatercolorColors(lc, elapsed, bts)
+				case "colorpulse":
+					st := time.Now()
+					for {
+						currentTime := time.Since(st)
+						if currentTime >= rgbLoopDuration {
+							break
+						}
+						for i := 0; i <= smoothness; i++ {
+							t := float64(i) / float64(smoothness) // Calculate interpolation factor
+							colors = colorpulse.GenerateColorPulseColors(lc, rgbStartColor, rgbEndColor, t, bts)
+
+							// Update LED channels
+							for j, color := range colors {
+								buf[j] = []byte{
+									byte(color.R),
+									byte(color.G),
+									byte(color.B),
+								}
+							}
+							data := common.SetColor(buf)
+							comm.WriteColor(opcodes.DataTypeSetColor, data)
+							time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
+						}
+						time.Sleep(rgbLoopDuration) // Loop duration
+					}
+				case "colorshift":
+					st := time.Now()
+					currentCustomColor := &rgbCustomColorStart
+					for {
+						currentTime := time.Since(st)
+						if currentTime >= rgbLoopDuration {
+							break
+						}
+						if !rgbCustomColor {
+							rgbEndColor = common.GenerateRandomColor(bts)
+						}
+						for i := 0; i <= smoothness; i++ {
+							t := float64(i) / float64(smoothness) // Calculate interpolation factor
+							colors = colorshift.GenerateColorShiftColors(lc, rgbStartColor, rgbEndColor, t, bts)
+
+							// Update LED channels
+							for j, color := range colors {
+								buf[j] = []byte{
+									byte(color.R),
+									byte(color.G),
+									byte(color.B),
+								}
+							}
+							data := common.SetColor(buf)
+							comm.WriteColor(opcodes.DataTypeSetColor, data)
+							time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
+						}
+
+						if rgbCustomColor {
+							// Shuffle colors
+							currentCustomColor = rgbStartColor
+							if currentCustomColor == &rgbCustomColorStart {
+								rgbEndColor = &rgbCustomColorStart
+								rgbStartColor = &rgbCustomColorEnd
+							} else {
+								rgbEndColor = &rgbCustomColorEnd
+								rgbStartColor = &rgbCustomColorStart
+							}
+						} else {
+							rgbStartColor = rgbEndColor
+						}
+						time.Sleep(rgbLoopDuration) // Loop duration
+					}
 				}
 
 				for i, color := range colors {
@@ -504,7 +593,7 @@ func SetDeviceRGBMode() {
 				ticker.Stop()
 			}
 		}
-	}(ledChannels, rgbModeName)
+	}(ledChannels, rgbSmoothness, rgbModeName, rgbModeBrightness)
 }
 
 // SetDeviceMode will switch a device to Hardware or Software mode

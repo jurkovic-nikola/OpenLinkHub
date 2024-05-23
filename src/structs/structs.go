@@ -40,6 +40,9 @@ type ChannelIdData struct {
 type RGBModes struct {
 	Speed      uint8   `json:"speed"`
 	Brightness float64 `json:"brightness"`
+	Smoothness int     `json:"smoothness"`
+	StartColor Color   `json:"start"`
+	EndColor   Color   `json:"end"`
 }
 
 type Configuration struct {
@@ -63,6 +66,7 @@ type Configuration struct {
 	CustomChannelIdData          map[int]ChannelIdData `json:"customChannelIdData"`
 	RGBMode                      string                `json:"rgbMode"`
 	RGBModes                     map[string]RGBModes   `json:"rgbModes"`
+	UseRgbEffects                bool                  `json:"useRgbEffects"`
 }
 
 // Device primary struct for a Corsair iCUE Link device

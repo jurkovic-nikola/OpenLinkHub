@@ -141,15 +141,52 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
       }
     }
   },
-  "rgbMode": "rainbow",
+  "useRgbEffects": true,
+  "rgbMode": "colorshift",
   "rgbModes": {
     "rainbow": {
-      "speed": 5,
-      "brightness": 0.5
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 0
     },
     "watercolor": {
-      "speed": 5,
-      "brightness": 0.5
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 0
+    },
+    "colorshift": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "colorpulse": {
+      "speed": 2,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 0,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
     }
   }
 }
@@ -224,16 +261,23 @@ Tccd2:        +31.2°C
 - Currently, there is only support for static RGB colors and a couple of custom modes (see bellow rgbMode field). 
 - useCustomChannelIdSpeed: is set to true, each device will have a static speed defined in config. 
   - In this mode, a standalone flag is ignored and CPU monitoring is not enabled.
+- useRgbEffects: Trigger usage of custom RGB effects
 - rgbMode: This will enable custom RGB mode for all devices. 
   - If you do not want to use custom RGB mode, leave this field empty. 
   - If this mode is enabled, REST API color modification is not possible. 
   - Currently supported RGB modes:
     - rainbow
     - watercolor
+    - colorshift
 - rgbModes: Custom RGB mode data
   - key: RGB mode name from `rgbMode`
     - speed: RGB effect speed, from 1 to 10
     - brightness: Color brightness, from 0.1 to 1
+    - smoothness: How smooth transition from one color to another is. 
+      - the smoothness is in range of 1 to 40
+    - start: Custom starting color in (R, G, B, brightness format)
+    - end: Custom ending color  (R, G, B, brightness format)
+      - If you want random colors, remove data from start and end JSON block. `"start":{}` and `"end":{}`
 ### How to identify channels ?
 - In most cases, your channel will have a name
 - In cases of FANs, the best way to identify a channel is to set custom color on each channel. 

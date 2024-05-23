@@ -115,11 +115,11 @@ func ToRGB(c HSL) *structs.Color {
 	}
 }
 
-func ModifyBrightness(c structs.Color, brightness float64) *structs.Color {
+func ModifyBrightness(c structs.Color) *structs.Color {
 	if c.Brightness > 1 {
-		brightness = 1
+		c.Brightness = 1
 	} else if c.Brightness < 0 {
-		brightness = 0
+		c.Brightness = 0
 	}
 	hsl := ToHSL(c)
 	hsl.L *= c.Brightness

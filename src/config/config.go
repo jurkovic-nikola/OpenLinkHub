@@ -28,13 +28,15 @@ func Init() {
 		configuration.Standalone = false
 	}
 
-	rgbMode := configuration.RGBMode
-	if _, ok := configuration.RGBModes[rgbMode]; !ok {
-		fmt.Println(fmt.Sprintf("RGB mode %s not found in configuration. Setting to default (nothing)", rgbMode))
-		configuration.RGBMode = ""
-	} else {
-		fmt.Println(fmt.Sprintf("RGB mode %s found in configuration. Setting UseCustomChannelIdColor to false", rgbMode))
-		configuration.UseCustomChannelIdColor = false
+	if configuration.UseRgbEffects {
+		rgbMode := configuration.RGBMode
+		if _, ok := configuration.RGBModes[rgbMode]; !ok {
+			fmt.Println("RGB mode not found in configuration. Setting to default (nothing)")
+			configuration.RGBMode = ""
+		} else {
+			fmt.Println(fmt.Sprintf("RGB mode %s found in configuration. Setting UseCustomChannelIdColor to false", rgbMode))
+			configuration.UseCustomChannelIdColor = false
+		}
 	}
 }
 

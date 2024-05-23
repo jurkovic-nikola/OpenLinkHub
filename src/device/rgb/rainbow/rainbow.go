@@ -53,7 +53,7 @@ func GenerateRainbowColors(numLEDs int, elapsedTime, brightnessValue float64) []
 			Brightness: brightnessValue,
 		}
 
-		modify := brightness.ModifyBrightness(*color, color.Brightness)
+		modify := brightness.ModifyBrightness(*color)
 		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
 	}
 	return colors

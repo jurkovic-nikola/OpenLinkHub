@@ -2,7 +2,9 @@ package common
 
 import (
 	"OpenICUELinkHub/src/config"
+	"OpenICUELinkHub/src/device/brightness"
 	"OpenICUELinkHub/src/structs"
+	"math/rand"
 	"sort"
 	"strconv"
 	"unsafe"
@@ -156,4 +158,18 @@ func ConvertHexToUint16(hexStr string) (uint16, error) {
 		return 0, err // Return the zero value of uint16 and the error
 	}
 	return uint16(value), nil
+}
+
+func GenerateRandomColor(bts float64) *structs.Color {
+	r := rand.Intn(256) // Random value between 0 and 255
+	g := rand.Intn(256) // Random value between 0 and 255
+	b := rand.Intn(256) // Random value between 0 and 255
+
+	color := &structs.Color{
+		Red:        float64(r),
+		Green:      float64(g),
+		Blue:       float64(b),
+		Brightness: bts,
+	}
+	return brightness.ModifyBrightness(*color)
 }

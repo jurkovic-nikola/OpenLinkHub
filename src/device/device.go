@@ -10,8 +10,10 @@ import (
 	"OpenICUELinkHub/src/device/rgb/circle"
 	"OpenICUELinkHub/src/device/rgb/colorpulse"
 	"OpenICUELinkHub/src/device/rgb/colorshift"
+	"OpenICUELinkHub/src/device/rgb/colorwarp"
 	"OpenICUELinkHub/src/device/rgb/flickering"
 	"OpenICUELinkHub/src/device/rgb/rainbow"
+	"OpenICUELinkHub/src/device/rgb/spinner"
 	"OpenICUELinkHub/src/device/rgb/watercolor"
 	"OpenICUELinkHub/src/logger"
 	"OpenICUELinkHub/src/structs"
@@ -526,6 +528,10 @@ func setDeviceRGBMode() {
 					circle.Init(lc, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
 				case "flickering":
 					flickering.Init(lc, rgbLoopDuration, rgbCustomColor, rgbStartColor, rgbEndColor, bts)
+				case "colorwarp":
+					colorwarp.Init(lc, smoothness, rgbLoopDuration, bts)
+				case "snipper":
+					spinner.Init(lc, rgbStartColor, rgbEndColor, bts)
 				}
 			case <-rgbChan:
 				ticker.Stop()

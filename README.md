@@ -221,6 +221,47 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
         "blue": 0,
         "brightness": 1
       }
+    },
+    "flickering": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "colorwarp": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {},
+      "end": {}
+    },
+    "snipper": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
     }
   }
 }
@@ -320,6 +361,8 @@ Tccd2:        +31.2°C
   - circle
   - circleshift
   - flickering
+  - colorwarp
+  - snipper
 - `rainbow` - Self explanatory, rainbow colors
 - `watercolor` - Self explanatory, water colors
 - `colorshift` - Shifts color from field `start` to `end`
@@ -327,6 +370,8 @@ Tccd2:        +31.2°C
 - `circle` - Cycles color for each device until an end of device list, then repeat
 - `circleshift` - Cycles color for each device until an end of device list with second color shift, then repeat
 - `flickering` - Will randomly turn LEDs off per cycle
+- `colorwarp` - Will warp two colors on every device
+- `snipper` - Single LED spinning around all devices
 ## API
 - OpenICUELinkHub ships with built-in HTTP server for device overview and control.
 ### Overview

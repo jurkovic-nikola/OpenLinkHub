@@ -147,6 +147,7 @@ func ConvertHexToUint16(hexStr string) (uint16, error) {
 	return uint16(value), nil
 }
 
+// GenerateRandomColor will generate random color with provided bts as brightness
 func GenerateRandomColor(bts float64) *structs.Color {
 	r := rand.Intn(256) // Random value between 0 and 255
 	g := rand.Intn(256) // Random value between 0 and 255

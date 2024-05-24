@@ -8,17 +8,18 @@ import (
 )
 
 var configuration structs.Configuration
+var devices []structs.DeviceList
 
 // Init will initialize a new config object
 func Init() {
 	pwd, _ := os.Getwd()
 
-	configFile, err := os.Open(pwd + "/config.json")
+	cfg, err := os.Open(pwd + "/config.json")
 	if err != nil {
 		panic(err.Error())
 	}
 
-	jsonParser := json.NewDecoder(configFile)
+	jsonParser := json.NewDecoder(cfg)
 	if err = jsonParser.Decode(&configuration); err != nil {
 		panic(err.Error())
 	}
@@ -38,9 +39,29 @@ func Init() {
 			configuration.UseCustomChannelIdColor = false
 		}
 	}
+
+	loadDevices()
+}
+
+func loadDevices() {
+	pwd, _ := os.Getwd()
+	cfg, err := os.Open(pwd + "/devices.json")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	jsonParser := json.NewDecoder(cfg)
+	if err = jsonParser.Decode(&devices); err != nil {
+		panic(err.Error())
+	}
 }
 
 // GetConfig will return Configuration struct
 func GetConfig() structs.Configuration {
 	return configuration
+}
+
+// GetDevices will return []DeviceList struct
+func GetDevices() []structs.DeviceList {
+	return devices
 }

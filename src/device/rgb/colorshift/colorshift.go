@@ -18,10 +18,10 @@ func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	}
 }
 
-// GenerateColorShiftColors will generate color based on start and end color
-func GenerateColorShiftColors(numLEDs int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, numLEDs)
-	for i := 0; i < numLEDs; i++ {
+// generateColors will generate color based on start and end color
+func generateColors(lc int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lc)
+	for i := 0; i < lc; i++ {
 		color := interpolateColor(c1, c2, factor)
 		color.Brightness = bts
 		modify := brightness.ModifyBrightness(*color)
@@ -49,7 +49,7 @@ func Init(lc, smoothness int, rgbCustomColor bool, rgbLoopDuration time.Duration
 		// Initial
 		for i := 0; i <= smoothness; i++ {
 			t := float64(i) / float64(smoothness) // Calculate interpolation factor
-			colors := GenerateColorShiftColors(lc, rgbStartColor, rgbEndColor, t, bts)
+			colors := generateColors(lc, rgbStartColor, rgbEndColor, t, bts)
 
 			// Update LED channels
 			for j, color := range colors {
@@ -70,7 +70,7 @@ func Init(lc, smoothness int, rgbCustomColor bool, rgbLoopDuration time.Duration
 		// Reverse
 		for i := 0; i <= smoothness; i++ {
 			t := float64(i) / float64(smoothness) // Calculate interpolation factor
-			colors := GenerateColorShiftColors(lc, rgbEndColor, rgbStartColor, t, bts)
+			colors := generateColors(lc, rgbEndColor, rgbStartColor, t, bts)
 
 			// Update LED channels
 			for j, color := range colors {

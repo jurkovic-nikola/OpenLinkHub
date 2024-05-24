@@ -319,12 +319,14 @@ Tccd2:        +31.2°C
   - colorpulse
   - circle
   - circleshift
+  - flickering
 - `rainbow` - Self explanatory, rainbow colors
 - `watercolor` - Self explanatory, water colors
 - `colorshift` - Shifts color from field `start` to `end`
 - `colorpulse` - Self explanatory, color pulse
 - `circle` - Cycles color for each device until an end of device list, then repeat
 - `circleshift` - Cycles color for each device until an end of device list with second color shift, then repeat
+- `flickering` - Will randomly turn LEDs off per cycle
 ## API
 - OpenICUELinkHub ships with built-in HTTP server for device overview and control.
 ### Overview

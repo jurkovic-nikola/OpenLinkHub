@@ -52,11 +52,11 @@ func HSBToRGB(h, s, v float64) (int, int, int) {
 	return int(r), int(g), int(b)
 }
 
-// generateWatercolorColors generates a list of RGB colors for the given number of LEDs at the current time
-func generateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, numLEDs)
-	for i := 0; i < numLEDs; i++ {
-		position := (float64(i) / float64(numLEDs)) + (elapsedTime / 4.0)
+// generateColors will generate color based on start and end color
+func generateColors(lc int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lc)
+	for i := 0; i < lc; i++ {
+		position := (float64(i) / float64(lc)) + (elapsedTime / 4.0)
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
 		r, g, b := watercolorColor(position)
 
@@ -72,9 +72,10 @@ func generateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64)
 	return colors
 }
 
+// Init will run RGB function
 func Init(lc int, elapsed, bts float64) {
 	buf := map[int][]byte{}
-	colors := generateWatercolorColors(lc, elapsed, bts)
+	colors := generateColors(lc, elapsed, bts)
 	for i, color := range colors {
 		buf[i] = []byte{
 			byte(color.R),

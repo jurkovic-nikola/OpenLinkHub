@@ -41,11 +41,11 @@ func interpolate(r1, g1, b1, r2, g2, b2 float64, fraction float64) (int, int, in
 	return int(r * 255), int(g * 255), int(b * 255)
 }
 
-// generateRainbowColors generates a list of RGB colors for the given number of LEDs at the current time
-func generateRainbowColors(numLEDs int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, numLEDs)
-	for i := 0; i < numLEDs; i++ {
-		position := (float64(i) / float64(numLEDs)) + (elapsedTime / 4.0)
+// generateColors will generate color based on start and end color
+func generateColors(lc int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lc)
+	for i := 0; i < lc; i++ {
+		position := (float64(i) / float64(lc)) + (elapsedTime / 4.0)
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
 		r, g, b := rainbowColor(position)
 
@@ -62,9 +62,10 @@ func generateRainbowColors(numLEDs int, elapsedTime, bts float64) []struct{ R, G
 	return colors
 }
 
+// Init will run RGB function
 func Init(lc int, elapsed, bts float64) {
 	buf := map[int][]byte{}
-	colors := generateRainbowColors(lc, elapsed, bts)
+	colors := generateColors(lc, elapsed, bts)
 	for i, color := range colors {
 		buf[i] = []byte{
 			byte(color.R),

@@ -111,7 +111,7 @@
       }
     },
     "colorpulse": {
-      "speed": 2,
+      "speed": 1,
       "brightness": 1,
       "smoothness": 20,
       "start": {
@@ -151,6 +151,23 @@
       "start": {
         "red": 255,
         "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "flickering": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 100,
         "blue": 0,
         "brightness": 1
       },

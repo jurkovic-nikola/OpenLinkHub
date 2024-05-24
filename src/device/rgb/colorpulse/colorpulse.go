@@ -18,7 +18,8 @@ func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	}
 }
 
-func GenerateColorPulseColors(numLEDs int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
+// generateColors will generate color based on start and end color
+func generateColor(numLEDs int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, numLEDs)
 	for i := 0; i < numLEDs; i++ {
 		color := interpolateColor(c1, c2, factor)
@@ -29,6 +30,7 @@ func GenerateColorPulseColors(numLEDs int, c1, c2 *structs.Color, factor, bts fl
 	return colors
 }
 
+// Init will run RGB function
 func Init(lc, smoothness int, rgbLoopDuration time.Duration, rgbStartColor, rgbEndColor *structs.Color, bts float64) {
 	st := time.Now()
 	for {
@@ -39,7 +41,7 @@ func Init(lc, smoothness int, rgbLoopDuration time.Duration, rgbStartColor, rgbE
 		}
 		for i := 0; i <= smoothness; i++ {
 			t := float64(i) / float64(smoothness) // Calculate interpolation factor
-			colors := GenerateColorPulseColors(lc, rgbStartColor, rgbEndColor, t, bts)
+			colors := generateColor(lc, rgbStartColor, rgbEndColor, t, bts)
 
 			// Update LED channels
 			for j, color := range colors {

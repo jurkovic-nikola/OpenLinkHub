@@ -10,6 +10,7 @@ import (
 	"OpenICUELinkHub/src/device/rgb/circle"
 	"OpenICUELinkHub/src/device/rgb/colorpulse"
 	"OpenICUELinkHub/src/device/rgb/colorshift"
+	"OpenICUELinkHub/src/device/rgb/flickering"
 	"OpenICUELinkHub/src/device/rgb/rainbow"
 	"OpenICUELinkHub/src/device/rgb/watercolor"
 	"OpenICUELinkHub/src/logger"
@@ -148,11 +149,11 @@ func initDevices() map[int]structs.LinkDevice {
 			Model:        hubDevice.DeviceModel,
 			DeviceId:     hubDevice.DeviceId,
 			Name:         match.Name,
-			DefaultValue: common.SetDefaultChannelData(hubDevice.DeviceType),
+			DefaultValue: common.SetDefaultChannelData(match),
 			Rpm:          0,
 			Temperature:  0,
 			LedChannels:  match.LedChannels,
-			ContainsPump: common.ContainsPump(hubDevice.DeviceType),
+			ContainsPump: match.ContainsPump,
 		}
 		deviceList[hubDevice.ChannelId] = hubDeviceInfo
 	}
@@ -466,9 +467,23 @@ func setDeviceRGBMode() {
 		return
 	}
 
+	// Get the number of LED channels we have
+	ledChannels := 0
+	for _, linkDevice := range device.Devices {
+		ledChannels += int(linkDevice.LedChannels)
+	}
+
+	// Do we have any RGB component in the system?
+	if ledChannels == 0 {
+		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
+		return
+	}
+
 	// RGB data
 	rgbCustomColor := true
 	rgbModeSpeed := rgbMode.Speed
+	rgbModeSpeed = common.Clamp(rgbModeSpeed, 1, 10)
+
 	rgbModeName := rgb.GetRGBModeName()
 	rgbModeBrightness := rgbMode.Brightness
 	rgbLoopDuration := time.Duration(rgbModeSpeed) * time.Second
@@ -493,12 +508,6 @@ func setDeviceRGBMode() {
 	ticker = time.NewTicker(time.Duration(rgbSpeed) * time.Millisecond)
 	rgbChan = make(chan bool)
 
-	// Get the number of LED channels we have
-	ledChannels := 0
-	for _, linkDevice := range device.Devices {
-		ledChannels += int(linkDevice.LedChannels)
-	}
-
 	go func(lc, smoothness int, mode string, bts float64) {
 		for {
 			select {
@@ -515,6 +524,8 @@ func setDeviceRGBMode() {
 					colorshift.Init(lc, smoothness, rgbCustomColor, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
 				case "circle", "circleshift":
 					circle.Init(lc, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
+				case "flickering":
+					flickering.Init(lc, rgbLoopDuration, rgbCustomColor, rgbStartColor, rgbEndColor, bts)
 				}
 			case <-rgbChan:
 				ticker.Stop()

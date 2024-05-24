@@ -14,24 +14,6 @@ var (
 	MinimumPumpPercent = 50
 	PercentMin         = 0
 	PercentMax         = 100
-	devices            = []structs.DeviceList{
-		{0x01, 0x00, "QX Fan", 34},        // Fan
-		{0x13, 0x00, "RX Fan", 0},         // Fan No LEDs
-		{0x0f, 0x00, "RX RGB Fan", 8},     // Fan
-		{0x07, 0x02, "H150i", 20},         // AIO Black
-		{0x07, 0x05, "H150i", 20},         // AIO White
-		{0x07, 0x01, "H115i", 20},         // AIO
-		{0x07, 0x03, "H170i", 20},         // AIO
-		{0x07, 0x00, "H100i", 20},         // AIO Black
-		{0x07, 0x04, "H100i", 20},         // AIO White
-		{0x09, 0x00, "XC7 Elite", 24},     // CPU Block Stealth Gray
-		{0x09, 0x01, "XC7 Elite", 24},     // CPU Block White
-		{0x0d, 0x00, "XG7", 16},           // GPU Block
-		{0x0c, 0x00, "XD5 Elite", 22},     // Pump reservoir Stealth Gray
-		{0x0c, 0x01, "XD5 Elite", 22},     // Pump reservoir White (?)
-		{0x0e, 0x00, "XD5 Elite LCD", 22}, // Pump reservoir Stealth Gray
-		{0x0e, 0x01, "XD5 Elite LCD", 22}, // Pump reservoir White (?)
-	}
 )
 
 func ContainsPump(t byte) bool {
@@ -39,7 +21,7 @@ func ContainsPump(t byte) bool {
 }
 
 func GetDevice(deviceId byte, deviceModel byte) *structs.DeviceList {
-	for _, device := range devices {
+	for _, device := range config.GetDevices() {
 		if device.DeviceId == deviceId && device.Model == deviceModel {
 			return &device
 		}
@@ -64,9 +46,9 @@ func Clamp(value, min, max int) int {
 }
 
 // SetDefaultChannelData will setup default channel speed
-func SetDefaultChannelData(deviceType byte) byte {
+func SetDefaultChannelData(device *structs.DeviceList) byte {
 	value := config.GetConfig().DefaultFanValue
-	if ContainsPump(deviceType) {
+	if device.ContainsPump {
 		value = config.GetConfig().DefaultPumpValue
 		if value < MinimumPumpPercent {
 			value = MinimumPumpPercent

@@ -38,7 +38,7 @@ type ChannelIdData struct {
 }
 
 type RGBModes struct {
-	Speed      uint8   `json:"speed"`
+	Speed      int     `json:"speed"`
 	Brightness float64 `json:"brightness"`
 	Smoothness int     `json:"smoothness"`
 	StartColor Color   `json:"start"`
@@ -95,10 +95,15 @@ type LinkDevice struct {
 
 // DeviceList contains definition of supported devices
 type DeviceList struct {
-	DeviceId    byte
-	Model       byte
-	Name        string
-	LedChannels uint8
+	DeviceId      byte   `json:"deviceId"`
+	Model         byte   `json:"deviceModel"`
+	Name          string `json:"deviceName"`
+	LedChannels   uint8  `json:"ledChannels"`
+	OuterLedFront int    `json:"outerLedFront"`
+	OuterLedBack  int    `json:"outerLedBack"`
+	InnerLedFront int    `json:"innerLedFront"`
+	InnerLedBack  int    `json:"innerLedBack"`
+	ContainsPump  bool   `json:"containsPump"`
 }
 
 // SpeedSensor contains data about device RPM information

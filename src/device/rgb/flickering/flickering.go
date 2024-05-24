@@ -1,4 +1,4 @@
-package circle
+package flickering
 
 import (
 	"OpenICUELinkHub/src/device/brightness"
@@ -6,6 +6,7 @@ import (
 	"OpenICUELinkHub/src/device/common"
 	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/structs"
+	"math/rand"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func generateColors(lc int, c1, c2 *structs.Color, factor, bts float64) []struct
 }
 
 // Init will run RGB function
-func Init(lc int, rgbLoopDuration time.Duration, rgbStartColor, rgbEndColor *structs.Color, bts float64) {
+func Init(lc int, rgbLoopDuration time.Duration, rgbCustomColor bool, rgbStartColor, rgbEndColor *structs.Color, bts float64) {
 	st := time.Now()
 	for {
 		buf := map[int][]byte{}
@@ -40,11 +41,16 @@ func Init(lc int, rgbLoopDuration time.Duration, rgbStartColor, rgbEndColor *str
 			break
 		}
 
+		if !rgbCustomColor {
+			rgbStartColor = common.GenerateRandomColor(bts)
+			rgbEndColor = common.GenerateRandomColor(bts)
+		}
+
 		for i := 0; i < lc; i++ {
 			t := float64(i) / float64(lc) // Calculate interpolation factor
 			colors := generateColors(lc, rgbStartColor, rgbEndColor, t, bts)
 			for j, color := range colors {
-				if i < j-2 {
+				if rand.Intn(2) == 1 {
 					buf[j] = []byte{0, 0, 0}
 				} else {
 					buf[j] = []byte{
@@ -54,10 +60,9 @@ func Init(lc int, rgbLoopDuration time.Duration, rgbStartColor, rgbEndColor *str
 					}
 				}
 			}
-
 			data := common.SetColor(buf)
 			comm.WriteColor(opcodes.DataTypeSetColor, data)
-			time.Sleep(40 * time.Millisecond)
+			time.Sleep(rgbLoopDuration)
 		}
 	}
 }

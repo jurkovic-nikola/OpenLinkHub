@@ -16,7 +16,7 @@ var (
 	quit              chan bool
 )
 
-func GetCpuTemperature() float32 {
+func getCpuTemperature() float32 {
 	if config.GetConfig().Standalone {
 		sensors, err := gosensors.NewFromSystem()
 		if err != nil {
@@ -52,7 +52,7 @@ func Init() {
 			for {
 				select {
 				case <-ticker.C:
-					temp := GetCpuTemperature()
+					temp := getCpuTemperature()
 					if temp > 0 {
 						for i := 0; i < len(temperatureCurves); i++ {
 							curve := temperatureCurves[i]

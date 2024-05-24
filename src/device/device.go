@@ -41,7 +41,7 @@ func GetDevice() *structs.Device {
 // Stop will send the device back to hardware mode, usually when the program exits
 func Stop() {
 	authRefreshChan <- true
-	SetDeviceMode(opcodes.CmdHardwareMode)
+	setDeviceMode(opcodes.CmdHardwareMode)
 	comm.Close()
 }
 
@@ -57,36 +57,36 @@ func Init() {
 		Manufacturer: manufacturer,
 		Product:      product,
 		Serial:       serial,
-		Firmware:     GetDeviceFirmware(),
+		Firmware:     getDeviceFirmware(),
 		Standalone:   config.GetConfig().Standalone,
 	}
 
 	// Activate software mode on device
-	SetDeviceMode(opcodes.CmdSoftwareMode)
+	setDeviceMode(opcodes.CmdSoftwareMode)
 
 	// Init all channels
-	device.Devices = InitDevices()
+	device.Devices = initDevices()
 
 	// Default channel data
-	ChannelsDefault(device.Devices)
+	channelsDefault(device.Devices)
 
-	// Init RGB endpoint
-	InitColorEndpoint()
+	// Initialize RGB endpoint
+	initColorEndpoint()
 
 	// Device color
 	SetDeviceColor(0, nil)
 
 	// Speed and temp refresh
-	SetAutoRefresh()
+	setAutoRefresh()
 
 	// Monitor for device
-	deviceMonitor = NewDeviceMonitor()
+	deviceMonitor = newDeviceMonitor()
 
 	logger.Log(logger.Fields{"device": device}).Info("Device successfully initialized")
 }
 
-// InitColorEndpoint will initialize color endpoint for RGB
-func InitColorEndpoint() {
+// initColorEndpoint will initialize color endpoint for RGB
+func initColorEndpoint() {
 	// Close any RGB endpoint
 	_, err := comm.Transfer(opcodes.CmdCloseEndpoint, opcodes.ModeSetColor, nil)
 	if err != nil {
@@ -100,8 +100,8 @@ func InitColorEndpoint() {
 	}
 }
 
-// InitDevices will retrieve all available devices from a device
-func InitDevices() map[int]structs.LinkDevice {
+// initDevices will retrieve all available devices from a device
+func initDevices() map[int]structs.LinkDevice {
 	deviceList := make(map[int]structs.LinkDevice)
 	var devices []structs.Devices
 
@@ -164,7 +164,7 @@ func InitDevices() map[int]structs.LinkDevice {
 // SetDeviceColor will set device color
 func SetDeviceColor(channelId int, customColor *structs.Color) {
 	if rgb.IsGRBEnabled() {
-		SetDeviceRGBMode()
+		setDeviceRGBMode()
 		return
 	}
 
@@ -310,8 +310,8 @@ func SetDeviceSpeed(channelId int, value uint16, mode uint8) int {
 	return comm.Write(opcodes.ModeSetSpeed, opcodes.DataTypeSetSpeed, data)
 }
 
-// ChannelsDefault will initialize all channels default power when the program starts
-func ChannelsDefault(linkDevices map[int]structs.LinkDevice) {
+// channelsDefault will initialize all channels default power when the program starts
+func channelsDefault(linkDevices map[int]structs.LinkDevice) {
 	var data []byte
 	channelDefaults := map[int][]byte{}
 
@@ -335,8 +335,8 @@ func ChannelsDefault(linkDevices map[int]structs.LinkDevice) {
 	}
 }
 
-// GetDeviceTemperature will retrieve all temperature sensors from devices
-func GetDeviceTemperature() {
+// getDeviceTemperature will retrieve all temperature sensors from devices
+func getDeviceTemperature() {
 	response := comm.Read(
 		opcodes.ModeGetTemperatures,
 		opcodes.DataTypeGetTemperatures,
@@ -372,8 +372,8 @@ func GetDeviceTemperature() {
 	}
 }
 
-// GetDeviceSpeed will retrieve all speed sensors from devices
-func GetDeviceSpeed() {
+// getDeviceSpeed will retrieve all speed sensors from devices
+func getDeviceSpeed() {
 	response := comm.Read(
 		opcodes.ModeGetSpeeds,
 		opcodes.DataTypeGetSpeeds,
@@ -408,8 +408,8 @@ func GetDeviceSpeed() {
 	}
 }
 
-// GetDeviceFirmware will return a device firmware version out as string
-func GetDeviceFirmware() string {
+// getDeviceFirmware will return a device firmware version out as string
+func getDeviceFirmware() string {
 	fw, err := comm.Transfer(
 		opcodes.CmdGetFirmware,
 		nil,
@@ -423,7 +423,8 @@ func GetDeviceFirmware() string {
 	return fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
 
-func GetDeviceMode() byte {
+// getDeviceMode will return current device mode
+func getDeviceMode() byte {
 	/*
 		0 - Device is powered on and initialized
 		1 - Device is powered on, and it's being initialized.
@@ -438,7 +439,7 @@ func GetDeviceMode() byte {
 
 // SetAutoRefresh will automatically refresh data from a device. We need to refresh device data constantly,
 // since if a device is left without communication, it will automatically switch back to default hardware mode.
-func SetAutoRefresh() {
+func setAutoRefresh() {
 	timer := time.NewTicker(time.Duration(config.GetConfig().PullingIntervalMs) * time.Millisecond)
 	authRefreshChan = make(chan bool)
 
@@ -446,9 +447,9 @@ func SetAutoRefresh() {
 		for {
 			select {
 			case <-timer.C:
-				SetDeviceStatus(GetDeviceMode())
-				GetDeviceSpeed()
-				GetDeviceTemperature()
+				getDeviceStatus(getDeviceMode())
+				getDeviceSpeed()
+				getDeviceTemperature()
 			case <-authRefreshChan:
 				timer.Stop()
 				return
@@ -457,8 +458,8 @@ func SetAutoRefresh() {
 	}()
 }
 
-// SetDeviceRGBMode will configure custom RGB mode based from service configuration
-func SetDeviceRGBMode() {
+// setDeviceRGBMode will configure custom RGB mode based from service configuration
+func setDeviceRGBMode() {
 	rgbMode := rgb.GetRGBMode()
 	if rgbMode == nil {
 		logger.Log(logger.Fields{}).Info("Unable to find specified RGB mode. Check your configuration")
@@ -474,18 +475,16 @@ func SetDeviceRGBMode() {
 	rgbStartColor := common.GenerateRandomColor(rgbModeBrightness)
 	rgbEndColor := common.GenerateRandomColor(rgbModeBrightness)
 	rgbSmoothness := rgbMode.Smoothness
-	rgbCustomColorStart := rgbMode.StartColor
-	rgbCustomColorEnd := rgbMode.EndColor
 
 	// Check if we have custom colors
-	if (structs.Color{}) == rgbCustomColorStart || (structs.Color{}) == rgbCustomColorEnd {
+	if (structs.Color{}) == rgbMode.StartColor || (structs.Color{}) == rgbMode.EndColor {
 		rgbCustomColor = false
 	}
 
 	// Custom color is set, override values
 	if rgbCustomColor {
-		rgbStartColor = &rgbCustomColorStart
-		rgbEndColor = &rgbCustomColorEnd
+		rgbStartColor = &rgbMode.StartColor
+		rgbEndColor = &rgbMode.EndColor
 	}
 
 	rgbSmoothness = common.Clamp(rgbSmoothness, 1, 40)
@@ -504,124 +503,19 @@ func SetDeviceRGBMode() {
 		for {
 			select {
 			case <-ticker.C:
-				buf := map[int][]byte{}
 				elapsed := time.Since(startTime).Seconds() * float64(rgbModeSpeed)
-				colors := make([]struct{ R, G, B float64 }, 0)
 				switch mode {
 				case "rainbow":
-					colors = rainbow.GenerateRainbowColors(lc, elapsed, bts)
+					rainbow.Init(lc, elapsed, bts)
 				case "watercolor":
-					colors = watercolor.GenerateWatercolorColors(lc, elapsed, bts)
+					watercolor.Init(lc, elapsed, bts)
 				case "colorpulse":
-					st := time.Now()
-					for {
-						currentTime := time.Since(st)
-						if currentTime >= rgbLoopDuration {
-							break
-						}
-						for i := 0; i <= smoothness; i++ {
-							t := float64(i) / float64(smoothness) // Calculate interpolation factor
-							colors = colorpulse.GenerateColorPulseColors(lc, rgbStartColor, rgbEndColor, t, bts)
-
-							// Update LED channels
-							for j, color := range colors {
-								buf[j] = []byte{
-									byte(color.R),
-									byte(color.G),
-									byte(color.B),
-								}
-							}
-							data := common.SetColor(buf)
-							comm.WriteColor(opcodes.DataTypeSetColor, data)
-							time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
-						}
-						time.Sleep(rgbLoopDuration) // Loop duration
-					}
+					colorpulse.Init(lc, smoothness, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
 				case "colorshift":
-					st := time.Now()
-					currentCustomColor := &rgbCustomColorStart
-					for {
-						currentTime := time.Since(st)
-						if currentTime >= rgbLoopDuration {
-							break
-						}
-						if !rgbCustomColor {
-							rgbEndColor = common.GenerateRandomColor(bts)
-						}
-						for i := 0; i <= smoothness; i++ {
-							t := float64(i) / float64(smoothness) // Calculate interpolation factor
-							colors = colorshift.GenerateColorShiftColors(lc, rgbStartColor, rgbEndColor, t, bts)
-
-							// Update LED channels
-							for j, color := range colors {
-								buf[j] = []byte{
-									byte(color.R),
-									byte(color.G),
-									byte(color.B),
-								}
-							}
-							data := common.SetColor(buf)
-							comm.WriteColor(opcodes.DataTypeSetColor, data)
-							time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
-						}
-
-						if rgbCustomColor {
-							// Shuffle colors
-							currentCustomColor = rgbStartColor
-							if currentCustomColor == &rgbCustomColorStart {
-								rgbEndColor = &rgbCustomColorStart
-								rgbStartColor = &rgbCustomColorEnd
-							} else {
-								rgbEndColor = &rgbCustomColorEnd
-								rgbStartColor = &rgbCustomColorStart
-							}
-						} else {
-							rgbStartColor = rgbEndColor
-						}
-						time.Sleep(rgbLoopDuration) // Loop duration
-					}
+					colorshift.Init(lc, smoothness, rgbCustomColor, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
 				case "circle", "circleshift":
-					st := time.Now()
-					for {
-						buf = make(map[int][]byte, 0)
-						currentTime := time.Since(st)
-						if currentTime >= rgbLoopDuration {
-							break
-						}
-
-						for i := 0; i < lc; i++ {
-							t := float64(i) / float64(lc) // Calculate interpolation factor
-							colors = circle.GenerateCircleColors(lc, rgbStartColor, rgbEndColor, t, bts)
-							for j, color := range colors {
-								if i < j-2 {
-									buf[j] = []byte{0, 0, 0}
-								} else {
-									buf[j] = []byte{
-										byte(color.R),
-										byte(color.G),
-										byte(color.B),
-									}
-								}
-							}
-
-							data := common.SetColor(buf)
-							comm.WriteColor(opcodes.DataTypeSetColor, data)
-							time.Sleep(40 * time.Millisecond)
-						}
-					}
-
+					circle.Init(lc, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
 				}
-
-				for i, color := range colors {
-					buf[i] = []byte{
-						byte(color.R),
-						byte(color.G),
-						byte(color.B),
-					}
-				}
-
-				data := common.SetColor(buf)
-				comm.WriteColor(opcodes.DataTypeSetColor, data)
 			case <-rgbChan:
 				ticker.Stop()
 			}
@@ -629,35 +523,35 @@ func SetDeviceRGBMode() {
 	}(ledChannels, rgbSmoothness, rgbModeName, rgbModeBrightness)
 }
 
-// SetDeviceMode will switch a device to Hardware or Software mode
-func SetDeviceMode(mode []byte) {
+// setDeviceMode will switch a device to Hardware or Software mode
+func setDeviceMode(mode []byte) {
 	_, err := comm.Transfer(mode, nil, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
 }
 
-// NewDeviceMonitor initializes and returns a new Monitor
-func NewDeviceMonitor() *structs.DeviceMonitor {
+// newDeviceMonitor initializes and returns a new Monitor
+func newDeviceMonitor() *structs.DeviceMonitor {
 	m := &structs.DeviceMonitor{}
 	m.Cond = sync.NewCond(&m.Lock)
-	go WaitForDevice(func() {
+	go waitForDevice(func() {
 		Stop()
 		Init()
 	})
 	return m
 }
 
-// SetDeviceStatus sets the status and notifies a waiting goroutine if necessary
-func SetDeviceStatus(val byte) {
+// getDeviceStatus sets the status and notifies a waiting goroutine if necessary
+func getDeviceStatus(val byte) {
 	deviceMonitor.Lock.Lock()
 	defer deviceMonitor.Lock.Unlock()
 	deviceMonitor.Status = val
 	deviceMonitor.Cond.Broadcast()
 }
 
-// WaitForDevice waits for the status to change from zero to one and back to zero before running the action
-func WaitForDevice(action func()) {
+// waitForDevice waits for the status to change from zero to one and back to zero before running the action
+func waitForDevice(action func()) {
 	deviceMonitor.Lock.Lock()
 	for deviceMonitor.Status != 1 {
 		deviceMonitor.Cond.Wait()

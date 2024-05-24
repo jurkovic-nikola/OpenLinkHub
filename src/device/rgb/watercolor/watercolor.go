@@ -2,6 +2,9 @@ package watercolor
 
 import (
 	"OpenICUELinkHub/src/device/brightness"
+	"OpenICUELinkHub/src/device/comm"
+	"OpenICUELinkHub/src/device/common"
+	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/structs"
 	"math"
 )
@@ -49,8 +52,8 @@ func HSBToRGB(h, s, v float64) (int, int, int) {
 	return int(r), int(g), int(b)
 }
 
-// GenerateWatercolorColors generates a list of RGB colors for the given number of LEDs at the current time
-func GenerateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
+// generateWatercolorColors generates a list of RGB colors for the given number of LEDs at the current time
+func generateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, numLEDs)
 	for i := 0; i < numLEDs; i++ {
 		position := (float64(i) / float64(numLEDs)) + (elapsedTime / 4.0)
@@ -67,4 +70,18 @@ func GenerateWatercolorColors(numLEDs int, elapsedTime, brightnessValue float64)
 		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
 	}
 	return colors
+}
+
+func Init(lc int, elapsed, bts float64) {
+	buf := map[int][]byte{}
+	colors := generateWatercolorColors(lc, elapsed, bts)
+	for i, color := range colors {
+		buf[i] = []byte{
+			byte(color.R),
+			byte(color.G),
+			byte(color.B),
+		}
+	}
+	data := common.SetColor(buf)
+	comm.WriteColor(opcodes.DataTypeSetColor, data)
 }

@@ -12,8 +12,8 @@ import (
 	"net/http"
 )
 
-// Send will process response and send it back to a client
-func Send(r *structs.Response, w http.ResponseWriter) {
+// send will process response and send it back to a client
+func send(r *structs.Response, w http.ResponseWriter) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -38,50 +38,50 @@ func Send(r *structs.Response, w http.ResponseWriter) {
 	}
 }
 
-// HomePage returns response on /
-func HomePage(w http.ResponseWriter, _ *http.Request) {
+// homePage returns response on /
+func homePage(w http.ResponseWriter, _ *http.Request) {
 	resp := &structs.Response{
 		Code:   http.StatusOK,
 		Device: device.GetDevice(),
 	}
-	Send(resp, w)
+	send(resp, w)
 }
 
-// Devices returns response on /devices
-func Devices(w http.ResponseWriter, _ *http.Request) {
+// getDevices returns response on /devices
+func getDevices(w http.ResponseWriter, _ *http.Request) {
 	resp := &structs.Response{
 		Code:    http.StatusOK,
 		Devices: device.GetDevice().Devices,
 	}
-	Send(resp, w)
+	send(resp, w)
 }
 
-// SetDeviceSpeed handles device speed changes
-func SetDeviceSpeed(w http.ResponseWriter, r *http.Request) {
+// setDeviceSpeed handles device speed changes
+func setDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeSpeed(r)
 	resp := &structs.Response{
 		Code:    request.Code,
 		Message: request.Message,
 	}
-	Send(resp, w)
+	send(resp, w)
 }
 
-// SetDeviceColor handles device color changes
-func SetDeviceColor(w http.ResponseWriter, r *http.Request) {
+// setDeviceColor handles device color changes
+func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeColor(r)
 	resp := &structs.Response{
 		Code:    request.Code,
 		Message: request.Message,
 	}
-	Send(resp, w)
+	send(resp, w)
 }
 
-func Routes() *mux.Router {
+func setRoutes() *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
-	r.Methods(http.MethodGet).Path("/").HandlerFunc(HomePage)
-	r.Methods(http.MethodGet).Path("/devices").HandlerFunc(Devices)
-	r.Methods(http.MethodPost).Path("/speed").HandlerFunc(SetDeviceSpeed)
-	r.Methods(http.MethodPost).Path("/color").HandlerFunc(SetDeviceColor)
+	r.Methods(http.MethodGet).Path("/").HandlerFunc(homePage)
+	r.Methods(http.MethodGet).Path("/devices").HandlerFunc(getDevices)
+	r.Methods(http.MethodPost).Path("/speed").HandlerFunc(setDeviceSpeed)
+	r.Methods(http.MethodPost).Path("/color").HandlerFunc(setDeviceColor)
 	return r
 }
 
@@ -93,7 +93,7 @@ func Init() {
 			config.GetConfig().ListenAddress,
 			config.GetConfig().ListenPort,
 		),
-		Handler: Routes(),
+		Handler: setRoutes(),
 	}
 
 	err := server.ListenAndServe()

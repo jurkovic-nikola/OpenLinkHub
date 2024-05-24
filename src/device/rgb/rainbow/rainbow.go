@@ -2,6 +2,9 @@ package rainbow
 
 import (
 	"OpenICUELinkHub/src/device/brightness"
+	"OpenICUELinkHub/src/device/comm"
+	"OpenICUELinkHub/src/device/common"
+	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/structs"
 	"math"
 )
@@ -38,8 +41,8 @@ func interpolate(r1, g1, b1, r2, g2, b2 float64, fraction float64) (int, int, in
 	return int(r * 255), int(g * 255), int(b * 255)
 }
 
-// GenerateRainbowColors generates a list of RGB colors for the given number of LEDs at the current time
-func GenerateRainbowColors(numLEDs int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
+// generateRainbowColors generates a list of RGB colors for the given number of LEDs at the current time
+func generateRainbowColors(numLEDs int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, numLEDs)
 	for i := 0; i < numLEDs; i++ {
 		position := (float64(i) / float64(numLEDs)) + (elapsedTime / 4.0)
@@ -57,4 +60,18 @@ func GenerateRainbowColors(numLEDs int, elapsedTime, bts float64) []struct{ R, G
 		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
 	}
 	return colors
+}
+
+func Init(lc int, elapsed, bts float64) {
+	buf := map[int][]byte{}
+	colors := generateRainbowColors(lc, elapsed, bts)
+	for i, color := range colors {
+		buf[i] = []byte{
+			byte(color.R),
+			byte(color.G),
+			byte(color.B),
+		}
+	}
+	data := common.SetColor(buf)
+	comm.WriteColor(opcodes.DataTypeSetColor, data)
 }

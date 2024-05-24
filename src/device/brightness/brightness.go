@@ -9,7 +9,7 @@ type RGB struct {
 	R, G, B float64
 }
 
-func ToHSL(c structs.Color) HSL {
+func toHSL(c structs.Color) HSL {
 	var h, s, l float64
 
 	r := c.Red
@@ -82,7 +82,7 @@ func hueToRGB(v1, v2, h float64) float64 {
 	return v1
 }
 
-func ToRGB(c HSL) *structs.Color {
+func toRGB(c HSL) *structs.Color {
 	h := c.H
 	s := c.S
 	l := c.L
@@ -121,7 +121,7 @@ func ModifyBrightness(c structs.Color) *structs.Color {
 	} else if c.Brightness < 0 {
 		c.Brightness = 0
 	}
-	hsl := ToHSL(c)
+	hsl := toHSL(c)
 	hsl.L *= c.Brightness
-	return ToRGB(hsl)
+	return toRGB(hsl)
 }

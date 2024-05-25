@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var exit = make(chan bool)
+
 // interpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
@@ -36,6 +38,10 @@ func generateColors(
 	return colors
 }
 
+func Stop() {
+	exit <- true
+}
+
 // Init will run RGB function
 func Init(
 	lightChannels int,
@@ -44,32 +50,31 @@ func Init(
 	rgbEndColor *structs.Color,
 	bts float64,
 ) {
-	st := time.Now()
 	for {
-		buf := map[int][]byte{}
-		currentTime := time.Since(st)
-		if currentTime >= rgbLoopDuration {
-			break
-		}
-
-		for i := 0; i < lightChannels; i++ {
-			t := float64(i) / float64(lightChannels) // Calculate interpolation factor
-			colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
-			for j, color := range colors {
-				if i < j-2 {
-					buf[j] = []byte{0, 0, 0}
-				} else {
-					buf[j] = []byte{
-						byte(color.R),
-						byte(color.G),
-						byte(color.B),
+		select {
+		case <-exit:
+			return
+		default:
+			buf := map[int][]byte{}
+			for i := 0; i < lightChannels; i++ {
+				t := float64(i) / float64(lightChannels) // Calculate interpolation factor
+				colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
+				for j, color := range colors {
+					if i < j-2 {
+						buf[j] = []byte{0, 0, 0}
+					} else {
+						buf[j] = []byte{
+							byte(color.R),
+							byte(color.G),
+							byte(color.B),
+						}
 					}
 				}
-			}
 
-			data := common.SetColor(buf)
-			comm.WriteColor(opcodes.DataTypeSetColor, data)
-			time.Sleep(40 * time.Millisecond)
+				data := common.SetColor(buf)
+				comm.WriteColor(opcodes.DataTypeSetColor, data)
+				time.Sleep(40 * time.Millisecond)
+			}
 		}
 	}
 }

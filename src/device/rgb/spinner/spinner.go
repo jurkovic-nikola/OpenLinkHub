@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var exit = make(chan bool)
+
 // interpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
@@ -29,6 +31,10 @@ func generateColor(
 	color.Brightness = bts
 	modify := brightness.ModifyBrightness(*color)
 	return struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
+}
+
+func Stop() {
+	exit <- true
 }
 
 // Init will run RGB function
@@ -56,9 +62,13 @@ func Init(
 				byte(color.B),
 			}
 
-			data := common.SetColor(buf)
-			comm.WriteColor(opcodes.DataTypeSetColor, data)
-			time.Sleep(40 * time.Millisecond)
+			select {
+			case <-exit:
+				return
+			case <-time.After(40 * time.Millisecond):
+				data := common.SetColor(buf)
+				comm.WriteColor(opcodes.DataTypeSetColor, data)
+			}
 		}
 	}
 }

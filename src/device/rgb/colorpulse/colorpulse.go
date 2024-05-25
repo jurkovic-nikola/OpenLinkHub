@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var exit = make(chan bool)
+
 // interpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
@@ -36,6 +38,10 @@ func generateColors(
 	return colors
 }
 
+func Stop() {
+	exit <- true
+}
+
 // Init will run RGB function
 func Init(
 	lightChannels,
@@ -45,29 +51,29 @@ func Init(
 	rgbEndColor *structs.Color,
 	bts float64,
 ) {
-	st := time.Now()
 	for {
-		buf := map[int][]byte{}
-		currentTime := time.Since(st)
-		if currentTime >= rgbLoopDuration {
-			break
-		}
-		for i := 0; i <= smoothness; i++ {
-			t := float64(i) / float64(smoothness) // Calculate interpolation factor
-			colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
+		select {
+		case <-exit:
+			return
+		default:
+			buf := map[int][]byte{}
+			for i := 0; i <= smoothness; i++ {
+				t := float64(i) / float64(smoothness) // Calculate interpolation factor
+				colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
 
-			// Update LED channels
-			for j, color := range colors {
-				buf[j] = []byte{
-					byte(color.R),
-					byte(color.G),
-					byte(color.B),
+				// Update LED channels
+				for j, color := range colors {
+					buf[j] = []byte{
+						byte(color.R),
+						byte(color.G),
+						byte(color.B),
+					}
 				}
+				data := common.SetColor(buf)
+				comm.WriteColor(opcodes.DataTypeSetColor, data)
+				time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
 			}
-			data := common.SetColor(buf)
-			comm.WriteColor(opcodes.DataTypeSetColor, data)
-			time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
+			time.Sleep(rgbLoopDuration) // Loop duration
 		}
-		time.Sleep(rgbLoopDuration) // Loop duration
 	}
 }

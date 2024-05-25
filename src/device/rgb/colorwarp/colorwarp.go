@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var exit = make(chan bool)
+
 // interpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
@@ -36,27 +38,36 @@ func generateColors(
 	return colors
 }
 
+func Stop() {
+	exit <- true
+}
+
 // Init will run RGB function
 func Init(lightChannels, smoothness int, bts float64) {
 	buf := map[int][]byte{}
 	c1 := common.GenerateRandomColor(bts)
 	c2 := common.GenerateRandomColor(bts)
 	for {
-		for i := 0; i <= smoothness; i++ {
-			t := float64(i) / float64(smoothness) // Calculate interpolation factor
-			for j := 0; j < lightChannels; j++ {
-				colors := generateColors(lightChannels, c1, c2, t, bts)
-				buf[j] = []byte{
-					byte(colors[j].R),
-					byte(colors[j].G),
-					byte(colors[j].B),
+		select {
+		case <-exit:
+			return
+		default:
+			for i := 0; i <= smoothness; i++ {
+				t := float64(i) / float64(smoothness) // Calculate interpolation factor
+				for j := 0; j < lightChannels; j++ {
+					colors := generateColors(lightChannels, c1, c2, t, bts)
+					buf[j] = []byte{
+						byte(colors[j].R),
+						byte(colors[j].G),
+						byte(colors[j].B),
+					}
 				}
+				data := common.SetColor(buf)
+				comm.WriteColor(opcodes.DataTypeSetColor, data)
+				time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
 			}
-			data := common.SetColor(buf)
-			comm.WriteColor(opcodes.DataTypeSetColor, data)
-			time.Sleep(40 * time.Millisecond) // Adjust sleep time for smoother animation
+			c1 = c2
+			c2 = common.GenerateRandomColor(bts)
 		}
-		c1 = c2
-		c2 = common.GenerateRandomColor(bts)
 	}
 }

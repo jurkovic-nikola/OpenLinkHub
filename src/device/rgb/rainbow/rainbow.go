@@ -7,7 +7,10 @@ import (
 	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/structs"
 	"math"
+	"time"
 )
+
+var exit = make(chan bool)
 
 // rainbowColor function returns an RGB color corresponding to a given position in the rainbow
 func rainbowColor(position float64) (int, int, int) {
@@ -70,17 +73,31 @@ func generateColors(lightChannels int, elapsedTime, bts float64) []struct{ R, G,
 	return colors
 }
 
+func Stop() {
+	exit <- true
+}
+
 // Init will run RGB function
-func Init(lightChannels int, elapsed, bts float64) {
-	buf := map[int][]byte{}
-	colors := generateColors(lightChannels, elapsed, bts)
-	for i, color := range colors {
-		buf[i] = []byte{
-			byte(color.R),
-			byte(color.G),
-			byte(color.B),
+func Init(lightChannels int, rgbModeSpeed, bts float64) {
+	startTime := time.Now()
+	for {
+		select {
+		case <-exit:
+			return
+		default:
+			elapsed := time.Since(startTime).Seconds() * rgbModeSpeed
+			buf := map[int][]byte{}
+			colors := generateColors(lightChannels, elapsed, bts)
+			for i, color := range colors {
+				buf[i] = []byte{
+					byte(color.R),
+					byte(color.G),
+					byte(color.B),
+				}
+			}
+			data := common.SetColor(buf)
+			comm.WriteColor(opcodes.DataTypeSetColor, data)
+			time.Sleep(49 * time.Millisecond)
 		}
 	}
-	data := common.SetColor(buf)
-	comm.WriteColor(opcodes.DataTypeSetColor, data)
 }

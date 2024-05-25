@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var exit = make(chan bool)
+
 // InterpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
@@ -37,6 +39,10 @@ func generateColors(
 	return colors
 }
 
+func Stop() {
+	exit <- true
+}
+
 // Init will run RGB function
 func Init(
 	lightChannels int,
@@ -46,36 +52,38 @@ func Init(
 	rgbEndColor *structs.Color,
 	bts float64,
 ) {
-	st := time.Now()
 	for {
-		buf := map[int][]byte{}
-		currentTime := time.Since(st)
-		if currentTime >= rgbLoopDuration {
-			break
-		}
+		select {
+		default:
+			buf := map[int][]byte{}
+			if !rgbCustomColor {
+				rgbStartColor = common.GenerateRandomColor(bts)
+				rgbEndColor = common.GenerateRandomColor(bts)
+			}
 
-		if !rgbCustomColor {
-			rgbStartColor = common.GenerateRandomColor(bts)
-			rgbEndColor = common.GenerateRandomColor(bts)
-		}
-
-		for i := 0; i < lightChannels; i++ {
-			t := float64(i) / float64(lightChannels) // Calculate interpolation factor
-			colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
-			for j, color := range colors {
-				if rand.Intn(2) == 1 {
-					buf[j] = []byte{0, 0, 0}
-				} else {
-					buf[j] = []byte{
-						byte(color.R),
-						byte(color.G),
-						byte(color.B),
+			for i := 0; i < lightChannels; i++ {
+				t := float64(i) / float64(lightChannels) // Calculate interpolation factor
+				colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
+				for j, color := range colors {
+					if rand.Intn(2) == 1 {
+						buf[j] = []byte{0, 0, 0}
+					} else {
+						buf[j] = []byte{
+							byte(color.R),
+							byte(color.G),
+							byte(color.B),
+						}
 					}
 				}
+				select {
+				case <-exit:
+					return
+				case <-time.After(40 * time.Millisecond):
+					data := common.SetColor(buf)
+					comm.WriteColor(opcodes.DataTypeSetColor, data)
+					time.Sleep(rgbLoopDuration)
+				}
 			}
-			data := common.SetColor(buf)
-			comm.WriteColor(opcodes.DataTypeSetColor, data)
-			time.Sleep(rgbLoopDuration)
 		}
 	}
 }

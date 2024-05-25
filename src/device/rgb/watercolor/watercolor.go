@@ -53,10 +53,10 @@ func HSBToRGB(h, s, v float64) (int, int, int) {
 }
 
 // generateColors will generate color based on start and end color
-func generateColors(lc int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lc)
-	for i := 0; i < lc; i++ {
-		position := (float64(i) / float64(lc)) + (elapsedTime / 4.0)
+func generateColors(lightChannels int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lightChannels)
+	for i := 0; i < lightChannels; i++ {
+		position := (float64(i) / float64(lightChannels)) + (elapsedTime / 4.0)
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
 		r, g, b := watercolorColor(position)
 
@@ -73,9 +73,9 @@ func generateColors(lc int, elapsedTime, brightnessValue float64) []struct{ R, G
 }
 
 // Init will run RGB function
-func Init(lc int, elapsed, bts float64) {
+func Init(lightChannels int, elapsed, bts float64) {
 	buf := map[int][]byte{}
-	colors := generateColors(lc, elapsed, bts)
+	colors := generateColors(lightChannels, elapsed, bts)
 	for i, color := range colors {
 		buf[i] = []byte{
 			byte(color.R),

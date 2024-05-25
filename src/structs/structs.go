@@ -38,7 +38,7 @@ type ChannelIdData struct {
 }
 
 type RGBModes struct {
-	Speed      int     `json:"speed"`
+	Speed      float64 `json:"speed"`
 	Brightness float64 `json:"brightness"`
 	Smoothness int     `json:"smoothness"`
 	StartColor Color   `json:"start"`

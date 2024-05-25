@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// InterpolateColor performs linear interpolation between two colors
+// interpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
 		Red:   common.Lerp(c1.Red, c2.Red, t),
@@ -19,7 +19,12 @@ func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 }
 
 // generateColors will generate color based on start and end color
-func generateColor(lc int, c1, c2 *structs.Color, factor, bts float64) struct{ R, G, B float64 } {
+func generateColor(
+	c1,
+	c2 *structs.Color,
+	factor,
+	bts float64,
+) struct{ R, G, B float64 } {
 	color := interpolateColor(c1, c2, factor)
 	color.Brightness = bts
 	modify := brightness.ModifyBrightness(*color)
@@ -27,13 +32,18 @@ func generateColor(lc int, c1, c2 *structs.Color, factor, bts float64) struct{ R
 }
 
 // Init will run RGB function
-func Init(lc int, rgbStartColor, rgbEndColor *structs.Color, bts float64) {
-	buf := make(map[int][]byte, lc)
+func Init(
+	lightChannels int,
+	rgbStartColor,
+	rgbEndColor *structs.Color,
+	bts float64,
+) {
+	buf := make(map[int][]byte, lightChannels)
 	for {
 		// Set the current LED to red and the rest to off
-		for i := 0; i < lc; i++ {
-			t := float64(i) / float64(lc) // Calculate interpolation factor
-			color := generateColor(lc, rgbStartColor, rgbEndColor, t, bts)
+		for i := 0; i < lightChannels; i++ {
+			t := float64(i) / float64(lightChannels) // Calculate interpolation factor
+			color := generateColor(rgbStartColor, rgbEndColor, t, bts)
 
 			// Turn all LEDs off
 			for j := range buf {

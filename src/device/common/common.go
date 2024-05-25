@@ -34,7 +34,7 @@ func Lerp(a, b, t float64) float64 {
 	return a + t*(b-a)
 }
 
-// Clamp will check if value is in specified range
+// Clamp function restricts the value within the specified range [min, max].
 func Clamp(value, min, max int) int {
 	if value < min {
 		return min
@@ -42,6 +42,16 @@ func Clamp(value, min, max int) int {
 		return max
 	}
 
+	return value
+}
+
+// FClamp function restricts the value within the specified range [min, max].
+func FClamp(value, min, max float64) float64 {
+	if value < min {
+		return min
+	} else if value > max {
+		return max
+	}
 	return value
 }
 

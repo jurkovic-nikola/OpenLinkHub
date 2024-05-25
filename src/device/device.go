@@ -12,6 +12,7 @@ import (
 	"OpenICUELinkHub/src/device/rgb/colorshift"
 	"OpenICUELinkHub/src/device/rgb/colorwarp"
 	"OpenICUELinkHub/src/device/rgb/flickering"
+	"OpenICUELinkHub/src/device/rgb/heartbeat"
 	"OpenICUELinkHub/src/device/rgb/rainbow"
 	"OpenICUELinkHub/src/device/rgb/spinner"
 	"OpenICUELinkHub/src/device/rgb/watercolor"
@@ -470,13 +471,33 @@ func setDeviceRGBMode() {
 	}
 
 	// Get the number of LED channels we have
-	ledChannels := 0
-	for _, linkDevice := range device.Devices {
-		ledChannels += int(linkDevice.LedChannels)
+	lightChannelsPerDevice := map[int][]int{}
+
+	lightChannels := 0
+	for i, linkDevice := range device.Devices {
+		match := common.GetDevice(linkDevice.Type, linkDevice.Model)
+		if match == nil {
+			continue
+		}
+
+		// All channels
+		lightChannels += int(linkDevice.LedChannels)
+
+		// Inner / outer channels (if any)
+		// [0] - Outer front ring
+		// [1] - Outer back ring
+		// [2] - Inner front ring
+		// [3] - Inner back ring
+		lightChannelsPerDevice[i] = []int{
+			match.OuterLedFront,
+			match.OuterLedBack,
+			match.InnerLedFront,
+			match.InnerLedBack,
+		}
 	}
 
 	// Do we have any RGB component in the system?
-	if ledChannels == 0 {
+	if lightChannels == 0 {
 		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
 		return
 	}
@@ -484,14 +505,14 @@ func setDeviceRGBMode() {
 	// RGB data
 	rgbCustomColor := true
 	rgbModeSpeed := rgbMode.Speed
-	rgbModeSpeed = common.Clamp(rgbModeSpeed, 1, 10)
+	rgbModeSpeed = common.FClamp(rgbModeSpeed, 0.1, 10)
 
-	rgbModeName := rgb.GetRGBModeName()
-	rgbModeBrightness := rgbMode.Brightness
-	rgbLoopDuration := time.Duration(rgbModeSpeed) * time.Second
-	rgbStartColor := common.GenerateRandomColor(rgbModeBrightness)
-	rgbEndColor := common.GenerateRandomColor(rgbModeBrightness)
-	rgbSmoothness := rgbMode.Smoothness
+	rgbModeName := rgb.GetRGBModeName()                            // RGB data
+	rgbModeBrightness := rgbMode.Brightness                        // RGB brightness
+	rgbLoopDuration := time.Duration(rgbModeSpeed) * time.Second   // Loop duration
+	rgbStartColor := common.GenerateRandomColor(rgbModeBrightness) // Color 1
+	rgbEndColor := common.GenerateRandomColor(rgbModeBrightness)   // Color 2
+	rgbSmoothness := rgbMode.Smoothness                            // Smoothness of transition from Color 1 to Color 2
 
 	// Check if we have custom colors
 	if (structs.Color{}) == rgbMode.StartColor || (structs.Color{}) == rgbMode.EndColor {
@@ -504,40 +525,96 @@ func setDeviceRGBMode() {
 		rgbEndColor = &rgbMode.EndColor
 	}
 
+	// Clamp it
 	rgbSmoothness = common.Clamp(rgbSmoothness, 1, 40)
 
-	// Timer
+	// Ping, pong
 	ticker = time.NewTicker(time.Duration(rgbSpeed) * time.Millisecond)
 	rgbChan = make(chan bool)
 
-	go func(lc, smoothness int, mode string, bts float64) {
+	go func(
+		lightChannels,
+		smoothness int,
+		mode string,
+		brightness float64,
+		lightChannelsPerDevice map[int][]int,
+	) {
 		for {
 			select {
 			case <-ticker.C:
-				elapsed := time.Since(startTime).Seconds() * float64(rgbModeSpeed)
+				elapsed := time.Since(startTime).Seconds() * rgbModeSpeed
 				switch mode {
 				case "rainbow":
-					rainbow.Init(lc, elapsed, bts)
+					rainbow.Init(lightChannels, elapsed, brightness)
 				case "watercolor":
-					watercolor.Init(lc, elapsed, bts)
+					watercolor.Init(lightChannels, elapsed, brightness)
 				case "colorpulse":
-					colorpulse.Init(lc, smoothness, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
+					colorpulse.Init(
+						lightChannels,
+						smoothness,
+						rgbLoopDuration,
+						rgbStartColor,
+						rgbEndColor,
+						brightness,
+					)
 				case "colorshift":
-					colorshift.Init(lc, smoothness, rgbCustomColor, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
+					colorshift.Init(
+						lightChannels,
+						smoothness,
+						rgbCustomColor,
+						rgbLoopDuration,
+						rgbStartColor,
+						rgbEndColor,
+						brightness,
+					)
 				case "circle", "circleshift":
-					circle.Init(lc, rgbLoopDuration, rgbStartColor, rgbEndColor, bts)
+					circle.Init(
+						lightChannels,
+						rgbLoopDuration,
+						rgbStartColor,
+						rgbEndColor,
+						brightness,
+					)
 				case "flickering":
-					flickering.Init(lc, rgbLoopDuration, rgbCustomColor, rgbStartColor, rgbEndColor, bts)
+					flickering.Init(
+						lightChannels,
+						rgbLoopDuration,
+						rgbCustomColor,
+						rgbStartColor,
+						rgbEndColor,
+						brightness,
+					)
 				case "colorwarp":
-					colorwarp.Init(lc, smoothness, rgbLoopDuration, bts)
+					colorwarp.Init(lightChannels, smoothness, brightness)
 				case "snipper":
-					spinner.Init(lc, rgbStartColor, rgbEndColor, bts)
+					spinner.Init(
+						lightChannels,
+						rgbStartColor,
+						rgbEndColor,
+						brightness,
+					)
+				case "heartbeat":
+					heartbeat.Init(
+						lightChannels,
+						smoothness,
+						rgbCustomColor,
+						rgbStartColor,
+						rgbEndColor,
+						rgbLoopDuration,
+						lightChannelsPerDevice,
+					)
 				}
 			case <-rgbChan:
 				ticker.Stop()
 			}
 		}
-	}(ledChannels, rgbSmoothness, rgbModeName, rgbModeBrightness)
+	}(
+		lightChannels,
+		rgbSmoothness,
+		rgbModeName,
+		rgbModeBrightness,
+		lightChannelsPerDevice,
+	)
 }
 
 // setDeviceMode will switch a device to Hardware or Software mode

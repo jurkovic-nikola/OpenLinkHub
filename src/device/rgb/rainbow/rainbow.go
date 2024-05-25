@@ -34,7 +34,15 @@ func rainbowColor(position float64) (int, int, int) {
 }
 
 // Interpolate function to calculate the intermediate color
-func interpolate(r1, g1, b1, r2, g2, b2 float64, fraction float64) (int, int, int) {
+func interpolate(
+	r1,
+	g1,
+	b1,
+	r2,
+	g2,
+	b2 float64,
+	fraction float64,
+) (int, int, int) {
 	r := r1 + fraction*(r2-r1)
 	g := g1 + fraction*(g2-g1)
 	b := b1 + fraction*(b2-b1)
@@ -42,10 +50,10 @@ func interpolate(r1, g1, b1, r2, g2, b2 float64, fraction float64) (int, int, in
 }
 
 // generateColors will generate color based on start and end color
-func generateColors(lc int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lc)
-	for i := 0; i < lc; i++ {
-		position := (float64(i) / float64(lc)) + (elapsedTime / 4.0)
+func generateColors(lightChannels int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lightChannels)
+	for i := 0; i < lightChannels; i++ {
+		position := (float64(i) / float64(lightChannels)) + (elapsedTime / 4.0)
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
 		r, g, b := rainbowColor(position)
 
@@ -63,9 +71,9 @@ func generateColors(lc int, elapsedTime, bts float64) []struct{ R, G, B float64 
 }
 
 // Init will run RGB function
-func Init(lc int, elapsed, bts float64) {
+func Init(lightChannels int, elapsed, bts float64) {
 	buf := map[int][]byte{}
-	colors := generateColors(lc, elapsed, bts)
+	colors := generateColors(lightChannels, elapsed, bts)
 	for i, color := range colors {
 		buf[i] = []byte{
 			byte(color.R),

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// InterpolateColor performs linear interpolation between two colors
+// interpolateColor performs linear interpolation between two colors
 func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 	return &structs.Color{
 		Red:   common.Lerp(c1.Red, c2.Red, t),
@@ -19,9 +19,15 @@ func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
 }
 
 // generateColors will generate color based on start and end color
-func generateColors(lc int, c1, c2 *structs.Color, factor, bts float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lc)
-	for i := 0; i < lc; i++ {
+func generateColors(
+	lightChannels int,
+	c1,
+	c2 *structs.Color,
+	factor,
+	bts float64,
+) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lightChannels)
+	for i := 0; i < lightChannels; i++ {
 		color := interpolateColor(c1, c2, factor)
 		color.Brightness = bts
 		modify := brightness.ModifyBrightness(*color)
@@ -31,7 +37,13 @@ func generateColors(lc int, c1, c2 *structs.Color, factor, bts float64) []struct
 }
 
 // Init will run RGB function
-func Init(lc int, rgbLoopDuration time.Duration, rgbStartColor, rgbEndColor *structs.Color, bts float64) {
+func Init(
+	lightChannels int,
+	rgbLoopDuration time.Duration,
+	rgbStartColor,
+	rgbEndColor *structs.Color,
+	bts float64,
+) {
 	st := time.Now()
 	for {
 		buf := map[int][]byte{}
@@ -40,9 +52,9 @@ func Init(lc int, rgbLoopDuration time.Duration, rgbStartColor, rgbEndColor *str
 			break
 		}
 
-		for i := 0; i < lc; i++ {
-			t := float64(i) / float64(lc) // Calculate interpolation factor
-			colors := generateColors(lc, rgbStartColor, rgbEndColor, t, bts)
+		for i := 0; i < lightChannels; i++ {
+			t := float64(i) / float64(lightChannels) // Calculate interpolation factor
+			colors := generateColors(lightChannels, rgbStartColor, rgbEndColor, t, bts)
 			for j, color := range colors {
 				if i < j-2 {
 					buf[j] = []byte{0, 0, 0}

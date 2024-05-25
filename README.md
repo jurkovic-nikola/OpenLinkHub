@@ -262,6 +262,23 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
         "blue": 0,
         "brightness": 1
       }
+    },
+    "heartbeat": {
+      "speed": 0.5,
+      "brightness": 1,
+      "smoothness": 10,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 0,
+        "green": 0,
+        "blue": 255,
+        "brightness": 1
+      }
     }
   }
 }
@@ -363,6 +380,7 @@ Tccd2:        +31.2°C
   - flickering
   - colorwarp
   - snipper
+  - heartbeat
 - `rainbow` - Self explanatory, rainbow colors
 - `watercolor` - Self explanatory, water colors
 - `colorshift` - Shifts color from field `start` to `end`
@@ -372,6 +390,7 @@ Tccd2:        +31.2°C
 - `flickering` - Will randomly turn LEDs off per cycle
 - `colorwarp` - Will warp two colors on every device
 - `snipper` - Single LED spinning around all devices
+- `heartbeat` - Heartbeat
 ## API
 - OpenICUELinkHub ships with built-in HTTP server for device overview and control.
 ### Overview

@@ -1,9 +1,9 @@
 package templates
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/logger"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/structs"
 	"fmt"
 	"html/template"
 	"strings"

@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device"
-	"OpenICUELinkHub/src/device/temperaturemonitor"
-	"OpenICUELinkHub/src/logger"
-	"OpenICUELinkHub/src/server"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device"
+	"OpenLinkHub/src/device/temperaturemonitor"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/server"
 )
 
 // Start will start new controller session

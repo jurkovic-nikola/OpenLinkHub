@@ -1,9 +1,9 @@
-# OpenICUELinkHub interface for Linux
+# OpenLinkHub interface for Linux
 Open source interface for iCUE LINK Hub device and Linux with built-in API for overview and device control.
 
-![Build](https://github.com/jurkovic-nikola/OpenICUELinkHub/actions/workflows/go.yml/badge.svg)
+![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
 
-![Web UI](https://github.com/jurkovic-nikola/OpenICUELinkHub/blob/main/static/img/ui.png?raw=true)
+![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 
 # Info
 - This project was created out of own necessity to control fans and pumps on workstations after switching everything to Linux.
@@ -12,13 +12,13 @@ Open source interface for iCUE LINK Hub device and Linux with built-in API for o
 - Take care and have fun!
 ## Supported hubs
 
-| Device        | VID    | PID    |
-|---------------|--------|--------|
-| iCUE LINK Hub | `1b1c` | `0c3f` |
+| Device               | VID    | PID    |
+|----------------------|--------|--------|
+| iCUE LINK System Hub | `1b1c` | `0c3f` |
 
 ## Operating Modes
 ### Software operating mode
-OpenCUELink supports two operating modes:
+OpenLinkHub supports two operating modes:
 - Standalone mode will automatically monitor your CPU temperature and adjust fan and pump speeds based on the defined temperature curve.
 - Manual mode will allow you to use the REST to control devices. 
   - This mode can be used to integrate this into your custom UI application. 
@@ -45,8 +45,8 @@ $ sudo sensors-detect
 ### Build
 ```bash
 # Build
-git clone https://github.com/jurkovic-nikola/OpenICUELinkHub.git
-cd OpenICUELinkHub/
+git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
+cd OpenLinkHub/
 go build .
 ```
 ### Device permissions
@@ -194,7 +194,7 @@ Tccd2:        +31.2°C
 - Device Dashboard is currently WIP (basic system and device overview)
 - Bootstrap 5 Dark Admin template
 ## API
-- OpenICUELinkHub ships with built-in HTTP server for device overview and control.
+- OpenLinkHub ships with built-in HTTP server for device overview and control.
 ### Overview
 ```bash
 $ curl http://127.0.0.1:27003 --silent | jq
@@ -319,7 +319,7 @@ Description=Open source interface for iCUE LINK System Hub
 User=your-user
 Group=your-user-group
 WorkingDirectory=/path-tp-executable-directory/
-ExecStart=/path-tp-executable-directory/OpenICUELinkHub
+ExecStart=/path-tp-executable-directory/OpenLinkHub
 ExecReload=/bin/kill -s HUP $MAINPID
 RestartSec=5
 
@@ -330,5 +330,5 @@ WantedBy=multi-user.target
 - Modify Group= to match a group from udev rule file
 - Modify WorkingDirectory= to match where executable is
 - Modify ExecStart= to match an executable path
-- Save content to `/etc/systemd/system/OpenICUELinkHub.service`
-- Run `systemctl enable --now OpenICUELinkHub`
+- Save content to `/etc/systemd/system/OpenLinkHub.service`
+- Run `systemctl enable --now OpenLinkHub`

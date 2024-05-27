@@ -1,14 +1,14 @@
 package main
 
 import (
-	"OpenICUELinkHub/src/controller"
+	"OpenLinkHub/src/controller"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 // WaitForExit listens for a program termination and switches the device back to hardware mode
-func WaitForExit() {
+func waitForExit() {
 	terminateSignals := make(chan os.Signal, 1)
 	signal.Notify(terminateSignals, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	for {
@@ -22,6 +22,6 @@ func WaitForExit() {
 
 // main entry point
 func main() {
-	go WaitForExit()
+	go waitForExit()
 	controller.Start()
 }

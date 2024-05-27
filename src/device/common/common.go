@@ -1,9 +1,9 @@
 package common
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device/brightness"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device/brightness"
+	"OpenLinkHub/src/structs"
 	"math/rand"
 	"sort"
 	"strconv"

@@ -1,4 +1,4 @@
-module OpenICUELinkHub
+module OpenLinkHub
 
 go 1.22.2
 

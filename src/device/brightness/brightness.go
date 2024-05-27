@@ -1,7 +1,7 @@
 package brightness
 
 import (
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/structs"
 	"math"
 )
 

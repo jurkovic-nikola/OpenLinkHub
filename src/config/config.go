@@ -1,7 +1,7 @@
 package config
 
 import (
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/structs"
 	"encoding/json"
 	"fmt"
 	"os"

@@ -1,8 +1,8 @@
 package rgb
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/structs"
 	"time"
 )
 

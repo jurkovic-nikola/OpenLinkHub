@@ -1,11 +1,11 @@
 package rgb
 
 import (
-	"OpenICUELinkHub/src/device/brightness"
-	"OpenICUELinkHub/src/device/comm"
-	"OpenICUELinkHub/src/device/common"
-	"OpenICUELinkHub/src/device/opcodes"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/device/brightness"
+	"OpenLinkHub/src/device/comm"
+	"OpenLinkHub/src/device/common"
+	"OpenLinkHub/src/device/opcodes"
+	"OpenLinkHub/src/structs"
 	"time"
 )
 

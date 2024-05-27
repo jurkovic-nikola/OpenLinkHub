@@ -1,11 +1,11 @@
 package temperaturemonitor
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device"
-	"OpenICUELinkHub/src/device/rgb"
-	"OpenICUELinkHub/src/logger"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device"
+	"OpenLinkHub/src/device/rgb"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/structs"
 	"github.com/ssimunic/gosensors"
 	"strconv"
 	"time"

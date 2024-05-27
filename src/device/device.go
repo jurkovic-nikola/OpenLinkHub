@@ -1,14 +1,14 @@
 package device
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device/brightness"
-	"OpenICUELinkHub/src/device/comm"
-	"OpenICUELinkHub/src/device/common"
-	"OpenICUELinkHub/src/device/opcodes"
-	"OpenICUELinkHub/src/device/rgb"
-	"OpenICUELinkHub/src/logger"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device/brightness"
+	"OpenLinkHub/src/device/comm"
+	"OpenLinkHub/src/device/common"
+	"OpenLinkHub/src/device/opcodes"
+	"OpenLinkHub/src/device/rgb"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/structs"
 	"encoding/binary"
 	"fmt"
 	"os"

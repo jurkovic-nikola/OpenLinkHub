@@ -1,11 +1,11 @@
 package comm
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device/common"
-	"OpenICUELinkHub/src/device/opcodes"
-	"OpenICUELinkHub/src/logger"
-	"OpenICUELinkHub/src/structs"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device/common"
+	"OpenLinkHub/src/device/opcodes"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/structs"
 	"bytes"
 	"context"
 	"encoding/binary"

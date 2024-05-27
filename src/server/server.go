@@ -1,12 +1,12 @@
 package server
 
 import (
-	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device"
-	"OpenICUELinkHub/src/logger"
-	"OpenICUELinkHub/src/server/requests"
-	"OpenICUELinkHub/src/structs"
-	"OpenICUELinkHub/src/templates"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/server/requests"
+	"OpenLinkHub/src/structs"
+	"OpenLinkHub/src/templates"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"

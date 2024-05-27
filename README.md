@@ -60,87 +60,19 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 {
   "vendorId": "1b1c",
   "productId": "0c3f",
-  "standalone": false,
+  "standalone": true,
   "listenPort": 27003,
   "defaultFanValue": 50,
   "defaultPumpValue": 80,
   "listenAddress": "127.0.0.1",
   "pullingIntervalMs": 1000,
-  "serial": "2EFBD3CFCADF4050A3557CBC5159A599",
+  "serial": "5C126A3EB51A39569ABADC4C3A1FCF54",
   "headers": [
     { "key":"Content-Type", "value": "application/json" }
   ],
   "cpuSensorChip": "k10temp-pci-00c3",
   "cpuPackageIdent": "Tctl",
-  "temperaturePullingIntervalMs": 3000,
-  "temperatureCurve": [
-    {"id":1, "min": 20, "max": 30, "mode": 0, "fans": 30, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":2, "min": 30, "max": 40, "mode": 0, "fans": 40, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":3, "min": 40, "max": 50, "mode": 0, "fans": 40, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":4, "min": 50, "max": 60, "mode": 0, "fans": 45, "pump": 70, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":5, "min": 60, "max": 70, "mode": 0, "fans": 55, "pump": 80, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":6, "min": 70, "max": 80, "mode": 0, "fans": 70, "pump": 90, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":7, "min": 80, "max": 90, "mode": 0, "fans": 90, "pump": 100, "channelIds": [1, 2, 3, 13, 14, 15], "color": {}},
-    {"id":8, "min": 90, "max": 115, "mode": 0, "fans": 100, "pump": 100, "channelIds": [1, 2, 3, 13, 14, 15], "color": {"red": 255, "green": 0, "blue": 0, "brightness": 1}}
-  ],
-  "defaultColor": {
-    "red": 255,
-    "green": 255,
-    "blue": 255,
-    "brightness": 0.5
-  },
-  "useCustomChannelIdColor": false,
-  "useCustomChannelIdSpeed": false,
-  "customChannelIdData": {
-    "1": {
-      "color": {
-        "red": 255,
-        "green": 0,
-        "blue": 0,
-        "brightness": 1
-      },
-      "speed": {
-        "mode": 0,
-        "value": 80
-      }
-    },
-    "13": {
-      "color": {
-        "red": 255,
-        "green": 255,
-        "blue": 255,
-        "brightness": 1
-      },
-      "speed": {
-        "mode": 0,
-        "value": 80
-      }
-    },
-    "14": {
-      "color": {
-        "red": 255,
-        "green": 255,
-        "blue": 0,
-        "brightness": 1
-      },
-      "speed": {
-        "mode": 0,
-        "value": 80
-      }
-    },
-    "15": {
-      "color": {
-        "red": 255,
-        "green": 100,
-        "blue": 0,
-        "brightness": 1
-      },
-      "speed": {
-        "mode": 0,
-        "value": 80
-      }
-    }
-  }
+  "templateList": "overview.html"
 }
 ```
 - vendorId: ID of device vendor
@@ -182,6 +114,8 @@ Tccd1:        +33.8°C
 Tccd2:        +31.2°C
 ```
 - cpuPackageIdent: CPU package key (see sensors above)
+- templateList: HTML templates
+## temperatures.json
 - temperaturePullingIntervalMs: How ofter temperature is read from CPU sensor (in milliseconds)
 - temperatureCurve: Array of temperature curves for fan and pump speed.
   - min / max: Range of CPU temperature
@@ -199,18 +133,12 @@ Tccd2:        +31.2°C
     - This is useful when the temperature reaches critical level on your system.
     - Making color array empty will disable RGB changes via temperature level.
     - It Can be used to modify your device color per temperature range
-- defaultColor: Default RGB color for all devices in integer format
-  - 255,255,255, 0.1 - White with 10 % of brightness
-  - 255,255,255, 0.5 - White with 50 % of brightness
-  - 255,255,255, 1 - White with 100 % of brightness
-  - Note: Setting brightness to 0 will result in no color on a device
-  - This mode will be ignored if rgbMode is defined
+## custom.json
 - useCustomChannelIdColor: if set to true, default color will be ignored, and you will be able to define color for each device
   - config example contains multiple channelIds, aka "1", "13", "14" and "15"
   - those IDs are from `curl http://127.0.0.1:27003 --silent | jq` under devices section.
   - Each ID is channelId connected to a iCUE Link Hub
   - This mode will be ignored if rgbMode is defined
-- Currently, there is only support for static RGB colors and a couple of custom modes (see bellow rgbMode field). 
 - useCustomChannelIdSpeed: is set to true, each device will have a static speed defined in config. 
   - In this mode, a standalone flag is ignored and CPU monitoring is not enabled.
 ### How to identify channels?
@@ -219,6 +147,12 @@ Tccd2:        +31.2°C
 ## RGB Modes
 - RGB configuration is located at `rgb.json` file. 
 ### Configuration
+- defaultColor: Default RGB color for all devices in integer format
+  - 255,255,255, 0.1 - White with 10 % of brightness
+  - 255,255,255, 0.5 - White with 50 % of brightness
+  - 255,255,255, 1 - White with 100 % of brightness
+  - Note: Setting brightness to 0 will result in no color on a device
+  - This mode will be ignored if rgbMode is defined
 - useRgbEffects: Trigger usage of custom RGB effects
 - rgbMode: This will enable custom RGB mode for all devices.
   - If this mode is enabled, REST API color modification is not possible.
@@ -252,6 +186,11 @@ Tccd2:        +31.2°C
 - `colorwarp` - Will warp two colors on every device
 - `snipper` - Single LED spinning around all devices
 - `heartbeat` - Heartbeat
+
+## Device Dashboard
+- Simple Device Dashboard is accessible by browser via link `http://127.0.0.1:27003/ui`
+- Device Dashboard is currently WIP (basic system and device overview)
+- Bootstrap 5 Dark Admin template
 ## API
 - OpenICUELinkHub ships with built-in HTTP server for device overview and control.
 ### Overview

@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-// interpolateColor performs linear interpolation between two colors
-func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
-	return &structs.Color{
-		Red:   common.Lerp(c1.Red, c2.Red, t),
-		Green: common.Lerp(c1.Green, c2.Green, t),
-		Blue:  common.Lerp(c1.Blue, c2.Blue, t),
-	}
-}
-
 // generateColors will generate color based on start and end color
 func generateColor(
 	c1,

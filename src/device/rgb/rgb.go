@@ -2,6 +2,7 @@ package rgb
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/device/common"
 	"OpenLinkHub/src/structs"
 	"time"
 )
@@ -36,6 +37,15 @@ func GetRGBMode() *structs.RGBModes {
 		return &val
 	}
 	return nil
+}
+
+// interpolateColor performs linear interpolation between two colors
+func interpolateColor(c1, c2 *structs.Color, t float64) *structs.Color {
+	return &structs.Color{
+		Red:   common.Lerp(c1.Red, c2.Red, t),
+		Green: common.Lerp(c1.Green, c2.Green, t),
+		Blue:  common.Lerp(c1.Blue, c2.Blue, t),
+	}
 }
 
 // New will create new ActiveRGB struct for RGB control

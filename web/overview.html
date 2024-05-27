@@ -7,7 +7,6 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="all,follow">
-    <link rel="stylesheet" href="/static/vendor/choices.js/public/assets/styles/choices.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
     <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
     <link rel="stylesheet" href="/static/css/custom.css">
@@ -126,10 +125,10 @@
                       <div class="col-6">
                         <div class="d-flex justify-content-center text-center">
                           <div class="px-3 px-lg-4">
-                            <p class="text-lg fw-normal mb-0">{{ .Temperature }}</p><span class="text-sm text-uppercase mb-0">Temperature</span>
+                            <p class="text-lg fw-normal mb-0" id="temperature-{{ .DeviceId}}">{{ .Temperature }}</p><span class="text-sm text-uppercase mb-0">Temperature</span>
                           </div>
                           <div class="px-3 px-lg-4">
-                            <p class="text-lg fw-normal mb-0">{{ .Rpm }}</p><span class="text-sm text-uppercase mb-0">Speed</span>
+                            <p class="text-lg fw-normal mb-0" id="speed-{{ .DeviceId}}">{{ .Rpm }}</p><span class="text-sm text-uppercase mb-0">Speed</span>
                           </div>
                           <div class="px-3 px-lg-4">
                             <p class="text-lg fw-normal mb-0">{{ .ChannelId }}</p><span class="text-sm text-uppercase mb-0">Channel</span>
@@ -151,8 +150,8 @@
       </div>
     </div>
     <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/home-premium.js">  </script>
-    <script src="/static/js/front.js"></script>
+    <script src="/static/js/jquery-3.7.1.min.js"></script>
+    <script src="/static/js/auto-refresh.js"></script>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
   </body>
 </html>

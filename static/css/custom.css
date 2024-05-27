@@ -1,0 +1,11 @@
+/* your styles go here */
+
+nav#sidebar {
+    width: 350px;
+    max-width: 350px;
+}
+
+.custom-header {
+    width: 100%;
+    text-align: center;
+}

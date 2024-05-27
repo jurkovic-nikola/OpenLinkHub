@@ -20,6 +20,17 @@ type TemperatureCurve struct {
 	Color      Color   `json:"color"`
 }
 
+type Temperatures struct {
+	TemperaturePullingIntervalMs int                `json:"temperaturePullingIntervalMs"`
+	TemperatureCurves            []TemperatureCurve `json:"temperatureCurve"`
+}
+
+type CustomChannels struct {
+	UseCustomChannelIdColor bool                  `json:"useCustomChannelIdColor"`
+	UseCustomChannelIdSpeed bool                  `json:"useCustomChannelIdSpeed"`
+	CustomChannelIdData     map[int]ChannelIdData `json:"customChannelIdData"`
+}
+
 type Color struct {
 	Red        float64 `json:"red"`
 	Green      float64 `json:"green"`
@@ -37,6 +48,13 @@ type ChannelIdData struct {
 	Speed Speed `json:"speed"`
 }
 
+type RGB struct {
+	DefaultColor  Color               `json:"defaultColor"`
+	UseRgbEffects bool                `json:"useRgbEffects"`
+	RGBMode       string              `json:"rgbMode"`
+	RGBModes      map[string]RGBModes `json:"rgbModes"`
+}
+
 type RGBModes struct {
 	Speed      float64 `json:"speed"`
 	Brightness float64 `json:"brightness"`
@@ -46,27 +64,19 @@ type RGBModes struct {
 }
 
 type Configuration struct {
-	VendorId                     string                `json:"vendorId"`
-	ProductId                    string                `json:"productId"`
-	ListenPort                   int                   `json:"listenPort"`
-	ListenAddress                string                `json:"listenAddress"`
-	PullingIntervalMs            int                   `json:"pullingIntervalMs"`
-	TemperaturePullingIntervalMs int                   `json:"temperaturePullingIntervalMs"`
-	DefaultFanValue              int                   `json:"defaultFanValue"`
-	DefaultPumpValue             int                   `json:"defaultPumpValue"`
-	Standalone                   bool                  `json:"standalone"`
-	CPUSensorChip                string                `json:"cpuSensorChip"`
-	CPUPackageIdent              string                `json:"cpuPackageIdent"`
-	Serial                       string                `json:"serial"`
-	Headers                      []Header              `json:"headers"`
-	TemperatureCurves            []TemperatureCurve    `json:"temperatureCurve"`
-	DefaultColor                 Color                 `json:"defaultColor"`
-	UseCustomChannelIdColor      bool                  `json:"useCustomChannelIdColor"`
-	UseCustomChannelIdSpeed      bool                  `json:"useCustomChannelIdSpeed"`
-	CustomChannelIdData          map[int]ChannelIdData `json:"customChannelIdData"`
-	RGBMode                      string                `json:"rgbMode"`
-	RGBModes                     map[string]RGBModes   `json:"rgbModes"`
-	UseRgbEffects                bool                  `json:"useRgbEffects"`
+	VendorId          string   `json:"vendorId"`
+	ProductId         string   `json:"productId"`
+	ListenPort        int      `json:"listenPort"`
+	ListenAddress     string   `json:"listenAddress"`
+	PullingIntervalMs int      `json:"pullingIntervalMs"`
+	DefaultFanValue   int      `json:"defaultFanValue"`
+	DefaultPumpValue  int      `json:"defaultPumpValue"`
+	Standalone        bool     `json:"standalone"`
+	CPUSensorChip     string   `json:"cpuSensorChip"`
+	CPUPackageIdent   string   `json:"cpuPackageIdent"`
+	Serial            string   `json:"serial"`
+	Headers           []Header `json:"headers"`
+	TemplateList      string   `json:"templateList"`
 }
 
 // Device primary struct for a Corsair iCUE Link device
@@ -91,6 +101,7 @@ type LinkDevice struct {
 	Temperature  float32 `json:"temperature"`
 	LedChannels  uint8   `json:"-"`
 	ContainsPump bool    `json:"-"`
+	Description  string  `json:"description"`
 }
 
 // DeviceList contains definition of supported devices
@@ -104,6 +115,7 @@ type DeviceList struct {
 	InnerLedFront int    `json:"innerLedFront"`
 	InnerLedBack  int    `json:"innerLedBack"`
 	ContainsPump  bool   `json:"containsPump"`
+	Desc          string `json:"desc"`
 }
 
 // SpeedSensor contains data about device RPM information

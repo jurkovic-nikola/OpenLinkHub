@@ -7,15 +7,6 @@ import (
 	"OpenICUELinkHub/src/device/common"
 	"OpenICUELinkHub/src/device/opcodes"
 	"OpenICUELinkHub/src/device/rgb"
-	"OpenICUELinkHub/src/device/rgb/circle"
-	"OpenICUELinkHub/src/device/rgb/colorpulse"
-	"OpenICUELinkHub/src/device/rgb/colorshift"
-	"OpenICUELinkHub/src/device/rgb/colorwarp"
-	"OpenICUELinkHub/src/device/rgb/flickering"
-	"OpenICUELinkHub/src/device/rgb/heartbeat"
-	"OpenICUELinkHub/src/device/rgb/rainbow"
-	"OpenICUELinkHub/src/device/rgb/spinner"
-	"OpenICUELinkHub/src/device/rgb/watercolor"
 	"OpenICUELinkHub/src/logger"
 	"OpenICUELinkHub/src/structs"
 	"encoding/binary"
@@ -27,6 +18,7 @@ import (
 )
 
 var (
+	activeRgb       *rgb.ActiveRGB
 	authRefreshChan chan bool
 	device          *structs.Device
 	deviceMonitor   *structs.DeviceMonitor
@@ -40,7 +32,7 @@ func GetDevice() *structs.Device {
 
 // Stop will send the device back to hardware mode, usually when the program exits
 func Stop() {
-	rgb.Stop()
+	activeRgb.Stop()
 	authRefreshChan <- true
 	setDeviceMode(opcodes.CmdHardwareMode)
 	comm.Close()
@@ -154,6 +146,7 @@ func initDevices() map[int]structs.LinkDevice {
 			Temperature:  0,
 			LedChannels:  match.LedChannels,
 			ContainsPump: match.ContainsPump,
+			Description:  match.Desc,
 		}
 		deviceList[hubDevice.ChannelId] = hubDeviceInfo
 	}
@@ -225,9 +218,9 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 		return
 	}
 
-	if config.GetConfig().UseCustomChannelIdColor {
+	if config.GetCustomChannels().UseCustomChannelIdColor {
 		// Custom colors from configuration
-		customChannelIdData := config.GetConfig().CustomChannelIdData
+		customChannelIdData := config.GetCustomChannels().CustomChannelIdData
 
 		// Check if anything is defined
 		if len(customChannelIdData) < 1 {
@@ -277,7 +270,7 @@ func SetDeviceColor(channelId int, customColor *structs.Color) {
 		}
 	} else {
 		// default color on all devices
-		color := brightness.ModifyBrightness(config.GetConfig().DefaultColor)
+		color := brightness.ModifyBrightness(config.GetRGB().DefaultColor)
 		for _, linkDevice := range device.Devices {
 			// Add current colors
 			currentColors[linkDevice.ChannelId] = color
@@ -317,8 +310,8 @@ func channelsDefault(linkDevices map[int]structs.LinkDevice) {
 	channelDefaults := map[int][]byte{}
 
 	// Custom speed defined in config
-	if config.GetConfig().UseCustomChannelIdSpeed {
-		customChannelIdData := config.GetConfig().CustomChannelIdData
+	if config.GetCustomChannels().UseCustomChannelIdSpeed {
+		customChannelIdData := config.GetCustomChannels().CustomChannelIdData
 		for linkDevice := range linkDevices {
 			if speed, ok := customChannelIdData[linkDevice]; ok {
 				SetDeviceSpeed(linkDevice, speed.Speed.Value, speed.Speed.Mode)
@@ -525,9 +518,6 @@ func setDeviceRGBMode() {
 	// Clamp it
 	rgbSmoothness = common.Clamp(rgbSmoothness, 1, 40)
 
-	// Set active RGB mode
-	rgb.ActiveRGBMode = rgbModeName
-
 	go func(
 		lightChannels,
 		smoothness int,
@@ -535,67 +525,41 @@ func setDeviceRGBMode() {
 		brightness,
 		rgbModeSpeed float64,
 		lightChannelsPerDevice map[int][]int,
+		rgbCustomColor bool,
+		rgbStartColor *structs.Color,
+		rgbEndColor *structs.Color,
 	) {
+		activeRgb = rgb.New(
+			lightChannels,
+			rgbModeSpeed,
+			rgbStartColor,
+			rgbEndColor,
+			brightness,
+			smoothness,
+			rgbLoopDuration,
+			rgbCustomColor,
+			lightChannelsPerDevice,
+		)
+
 		switch mode {
 		case "rainbow":
-			rainbow.Init(lightChannels, rgbModeSpeed, brightness)
+			activeRgb.Rainbow()
 		case "watercolor":
-			watercolor.Init(lightChannels, rgbModeSpeed, brightness)
+			activeRgb.Watercolor()
 		case "colorpulse":
-			colorpulse.Init(
-				lightChannels,
-				smoothness,
-				rgbLoopDuration,
-				rgbStartColor,
-				rgbEndColor,
-				brightness,
-			)
+			activeRgb.Colorpulse()
 		case "colorshift":
-			colorshift.Init(
-				lightChannels,
-				smoothness,
-				rgbCustomColor,
-				rgbLoopDuration,
-				rgbStartColor,
-				rgbEndColor,
-				brightness,
-			)
+			activeRgb.Colorshift()
 		case "circle", "circleshift":
-			circle.Init(
-				lightChannels,
-				rgbLoopDuration,
-				rgbStartColor,
-				rgbEndColor,
-				brightness,
-			)
+			activeRgb.Circle()
 		case "flickering":
-			flickering.Init(
-				lightChannels,
-				rgbLoopDuration,
-				rgbCustomColor,
-				rgbStartColor,
-				rgbEndColor,
-				brightness,
-			)
+			activeRgb.Flickering()
 		case "colorwarp":
-			colorwarp.Init(lightChannels, smoothness, brightness)
+			activeRgb.Colorwarp()
 		case "snipper":
-			spinner.Init(
-				lightChannels,
-				rgbStartColor,
-				rgbEndColor,
-				brightness,
-			)
+			activeRgb.Spinner()
 		case "heartbeat":
-			heartbeat.Init(
-				lightChannels,
-				smoothness,
-				rgbCustomColor,
-				rgbStartColor,
-				rgbEndColor,
-				rgbLoopDuration,
-				lightChannelsPerDevice,
-			)
+			activeRgb.Heartbeat()
 		}
 
 	}(
@@ -605,6 +569,9 @@ func setDeviceRGBMode() {
 		rgbModeBrightness,
 		rgbModeSpeed,
 		lightChannelsPerDevice,
+		rgbCustomColor,
+		rgbStartColor,
+		rgbEndColor,
 	)
 }
 

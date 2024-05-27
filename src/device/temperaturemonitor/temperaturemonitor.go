@@ -44,9 +44,10 @@ func getCpuTemperature() float32 {
 // Init will initialize CPU temperature monitor
 func Init() {
 	if config.GetConfig().Standalone {
+		temperatures := config.GetTemperatures()
 		var currentCurve uint8 = 0
-		temperatureCurves = config.GetConfig().TemperatureCurves
-		ticker := time.NewTicker(time.Duration(config.GetConfig().TemperaturePullingIntervalMs) * time.Millisecond)
+		temperatureCurves = temperatures.TemperatureCurves
+		ticker := time.NewTicker(time.Duration(temperatures.TemperaturePullingIntervalMs) * time.Millisecond)
 		quit = make(chan bool)
 		go func() {
 			for {

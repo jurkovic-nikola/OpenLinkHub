@@ -2,57 +2,70 @@ package rgb
 
 import (
 	"OpenICUELinkHub/src/config"
-	"OpenICUELinkHub/src/device/rgb/circle"
-	"OpenICUELinkHub/src/device/rgb/colorpulse"
-	"OpenICUELinkHub/src/device/rgb/colorshift"
-	"OpenICUELinkHub/src/device/rgb/colorwarp"
-	"OpenICUELinkHub/src/device/rgb/flickering"
-	"OpenICUELinkHub/src/device/rgb/heartbeat"
-	"OpenICUELinkHub/src/device/rgb/rainbow"
-	"OpenICUELinkHub/src/device/rgb/spinner"
-	"OpenICUELinkHub/src/device/rgb/watercolor"
 	"OpenICUELinkHub/src/structs"
+	"time"
 )
 
-var ActiveRGBMode = ""
+type ActiveRGB struct {
+	lightChannels          int
+	smoothness             int
+	rgbModeSpeed           float64
+	rgbEndColor            *structs.Color
+	rgbStartColor          *structs.Color
+	bts                    float64
+	rgbLoopDuration        time.Duration
+	rgbCustomColor         bool
+	lightChannelsPerDevice map[int][]int
+	exit                   chan bool
+}
 
+// IsGRBEnabled will return true or false if RGB is enabled
 func IsGRBEnabled() bool {
-	return config.GetConfig().UseRgbEffects
+	return config.GetRGB().UseRgbEffects
 }
 
 // GetRGBModeName will return the current rgb mode name
 func GetRGBModeName() string {
-	return config.GetConfig().RGBMode
+	return config.GetRGB().RGBMode
 }
 
+// GetRGBMode will return structs.RGBModes struct
 func GetRGBMode() *structs.RGBModes {
-	rgbMode := config.GetConfig().RGBMode
-	if val, ok := config.GetConfig().RGBModes[rgbMode]; ok {
+	rgbMode := config.GetRGB().RGBMode
+	if val, ok := config.GetRGB().RGBModes[rgbMode]; ok {
 		return &val
 	}
 	return nil
 }
 
-// Stop will terminate any running rgb effect after a device wakes up
-func Stop() {
-	switch ActiveRGBMode {
-	case "rainbow":
-		rainbow.Stop()
-	case "watercolor":
-		watercolor.Stop()
-	case "colorshift":
-		colorshift.Stop()
-	case "colorpulse":
-		colorpulse.Stop()
-	case "circle", "circleshift":
-		circle.Stop()
-	case "flickering":
-		flickering.Stop()
-	case "colorwarp":
-		colorwarp.Stop()
-	case "snipper":
-		spinner.Stop()
-	case "heartbeat":
-		heartbeat.Stop()
+// New will create new ActiveRGB struct for RGB control
+func New(
+	lightChannels int,
+	rgbModeSpeed float64,
+	rgbStartColor *structs.Color,
+	rgbEndColor *structs.Color,
+	bts float64,
+	smoothness int,
+	rgbLoopDuration time.Duration,
+	rgbCustomColor bool,
+	lightChannelsPerDevice map[int][]int,
+) *ActiveRGB {
+
+	return &ActiveRGB{
+		lightChannels:          lightChannels,
+		smoothness:             smoothness,
+		rgbModeSpeed:           rgbModeSpeed,
+		rgbStartColor:          rgbStartColor,
+		rgbEndColor:            rgbEndColor,
+		bts:                    bts,
+		rgbLoopDuration:        rgbLoopDuration,
+		rgbCustomColor:         rgbCustomColor,
+		lightChannelsPerDevice: lightChannelsPerDevice,
+		exit:                   make(chan bool),
 	}
+}
+
+// Stop will send command to exit RGB for {} loop
+func (r *ActiveRGB) Stop() {
+	r.exit <- true
 }

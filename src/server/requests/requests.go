@@ -110,7 +110,7 @@ func ProcessChangeColor(r *http.Request) *structs.Payload {
 		}
 	}
 
-	if config.GetConfig().UseCustomChannelIdColor {
+	if config.GetCustomChannels().UseCustomChannelIdColor {
 		return &structs.Payload{
 			Message: "UseCustomChannelIdColor mode active, color modifications are not possible.",
 			Code:    http.StatusMethodNotAllowed,

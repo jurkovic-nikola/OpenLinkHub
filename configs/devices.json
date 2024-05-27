@@ -1,0 +1,18 @@
+[
+  {"deviceId": 1, "deviceModel": 0, "deviceName": "QX Fan", "ledChannels": 34, "outerLedFront": 12, "outerLedBack": 12, "innerLedFront": 6, "innerLedBack": 4, "containsPump": false, "desc": "Fan"},
+  {"deviceId": 19, "deviceModel": 0, "deviceName": "RX Fan", "ledChannels": 0, "outerLedFront": 0, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": false, "desc": "Fan"},
+  {"deviceId": 15, "deviceModel": 0, "deviceName": "RX RGB Fan", "ledChannels": 8, "outerLedFront": 8, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": false, "desc": "Fan"},
+  {"deviceId": 7, "deviceModel": 2, "deviceName": "H150i", "ledChannels": 20, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 4, "innerLedBack": 0, "containsPump": true, "desc": "AIO"},
+  {"deviceId": 7, "deviceModel": 5, "deviceName": "H150i", "ledChannels": 20, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 4, "innerLedBack": 0, "containsPump": true, "desc": "AIO"},
+  {"deviceId": 7, "deviceModel": 1, "deviceName": "H115i", "ledChannels": 20, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 4, "innerLedBack": 0, "containsPump": true, "desc": "AIO"},
+  {"deviceId": 7, "deviceModel": 3, "deviceName": "H170i", "ledChannels": 20, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 4, "innerLedBack": 0, "containsPump": true, "desc": "AIO"},
+  {"deviceId": 7, "deviceModel": 0, "deviceName": "H100i", "ledChannels": 20, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 4, "innerLedBack": 0, "containsPump": true, "desc": "AIO"},
+  {"deviceId": 7, "deviceModel": 4, "deviceName": "H100i", "ledChannels": 20, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 4, "innerLedBack": 0, "containsPump": true, "desc": "AIO"},
+  {"deviceId": 9, "deviceModel": 0, "deviceName": "XC7 Elite", "ledChannels": 24, "outerLedFront": 24, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": false, "desc": "CPU Block"},
+  {"deviceId": 9, "deviceModel": 1, "deviceName": "XC7 Elite", "ledChannels": 24, "outerLedFront": 24, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": false, "desc": "CPU Block"},
+  {"deviceId": 13, "deviceModel": 0, "deviceName": "XG7", "ledChannels": 16, "outerLedFront": 16, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": false, "desc": "GPU Block"},
+  {"deviceId": 12, "deviceModel": 0, "deviceName": "XD5 Elite", "ledChannels": 22, "outerLedFront": 22, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": true, "desc": "Pump/Res"},
+  {"deviceId": 12, "deviceModel": 1, "deviceName": "XD5 Elite", "ledChannels": 22, "outerLedFront": 22, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": true, "desc": "Pump/Res"},
+  {"deviceId": 14, "deviceModel": 0, "deviceName": "XD5 Elite LCD", "ledChannels": 22, "outerLedFront": 22, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": true, "desc": "Pump/Res"},
+  {"deviceId": 14, "deviceModel": 1, "deviceName": "XD5 Elite LCD", "ledChannels": 22, "outerLedFront": 22, "outerLedBack": 0, "innerLedFront": 0, "innerLedBack": 0, "containsPump": true, "desc": "Pump/Res"}
+]

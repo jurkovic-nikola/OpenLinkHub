@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/justValidateTooltip.min.css">
+  <style>
+    .no-float {
+      float: none;
+    }
+
+    .mt30 {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body class="container">
+<div class="col-md-6 center-block no-float mt30">
+  <form action="#" class="js-form form">
+    <div class="row">
+      <div class="just-validate-tooltip-container form-group col-md-6">
+        <input type="text" class="form__input form-control" placeholder="Enter your name" autocomplete="off" data-validate-field="name" name="name" value="dkdf">
+      </div>
+      <div class="just-validate-tooltip-container form-group col-md-6">
+        <input type="text" class="form__input form-control" placeholder="Enter your login" autocomplete="off" data-validate-field="login" name="login" value="zzz">
+      </div>
+      <div class="just-validate-tooltip-container form-group col-md-6">
+        <input type="email" class="form__input form-control" placeholder="Enter your email" autocomplete="off" data-validate-field="email" name="email" value="ok@test.co">
+      </div>
+    </div>
+    <div class="just-validate-tooltip-container form-group">
+      <input type="password" class="form__input form-control" placeholder="Enter your password" autocomplete="off" data-validate-field="password" name="password" value="123fd">
+    </div>
+    <div class="just-validate-tooltip-container form-group">
+      <textarea name="msg" cols="30" rows="10" class="form__textarea form-control" data-validate-field="text"></textarea>
+    </div>
+    <div class="form-group">
+      <input type="checkbox" name="check1" id="checkbox" class="form__checkbox"  checked><label for="checkbox">I agree</label>
+    </div>
+    <div class="just-validate-tooltip-container form-group">
+      <label><input type="checkbox" name="check2" class="form__checkbox" data-validate-field="checkbox2" checked>I agree</label>
+    </div>
+
+    <button class="form__btn btn btn-primary">SUBMIT</button>
+  </form>
+</div>
+
+<script src="js/just-validate.min.js"></script>
+
+<script>
+    new window.JustValidate('.js-form', {
+        tooltip: {
+          fadeOutTime: 3000,
+        },
+        rules: {
+            checkbox2: {
+                required: true
+            },
+            email: {
+                required: true,
+                email: true,
+                remote: {
+                    url: 'https://just-validate-api.herokuapp.com/check-correct',
+                    sendParam: 'email',
+                    successAnswer: 'OK',
+                    method: 'GET',
+                }
+            },
+            login: {
+                required: true,
+                remote: {
+                    url: 'https://just-validate-api.herokuapp.com/check-correct',
+                    sendParam: 'login',
+                    successAnswer: 'OK',
+                    method: 'GET'
+                }
+            },
+            password: {
+                strength: {
+                    custom: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]',
+                },
+            },
+        },
+        messages: {
+            login: {
+                remote: 'Login already exists'
+            }
+        },
+        submitHandler: function (form, values, ajax) {
+            console.log(values)
+            ajax({
+                url: 'https://just-validate-api.herokuapp.com/submit',
+                method: 'POST',
+                data: values,
+                async: true,
+                callback: (response) => {
+                    console.log(response);
+                }
+            });
+        },
+    });
+</script>
+
+</body>
+</html>

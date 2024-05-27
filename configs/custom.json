@@ -1,0 +1,78 @@
+{
+  "useCustomChannelIdColor": false,
+  "useCustomChannelIdSpeed": false,
+  "customChannelIdData": {
+    "1": {
+      "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "speed": {
+        "mode": 0,
+        "value": 80
+      }
+    },
+    "2": {
+      "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "speed": {
+        "mode": 0,
+        "value": 80
+      }
+    },
+    "3": {
+      "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "speed": {
+        "mode": 0,
+        "value": 80
+      }
+    },
+    "13": {
+      "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "speed": {
+        "mode": 0,
+        "value": 80
+      }
+    },
+    "14": {
+      "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "speed": {
+        "mode": 0,
+        "value": 80
+      }
+    },
+    "15": {
+      "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "speed": {
+        "mode": 0,
+        "value": 80
+      }
+    }
+  }
+}

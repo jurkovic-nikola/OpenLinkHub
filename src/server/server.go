@@ -6,9 +6,11 @@ import (
 	"OpenICUELinkHub/src/logger"
 	"OpenICUELinkHub/src/server/requests"
 	"OpenICUELinkHub/src/structs"
+	"OpenICUELinkHub/src/templates"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/zcalusic/sysinfo"
 	"net/http"
 )
 
@@ -76,28 +78,63 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	send(resp, w)
 }
 
+func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Device = device.GetDevice()
+
+	// System info
+	var si sysinfo.SysInfo
+	si.GetSysInfo()
+	web.SystemInfo = si
+
+	web.Tpl = templates.GetTemplate("overview")
+	err := web.Tpl.Execute(w, web)
+	if err != nil {
+		resp := &structs.Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		send(resp, w)
+	}
+}
+
 func setRoutes() *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+
 	r.Methods(http.MethodGet).Path("/").HandlerFunc(homePage)
 	r.Methods(http.MethodGet).Path("/devices").HandlerFunc(getDevices)
 	r.Methods(http.MethodPost).Path("/speed").HandlerFunc(setDeviceSpeed)
 	r.Methods(http.MethodPost).Path("/color").HandlerFunc(setDeviceColor)
+	r.Methods(http.MethodGet).Path("/ui").HandlerFunc(uiDeviceOverview)
 	return r
 }
 
 // Init will start a new web server used for metrics and fan control
 func Init() {
-	server := &http.Server{
-		Addr: fmt.Sprintf(
-			"%s:%v",
-			config.GetConfig().ListenAddress,
-			config.GetConfig().ListenPort,
-		),
-		Handler: setRoutes(),
-	}
+	if config.GetConfig().ListenPort > 0 {
+		templates.Init()
+		server := &http.Server{
+			Addr: fmt.Sprintf(
+				"%s:%v",
+				config.GetConfig().ListenAddress,
+				config.GetConfig().ListenPort,
+			),
+			Handler: setRoutes(),
+		}
 
-	err := server.ListenAndServe()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to start REST server")
+		fmt.Println(
+			fmt.Sprintf("Running REST and WebUI on %s. WebUI is accessible via: http://%s",
+				server.Addr,
+				server.Addr,
+			),
+		)
+		err := server.ListenAndServe()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Fatal("Unable to start REST server")
+		}
+	} else {
+		logger.Log(logger.Fields{}).Info("REST server is disabled")
 	}
 }

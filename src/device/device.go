@@ -32,7 +32,9 @@ func GetDevice() *structs.Device {
 
 // Stop will send the device back to hardware mode, usually when the program exits
 func Stop() {
-	activeRgb.Stop()
+	if activeRgb != nil {
+		activeRgb.Stop()
+	}
 	authRefreshChan <- true
 	setDeviceMode(opcodes.CmdHardwareMode)
 	comm.Close()

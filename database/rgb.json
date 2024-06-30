@@ -1,0 +1,144 @@
+{
+  "defaultColor": {
+    "red": 255,
+    "green": 100,
+    "blue": 0,
+    "brightness": 1
+  },
+  "profiles": {
+    "rainbow": {
+      "speed": 4,
+      "brightness": 1
+    },
+    "static": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "watercolor": {
+      "speed": 4,
+      "brightness": 1
+    },
+    "colorshift": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 50,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "colorpulse": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 40,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 0,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "circle": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "circleshift": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 100,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "flickering": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 40,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "colorwarp": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {},
+      "end": {}
+    },
+    "spinner": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 0,
+        "brightness": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{.Title}}</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="all,follow">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
+    <link rel="stylesheet" href="/static/vendor/simple-datatables/style.css">
+    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/css/toastr.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="shortcut icon" href="/static/img/favicon.ico">
+</head>
+<body>
+<div class="d-flex align-items-stretch">
+    <nav id="sidebar">
+        <div class="sidebar-header d-flex align-items-center p-4">
+            <div class="custom-header">
+                <h1 class="h5 mb-1">Device Dashboard</h1>
+            </div>
+        </div>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Navigation</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/">
+                    <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+        </ul>
+
+        <ul class="list-unstyled">
+            {{ range .Devices }}
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/device/{{ .Serial }}">
+                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>{{ .Product }}</span>
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Settings</span>
+        <ul class="list-unstyled">
+            <!--<li class="sidebar-item">
+                <a class="sidebar-link" href="/settings">
+                    <i class="bi bi-gear-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Settings</span>
+                </a>
+            </li>-->
+            <li class="sidebar-item active">
+                <a class="sidebar-link" href="/color">
+                    <i class="bi bi-palette svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>RGB</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link active" href="/temperature">
+                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Temperature</span>
+                </a>
+            </li>
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Project</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                    <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/docs/">
+                    <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Documentation</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="page-content">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                <h2 class="h5 mb-0">Temperature Profiles</h2>
+            </div>
+        </div>
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4">
+                    <div class="col-lg-2">
+                        {{ range $key, $value := .Rgb }}
+                        <div class="card rgbList" id="{{ $key }}" style="margin-bottom: 20px;">
+                            <div class="card-body">
+                                <div class="row gx-12">
+                                    <div class="col-12">
+                                        <div>
+                                            <p class="text-xl fw-normal mb-0">{{ $key }}</p>
+                                            <p class="text-uppercase text-sm fw-light mb-1">Speed: {{ $value.Speed }}</p>
+                                            <p class="text-uppercase text-sm fw-light mb-1">Brightness: {{ $value.Brightness }}</p>
+                                            <p class="text-uppercase text-sm fw-light mb-1">Smoothness: {{ $value.Smoothness }}</p>
+                                            <p class="text-uppercase text-sm fw-light mb-1">Color 1:
+                                                <div style="width:100%; height:20px;background-color: rgb({{ $value.StartColor.Red }}, {{ $value.StartColor.Green }}, {{ $value.StartColor.Blue }})"></div>
+                                            </p>
+                                            <p class="text-uppercase text-sm fw-light mb-1">Color 2:
+                                            <div style="width:100%; height:20px;background-color: rgb({{ $value.EndColor.Red }}, {{ $value.EndColor.Green }}, {{ $value.EndColor.Blue }})"></div>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                    <input type="hidden" id="profile" name="profile" value="">
+                    <div class="col-lg-10">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row gx-5">
+                                    <div class="table-responsive">
+                                        <table class="table text-sm" id="table" style="width: 100%;">
+                                            <thead>
+                                            <tr>
+                                                <th>Speed</th>
+                                                <th>Brightness</th>
+                                                <th>Smoothness</th>
+                                                <th>Color 1</th>
+                                                <th>Color 2</th>
+                                            </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/dataTables.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/rgb.js"></script>
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{.Title}}</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="all,follow">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
+    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="shortcut icon" href="/static/img/favicon.ico">
+</head>
+<body>
+<div class="d-flex align-items-stretch">
+    <nav id="sidebar">
+        <div class="sidebar-header d-flex align-items-center p-4">
+            <div class="custom-header">
+                <h1 class="h5 mb-1">Device Dashboard</h1>
+            </div>
+        </div>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Navigation</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/">
+                    <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+        </ul>
+
+        <ul class="list-unstyled">
+            {{ range .Devices }}
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/device/{{ .Serial }}">
+                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>{{ .Product }}</span>
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Settings</span>
+        <ul class="list-unstyled">
+            <!--<li class="sidebar-item">
+                <a class="sidebar-link" href="/settings">
+                    <i class="bi bi-gear-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Settings</span>
+                </a>
+            </li>-->
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/color">
+                    <i class="bi bi-palette svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>RGB</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link active" href="/temperature">
+                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Temperature</span>
+                </a>
+            </li>
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Project</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                    <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a class="sidebar-link active" href="/docs/">
+                    <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Documentation</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="page-content">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                <h2 class="h5 mb-0">Documentation</h2>
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header border-bottom border-dash-dark-1">Documentation</div>
+                            <div class="card-body">
+                                <div class="row gx-5">
+                                    <div class="col-12 border-sm-end border-dash-dark-1">
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"># <b>Speed Control</b> - Modify all channels
+$ curl -X POST http://{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/speed -d '{ "deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "channelId":0, "profile":"Performance" }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Device speed successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"># <b>Speed Control</b> - Modify specific channel
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/speed -d '{ "deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "channelId":13, "profile":"Performance" }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Device speed successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"># <b>Temperature Profile</b> - Create CPU Profile
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures -d '{ "profile":"Example", "static":false, "sensor":0 }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Profile is successfully saved"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature Profile</b> - Create GPU Profile
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures -d '{ "profile":"Example", "static":false, "sensor":1 }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Profile is successfully saved"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature Profile</b> - Create Static CPU Profile
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures -d '{ "profile":"Example", "static":true, "sensor":0 }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Profile is successfully saved"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature Profile</b> - Create Static GPU Profile
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures -d '{ "profile":"Example", "static":true, "sensor":1 }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Speed profile is successfully saved"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature Profile</b> - Delete Profile
+$ curl -X DELETE http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures -d '{ "profile":"Example" }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Speed profile is successfully deleted"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature Profile</b> - Get all profiles
+$ curl -X GET http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures --silent | jq
+{
+  "code": 200,
+  "status": 0,
+  "data": {
+    "CPU": {
+      "sensor": 0,
+      "profiles": [
+        {
+          "id": 1,
+          "min": 0,
+          "max": 30,
+          "mode": 0,
+          "fans": 30,
+          "pump": 70
+        },
+        {
+          "id": 2,
+          "min": 30,
+          "max": 40,
+          "mode": 0,
+          "fans": 40,
+          "pump": 70
+        },
+        {
+          "id": 3,
+          "min": 40,
+          "max": 50,
+          "mode": 0,
+          "fans": 40,
+          "pump": 70
+        },
+        {
+          "id": 4,
+          "min": 50,
+          "max": 60,
+          "mode": 0,
+          "fans": 45,
+          "pump": 70
+        },
+        {
+          "id": 5,
+          "min": 60,
+          "max": 70,
+          "mode": 0,
+          "fans": 55,
+          "pump": 70
+        },
+        {
+          "id": 6,
+          "min": 70,
+          "max": 80,
+          "mode": 0,
+          "fans": 70,
+          "pump": 80
+        },
+        {
+          "id": 7,
+          "min": 80,
+          "max": 90,
+          "mode": 0,
+          "fans": 90,
+          "pump": 90
+        },
+        {
+          "id": 8,
+          "min": 90,
+          "max": 200,
+          "mode": 0,
+          "fans": 100,
+          "pump": 100
+        }
+      ]
+    }
+    ...
+  }
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature Profile</b> - Get specific profile
+$ curl -X GET http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures/CPU  --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": {
+    "sensor": 0,
+    "profiles": [
+      {
+        "id": 1,
+        "min": 0,
+        "max": 30,
+        "mode": 0,
+        "fans": 30,
+        "pump": 70
+      },
+      {
+        "id": 2,
+        "min": 30,
+        "max": 40,
+        "mode": 0,
+        "fans": 40,
+        "pump": 70
+      },
+      {
+        "id": 3,
+        "min": 40,
+        "max": 50,
+        "mode": 0,
+        "fans": 40,
+        "pump": 70
+      },
+      {
+        "id": 4,
+        "min": 50,
+        "max": 60,
+        "mode": 0,
+        "fans": 45,
+        "pump": 70
+      },
+      {
+        "id": 5,
+        "min": 60,
+        "max": 70,
+        "mode": 0,
+        "fans": 55,
+        "pump": 70
+      },
+      {
+        "id": 6,
+        "min": 70,
+        "max": 80,
+        "mode": 0,
+        "fans": 70,
+        "pump": 80
+      },
+      {
+        "id": 7,
+        "min": 80,
+        "max": 90,
+        "mode": 0,
+        "fans": 90,
+        "pump": 90
+      },
+      {
+        "id": 8,
+        "min": 90,
+        "max": 200,
+        "mode": 0,
+        "fans": 100,
+        "pump": 100
+      }
+    ]
+  }
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>RGB</b> - Get specific profile
+$ curl -X GET http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/color/rainbow --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": {
+    "speed": 4,
+    "brightness": 1,
+    "smoothness": 0,
+    "start": {
+      "red": 0,
+      "green": 0,
+      "blue": 0,
+      "brightness": 0
+    },
+    "end": {
+      "red": 0,
+      "green": 0,
+      "blue": 0,
+      "brightness": 0
+    }
+  }
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>RGB</b> - Get profiles
+$ curl -X GET http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/color --silent | jq
+{
+  "code": 200,
+  "status": 0,
+  "data": {
+    "circle": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    "circleshift": {
+      "speed": 1,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 1
+      },
+      "end": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 1
+      }
+    },
+    ...
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>RGB</b> - Change device RGB profile
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", channelId:13, "profile":"rainbow"}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Device RGB profile is successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+</body>
+</html>

@@ -9,3 +9,78 @@ nav#sidebar {
     width: 100%;
     text-align: center;
 }
+
+.size-100 {
+    width: 100%;
+    overflow: hidden;
+}
+
+.size-80-fl {
+   width: 80%;
+   float: left;
+}
+
+.size-20-fr {
+    width: 20%;
+    float: right;
+    text-align: right;
+}
+
+.nav-link-right {
+    display: block;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    color: #37cfdc;
+    text-decoration: none;
+    -webkit-transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out;
+}
+
+.selected-effect {
+    outline:1px solid #37cfdc;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+.tempList:hover {
+    outline:1px solid #37cfdc;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+.rgbList:hover {
+    outline:1px solid #37cfdc;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+.newTemp {
+    outline:1px solid #7c7c7c;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+.newTemp:hover {
+    outline:1px solid #a6a6a6;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+.progress-bar .bg-dash-color-5 {
+    background: #37cfdc;
+}
+
+.custom-code-div {
+    background-color: #1c1c1c;
+    width: 100%;
+    border: 1px solid #3a6999;
+}

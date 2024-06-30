@@ -1,155 +1,266 @@
 package requests
 
 import (
-	"OpenLinkHub/src/config"
-	"OpenLinkHub/src/device"
-	"OpenLinkHub/src/device/rgb"
+	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
-	"OpenLinkHub/src/structs"
+	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"regexp"
 )
 
-// ProcessChangeSpeed will process POST request from a client for fan speed change
-func ProcessChangeSpeed(r *http.Request) *structs.Payload {
-	var value uint16
-	req := &structs.Payload{}
+// Payload contains data from a client about device speed change
+type Payload struct {
+	DeviceId     string    `json:"deviceId"`
+	ChannelId    int       `json:"channelId"`
+	Mode         uint8     `json:"mode"`
+	Value        uint16    `json:"value"`
+	Color        rgb.Color `json:"color"`
+	Profile      string    `json:"profile"`
+	Static       bool      `json:"static"`
+	Sensor       uint8     `json:"sensor"`
+	ZeroRpm      bool      `json:"zeroRpm"`
+	Enabled      bool      `json:"enabled"`
+	DeviceType   int       `json:"deviceType"`
+	DeviceAmount int       `json:"deviceAmount"`
+	Status       int
+	Code         int
+	Message      string
+}
+
+func ProcessDeleteTemperatureProfile(r *http.Request) *Payload {
+	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
-		return &structs.Payload{
+		return &Payload{
 			Message: "Unable to validate your request. Please try again!",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
-	// When a program runs in standalone, it measures temperature on its own and modifies the speed of devices based on
-	// a user-defined curve in configuration file.
-	if config.GetConfig().Standalone {
-		return &structs.Payload{
-			Message: "Standalone mode active, speed modifications are not possible",
-			Code:    http.StatusMethodNotAllowed,
-		}
-	}
-
-	if req.ChannelId < 1 {
-		return &structs.Payload{
-			Message: "Non-existing channelId",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
-	if _, ok := device.GetDevice().Devices[req.ChannelId]; !ok {
-		return &structs.Payload{
-			Message: "Non-existing channelId",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
-	if req.Mode < 0 || req.Mode > 1 {
-		return &structs.Payload{
-			Message: "Non-existing speed mode",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
-	dev := device.GetDevice().Devices[req.ChannelId]
-	if dev.Type == 0x07 && req.Mode == 1 { // Liquid cooler (AIO)
-		return &structs.Payload{
-			Message: "Pump speed can not be controlled via RPM",
-			Code:    http.StatusMethodNotAllowed,
-		}
-	}
-
-	value = req.Value
-	if req.Mode == 0 && req.Value < 20 { // Percent mode
-		value = 20
-	}
-
-	if req.Mode == 0 && req.Value > 100 { // Percent mode
-		value = 90
-	}
-
-	if req.Mode == 1 && req.Value < 300 { // RPM mode
-		value = 300
-	}
-
-	if req.Mode == 1 && req.Value > 3000 { // RPM mode
-		value = 3000
-	}
-
-	if device.SetDeviceSpeed(req.ChannelId, value, req.Mode) == 1 {
-		return &structs.Payload{
-			Message: "Device speed successfully changed",
 			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	profile := req.Profile
+	if len(profile) < 3 {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name is less then 3 characters",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", profile); !m {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name contains invalid characters",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if pf := temperatures.GetTemperatureProfile(profile); pf == nil {
+		return &Payload{
+			Message: "Non-existing speed profile",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	temperatures.DeleteTemperatureProfile(profile)
+	devices.ResetSpeedProfiles(profile)
+	return &Payload{
+		Message: "Speed profile is successfully deleted",
+		Code:    http.StatusOK,
+		Status:  1,
+	}
+}
+
+func ProcessUpdateTemperatureProfile(r *http.Request) *Payload {
+	err := r.ParseForm()
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to parse form")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	profile := r.FormValue("profile")
+	data := r.FormValue("data")
+
+	if len(profile) < 3 {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name is less then 3 characters",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", profile); !m {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name contains invalid characters",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if update := temperatures.UpdateTemperatureProfile(profile, data); update > 0 {
+		st := ""
+		if update == 1 {
+			st = "profile"
+		} else {
+			st = "profiles"
+		}
+		return &Payload{
+			Message: fmt.Sprintf("Succesfully updated %d %s", update, st),
+			Code:    http.StatusOK,
+			Status:  1,
 		}
 	} else {
-		return &structs.Payload{
-			Message: "Unable to change device speed. Check stdout.log for more details",
+		return &Payload{
+			Message: "No profiles updated or there was no profile change",
 			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 }
 
-// ProcessChangeColor will process POST request from a client for color change
-func ProcessChangeColor(r *http.Request) *structs.Payload {
-	req := &structs.Payload{}
+func ProcessNewTemperatureProfile(r *http.Request) *Payload {
+	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
-		return &structs.Payload{
+		return &Payload{
 			Message: "Unable to validate your request. Please try again!",
-			Code:    http.StatusBadRequest,
+			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 
-	if config.GetConfig().Standalone {
-		return &structs.Payload{
-			Message: "Standalone mode active, color modifications are not possible",
-			Code:    http.StatusMethodNotAllowed,
+	profile := req.Profile
+	static := req.Static
+	sensor := req.Sensor
+	zeroRpm := req.ZeroRpm
+
+	if len(profile) < 3 {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name is less then 3 characters",
+			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 
-	if config.GetCustomChannels().UseCustomChannelIdColor {
-		return &structs.Payload{
-			Message: "UseCustomChannelIdColor mode active, color modifications are not possible.",
-			Code:    http.StatusMethodNotAllowed,
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", profile); !m {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name contains invalid characters",
+			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 
-	if rgb.IsGRBEnabled() {
-		return &structs.Payload{
-			Message: "rgbMode mode enabled, color modifications are not possible.",
-			Code:    http.StatusMethodNotAllowed,
+	if sensor > 2 || sensor < 0 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid sensor value",
+			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 
-	if req.ChannelId < 0 {
-		return &structs.Payload{
-			Message: "Non-existing channelId",
-			Code:    http.StatusBadRequest,
+	if temperatures.AddTemperatureProfile(profile, static, zeroRpm, sensor) {
+		return &Payload{
+			Message: "Speed profile is successfully saved",
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	} else {
+		return &Payload{
+			Message: "Unable to validate your request. Profile already exists",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+}
+
+// ProcessChangeSpeed will process POST request from a client for fan speed change
+func ProcessChangeSpeed(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 
-	if req.ChannelId != 0 {
-		if _, ok := device.GetDevice().Devices[req.ChannelId]; !ok {
-			return &structs.Payload{
-				Message: "Non-existing channelId",
-				Code:    http.StatusBadRequest,
-			}
+	if len(req.Profile) < 1 {
+		return &Payload{Message: "Non-existing speed profile", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.Profile); !m {
+		return &Payload{Message: "Non-existing speed profile", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 1 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < -1 {
+		return &Payload{Message: "Non-existing channelId", Code: http.StatusOK, Status: 0}
+	}
+
+	if temperatures.GetTemperatureProfile(req.Profile) == nil {
+		return &Payload{Message: "Non-existing speed profile", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	devices.UpdateSpeedProfile(req.DeviceId, req.ChannelId, req.Profile)
+
+	return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
+}
+
+// ProcessChangeColor will process POST request from a client for RGB profile change
+func ProcessChangeColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
 		}
 	}
 
-	color := &structs.Color{
-		Red:        req.Color.Red,
-		Green:      req.Color.Green,
-		Blue:       req.Color.Blue,
-		Brightness: req.Color.Brightness,
+	if len(req.Profile) < 1 {
+		return &Payload{Message: "Non-existing speed profile", Code: http.StatusOK, Status: 0}
 	}
-	device.SetDeviceColor(req.ChannelId, color)
 
-	return &structs.Payload{
-		Message: "Device color successfully changed",
-		Code:    http.StatusOK,
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.Profile); !m {
+		return &Payload{Message: "Non-existing RGB profile", Code: http.StatusOK, Status: 0}
 	}
+
+	if rgb.GetRgbProfile(req.Profile) == nil {
+		return &Payload{Message: "Non-existing RGB profile", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	devices.UpdateRgbProfile(req.DeviceId, req.ChannelId, req.Profile)
+
+	return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
 }

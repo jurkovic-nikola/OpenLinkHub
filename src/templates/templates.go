@@ -2,50 +2,46 @@ package templates
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
-	"OpenLinkHub/src/structs"
-	"fmt"
+	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
 	"html/template"
-	"strings"
-	"sync"
 )
 
 var (
-	templates = make(map[string]template.Template)
-	mutex     = sync.Mutex{}
+	templates *template.Template
 )
 
 type Web struct {
-	Title      string
-	Tpl        *template.Template
-	Device     *structs.Device
-	SystemInfo interface{}
+	Title         string
+	Tpl           *template.Template
+	Devices       map[string]*devices.Device
+	Configuration config.Configuration
+	Device        interface{}
+	Temperatures  map[string]temperatures.TemperatureProfileData
+	Rgb           map[string]rgb.Profile
+	SystemInfo    interface{}
+	CpuTemp       float32
 }
 
 func Init() {
-	mutex.Lock()
-	defer mutex.Unlock()
+	tpl, err := template.ParseFiles(
+		"web/devices.html",
+		"web/docs.html",
+		"web/index.html",
+		"web/lsh.html",
+		"web/rgb.html",
+		"web/temperature.html",
+	)
 
-	templateList := strings.Split(config.GetConfig().TemplateList, ",")
-	for i := range templateList {
-		values := strings.Split(templateList[i], ".")
-		filename := fmt.Sprintf("web/%s", templateList[i])
-
-		tpl, err := template.ParseFiles(filename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "template": filename}).Error("Failed to load template")
-			continue
-		}
-		templates[values[0]] = *tpl
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Failed to load templates")
 	}
+
+	templates = tpl
 }
 
-func GetTemplate(name string) *template.Template {
-	mutex.Lock()
-	defer mutex.Unlock()
-	val, ok := templates[name]
-	if ok {
-		return &val
-	}
-	return nil
+func GetTemplate() *template.Template {
+	return templates
 }

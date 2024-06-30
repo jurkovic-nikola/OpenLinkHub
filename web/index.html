@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{.Title}}</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="all,follow">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
+    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="shortcut icon" href="/static/img/favicon.ico">
+</head>
+<body>
+<div class="d-flex align-items-stretch">
+    <nav id="sidebar">
+        <div class="sidebar-header d-flex align-items-center p-4">
+            <div class="custom-header">
+                <h1 class="h5 mb-1">Device Dashboard</h1>
+            </div>
+        </div>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Navigation</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item active">
+                <a class="sidebar-link" href="/">
+                    <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+        </ul>
+
+        <ul class="list-unstyled">
+            {{ range .Devices }}
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/device/{{ .Serial }}">
+                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>{{ .Product }}</span>
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Settings</span>
+        <ul class="list-unstyled">
+            <!--<li class="sidebar-item">
+                <a class="sidebar-link" href="/settings">
+                    <i class="bi bi-gear-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Settings</span>
+                </a>
+            </li>-->
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/color">
+                    <i class="bi bi-palette svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>RGB</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link active" href="/temperature">
+                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Temperature</span>
+                </a>
+            </li>
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Project</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                    <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/docs/">
+                    <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Documentation</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="page-content">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                <h2 class="h5 mb-0">Dashboard</h2>
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top:10px">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">{{ .SystemInfo.OS.Name }}</div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-center text-center">
+                                        <div class="px-3 px-lg-2">
+                                            <p class="text-lg fw-normal mb-0">{{ .SystemInfo.Kernel.Release }}</p><span class="text-sm text-uppercase mb-0">Kernel</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">{{.SystemInfo.CPU.Model}}</div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-center text-center">
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0" id="cpu_temp">{{.CpuTemp}}</p><span class="text-sm text-uppercase mb-0">Temperature</span>
+                                        </div>
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.SystemInfo.CPU.Cores}}</p><span class="text-sm text-uppercase mb-0">Cores</span>
+                                        </div>
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.SystemInfo.CPU.Threads}}</p><span class="text-sm text-uppercase mb-0">Threads</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">{{.SystemInfo.Board.Name}}</div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-center text-center">
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.SystemInfo.BIOS.Version}}</p><span class="text-sm text-uppercase mb-0">BIOS</span>
+                                        </div>
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.SystemInfo.BIOS.Date}}</p><span class="text-sm text-uppercase mb-0">Date</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ range .SystemInfo.Storage}}
+                        <div class="col-md-3">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">{{.Model}}</div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-center text-center">
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.Serial}}</p><span class="text-sm text-uppercase mb-0">Serial</span>
+                                        </div>
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.Size}} GB</p><span class="text-sm text-uppercase mb-0">Capacity</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                    <div class="row">
+                        {{ range .Devices }}
+                        <div class="col-md-3">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">{{ .Product }}</div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-center text-center">
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">Corsair</p><span class="text-sm text-uppercase mb-0">Vendor</span>
+                                        </div>
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{.Firmware}}</p><span class="text-sm text-uppercase mb-0">Firmware</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/index.js"></script>
+</body>
+</html>

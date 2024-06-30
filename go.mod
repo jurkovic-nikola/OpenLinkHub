@@ -3,6 +3,7 @@ module OpenLinkHub
 go 1.22.2
 
 require (
+	github.com/NVIDIA/go-nvml v0.12.4-0
 	github.com/gorilla/mux v1.8.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/ssimunic/gosensors v0.0.0-20170414000417-e7ab9a4e799b
@@ -11,6 +12,6 @@ require (
 )
 
 require (
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 )

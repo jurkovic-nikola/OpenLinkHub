@@ -657,7 +657,11 @@ func (d *Device) getDevices() int {
 		// Get device definition
 		deviceMeta := d.getSupportedDevice(deviceTypeModel[2], deviceTypeModel[3])
 		if deviceMeta == nil {
-			position += 8
+			if deviceIdLen > 0 {
+				position += 8 + int(deviceIdLen)
+			} else {
+				position += 8
+			}
 			continue
 		}
 

@@ -2,10 +2,9 @@
 Description=Open source interface for iCUE LINK System Hub
 
 [Service]
-User=your-user
-Group=your-user-group
-WorkingDirectory=/path-tp-executable-directory/
-ExecStart=/path-tp-executable-directory/OpenLinkHub
+User=nikola
+WorkingDirectory=/opt/OpenLinkHub
+ExecStart=/opt/OpenLinkHub/OpenLinkHub
 ExecReload=/bin/kill -s HUP $MAINPID
 RestartSec=5
 

@@ -149,6 +149,14 @@ var (
 			Desc:         "Fan",
 		},
 		{
+			DeviceId:     4,
+			Model:        0,
+			Name:         "RX MAX Fan",
+			LedChannels:  8,
+			ContainsPump: false,
+			Desc:         "Fan",
+		},
+		{
 			DeviceId:     7,
 			Model:        2,
 			Name:         "H150i",
@@ -251,6 +259,14 @@ var (
 			LedChannels:  22,
 			ContainsPump: true,
 			Desc:         "Pump/Res",
+		},
+		{
+			DeviceId:     16,
+			Model:        0,
+			Name:         "VRM Cooler Module",
+			LedChannels:  0,
+			ContainsPump: false,
+			Desc:         "Fan",
 		},
 	}
 )

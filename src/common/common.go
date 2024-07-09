@@ -3,6 +3,7 @@ package common
 import (
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 	"unsafe"
 )
@@ -111,4 +112,13 @@ func FractionOfByte(ratio float64, percentage *float64) int {
 		return int(math.Round(ratio * 255))
 	}
 	return 0
+}
+
+// IsValidExtension will compare a path extension with a given extension
+func IsValidExtension(path, extension string) bool {
+	ext := filepath.Ext(path)
+	if ext != extension {
+		return false
+	}
+	return true
 }

@@ -1,6 +1,7 @@
 package temperatures
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
@@ -222,6 +223,11 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 
 		// Define a full path of filename
 		profileLocation := location + fi.Name()
+
+		if !common.IsValidExtension(profileLocation, ".json") {
+			continue
+		}
+
 		profileName := strings.Split(fi.Name(), ".")[0]
 
 		fmt.Println("[Temperatures] Loading profile:", profileLocation)

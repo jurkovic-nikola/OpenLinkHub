@@ -58,6 +58,20 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) {
 	}
 }
 
+// UpdateManualSpeed will update device speeds with a given serial number
+func UpdateManualSpeed(deviceId string, channelId int, value uint16) {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.LinkSystemHub != nil {
+					device.LinkSystemHub.UpdateDeviceSpeed(channelId, value)
+				}
+			}
+		}
+	}
+}
+
 // UpdateRgbProfile will update device RGB profile
 func UpdateRgbProfile(deviceId string, channelId int, profile string) {
 	if device, ok := devices[deviceId]; ok {

@@ -13,9 +13,10 @@ Open source Linux interface for iCUE LINK Hub and other devices.
 - Take care and have fun!
 ## Supported devices
 
-| Device                 | VID    | PID    | Sub Devices                                                                                                                                                                                                                                                                      |
-|------------------------|--------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| iCUE LINK System Hub   | `1b1c` | `0c3f` | QX Fan<br />RX Fan<br/>RX RGB Fan<br/>H100i<br/>H115i<br/>H150i<br/>H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD                                                                                                                                                  | |
+| Device                  | VID    | PID    | Sub Devices                                                                                                                                                            |
+|-------------------------|--------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| iCUE LINK System Hub    | `1b1c` | `0c3f` | QX Fan<br />RX Fan<br/>RX RGB Fan<br/>RX MAX Fan<br/>H100i<br/>H115i<br/>H150i<br/>H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module | |                                                                                                                                                                   |
+
 
 ## Installation
 ### 1. Requirements
@@ -94,12 +95,16 @@ unzip -x 0.0.3-beta.zip
   "listenPort": 27003,
   "listenAddress": "127.0.0.1",
   "cpuSensorChip": "k10temp-pci-00c3",
-  "cpuPackageIdent": "Tctl"
+  "cpuPackageIdent": "Tctl",
+  "manual": false,
+  "frontend": true
 }
 ```
 - listenPort: HTTP server port.
 - listenAddress: Address for HTTP server to listen on.
 - cpuSensorChip: CPU sensor chip for temperature
+- manual: set to true if you want to use your own UI for device control. Setting this to true will disable temperature monitoring and automatic device speed adjustments. 
+- frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
 ```bash
 $ sensors
 k10temp-pci-00c3

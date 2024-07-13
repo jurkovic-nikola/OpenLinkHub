@@ -138,6 +138,25 @@ $ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.Listen
                                             <div class="card">
                                                 <div class="d-flex">
                                                     <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"># <b>Speed Control</b> - Modify specific channel
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/speed/manual -d '{ "deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "channelId":13, "value":50 }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Device speed successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
                                                         <pre style="margin:20px;"><code style="color:#ffffff"># <b>Temperature Profile</b> - Create CPU Profile
 $ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/temperatures -d '{ "profile":"Example", "static":false, "sensor":0 }' --silent | jq
 {

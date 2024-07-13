@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -183,9 +184,13 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	}
 }
 
-// ProcessChangeSpeed will process POST request from a client for fan speed change
+// ProcessChangeSpeed will process POST request from a client for fan/pump profile speed change
 func ProcessChangeSpeed(r *http.Request) *Payload {
 	req := &Payload{}
+	if config.GetConfig().Manual {
+		return &Payload{Message: "Manual flag in config.json is set to true.", Code: http.StatusOK, Status: 0}
+	}
+
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
@@ -226,6 +231,53 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 
 	// Run it
 	devices.UpdateSpeedProfile(req.DeviceId, req.ChannelId, req.Profile)
+
+	return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
+}
+
+// ProcessManualChangeSpeed will process POST request from a client for fan/pump speed change
+func ProcessManualChangeSpeed(r *http.Request) *Payload {
+	req := &Payload{}
+	if !config.GetConfig().Manual {
+		return &Payload{Message: "Manual flag in config.json is not set to true.", Code: http.StatusMethodNotAllowed, Status: 0}
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Value < 20 {
+		req.Value = 20
+	}
+
+	if req.Value > 100 {
+		req.Value = 100
+	}
+
+	if len(req.DeviceId) < 1 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < -1 {
+		return &Payload{Message: "Non-existing channelId", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	devices.UpdateManualSpeed(req.DeviceId, req.ChannelId, req.Value)
 
 	return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
 }

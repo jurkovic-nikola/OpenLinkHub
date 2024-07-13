@@ -10,6 +10,8 @@ type Configuration struct {
 	ListenAddress   string `json:"listenAddress"`
 	CPUSensorChip   string `json:"cpuSensorChip"`
 	CPUPackageIdent string `json:"cpuPackageIdent"`
+	Manual          bool   `json:"manual"`
+	Frontend        bool   `json:"frontend"`
 }
 
 var configuration Configuration

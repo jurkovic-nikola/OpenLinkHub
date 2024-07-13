@@ -8,6 +8,7 @@ package linksystemhub
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
@@ -298,7 +299,13 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setColorEndpoint()  // Set device color endpoint
 	d.setDefaults()       // Set default speed and color values for fans and pumps
 	d.setAutoRefresh()    // Set auto device refresh
-	d.updateDeviceSpeed() // Update device speed
+	if config.GetConfig().Manual {
+		fmt.Println(
+			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
+		)
+	} else {
+		d.updateDeviceSpeed() // Update device speed
+	}
 	d.saveDeviceProfile() // Create device profile
 	d.setDeviceColor()    // Activate device RGB
 
@@ -314,9 +321,13 @@ func (d *Device) Stop() {
 		d.activeRgb.Stop()
 	}
 	timer.Stop()
-	timerSpeed.Stop()
+
+	if !config.GetConfig().Manual {
+		timerSpeed.Stop()
+		speedRefreshChan <- true
+	}
+
 	authRefreshChan <- true
-	speedRefreshChan <- true
 	d.setHardwareMode()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -425,6 +436,23 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 	if i > 0 {
 		// Save only if something was changed
 		d.saveDeviceProfile()
+	}
+}
+
+// UpdateDeviceSpeed will update device channel speed.
+func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) {
+	// Check if actual channelId exists in the device list
+	if linkDevice, ok := d.Devices[channelId]; ok {
+		channelSpeeds := map[int][]byte{}
+
+		// Minimal pump speed should be 50%
+		if linkDevice.ContainsPump {
+			if value < 50 {
+				value = 50
+			}
+		}
+		channelSpeeds[linkDevice.ChannelId] = []byte{byte(value)}
+		d.setSpeed(channelSpeeds, 0)
 	}
 }
 

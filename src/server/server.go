@@ -200,6 +200,17 @@ func setDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setManualDeviceSpeed handles manual device speed changes
+func setManualDeviceSpeed(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessManualChangeSpeed(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceColor handles device color changes
 func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeColor(r)
@@ -328,26 +339,48 @@ func setRoutes() *mux.Router {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 
 	// API
-	r.Methods(http.MethodGet).Path("/api/").HandlerFunc(homePage)
-	r.Methods(http.MethodGet).Path("/api/cputemp").HandlerFunc(getCpuTemperature)
-	r.Methods(http.MethodGet).Path("/api/devices").HandlerFunc(getDevice)
-	r.Methods(http.MethodGet).Path("/api/devices/{deviceOd}").HandlerFunc(getDevice)
-	r.Methods(http.MethodGet).Path("/api/color").HandlerFunc(getColor)
-	r.Methods(http.MethodGet).Path("/api/color/{profile}").HandlerFunc(getColor)
-	r.Methods(http.MethodGet).Path("/api/temperatures").HandlerFunc(getTemperature)
-	r.Methods(http.MethodGet).Path("/api/temperatures/{profile}").HandlerFunc(getTemperature)
-	r.Methods(http.MethodPost).Path("/api/temperatures").HandlerFunc(newTemperatureProfile)
-	r.Methods(http.MethodPut).Path("/api/temperatures").HandlerFunc(updateTemperatureProfile)
-	r.Methods(http.MethodDelete).Path("/api/temperatures").HandlerFunc(deleteTemperatureProfile)
-	r.Methods(http.MethodPost).Path("/api/speed").HandlerFunc(setDeviceSpeed)
-	r.Methods(http.MethodPost).Path("/api/color").HandlerFunc(setDeviceColor)
+	r.Methods(http.MethodGet).Path("/api/").
+		HandlerFunc(homePage)
+	r.Methods(http.MethodGet).Path("/api/cputemp").
+		HandlerFunc(getCpuTemperature)
+	r.Methods(http.MethodGet).Path("/api/devices").
+		HandlerFunc(getDevice)
+	r.Methods(http.MethodGet).Path("/api/devices/{deviceOd}").
+		HandlerFunc(getDevice)
+	r.Methods(http.MethodGet).Path("/api/color").
+		HandlerFunc(getColor)
+	r.Methods(http.MethodGet).Path("/api/color/{profile}").
+		HandlerFunc(getColor)
+	r.Methods(http.MethodGet).Path("/api/temperatures").
+		HandlerFunc(getTemperature)
+	r.Methods(http.MethodGet).Path("/api/temperatures/{profile}").
+		HandlerFunc(getTemperature)
+	r.Methods(http.MethodPost).Path("/api/temperatures").
+		HandlerFunc(newTemperatureProfile)
+	r.Methods(http.MethodPut).Path("/api/temperatures").
+		HandlerFunc(updateTemperatureProfile)
+	r.Methods(http.MethodDelete).Path("/api/temperatures").
+		HandlerFunc(deleteTemperatureProfile)
+	r.Methods(http.MethodPost).Path("/api/speed").
+		HandlerFunc(setDeviceSpeed)
+	r.Methods(http.MethodPost).Path("/api/speed/manual").
+		HandlerFunc(setManualDeviceSpeed)
+	r.Methods(http.MethodPost).Path("/api/color").
+		HandlerFunc(setDeviceColor)
 
-	// Frontend
-	r.Methods(http.MethodGet).Path("/").HandlerFunc(uiIndex)
-	r.Methods(http.MethodGet).Path("/device/{deviceOd}").HandlerFunc(uiDeviceOverview)
-	r.Methods(http.MethodGet).Path("/temperature").HandlerFunc(uiTemperatureOverview)
-	r.Methods(http.MethodGet).Path("/docs").HandlerFunc(uiDocumentationOverview)
-	r.Methods(http.MethodGet).Path("/color").HandlerFunc(uiColorOverview)
+	if config.GetConfig().Frontend {
+		// Frontend
+		r.Methods(http.MethodGet).Path("/").
+			HandlerFunc(uiIndex)
+		r.Methods(http.MethodGet).Path("/device/{deviceOd}").
+			HandlerFunc(uiDeviceOverview)
+		r.Methods(http.MethodGet).Path("/temperature").
+			HandlerFunc(uiTemperatureOverview)
+		r.Methods(http.MethodGet).Path("/docs").
+			HandlerFunc(uiDocumentationOverview)
+		r.Methods(http.MethodGet).Path("/color").
+			HandlerFunc(uiColorOverview)
+	}
 	return r
 }
 

@@ -13,9 +13,10 @@ Open source Linux interface for iCUE LINK Hub and other devices.
 - Take care and have fun!
 ## Supported devices
 
-| Device                  | VID    | PID    | Sub Devices                                                                                                                                                            |
-|-------------------------|--------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| iCUE LINK System Hub    | `1b1c` | `0c3f` | QX Fan<br />RX Fan<br/>RX RGB Fan<br/>RX MAX Fan<br/>H100i<br/>H115i<br/>H150i<br/>H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module | |                                                                                                                                                                   |
+| Device               | VID    | PID                | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|----------------------|--------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| iCUE LINK System Hub | `1b1c` | `0c3f`             | QX Fan<br />RX Fan<br/>RX RGB Fan<br/>RX MAX Fan<br/>H100i<br/>H115i<br/>H150i<br/>H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module                                                                                                                                                                                                                                                                                                       | |                                                                                                                                                                   |
+| iCUE COMMANDER Core  | `1b1c` | `0c32`<br />`0c1c` | iCUE H100i ELITE CAPELLIX<br />iCUE H115i ELITE CAPELLIX<br />iCUE H150i ELITE CAPELLIX<br />iCUE H170i ELITE CAPELLIX<br />H100i ELITE LCD<br />H150i ELITE LCD<br />H170i ELITE LCD<br />iCUE H100i ELITE CAPELLIX XT<br />iCUE H115i ELITE CAPELLIX XT<br />iCUE H150i ELITE CAPELLIX XT<br />iCUE H170i ELITE CAPELLIX XT<br />1x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan |
 
 
 ## Installation
@@ -66,8 +67,14 @@ sudo cp -r web/ /opt/OpenLinkHub/
 # Replace your-username with your login name
 sudo chown -R your-username:root /opt/OpenLinkHub/
 
-# Allow hidraw communication as non-root
+# Allow hidraw communication as non-root - Link System Hub
 echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c3f\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-icuelink.rules
+
+# Allow hidraw communication as non-root - iCUE Commander Core
+echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c32\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-cc-64.rules
+
+# Allow hidraw communication as non-root - iCUE Commander Core
+echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c1c\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-cc-96.rules
 
 # Reload udev rules without reboot
 sudo udevadm control --reload-rules && sudo udevadm trigger
@@ -81,7 +88,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 mkdir OpenLinkHub && cd OpenLinkHub
 
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.0.3-beta/0.0.3-beta.zip
+wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.0.5-beta/0.0.5-beta.zip
 
 # Extract package
 unzip -x 0.0.3-beta.zip

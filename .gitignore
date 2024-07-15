@@ -1,2 +1,5 @@
 .idea/
 OpenLinkHub
+stdout.log
+database/temperatures/*.json
+database/profiles/*.json

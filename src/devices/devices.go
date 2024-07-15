@@ -1,6 +1,7 @@
 package devices
 
 import (
+	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/linksystemhub"
 	"OpenLinkHub/src/logger"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 
 const (
 	productTypeLinkHub = 0
+	productTypeCC      = 1
 )
 
 type Device struct {
@@ -17,6 +19,7 @@ type Device struct {
 	Serial        string
 	Firmware      string
 	LinkSystemHub *linksystemhub.Device `json:"linkSystemHub,omitempty"`
+	CC            *cc.Device            `json:"cc,omitempty"`
 }
 
 var (
@@ -34,6 +37,12 @@ func Stop() {
 			{
 				if device.LinkSystemHub != nil {
 					device.LinkSystemHub.Stop()
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.Stop()
 				}
 			}
 		}
@@ -54,22 +63,35 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) {
 					device.LinkSystemHub.UpdateSpeedProfile(channelId, profile)
 				}
 			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.UpdateSpeedProfile(channelId, profile)
+				}
+			}
 		}
 	}
 }
 
 // UpdateManualSpeed will update device speeds with a given serial number
-func UpdateManualSpeed(deviceId string, channelId int, value uint16) {
+func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
 				if device.LinkSystemHub != nil {
-					device.LinkSystemHub.UpdateDeviceSpeed(channelId, value)
+					return device.LinkSystemHub.UpdateDeviceSpeed(channelId, value)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.UpdateDeviceSpeed(channelId, value)
 				}
 			}
 		}
 	}
+	return 0
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -80,6 +102,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) {
 			{
 				if device.LinkSystemHub != nil {
 					device.LinkSystemHub.UpdateRgbProfile(channelId, profile)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		}
@@ -95,6 +123,12 @@ func ResetSpeedProfiles(profile string) {
 			{
 				if device.LinkSystemHub != nil {
 					device.LinkSystemHub.ResetSpeedProfiles(profile)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.ResetSpeedProfiles(profile)
 				}
 			}
 		}
@@ -113,6 +147,10 @@ func GetDevice(deviceId string) interface{} {
 		case productTypeLinkHub:
 			{
 				return device.LinkSystemHub
+			}
+		case productTypeCC:
+			{
+				return device.CC
 			}
 		}
 	}
@@ -160,6 +198,23 @@ func Init() {
 						Product:       dev.Product,
 						Serial:        dev.Serial,
 						Firmware:      dev.Firmware,
+					}
+				}(vendorId, productId, serial)
+			}
+
+		case 3122, 3100: // CORSAIR iCUE COMMANDER Core
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := cc.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						CC:          dev,
+						ProductType: productTypeCC,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
 					}
 				}(vendorId, productId, serial)
 			}

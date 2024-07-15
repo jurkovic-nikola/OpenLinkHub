@@ -277,9 +277,11 @@ func ProcessManualChangeSpeed(r *http.Request) *Payload {
 	}
 
 	// Run it
-	devices.UpdateManualSpeed(req.DeviceId, req.ChannelId, req.Value)
+	if devices.UpdateManualSpeed(req.DeviceId, req.ChannelId, req.Value) == 1 {
+		return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
+	}
 
-	return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
+	return &Payload{Message: "Unable to update device speed. Device is either unavailable or device does not have speed control.", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeColor will process POST request from a client for RGB profile change

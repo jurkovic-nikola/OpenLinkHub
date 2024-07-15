@@ -84,8 +84,6 @@ type Device struct {
 	deviceMonitor *DeviceMonitor
 	profileConfig string
 	activeRgb     *rgb.ActiveRGB
-	ExternalHub   bool
-	RGBDeviceOnly bool
 	Template      string
 }
 
@@ -372,9 +370,9 @@ func (d *Device) getDeviceProfile() {
 func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
-	for _, linkDevice := range d.Devices {
-		speedProfiles[linkDevice.ChannelId] = linkDevice.Profile
-		rgbProfiles[linkDevice.ChannelId] = linkDevice.RGB
+	for _, device := range d.Devices {
+		speedProfiles[device.ChannelId] = device.Profile
+		rgbProfiles[device.ChannelId] = device.RGB
 	}
 	deviceProfile := &DeviceProfile{
 		Product:       d.Product,
@@ -385,8 +383,8 @@ func (d *Device) saveDeviceProfile() {
 
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
-		for _, linkDevice := range d.Devices {
-			rgbProfiles[linkDevice.ChannelId] = "static"
+		for _, device := range d.Devices {
+			rgbProfiles[device.ChannelId] = "static"
 		}
 		d.DeviceProfile = deviceProfile
 	}
@@ -426,9 +424,9 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 	defer mutex.Unlock()
 
 	i := 0
-	for _, linkDevice := range d.Devices {
-		if linkDevice.Profile == profile {
-			d.Devices[linkDevice.ChannelId].Profile = "Normal"
+	for _, device := range d.Devices {
+		if device.Profile == profile {
+			d.Devices[device.ChannelId].Profile = "Normal"
 			i++
 		}
 	}
@@ -440,20 +438,22 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 }
 
 // UpdateDeviceSpeed will update device channel speed.
-func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) {
+func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 	// Check if actual channelId exists in the device list
-	if linkDevice, ok := d.Devices[channelId]; ok {
+	if device, ok := d.Devices[channelId]; ok {
 		channelSpeeds := map[int][]byte{}
 
 		// Minimal pump speed should be 50%
-		if linkDevice.ContainsPump {
+		if device.ContainsPump {
 			if value < 50 {
 				value = 50
 			}
 		}
-		channelSpeeds[linkDevice.ChannelId] = []byte{byte(value)}
+		channelSpeeds[device.ChannelId] = []byte{byte(value)}
 		d.setSpeed(channelSpeeds, 0)
+		return 1
 	}
+	return 0
 }
 
 // UpdateSpeedProfile will update device channel speed.
@@ -464,8 +464,8 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 
 	if channelId < 0 {
 		// All devices
-		for _, linkDevice := range d.Devices {
-			d.Devices[linkDevice.ChannelId].Profile = profile
+		for _, device := range d.Devices {
+			d.Devices[device.ChannelId].Profile = profile
 		}
 	} else {
 		// Check if actual channelId exists in the device list
@@ -493,8 +493,11 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
 	d.saveDeviceProfile()                            // Save profile
-	d.activeRgb.Exit <- true                         // Exit current RGB mode
-	d.setDeviceColor()                               // Restart RGB
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
 }
 
 // updateDeviceSpeed will update device speed based on a temperature reading
@@ -507,9 +510,9 @@ func (d *Device) updateDeviceSpeed() {
 			select {
 			case <-timerSpeed.C:
 				var temp float32 = 0
-				for _, linkDevice := range d.Devices {
+				for _, device := range d.Devices {
 					channelSpeeds := map[int][]byte{}
-					profiles := temperatures.GetTemperatureProfile(linkDevice.Profile)
+					profiles := temperatures.GetTemperatureProfile(device.Profile)
 					if profiles == nil {
 						// No such profile, default to Normal
 						profiles = temperatures.GetTemperatureProfile("Normal")
@@ -543,9 +546,9 @@ func (d *Device) updateDeviceSpeed() {
 					for i := 0; i < len(profiles.Profiles); i++ {
 						profile := profiles.Profiles[i]
 						if common.InBetween(temp, profile.Min, profile.Max) {
-							cp := fmt.Sprintf("%s-%d-%d-%d-%d", linkDevice.Profile, linkDevice.ChannelId, profile.Id, profile.Fans, profile.Pump)
-							if ok := tmp[linkDevice.ChannelId]; ok != cp {
-								tmp[linkDevice.ChannelId] = cp
+							cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
+							if ok := tmp[device.ChannelId]; ok != cp {
+								tmp[device.ChannelId] = cp
 
 								// Validation
 								if profile.Mode < 0 || profile.Mode > 1 {
@@ -560,10 +563,10 @@ func (d *Device) updateDeviceSpeed() {
 									profile.Pump = 100
 								}
 
-								if linkDevice.ContainsPump {
-									channelSpeeds[linkDevice.ChannelId] = []byte{byte(profile.Pump)}
+								if device.ContainsPump {
+									channelSpeeds[device.ChannelId] = []byte{byte(profile.Pump)}
 								} else {
-									channelSpeeds[linkDevice.ChannelId] = []byte{byte(profile.Fans)}
+									channelSpeeds[device.ChannelId] = []byte{byte(profile.Fans)}
 								}
 								d.setSpeed(channelSpeeds, 0)
 							}
@@ -581,8 +584,8 @@ func (d *Device) updateDeviceSpeed() {
 // setDefaults will set default mode for all devices
 func (d *Device) setDefaults() {
 	channelDefaults := map[int][]byte{}
-	for linkDevice := range d.Devices {
-		channelDefaults[linkDevice] = []byte{byte(defaultSpeedValue)}
+	for device := range d.Devices {
+		channelDefaults[device] = []byte{byte(defaultSpeedValue)}
 	}
 	d.setSpeed(channelDefaults, 0)
 }
@@ -732,7 +735,7 @@ func (d *Device) getDevices() int {
 		}
 
 		// Build device object
-		linkHubDevice := &Devices{
+		device := &Devices{
 			ChannelId:    i,
 			Type:         deviceTypeModel[2],
 			Model:        deviceTypeModel[3],
@@ -750,7 +753,7 @@ func (d *Device) getDevices() int {
 			HasSpeed:     true,
 			HasTemps:     true,
 		}
-		devices[i] = linkHubDevice
+		devices[i] = device
 		position += 8 + int(deviceIdLen)
 	}
 
@@ -803,7 +806,34 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	d.activeRgb = rgb.Exit()
+	// Are all devices under static mode?
+	// In static mode, we only need to send color once;
+	// there is no need for continuous packet sending.
+	s, l := 0, 0
+	for _, device := range d.Devices {
+		if device.LedChannels > 0 {
+			l++ // device has LED
+			if device.RGB == "static" {
+				s++ // led profile is set to static
+			}
+		}
+	}
+	if s > 0 || l > 0 { // We have some values
+		if s == l { // number of devices matches number of devices with static profile
+			profile := rgb.GetRgbProfile("static")
+			profileColor := rgb.ModifyBrightness(profile.StartColor)
+			for i := 0; i < int(lightChannels); i++ {
+				reset[i] = []byte{
+					byte(profileColor.Red),
+					byte(profileColor.Green),
+					byte(profileColor.Blue),
+				}
+			}
+			buffer = rgb.SetColor(reset)
+			d.writeColor(buffer) // Write color once
+			return
+		}
+	}
 
 	go func(lightChannels int) {
 		lock := sync.Mutex{}
@@ -817,6 +847,7 @@ func (d *Device) setDeviceColor() {
 		counterColorwarp := map[int]int{}
 		counterSpinner := map[int]int{}
 		colorwarpGeneratedReverse := false
+		d.activeRgb = rgb.Exit()
 
 		// Generate random colors
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)

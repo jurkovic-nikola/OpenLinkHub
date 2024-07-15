@@ -1,3 +1,5 @@
 {{ if eq .Device.Template "lsh.html" }}
 {{ template "lsh.html" . }}
+{{ else if eq .Device.Template "cc.html" }}
+{{ template "cc.html" . }}
 {{ end }}

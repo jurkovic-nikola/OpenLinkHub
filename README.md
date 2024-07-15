@@ -91,7 +91,7 @@ mkdir OpenLinkHub && cd OpenLinkHub
 wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.0.5-beta/0.0.5-beta.zip
 
 # Extract package
-unzip -x 0.0.3-beta.zip
+unzip -x 0.0.5-beta.zip
 
 # Continue from 3. Installation section for next steps
 ```

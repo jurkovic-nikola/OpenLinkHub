@@ -1184,9 +1184,6 @@ func (d *Device) getDevices() int {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	for _, device := range d.Devices {

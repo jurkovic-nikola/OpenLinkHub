@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('#externalHubEnabled').on('change', function () {
+    $('#externalHubStatus').on('change', function () {
         const deviceId = $("#deviceId").val();
         const status = $(this).val();
         const pf = {};
@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        toast.success(response.message);
+                        location.reload();
                     } else {
                         toast.warning(response.message);
                     }
@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('#externalHubType').on('change', function () {
+    $('#externalHubDeviceType').on('change', function () {
         const deviceId = $("#deviceId").val();
         const deviceType = $(this).val();
         const pf = {};
@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        toast.success(response.message);
+                        location.reload();
                     } else {
                         toast.warning(response.message);
                     }
@@ -194,7 +194,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('#externalHubDevices').on('change', function () {
+    $('#externalHubDeviceAmount').on('change', function () {
         const deviceId = $("#deviceId").val();
         const deviceAmount = $(this).val();
         const pf = {};
@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        toast.success(response.message);
+                        location.reload();
                     } else {
                         toast.warning(response.message);
                     }

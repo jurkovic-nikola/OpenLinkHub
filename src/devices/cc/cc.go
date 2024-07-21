@@ -40,47 +40,48 @@ import (
 // - 1x Temperature Probe
 
 var (
-	cmdOpenEndpoint                   = []byte{0x0d, 0x01}
-	cmdOpenColorEndpoint              = []byte{0x0d, 0x00}
-	cmdCloseEndpoint                  = []byte{0x05, 0x01, 0x01}
-	cmdGetFirmware                    = []byte{0x02, 0x13}
-	cmdDeviceType                     = []byte{0x02, 0x58, 0x00}
-	cmdSoftwareMode                   = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode                   = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdWrite                          = []byte{0x06, 0x01}
-	cmdWriteColor                     = []byte{0x06, 0x00}
-	cmdRead                           = []byte{0x08, 0x01}
-	cmdGetDeviceMode                  = []byte{0x02, 0x03, 0x00}
-	cmdSetLedPorts                    = []byte{0x1e}
-	modeGetLeds                       = []byte{0x20}
-	modeGetSpeeds                     = []byte{0x17}
-	modeSetSpeed                      = []byte{0x18}
-	modeGetTemperatures               = []byte{0x21}
-	modeGetFans                       = []byte{0x1a}
-	modeSetColor                      = []byte{0x22}
-	dataTypeGetTemperatures           = []byte{0x10, 0x00}
-	dataTypeGetSpeeds                 = []byte{0x06, 0x00}
-	dataTypeSetSpeed                  = []byte{0x07, 0x00}
-	dataTypeGetFans                   = []byte{0x09, 0x00}
-	dataTypeGetLeds                   = []byte{0x0f, 0x00}
-	dataTypeSetColor                  = []byte{0x12, 0x00}
-	dataTypeSubColor                  = []byte{0x07, 0x00}
-	bufferSize                        = 64
-	bufferSizeWrite                   = bufferSize + 1
-	transferTimeout                   = 500
-	headerSize                        = 2
-	headerWriteSize                   = 4
-	authRefreshChan                   = make(chan bool)
-	speedRefreshChan                  = make(chan bool)
-	defaultDeviceRefreshInterval      = 1000
-	defaultSpeedValue                 = 50
-	defaultTemperaturePullingInterval = 3000
-	ledStartIndex                     = 6
-	maxBufferSizePerRequest           = 61
-	timer                             = &time.Ticker{}
-	timerSpeed                        = &time.Ticker{}
-	internalLedDevices                = make(map[int]*LedChannel, 7)
-	aioList                           = []AIOList{
+	cmdOpenEndpoint            = []byte{0x0d, 0x01}
+	cmdOpenColorEndpoint       = []byte{0x0d, 0x00}
+	cmdCloseEndpoint           = []byte{0x05, 0x01, 0x01}
+	cmdGetFirmware             = []byte{0x02, 0x13}
+	cmdDeviceType              = []byte{0x02, 0x58, 0x00}
+	cmdSoftwareMode            = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode            = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdWrite                   = []byte{0x06, 0x01}
+	cmdWriteColor              = []byte{0x06, 0x00}
+	cmdRead                    = []byte{0x08, 0x01}
+	cmdGetDeviceMode           = []byte{0x02, 0x03, 0x00}
+	cmdSetLedPorts             = []byte{0x1e}
+	modeGetLeds                = []byte{0x20}
+	modeGetSpeeds              = []byte{0x17}
+	modeSetSpeed               = []byte{0x18}
+	modeGetTemperatures        = []byte{0x21}
+	modeGetFans                = []byte{0x1a}
+	modeSetColor               = []byte{0x22}
+	dataTypeGetTemperatures    = []byte{0x10, 0x00}
+	dataTypeGetSpeeds          = []byte{0x06, 0x00}
+	dataTypeSetSpeed           = []byte{0x07, 0x00}
+	dataTypeGetFans            = []byte{0x09, 0x00}
+	dataTypeGetLeds            = []byte{0x0f, 0x00}
+	dataTypeSetColor           = []byte{0x12, 0x00}
+	dataTypeSubColor           = []byte{0x07, 0x00}
+	mutex                      sync.Mutex
+	bufferSize                 = 64
+	bufferSizeWrite            = bufferSize + 1
+	transferTimeout            = 500
+	headerSize                 = 2
+	headerWriteSize            = 4
+	authRefreshChan            = make(chan bool)
+	speedRefreshChan           = make(chan bool)
+	deviceRefreshInterval      = 1000
+	defaultSpeedValue          = 50
+	temperaturePullingInterval = 3000
+	ledStartIndex              = 6
+	maxBufferSizePerRequest    = 61
+	timer                      = &time.Ticker{}
+	timerSpeed                 = &time.Ticker{}
+	internalLedDevices         = make(map[int]*LedChannel, 7)
+	aioList                    = []AIOList{
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 240},
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 2, RadiatorSize: 240},
 		{Name: "H115i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 280},
@@ -141,7 +142,6 @@ type Devices struct {
 }
 
 type Device struct {
-	mutex         sync.Mutex
 	dev           *hid.Device
 	Manufacturer  string           `json:"manufacturer"`
 	Product       string           `json:"product"`
@@ -230,7 +230,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		d.updateDeviceSpeed() // Update device speed
 	}
 	d.saveDeviceProfile() // Create device profile
-	d.resetInternalLed()  // Reset internal LED
+	d.resetLEDPorts()     // Reset device LED
 	d.setDeviceColor()    // Activate device RGB
 	d.newDeviceMonitor()  // Device monitor
 
@@ -422,7 +422,7 @@ func (d *Device) setDeviceColor() {
 		if s == l { // number of devices matches number of devices with static profile
 			profile := rgb.GetRgbProfile("static")
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for i := 0; i < int(lightChannels); i++ {
+			for i := 0; i < lightChannels; i++ {
 				reset[i] = []byte{
 					byte(profileColor.Red),
 					byte(profileColor.Green),
@@ -758,8 +758,8 @@ func (d *Device) setSpeed(data map[int][]byte, mode uint8) {
 // ResetSpeedProfiles will reset channel speed profile if it matches with the current speed profile
 // This is used when speed profile is deleted from the UI
 func (d *Device) ResetSpeedProfiles(profile string) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	i := 0
 	for _, device := range d.Devices {
@@ -779,7 +779,7 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
-	timerSpeed = time.NewTicker(time.Duration(defaultTemperaturePullingInterval) * time.Millisecond)
+	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	tmp := make(map[int]string, 0)
 
 	go func() {
@@ -1005,7 +1005,7 @@ func (d *Device) setDefaults() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(defaultDeviceRefreshInterval) * time.Millisecond)
+	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	authRefreshChan = make(chan bool)
 	go func() {
 		for {
@@ -1046,8 +1046,8 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if channelId < 0 {
 		// All devices
@@ -1102,8 +1102,8 @@ func (d *Device) initLedPorts() {
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 }
 
-// resetInternalLed will reset hubs LED ports and configure currently connected LED device
-func (d *Device) resetInternalLed() {
+// resetLEDPorts will reset hubs LED ports and configure currently connected LED device
+func (d *Device) resetLEDPorts() {
 	var buf []byte
 
 	buf = append(buf, 0x0d)
@@ -1152,7 +1152,6 @@ func (d *Device) saveDeviceProfile() {
 			if device.IsTemperatureProbe {
 				continue
 			}
-
 			rgbProfiles[device.ChannelId] = "static"
 		}
 		d.DeviceProfile = deviceProfile
@@ -1194,6 +1193,7 @@ func (d *Device) newDeviceMonitor() {
 		// Device woke up after machine was sleeping
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true
+			d.activeRgb = nil
 		}
 		d.setSoftwareMode()  // Activate software mode
 		d.setColorEndpoint() // Set device color endpoint
@@ -1334,8 +1334,8 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)

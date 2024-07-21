@@ -122,3 +122,8 @@ func IsValidExtension(path, extension string) bool {
 	}
 	return true
 }
+
+// DeleteElement will remove element from slice with given index
+func DeleteElement(slice []int, index int) []int {
+	return append(slice[:index], slice[index+1:]...)
+}

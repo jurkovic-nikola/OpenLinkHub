@@ -222,6 +222,39 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setExternalHubStatus handles status change of external-LED hub
+func setExternalHubStatus(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessExternalHubStatus(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setExternalHubDeviceType handles device change of external-LED hub
+func setExternalHubDeviceType(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessExternalHubDeviceType(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setExternalHubDeviceAmount handles device amount change of external-LED hub
+func setExternalHubDeviceAmount(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessExternalHubDeviceAmount(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -367,6 +400,12 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setManualDeviceSpeed)
 	r.Methods(http.MethodPost).Path("/api/color").
 		HandlerFunc(setDeviceColor)
+	r.Methods(http.MethodPost).Path("/api/hub/status").
+		HandlerFunc(setExternalHubStatus)
+	r.Methods(http.MethodPost).Path("/api/hub/type").
+		HandlerFunc(setExternalHubDeviceType)
+	r.Methods(http.MethodPost).Path("/api/hub/amount").
+		HandlerFunc(setExternalHubDeviceAmount)
 
 	if config.GetConfig().Frontend {
 		// Frontend

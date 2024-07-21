@@ -2,6 +2,7 @@ package devices
 
 import (
 	"OpenLinkHub/src/devices/cc"
+	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/linksystemhub"
 	"OpenLinkHub/src/logger"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 const (
 	productTypeLinkHub = 0
 	productTypeCC      = 1
+	productTypeCCXT    = 2
 )
 
 type Device struct {
@@ -20,6 +22,7 @@ type Device struct {
 	Firmware      string
 	LinkSystemHub *linksystemhub.Device `json:"linkSystemHub,omitempty"`
 	CC            *cc.Device            `json:"cc,omitempty"`
+	CCXT          *ccxt.Device          `json:"ccxt,omitempty"`
 }
 
 var (
@@ -45,12 +48,64 @@ func Stop() {
 					device.CC.Stop()
 				}
 			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
 	}
+}
+
+// UpdateExternalHubStatus will enable or disable device external-LED hub
+func UpdateExternalHubStatus(deviceId string, status bool) int {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.UpdateExternalHubStatus(status)
+					return 1
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateExternalHubDeviceType will update a device type connected to an external-LED hub
+func UpdateExternalHubDeviceType(deviceId string, deviceType int) int {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.UpdateExternalHubDeviceType(deviceType)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateExternalHubDeviceAmount will update a device amount connected to an external-LED hub
+func UpdateExternalHubDeviceAmount(deviceId string, deviceType int) int {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.UpdateExternalHubDeviceAmount(deviceType)
+				}
+			}
+		}
+	}
+	return 0
 }
 
 // UpdateSpeedProfile will update device speeds with a given serial number
@@ -67,6 +122,12 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) {
 			{
 				if device.CC != nil {
 					device.CC.UpdateSpeedProfile(channelId, profile)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		}
@@ -87,6 +148,12 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 			{
 				if device.CC != nil {
 					return device.CC.UpdateDeviceSpeed(channelId, value)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.UpdateDeviceSpeed(channelId, value)
 				}
 			}
 		}
@@ -110,6 +177,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) {
 					device.CC.UpdateRgbProfile(channelId, profile)
 				}
 			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.UpdateRgbProfile(channelId, profile)
+				}
+			}
 		}
 
 	}
@@ -129,6 +202,12 @@ func ResetSpeedProfiles(profile string) {
 			{
 				if device.CC != nil {
 					device.CC.ResetSpeedProfiles(profile)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.ResetSpeedProfiles(profile)
 				}
 			}
 		}
@@ -151,6 +230,10 @@ func GetDevice(deviceId string) interface{} {
 		case productTypeCC:
 			{
 				return device.CC
+			}
+		case productTypeCCXT:
+			{
+				return device.CCXT
 			}
 		}
 	}
@@ -212,6 +295,22 @@ func Init() {
 					devices[dev.Serial] = &Device{
 						CC:          dev,
 						ProductType: productTypeCC,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, serial)
+			}
+		case 3114: // CORSAIR iCUE COMMANDER CORE XT
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := ccxt.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						CCXT:        dev,
+						ProductType: productTypeCCXT,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

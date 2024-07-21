@@ -2,4 +2,6 @@
 {{ template "lsh.html" . }}
 {{ else if eq .Device.Template "cc.html" }}
 {{ template "cc.html" . }}
+{{ else if eq .Device.Template "ccxt.html" }}
+{{ template "ccxt.html" . }}
 {{ end }}

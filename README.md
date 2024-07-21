@@ -68,6 +68,13 @@ sudo cp -r web/ /opt/OpenLinkHub/
 # Replace your-username with your login name
 sudo chown -R your-username:root /opt/OpenLinkHub/
 
+# Finding your device:
+$ lsusb -d 1b1c:
+Bus 003 Device 007: ID 1b1c:0c2a Corsair CORSAIR iCUE COMMANDER CORE XT
+Bus 003 Device 005: ID 1b1c:0c1c Corsair CORSAIR iCUE Commander CORE
+Bus 003 Device 002: ID 1b1c:0c3f Corsair iCUE LINK System Hub
+Bus 001 Device 004: ID 1b1c:0c3f Corsair iCUE LINK System Hub
+
 # Allow hidraw communication as non-root - Link System Hub
 echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c3f\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-icuelink.rules
 

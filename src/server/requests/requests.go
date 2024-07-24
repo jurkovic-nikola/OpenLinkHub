@@ -252,10 +252,6 @@ func ProcessManualChangeSpeed(r *http.Request) *Payload {
 		}
 	}
 
-	if req.Value < 20 {
-		req.Value = 20
-	}
-
 	if req.Value > 100 {
 		req.Value = 100
 	}

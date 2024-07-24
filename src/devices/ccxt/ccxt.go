@@ -762,9 +762,9 @@ func (d *Device) getDeviceData() {
 // setDefaults will set default mode for all devices
 func (d *Device) setDefaults() {
 	channelDefaults := map[int][]byte{}
-	for ccxtDevice := range d.Devices {
-		if d.Devices[ccxtDevice].HasSpeed {
-			channelDefaults[ccxtDevice] = []byte{byte(defaultSpeedValue)}
+	for device := range d.Devices {
+		if d.Devices[device].HasSpeed {
+			channelDefaults[device] = []byte{byte(defaultSpeedValue)}
 		}
 	}
 	d.setSpeed(channelDefaults, 0)
@@ -846,8 +846,8 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 
 	if channelId < 0 {
 		// All devices
-		for _, ccxtDevice := range d.Devices {
-			d.Devices[ccxtDevice.ChannelId].Profile = profile
+		for _, device := range d.Devices {
+			d.Devices[device.ChannelId].Profile = profile
 		}
 	} else {
 		// Check if actual channelId exists in the device list
@@ -868,10 +868,10 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 	defer mutex.Unlock()
 
 	i := 0
-	for _, linkDevice := range d.Devices {
-		if linkDevice.HasSpeed {
-			if linkDevice.Profile == profile {
-				d.Devices[linkDevice.ChannelId].Profile = "Normal"
+	for _, device := range d.Devices {
+		if device.HasSpeed {
+			if device.Profile == profile {
+				d.Devices[device.ChannelId].Profile = "Normal"
 				i++
 			}
 		}
@@ -1286,13 +1286,13 @@ func (d *Device) updateDeviceSpeed() {
 			case <-timerSpeed.C:
 				var temp float32 = 0
 				//if temp > 0 {
-				for _, ccxtDevice := range d.Devices {
-					if ccxtDevice.HasTemps {
+				for _, device := range d.Devices {
+					if device.HasTemps {
 						continue
 					}
 
 					channelSpeeds := map[int][]byte{}
-					profiles := temperatures.GetTemperatureProfile(ccxtDevice.Profile)
+					profiles := temperatures.GetTemperatureProfile(device.Profile)
 					if profiles == nil {
 						// No such profile, default to Normal
 						profiles = temperatures.GetTemperatureProfile("Normal")
@@ -1319,9 +1319,9 @@ func (d *Device) updateDeviceSpeed() {
 					for i := 0; i < len(profiles.Profiles); i++ {
 						profile := profiles.Profiles[i]
 						if common.InBetween(temp, profile.Min, profile.Max) {
-							cp := fmt.Sprintf("%s-%d-%d-%d-%d", ccxtDevice.Profile, ccxtDevice.ChannelId, profile.Id, profile.Fans, profile.Pump)
-							if ok := tmp[ccxtDevice.ChannelId]; ok != cp {
-								tmp[ccxtDevice.ChannelId] = cp
+							cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
+							if ok := tmp[device.ChannelId]; ok != cp {
+								tmp[device.ChannelId] = cp
 
 								// Validation
 								if profile.Mode < 0 || profile.Mode > 1 {
@@ -1336,10 +1336,10 @@ func (d *Device) updateDeviceSpeed() {
 									profile.Pump = 100
 								}
 
-								if ccxtDevice.ContainsPump {
-									channelSpeeds[ccxtDevice.ChannelId] = []byte{byte(profile.Pump)}
+								if device.ContainsPump {
+									channelSpeeds[device.ChannelId] = []byte{byte(profile.Pump)}
 								} else {
-									channelSpeeds[ccxtDevice.ChannelId] = []byte{byte(profile.Fans)}
+									channelSpeeds[device.ChannelId] = []byte{byte(profile.Fans)}
 								}
 								d.setSpeed(channelSpeeds, 0)
 							}
@@ -1363,6 +1363,10 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 			return 0
 		}
 		channelSpeeds := map[int][]byte{}
+
+		if value < 20 {
+			value = 20
+		}
 
 		// Minimal pump speed should be 50%
 		if device.ContainsPump {

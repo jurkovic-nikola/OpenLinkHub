@@ -32,13 +32,10 @@ type DeviceMonitor struct {
 }
 
 type DeviceProfile struct {
-	Product         string
-	Serial          string
-	SpeedProfiles   map[int]string
-	RGBProfiles     map[int]string
-	ExternalHub     bool
-	ExternalType    int
-	ExternalDevices int
+	Product       string
+	Serial        string
+	SpeedProfiles map[int]string
+	RGBProfiles   map[int]string
 }
 
 // SupportedDevice contains definition of supported devices
@@ -88,41 +85,41 @@ type Device struct {
 }
 
 var (
-	cmdOpenEndpoint                   = []byte{0x0d, 0x01}
-	cmdOpenColorEndpoint              = []byte{0x0d, 0x00}
-	cmdCloseEndpoint                  = []byte{0x05, 0x01, 0x01}
-	cmdGetFirmware                    = []byte{0x02, 0x13}
-	cmdSoftwareMode                   = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode                   = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdWrite                          = []byte{0x06, 0x01}
-	cmdWriteColor                     = []byte{0x06, 0x00}
-	cmdRead                           = []byte{0x08, 0x01}
-	cmdGetDeviceMode                  = []byte{0x01, 0x08, 0x01}
-	modeGetDevices                    = []byte{0x36}
-	modeGetTemperatures               = []byte{0x21}
-	modeGetSpeeds                     = []byte{0x17}
-	modeSetSpeed                      = []byte{0x18}
-	modeSetColor                      = []byte{0x22}
-	dataTypeGetDevices                = []byte{0x21, 0x00}
-	dataTypeGetTemperatures           = []byte{0x10, 0x00}
-	dataTypeGetSpeeds                 = []byte{0x25, 0x00}
-	dataTypeSetSpeed                  = []byte{0x07, 0x00}
-	dataTypeSetColor                  = []byte{0x12, 0x00}
-	mutex                             sync.Mutex
-	authRefreshChan                   = make(chan bool)
-	speedRefreshChan                  = make(chan bool)
-	bufferSize                        = 512
-	headerSize                        = 3
-	headerWriteSize                   = 4
-	bufferSizeWrite                   = bufferSize + 1
-	transferTimeout                   = 500
-	maxBufferSizePerRequest           = 508
-	defaultSpeedValue                 = 70
-	defaultTemperaturePullingInterval = 3000
-	defaultDeviceRefreshInterval      = 1000
-	timer                             = &time.Ticker{}
-	timerSpeed                        = &time.Ticker{}
-	supportedDevices                  = []SupportedDevice{
+	cmdOpenEndpoint            = []byte{0x0d, 0x01}
+	cmdOpenColorEndpoint       = []byte{0x0d, 0x00}
+	cmdCloseEndpoint           = []byte{0x05, 0x01, 0x01}
+	cmdGetFirmware             = []byte{0x02, 0x13}
+	cmdSoftwareMode            = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode            = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdWrite                   = []byte{0x06, 0x01}
+	cmdWriteColor              = []byte{0x06, 0x00}
+	cmdRead                    = []byte{0x08, 0x01}
+	cmdGetDeviceMode           = []byte{0x01, 0x08, 0x01}
+	modeGetDevices             = []byte{0x36}
+	modeGetTemperatures        = []byte{0x21}
+	modeGetSpeeds              = []byte{0x17}
+	modeSetSpeed               = []byte{0x18}
+	modeSetColor               = []byte{0x22}
+	dataTypeGetDevices         = []byte{0x21, 0x00}
+	dataTypeGetTemperatures    = []byte{0x10, 0x00}
+	dataTypeGetSpeeds          = []byte{0x25, 0x00}
+	dataTypeSetSpeed           = []byte{0x07, 0x00}
+	dataTypeSetColor           = []byte{0x12, 0x00}
+	mutex                      sync.Mutex
+	authRefreshChan            = make(chan bool)
+	speedRefreshChan           = make(chan bool)
+	bufferSize                 = 512
+	headerSize                 = 3
+	headerWriteSize            = 4
+	bufferSizeWrite            = bufferSize + 1
+	transferTimeout            = 500
+	maxBufferSizePerRequest    = 508
+	defaultSpeedValue          = 70
+	temperaturePullingInterval = 3000
+	deviceRefreshInterval      = 1000
+	timer                      = &time.Ticker{}
+	timerSpeed                 = &time.Ticker{}
+	supportedDevices           = []SupportedDevice{
 		{
 			DeviceId:     1,
 			Model:        0,
@@ -443,6 +440,9 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 	if device, ok := d.Devices[channelId]; ok {
 		channelSpeeds := map[int][]byte{}
 
+		if value < 20 {
+			value = 20
+		}
 		// Minimal pump speed should be 50%
 		if device.ContainsPump {
 			if value < 50 {
@@ -502,7 +502,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
-	timerSpeed = time.NewTicker(time.Duration(defaultTemperaturePullingInterval) * time.Millisecond)
+	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	tmp := make(map[int]string, 0)
 
 	go func() {
@@ -610,7 +610,7 @@ func (d *Device) setSpeed(data map[int][]byte, mode uint8) {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(defaultDeviceRefreshInterval) * time.Millisecond)
+	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	authRefreshChan = make(chan bool)
 	go func() {
 		for {
@@ -822,7 +822,7 @@ func (d *Device) setDeviceColor() {
 		if s == l { // number of devices matches number of devices with static profile
 			profile := rgb.GetRgbProfile("static")
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for i := 0; i < int(lightChannels); i++ {
+			for i := 0; i < lightChannels; i++ {
 				reset[i] = []byte{
 					byte(profileColor.Red),
 					byte(profileColor.Green),

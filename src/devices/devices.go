@@ -3,16 +3,19 @@ package devices
 import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
+	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/linksystemhub"
 	"OpenLinkHub/src/logger"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"strconv"
 )
 
 const (
 	productTypeLinkHub = 0
 	productTypeCC      = 1
 	productTypeCCXT    = 2
+	productTypeElite   = 3
 )
 
 type Device struct {
@@ -23,6 +26,7 @@ type Device struct {
 	LinkSystemHub *linksystemhub.Device `json:"linkSystemHub,omitempty"`
 	CC            *cc.Device            `json:"cc,omitempty"`
 	CCXT          *ccxt.Device          `json:"ccxt,omitempty"`
+	Elite         *elite.Device         `json:"elite,omitempty"`
 }
 
 var (
@@ -52,6 +56,12 @@ func Stop() {
 			{
 				if device.CCXT != nil {
 					device.CCXT.Stop()
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					device.Elite.Stop()
 				}
 			}
 		}
@@ -130,6 +140,12 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) {
 					device.CCXT.UpdateSpeedProfile(channelId, profile)
 				}
 			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					device.Elite.UpdateSpeedProfile(channelId, profile)
+				}
+			}
 		}
 	}
 }
@@ -154,6 +170,12 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 			{
 				if device.CCXT != nil {
 					return device.CCXT.UpdateDeviceSpeed(channelId, value)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					return device.Elite.UpdateDeviceSpeed(channelId, value)
 				}
 			}
 		}
@@ -181,6 +203,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) {
 			{
 				if device.CCXT != nil {
 					device.CCXT.UpdateRgbProfile(channelId, profile)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					device.Elite.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		}
@@ -234,6 +262,10 @@ func GetDevice(deviceId string) interface{} {
 		case productTypeCCXT:
 			{
 				return device.CCXT
+			}
+		case productTypeElite:
+			{
+				return device.Elite
 			}
 		}
 	}
@@ -316,6 +348,22 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 				}(vendorId, productId, serial)
+			}
+		case 3125, 3126, 3127: // CORSAIR iCUE H100i,H115i,H150i ELITE RGB
+			{
+				go func(vendorId, productId uint16) {
+					dev := elite.Init(vendorId, productId)
+					if dev == nil {
+						return
+					}
+					devices[strconv.Itoa(int(productId))] = &Device{
+						Elite:       dev,
+						ProductType: productTypeElite,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId)
 			}
 		default:
 			logger.Log(logger.Fields{"vendor": vendorId, "product": productId, "serial": serial}).Warn("Unsupported device detected. Please open a new feature request for your device on OpenLinkHub repository")

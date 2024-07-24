@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{.Title}}</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="all,follow">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
+    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/css/toastr.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="shortcut icon" href="/static/img/favicon.ico">
+</head>
+<body>
+<div class="d-flex align-items-stretch">
+    <nav id="sidebar">
+        <div class="sidebar-header d-flex align-items-center p-4">
+            <div class="custom-header">
+                <h1 class="h5 mb-1">Device Dashboard</h1>
+            </div>
+        </div>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Navigation</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/">
+                    <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+        </ul>
+        <ul class="list-unstyled">
+            {{ $devs := .Devices }}
+            {{ $dev := .Device }}
+
+            {{ range $device := $devs }}
+            {{ if eq $device.Serial $dev.Serial }}
+            <li class="sidebar-item active">
+                {{ else }}
+            <li class="sidebar-item">
+                {{ end }}
+                <a class="sidebar-link" href="/device/{{ $device.Serial }}">
+                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>{{ $device.Product }}</span>
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Settings</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/color">
+                    <i class="bi bi-palette svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>RGB</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link active" href="/temperature">
+                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Temperature</span>
+                </a>
+            </li>
+        </ul>
+        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Project</span>
+        <ul class="list-unstyled">
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                    <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>GitHub</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" href="/docs/">
+                    <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
+                    <span>Documentation</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="page-content">
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        {{ $devices := $device.Devices }}
+        {{ $rgb := .Rgb }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid" style="height: 20px;">
+                <div class="row">
+                    <h2 class="h5 mb-0">{{ $device.Product }} - {{ $device.Firmware }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top:10px">
+                    <div class="row">
+                        {{ range $device := $devices }}
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">{{ $device.Name}}</div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-center text-center">
+                                        {{ if $device.HasTemps }}
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0" id="temperature-{{ .DeviceId}}">{{ $device.Temperature }}</p><span class="text-sm text-uppercase mb-0">Temperature</span>
+                                        </div>
+                                        {{ end }}
+                                        {{ if $device.HasSpeed }}
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0" id="speed-{{ .DeviceId }}">{{ $device.Rpm }}</p><span class="text-sm text-uppercase mb-0">Speed</span>
+                                        </div>
+                                        {{ end }}
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{ $device.ChannelId }}</p><span class="text-sm text-uppercase mb-0">Channel</span>
+                                        </div>
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">{{ $device.Description }}</p><span class="text-sm text-uppercase mb-0">Type</span>
+                                        </div>
+                                        {{ if $device.HasSpeed }}
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">
+                                                <select id="tempProfile" class="form-select mb-1 tempProfile" name="{{ $device.DeviceId }}">
+                                                    {{ if $device.PumpModes }}
+                                                    {{ range $key, $value := $device.PumpModes }}
+                                                    {{ if eq $device.Profile $value }}
+                                                    <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                    {{ else }}
+                                                    {{ range $key, $_ := $temperatures }}
+                                                    {{ if eq $device.Profile $key }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                            </p>
+                                            <label for="tempProfile" class="text-sm text-uppercase mb-0">Profile</label>
+                                        </div>
+                                        {{ end }}
+
+                                        {{ if gt $device.LedChannels 0 }}
+                                        <div class="px-3 px-lg-4">
+                                            <p class="text-lg fw-normal mb-0">
+                                                <select id="rgbProfile" class="form-select mb-1 rgbProfile" name="{{ $device.DeviceId }}">
+                                                    {{ range $key, $_ := $rgb }}
+                                                    {{ if eq $key $device.RGB }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                            </p>
+                                            <label for="rgbProfile" class="text-sm text-uppercase mb-0">RGB</label>
+                                        </div>
+                                        {{ end }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+</body>
+</html>

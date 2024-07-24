@@ -148,7 +148,6 @@ type Device struct {
 	Serial        string           `json:"serial"`
 	Firmware      string           `json:"firmware"`
 	RGB           string           `json:"rgb"`
-	AIO           bool             `json:"aio"`
 	AIOType       string           `json:"-"`
 	Devices       map[int]*Devices `json:"devices"`
 	DeviceProfile *DeviceProfile
@@ -995,9 +994,9 @@ func (d *Device) getDeviceData() {
 // setDefaults will set default mode for all devices
 func (d *Device) setDefaults() {
 	channelDefaults := map[int][]byte{}
-	for ccxtDevice := range d.Devices {
-		if d.Devices[ccxtDevice].HasSpeed {
-			channelDefaults[ccxtDevice] = []byte{byte(defaultSpeedValue)}
+	for device := range d.Devices {
+		if d.Devices[device].HasSpeed {
+			channelDefaults[device] = []byte{byte(defaultSpeedValue)}
 		}
 	}
 	d.setSpeed(channelDefaults, 0)
@@ -1029,6 +1028,10 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 			return 0
 		}
 		channelSpeeds := map[int][]byte{}
+
+		if value < 20 {
+			value = 20
+		}
 
 		// Minimal pump speed should be 50%
 		if device.ContainsPump {

@@ -33,6 +33,7 @@ func Init() {
 		"web/lsh.html",
 		"web/cc.html",
 		"web/ccxt.html",
+		"web/elite.html",
 		"web/rgb.html",
 		"web/temperature.html",
 	)

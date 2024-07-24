@@ -4,4 +4,6 @@
 {{ template "cc.html" . }}
 {{ else if eq .Device.Template "ccxt.html" }}
 {{ template "ccxt.html" . }}
+{{ else if eq .Device.Template "elite.html" }}
+{{ template "elite.html" . }}
 {{ end }}

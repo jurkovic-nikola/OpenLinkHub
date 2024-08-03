@@ -6,4 +6,8 @@
 {{ template "ccxt.html" . }}
 {{ else if eq .Device.Template "elite.html" }}
 {{ template "elite.html" . }}
+{{ else if eq .Device.Template "lncore.html" }}
+{{ template "lncore.html" . }}
+{{ else if eq .Device.Template "lnpro.html" }}
+{{ template "lnpro.html" . }}
 {{ end }}

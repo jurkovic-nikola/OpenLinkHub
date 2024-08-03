@@ -5,6 +5,8 @@ import (
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/linksystemhub"
+	"OpenLinkHub/src/devices/lncore"
+	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/logger"
 	"fmt"
 	"github.com/sstallion/go-hid"
@@ -16,6 +18,8 @@ const (
 	productTypeCC      = 1
 	productTypeCCXT    = 2
 	productTypeElite   = 3
+	productTypeLNCore  = 4
+	productTypeLnPro   = 5
 )
 
 type Device struct {
@@ -27,6 +31,8 @@ type Device struct {
 	CC            *cc.Device            `json:"cc,omitempty"`
 	CCXT          *ccxt.Device          `json:"ccxt,omitempty"`
 	Elite         *elite.Device         `json:"elite,omitempty"`
+	LnCore        *lncore.Device        `json:"lncore,omitempty"`
+	LnPro         *lnpro.Device         `json:"lnpro,omitempty"`
 }
 
 var (
@@ -64,6 +70,18 @@ func Stop() {
 					device.Elite.Stop()
 				}
 			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					device.LnCore.Stop()
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					device.LnPro.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
@@ -89,7 +107,7 @@ func UpdateExternalHubStatus(deviceId string, status bool) int {
 }
 
 // UpdateExternalHubDeviceType will update a device type connected to an external-LED hub
-func UpdateExternalHubDeviceType(deviceId string, deviceType int) int {
+func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) int {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeCCXT:
@@ -98,19 +116,43 @@ func UpdateExternalHubDeviceType(deviceId string, deviceType int) int {
 					return device.CCXT.UpdateExternalHubDeviceType(deviceType)
 				}
 			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					return device.LnCore.UpdateExternalHubDeviceType(deviceType)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					return device.LnPro.UpdateExternalHubDeviceType(portId, deviceType)
+				}
+			}
 		}
 	}
 	return 0
 }
 
 // UpdateExternalHubDeviceAmount will update a device amount connected to an external-LED hub
-func UpdateExternalHubDeviceAmount(deviceId string, deviceType int) int {
+func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) int {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeCCXT:
 			{
 				if device.CCXT != nil {
 					return device.CCXT.UpdateExternalHubDeviceAmount(deviceType)
+				}
+			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					return device.LnCore.UpdateExternalHubDeviceAmount(deviceType)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					return device.LnPro.UpdateExternalHubDeviceAmount(portId, deviceType)
 				}
 			}
 		}
@@ -211,6 +253,18 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) {
 					device.Elite.UpdateRgbProfile(channelId, profile)
 				}
 			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					device.LnCore.UpdateRgbProfile(channelId, profile)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					device.LnPro.UpdateRgbProfile(channelId, profile)
+				}
+			}
 		}
 
 	}
@@ -266,6 +320,14 @@ func GetDevice(deviceId string) interface{} {
 		case productTypeElite:
 			{
 				return device.Elite
+			}
+		case productTypeLNCore:
+			{
+				return device.LnCore
+			}
+		case productTypeLnPro:
+			{
+				return device.LnPro
 			}
 		}
 	}
@@ -364,6 +426,38 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 				}(vendorId, productId)
+			}
+		case 3098: // CORSAIR Lighting Node CORE
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := lncore.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						LnCore:      dev,
+						ProductType: productTypeLNCore,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, serial)
+			}
+		case 3083: // CORSAIR Lighting Node Pro
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := lnpro.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						LnPro:       dev,
+						ProductType: productTypeLnPro,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, serial)
 			}
 		default:
 			logger.Log(logger.Fields{"vendor": vendorId, "product": productId, "serial": serial}).Warn("Unsupported device detected. Please open a new feature request for your device on OpenLinkHub repository")

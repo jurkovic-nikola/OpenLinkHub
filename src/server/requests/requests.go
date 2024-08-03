@@ -26,6 +26,7 @@ type Payload struct {
 	Enabled      bool      `json:"enabled"`
 	DeviceType   int       `json:"deviceType"`
 	DeviceAmount int       `json:"deviceAmount"`
+	PortId       int       `json:"portId"`
 	Status       int
 	Code         int
 	Message      string
@@ -360,8 +361,11 @@ func ProcessExternalHubDeviceType(r *http.Request) *Payload {
 	if devices.GetDevice(req.DeviceId) == nil {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
+	if req.PortId < 0 || req.PortId > 1 {
+		return &Payload{Message: "Non-existing LED Port-Id", Code: http.StatusOK, Status: 0}
+	}
 
-	status := devices.UpdateExternalHubDeviceType(req.DeviceId, req.DeviceType)
+	status := devices.UpdateExternalHubDeviceType(req.DeviceId, req.PortId, req.DeviceType)
 	switch status {
 	case 0:
 		return &Payload{Message: "Unable to change external LED hub device", Code: http.StatusOK, Status: 0}
@@ -389,14 +393,21 @@ func ProcessExternalHubDeviceAmount(r *http.Request) *Payload {
 	if req.DeviceAmount < 0 || req.DeviceAmount > 6 {
 		return &Payload{Message: "Invalid amount of devices", Code: http.StatusOK, Status: 0}
 	}
-
+	if req.PortId < 0 || req.PortId > 1 {
+		return &Payload{Message: "Non-existing LED Port-Id", Code: http.StatusOK, Status: 0}
+	}
 	if devices.GetDevice(req.DeviceId) == nil {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
-	if devices.UpdateExternalHubDeviceAmount(req.DeviceId, req.DeviceAmount) == 1 {
-		return &Payload{Message: "External LED hub device amount is successfully updated", Code: http.StatusOK, Status: 1}
-	} else {
+	status := devices.UpdateExternalHubDeviceAmount(req.DeviceId, req.PortId, req.DeviceAmount)
+	switch status {
+	case 0:
 		return &Payload{Message: "Unable to change external LED hub device amount", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "External LED hub device amount is successfully updated", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "You have exceeded maximum amount of supported LED channels.", Code: http.StatusOK, Status: 0}
 	}
+	return &Payload{Message: "Unable to change external LED hub device amount", Code: http.StatusOK, Status: 0}
 }

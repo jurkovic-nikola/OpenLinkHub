@@ -100,23 +100,9 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">External LED Hub</div>
+                                <div class="card-header border-bottom border-dash-dark-1">Lighting Node CORE</div>
                                 <div class="card-body">
                                     <div class="d-flex justify-content-center text-center">
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0">
-                                                <select class="form-select mb-1" id="externalHubStatus">
-                                                    {{ if $device.DeviceProfile.ExternalHubStatus }}
-                                                    <option value="0">No</option>
-                                                    <option value="1" selected>Yes</option>
-                                                    {{ else }}
-                                                    <option value="0" selected>No</option>
-                                                    <option value="1">Yes</option>
-                                                    {{ end }}
-                                                </select>
-                                            </p>
-                                            <label for="externalHubStatus" class="text-sm text-uppercase mb-0">Enabled</label>
-                                        </div>
                                         <div class="px-3 px-lg-4">
                                             <p class="text-lg fw-normal mb-0 externalHubDevice">
                                                 <select class="form-select mb-1 externalHubDeviceType" id="externalHubDeviceType">
@@ -159,50 +145,13 @@
                                 <div class="card-header border-bottom border-dash-dark-1">{{ $device.Name}}</div>
                                 <div class="card-body">
                                     <div class="d-flex justify-content-center text-center">
-                                        {{ if $device.HasTemps }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0" id="temperature-{{ .DeviceId}}">{{ $device.Temperature }}</p><span class="text-sm text-uppercase mb-0">Temperature</span>
-                                        </div>
-                                        {{ end }}
-                                        {{ if $device.HasSpeed }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0" id="speed-{{ .DeviceId }}">{{ $device.Rpm }}</p><span class="text-sm text-uppercase mb-0">Speed</span>
-                                        </div>
-                                        {{ end }}
                                         <div class="px-3 px-lg-4">
                                             <p class="text-lg fw-normal mb-0">{{ $device.Description }}</p><span class="text-sm text-uppercase mb-0">Type</span>
                                         </div>
-                                        {{ if $device.HasSpeed }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0">
-                                                <select id="tempProfile" class="form-select mb-1 tempProfile" name="{{ $device.DeviceId }}">
-                                                    {{ if $device.PumpModes }}
-                                                    {{ range $key, $value := $device.PumpModes }}
-                                                    {{ if eq $device.Profile $value }}
-                                                    <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                    {{ else }}
-                                                    {{ range $key, $_ := $temperatures }}
-                                                    {{ if eq $device.Profile $key }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </p>
-                                            <label for="tempProfile" class="text-sm text-uppercase mb-0">Profile</label>
-                                        </div>
-                                        {{ end }}
-
                                         {{ if gt $device.LedChannels 0 }}
                                         <div class="px-3 px-lg-4">
                                             <p class="text-lg fw-normal mb-0">
-                                                <select id="rgbProfile" class="form-select mb-1 rgbProfile" name="{{ $device.DeviceId }}">
+                                                <select id="rgbProfile{{ $device.DeviceId }}" class="form-select mb-1 rgbProfile" name="{{ $device.DeviceId }}">
                                                     {{ range $key, $_ := $rgb }}
                                                     {{ if eq $key $device.RGB }}
                                                     <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
@@ -212,7 +161,7 @@
                                                     {{ end }}
                                                 </select>
                                             </p>
-                                            <label for="rgbProfile" class="text-sm text-uppercase mb-0">RGB</label>
+                                            <label for="rgbProfile{{ $device.DeviceId }}" class="text-sm text-uppercase mb-0">RGB</label>
                                         </div>
                                         {{ end }}
                                     </div>

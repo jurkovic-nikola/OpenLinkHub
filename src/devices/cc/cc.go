@@ -1,23 +1,5 @@
 package cc
 
-import (
-	"OpenLinkHub/src/common"
-	"OpenLinkHub/src/config"
-	"OpenLinkHub/src/logger"
-	"OpenLinkHub/src/rgb"
-	"OpenLinkHub/src/temperatures"
-	"bytes"
-	"context"
-	"encoding/binary"
-	"encoding/json"
-	"fmt"
-	"github.com/sstallion/go-hid"
-	"os"
-	"sort"
-	"sync"
-	"time"
-)
-
 // Package: CORSAIR iCUE COMMANDER CORE
 // This is the primary package for CORSAIR iCUE COMMANDER CORE.
 // All device actions are controlled from this package.
@@ -38,6 +20,24 @@ import (
 // - iCUE H150i ELITE CAPELLIX XT
 // - iCUE H170i ELITE CAPELLIX XT
 // - 1x Temperature Probe
+
+import (
+	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
+	"bytes"
+	"context"
+	"encoding/binary"
+	"encoding/json"
+	"fmt"
+	"github.com/sstallion/go-hid"
+	"os"
+	"sort"
+	"sync"
+	"time"
+)
 
 var (
 	cmdOpenEndpoint            = []byte{0x0d, 0x01}

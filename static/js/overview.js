@@ -167,13 +167,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('#externalHubDeviceType').on('change', function () {
+    $('.externalHubDeviceType').change(function(){
+        const container = $(this).closest(".externalHubDevice");
         const deviceId = $("#deviceId").val();
         const deviceType = $(this).val();
+        const portId = container.find(".portId").val();
         const pf = {};
+
+        pf["portId"] = parseInt(portId);
         pf["deviceId"] = deviceId;
         pf["deviceType"] = parseInt(deviceType);
-
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
             url: '/api/hub/type',
@@ -194,13 +197,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('#externalHubDeviceAmount').on('change', function () {
+    $('.externalHubDeviceAmount').change(function(){
+        const container = $(this).closest(".externalHubDevice");
         const deviceId = $("#deviceId").val();
         const deviceAmount = $(this).val();
+        const portId = container.find(".portId").val();
         const pf = {};
+
+        pf["portId"] = parseInt(portId);
         pf["deviceId"] = deviceId;
         pf["deviceAmount"] = parseInt(deviceAmount);
-
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
             url: '/api/hub/amount',

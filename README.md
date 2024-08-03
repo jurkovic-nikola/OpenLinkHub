@@ -21,6 +21,8 @@ Open source Linux interface for iCUE LINK Hub and other devices.
 | iCUE H100i RGB ELITE   | `1b1c` | `0c35`             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | iCUE H115i RGB ELITE   | `1b1c` | `0c36`             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | iCUE H150i RGB ELITE   | `1b1c` | `0c37`             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Lighting Node CORE     | `1b1c` | `0c1a`             | HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                                                      |
+| Lighting Node PRO      | `1b1c` | `0c0b`             | 2x External RGB Hub<br />HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                             |
 
 
 ## Installation
@@ -101,6 +103,12 @@ echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS
 # Allow hidraw communication as non-root - iCUE H150i Elite RGB
 echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c37\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-h150i.rules
 
+# Allow hidraw communication as non-root - CORSAIR Lighting Node CORE
+echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c1a\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-lncore.rules
+
+# Allow hidraw communication as non-root - CORSAIR Lighting Node Pro
+echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c0b\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-lnpro.rules
+
 # Reload udev rules without reboot
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
@@ -113,10 +121,10 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 mkdir OpenLinkHub && cd OpenLinkHub
 
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.0.7-beta/0.0.7-beta.zip
+wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.0.8-beta/0.0.8-beta.zip
 
 # Extract package
-unzip -x 0.0.7-beta.zip
+unzip -x 0.0.8-beta.zip
 
 # Continue from 3. Installation section for next steps
 ```

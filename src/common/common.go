@@ -4,8 +4,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strconv"
-	"unsafe"
 )
 
 // FileExists will check if given filename exists
@@ -43,17 +41,6 @@ func FClamp(value, min, max float64) float64 {
 	return value
 }
 
-// IntToByteArray will covert integer to byte array
-func IntToByteArray(num uint16) []byte {
-	size := 2
-	buffer := make([]byte, size)
-	for i := 0; i < size; i++ {
-		byt := *(*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&num)) + uintptr(i)))
-		buffer[i] = byt
-	}
-	return buffer
-}
-
 // ProcessMultiChunkPacket will process a byte array in chunks with a specified max size
 func ProcessMultiChunkPacket(data []byte, maxChunkSize int) [][]byte {
 	var result [][]byte
@@ -83,15 +70,6 @@ func ProcessMultiChunkPacket(data []byte, maxChunkSize int) [][]byte {
 	return result
 }
 
-// ConvertHexToUint16 takes a hexadecimal string and converts it to an uint16.
-func ConvertHexToUint16(hexStr string) (uint16, error) {
-	value, err := strconv.ParseUint(hexStr, 16, 16)
-	if err != nil {
-		return 0, err // Return the zero value of uint16 and the error
-	}
-	return uint16(value), nil
-}
-
 func InBetween(i, min, max float32) bool {
 	if (i >= min) && (i <= max) {
 		return true
@@ -100,7 +78,7 @@ func InBetween(i, min, max float32) bool {
 	}
 }
 
-// FractionOfByte will return fraction of given value
+// FractionOfByte will return a fraction of given value
 func FractionOfByte(ratio float64, percentage *float64) int {
 	if percentage != nil {
 		ratio = *percentage / 100
@@ -121,9 +99,4 @@ func IsValidExtension(path, extension string) bool {
 		return false
 	}
 	return true
-}
-
-// DeleteElement will remove element from slice with given index
-func DeleteElement(slice []int, index int) []int {
-	return append(slice[:index], slice[index+1:]...)
 }

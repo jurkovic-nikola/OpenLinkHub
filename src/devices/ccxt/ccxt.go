@@ -1,5 +1,15 @@
 package ccxt
 
+// Package: CORSAIR iCUE COMMANDER CORE XT
+// This is the primary package for CORSAIR iCUE COMMANDER CORE XT.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+// Supported devices:
+// - iCUE COMMANDER CORE XT
+// - 2x Temperature Probes
+// - External LED Hub
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -17,16 +27,6 @@ import (
 	"sync"
 	"time"
 )
-
-// Package: CORSAIR iCUE COMMANDER CORE XT
-// This is the primary package for CORSAIR iCUE COMMANDER CORE XT.
-// All device actions are controlled from this package.
-// Author: Nikola Jurkovic
-// License: GPL-3.0 or later
-// Supported devices:
-// - iCUE COMMANDER CORE XT
-// - 2x Temperature Probes
-// - External LED Hub
 
 var (
 	cmdOpenEndpoint            = []byte{0x0d, 0x01}
@@ -1136,8 +1136,8 @@ func (d *Device) getDevices() int {
 			}
 
 			if LedChannels > 0 {
-				rgbProfile := "static"
-				if d.DeviceProfile != nil {
+				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
+					rgbProfile := "static"
 					// Profile is set
 					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
 						// Profile device channel exists
@@ -1150,11 +1150,7 @@ func (d *Device) getDevices() int {
 					} else {
 						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
 					}
-				} else {
-					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-				}
 
-				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
 					device := &Devices{
 						ChannelId:          m,
 						DeviceId:           fmt.Sprintf("%s-%v", "LED", z),
@@ -1197,10 +1193,9 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	for _, device := range d.Devices {
-		if device.IsTemperatureProbe {
-			continue
+		if device.LedChannels > 0 {
+			rgbProfiles[device.ChannelId] = device.RGB
 		}
-		rgbProfiles[device.ChannelId] = device.RGB
 	}
 
 	deviceProfile := &DeviceProfile{
@@ -1213,14 +1208,13 @@ func (d *Device) saveDeviceProfile() {
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
 		for _, device := range d.Devices {
-			if device.IsTemperatureProbe {
-				continue
+			if device.LedChannels > 0 {
+				rgbProfiles[device.ChannelId] = "static"
 			}
-			rgbProfiles[device.ChannelId] = "static"
-			deviceProfile.ExternalHubStatus = false
-			deviceProfile.ExternalHubDeviceAmount = 0
-			deviceProfile.ExternalHubDeviceType = 0
 		}
+		deviceProfile.ExternalHubStatus = false
+		deviceProfile.ExternalHubDeviceAmount = 0
+		deviceProfile.ExternalHubDeviceType = 0
 	} else {
 		deviceProfile.ExternalHubStatus = d.DeviceProfile.ExternalHubStatus
 		deviceProfile.ExternalHubDeviceAmount = d.DeviceProfile.ExternalHubDeviceAmount

@@ -411,7 +411,7 @@ func Init() {
 					}
 				}(vendorId, productId, serial)
 			}
-		case 3125, 3126, 3127: // CORSAIR iCUE H100i,H115i,H150i ELITE RGB
+		case 3125, 3126, 3127, 3136, 3137: // CORSAIR iCUE H100i,H115i,H150i ELITE RGB + H100i, H150i White
 			{
 				go func(vendorId, productId uint16) {
 					dev := elite.Init(vendorId, productId)

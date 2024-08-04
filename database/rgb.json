@@ -15,16 +15,16 @@
       "brightness": 1,
       "smoothness": 20,
       "start": {
-        "red": 255,
-        "green": 0,
-        "blue": 0,
-        "brightness": 1
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
       },
       "end": {
-        "red": 255,
-        "green": 0,
-        "blue": 0,
-        "brightness": 1
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
       }
     },
     "watercolor": {

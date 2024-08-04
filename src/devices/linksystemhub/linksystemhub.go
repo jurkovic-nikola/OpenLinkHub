@@ -95,6 +95,8 @@ var (
 	cmdWriteColor              = []byte{0x06, 0x00}
 	cmdRead                    = []byte{0x08, 0x01}
 	cmdGetDeviceMode           = []byte{0x01, 0x08, 0x01}
+	cmdRefreshDevices          = []byte{0x1a, 0x01}
+	cmdWaitForDevice           = []byte{0x12, 0x00}
 	modeGetDevices             = []byte{0x36}
 	modeGetTemperatures        = []byte{0x21}
 	modeGetSpeeds              = []byte{0x17}
@@ -123,7 +125,7 @@ var (
 		{
 			DeviceId:     1,
 			Model:        0,
-			Name:         "QX Fan",
+			Name:         "iCUE LINK QX RGB",
 			LedChannels:  34,
 			ContainsPump: false,
 			Desc:         "Fan",
@@ -131,7 +133,7 @@ var (
 		{
 			DeviceId:     19,
 			Model:        0,
-			Name:         "RX Fan",
+			Name:         "iCUE LINK RX",
 			LedChannels:  0,
 			ContainsPump: false,
 			Desc:         "Fan",
@@ -139,7 +141,7 @@ var (
 		{
 			DeviceId:     15,
 			Model:        0,
-			Name:         "RX RGB Fan",
+			Name:         "iCUE LINK RX RGB",
 			LedChannels:  8,
 			ContainsPump: false,
 			Desc:         "Fan",
@@ -147,7 +149,7 @@ var (
 		{
 			DeviceId:     4,
 			Model:        0,
-			Name:         "RX MAX Fan",
+			Name:         "iCUE LINK RX MAX",
 			LedChannels:  8,
 			ContainsPump: false,
 			Desc:         "Fan",
@@ -155,7 +157,7 @@ var (
 		{
 			DeviceId:     7,
 			Model:        2,
-			Name:         "H150i",
+			Name:         "iCUE LINK H150i",
 			LedChannels:  20,
 			ContainsPump: true,
 			Desc:         "AIO",
@@ -163,7 +165,7 @@ var (
 		{
 			DeviceId:     7,
 			Model:        5,
-			Name:         "H150i",
+			Name:         "iCUE LINK H150i",
 			LedChannels:  20,
 			ContainsPump: true,
 			Desc:         "AIO",
@@ -171,7 +173,7 @@ var (
 		{
 			DeviceId:     7,
 			Model:        1,
-			Name:         "H115i",
+			Name:         "iCUE LINK H115i",
 			LedChannels:  20,
 			ContainsPump: true,
 			Desc:         "AIO",
@@ -179,7 +181,7 @@ var (
 		{
 			DeviceId:     7,
 			Model:        3,
-			Name:         "H170i",
+			Name:         "iCUE LINK H170i",
 			LedChannels:  20,
 			ContainsPump: true,
 			Desc:         "AIO",
@@ -187,7 +189,7 @@ var (
 		{
 			DeviceId:     7,
 			Model:        0,
-			Name:         "H100i",
+			Name:         "iCUE LINK H100i",
 			LedChannels:  20,
 			ContainsPump: true,
 			Desc:         "AIO",
@@ -195,7 +197,7 @@ var (
 		{
 			DeviceId:     7,
 			Model:        4,
-			Name:         "H100i",
+			Name:         "iCUE LINK H100i",
 			LedChannels:  20,
 			ContainsPump: true,
 			Desc:         "AIO",
@@ -1048,6 +1050,30 @@ func (d *Device) setSoftwareMode() {
 	_, err := d.transfer(cmdSoftwareMode, nil, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+	}
+	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+
+	if config.GetConfig().RefreshOnStart {
+		// If set to true in config.json, this will re-initialize the hub before device enumeration.
+		// Experimental for now.
+		// This is handy if you need to reconnect cables on HUB without power-cycle.
+		_, err = d.transfer(cmdRefreshDevices, nil, nil)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		}
+
+		for {
+			time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+			res, err := d.transfer(cmdWaitForDevice, nil, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Fatal("Unable to wait for device status")
+			}
+			if res[1] == 0 {
+				// Device is initialized
+				time.Sleep(time.Duration(transferTimeout*2) * time.Millisecond)
+				break
+			}
+		}
 	}
 }
 

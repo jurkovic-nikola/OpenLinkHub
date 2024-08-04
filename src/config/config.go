@@ -12,6 +12,7 @@ type Configuration struct {
 	CPUPackageIdent string `json:"cpuPackageIdent"`
 	Manual          bool   `json:"manual"`
 	Frontend        bool   `json:"frontend"`
+	RefreshOnStart  bool   `json:"refreshOnStart"`
 }
 
 var configuration Configuration

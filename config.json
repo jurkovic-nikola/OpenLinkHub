@@ -4,5 +4,6 @@
   "cpuSensorChip": "k10temp-pci-00c3",
   "cpuPackageIdent": "Tctl",
   "manual": false,
-  "frontend": true
+  "frontend": true,
+  "refreshOnStart": false
 }

@@ -139,9 +139,11 @@ var (
 	timerSpeed                 = &time.Ticker{}
 	manualSpeedModes           = map[int]*SpeedMode{}
 	supportedDevices           = []SupportedDevice{
-		{ProductId: 3125, Product: "iCUE H100i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16},
-		{ProductId: 3126, Product: "iCUE H115i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16},
-		{ProductId: 3127, Product: "iCUE H150i RGB ELITE", Fans: 3, FanLeds: 0, PumpLeds: 16},
+		{ProductId: 3125, Product: "iCUE H100i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16}, // Black
+		{ProductId: 3126, Product: "iCUE H115i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16}, // Black
+		{ProductId: 3127, Product: "iCUE H150i RGB ELITE", Fans: 3, FanLeds: 0, PumpLeds: 16}, // Black
+		{ProductId: 3136, Product: "iCUE H100i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16}, // White
+		{ProductId: 3137, Product: "iCUE H150i RGB ELITE", Fans: 3, FanLeds: 0, PumpLeds: 16}, // White
 	}
 	deviceList = []DeviceList{
 		{

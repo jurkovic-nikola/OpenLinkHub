@@ -222,17 +222,6 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// setExternalHubStatus handles status change of external-LED hub
-func setExternalHubStatus(w http.ResponseWriter, r *http.Request) {
-	request := requests.ProcessExternalHubStatus(r)
-	resp := &Response{
-		Code:    request.Code,
-		Status:  request.Status,
-		Message: request.Message,
-	}
-	resp.Send(w)
-}
-
 // setExternalHubDeviceType handles device change of external-LED hub
 func setExternalHubDeviceType(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessExternalHubDeviceType(r)
@@ -400,8 +389,6 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setManualDeviceSpeed)
 	r.Methods(http.MethodPost).Path("/api/color").
 		HandlerFunc(setDeviceColor)
-	r.Methods(http.MethodPost).Path("/api/hub/status").
-		HandlerFunc(setExternalHubStatus)
 	r.Methods(http.MethodPost).Path("/api/hub/type").
 		HandlerFunc(setExternalHubDeviceType)
 	r.Methods(http.MethodPost).Path("/api/hub/amount").

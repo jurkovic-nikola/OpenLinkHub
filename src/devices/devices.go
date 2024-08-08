@@ -3,6 +3,7 @@ package devices
 import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
+	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/linksystemhub"
 	"OpenLinkHub/src/devices/lncore"
@@ -20,6 +21,7 @@ const (
 	productTypeElite   = 3
 	productTypeLNCore  = 4
 	productTypeLnPro   = 5
+	productTypeCPro    = 6
 )
 
 type Device struct {
@@ -33,6 +35,7 @@ type Device struct {
 	Elite         *elite.Device         `json:"elite,omitempty"`
 	LnCore        *lncore.Device        `json:"lncore,omitempty"`
 	LnPro         *lnpro.Device         `json:"lnpro,omitempty"`
+	CPro          *cpro.Device          `json:"cPro,omitempty"`
 }
 
 var (
@@ -82,28 +85,18 @@ func Stop() {
 					device.LnPro.Stop()
 				}
 			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					device.CPro.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
 	}
-}
-
-// UpdateExternalHubStatus will enable or disable device external-LED hub
-func UpdateExternalHubStatus(deviceId string, status bool) int {
-	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					device.CCXT.UpdateExternalHubStatus(status)
-					return 1
-				}
-			}
-		}
-	}
-	return 0
 }
 
 // UpdateExternalHubDeviceType will update a device type connected to an external-LED hub
@@ -126,6 +119,12 @@ func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) int {
 			{
 				if device.LnPro != nil {
 					return device.LnPro.UpdateExternalHubDeviceType(portId, deviceType)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.UpdateExternalHubDeviceType(portId, deviceType)
 				}
 			}
 		}
@@ -153,6 +152,12 @@ func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) int 
 			{
 				if device.LnPro != nil {
 					return device.LnPro.UpdateExternalHubDeviceAmount(portId, deviceType)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.UpdateExternalHubDeviceAmount(portId, deviceType)
 				}
 			}
 		}
@@ -188,6 +193,12 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) {
 					device.Elite.UpdateSpeedProfile(channelId, profile)
 				}
 			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					device.CPro.UpdateSpeedProfile(channelId, profile)
+				}
+			}
 		}
 	}
 }
@@ -218,6 +229,12 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 			{
 				if device.Elite != nil {
 					return device.Elite.UpdateDeviceSpeed(channelId, value)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.UpdateDeviceSpeed(channelId, value)
 				}
 			}
 		}
@@ -265,6 +282,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) {
 					device.LnPro.UpdateRgbProfile(channelId, profile)
 				}
 			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					device.CPro.UpdateRgbProfile(channelId, profile)
+				}
+			}
 		}
 
 	}
@@ -307,27 +330,45 @@ func GetDevice(deviceId string) interface{} {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				return device.LinkSystemHub
+				if device.LinkSystemHub != nil {
+					return device.LinkSystemHub
+				}
 			}
 		case productTypeCC:
 			{
-				return device.CC
+				if device.CC != nil {
+					return device.CC
+				}
 			}
 		case productTypeCCXT:
 			{
-				return device.CCXT
+				if device.CCXT != nil {
+					return device.CCXT
+				}
 			}
 		case productTypeElite:
 			{
-				return device.Elite
+				if device.Elite != nil {
+					return device.Elite
+				}
 			}
 		case productTypeLNCore:
 			{
-				return device.LnCore
+				if device.LnCore != nil {
+					return device.LnCore
+				}
 			}
 		case productTypeLnPro:
 			{
-				return device.LnPro
+				if device.LnPro != nil {
+					return device.LnPro
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro
+				}
 			}
 		}
 	}
@@ -453,6 +494,22 @@ func Init() {
 					devices[dev.Serial] = &Device{
 						LnPro:       dev,
 						ProductType: productTypeLnPro,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, serial)
+			}
+		case 3088: // Corsair Commander Pro
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := cpro.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						CPro:        dev,
+						ProductType: productTypeCPro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

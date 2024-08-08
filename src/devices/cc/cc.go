@@ -737,19 +737,22 @@ func (d *Device) getDevices() int {
 }
 
 // setSpeed will generate a speed buffer and send it to a device
-func (d *Device) setSpeed(data map[int][]byte, mode uint8) {
+func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 	buffer := make([]byte, len(data)*4+1)
 	buffer[0] = byte(len(data))
 	i := 1
-	for channel, speed := range data {
-		v := 2
-		buffer[i] = byte(channel)
-		buffer[i+1] = mode // Either percent mode or RPM mode
-		for value := range speed {
-			buffer[i+v] = speed[value]
-			v++
-		}
-		i += 4 // Move to the next place
+
+	keys := make([]int, 0)
+
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		buffer[i] = byte(k)
+		buffer[i+1] = mode
+		buffer[i+2] = data[k]
+		i += 4
 	}
 	d.write(modeSetSpeed, dataTypeSetSpeed, buffer, true)
 }
@@ -779,20 +782,26 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
-	tmp := make(map[int]string, 0)
-
 	go func() {
+		tmp := make(map[int]string, 0)
+		channelSpeeds := map[int]byte{}
+
+		// Init speed channels
+		for _, device := range d.Devices {
+			if device.IsTemperatureProbe {
+				continue
+			}
+			channelSpeeds[device.ChannelId] = byte(defaultSpeedValue)
+		}
 		for {
 			select {
 			case <-timerSpeed.C:
 				var temp float32 = 0
-				//if temp > 0 {
 				for _, device := range d.Devices {
 					if device.IsTemperatureProbe {
 						continue
 					}
 
-					channelSpeeds := map[int][]byte{}
 					profiles := temperatures.GetTemperatureProfile(device.Profile)
 					if profiles == nil {
 						// No such profile, default to Normal
@@ -817,6 +826,10 @@ func (d *Device) updateDeviceSpeed() {
 						}
 					}
 
+					// All temps failed, default to 50
+					if temp == 0 {
+						temp = 50
+					}
 					for i := 0; i < len(profiles.Profiles); i++ {
 						profile := profiles.Profiles[i]
 						if common.InBetween(temp, profile.Min, profile.Max) {
@@ -838,16 +851,15 @@ func (d *Device) updateDeviceSpeed() {
 								}
 
 								if device.ContainsPump {
-									channelSpeeds[device.ChannelId] = []byte{byte(profile.Pump)}
+									channelSpeeds[device.ChannelId] = byte(profile.Pump)
 								} else {
-									channelSpeeds[device.ChannelId] = []byte{byte(profile.Fans)}
+									channelSpeeds[device.ChannelId] = byte(profile.Fans)
 								}
 								d.setSpeed(channelSpeeds, 0)
 							}
 						}
 					}
 				}
-				//}
 			case <-speedRefreshChan:
 				timerSpeed.Stop()
 				return
@@ -964,7 +976,10 @@ func (d *Device) getDeviceData() {
 		status := channels[6:][i]
 		if status == 0x07 {
 			if _, ok := d.Devices[m]; ok {
-				d.Devices[m].Rpm = int16(binary.LittleEndian.Uint16(currentSensor))
+				rpm := int16(binary.LittleEndian.Uint16(currentSensor))
+				if rpm > 0 {
+					d.Devices[m].Rpm = rpm
+				}
 				m++
 			}
 		}
@@ -978,13 +993,16 @@ func (d *Device) getDeviceData() {
 		currentSensor := sensorData[s : s+3]
 		status := currentSensor[0]
 		if status == 0x00 {
-			if i == 0 {
-				if _, ok := d.Devices[i]; ok {
-					d.Devices[i].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
-				}
-			} else {
-				if _, ok := d.Devices[m]; ok {
-					d.Devices[m].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+			temp := float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+			if temp > 0 {
+				if i == 0 {
+					if _, ok := d.Devices[i]; ok {
+						d.Devices[i].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+					}
+				} else {
+					if _, ok := d.Devices[m]; ok {
+						d.Devices[m].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+					}
 				}
 			}
 		}
@@ -993,10 +1011,10 @@ func (d *Device) getDeviceData() {
 
 // setDefaults will set default mode for all devices
 func (d *Device) setDefaults() {
-	channelDefaults := map[int][]byte{}
+	channelDefaults := map[int]byte{}
 	for device := range d.Devices {
 		if d.Devices[device].HasSpeed {
-			channelDefaults[device] = []byte{byte(defaultSpeedValue)}
+			channelDefaults[device] = byte(defaultSpeedValue)
 		}
 	}
 	d.setSpeed(channelDefaults, 0)
@@ -1027,7 +1045,7 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 		if device.IsTemperatureProbe {
 			return 0
 		}
-		channelSpeeds := map[int][]byte{}
+		channelSpeeds := map[int]byte{}
 
 		if value < 20 {
 			value = 20
@@ -1039,7 +1057,7 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 				value = 50
 			}
 		}
-		channelSpeeds[device.ChannelId] = []byte{byte(value)}
+		channelSpeeds[device.ChannelId] = byte(value)
 		d.setSpeed(channelSpeeds, 0)
 		return 1
 	}
@@ -1298,7 +1316,7 @@ func (d *Device) writeColor(data []byte) {
 }
 
 // write will write data to the device with specific endpoint
-func (d *Device) write(endpoint, bufferType, data []byte, extra bool) {
+func (d *Device) write(endpoint, bufferType, data []byte, extra bool) []byte {
 	// Buffer
 	buffer := make([]byte, len(bufferType)+len(data)+headerWriteSize)
 	if extra {
@@ -1308,6 +1326,9 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) {
 	}
 	copy(buffer[headerWriteSize:headerWriteSize+len(bufferType)], bufferType)
 	copy(buffer[headerWriteSize+len(bufferType):], data)
+
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
 
 	// Close endpoint
 	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
@@ -1322,7 +1343,7 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) {
 	}
 
 	// Send it
-	_, err = d.transfer(cmdWrite, buffer, nil)
+	bufferR, err = d.transfer(cmdWrite, buffer, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 	}
@@ -1332,6 +1353,8 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 	}
+
+	return bufferR
 }
 
 // transfer will send data to a device and retrieve device output

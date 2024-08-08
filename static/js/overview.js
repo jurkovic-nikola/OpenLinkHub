@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                 }
             });
-        },3000);
+        },1500);
     }
 
     autoRefresh();

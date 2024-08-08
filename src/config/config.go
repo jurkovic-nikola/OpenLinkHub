@@ -6,13 +6,12 @@ import (
 )
 
 type Configuration struct {
-	ListenPort      int    `json:"listenPort"`
-	ListenAddress   string `json:"listenAddress"`
-	CPUSensorChip   string `json:"cpuSensorChip"`
-	CPUPackageIdent string `json:"cpuPackageIdent"`
-	Manual          bool   `json:"manual"`
-	Frontend        bool   `json:"frontend"`
-	RefreshOnStart  bool   `json:"refreshOnStart"`
+	ListenPort     int    `json:"listenPort"`
+	ListenAddress  string `json:"listenAddress"`
+	CPUSensorChip  string `json:"cpuSensorChip"`
+	Manual         bool   `json:"manual"`
+	Frontend       bool   `json:"frontend"`
+	RefreshOnStart bool   `json:"refreshOnStart"`
 }
 
 var configuration Configuration

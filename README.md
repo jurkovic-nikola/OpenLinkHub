@@ -15,7 +15,7 @@ Open source Linux interface for iCUE LINK Hub and other devices.
 
 | Device                 | VID    | PID                | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |------------------------|--------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| iCUE LINK System Hub   | `1b1c` | `0c3f`             | QX Fan<br />RX Fan<br/>RX RGB Fan<br/>RX MAX Fan<br/>H100i<br/>H115i<br/>H150i<br/>H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module                                                                                                                                                                                                                                                                                                       | |                                                                                                                                                                   |
+| iCUE LINK System Hub   | `1b1c` | `0c3f`             | iCUE LINK QX Fan<br />iCUE LINK RX Fan<br/>iCUE LINK RX RGB Fan<br/>iCUE LINK RX MAX Fan<br/>iCUE LINK H100i<br/>iCUE LINK H115i<br/>iCUE LINK H150i<br/>iCUE LINK H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module<br />iCUE LINK TITAN H100i<br />iCUE LINK TITAN H150i<br />iCUE LINK TITAN H115i<br />iCUE LINK TITAN H170i                                                                                                           | |                                                                                                                                                                   |
 | iCUE COMMANDER Core    | `1b1c` | `0c32`<br />`0c1c` | iCUE H100i ELITE CAPELLIX<br />iCUE H115i ELITE CAPELLIX<br />iCUE H150i ELITE CAPELLIX<br />iCUE H170i ELITE CAPELLIX<br />H100i ELITE LCD<br />H150i ELITE LCD<br />H170i ELITE LCD<br />iCUE H100i ELITE CAPELLIX XT<br />iCUE H115i ELITE CAPELLIX XT<br />iCUE H150i ELITE CAPELLIX XT<br />iCUE H170i ELITE CAPELLIX XT<br />1x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan |
 | iCUE COMMANDER Core XT | `1b1c` | `0c2a`             | External RGB Hub<br />2x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan<br />H55 RGB AIO<br />H100 RGB AIO<br />H150 RGB AIO                                                                                                                                                                                                                                                         |
 | iCUE H100i RGB ELITE   | `1b1c` | `0c35`<br />`0c40` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -23,23 +23,19 @@ Open source Linux interface for iCUE LINK Hub and other devices.
 | iCUE H150i RGB ELITE   | `1b1c` | `0c37`<br />`0c41` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Lighting Node CORE     | `1b1c` | `0c1a`             | HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                                                      |
 | Lighting Node PRO      | `1b1c` | `0c0b`             | 2x External RGB Hub<br />HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                             |
+| Commander PRO          | `1b1c` | `0c10`             | 2x External RGB Hub<br />4x Temperature Probe<br />Any PWM Fan                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 
 ## Installation
 ### 1. Requirements
 - libudev-dev
-- lm-sensors
 - go 1.22.2 - https://go.dev/dl/
 ```bash
 # Required packages (deb)
 $ sudo apt-get install libudev-dev
-$ sudo apt-get install lm-sensors
-$ sudo sensors-detect
 
 # Required packages (rpm)
 $ sudo dnf install libudev-devel
-$ sudo dnf install lm_sensors
-$ sudo sensors-detect
 ```
 ### 2. Build
 ```bash
@@ -115,6 +111,10 @@ echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS
 # Allow hidraw communication as non-root - CORSAIR Lighting Node Pro
 echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c0b\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-lnpro.rules
 
+# Allow hidraw communication as non-root - Corsair Commander PRO
+echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c10\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-cpro.rules
+
+
 # Reload udev rules without reboot
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
@@ -127,10 +127,10 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 mkdir OpenLinkHub && cd OpenLinkHub
 
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.0.9-beta/0.0.9-beta.zip
+wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.0-beta/0.1.0-beta.zip
 
 # Extract package
-unzip -x 0.0.9-beta.zip
+unzip -x 0.1.0-beta.zip
 
 # Continue from 3. Installation section for next steps
 ```
@@ -140,26 +140,16 @@ unzip -x 0.0.9-beta.zip
 {
   "listenPort": 27003,
   "listenAddress": "127.0.0.1",
-  "cpuSensorChip": "k10temp-pci-00c3",
-  "cpuPackageIdent": "Tctl",
+  "cpuSensorChip": "k10temp",
   "manual": false,
   "frontend": true
 }
 ```
 - listenPort: HTTP server port.
 - listenAddress: Address for HTTP server to listen on.
-- cpuSensorChip: CPU sensor chip for temperature
+- cpuSensorChip: CPU sensor chip for temperature. `k10temp` for AMD and `coretemp` for Intel
 - manual: set to true if you want to use your own UI for device control. Setting this to true will disable temperature monitoring and automatic device speed adjustments. 
 - frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
-```bash
-$ sensors
-k10temp-pci-00c3
-Adapter: PCI adapter
-Tctl:         +35.4°C  
-Tccd1:        +33.8°C  
-Tccd2:        +31.2°C
-```
-- cpuPackageIdent: CPU package key (see sensors above)
 
 ## Device Dashboard
 - Simple Device Dashboard is accessible by browser via link `http://127.0.0.1:27003/`

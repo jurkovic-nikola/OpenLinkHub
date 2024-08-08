@@ -764,10 +764,14 @@ func (d *Device) getDeviceData() {
 
 		// Update
 		if _, ok := d.Devices[deviceList[device].Index]; ok {
-			d.Devices[deviceList[device].Index].Rpm = rpm
-			d.Devices[deviceList[device].Index].Temperature = math.Floor(temperature*100) / 100
-		}
+			if rpm > 0 {
+				d.Devices[deviceList[device].Index].Rpm = rpm
+			}
 
+			if temperature > 0 {
+				d.Devices[deviceList[device].Index].Temperature = math.Floor(temperature*100) / 100
+			}
+		}
 	}
 }
 
@@ -1005,6 +1009,10 @@ func (d *Device) updateDeviceSpeed() {
 						}
 					}
 
+					// All temps failed, default to 50
+					if temp == 0 {
+						temp = 50
+					}
 					if device.ChannelId == 0 {
 						cp := fmt.Sprintf("%s-%d", device.Profile, device.ChannelId)
 						if ok := tmp[device.ChannelId]; ok != cp {

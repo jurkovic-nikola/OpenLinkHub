@@ -140,7 +140,6 @@ type DeviceProfile struct {
 	Serial                  string
 	RGBProfiles             map[int]string
 	SpeedProfiles           map[int]string
-	ExternalHubStatus       bool
 	ExternalHubDeviceType   int
 	ExternalHubDeviceAmount int
 }
@@ -470,10 +469,10 @@ func (d *Device) setDeviceColor() {
 				externalKeys := make([]int, 0)
 				internalKeys := make([]int, 0)
 				for k := range d.Devices {
-					if d.Devices[k].ExternalLed {
-						externalKeys = append(externalKeys, k)
-					} else {
-						if d.Devices[k].LedChannels > 0 {
+					if d.Devices[k].LedChannels > 0 {
+						if d.Devices[k].ExternalLed {
+							externalKeys = append(externalKeys, k)
+						} else {
 							internalKeys = append(internalKeys, k)
 						}
 					}
@@ -652,33 +651,28 @@ func (d *Device) resetLEDPorts() {
 	buf = append(buf, 0x07)
 
 	// External-LED ports
-	if d.DeviceProfile.ExternalHubStatus {
-		// External hub is enabled
-		if d.DeviceProfile.ExternalHubDeviceType > 0 && d.DeviceProfile.ExternalHubDeviceAmount > 0 {
-			if d.DeviceProfile.ExternalHubDeviceType == 1 {
-				// RGB LED strip
-				buf = append(buf, 0x01)
-				buf = append(buf, 0x01)
-			} else {
-				externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
-				if externalDeviceType != nil {
-					// Add number of devices to a buffer
-					buf = append(buf, byte(d.DeviceProfile.ExternalHubDeviceAmount))
 
-					// Append device command code a buffer
-					for m := 0; m < d.DeviceProfile.ExternalHubDeviceAmount; m++ {
-						buf = append(buf, externalDeviceType.Command)
-					}
-				} else {
-					buf = append(buf, 0x00)
-				}
-			}
-
+	// External hub is enabled
+	if d.DeviceProfile.ExternalHubDeviceType > 0 && d.DeviceProfile.ExternalHubDeviceAmount > 0 {
+		if d.DeviceProfile.ExternalHubDeviceType == 1 {
+			// RGB LED strip
+			buf = append(buf, 0x01)
+			buf = append(buf, 0x01)
 		} else {
-			buf = append(buf, 0x00)
+			externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
+			if externalDeviceType != nil {
+				// Add number of devices to a buffer
+				buf = append(buf, byte(d.DeviceProfile.ExternalHubDeviceAmount))
+
+				// Append device command code a buffer
+				for m := 0; m < d.DeviceProfile.ExternalHubDeviceAmount; m++ {
+					buf = append(buf, externalDeviceType.Command)
+				}
+			} else {
+				buf = append(buf, 0x00)
+			}
 		}
 	} else {
-		// External hub is disabled, process only internal-LED ports
 		buf = append(buf, 0x00)
 	}
 
@@ -737,7 +731,10 @@ func (d *Device) getDeviceData() {
 		status := channels[6:][i]
 		if status == 0x07 {
 			if _, ok := d.Devices[m]; ok {
-				d.Devices[m].Rpm = int16(binary.LittleEndian.Uint16(currentSensor))
+				rpm := int16(binary.LittleEndian.Uint16(currentSensor))
+				if rpm > 0 {
+					d.Devices[m].Rpm = rpm
+				}
 				m++
 			}
 		}
@@ -752,7 +749,10 @@ func (d *Device) getDeviceData() {
 		status := currentSensor[0]
 		if status == 0x00 {
 			if _, ok := d.Devices[m]; ok {
-				d.Devices[m].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+				temp := float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+				if temp > 0 {
+					d.Devices[m].Temperature = temp
+				}
 				m++
 			}
 		}
@@ -761,10 +761,10 @@ func (d *Device) getDeviceData() {
 
 // setDefaults will set default mode for all devices
 func (d *Device) setDefaults() {
-	channelDefaults := map[int][]byte{}
+	channelDefaults := map[int]byte{}
 	for device := range d.Devices {
 		if d.Devices[device].HasSpeed {
-			channelDefaults[device] = []byte{byte(defaultSpeedValue)}
+			channelDefaults[device] = byte(defaultSpeedValue)
 		}
 	}
 	d.setSpeed(channelDefaults, 0)
@@ -904,22 +904,6 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 	d.setDeviceColor() // Restart RGB
 }
 
-// UpdateExternalHubStatus wll enable or disable external LED hub
-func (d *Device) UpdateExternalHubStatus(status bool) {
-	if d.DeviceProfile != nil {
-		d.DeviceProfile.ExternalHubStatus = status
-		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
-			d.activeRgb = nil
-		}
-
-		d.resetLEDPorts()     // Reset LED ports
-		d.getDevices()        // Reload devices
-		d.saveDeviceProfile() // Save profile
-		d.setDeviceColor()    // Restart RGB
-	}
-}
-
 // UpdateExternalHubDeviceType will update a device type connected to the external-LED hub
 func (d *Device) UpdateExternalHubDeviceType(externalType int) int {
 	if d.DeviceProfile != nil {
@@ -945,7 +929,7 @@ func (d *Device) UpdateExternalHubDeviceType(externalType int) int {
 // UpdateExternalHubDeviceAmount will update device amount connected to an external-LED hub and trigger RGB reset
 func (d *Device) UpdateExternalHubDeviceAmount(externalDevices int) int {
 	if d.DeviceProfile != nil {
-		if d.DeviceProfile.ExternalHubStatus && d.DeviceProfile.ExternalHubDeviceType > 0 {
+		if d.DeviceProfile.ExternalHubDeviceType > 0 {
 			d.DeviceProfile.ExternalHubDeviceAmount = externalDevices
 			if d.activeRgb != nil {
 				d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1128,8 +1112,8 @@ func (d *Device) getDevices() int {
 
 	if d.DeviceProfile != nil {
 		// External LED hub
-		if d.DeviceProfile.ExternalHubStatus {
-			externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
+		externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
+		if externalDeviceType != nil {
 			var LedChannels uint8 = 0
 			if externalDeviceType != nil {
 				LedChannels = uint8(externalDeviceType.Total)
@@ -1212,11 +1196,9 @@ func (d *Device) saveDeviceProfile() {
 				rgbProfiles[device.ChannelId] = "static"
 			}
 		}
-		deviceProfile.ExternalHubStatus = false
 		deviceProfile.ExternalHubDeviceAmount = 0
 		deviceProfile.ExternalHubDeviceType = 0
 	} else {
-		deviceProfile.ExternalHubStatus = d.DeviceProfile.ExternalHubStatus
 		deviceProfile.ExternalHubDeviceAmount = d.DeviceProfile.ExternalHubDeviceAmount
 		deviceProfile.ExternalHubDeviceType = d.DeviceProfile.ExternalHubDeviceType
 	}
@@ -1252,40 +1234,64 @@ func (d *Device) saveDeviceProfile() {
 }
 
 // setSpeed will generate a speed buffer and send it to a device
-func (d *Device) setSpeed(data map[int][]byte, mode uint8) {
+func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 	buffer := make([]byte, len(data)*4+1)
 	buffer[0] = byte(len(data))
 	i := 1
-	for channel, speed := range data {
-		v := 2
-		buffer[i] = byte(channel)
-		buffer[i+1] = mode // Either percent mode or RPM mode
-		for value := range speed {
-			buffer[i+v] = speed[value]
-			v++
-		}
-		i += 4 // Move to the next place
+
+	keys := make([]int, 0)
+
+	for k := range data {
+		keys = append(keys, k)
 	}
-	d.write(modeSetSpeed, dataTypeSetSpeed, buffer, 2)
+	sort.Ints(keys)
+	for _, k := range keys {
+		buffer[i] = byte(k)
+		buffer[i+1] = mode
+		buffer[i+2] = data[k]
+		i += 4
+	}
+
+	// Validate device response. In case of error, repeat packet
+	response := d.write(modeSetSpeed, dataTypeSetSpeed, buffer, 2)
+	if len(response) >= 4 {
+		if response[2] != 0x00 {
+			m := 0
+			for {
+				m++
+				response = d.write(modeSetSpeed, dataTypeSetSpeed, buffer, 2)
+				if response[2] == 0x00 || m > 20 {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}
 }
 
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
-	tmp := make(map[int]string, 0)
-
 	go func() {
+		tmp := make(map[int]string, 0)
+		channelSpeeds := map[int]byte{}
+
+		// Init speed channels
+		for _, device := range d.Devices {
+			if device.IsTemperatureProbe {
+				continue
+			}
+			channelSpeeds[device.ChannelId] = byte(defaultSpeedValue)
+		}
 		for {
 			select {
 			case <-timerSpeed.C:
 				var temp float32 = 0
-				//if temp > 0 {
 				for _, device := range d.Devices {
 					if device.HasTemps {
 						continue
 					}
 
-					channelSpeeds := map[int][]byte{}
 					profiles := temperatures.GetTemperatureProfile(device.Profile)
 					if profiles == nil {
 						// No such profile, default to Normal
@@ -1310,6 +1316,11 @@ func (d *Device) updateDeviceSpeed() {
 						}
 					}
 
+					// All temps failed, default to 50
+					if temp == 0 {
+						temp = 50
+					}
+
 					for i := 0; i < len(profiles.Profiles); i++ {
 						profile := profiles.Profiles[i]
 						if common.InBetween(temp, profile.Min, profile.Max) {
@@ -1331,16 +1342,15 @@ func (d *Device) updateDeviceSpeed() {
 								}
 
 								if device.ContainsPump {
-									channelSpeeds[device.ChannelId] = []byte{byte(profile.Pump)}
+									channelSpeeds[device.ChannelId] = byte(profile.Pump)
 								} else {
-									channelSpeeds[device.ChannelId] = []byte{byte(profile.Fans)}
+									channelSpeeds[device.ChannelId] = byte(profile.Fans)
 								}
 								d.setSpeed(channelSpeeds, 0)
 							}
 						}
 					}
 				}
-				//}
 			case <-speedRefreshChan:
 				timerSpeed.Stop()
 				return
@@ -1356,7 +1366,7 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 		if device.IsTemperatureProbe {
 			return 0
 		}
-		channelSpeeds := map[int][]byte{}
+		channelSpeeds := map[int]byte{}
 
 		if value < 20 {
 			value = 20
@@ -1368,7 +1378,7 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 				value = 50
 			}
 		}
-		channelSpeeds[device.ChannelId] = []byte{byte(value)}
+		channelSpeeds[device.ChannelId] = byte(value)
 		d.setSpeed(channelSpeeds, 0)
 		return 1
 	}
@@ -1438,8 +1448,10 @@ func (d *Device) writeColor(data []byte) {
 
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
-		// Next color endpoint based on number of chunks
-		colorEp[0] = colorEp[0] + byte(i)
+		if i > 0 {
+			// We start at 0x06 with the first chunk, and 0x07 is repeated until all chunks are processed
+			colorEp[0] = 0x07
+		}
 		// Send it
 		_, err := d.transfer(colorEp, chunk, nil)
 		if err != nil {
@@ -1449,12 +1461,15 @@ func (d *Device) writeColor(data []byte) {
 }
 
 // write will write data to the device with specific endpoint
-func (d *Device) write(endpoint, bufferType, data []byte, extra int) {
+func (d *Device) write(endpoint, bufferType, data []byte, extra int) []byte {
 	// Buffer
 	buffer := make([]byte, len(bufferType)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+extra))
 	copy(buffer[headerWriteSize:headerWriteSize+len(bufferType)], bufferType)
 	copy(buffer[headerWriteSize+len(bufferType):], data)
+
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
 
 	// Close endpoint
 	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
@@ -1469,7 +1484,7 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra int) {
 	}
 
 	// Send it
-	_, err = d.transfer(cmdWrite, buffer, nil)
+	bufferR, err = d.transfer(cmdWrite, buffer, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 	}
@@ -1479,6 +1494,8 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra int) {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 	}
+
+	return bufferR
 }
 
 // transfer will send data to a device and retrieve device output

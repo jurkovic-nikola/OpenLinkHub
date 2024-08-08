@@ -1,8 +1,7 @@
 {
   "listenPort": 27003,
   "listenAddress": "127.0.0.1",
-  "cpuSensorChip": "k10temp-pci-00c3",
-  "cpuPackageIdent": "Tctl",
+  "cpuSensorChip": "k10temp",
   "manual": false,
   "frontend": true,
   "refreshOnStart": false

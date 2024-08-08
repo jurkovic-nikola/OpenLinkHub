@@ -316,35 +316,6 @@ func ProcessChangeColor(r *http.Request) *Payload {
 	return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
 }
 
-// ProcessExternalHubStatus will process POST request from a client for external-LED hub
-func ProcessExternalHubStatus(r *http.Request) *Payload {
-	req := &Payload{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
-		return &Payload{
-			Message: "Unable to validate your request. Please try again!",
-			Code:    http.StatusOK,
-			Status:  0,
-		}
-	}
-
-	if devices.GetDevice(req.DeviceId) == nil {
-		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
-	}
-
-	status := "enabled"
-	if !req.Enabled {
-		status = "disabled"
-	}
-
-	if devices.UpdateExternalHubStatus(req.DeviceId, req.Enabled) == 1 {
-		return &Payload{Message: "External LED hub is successfully " + status, Code: http.StatusOK, Status: 1}
-	} else {
-		return &Payload{Message: "Unable to activate / deactivate external LED hub", Code: http.StatusOK, Status: 0}
-	}
-}
-
 // ProcessExternalHubDeviceType will process POST request from a client for external-LED hub
 func ProcessExternalHubDeviceType(r *http.Request) *Payload {
 	req := &Payload{}

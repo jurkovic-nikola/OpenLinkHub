@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	"github.com/ssimunic/gosensors"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -224,6 +224,7 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 		// Define a full path of filename
 		profileLocation := location + fi.Name()
 
+		// Check if filename has .json extension
 		if !common.IsValidExtension(profileLocation, ".json") {
 			continue
 		}
@@ -352,24 +353,45 @@ func GetNVIDIAGpuTemperature() float32 {
 	return 0
 }
 
-// GetCpuTemperature will return CPU temperature
-func GetCpuTemperature() float32 {
-	sensors, err := gosensors.NewFromSystem()
+// getHwMonTemperature will return temperature for given entry
+func getHwMonTemperature(hwmonDir string, entry os.DirEntry) float32 {
+	tempFile := filepath.Join(hwmonDir, entry.Name(), "temp1_input")
+	temp, err := os.ReadFile(tempFile)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Warn("Unable to find sensors. You are probably missing lm-sensors package!")
 		return 0
 	}
 
-	for chip := range sensors.Chips {
-		if chip == config.GetConfig().CPUSensorChip {
-			if val, ok := sensors.Chips[chip][config.GetConfig().CPUPackageIdent]; ok {
-				val := val[1 : len(val)-3]
-				value, err := strconv.ParseFloat(val, 32)
-				if err != nil {
-					return 0
-				}
-				return float32(value)
+	tempStr := strings.TrimSpace(string(temp))
+	tempValue, err := strconv.Atoi(tempStr)
+	if err != nil {
+		return 0
+	}
+	tempCelsius := float32(tempValue) / 1000.0
+	return float32(math.Floor(float64(tempCelsius*100)) / 100)
+}
+
+// GetCpuTemperature will return CPU temperature
+func GetCpuTemperature() float32 {
+	hwmonDir := "/sys/class/hwmon"
+	entries, err := os.ReadDir(hwmonDir)
+	if err != nil {
+		logger.Log(logger.Fields{"dir": hwmonDir, "error": err}).Error("Unable to read hwmon directory")
+		return 0
+	}
+
+	for _, entry := range entries {
+		nameFile := filepath.Join(hwmonDir, entry.Name(), "name")
+		name, e := os.ReadFile(nameFile)
+		if e != nil {
+			continue
+		}
+
+		if strings.TrimSpace(string(name)) == config.GetConfig().CPUSensorChip {
+			temp := getHwMonTemperature(hwmonDir, entry)
+			if temp == 0 {
+				continue
 			}
+			return temp
 		}
 	}
 	return 0

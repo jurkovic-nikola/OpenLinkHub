@@ -122,150 +122,30 @@ var (
 	timer                      = &time.Ticker{}
 	timerSpeed                 = &time.Ticker{}
 	supportedDevices           = []SupportedDevice{
-		{
-			DeviceId:     1,
-			Model:        0,
-			Name:         "iCUE LINK QX RGB",
-			LedChannels:  34,
-			ContainsPump: false,
-			Desc:         "Fan",
-		},
-		{
-			DeviceId:     19,
-			Model:        0,
-			Name:         "iCUE LINK RX",
-			LedChannels:  0,
-			ContainsPump: false,
-			Desc:         "Fan",
-		},
-		{
-			DeviceId:     15,
-			Model:        0,
-			Name:         "iCUE LINK RX RGB",
-			LedChannels:  8,
-			ContainsPump: false,
-			Desc:         "Fan",
-		},
-		{
-			DeviceId:     4,
-			Model:        0,
-			Name:         "iCUE LINK RX MAX",
-			LedChannels:  8,
-			ContainsPump: false,
-			Desc:         "Fan",
-		},
-		{
-			DeviceId:     7,
-			Model:        2,
-			Name:         "iCUE LINK H150i",
-			LedChannels:  20,
-			ContainsPump: true,
-			Desc:         "AIO",
-		},
-		{
-			DeviceId:     7,
-			Model:        5,
-			Name:         "iCUE LINK H150i",
-			LedChannels:  20,
-			ContainsPump: true,
-			Desc:         "AIO",
-		},
-		{
-			DeviceId:     7,
-			Model:        1,
-			Name:         "iCUE LINK H115i",
-			LedChannels:  20,
-			ContainsPump: true,
-			Desc:         "AIO",
-		},
-		{
-			DeviceId:     7,
-			Model:        3,
-			Name:         "iCUE LINK H170i",
-			LedChannels:  20,
-			ContainsPump: true,
-			Desc:         "AIO",
-		},
-		{
-			DeviceId:     7,
-			Model:        0,
-			Name:         "iCUE LINK H100i",
-			LedChannels:  20,
-			ContainsPump: true,
-			Desc:         "AIO",
-		},
-		{
-			DeviceId:     7,
-			Model:        4,
-			Name:         "iCUE LINK H100i",
-			LedChannels:  20,
-			ContainsPump: true,
-			Desc:         "AIO",
-		},
-		{
-			DeviceId:     9,
-			Model:        0,
-			Name:         "XC7 Elite",
-			LedChannels:  24,
-			ContainsPump: false,
-			Desc:         "CPU Block",
-		},
-		{
-			DeviceId:     9,
-			Model:        1,
-			Name:         "XC7 Elite",
-			LedChannels:  24,
-			ContainsPump: false,
-			Desc:         "CPU Block",
-		},
-		{
-			DeviceId:     13,
-			Model:        1,
-			Name:         "XG7",
-			LedChannels:  16,
-			ContainsPump: false,
-			Desc:         "GPU Block",
-		},
-		{
-			DeviceId:     12,
-			Model:        0,
-			Name:         "XD5 Elite",
-			LedChannels:  22,
-			ContainsPump: true,
-			Desc:         "Pump/Res",
-		},
-		{
-			DeviceId:     12,
-			Model:        1,
-			Name:         "XD5 Elite",
-			LedChannels:  22,
-			ContainsPump: true,
-			Desc:         "Pump/Res",
-		},
-		{
-			DeviceId:     14,
-			Model:        0,
-			Name:         "XD5 Elite LCD",
-			LedChannels:  22,
-			ContainsPump: true,
-			Desc:         "Pump/Res",
-		},
-		{
-			DeviceId:     14,
-			Model:        1,
-			Name:         "XD5 Elite LCD",
-			LedChannels:  22,
-			ContainsPump: true,
-			Desc:         "Pump/Res",
-		},
-		{
-			DeviceId:     16,
-			Model:        0,
-			Name:         "VRM Cooler Module",
-			LedChannels:  0,
-			ContainsPump: false,
-			Desc:         "Fan",
-		},
+		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 15, Model: 0, Name: "iCUE LINK RX RGB", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 9, Model: 0, Name: "XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
+		{DeviceId: 9, Model: 1, Name: "XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
+		{DeviceId: 13, Model: 1, Name: "XG7", LedChannels: 16, ContainsPump: false, Desc: "GPU Block"},
+		{DeviceId: 12, Model: 0, Name: "XD5 Elite", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
+		{DeviceId: 12, Model: 1, Name: "XD5 Elite", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
+		{DeviceId: 14, Model: 0, Name: "XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
+		{DeviceId: 14, Model: 1, Name: "XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
+		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 11, Model: 2, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 11, Model: 5, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 11, Model: 1, Name: "iCUE LINK TITAN H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 11, Model: 3, Name: "iCUE LINK TITAN H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
 	}
 )
 
@@ -305,8 +185,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 	d.saveDeviceProfile() // Create device profile
 	d.setDeviceColor()    // Activate device RGB
-
-	d.newDeviceMonitor() // Device monitor
+	d.newDeviceMonitor()  // Device monitor
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
 }
@@ -440,7 +319,7 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 	// Check if actual channelId exists in the device list
 	if device, ok := d.Devices[channelId]; ok {
-		channelSpeeds := map[int][]byte{}
+		channelSpeeds := map[int]byte{}
 
 		if value < 20 {
 			value = 20
@@ -451,7 +330,7 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 				value = 50
 			}
 		}
-		channelSpeeds[device.ChannelId] = []byte{byte(value)}
+		channelSpeeds[device.ChannelId] = byte(value)
 		d.setSpeed(channelSpeeds, 0)
 		return 1
 	}
@@ -505,15 +384,18 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
-	tmp := make(map[int]string, 0)
-
 	go func() {
+		channelSpeeds := map[int]byte{}
+
+		// Init speed channels
+		for _, device := range d.Devices {
+			channelSpeeds[device.ChannelId] = byte(defaultSpeedValue)
+		}
 		for {
 			select {
 			case <-timerSpeed.C:
 				var temp float32 = 0
 				for _, device := range d.Devices {
-					channelSpeeds := map[int][]byte{}
 					profiles := temperatures.GetTemperatureProfile(device.Profile)
 					if profiles == nil {
 						// No such profile, default to Normal
@@ -545,31 +427,31 @@ func (d *Device) updateDeviceSpeed() {
 						}
 					}
 
+					// All temps failed, default to 50
+					if temp == 0 {
+						temp = 50
+					}
+
 					for i := 0; i < len(profiles.Profiles); i++ {
 						profile := profiles.Profiles[i]
 						if common.InBetween(temp, profile.Min, profile.Max) {
-							cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
-							if ok := tmp[device.ChannelId]; ok != cp {
-								tmp[device.ChannelId] = cp
+							// Validation
+							if profile.Mode < 0 || profile.Mode > 1 {
+								profile.Mode = 0
+							}
 
-								// Validation
-								if profile.Mode < 0 || profile.Mode > 1 {
-									profile.Mode = 0
-								}
+							if profile.Pump < 50 || profile.Pump > 100 {
+								profile.Pump = 70
+							}
 
-								if profile.Pump < 50 {
-									profile.Pump = 50
-								}
-
-								if profile.Pump > 100 {
-									profile.Pump = 100
-								}
-
-								if device.ContainsPump {
-									channelSpeeds[device.ChannelId] = []byte{byte(profile.Pump)}
-								} else {
-									channelSpeeds[device.ChannelId] = []byte{byte(profile.Fans)}
-								}
+							var speed byte = 0x00
+							if device.ContainsPump {
+								speed = byte(profile.Pump)
+							} else {
+								speed = byte(profile.Fans)
+							}
+							if channelSpeeds[device.ChannelId] != speed {
+								channelSpeeds[device.ChannelId] = speed
 								d.setSpeed(channelSpeeds, 0)
 							}
 						}
@@ -585,29 +467,47 @@ func (d *Device) updateDeviceSpeed() {
 
 // setDefaults will set default mode for all devices
 func (d *Device) setDefaults() {
-	channelDefaults := map[int][]byte{}
+	channelDefaults := map[int]byte{}
 	for device := range d.Devices {
-		channelDefaults[device] = []byte{byte(defaultSpeedValue)}
+		channelDefaults[device] = byte(defaultSpeedValue)
 	}
 	d.setSpeed(channelDefaults, 0)
 }
 
 // setSpeed will generate a speed buffer and send it to a device
-func (d *Device) setSpeed(data map[int][]byte, mode uint8) {
+func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 	buffer := make([]byte, len(data)*4+1)
 	buffer[0] = byte(len(data))
 	i := 1
-	for channel, speed := range data {
-		v := 2
-		buffer[i] = byte(channel)
-		buffer[i+1] = mode // Either percent mode or RPM mode
-		for value := range speed {
-			buffer[i+v] = speed[value]
-			v++
-		}
-		i += 4 // Move to the next place
+
+	keys := make([]int, 0)
+
+	for k := range data {
+		keys = append(keys, k)
 	}
-	d.write(modeSetSpeed, dataTypeSetSpeed, buffer)
+	sort.Ints(keys)
+	for _, k := range keys {
+		buffer[i] = byte(k)
+		buffer[i+1] = mode
+		buffer[i+2] = data[k]
+		i += 4
+	}
+
+	// Validate device response. In case of error, repeat packet
+	response := d.write(modeSetSpeed, dataTypeSetSpeed, buffer)
+	if len(response) >= 4 {
+		if response[3] != 0x00 {
+			m := 0
+			for {
+				m++
+				response = d.write(modeSetSpeed, dataTypeSetSpeed, buffer)
+				if response[3] == 0x00 || m > 20 {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}
 }
 
 // setAutoRefresh will refresh device data
@@ -634,12 +534,18 @@ func (d *Device) getDeviceData() {
 	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
 	amount := response[6]
 	sensorData := response[7:]
-	for i := 0; i < int(amount); i++ {
-		currentSensor := sensorData[i*3 : (i+1)*3]
-		status := currentSensor[0]
-		if status == 0x00 {
-			if _, ok := d.Devices[i]; ok {
-				d.Devices[i].Rpm = int16(binary.LittleEndian.Uint16(currentSensor[1:3]))
+	valid := response[7]
+	if valid == 0x01 {
+		for i := 0; i < int(amount); i++ {
+			currentSensor := sensorData[i*3 : (i+1)*3]
+			status := currentSensor[0]
+			if status == 0x00 {
+				if _, ok := d.Devices[i]; ok {
+					rpm := int16(binary.LittleEndian.Uint16(currentSensor[1:3]))
+					if rpm > 1 {
+						d.Devices[i].Rpm = rpm
+					}
+				}
 			}
 		}
 	}
@@ -648,12 +554,18 @@ func (d *Device) getDeviceData() {
 	response = d.read(modeGetTemperatures, dataTypeGetTemperatures)
 	amount = response[6]
 	sensorData = response[7:]
-	for i, s := 0, 0; i < int(amount); i, s = i+1, s+3 {
-		currentSensor := sensorData[s : s+3]
-		status := currentSensor[0]
-		if status == 0x00 {
-			if _, ok := d.Devices[i]; ok {
-				d.Devices[i].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+	valid = response[7]
+	if valid == 0x01 {
+		for i, s := 0, 0; i < int(amount); i, s = i+1, s+3 {
+			currentSensor := sensorData[s : s+3]
+			status := currentSensor[0]
+			if status == 0x00 {
+				if _, ok := d.Devices[i]; ok {
+					temp := float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
+					if temp > 1 {
+						d.Devices[i].Temperature = temp
+					}
+				}
 			}
 		}
 	}
@@ -1200,12 +1112,15 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 }
 
 // write will write data to the device with specific endpoint
-func (d *Device) write(endpoint, bufferType, data []byte) {
+func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 	// Buffer
 	buffer := make([]byte, len(bufferType)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
 	copy(buffer[headerWriteSize:headerWriteSize+len(bufferType)], bufferType)
 	copy(buffer[headerWriteSize+len(bufferType):], data)
+
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
 
 	// Close endpoint
 	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
@@ -1220,7 +1135,7 @@ func (d *Device) write(endpoint, bufferType, data []byte) {
 	}
 
 	// Send it
-	_, err = d.transfer(cmdWrite, buffer, nil)
+	bufferR, err = d.transfer(cmdWrite, buffer, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
 	}
@@ -1230,6 +1145,7 @@ func (d *Device) write(endpoint, bufferType, data []byte) {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 	}
+	return bufferR
 }
 
 // writeColor will write data to the device with a specific endpoint.
@@ -1301,7 +1217,6 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
 			logger.Log(logger.Fields{"error": ctx.Err(), "serial": d.Serial}).Error("Unable to read data from device")
 		}
 	}
-
 	return bufferR, nil
 }
 

@@ -10,4 +10,6 @@
 {{ template "lncore.html" . }}
 {{ else if eq .Device.Template "lnpro.html" }}
 {{ template "lnpro.html" . }}
+{{ else if eq .Device.Template "cpro.html" }}
+{{ template "cpro.html" . }}
 {{ end }}

@@ -99,71 +99,114 @@
                 <div class="row gy-4" style="margin-top:10px">
                     <div class="row">
                         {{ range $device := $devices }}
-                        <div class="col-md-6">
+                        <div class="col-md-2">
                             <div class="card mb-4">
                                 <div class="card-header border-bottom border-dash-dark-1">{{ $device.Name}}</div>
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-center text-center">
-                                        {{ if $device.HasTemps }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0" id="temperature-{{ .DeviceId}}">{{ $device.Temperature }}</p><span class="text-sm text-uppercase mb-0">Temperature</span>
+                                <div class="card-body" style="padding-top: 0;">
+                                    {{ if $device.HasTemps }}
+                                    {{ if gt $device.Temperature 0.00 }}
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temperature</p>
                                         </div>
-                                        {{ end }}
-                                        {{ if $device.HasSpeed }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0" id="speed-{{ .DeviceId }}">{{ $device.Rpm }}</p><span class="text-sm text-uppercase mb-0">Speed</span>
-                                        </div>
-                                        {{ end }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0">{{ $device.ChannelId }}</p><span class="text-sm text-uppercase mb-0">Channel</span>
-                                        </div>
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0">{{ $device.Description }}</p><span class="text-sm text-uppercase mb-0">Type</span>
-                                        </div>
-                                        {{ if $device.HasSpeed }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0">
-                                                <select id="tempProfile" class="form-select mb-1 tempProfile" name="{{ $device.DeviceId }}">
-                                                    {{ if $device.PumpModes }}
-                                                    {{ range $key, $value := $device.PumpModes }}
-                                                    {{ if eq $device.Profile $value }}
-                                                    <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                    {{ else }}
-                                                    {{ range $key, $_ := $temperatures }}
-                                                    {{ if eq $device.Profile $key }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </p>
-                                            <label for="tempProfile" class="text-sm text-uppercase mb-0">Profile</label>
-                                        </div>
-                                        {{ end }}
-
-                                        {{ if gt $device.LedChannels 0 }}
-                                        <div class="px-3 px-lg-4">
-                                            <p class="text-lg fw-normal mb-0">
-                                                <select id="rgbProfile" class="form-select mb-1 rgbProfile" name="{{ $device.DeviceId }}">
-                                                    {{ range $key, $_ := $rgb }}
-                                                    {{ if eq $key $device.RGB }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </p>
-                                            <label for="rgbProfile" class="text-sm text-uppercase mb-0">RGB</label>
-                                        </div>
-                                        {{ end }}
+                                        <p class="text-lg lh-1 mb-0 text-dash-color-2" id="temperature-{{ .DeviceId }}">{{ $device.Temperature }}</p>
                                     </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    {{ end }}
+                                    {{ end }}
+
+                                    {{ if $device.HasSpeed }}
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
+                                        </div>
+                                        <p class="text-lg lh-1 mb-0 text-dash-color-2" id="speed-{{ .DeviceId }}">{{ $device.Rpm }}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    {{ end }}
+
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Type</p>
+                                        </div>
+                                        <p class="text-lg lh-1 mb-0 text-dash-color-2">{{ $device.Description }}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+
+                                    {{ if $device.HasSpeed }}
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Profile</p>
+                                        </div>
+                                        <p class="text-lg lh-1 mb-0 text-dash-color-2">
+                                            <select id="tempProfile" class="form-select tempProfile" name="{{ $device.DeviceId }}" style="line-height: 1;">
+                                                {{ if $device.PumpModes }}
+                                                {{ range $key, $value := $device.PumpModes }}
+                                                {{ if eq $device.Profile $value }}
+                                                <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
+                                                {{ else }}
+                                                <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                                {{ else }}
+                                                {{ range $key, $_ := $temperatures }}
+                                                {{ if eq $device.Profile $key }}
+                                                <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    {{ end }}
+
+                                    {{ if gt $device.LedChannels 0 }}
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">RGB</p>
+                                        </div>
+                                        <p class="text-lg lh-1 mb-0 text-dash-color-1">
+                                            <select id="rgbProfile" class="form-select rgbProfile" name="{{ $device.DeviceId }}" style="line-height: 1;">
+                                                {{ range $key, $_ := $rgb }}
+                                                {{ if eq $key $device.RGB }}
+                                                <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    {{ end }}
                                 </div>
                             </div>
                         </div>

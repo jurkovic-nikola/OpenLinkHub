@@ -1021,7 +1021,7 @@ func (d *Device) getDeviceData() {
 		if status == 0x07 {
 			if _, ok := d.Devices[m]; ok {
 				rpm := int16(binary.LittleEndian.Uint16(currentSensor))
-				if rpm > 0 {
+				if rpm > 1 {
 					d.Devices[m].Rpm = rpm
 				}
 				m++
@@ -1038,7 +1038,7 @@ func (d *Device) getDeviceData() {
 		status := currentSensor[0]
 		if status == 0x00 {
 			temp := float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
-			if temp > 0 {
+			if temp > 1 {
 				if i == 0 {
 					if _, ok := d.Devices[i]; ok {
 						d.Devices[i].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0

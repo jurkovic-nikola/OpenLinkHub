@@ -45,7 +45,8 @@ var (
 	cmdOpenColorEndpoint       = []byte{0x0d, 0x00}
 	cmdCloseEndpoint           = []byte{0x05, 0x01, 0x01}
 	cmdGetFirmware             = []byte{0x02, 0x13}
-	cmdDeviceType              = []byte{0x02, 0x58, 0x00}
+	cmdGetPumpVersion          = []byte{0x02, 0x57}
+	cmdGetRadiatorType         = []byte{0x02, 0x58}
 	cmdSoftwareMode            = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode            = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdWrite                   = []byte{0x06, 0x01}
@@ -274,7 +275,7 @@ func (d *Device) getProduct() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
 	}
-	product = strings.Replace(product, "CORSAIR", "", -1)
+	product = strings.Replace(product, "CORSAIR ", "", -1)
 	d.Product = product
 }
 
@@ -304,9 +305,10 @@ func (d *Device) getDeviceFirmware() {
 
 // getLedDevices will get all connected LED data
 func (d *Device) getLedDevices() {
+	m := 0
 	// LED channels
 	lc := d.read(modeGetLeds, dataTypeGetLeds)
-	ld := lc[ledStartIndex:] // Channel data starts from position 10 and 4x increments per channel
+	ld := lc[ledStartIndex:] // Channel data starts from position 6 and 4x increments per channel
 	amount := 7
 	for i := 0; i < amount; i++ {
 		var numLEDs uint16 = 0
@@ -319,10 +321,11 @@ func (d *Device) getLedDevices() {
 		}
 
 		// Check if device status is 2, aka connected
-		connected := binary.LittleEndian.Uint16(ld[i*4:i*4+2]) == 2
+		connected := ld[m] == 2
+
 		if connected {
 			// Get number of LEDs
-			numLEDs = binary.LittleEndian.Uint16(ld[i*4+2 : i*4+2+2])
+			numLEDs = binary.LittleEndian.Uint16(ld[m+2 : m+2+2])
 
 			// Each LED device has different command code
 			switch numLEDs {
@@ -346,6 +349,10 @@ func (d *Device) getLedDevices() {
 				{
 					command = 02
 				}
+			case 24:
+				{
+					// Pump, no command codes here
+				}
 			case 29:
 				{
 					// Pump, no command codes here
@@ -363,6 +370,7 @@ func (d *Device) getLedDevices() {
 
 		// Add to a device map
 		internalLedDevices[i] = leds
+		m += 4
 	}
 }
 
@@ -918,15 +926,19 @@ func (d *Device) setSoftwareMode() {
 
 // getDeviceType will set a type of AIO
 func (d *Device) getDeviceType() {
-	deviceType, err := d.transfer(cmdDeviceType, nil, nil)
+	deviceType, err := d.transfer(cmdGetPumpVersion, nil, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
+	pumpVersion := int16(deviceType[3])
+
+	deviceType, err = d.transfer(cmdGetRadiatorType, nil, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+	}
+	radiatorSize := int16(binary.LittleEndian.Uint16(deviceType[3:5]))
 
 	// We match a device with radiator size and pump version
-	radiatorSize := int16(binary.LittleEndian.Uint16(deviceType[3:6]))
-	pumpVersion := int16(deviceType[1])
-
 	for _, aioType := range aioList {
 		if aioType.RadiatorSize == radiatorSize && aioType.PumpVersion == pumpVersion {
 			d.AIOType = aioType.Name

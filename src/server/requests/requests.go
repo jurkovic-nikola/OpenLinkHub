@@ -231,9 +231,16 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 	}
 
 	// Run it
-	devices.UpdateSpeedProfile(req.DeviceId, req.ChannelId, req.Profile)
-
-	return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
+	status := devices.UpdateSpeedProfile(req.DeviceId, req.ChannelId, req.Profile)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to apply speed profile. Non-existing profile selected", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device speed profile is successfully applied", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Liquid temperature profile require pump device with temperature sensor", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessManualChangeSpeed will process POST request from a client for fan/pump speed change

@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
+	"OpenLinkHub/src/version"
 	"html/template"
 )
 
@@ -23,6 +24,7 @@ type Web struct {
 	Rgb           map[string]rgb.Profile
 	SystemInfo    interface{}
 	CpuTemp       float32
+	BuildInfo     *version.BuildInfo
 }
 
 func Init() {

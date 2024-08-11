@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	SensorTypeCPU = 0
-	SensorTypeGPU = 1
+	SensorTypeCPU               = 0
+	SensorTypeGPU               = 1
+	SensorTypeLiquidTemperature = 2
 )
 
 type UpdateData struct {
@@ -94,10 +95,30 @@ var (
 		},
 	}
 
+	// Static
 	profileStatic = TemperatureProfileData{
 		Sensor: 0,
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 200, Mode: 0, Fans: 70, Pump: 70},
+		},
+	}
+
+	// AIO Liquid Temperature
+	profileLiquidTemperature = TemperatureProfileData{
+		Sensor: 2,
+		Profiles: []TemperatureProfile{
+			{Id: 1, Min: 0, Max: 30, Mode: 0, Fans: 30, Pump: 50},
+			{Id: 1, Min: 30, Max: 32, Mode: 0, Fans: 30, Pump: 50},
+			{Id: 2, Min: 32, Max: 34, Mode: 0, Fans: 40, Pump: 50},
+			{Id: 3, Min: 34, Max: 36, Mode: 0, Fans: 40, Pump: 50},
+			{Id: 4, Min: 36, Max: 68, Mode: 0, Fans: 40, Pump: 60},
+			{Id: 5, Min: 38, Max: 40, Mode: 0, Fans: 40, Pump: 60},
+			{Id: 6, Min: 40, Max: 42, Mode: 0, Fans: 50, Pump: 60},
+			{Id: 7, Min: 42, Max: 44, Mode: 0, Fans: 60, Pump: 70},
+			{Id: 8, Min: 44, Max: 46, Mode: 0, Fans: 70, Pump: 80},
+			{Id: 9, Min: 46, Max: 48, Mode: 0, Fans: 80, Pump: 90},
+			{Id: 10, Min: 48, Max: 50, Mode: 0, Fans: 90, Pump: 90},
+			{Id: 11, Min: 50, Max: 60, Mode: 0, Fans: 100, Pump: 100}, // Critical
 		},
 	}
 )
@@ -121,13 +142,30 @@ func Init() {
 func AddTemperatureProfile(profile string, static, zeroRpm bool, sensor uint8) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
-	pf := profileNormal
 
 	if _, ok := temperatures.Profiles[profile]; !ok {
+		pf := TemperatureProfileData{}
 		if static {
 			pf = profileStatic
 			saveProfileToDisk(profile, pf)
+			return true
 		}
+
+		switch sensor {
+		case SensorTypeCPU:
+			{
+				pf = profileNormal
+			}
+		case SensorTypeGPU:
+			{
+				pf = profileNormal
+			}
+		case SensorTypeLiquidTemperature:
+			{
+				pf = profileLiquidTemperature
+			}
+		}
+
 		pf.Sensor = sensor
 		pf.ZeroRpm = zeroRpm
 		saveProfileToDisk(profile, pf)

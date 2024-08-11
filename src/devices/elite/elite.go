@@ -611,9 +611,30 @@ func (d *Device) getPumpMode(index int, profile string) byte {
 }
 
 // UpdateSpeedProfile will update device channel speed.
-func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
+func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		valid := false
+		for _, device := range d.Devices {
+			if device.ChannelId == 0 { // Pump
+				valid = true
+				break
+			}
+		}
+
+		if !valid {
+			return 2
+		}
+	}
 
 	// Check if actual channelId exists in the device list
 	if _, ok := d.Devices[channelId]; ok {
@@ -621,6 +642,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 	}
 
 	d.saveDeviceProfile()
+	return 1
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -972,6 +994,16 @@ func (d *Device) setSpeed(data map[int]*SpeedMode) {
 	d.transfer(modeSetSpeed[0], buf)
 }
 
+// getLiquidTemperature will fetch temperature from AIO device
+func (d *Device) getLiquidTemperature() float32 {
+	for _, device := range d.Devices {
+		if device.ChannelId == 0 {
+			return float32(device.Temperature)
+		}
+	}
+	return 0
+}
+
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
@@ -1006,6 +1038,16 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeCPU:
 						{
 							temp = temperatures.GetCpuTemperature()
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get CPU temperature.")
+							}
+						}
+					case temperatures.SensorTypeLiquidTemperature:
+						{
+							temp = d.getLiquidTemperature()
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
+							}
 						}
 					}
 

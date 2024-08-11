@@ -35,6 +35,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -273,6 +274,7 @@ func (d *Device) getProduct() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
 	}
+	product = strings.Replace(product, "CORSAIR", "", -1)
 	d.Product = product
 }
 
@@ -754,7 +756,20 @@ func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 		buffer[i+2] = data[k]
 		i += 4
 	}
-	d.write(modeSetSpeed, dataTypeSetSpeed, buffer, true)
+	response := d.write(modeSetSpeed, dataTypeSetSpeed, buffer, true)
+	if len(response) >= 4 {
+		if response[5] != 0x07 {
+			m := 0
+			for {
+				m++
+				response = d.write(modeSetSpeed, dataTypeSetSpeed, buffer, true)
+				if response[5] == 0x07 || m > 20 {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}
 }
 
 // ResetSpeedProfiles will reset channel speed profile if it matches with the current speed profile
@@ -777,6 +792,16 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 		// Save only if something was changed
 		d.saveDeviceProfile()
 	}
+}
+
+// getLiquidTemperature will fetch temperature from AIO device
+func (d *Device) getLiquidTemperature() float32 {
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			return device.Temperature
+		}
+	}
+	return 0
 }
 
 // updateDeviceSpeed will update device speed based on a temperature reading
@@ -823,6 +848,13 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeCPU:
 						{
 							temp = temperatures.GetCpuTemperature()
+						}
+					case temperatures.SensorTypeLiquidTemperature:
+						{
+							temp = d.getLiquidTemperature()
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
+							}
 						}
 					}
 
@@ -1066,9 +1098,30 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
-func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
+func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		valid := false
+		for _, device := range d.Devices {
+			if device.ContainsPump {
+				valid = true
+				break
+			}
+		}
+
+		if !valid {
+			return 2
+		}
+	}
 
 	if channelId < 0 {
 		// All devices
@@ -1085,6 +1138,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 
 	// Save to profile
 	d.saveDeviceProfile()
+	return 1
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -1123,7 +1177,7 @@ func (d *Device) initLedPorts() {
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 }
 
-// resetLEDPorts will reset hubs LED ports and configure currently connected LED device
+// resetLEDPorts will reset hub LED ports and configure currently connected LED device
 func (d *Device) resetLEDPorts() {
 	var buf []byte
 

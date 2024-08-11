@@ -40,12 +40,14 @@ type DeviceProfile struct {
 
 // SupportedDevice contains definition of supported devices
 type SupportedDevice struct {
-	DeviceId     byte   `json:"deviceId"`
-	Model        byte   `json:"deviceModel"`
-	Name         string `json:"deviceName"`
-	LedChannels  uint8  `json:"ledChannels"`
-	ContainsPump bool   `json:"containsPump"`
-	Desc         string `json:"desc"`
+	DeviceId       byte   `json:"deviceId"`
+	Model          byte   `json:"deviceModel"`
+	Name           string `json:"deviceName"`
+	LedChannels    uint8  `json:"ledChannels"`
+	LcdLedChannels uint8  `json:"lcdLedChannels"`
+	ContainsPump   bool   `json:"containsPump"`
+	Desc           string `json:"desc"`
+	AIO            bool   `json:"aio"`
 }
 
 // Devices contain information about devices connected to an iCUE Link
@@ -67,10 +69,12 @@ type Devices struct {
 	RGB          string          `json:"rgb"`
 	HasSpeed     bool
 	HasTemps     bool
+	AIO          bool
 }
 
 type Device struct {
 	dev           *hid.Device
+	lcd           *hid.Device
 	Manufacturer  string           `json:"manufacturer"`
 	Product       string           `json:"product"`
 	Serial        string           `json:"serial"`
@@ -82,6 +86,8 @@ type Device struct {
 	profileConfig string
 	activeRgb     *rgb.ActiveRGB
 	Template      string
+	HasLCD        bool
+	VendorId      uint16
 }
 
 var (
@@ -126,12 +132,12 @@ var (
 		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 15, Model: 0, Name: "iCUE LINK RX RGB", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
-		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
 		{DeviceId: 9, Model: 0, Name: "XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
 		{DeviceId: 9, Model: 1, Name: "XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
 		{DeviceId: 13, Model: 1, Name: "XG7", LedChannels: 16, ContainsPump: false, Desc: "GPU Block"},
@@ -140,12 +146,12 @@ var (
 		{DeviceId: 14, Model: 0, Name: "XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
 		{DeviceId: 14, Model: 1, Name: "XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
 		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
-		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 11, Model: 2, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 11, Model: 5, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 11, Model: 1, Name: "iCUE LINK TITAN H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
-		{DeviceId: 11, Model: 3, Name: "iCUE LINK TITAN H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO"},
+		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 2, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 5, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 1, Name: "iCUE LINK TITAN H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 3, Name: "iCUE LINK TITAN H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
 	}
 )
 
@@ -168,6 +174,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()   // Manufacturer
 	d.getProduct()        // Product
 	d.getSerial()         // Serial
+	d.getDeviceLcd()      // Check if LCD pump cover is installed
 	d.setProfileConfig()  // Device profile
 	d.getDeviceProfile()  // Get device profile if any
 	d.getDeviceFirmware() // Firmware
@@ -211,6 +218,49 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 		}
 	}
+
+	/*
+		if d.lcd != nil {
+			err := d.lcd.Close()
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
+			}
+		}
+	*/
+}
+
+// getDeviceLcd will check if AIO has LCD pump cover
+func (d *Device) getDeviceLcd() {
+	//lcdSerialNumber := ""
+	var lcdProductId uint16 = 3150
+
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == 0 {
+			d.HasLCD = true
+			//lcdSerialNumber = info.SerialNbr
+		}
+		return nil
+	})
+
+	// Enumerate all Corsair devices
+	err := hid.Enumerate(d.VendorId, lcdProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Fatal("Unable to enumerate LCD devices")
+		return
+	}
+
+	/*
+		TO-DO: Implement basic LED options like temperatures, speeds, etc...
+			if d.HasLCD {
+				logger.Log(logger.Fields{"vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Info("LCD pump cover detected")
+				lcd, e := hid.Open(d.VendorId, lcdProductId, lcdSerialNumber)
+				if e != nil {
+					logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Error("Unable to open LCD HID device")
+					return
+				}
+				d.lcd = lcd
+			}
+	*/
 }
 
 // setProfileConfig will set a static path for JSON configuration file
@@ -339,9 +389,30 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
-func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
+func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		valid := false
+		for _, device := range d.Devices {
+			if device.AIO {
+				valid = true
+				break
+			}
+		}
+
+		if !valid {
+			return 2
+		}
+	}
 
 	if channelId < 0 {
 		// All devices
@@ -358,6 +429,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 
 	// Save to profile
 	d.saveDeviceProfile()
+	return 1
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -379,6 +451,16 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+}
+
+// getLiquidTemperature will fetch temperature from AIO device
+func (d *Device) getLiquidTemperature() float32 {
+	for _, device := range d.Devices {
+		if device.AIO {
+			return device.Temperature
+		}
+	}
+	return 0
 }
 
 // updateDeviceSpeed will update device speed based on a temperature reading
@@ -421,14 +503,21 @@ func (d *Device) updateDeviceSpeed() {
 						{
 							temp = temperatures.GetCpuTemperature()
 							if temp == 0 {
-								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get sensor temperature. Defaulting to 70")
-								temp = 70
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get CPU sensor temperature.")
+							}
+						}
+					case temperatures.SensorTypeLiquidTemperature:
+						{
+							temp = d.getLiquidTemperature()
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
 							}
 						}
 					}
 
 					// All temps failed, default to 50
 					if temp == 0 {
+						logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("ALl temperature sensors failed. Defaulting to 50")
 						temp = 50
 					}
 
@@ -648,6 +737,15 @@ func (d *Device) getDevices() int {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 		}
 
+		ledChannels := deviceMeta.LedChannels
+		if d.HasLCD {
+			if deviceMeta.LcdLedChannels > 0 {
+				ledChannels = deviceMeta.LcdLedChannels
+			} else {
+				ledChannels = deviceMeta.LedChannels
+			}
+		}
+
 		// Build device object
 		device := &Devices{
 			ChannelId:    i,
@@ -658,7 +756,7 @@ func (d *Device) getDevices() int {
 			DefaultValue: 0,
 			Rpm:          0,
 			Temperature:  0,
-			LedChannels:  deviceMeta.LedChannels,
+			LedChannels:  ledChannels,
 			ContainsPump: deviceMeta.ContainsPump,
 			Description:  deviceMeta.Desc,
 			HubId:        d.Serial,
@@ -666,6 +764,7 @@ func (d *Device) getDevices() int {
 			RGB:          rgbProfile,
 			HasSpeed:     true,
 			HasTemps:     true,
+			AIO:          deviceMeta.AIO,
 		}
 		devices[i] = device
 		position += 8 + int(deviceIdLen)

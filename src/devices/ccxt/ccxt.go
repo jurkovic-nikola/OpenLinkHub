@@ -24,6 +24,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -278,6 +279,7 @@ func (d *Device) getProduct() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
 	}
+	product = strings.Replace(product, "CORSAIR", "", -1)
 	d.Product = product
 }
 
@@ -840,9 +842,21 @@ func (d *Device) waitForDevice(action func()) {
 
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
-func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
+func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		// This device does not have an option for AIO pump
+		return 2
+	}
 
 	if channelId < 0 {
 		// All devices
@@ -859,6 +873,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 
 	// Save to profile
 	d.saveDeviceProfile()
+	return 1
 }
 
 // ResetSpeedProfiles will reset channel speed profile if it matches with the current speed profile

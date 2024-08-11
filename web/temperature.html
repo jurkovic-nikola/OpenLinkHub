@@ -123,6 +123,7 @@
                                                 <select class="form-select mb-1 tempProfile" id="sensor">
                                                     <option value="0" selected>CPU</option>
                                                     <option value="1">GPU</option>
+                                                    <option value="2">Liquid Temperature</option>
                                                 </select>
 
                                                 <div class="form-check">
@@ -174,8 +175,10 @@
                                                 <p class="text-uppercase text-sm fw-light mb-1">Modes: {{ len $value.Profiles }}</p>
                                                 {{ if eq $value.Sensor 0 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: CPU</p>
-                                                {{ else }}
+                                                {{ else if eq $value.Sensor 1 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: GPU</p>
+                                                {{ else if eq $value.Sensor 2 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Liquid Temperature</p>
                                                 {{ end }}
 
                                                 {{ if $value.ZeroRpm }}
@@ -221,6 +224,11 @@
                 </div>
             </div>
         </section>
+        <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
+            <div class="container-fluid text-center">
+                <p class="mb-0 text-dash-gray">Build: {{ .BuildInfo.Revision }} :: {{ .BuildInfo.Time }}</p>
+            </div>
+        </footer>
     </div>
 </div>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

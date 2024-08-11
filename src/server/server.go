@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/server/requests"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/templates"
+	"OpenLinkHub/src/version"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -263,6 +264,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Device = devices.GetDevice(deviceOd)
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.Rgb = rgb.GetRGB().Profiles
+	web.BuildInfo = version.GetBuildInfo()
 
 	t := templates.GetTemplate()
 	err := t.ExecuteTemplate(w, "devices.html", web)
@@ -281,6 +283,7 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
+	web.BuildInfo = version.GetBuildInfo()
 
 	// System info
 	var si sysinfo.SysInfo
@@ -305,6 +308,7 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
+	web.BuildInfo = version.GetBuildInfo()
 
 	t := templates.GetTemplate()
 	err := t.ExecuteTemplate(w, "temperature.html", web)
@@ -323,6 +327,7 @@ func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.Rgb = rgb.GetRgbProfiles()
+	web.BuildInfo = version.GetBuildInfo()
 
 	t := templates.GetTemplate()
 	err := t.ExecuteTemplate(w, "rgb.html", web)
@@ -342,6 +347,7 @@ func uiDocumentationOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.Configuration = config.GetConfig()
+	web.BuildInfo = version.GetBuildInfo()
 
 	t := templates.GetTemplate()
 	err := t.ExecuteTemplate(w, "docs.html", web)

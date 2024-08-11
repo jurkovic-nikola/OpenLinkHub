@@ -166,41 +166,42 @@ func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) int 
 }
 
 // UpdateSpeedProfile will update device speeds with a given serial number
-func UpdateSpeedProfile(deviceId string, channelId int, profile string) {
+func UpdateSpeedProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
 				if device.LinkSystemHub != nil {
-					device.LinkSystemHub.UpdateSpeedProfile(channelId, profile)
+					return device.LinkSystemHub.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		case productTypeCC:
 			{
 				if device.CC != nil {
-					device.CC.UpdateSpeedProfile(channelId, profile)
+					return device.CC.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		case productTypeCCXT:
 			{
 				if device.CCXT != nil {
-					device.CCXT.UpdateSpeedProfile(channelId, profile)
+					return device.CCXT.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		case productTypeElite:
 			{
 				if device.Elite != nil {
-					device.Elite.UpdateSpeedProfile(channelId, profile)
+					return device.Elite.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		case productTypeCPro:
 			{
 				if device.CPro != nil {
-					device.CPro.UpdateSpeedProfile(channelId, profile)
+					return device.CPro.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		}
 	}
+	return 0
 }
 
 // UpdateManualSpeed will update device speeds with a given serial number

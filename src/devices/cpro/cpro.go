@@ -398,9 +398,21 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 }
 
 // UpdateSpeedProfile will update device channel speed.
-func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
+func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		// This device does not have an option for AIO pump
+		return 2
+	}
 
 	// Check if actual channelId exists in the device list
 	if _, ok := d.Devices[channelId]; ok {
@@ -409,6 +421,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) {
 		}
 	}
 	d.saveDeviceProfile()
+	return 0
 }
 
 // getDeviceProfile will load persistent device configuration
@@ -564,7 +577,7 @@ func (d *Device) getDevices() int {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get connected devices")
 		return 0
 	}
-	for s, i := 0, 1; s < fanChannels; s, i = s+1, i+1 {
+	for s, i := 0, 2; s < fanChannels; s, i = s+1, i+1 {
 		connected := response[i] > 0x00
 		if connected {
 			rpm, e := d.transfer(cmdGetSpeed, []byte{byte(s)})

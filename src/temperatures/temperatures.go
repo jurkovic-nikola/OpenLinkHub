@@ -111,7 +111,7 @@ var (
 			{Id: 1, Min: 30, Max: 32, Mode: 0, Fans: 30, Pump: 50},
 			{Id: 2, Min: 32, Max: 34, Mode: 0, Fans: 40, Pump: 50},
 			{Id: 3, Min: 34, Max: 36, Mode: 0, Fans: 40, Pump: 50},
-			{Id: 4, Min: 36, Max: 68, Mode: 0, Fans: 40, Pump: 60},
+			{Id: 4, Min: 36, Max: 38, Mode: 0, Fans: 40, Pump: 60},
 			{Id: 5, Min: 38, Max: 40, Mode: 0, Fans: 40, Pump: 60},
 			{Id: 6, Min: 40, Max: 42, Mode: 0, Fans: 50, Pump: 60},
 			{Id: 7, Min: 42, Max: 44, Mode: 0, Fans: 60, Pump: 70},

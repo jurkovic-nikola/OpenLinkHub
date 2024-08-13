@@ -36,6 +36,7 @@ type DeviceProfile struct {
 	Serial        string
 	SpeedProfiles map[int]string
 	RGBProfiles   map[int]string
+	Labels        map[int]string
 }
 
 // SupportedDevice contains definition of supported devices
@@ -67,6 +68,7 @@ type Devices struct {
 	PumpModes    map[byte]string `json:"-"`
 	Profile      string          `json:"profile"`
 	RGB          string          `json:"rgb"`
+	Label        string          `json:"label"`
 	HasSpeed     bool
 	HasTemps     bool
 	AIO          bool
@@ -298,21 +300,26 @@ func (d *Device) getDeviceProfile() {
 func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
+	labels := make(map[int]string, len(d.Devices))
 	for _, device := range d.Devices {
 		speedProfiles[device.ChannelId] = device.Profile
 		rgbProfiles[device.ChannelId] = device.RGB
+		labels[device.ChannelId] = device.Label
 	}
+
 	deviceProfile := &DeviceProfile{
 		Product:       d.Product,
 		Serial:        d.Serial,
 		SpeedProfiles: speedProfiles,
 		RGBProfiles:   rgbProfiles,
+		Labels:        labels,
 	}
 
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
 		for _, device := range d.Devices {
 			rgbProfiles[device.ChannelId] = "static"
+			labels[device.ChannelId] = "Not Set"
 		}
 		d.DeviceProfile = deviceProfile
 	}
@@ -385,6 +392,20 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// UpdateDeviceLabel will set / update device label
+func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, ok := d.Devices[channelId]; !ok {
+		return 0
+	}
+
+	d.Devices[channelId].Label = label
+	d.saveDeviceProfile()
+	return 1
 }
 
 // UpdateSpeedProfile will update device channel speed.
@@ -701,6 +722,7 @@ func (d *Device) getDevices() int {
 
 		// Get a persistent speed profile. Fallback to Normal is anything fails
 		speedProfile := "Normal"
+		label := "Not Set"
 		if d.DeviceProfile != nil {
 			// Profile is set
 			if sp, ok := d.DeviceProfile.SpeedProfiles[i]; ok {
@@ -713,6 +735,11 @@ func (d *Device) getDevices() int {
 				}
 			} else {
 				logger.Log(logger.Fields{"serial": d.Serial, "profile": sp}).Warn("Tried to apply non-existing channel")
+			}
+
+			// Device label
+			if lb, ok := d.DeviceProfile.Labels[i]; ok {
+				label = lb
 			}
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -762,6 +789,7 @@ func (d *Device) getDevices() int {
 			HubId:        d.Serial,
 			Profile:      speedProfile,
 			RGB:          rgbProfile,
+			Label:        label,
 			HasSpeed:     true,
 			HasTemps:     true,
 			AIO:          deviceMeta.AIO,

@@ -201,6 +201,17 @@ func setDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceLabel handles device label changes
+func setDeviceLabel(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLabelChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setManualDeviceSpeed handles manual device speed changes
 func setManualDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessManualChangeSpeed(r)
@@ -399,6 +410,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setExternalHubDeviceType)
 	r.Methods(http.MethodPost).Path("/api/hub/amount").
 		HandlerFunc(setExternalHubDeviceAmount)
+	r.Methods(http.MethodPost).Path("/api/label").
+		HandlerFunc(setDeviceLabel)
 
 	if config.GetConfig().Frontend {
 		// Frontend

@@ -165,6 +165,57 @@ func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) int 
 	return 0
 }
 
+// UpdateDeviceLabel will set / update device label
+func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.LinkSystemHub != nil {
+					return device.LinkSystemHub.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					return device.Elite.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					return device.LnCore.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					return device.LnPro.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateSpeedProfile will update device speeds with a given serial number
 func UpdateSpeedProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {

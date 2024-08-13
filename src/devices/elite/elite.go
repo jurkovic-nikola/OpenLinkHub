@@ -38,6 +38,7 @@ type DeviceProfile struct {
 	Serial        string
 	RGBProfiles   map[int]string
 	SpeedProfiles map[int]string
+	Labels        map[int]string
 }
 
 type DeviceList struct {
@@ -73,6 +74,7 @@ type Devices struct {
 	Description  string  `json:"description"`
 	Profile      string  `json:"profile"`
 	RGB          string  `json:"rgb"`
+	Label        string  `json:"label"`
 	PumpModes    map[byte]string
 	HasSpeed     bool
 	HasTemps     bool
@@ -545,8 +547,11 @@ func (d *Device) getDeviceProfile() {
 func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
+	labels := make(map[int]string, len(d.Devices))
+
 	for _, device := range d.Devices {
 		speedProfiles[device.ChannelId] = device.Profile
+		labels[device.ChannelId] = device.Label
 		if device.LedChannels > 0 {
 			rgbProfiles[device.ChannelId] = device.RGB
 		}
@@ -556,6 +561,7 @@ func (d *Device) saveDeviceProfile() {
 		Serial:        d.Serial,
 		SpeedProfiles: speedProfiles,
 		RGBProfiles:   rgbProfiles,
+		Labels:        labels,
 	}
 
 	// First save, assign saved profile to a device
@@ -564,6 +570,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
+			labels[device.ChannelId] = "Not Set"
 		}
 		d.DeviceProfile = deviceProfile
 	}
@@ -679,6 +686,7 @@ func (d *Device) getDevices() int {
 
 		// Get a persistent speed profile. Fallback to Normal is anything fails
 		speedProfile := "Normal"
+		label := "Not Set"
 		speedMode := &SpeedMode{
 			ZeroRpm: false,
 			Pump:    deviceList[device].Pump,
@@ -697,6 +705,10 @@ func (d *Device) getDevices() int {
 				}
 			} else {
 				logger.Log(logger.Fields{"serial": d.Serial, "profile": sp}).Warn("Tried to apply non-existing channel")
+			}
+			// Device label
+			if lb, ok := d.DeviceProfile.Labels[deviceList[device].Index]; ok {
+				label = lb
 			}
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -759,6 +771,7 @@ func (d *Device) getDevices() int {
 			HasSpeed:     deviceList[device].HasSpeed,
 			HasTemps:     deviceList[device].HasTemps,
 			RGB:          rgbProfile,
+			Label:        label,
 		}
 
 		// Default speed modes
@@ -1111,6 +1124,20 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// UpdateDeviceLabel will set / update device label
+func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, ok := d.Devices[channelId]; !ok {
+		return 0
+	}
+
+	d.Devices[channelId].Label = label
+	d.saveDeviceProfile()
+	return 1
 }
 
 // read will read data from a device and return data as a byte array

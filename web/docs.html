@@ -530,6 +530,25 @@ $ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.Listen
                                             </div>
                                         </div>
                                         <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>RGB</b> - Change device RGB profile
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/label -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", channelId:13, "label":"Front Intake 1"}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Device label is successfully applied"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
                                     </div>
                                 </div>
                             </div>

@@ -31,6 +31,7 @@ type DeviceProfile struct {
 	Product                 string
 	Serial                  string
 	RGBProfiles             map[int]string
+	Labels                  map[int]string
 	ExternalHubDeviceType   int
 	ExternalHubDeviceAmount int
 }
@@ -46,6 +47,7 @@ type Devices struct {
 	HubId       string `json:"-"`
 	Profile     string `json:"profile"`
 	RGB         string `json:"rgb"`
+	Label       string `json:"label"`
 	ExternalLed bool
 	CellSize    uint8
 }
@@ -284,15 +286,20 @@ func (d *Device) getDeviceProfile() {
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	rgbProfiles := make(map[int]string, len(d.Devices))
+	labels := make(map[int]string, len(d.Devices))
+
 	for _, device := range d.Devices {
 		if device.LedChannels > 0 {
 			rgbProfiles[device.ChannelId] = device.RGB
 		}
+		labels[device.ChannelId] = device.Label
 	}
+
 	deviceProfile := &DeviceProfile{
 		Product:     d.Product,
 		Serial:      d.Serial,
 		RGBProfiles: rgbProfiles,
+		Labels:      labels,
 	}
 
 	// First save, assign saved profile to a device
@@ -301,6 +308,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
+			labels[device.ChannelId] = "Not Set"
 		}
 		d.DeviceProfile = deviceProfile
 	} else {
@@ -349,6 +357,7 @@ func (d *Device) getDevices() int {
 
 		if LedChannels > 0 {
 			rgbProfile := "static"
+			label := "Not Set"
 			for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
 				if d.DeviceProfile != nil {
 					// Profile is set
@@ -362,6 +371,11 @@ func (d *Device) getDevices() int {
 						}
 					} else {
 						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+					}
+
+					// Device label
+					if lb, ok := d.DeviceProfile.Labels[z]; ok {
+						label = lb
 					}
 				} else {
 					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -377,6 +391,7 @@ func (d *Device) getDevices() int {
 					RGB:         rgbProfile,
 					ExternalLed: true,
 					CellSize:    2,
+					Label:       label,
 				}
 				devices[z] = device
 			}
@@ -454,6 +469,20 @@ func (d *Device) UpdateExternalHubDeviceAmount(externalDevices int) int {
 		}
 	}
 	return 0
+}
+
+// UpdateDeviceLabel will set / update device label
+func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, ok := d.Devices[channelId]; !ok {
+		return 0
+	}
+
+	d.Devices[channelId].Label = label
+	d.saveDeviceProfile()
+	return 1
 }
 
 // setDeviceColor will activate and set device RGB

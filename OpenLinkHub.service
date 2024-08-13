@@ -1,5 +1,5 @@
 [Unit]
-Description=Open source interface for iCUE LINK System Hub
+Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
 
 [Service]
 User=nikola

@@ -20,6 +20,7 @@ type Payload struct {
 	Value        uint16    `json:"value"`
 	Color        rgb.Color `json:"color"`
 	Profile      string    `json:"profile"`
+	Label        string    `json:"label"`
 	Static       bool      `json:"static"`
 	Sensor       uint8     `json:"sensor"`
 	ZeroRpm      bool      `json:"zeroRpm"`
@@ -239,6 +240,54 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 		return &Payload{Message: "Device speed profile is successfully applied", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Liquid temperature profile require pump device with temperature sensor", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessLabelChange will process POST request from a client for label change
+func ProcessLabelChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.Label) < 1 {
+		return &Payload{Message: "Invalid label", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9#.:_ -]*$", req.Label); !m {
+		return &Payload{Message: "Detected invalid characters in label", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < -1 {
+		return &Payload{Message: "Non-existing channelId", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDeviceLabel(req.DeviceId, req.ChannelId, req.Label)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to apply new label. Please try again", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device label is successfully applied", Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
 }

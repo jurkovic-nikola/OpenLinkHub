@@ -45,6 +45,15 @@ $ curl -X POST http:/127.0.0.1:27003/api/temperatures -d '{ "profile":"Example",
   "message": "Profile is successfully saved"
 }
 ```
+### Temperature Profile - Create Liquid Temperature Profile
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/temperatures -d '{ "profile":"Example", "static":false, "sensor":2 }' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Profile is successfully saved"
+}
+```
 ### Temperature Profile - Create static CPU Profile
 ```bash
 $ curl -X POST http:/127.0.0.1:27003/api/temperatures -d '{ "profile":"Example", "static":true, "sensor":0 }' --silent | jq
@@ -306,5 +315,14 @@ $ curl -X POST http:/127.0.0.1:27003/api/color -d '{"deviceId":"5C126A3EB51A3956
   "code": 200,
   "status": 1,
   "message": "Device RGB profile is successfully changed"
+}
+```
+### Labels - Change device label
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/label -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", channelId:13, "label":"Front Intake 1"}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "Device label is successfully applied"
 }
 ```

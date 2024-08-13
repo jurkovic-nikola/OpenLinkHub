@@ -42,6 +42,7 @@ type DeviceProfile struct {
 	RGBProfiles   map[int]string
 	SpeedProfiles map[int]string
 	ExternalHubs  map[int]*ExternalHubData
+	Labels        map[int]string
 }
 
 type Device struct {
@@ -75,6 +76,7 @@ type Devices struct {
 	PumpModes          map[byte]string `json:"-"`
 	Profile            string          `json:"profile"`
 	RGB                string          `json:"rgb"`
+	Label              string          `json:"label"`
 	PortId             byte            `json:"-"`
 	HasSpeed           bool
 	HasTemps           bool
@@ -84,6 +86,7 @@ type Devices struct {
 
 var (
 	cmdGetFirmware             = byte(0x02)
+	cmdInitDevice              = byte(0x03)
 	cmdGetConnectedFans        = byte(0x20)
 	cmdGetConnectedProbes      = byte(0x10)
 	cmdLedReset                = byte(0x37)
@@ -286,6 +289,12 @@ func (d *Device) getSerial() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
+	_, err := d.transfer(cmdInitDevice, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
+		return
+	}
+
 	fw, err := d.transfer(cmdGetFirmware, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
@@ -397,6 +406,20 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 	return 0
 }
 
+// UpdateDeviceLabel will set / update device label
+func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, ok := d.Devices[channelId]; !ok {
+		return 0
+	}
+
+	d.Devices[channelId].Label = label
+	d.saveDeviceProfile()
+	return 1
+}
+
 // UpdateSpeedProfile will update device channel speed.
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	mutex.Lock()
@@ -421,7 +444,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 	d.saveDeviceProfile()
-	return 0
+	return 1
 }
 
 // getDeviceProfile will load persistent device configuration
@@ -449,20 +472,27 @@ func (d *Device) getDeviceProfile() {
 func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
+	labels := make(map[int]string, len(d.Devices))
+
 	for _, device := range d.Devices {
 		if device.LedChannels > 0 {
 			rgbProfiles[device.ChannelId] = device.RGB
 		}
+
 		if device.HasSpeed {
 			speedProfiles[device.ChannelId] = device.Profile
 		}
+
+		labels[device.ChannelId] = device.Label
 	}
+
 	deviceProfile := &DeviceProfile{
 		Product:       d.Product,
 		Serial:        d.Serial,
 		RGBProfiles:   rgbProfiles,
 		SpeedProfiles: speedProfiles,
 		ExternalHubs:  make(map[int]*ExternalHubData, 2),
+		Labels:        labels,
 	}
 
 	// First save, assign saved profile to a device
@@ -471,7 +501,9 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
+			labels[device.ChannelId] = "Not Set"
 		}
+
 		for i := 0; i < 2; i++ {
 			externalHubs := &ExternalHubData{
 				PortId:                  byte(i),
@@ -577,7 +609,7 @@ func (d *Device) getDevices() int {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get connected devices")
 		return 0
 	}
-	for s, i := 0, 2; s < fanChannels; s, i = s+1, i+1 {
+	for s, i := 0, 1; s < fanChannels; s, i = s+1, i+1 {
 		connected := response[i] > 0x00
 		if connected {
 			rpm, e := d.transfer(cmdGetSpeed, []byte{byte(s)})
@@ -586,41 +618,48 @@ func (d *Device) getDevices() int {
 				continue
 			}
 			val := binary.BigEndian.Uint16(rpm[1:])
-
-			speedProfile := "Normal"
-			if d.DeviceProfile != nil {
-				// Profile is set
-				if sp, ok := d.DeviceProfile.SpeedProfiles[m]; ok {
-					// Profile device channel exists
-					if temperatures.GetTemperatureProfile(sp) != nil { // Speed profile exists in configuration
-						// Speed profile exists in configuration
-						speedProfile = sp
+			if val > 0 {
+				speedProfile := "Normal"
+				label := "Not Set"
+				if d.DeviceProfile != nil {
+					// Profile is set
+					if sp, ok := d.DeviceProfile.SpeedProfiles[m]; ok {
+						// Profile device channel exists
+						if temperatures.GetTemperatureProfile(sp) != nil { // Speed profile exists in configuration
+							// Speed profile exists in configuration
+							speedProfile = sp
+						} else {
+							logger.Log(logger.Fields{"serial": d.Serial, "profile": sp}).Warn("Tried to apply non-existing profile")
+						}
 					} else {
-						logger.Log(logger.Fields{"serial": d.Serial, "profile": sp}).Warn("Tried to apply non-existing profile")
+						logger.Log(logger.Fields{"serial": d.Serial, "profile": sp}).Warn("Tried to apply non-existing channel")
+					}
+					// Device label
+					if lb, ok := d.DeviceProfile.Labels[m]; ok {
+						label = lb
 					}
 				} else {
-					logger.Log(logger.Fields{"serial": d.Serial, "profile": sp}).Warn("Tried to apply non-existing channel")
+					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 				}
-			} else {
-				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-			}
 
-			// Build device object
-			device := &Devices{
-				ChannelId:   m,
-				DeviceId:    fmt.Sprintf("%s-%v", "Fan", m),
-				Name:        fmt.Sprintf("Fan %d", m+1),
-				Rpm:         int16(val),
-				Temperature: 0,
-				Description: "Fan",
-				LedChannels: 0,
-				HubId:       d.Serial,
-				Profile:     speedProfile,
-				HasSpeed:    true,
-				HasTemps:    false,
+				// Build device object
+				device := &Devices{
+					ChannelId:   m,
+					DeviceId:    fmt.Sprintf("%s-%v", "Fan", m),
+					Name:        fmt.Sprintf("Fan %d", m+1),
+					Rpm:         int16(val),
+					Temperature: 0,
+					Description: "Fan",
+					LedChannels: 0,
+					HubId:       d.Serial,
+					Profile:     speedProfile,
+					Label:       label,
+					HasSpeed:    true,
+					HasTemps:    false,
+				}
+				devices[m] = device
+				m++
 			}
-			devices[m] = device
-			m++
 		}
 	}
 
@@ -667,11 +706,17 @@ func (d *Device) getDevices() int {
 				LedChannels := uint8(externalDeviceType.Total)
 				for z := 0; z < externalHub.ExternalHubDeviceAmount; z++ {
 					rgbProfile := "static"
+					label := "Not Set"
+
 					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
 						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
 							// Speed profile exists in configuration
 							rgbProfile = rp
 						}
+					}
+
+					if lb, ok := d.DeviceProfile.Labels[m]; ok {
+						label = lb
 					}
 
 					device := &Devices{
@@ -685,6 +730,7 @@ func (d *Device) getDevices() int {
 						PortId:      externalHub.PortId,
 						HasSpeed:    false,
 						HasTemps:    false,
+						Label:       label,
 					}
 					devices[m] = device
 					m++

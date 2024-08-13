@@ -67,6 +67,10 @@ nav#sidebar {
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
     box-sizing: border-box;         /* Opera/IE 8+ */
 }
+
+.newLabel {
+    cursor: pointer;
+}
 .newTemp:hover {
     outline:1px solid #a6a6a6;
     cursor: pointer;

@@ -129,10 +129,10 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 mkdir OpenLinkHub && cd OpenLinkHub
 
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.3-beta/0.1.3-beta.zip
+wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.4-beta/0.1.4-beta.zip
 
 # Extract package
-unzip -x 0.1.3-beta.zip
+unzip -x 0.1.4-beta.zip
 
 # Continue from 3. Installation section for next steps
 ```

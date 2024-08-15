@@ -85,6 +85,7 @@ var (
 	speedRefreshChan           = make(chan bool)
 	lcdRefreshChan             = make(chan bool)
 	deviceRefreshInterval      = 1000
+	lcdRefreshInterval         = 1000
 	defaultSpeedValue          = 50
 	temperaturePullingInterval = 3000
 	ledStartIndex              = 6
@@ -278,7 +279,9 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.resetLEDPorts()     // Reset device LED
 	d.setDeviceColor()    // Activate device RGB
 	d.newDeviceMonitor()  // Device monitor
-
+	if d.HasLCD {
+		d.setupLCD()
+	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
 }
@@ -342,7 +345,6 @@ func (d *Device) getDeviceLcd() {
 			return
 		}
 		d.lcd = lcdPanel
-		d.setupLCD()
 	}
 }
 
@@ -1130,7 +1132,7 @@ func (d *Device) getDeviceData() {
 		status := currentSensor[0]
 		if status == 0x00 {
 			temp := float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
-			if temp > 1 && temp < 100 {
+			if temp > 10 && temp < 100 {
 				if i == 0 {
 					if _, ok := d.Devices[i]; ok {
 						d.Devices[i].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
@@ -1570,7 +1572,7 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) []byte {
 
 // setupLcd will activate and configure LCD
 func (d *Device) setupLCD() {
-	lcdTimer = time.NewTicker(1000 * time.Millisecond)
+	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
 	lcdRefreshChan = make(chan bool)
 	go func() {
 		for {

@@ -108,17 +108,17 @@ var (
 		Sensor: 2,
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 30, Mode: 0, Fans: 30, Pump: 50},
-			{Id: 1, Min: 30, Max: 32, Mode: 0, Fans: 30, Pump: 50},
-			{Id: 2, Min: 32, Max: 34, Mode: 0, Fans: 40, Pump: 50},
-			{Id: 3, Min: 34, Max: 36, Mode: 0, Fans: 40, Pump: 50},
-			{Id: 4, Min: 36, Max: 38, Mode: 0, Fans: 40, Pump: 60},
-			{Id: 5, Min: 38, Max: 40, Mode: 0, Fans: 40, Pump: 60},
-			{Id: 6, Min: 40, Max: 42, Mode: 0, Fans: 50, Pump: 60},
-			{Id: 7, Min: 42, Max: 44, Mode: 0, Fans: 60, Pump: 70},
-			{Id: 8, Min: 44, Max: 46, Mode: 0, Fans: 70, Pump: 80},
-			{Id: 9, Min: 46, Max: 48, Mode: 0, Fans: 80, Pump: 90},
-			{Id: 10, Min: 48, Max: 50, Mode: 0, Fans: 90, Pump: 90},
-			{Id: 11, Min: 50, Max: 60, Mode: 0, Fans: 100, Pump: 100}, // Critical
+			{Id: 2, Min: 30, Max: 32, Mode: 0, Fans: 30, Pump: 50},
+			{Id: 3, Min: 32, Max: 34, Mode: 0, Fans: 40, Pump: 50},
+			{Id: 4, Min: 34, Max: 36, Mode: 0, Fans: 40, Pump: 50},
+			{Id: 5, Min: 36, Max: 38, Mode: 0, Fans: 40, Pump: 60},
+			{Id: 6, Min: 38, Max: 40, Mode: 0, Fans: 40, Pump: 60},
+			{Id: 7, Min: 40, Max: 42, Mode: 0, Fans: 50, Pump: 60},
+			{Id: 8, Min: 42, Max: 44, Mode: 0, Fans: 60, Pump: 70},
+			{Id: 9, Min: 44, Max: 46, Mode: 0, Fans: 70, Pump: 80},
+			{Id: 10, Min: 46, Max: 48, Mode: 0, Fans: 80, Pump: 90},
+			{Id: 11, Min: 48, Max: 50, Mode: 0, Fans: 90, Pump: 90},
+			{Id: 12, Min: 50, Max: 60, Mode: 0, Fans: 100, Pump: 100}, // Critical
 		},
 	}
 )
@@ -389,6 +389,15 @@ func GetNVIDIAGpuTemperature() float32 {
 		}
 	}
 	return 0
+}
+
+// GetGpuTemperature will return GPU temperature
+func GetGpuTemperature() float32 {
+	temp := GetNVIDIAGpuTemperature()
+	if temp == 0 {
+		temp = GetAMDGpuTemperature()
+	}
+	return temp
 }
 
 // getHwMonTemperature will return temperature for given entry

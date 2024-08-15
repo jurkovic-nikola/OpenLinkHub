@@ -100,7 +100,7 @@ func Stop() {
 }
 
 // UpdateExternalHubDeviceType will update a device type connected to an external-LED hub
-func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) int {
+func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeCCXT:
@@ -133,7 +133,7 @@ func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) int {
 }
 
 // UpdateExternalHubDeviceAmount will update a device amount connected to an external-LED hub
-func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) int {
+func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeCCXT:
@@ -158,6 +158,21 @@ func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) int 
 			{
 				if device.CPro != nil {
 					return device.CPro.UpdateExternalHubDeviceAmount(portId, deviceType)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateDeviceLcd will update device LCD
+func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.UpdateDeviceLcd(mode)
 				}
 			}
 		}
@@ -295,54 +310,54 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func UpdateRgbProfile(deviceId string, channelId int, profile string) {
+func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
 				if device.LinkSystemHub != nil {
-					device.LinkSystemHub.UpdateRgbProfile(channelId, profile)
+					return device.LinkSystemHub.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeCC:
 			{
 				if device.CC != nil {
-					device.CC.UpdateRgbProfile(channelId, profile)
+					return device.CC.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeCCXT:
 			{
 				if device.CCXT != nil {
-					device.CCXT.UpdateRgbProfile(channelId, profile)
+					return device.CCXT.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeElite:
 			{
 				if device.Elite != nil {
-					device.Elite.UpdateRgbProfile(channelId, profile)
+					return device.Elite.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeLNCore:
 			{
 				if device.LnCore != nil {
-					device.LnCore.UpdateRgbProfile(channelId, profile)
+					return device.LnCore.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeLnPro:
 			{
 				if device.LnPro != nil {
-					device.LnPro.UpdateRgbProfile(channelId, profile)
+					return device.LnPro.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeCPro:
 			{
 				if device.CPro != nil {
-					device.CPro.UpdateRgbProfile(channelId, profile)
+					return device.CPro.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		}
-
 	}
+	return 0
 }
 
 // ResetSpeedProfiles will reset the speed profile on each available device

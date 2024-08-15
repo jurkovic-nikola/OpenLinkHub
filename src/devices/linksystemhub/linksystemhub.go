@@ -170,6 +170,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d := &Device{
 		dev:      dev,
 		Template: "lsh.html",
+		VendorId: vendorId,
 	}
 
 	// Bootstrap
@@ -454,15 +455,17 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(channelId int, profile string) {
+func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	if rgb.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
-		return
+		return 0
 	}
 
 	if _, ok := d.Devices[channelId]; ok {
 		// Update channel with new profile
 		d.Devices[channelId].RGB = profile
+	} else {
+		return 0
 	}
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
@@ -472,6 +475,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // getLiquidTemperature will fetch temperature from AIO device

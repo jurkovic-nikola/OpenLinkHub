@@ -85,6 +85,10 @@
         {{ $device := .Device }}
         {{ $devices := $device.Devices }}
         {{ $rgb := .Rgb }}
+        {{ $lcd := .Device.HasLCD }}
+        {{ $lcdModes := .Device.LCDModes }}
+        {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
+
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
           <div class="container-fluid" style="height: 20px;">
@@ -214,6 +218,31 @@
                             <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
                             {{ else }}
                             <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                            {{ end }}
+                            {{ end }}
+                          </select>
+                        </p>
+                      </div>
+                      <div class="progress" style="height: 3px">
+                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                      {{ end }}
+
+                      {{ if and $lcd $device.ContainsPump }}
+                      <div class="d-flex align-items-end justify-content-between mb-2">
+                        <div class="me-2">
+                          <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                            <use xlink:href="#user-1"> </use>
+                          </svg>
+                          <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">LCD</p>
+                        </div>
+                        <p class="text-lg lh-1 mb-0 text-dash-color-1">
+                          <select id="lcdMode" class="form-select lcdMode" name="{{ $device.DeviceId }}" style="line-height: 1;">
+                            {{ range $key, $value := $lcdModes }}
+                            {{ if eq $key $lcdMode }}
+                            <option value="{{ $key }}" selected>{{ $value }}</option>
+                            {{ else }}
+                            <option value="{{ $key }}">{{ $value }}</option>
                             {{ end }}
                             {{ end }}
                           </select>

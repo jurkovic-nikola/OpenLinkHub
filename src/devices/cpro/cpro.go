@@ -358,15 +358,17 @@ func (d *Device) setSpeed(data map[int]byte) {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(channelId int, profile string) {
+func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	if rgb.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
-		return
+		return 0
 	}
 
 	if _, ok := d.Devices[channelId]; ok {
 		// Update channel with new profile
 		d.Devices[channelId].RGB = profile
+	} else {
+		return 0
 	}
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
@@ -378,6 +380,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 		}
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // UpdateDeviceSpeed will change device speed profile
@@ -791,7 +794,7 @@ func (d *Device) ResetRgb() {
 }
 
 // UpdateExternalHubDeviceType will update a device type connected to the external-LED hub
-func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) int {
+func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) uint8 {
 	if d.DeviceProfile != nil {
 		if externalType == 0 {
 			d.DeviceProfile.ExternalHubs[portId].ExternalHubDeviceType = externalType
@@ -810,7 +813,7 @@ func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) int {
 }
 
 // UpdateExternalHubDeviceAmount will update device amount connected to an external-LED hub and trigger RGB reset
-func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) int {
+func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint8 {
 	if d.DeviceProfile != nil {
 		if _, ok := d.DeviceProfile.ExternalHubs[portId]; ok {
 			// Store current amount

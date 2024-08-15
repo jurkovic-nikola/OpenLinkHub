@@ -244,6 +244,46 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
 }
 
+// ProcessLcdChange will process POST request from a client for LCD mode change
+func ProcessLcdChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Mode < 0 || req.Mode > 4 {
+		return &Payload{Message: "Invalid LCD mode", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDeviceLcd(req.DeviceId, req.Mode)
+	switch status {
+	case 1:
+		return &Payload{Message: "LCD mode successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change LCD mode. Either LCD is offline or you do not have LCD", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change lcd mode", Code: http.StatusOK, Status: 0}
+}
+
 // ProcessLabelChange will process POST request from a client for label change
 func ProcessLabelChange(r *http.Request) *Payload {
 	req := &Payload{}
@@ -367,9 +407,15 @@ func ProcessChangeColor(r *http.Request) *Payload {
 	}
 
 	// Run it
-	devices.UpdateRgbProfile(req.DeviceId, req.ChannelId, req.Profile)
+	status := devices.UpdateRgbProfile(req.DeviceId, req.ChannelId, req.Profile)
 
-	return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to change device RGB profile", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to change device RGB profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessExternalHubDeviceType will process POST request from a client for external-LED hub

@@ -212,6 +212,17 @@ func setDeviceLabel(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceLcd handles device LCD changes
+func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setManualDeviceSpeed handles manual device speed changes
 func setManualDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessManualChangeSpeed(r)
@@ -412,6 +423,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setExternalHubDeviceAmount)
 	r.Methods(http.MethodPost).Path("/api/label").
 		HandlerFunc(setDeviceLabel)
+	r.Methods(http.MethodPost).Path("/api/lcd").
+		HandlerFunc(setDeviceLcd)
 
 	if config.GetConfig().Frontend {
 		// Frontend

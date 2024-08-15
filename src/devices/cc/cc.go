@@ -15,6 +15,13 @@ package cc
 // - H100i ELITE LCD
 // - H150i ELITE LCD
 // - H170i ELITE LCD
+// - H100i ELITE CAPELLIX
+// - H150i ELITE CAPELLIX
+// - H170i ELITE CAPELLIX
+// - iCUE H100i ELITE LCD XT
+// - iCUE H115i ELITE LCD XT
+// - iCUE H150i ELITE LCD XT
+// - iCUE H170i ELITE LCD XT
 // - iCUE H100i ELITE CAPELLIX XT
 // - iCUE H115i ELITE CAPELLIX XT
 // - iCUE H150i ELITE CAPELLIX XT
@@ -24,6 +31,7 @@ package cc
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
@@ -75,6 +83,7 @@ var (
 	headerWriteSize            = 4
 	authRefreshChan            = make(chan bool)
 	speedRefreshChan           = make(chan bool)
+	lcdRefreshChan             = make(chan bool)
 	deviceRefreshInterval      = 1000
 	defaultSpeedValue          = 50
 	temperaturePullingInterval = 3000
@@ -82,7 +91,11 @@ var (
 	maxBufferSizePerRequest    = 61
 	timer                      = &time.Ticker{}
 	timerSpeed                 = &time.Ticker{}
+	lcdTimer                   = &time.Ticker{}
 	internalLedDevices         = make(map[int]*LedChannel, 7)
+	lcdHeaderSize              = 8
+	lcdBufferSize              = 1024
+	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 	aioList                    = []AIOList{
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 240},
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 2, RadiatorSize: 240},
@@ -90,17 +103,34 @@ var (
 		{Name: "H150i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 360},
 		{Name: "H150i ELITE CAPELLIX", PumpVersion: 2, RadiatorSize: 360},
 		{Name: "H170i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 420},
-		{Name: "H100i ELITE LCD", PumpVersion: 3, RadiatorSize: 240},
-		{Name: "H150i ELITE LCD", PumpVersion: 3, RadiatorSize: 360},
-		{Name: "H170i ELITE LCD", PumpVersion: 3, RadiatorSize: 420},
-		{Name: "H100i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 240},
-		{Name: "H100i ELITE LCD XT", PumpVersion: 6, RadiatorSize: 240},
-		{Name: "H115i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 280},
-		{Name: "H150i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 360},
-		{Name: "H150i ELITE LCD XT", PumpVersion: 6, RadiatorSize: 360},
-		{Name: "H170i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 420},
+		{Name: "H100i ELITE LCD", PumpVersion: 3, RadiatorSize: 240, LCD: true},
+		{Name: "H150i ELITE LCD", PumpVersion: 3, RadiatorSize: 360, LCD: true},
+		{Name: "H170i ELITE LCD", PumpVersion: 3, RadiatorSize: 420, LCD: true},
+		{Name: "H100i ELITE CAPELLIX", PumpVersion: 3, RadiatorSize: 240, LCD: false},
+		{Name: "H150i ELITE CAPELLIX", PumpVersion: 3, RadiatorSize: 360, LCD: false},
+		{Name: "H170i ELITE CAPELLIX", PumpVersion: 3, RadiatorSize: 420, LCD: false},
+		{Name: "H100i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 240, LCD: true},
+		{Name: "H100i ELITE LCD XT", PumpVersion: 6, RadiatorSize: 240, LCD: true},
+		{Name: "H115i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 280, LCD: true},
+		{Name: "H150i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 360, LCD: true},
+		{Name: "H150i ELITE LCD XT", PumpVersion: 6, RadiatorSize: 360, LCD: true},
+		{Name: "H170i ELITE LCD XT", PumpVersion: 5, RadiatorSize: 420, LCD: true},
+		{Name: "H100i ELITE CAPELLIX XT", PumpVersion: 5, RadiatorSize: 240, LCD: false},
+		{Name: "H100i ELITE CAPELLIX XT", PumpVersion: 6, RadiatorSize: 240, LCD: false},
+		{Name: "H115i ELITE CAPELLIX XT", PumpVersion: 5, RadiatorSize: 280, LCD: false},
+		{Name: "H150i ELITE CAPELLIX XT", PumpVersion: 5, RadiatorSize: 360, LCD: false},
+		{Name: "H150i ELITE CAPELLIX XT", PumpVersion: 6, RadiatorSize: 360, LCD: false},
+		{Name: "H170i ELITE CAPELLIX XT", PumpVersion: 5, RadiatorSize: 420, LCD: false},
 	}
 )
+
+// AIOList struct for supported AIO devices
+type AIOList struct {
+	Name         string
+	PumpVersion  int16
+	RadiatorSize int16
+	LCD          bool
+}
 
 // DeviceMonitor struct contains the shared variable and synchronization primitives
 type DeviceMonitor struct {
@@ -109,20 +139,23 @@ type DeviceMonitor struct {
 	Cond   *sync.Cond
 }
 
+// LedChannel struct for LED pump and fan data
 type LedChannel struct {
 	Total   uint8
 	Command byte
 }
 
+// DeviceProfile struct contains all device profile
 type DeviceProfile struct {
 	Product       string
 	Serial        string
+	LCDMode       uint8
 	RGBProfiles   map[int]string
 	SpeedProfiles map[int]string
 	Labels        map[int]string
 }
 
-// Devices contain information about devices connected to a Commander Core
+// Devices struct contain information about connected devices
 type Devices struct {
 	ChannelId          int             `json:"channelId"`
 	Type               byte            `json:"type"`
@@ -145,8 +178,10 @@ type Devices struct {
 	IsTemperatureProbe bool
 }
 
+// Device struct contains primary device data
 type Device struct {
 	dev           *hid.Device
+	lcd           *hid.Device
 	Manufacturer  string           `json:"manufacturer"`
 	Product       string           `json:"product"`
 	Serial        string           `json:"serial"`
@@ -159,12 +194,10 @@ type Device struct {
 	profileConfig string
 	activeRgb     *rgb.ActiveRGB
 	Template      string
-}
-
-type AIOList struct {
-	Name         string
-	PumpVersion  int16
-	RadiatorSize int16
+	HasLCD        bool
+	VendorId      uint16
+	LCDModes      map[int]string
+	LCDMode       int
 }
 
 /*
@@ -200,6 +233,14 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d := &Device{
 		dev:      dev,
 		Template: "cc.html",
+		VendorId: vendorId,
+		LCDModes: map[int]string{
+			0: "Liquid Temperature",
+			1: "Pump Speed",
+			2: "CPU Temperature",
+			3: "GPU Temperature",
+			4: "Combined",
+		},
 	}
 
 	// There are 2 CCs. One has a packet size of 64 and the other has 96.
@@ -214,6 +255,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()   // Manufacturer
 	d.getProduct()        // Product
 	d.getSerial()         // Serial
+	d.getDeviceLcd()      // Check if LCD pump cover is installed
 	d.setProfileConfig()  // Device profile
 	d.getDeviceProfile()  // Get device profile if any
 	d.getDeviceFirmware() // Firmware
@@ -259,6 +301,48 @@ func (d *Device) Stop() {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 		}
+	}
+
+	if d.lcd != nil {
+		lcdRefreshChan <- true
+		lcdTimer.Stop()
+		err := d.lcd.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
+		}
+	}
+}
+
+// getDeviceLcd will check if AIO has LCD pump cover
+func (d *Device) getDeviceLcd() {
+	lcdSerialNumber := ""
+	var lcdProductId uint16 = 3129
+
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == 0 {
+			d.HasLCD = true
+			lcdSerialNumber = info.SerialNbr
+		}
+		return nil
+	})
+
+	// Enumerate all Corsair devices
+	err := hid.Enumerate(d.VendorId, lcdProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Fatal("Unable to enumerate LCD devices")
+		return
+	}
+
+	if d.HasLCD {
+		logger.Log(logger.Fields{"vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial, "lcdSerial": lcdSerialNumber}).Info("LCD pump cover detected")
+		lcdPanel, e := hid.Open(d.VendorId, lcdProductId, lcdSerialNumber)
+		if e != nil {
+			d.HasLCD = false // We failed
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Error("Unable to open LCD HID device")
+			return
+		}
+		d.lcd = lcdPanel
+		d.setupLCD()
 	}
 }
 
@@ -1046,7 +1130,7 @@ func (d *Device) getDeviceData() {
 		status := currentSensor[0]
 		if status == 0x00 {
 			temp := float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
-			if temp > 1 {
+			if temp > 1 && temp < 100 {
 				if i == 0 {
 					if _, ok := d.Devices[i]; ok {
 						d.Devices[i].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
@@ -1130,6 +1214,20 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 	return 1
 }
 
+// UpdateDeviceLcd will update device LCD
+func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if d.HasLCD {
+		d.DeviceProfile.LCDMode = mode
+		d.saveDeviceProfile()
+		return 1
+	} else {
+		return 2
+	}
+}
+
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
@@ -1176,15 +1274,17 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(channelId int, profile string) {
+func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	if rgb.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
-		return
+		return 0
 	}
 
 	if _, ok := d.Devices[channelId]; ok {
 		// Update channel with new profile
 		d.Devices[channelId].RGB = profile
+	} else {
+		return 0
 	}
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
@@ -1194,6 +1294,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // initLedPorts will prep LED physical ports for reading
@@ -1265,6 +1366,7 @@ func (d *Device) saveDeviceProfile() {
 
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
+		// RGB
 		for _, device := range d.Devices {
 			if device.IsTemperatureProbe {
 				continue
@@ -1272,10 +1374,19 @@ func (d *Device) saveDeviceProfile() {
 			rgbProfiles[device.ChannelId] = "static"
 		}
 
+		// Labels
 		for _, device := range d.Devices {
 			labels[device.ChannelId] = "Not Set"
 		}
+
+		// LCD
+		if d.HasLCD {
+			deviceProfile.LCDMode = 0
+		}
+
 		d.DeviceProfile = deviceProfile
+	} else {
+		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 	}
 
 	// Convert to JSON
@@ -1455,6 +1566,94 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) []byte {
 	}
 
 	return bufferR
+}
+
+// setupLcd will activate and configure LCD
+func (d *Device) setupLCD() {
+	lcdTimer = time.NewTicker(1000 * time.Millisecond)
+	lcdRefreshChan = make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-lcdTimer.C:
+				switch d.DeviceProfile.LCDMode {
+				case lcd.DisplayCPU:
+					{
+						buffer := lcd.GenerateScreenImage(lcd.DisplayCPU, int(temperatures.GetCpuTemperature()), 0, 0)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayGPU:
+					{
+						buffer := lcd.GenerateScreenImage(lcd.DisplayGPU, int(temperatures.GetGpuTemperature()), 0, 0)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayLiquid:
+					{
+						for _, device := range d.Devices {
+							if device.ContainsPump {
+								buffer := lcd.GenerateScreenImage(lcd.DisplayLiquid, int(device.Temperature), 0, 0)
+								d.transferToLcd(buffer)
+							}
+						}
+					}
+				case lcd.DisplayPump:
+					{
+						for _, device := range d.Devices {
+							if device.ContainsPump {
+								buffer := lcd.GenerateScreenImage(lcd.DisplayPump, int(device.Rpm), 0, 0)
+								d.transferToLcd(buffer)
+							}
+						}
+					}
+				case lcd.DisplayAllInOne:
+					{
+						liquidTemp := 0
+						cpuTemp := 0
+						pumpSpeed := 0
+						for _, device := range d.Devices {
+							if device.ContainsPump {
+								liquidTemp = int(device.Temperature)
+								pumpSpeed = int(device.Rpm)
+							}
+						}
+
+						cpuTemp = int(temperatures.GetCpuTemperature())
+						buffer := lcd.GenerateScreenImage(lcd.DisplayAllInOne, liquidTemp, cpuTemp, pumpSpeed)
+						d.transferToLcd(buffer)
+					}
+				}
+			case <-lcdRefreshChan:
+				lcdTimer.Stop()
+				return
+			}
+		}
+	}()
+}
+
+// transferToLcd will transfer data to LCD panel
+func (d *Device) transferToLcd(buffer []byte) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
+	for i, chunk := range chunks {
+		bufferW := make([]byte, lcdBufferSize)
+		bufferW[0] = 0x02
+		bufferW[1] = 0x05
+
+		// The last packet needs to end with 0x01 in order for display to render data
+		if len(chunk) < maxLCDBufferSizePerRequest {
+			bufferW[3] = 0x01
+		}
+
+		bufferW[4] = byte(i)
+		binary.LittleEndian.PutUint16(bufferW[6:8], uint16(len(chunk)))
+		copy(bufferW[8:], chunk)
+
+		if _, err := d.lcd.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			break
+		}
+	}
 }
 
 // transfer will send data to a device and retrieve device output

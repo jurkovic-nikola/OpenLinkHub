@@ -3,6 +3,7 @@ package controller
 import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices"
+	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/server"
@@ -16,6 +17,7 @@ func Start() {
 	config.Init()       // Configuration
 	logger.Init()       // Logger
 	rgb.Init()          // RGB
+	lcd.Init()          // LCD
 	temperatures.Init() // Temperatures
 	devices.Init()      // Devices
 	server.Init()       // REST & WebUI

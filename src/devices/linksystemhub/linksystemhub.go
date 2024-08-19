@@ -9,6 +9,7 @@ package linksystemhub
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
@@ -34,6 +35,7 @@ type DeviceMonitor struct {
 type DeviceProfile struct {
 	Product       string
 	Serial        string
+	LCDMode       uint8
 	SpeedProfiles map[int]string
 	RGBProfiles   map[int]string
 	Labels        map[int]string
@@ -90,6 +92,7 @@ type Device struct {
 	Template      string
 	HasLCD        bool
 	VendorId      uint16
+	LCDModes      map[int]string
 }
 
 var (
@@ -115,9 +118,11 @@ var (
 	dataTypeGetSpeeds          = []byte{0x25, 0x00}
 	dataTypeSetSpeed           = []byte{0x07, 0x00}
 	dataTypeSetColor           = []byte{0x12, 0x00}
+	dataTypeSubColor           = []byte{0x07, 0x00}
 	mutex                      sync.Mutex
 	authRefreshChan            = make(chan bool)
 	speedRefreshChan           = make(chan bool)
+	lcdRefreshChan             = make(chan bool)
 	bufferSize                 = 512
 	headerSize                 = 3
 	headerWriteSize            = 4
@@ -126,20 +131,25 @@ var (
 	maxBufferSizePerRequest    = 508
 	defaultSpeedValue          = 70
 	temperaturePullingInterval = 3000
+	lcdRefreshInterval         = 1000
 	deviceRefreshInterval      = 1000
 	timer                      = &time.Ticker{}
 	timerSpeed                 = &time.Ticker{}
+	lcdTimer                   = &time.Ticker{}
+	lcdHeaderSize              = 8
+	lcdBufferSize              = 1024
+	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 	supportedDevices           = []SupportedDevice{
 		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 15, Model: 0, Name: "iCUE LINK RX RGB", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
-		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, LcdLedChannels: 24, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
 		{DeviceId: 9, Model: 0, Name: "XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
 		{DeviceId: 9, Model: 1, Name: "XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
 		{DeviceId: 13, Model: 1, Name: "XG7", LedChannels: 16, ContainsPump: false, Desc: "GPU Block"},
@@ -148,12 +158,12 @@ var (
 		{DeviceId: 14, Model: 0, Name: "XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
 		{DeviceId: 14, Model: 1, Name: "XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
 		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
-		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 11, Model: 2, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 11, Model: 5, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 11, Model: 1, Name: "iCUE LINK TITAN H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 11, Model: 3, Name: "iCUE LINK TITAN H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 2, Name: "iCUE LINK TITAN H150i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 5, Name: "iCUE LINK TITAN H150i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 1, Name: "iCUE LINK TITAN H115i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
+		{DeviceId: 11, Model: 3, Name: "iCUE LINK TITAN H170i", LedChannels: 20, LcdLedChannels: 44, ContainsPump: true, Desc: "AIO", AIO: true},
 	}
 )
 
@@ -171,6 +181,13 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		dev:      dev,
 		Template: "lsh.html",
 		VendorId: vendorId,
+		LCDModes: map[int]string{
+			0: "Liquid Temperature",
+			1: "Pump Speed",
+			2: "CPU Temperature",
+			3: "GPU Temperature",
+			4: "Combined",
+		},
 	}
 
 	// Bootstrap
@@ -196,6 +213,9 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.saveDeviceProfile() // Create device profile
 	d.setDeviceColor()    // Activate device RGB
 	d.newDeviceMonitor()  // Device monitor
+	if d.HasLCD {
+		d.setupLCD() // LCD
+	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
 }
@@ -213,6 +233,15 @@ func (d *Device) Stop() {
 		speedRefreshChan <- true
 	}
 
+	if d.lcd != nil {
+		lcdRefreshChan <- true
+		lcdTimer.Stop()
+		err := d.lcd.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
+		}
+	}
+
 	authRefreshChan <- true
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -221,26 +250,17 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 		}
 	}
-
-	/*
-		if d.lcd != nil {
-			err := d.lcd.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
-			}
-		}
-	*/
 }
 
 // getDeviceLcd will check if AIO has LCD pump cover
 func (d *Device) getDeviceLcd() {
-	//lcdSerialNumber := ""
+	lcdSerialNumber := ""
 	var lcdProductId uint16 = 3150
 
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 		if info.InterfaceNbr == 0 {
 			d.HasLCD = true
-			//lcdSerialNumber = info.SerialNbr
+			lcdSerialNumber = info.SerialNbr
 		}
 		return nil
 	})
@@ -252,18 +272,16 @@ func (d *Device) getDeviceLcd() {
 		return
 	}
 
-	/*
-		TO-DO: Implement basic LED options like temperatures, speeds, etc...
-			if d.HasLCD {
-				logger.Log(logger.Fields{"vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Info("LCD pump cover detected")
-				lcd, e := hid.Open(d.VendorId, lcdProductId, lcdSerialNumber)
-				if e != nil {
-					logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Error("Unable to open LCD HID device")
-					return
-				}
-				d.lcd = lcd
-			}
-	*/
+	if d.HasLCD {
+		logger.Log(logger.Fields{"vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial, "lcdSerial": lcdSerialNumber}).Info("LCD pump cover detected")
+		lcdPanel, e := hid.Open(d.VendorId, lcdProductId, lcdSerialNumber)
+		if e != nil {
+			d.HasLCD = false // We failed
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Error("Unable to open LCD HID device")
+			return
+		}
+		d.lcd = lcdPanel
+	}
 }
 
 // setProfileConfig will set a static path for JSON configuration file
@@ -323,6 +341,8 @@ func (d *Device) saveDeviceProfile() {
 			labels[device.ChannelId] = "Not Set"
 		}
 		d.DeviceProfile = deviceProfile
+	} else {
+		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 	}
 
 	// Convert to JSON
@@ -409,6 +429,20 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 	return 1
 }
 
+// UpdateDeviceLcd will update device LCD
+func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if d.HasLCD {
+		d.DeviceProfile.LCDMode = mode
+		d.saveDeviceProfile()
+		return 1
+	} else {
+		return 2
+	}
+}
+
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
@@ -452,6 +486,16 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	// Save to profile
 	d.saveDeviceProfile()
 	return 1
+}
+
+// GetAIOData will return AIO pump speed and liquid temperature
+func (d *Device) GetAIOData() (int16, float32) {
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			return device.Rpm, device.Temperature
+		}
+	}
+	return 0, 0
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -743,7 +787,9 @@ func (d *Device) getDevices() int {
 
 			// Device label
 			if lb, ok := d.DeviceProfile.Labels[i]; ok {
-				label = lb
+				if len(lb) > 0 {
+					label = lb
+				}
 			}
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -774,6 +820,10 @@ func (d *Device) getDevices() int {
 				ledChannels = deviceMeta.LcdLedChannels
 			} else {
 				ledChannels = deviceMeta.LedChannels
+			}
+
+			if deviceMeta.AIO {
+				deviceMeta.Name = deviceMeta.Name + " LCD"
 			}
 		}
 
@@ -898,19 +948,18 @@ func (d *Device) setDeviceColor() {
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
+		keys := make([]int, 0)
+		for k := range d.Devices {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+
 		for {
 			select {
 			case <-d.activeRgb.Exit:
 				return
 			default:
 				buff := make([]byte, 0)
-				keys := make([]int, 0)
-
-				for k := range d.Devices {
-					keys = append(keys, k)
-				}
-				sort.Ints(keys)
-
 				for _, k := range keys {
 					rgbCustomColor := true
 					profile := rgb.GetRgbProfile(d.Devices[k].RGB)
@@ -1242,6 +1291,68 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	return buffer
 }
 
+// setupLCD will activate and configure LCD
+func (d *Device) setupLCD() {
+	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
+	lcdRefreshChan = make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-lcdTimer.C:
+				switch d.DeviceProfile.LCDMode {
+				case lcd.DisplayCPU:
+					{
+						buffer := lcd.GenerateScreenImage(lcd.DisplayCPU, int(temperatures.GetCpuTemperature()), 0, 0)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayGPU:
+					{
+						buffer := lcd.GenerateScreenImage(lcd.DisplayGPU, int(temperatures.GetGpuTemperature()), 0, 0)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayLiquid:
+					{
+						for _, device := range d.Devices {
+							if device.ContainsPump {
+								buffer := lcd.GenerateScreenImage(lcd.DisplayLiquid, int(device.Temperature), 0, 0)
+								d.transferToLcd(buffer)
+							}
+						}
+					}
+				case lcd.DisplayPump:
+					{
+						for _, device := range d.Devices {
+							if device.ContainsPump {
+								buffer := lcd.GenerateScreenImage(lcd.DisplayPump, int(device.Rpm), 0, 0)
+								d.transferToLcd(buffer)
+							}
+						}
+					}
+				case lcd.DisplayAllInOne:
+					{
+						liquidTemp := 0
+						cpuTemp := 0
+						pumpSpeed := 0
+						for _, device := range d.Devices {
+							if device.ContainsPump {
+								liquidTemp = int(device.Temperature)
+								pumpSpeed = int(device.Rpm)
+							}
+						}
+
+						cpuTemp = int(temperatures.GetCpuTemperature())
+						buffer := lcd.GenerateScreenImage(lcd.DisplayAllInOne, liquidTemp, cpuTemp, pumpSpeed)
+						d.transferToLcd(buffer)
+					}
+				}
+			case <-lcdRefreshChan:
+				lcdTimer.Stop()
+				return
+			}
+		}
+	}()
+}
+
 // write will write data to the device with specific endpoint
 func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 	// Buffer
@@ -1296,12 +1407,47 @@ func (d *Device) writeColor(data []byte) {
 
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
-		// Next color endpoint based on number of chunks
-		colorEp[0] = colorEp[0] + byte(i)
-		// Send it
-		_, err := d.transfer(colorEp, chunk, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+		if i == 0 {
+			// Initial packet is using cmdWriteColor
+			_, err := d.transfer(cmdWriteColor, chunk, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+		} else {
+			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+			_, err := d.transfer(dataTypeSubColor, chunk, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
+	}
+}
+
+// transferToLcd will transfer data to LCD panel
+func (d *Device) transferToLcd(buffer []byte) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
+	for i, chunk := range chunks {
+		bufferW := make([]byte, lcdBufferSize)
+		bufferW[0] = 0x02
+		bufferW[1] = 0x05
+		bufferW[2] = 0x01
+
+		// The last packet needs to end with 0x01 in order for display to render data
+		if len(chunk) < maxLCDBufferSizePerRequest {
+			bufferW[3] = 0x01
+		}
+
+		bufferW[4] = byte(i)
+		binary.LittleEndian.PutUint16(bufferW[6:8], uint16(len(chunk)))
+		copy(bufferW[8:], chunk)
+
+		if d.lcd != nil {
+			if _, err := d.lcd.Write(bufferW); err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+				break
+			}
 		}
 	}
 }

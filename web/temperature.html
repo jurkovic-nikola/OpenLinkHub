@@ -18,73 +18,47 @@
 </head>
 <body>
 <div class="d-flex align-items-stretch">
-    <nav id="sidebar">
-        <div class="sidebar-header d-flex align-items-center p-4">
-            <div class="custom-header">
-                <h1 class="h5 mb-1">Device Dashboard</h1>
-            </div>
-        </div>
-        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Navigation</span>
-        <ul class="list-unstyled">
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="/">
-                    <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Home</span>
-                </a>
-            </li>
-        </ul>
-
-        <ul class="list-unstyled">
-            {{ range .Devices }}
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="/device/{{ .Serial }}">
-                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>{{ .Product }}</span>
-                </a>
-            </li>
-            {{ end }}
-        </ul>
-        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Settings</span>
-        <ul class="list-unstyled">
-            <!--<li class="sidebar-item">
-                <a class="sidebar-link" href="/settings">
-                    <i class="bi bi-gear-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Settings</span>
-                </a>
-            </li>-->
-            <!--<li class="sidebar-item">
-              <a class="sidebar-link" href="/color">
-                <i class="bi bi-palette svg-icon svg-icon-sm svg-icon-heavy"></i>
-                <span>RGB</span>
-              </a>
-            </li>-->
-            <li class="sidebar-item active">
-                <a class="sidebar-link active" href="/temperature">
-                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Temperature Profiles</span>
-                </a>
-            </li>
-        </ul>
-        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Project</span>
-        <ul class="list-unstyled">
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
-                    <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>GitHub</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="/docs/">
-                    <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Documentation</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
     <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $device := .Device }}
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <h2 class="h5 mb-0">Temperature Profiles</h2>
+                <div class="row" style="float: left;margin-left: 0;">
+                    <a class="btn btn-secondary" href="/">
+                        <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>Home</span>
+                    </a>
+                </div>
+
+                {{ range .Devices }}
+                <div class="row" style="float: left;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="/device/{{ .Serial }}">
+                        <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>{{ .Product }}</span>
+                    </a>
+                </div>
+                {{ end }}
+
+                <div class="row" style="float: right;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="/docs/">
+                        <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>Documentation</span>
+                    </a>
+                </div>
+
+                <div class="row" style="float: right;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                        <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>GitHub</span>
+                    </a>
+                </div>
+
+                <div class="row" style="float: right;margin-left: 20px;">
+                    <a class="btn btn-secondary active-nav-link" href="/temperature">
+                        <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>Temperature Profiles</span>
+                    </a>
+                </div>
             </div>
         </div>
         <section class="pt-0 pt-sm-4">
@@ -225,8 +199,13 @@
             </div>
         </section>
         <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
-            <div class="container-fluid text-center">
-                <p class="mb-0 text-dash-gray">Build: {{ .BuildInfo.Revision }} :: {{ .BuildInfo.Time }}</p>
+            <div class="container-fluid fa-pull-left" style="padding-left:20px;">
+                <p class="mb-0 text-dash-gray fa-pull-left">OS: {{ .SystemInfo.Kernel.OsType }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">Architecture: {{ .SystemInfo.Kernel.Architecture }}</p>
+            </div>
+            <div class="container-fluid fa-pull-left" style="padding-left:15px;">
+                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
             </div>
         </footer>
     </div>

@@ -45,13 +45,19 @@ type TemperatureProfileData struct {
 	Profiles []TemperatureProfile `json:"profiles"`
 }
 
+type StorageTemperatures struct {
+	Key         string
+	Model       string
+	Temperature float32
+}
+
 var (
 	pwd, _       = os.Getwd()
 	location     = pwd + "/database/temperatures/"
 	profiles     = map[string]TemperatureProfileData{}
 	mutex        sync.Mutex
 	temperatures *Temperatures
-
+	cpuPackages  = []string{"k10temp", "coretemp"}
 	// Defaults
 	profileQuiet = TemperatureProfileData{
 		Sensor: 0,
@@ -181,14 +187,14 @@ func UpdateTemperatureProfile(profile string, values string) int {
 	var payload map[int]UpdateData
 	err := json.Unmarshal([]byte(values), &payload)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to read content of a string to JSON")
+		logger.Log(logger.Fields{"error": err, "caller": "UpdateTemperatureProfile()"}).Error("Unable to read content of a string to JSON")
 		return 0
 	}
 
 	// Get profile
 	profileList := GetTemperatureProfile(profile)
 	if profileList == nil {
-		logger.Log(logger.Fields{"error": err}).Warn("Non-existing profile")
+		logger.Log(logger.Fields{"error": err, "caller": "UpdateTemperatureProfile()"}).Warn("Non-existing profile")
 		return 0
 	}
 
@@ -220,7 +226,7 @@ func DeleteTemperatureProfile(profile string) {
 
 		err := os.Remove(profileLocation)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Warn("Unable to delete speed profile")
+			logger.Log(logger.Fields{"error": err, "location": profileLocation, "caller": "DeleteTemperatureProfile()"}).Warn("Unable to delete speed profile")
 		} else {
 			delete(temperatures.Profiles, profile)
 		}
@@ -251,7 +257,7 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 	defer mutex.Unlock()
 	files, err := os.ReadDir(location)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Fatal("Unable to read content of a folder")
+		logger.Log(logger.Fields{"error": err, "location": location, "caller": "LoadUserProfiles()"}).Fatal("Unable to read content of a folder")
 	}
 
 	for _, fi := range files {
@@ -268,18 +274,17 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 		}
 
 		profileName := strings.Split(fi.Name(), ".")[0]
-
 		fmt.Println("[Temperatures] Loading profile:", profileLocation)
-		file, err := os.Open(profileLocation)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Fatal("Unable to read temperature profile")
+		file, fe := os.Open(profileLocation)
+		if fe != nil {
+			logger.Log(logger.Fields{"error": fe, "location": profileLocation, "caller": "LoadUserProfiles()"}).Fatal("Unable to read temperature profile")
 		}
 
 		// Decode and create profile
 		var profile TemperatureProfileData
 		reader := json.NewDecoder(file)
-		if err = reader.Decode(&profile); err != nil {
-			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Fatal("Unable to read temperature profile")
+		if fe = reader.Decode(&profile); fe != nil {
+			logger.Log(logger.Fields{"error": fe, "location": profileLocation, "caller": "LoadUserProfiles()"}).Fatal("Unable to read temperature profile")
 		}
 		profiles[profileName] = profile
 	}
@@ -292,26 +297,26 @@ func saveProfileToDisk(profile string, values TemperatureProfileData) {
 	// Convert to JSON
 	buffer, err := json.Marshal(values)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Fatal("Unable to convert to json format")
+		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to convert to json format")
 	}
 
 	// Create profile filename
 	file, fileErr := os.Create(profileLocation)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Fatal("Unable to create new filename")
+		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to create new filename")
 	}
 
 	// Write JSON buffer to file
 	_, err = file.Write(buffer)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Fatal("Unable to write data")
+		logger.Log(logger.Fields{"error": err, "location": profile, "caller": "saveProfileToDisk()"}).Error("Unable to write data")
 		return
 	}
 
 	// Close file
 	err = file.Close()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Fatal("Unable to close file handle")
+		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to close file handle")
 	}
 
 	// Add profile to the list
@@ -356,7 +361,7 @@ func GetAMDGpuTemperature() float32 {
 func GetNVIDIAGpuTemperature() float32 {
 	ret := nvml.Init()
 	if ret != nvml.SUCCESS {
-		logger.Log(logger.Fields{"err": nvml.ErrorString(ret)}).Warn("Unable to initialize new nvml")
+		logger.Log(logger.Fields{"err": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to initialize new nvml")
 		return 0
 	}
 	defer func() {
@@ -368,21 +373,21 @@ func GetNVIDIAGpuTemperature() float32 {
 
 	count, ret := nvml.DeviceGetCount()
 	if ret != nvml.SUCCESS {
-		logger.Log(logger.Fields{"err": nvml.ErrorString(ret)}).Warn("Unable to get device count")
+		logger.Log(logger.Fields{"err": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to get device count")
 		return 0
 	}
 
 	for i := 0; i < count; i++ {
 		device, ret := nvml.DeviceGetHandleByIndex(i)
 		if ret != nvml.SUCCESS {
-			logger.Log(logger.Fields{"index": i, "device": nvml.ErrorString(ret)}).Warn("Unable to get device")
+			logger.Log(logger.Fields{"index": i, "device": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to get device")
 			return 0
 		}
 
 		ts := nvml.TemperatureSensors(0)
-		temperature, err := device.GetTemperature(ts)
+		temperature, ret := device.GetTemperature(ts)
 		if ret != nvml.SUCCESS {
-			logger.Log(logger.Fields{"err": err}).Warn("Unable to get device temperature")
+			logger.Log(logger.Fields{"err": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to get device temperature")
 			continue
 		} else {
 			return float32(temperature)
@@ -422,7 +427,7 @@ func GetCpuTemperature() float32 {
 	hwmonDir := "/sys/class/hwmon"
 	entries, err := os.ReadDir(hwmonDir)
 	if err != nil {
-		logger.Log(logger.Fields{"dir": hwmonDir, "error": err}).Error("Unable to read hwmon directory")
+		logger.Log(logger.Fields{"dir": hwmonDir, "error": err, "caller": "GetCpuTemperature()"}).Error("Unable to read hwmon directory")
 		return 0
 	}
 
@@ -432,14 +437,83 @@ func GetCpuTemperature() float32 {
 		if e != nil {
 			continue
 		}
+		cpuPackage := strings.TrimSpace(string(name))
 
-		if strings.TrimSpace(string(name)) == config.GetConfig().CPUSensorChip {
-			temp := getHwMonTemperature(hwmonDir, entry)
-			if temp == 0 {
-				continue
+		// Manual package definition
+		if len(config.GetConfig().CPUSensorChip) > 0 {
+			if cpuPackage == config.GetConfig().CPUSensorChip {
+				temp := getHwMonTemperature(hwmonDir, entry)
+				if temp == 0 {
+					continue
+				}
+				return temp
 			}
-			return temp
+		} else {
+			// Automatic package detection
+			for _, val := range cpuPackages {
+				if val == cpuPackage {
+					temp := getHwMonTemperature(hwmonDir, entry)
+					if temp == 0 {
+						continue
+					}
+					return temp
+				}
+			}
 		}
 	}
 	return 0
+}
+
+// GetNvmeTemperature will return NVME temperatures
+func GetNvmeTemperature() []StorageTemperatures {
+	hwmonDir := "/sys/class/nvme"
+	entries, err := os.ReadDir(hwmonDir)
+	if err != nil {
+		logger.Log(logger.Fields{"dir": hwmonDir, "error": err, "caller": "GetNvmeTemperature()"}).Error("Unable to read hwmon directory")
+		return nil
+	}
+
+	var storageList []StorageTemperatures
+
+	for _, entry := range entries {
+		hwmonTemp := filepath.Join(hwmonDir, entry.Name())
+		hwmonList, e := os.ReadDir(hwmonTemp)
+		if e != nil {
+			logger.Log(logger.Fields{"dir": hwmonTemp, "error": err, "caller": "GetNvmeTemperature()"}).Error("Unable to read hwmon directory")
+			continue
+		}
+
+		modelFile := filepath.Join(hwmonDir, entry.Name(), "model")
+		model, e := os.ReadFile(modelFile)
+		if e != nil {
+			continue
+		}
+
+		var temperature float32 = 0.0
+		for _, hwmon := range hwmonList {
+			if strings.Contains(hwmon.Name(), "hwmon") {
+				tempFile := filepath.Join(hwmonTemp, hwmon.Name(), "temp1_input")
+				temp, e := os.ReadFile(tempFile)
+				if e != nil {
+					logger.Log(logger.Fields{"dir": hwmonTemp, "file": tempFile, "error": e, "caller": "GetNvmeTemperature()"}).Error("Unable to read hwmon file")
+					continue
+				}
+
+				// Convert the temperature from milli-Celsius to Celsius
+				tempMilliC, e := strconv.Atoi(strings.TrimSpace(string(temp)))
+				if e != nil {
+					logger.Log(logger.Fields{"dir": hwmonTemp, "file": tempFile, "error": e, "caller": "GetNvmeTemperature()"}).Error("Unable to read nvme temperature file")
+					continue
+				}
+				temperature = float32(tempMilliC / 1000)
+			}
+		}
+		storage := StorageTemperatures{
+			Key:         entry.Name(),
+			Temperature: temperature,
+			Model:       strings.TrimSpace(string(model)),
+		}
+		storageList = append(storageList, storage)
+	}
+	return storageList
 }

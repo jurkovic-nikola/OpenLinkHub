@@ -7,6 +7,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/server"
+	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/version"
 )
@@ -14,6 +15,7 @@ import (
 // Start will start new controller session
 func Start() {
 	version.Init()      // Build info
+	systeminfo.Init()   // Build system info
 	config.Init()       // Configuration
 	logger.Init()       // Logger
 	rgb.Init()          // RGB

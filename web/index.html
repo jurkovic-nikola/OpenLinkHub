@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{.Title}}</title>
+    <title>{{ .Title }}</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="all,follow">
@@ -16,304 +16,55 @@
 </head>
 <body>
 <div class="d-flex align-items-stretch">
-    <nav id="sidebar">
-        <div class="sidebar-header d-flex align-items-center p-4">
-            <div class="custom-header">
-                <h1 class="h5 mb-1">Device Dashboard</h1>
-            </div>
-        </div>
-        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Navigation</span>
-        <ul class="list-unstyled">
-            <li class="sidebar-item active">
-                <a class="sidebar-link" href="/">
-                    <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Home</span>
-                </a>
-            </li>
-        </ul>
-
-        <ul class="list-unstyled">
-            {{ range .Devices }}
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="/device/{{ .Serial }}">
-                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>{{ .Product }}</span>
-                </a>
-            </li>
-            {{ end }}
-        </ul>
-        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Settings</span>
-        <ul class="list-unstyled">
-            <!--<li class="sidebar-item">
-                <a class="sidebar-link" href="/settings">
-                    <i class="bi bi-gear-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Settings</span>
-                </a>
-            </li>-->
-            <!--<li class="sidebar-item">
-              <a class="sidebar-link" href="/color">
-                <i class="bi bi-palette svg-icon svg-icon-sm svg-icon-heavy"></i>
-                <span>RGB</span>
-              </a>
-            </li>-->
-            <li class="sidebar-item">
-                <a class="sidebar-link active" href="/temperature">
-                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Temperature Profiles</span>
-                </a>
-            </li>
-        </ul>
-        <span class="text-uppercase text-gray-600 text-xs mx-3 px-2 heading mb-2">Project</span>
-        <ul class="list-unstyled">
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
-                    <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>GitHub</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a class="sidebar-link" href="/docs/">
-                    <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
-                    <span>Documentation</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
     <div class="page-content">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <h2 class="h5 mb-0">Dashboard</h2>
+                <div class="row" style="float: left;margin-left: 0;">
+                    <a class="btn btn-secondary active-nav-link" href="/">
+                        <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>Home</span>
+                    </a>
+                </div>
+
+                {{ range .Devices }}
+                <div class="row" style="float: left;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="/device/{{ .Serial }}">
+                        <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>{{ .Product }}</span>
+                    </a>
+                </div>
+                {{ end }}
+
+                <div class="row" style="float: right;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="/docs/">
+                        <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>Documentation</span>
+                    </a>
+                </div>
+
+                <div class="row" style="float: right;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                        <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>GitHub</span>
+                    </a>
+                </div>
+
+                <div class="row" style="float: right;margin-left: 20px;">
+                    <a class="btn btn-secondary" href="/temperature">
+                        <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        <span>Temperature Profiles</span>
+                    </a>
+                </div>
             </div>
         </div>
 
         <section class="pt-0 pt-sm-4">
             <div class="container-fluid">
-                <div class="row gy-4" style="margin-top:10px">
-                    <div class="row">
-                        <div class="col-md-2">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.OS.Name }}</div>
-                                <div class="card-body" style="padding-top: 0;">
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Vendor</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.OS.Vendor }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Architecture</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.Kernel.Architecture }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Kernel</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.Kernel.Release }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="row gy-4">
+                    <div class="bg-dash-dark-2 py-4 box-info">
+                        <div class="container-fluid">
+                            <h2 class="h5 mb-0">Corsair Products</h2>
                         </div>
-
-                        <div class="col-md-2">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.CPU.Model }}</div>
-                                <div class="card-body" style="padding-top: 0;">
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temperature</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="cpu_temp">{{ .CpuTemp }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Cores</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.CPU.Cores }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Threads</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.CPU.Threads }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-2">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.Board.Name }}</div>
-                                <div class="card-body" style="padding-top: 0;">
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Vendor</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" style="text-align: right;">{{ .SystemInfo.BIOS.Vendor }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">BIOS</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.BIOS.Version }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Date</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .SystemInfo.BIOS.Date }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        {{ range .SystemInfo.Storage }}
-                        <div class="col-md-2">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .Model }}</div>
-                                <div class="card-body" style="padding-top: 0;">
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Name</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Name }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Serial</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Serial }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Capacity</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Size }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
-
-                        {{ range .SystemInfo.Network }}
-                        <div class="col-md-2">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .Name }}</div>
-                                <div class="card-body" style="padding-top: 0;">
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Mac</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .MACAddress }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Driver</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Driver }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
-                                                <use xlink:href="#user-1"> </use>
-                                            </svg>
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Speed }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
                     </div>
                     <div class="row">
                         {{ range .Devices }}
@@ -350,14 +101,147 @@
                                 </div>
                             </div>
                         </div>
+                        {{ $dev := .CC }}
+                        {{ $ok := false }}
+
+                        {{ if eq .ProductType 0 }}
+                            {{ $dev = .LinkSystemHub }}
+                            {{ $ok = true }}
+                        {{ else if eq .ProductType 1 }}
+                            {{ $dev = .CC }}
+                            {{ $ok = true }}
+                        {{ else if eq .ProductType 3 }}
+                            {{ $dev = .Elite }}
+                            {{ $ok = true }}
+                        {{ end }}
+
+                        {{ if $ok }}
+                        {{ range $devices := $dev.Devices }}
+                        {{ if $devices.ContainsPump }}
+                        <!-- AIO -->
+                        <div class="col-md-2">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ $devices.Name }}</div>
+                                <div class="card-body" style="padding-top: 0;">
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temperature</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="aio_temp-{{ $dev.Serial }}">{{ $devices.Temperature }} °C</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Pump Speed</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="aio_speed-{{ $dev.Serial }}">{{ $devices.Rpm }} RPM</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                        {{ end }}
+                        {{ end }}
+                        {{ end }}
+                    </div>
+                    <div class="bg-dash-dark-2 py-4 box-info">
+                        <div class="container-fluid">
+                            <h2 class="h5 mb-0">Temperatures</h2>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <!-- CPU -->
+                        <div class="col-md-2">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.CPU.Model }}</div>
+                                <div class="card-body" style="padding-top: 0;">
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temperature</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="cpu_temp">{{ .CpuTemp }} °C</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GPU -->
+                        {{ if .SystemInfo.GPU }}
+                        <div class="col-md-2">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.GPU.Model }}</div>
+                                <div class="card-body" style="padding-top: 0;">
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temperature</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="gpu_temp">{{ .GpuTemp }} °C</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+
+                        <!-- Storage -->
+                        {{ if .SystemInfo.NVME }}
+                        {{ range .SystemInfo.NVME }}
+                        <div class="col-md-2">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .Model }}</div>
+                                <div class="card-body" style="padding-top: 0;">
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <svg class="svg-icon svg-icon-sm svg-icon-heavy text-gray-600 mb-2">
+                                                <use xlink:href="#user-1"> </use>
+                                            </svg>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temperature</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="nvme_temp-{{ .Key }}">{{ .Temperature }} °C</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
                         {{ end }}
                     </div>
                 </div>
             </div>
         </section>
         <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
-            <div class="container-fluid text-center">
-                <p class="mb-0 text-dash-gray">Build: {{ .BuildInfo.Revision }} :: {{ .BuildInfo.Time }}</p>
+            <div class="container-fluid fa-pull-left" style="padding-left:20px;">
+                <p class="mb-0 text-dash-gray fa-pull-left">OS: {{ .SystemInfo.Kernel.OsType }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">Architecture: {{ .SystemInfo.Kernel.Architecture }}</p>
+            </div>
+            <div class="container-fluid fa-pull-left" style="padding-left:15px;">
+                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
             </div>
         </footer>
     </div>

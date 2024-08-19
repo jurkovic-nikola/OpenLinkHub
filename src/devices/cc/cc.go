@@ -198,7 +198,6 @@ type Device struct {
 	HasLCD        bool
 	VendorId      uint16
 	LCDModes      map[int]string
-	LCDMode       int
 }
 
 /*
@@ -280,7 +279,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setDeviceColor()    // Activate device RGB
 	d.newDeviceMonitor()  // Device monitor
 	if d.HasLCD {
-		d.setupLCD()
+		d.setupLCD() // LCD
 	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
@@ -298,13 +297,6 @@ func (d *Device) Stop() {
 		speedRefreshChan <- true
 	}
 	authRefreshChan <- true
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
-		}
-	}
 
 	if d.lcd != nil {
 		lcdRefreshChan <- true
@@ -312,6 +304,14 @@ func (d *Device) Stop() {
 		err := d.lcd.Close()
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
+		}
+	}
+
+	d.setHardwareMode()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 		}
 	}
 }
@@ -550,18 +550,19 @@ func (d *Device) setDeviceColor() {
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
+		keys := make([]int, 0)
+
+		for k := range d.Devices {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+
 		for {
 			select {
 			case <-d.activeRgb.Exit:
 				return
 			default:
 				buff := make([]byte, 0)
-				keys := make([]int, 0)
-
-				for k := range d.Devices {
-					keys = append(keys, k)
-				}
-				sort.Ints(keys)
 
 				for _, k := range keys {
 					if d.Devices[k].IsTemperatureProbe {
@@ -750,7 +751,9 @@ func (d *Device) getDevices() int {
 				}
 				// Device label
 				if lb, ok := d.DeviceProfile.Labels[i]; ok {
-					label = lb
+					if len(lb) > 0 {
+						label = lb
+					}
 				}
 			} else {
 				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -1299,6 +1302,16 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	return 1
 }
 
+// GetAIOData will return AIO pump speed and liquid temperature
+func (d *Device) GetAIOData() (int16, float32) {
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			return device.Rpm, device.Temperature
+		}
+	}
+	return 0, 0
+}
+
 // initLedPorts will prep LED physical ports for reading
 func (d *Device) initLedPorts() {
 	for i := 1; i <= 6; i++ {
@@ -1570,7 +1583,7 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) []byte {
 	return bufferR
 }
 
-// setupLcd will activate and configure LCD
+// setupLCD will activate and configure LCD
 func (d *Device) setupLCD() {
 	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
 	lcdRefreshChan = make(chan bool)

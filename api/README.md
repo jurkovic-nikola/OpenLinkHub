@@ -326,3 +326,48 @@ $ curl -X POST http:/127.0.0.1:27003/api/label -d '{"deviceId":"5C126A3EB51A3956
   "message": "Device label is successfully applied"
 }
 ```
+### LCD - Change device LCD mode - Liquid Temperature
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 0}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - Pump Speed
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 1}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - CPU Temperature
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 2}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - GPU Temperature
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 3}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - Combined Metrics (Liquid, CPU, Pump Speed)
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 4}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```

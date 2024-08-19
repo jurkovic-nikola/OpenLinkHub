@@ -739,9 +739,9 @@ func (d *Device) getDeviceData() {
 				if rpm > 0 {
 					d.Devices[m].Rpm = rpm
 				}
-				m++
 			}
 		}
+		m++
 	}
 
 	// Temperature
@@ -757,9 +757,9 @@ func (d *Device) getDeviceData() {
 				if temp > 0 {
 					d.Devices[m].Temperature = temp
 				}
-				m++
 			}
 		}
+		m++
 	}
 }
 
@@ -971,6 +971,7 @@ func (d *Device) getLedDevices() {
 	// LED channels
 	lc := d.read(modeGetLeds, dataTypeGetLeds)
 	ld := lc[ledStartIndex:] // Channel data starts from position 10 and 4x increments per channel
+
 	amount := 6
 	for i := 0; i < amount; i++ {
 		var numLEDs uint16 = 0
@@ -987,7 +988,6 @@ func (d *Device) getLedDevices() {
 		if connected {
 			// Get number of LEDs
 			numLEDs = binary.LittleEndian.Uint16(ld[i*4+2 : i*4+2+2])
-
 			// Each LED device has different command code
 			switch numLEDs {
 			case 4:
@@ -1021,10 +1021,10 @@ func (d *Device) getLedDevices() {
 			leds.Command = command
 			// Add to a device map
 			internalLedDevices[i] = leds
+		} else {
+			// Add to a device map
+			internalLedDevices[i] = leds
 		}
-
-		// Add to a device map
-		internalLedDevices[i] = leds
 	}
 }
 
@@ -1058,7 +1058,9 @@ func (d *Device) getDevices() int {
 
 				// Device label
 				if lb, ok := d.DeviceProfile.Labels[i]; ok {
-					label = lb
+					if len(lb) > 0 {
+						label = lb
+					}
 				}
 			} else {
 				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -1107,8 +1109,8 @@ func (d *Device) getDevices() int {
 				CellSize:    4,
 			}
 			devices[m] = device
-			m++
 		}
+		m++
 	}
 
 	// Temperatures
@@ -1149,6 +1151,7 @@ func (d *Device) getDevices() int {
 			if LedChannels > 0 {
 				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
 					rgbProfile := "static"
+					label := "Not Set"
 					// Profile is set
 					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
 						// Profile device channel exists
@@ -1160,6 +1163,11 @@ func (d *Device) getDevices() int {
 						}
 					} else {
 						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+					}
+
+					// Device label
+					if lb, ok := d.DeviceProfile.Labels[m]; ok {
+						label = lb
 					}
 
 					device := &Devices{
@@ -1177,6 +1185,7 @@ func (d *Device) getDevices() int {
 						RGB:                rgbProfile,
 						ExternalLed:        true,
 						CellSize:           2,
+						Label:              label,
 					}
 					devices[m] = device
 					m++

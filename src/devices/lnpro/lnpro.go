@@ -388,7 +388,9 @@ func (d *Device) getDevices() int {
 
 					// Device label
 					if lb, ok := d.DeviceProfile.Labels[m]; ok {
-						label = lb
+						if len(lb) > 0 {
+							label = lb
+						}
 					}
 
 					device := &Devices{

@@ -1,7 +1,7 @@
 {
   "listenPort": 27003,
   "listenAddress": "127.0.0.1",
-  "cpuSensorChip": "k10temp",
+  "cpuSensorChip": "",
   "manual": false,
   "frontend": true,
   "refreshOnStart": false

@@ -1,5 +1,5 @@
 # OpenLinkHub interface for Linux
-Open source Linux interface for iCUE LINK Hub and other devices.
+Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 
 ![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
 
@@ -25,8 +25,22 @@ Open source Linux interface for iCUE LINK Hub and other devices.
 | Lighting Node PRO      | `1b1c` | `0c0b`             | 2x External RGB Hub<br />HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                                                                                     |
 | Commander PRO          | `1b1c` | `0c10`             | 2x External RGB Hub<br />4x Temperature Probe<br />Any PWM Fan                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
+## Installation (automatic)
+As of 0.1.5 version, OpenLinkHub ships with `.deb` and `.rpm` packages for ease of installation.
+Packages will automatically set up all the required device and folder permissions.
+Packages will also take care of systemd service creation and first startup.
+1. Download either .deb or .rpm package from the latest Release, depends on your Linux distribution
+2. Open terminal
+3. Navigate to the folder where the package is downloaded
+```bash
+# Debian Based (deb)
+$ sudo dpkg -i openlinkhub_X.X.X_amd64.deb 
 
-## Installation
+# RPM based (rpm)
+$ sudo rpm -ivh OpenLinkHub-X.X.X-1.x86_64.rpm
+```
+
+## Installation (manual)
 ### 1. Requirements
 - libudev-dev
 - go 1.22.2 - https://go.dev/dl/
@@ -80,6 +94,7 @@ Bus 003 Device 011: ID 1b1c:0c37 Corsair H150iELITE
 
 # Allow hidraw communication as non-root - Link System Hub
 echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c3f\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-icuelink.rules
+echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c4e\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-icuelink-lcd.rules
 
 # Allow hidraw communication as non-root - iCUE Commander Core
 echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c32\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-cc-64.rules
@@ -156,8 +171,11 @@ unzip -x 0.1.4-beta.zip
 ## Running in Docker
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json
 ```
-docker build . -t openlinkhub
-docker run --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
+$ docker build . -t openlinkhub
+$ docker run --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
+
+# For WebUI access, networking is required
+$ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
 ```
 
 docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub

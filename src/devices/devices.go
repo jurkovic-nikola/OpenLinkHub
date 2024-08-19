@@ -24,6 +24,12 @@ const (
 	productTypeCPro    = 6
 )
 
+type AIOData struct {
+	Rpm         int16
+	Temperature float32
+	Serial      string
+}
+
 type Device struct {
 	ProductType   uint8
 	Product       string
@@ -175,6 +181,12 @@ func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 					return device.CC.UpdateDeviceLcd(mode)
 				}
 			}
+		case productTypeLinkHub:
+			{
+				if device.LinkSystemHub != nil {
+					return device.LinkSystemHub.UpdateDeviceLcd(mode)
+				}
+			}
 		}
 	}
 	return 0
@@ -229,6 +241,50 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 		}
 	}
 	return 0
+}
+
+// GetAIOData will return a list of all AIOs pump speed and liquid temperature
+func GetAIOData() []AIOData {
+	var list []AIOData
+
+	for _, device := range devices {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.LinkSystemHub != nil {
+					rpm, temperature := device.LinkSystemHub.GetAIOData()
+					list = append(list, AIOData{
+						Serial:      device.Serial,
+						Rpm:         rpm,
+						Temperature: temperature,
+					})
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					rpm, temperature := device.CC.GetAIOData()
+					list = append(list, AIOData{
+						Serial:      device.Serial,
+						Rpm:         rpm,
+						Temperature: temperature,
+					})
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					rpm, temperature := device.Elite.GetAIOData()
+					list = append(list, AIOData{
+						Serial:      device.Serial,
+						Rpm:         int16(rpm),
+						Temperature: float32(temperature),
+					})
+				}
+			}
+		}
+	}
+	return list
 }
 
 // UpdateSpeedProfile will update device speeds with a given serial number

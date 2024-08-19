@@ -15,6 +15,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -224,6 +225,7 @@ func (d *Device) getProduct() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get product")
 	}
+	product = strings.Replace(product, "CORSAIR ", "", -1)
 	d.Product = product
 }
 
@@ -375,7 +377,9 @@ func (d *Device) getDevices() int {
 
 					// Device label
 					if lb, ok := d.DeviceProfile.Labels[z]; ok {
-						label = lb
+						if len(lb) > 0 {
+							label = lb
+						}
 					}
 				} else {
 					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")

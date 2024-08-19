@@ -344,19 +344,19 @@ func (d *Device) setDeviceColor() {
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
+		keys := make([]int, 0)
+
+		for k := range d.Devices {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+
 		for {
 			select {
 			case <-d.activeRgb.Exit:
 				return
 			default:
 				buff := make([]byte, 0)
-				keys := make([]int, 0)
-
-				for k := range d.Devices {
-					keys = append(keys, k)
-				}
-				sort.Ints(keys)
-
 				for _, k := range keys {
 					rgbCustomColor := true
 					profile := rgb.GetRgbProfile(d.Devices[k].RGB)
@@ -676,6 +676,16 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	return 1
 }
 
+// GetAIOData will return AIO pump speed and liquid temperature
+func (d *Device) GetAIOData() (uint16, float64) {
+	for _, device := range d.Devices {
+		if device.ChannelId == 0 {
+			return device.Rpm, device.Temperature
+		}
+	}
+	return 0, 0
+}
+
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices, 0)
@@ -711,7 +721,9 @@ func (d *Device) getDevices() int {
 			}
 			// Device label
 			if lb, ok := d.DeviceProfile.Labels[deviceList[device].Index]; ok {
-				label = lb
+				if len(lb) > 0 {
+					label = lb
+				}
 			}
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")

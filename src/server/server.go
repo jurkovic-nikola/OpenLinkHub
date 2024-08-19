@@ -6,13 +6,13 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/server/requests"
+	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/templates"
 	"OpenLinkHub/src/version"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/zcalusic/sysinfo"
 	"net/http"
 	"sync"
 )
@@ -72,8 +72,39 @@ func homePage(w http.ResponseWriter, _ *http.Request) {
 // getCpuTemperature will return current cpu temperature
 func getCpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
-		Code: http.StatusOK,
-		Data: temperatures.GetCpuTemperature(),
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   temperatures.GetCpuTemperature(),
+	}
+	resp.Send(w)
+}
+
+// getGpuTemperature will return current gpu temperature
+func getGpuTemperature(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   temperatures.GetGpuTemperature(),
+	}
+	resp.Send(w)
+}
+
+// getNvmeTemperature will return current gpu temperature
+func getNvmeTemperature(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   temperatures.GetNvmeTemperature(),
+	}
+	resp.Send(w)
+}
+
+// getAIOData will return a list of all AIOs pump speed and liquid temperature
+func getAIOData(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   devices.GetAIOData(),
 	}
 	resp.Send(w)
 }
@@ -287,8 +318,13 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.Rgb = rgb.GetRGB().Profiles
 	web.BuildInfo = version.GetBuildInfo()
-
+	web.SystemInfo = systeminfo.GetInfo()
 	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
 	err := t.ExecuteTemplate(w, "devices.html", web)
 	if err != nil {
 		fmt.Println(err)
@@ -306,16 +342,18 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.BuildInfo = version.GetBuildInfo()
-
-	// System info
-	var si sysinfo.SysInfo
-	si.GetSysInfo()
-	web.SystemInfo = si
+	web.SystemInfo = systeminfo.GetInfo()
 	web.CpuTemp = temperatures.GetCpuTemperature()
-
+	web.GpuTemp = temperatures.GetGpuTemperature()
 	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
 	err := t.ExecuteTemplate(w, "index.html", web)
 	if err != nil {
+		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
 			Message: "unable to serve web content",
@@ -331,8 +369,13 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Devices = devices.GetDevices()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
-
+	web.SystemInfo = systeminfo.GetInfo()
 	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
 	err := t.ExecuteTemplate(w, "temperature.html", web)
 	if err != nil {
 		resp := &Response{
@@ -350,8 +393,13 @@ func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Devices = devices.GetDevices()
 	web.Rgb = rgb.GetRgbProfiles()
 	web.BuildInfo = version.GetBuildInfo()
-
+	web.SystemInfo = systeminfo.GetInfo()
 	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
 	err := t.ExecuteTemplate(w, "rgb.html", web)
 
 	if err != nil {
@@ -370,8 +418,13 @@ func uiDocumentationOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Devices = devices.GetDevices()
 	web.Configuration = config.GetConfig()
 	web.BuildInfo = version.GetBuildInfo()
-
+	web.SystemInfo = systeminfo.GetInfo()
 	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
 	err := t.ExecuteTemplate(w, "docs.html", web)
 
 	if err != nil {
@@ -391,8 +444,14 @@ func setRoutes() *mux.Router {
 	// API
 	r.Methods(http.MethodGet).Path("/api/").
 		HandlerFunc(homePage)
-	r.Methods(http.MethodGet).Path("/api/cputemp").
+	r.Methods(http.MethodGet).Path("/api/cpuTemp").
 		HandlerFunc(getCpuTemperature)
+	r.Methods(http.MethodGet).Path("/api/gpuTemp").
+		HandlerFunc(getGpuTemperature)
+	r.Methods(http.MethodGet).Path("/api/nvmeTemp").
+		HandlerFunc(getNvmeTemperature)
+	r.Methods(http.MethodGet).Path("/api/aio").
+		HandlerFunc(getAIOData)
 	r.Methods(http.MethodGet).Path("/api/devices").
 		HandlerFunc(getDevice)
 	r.Methods(http.MethodGet).Path("/api/devices/{deviceOd}").
@@ -444,11 +503,20 @@ func setRoutes() *mux.Router {
 
 // Init will start a new web server used for metrics and fan control
 func Init() {
-	header := &Header{
-		Key:   "Content-Type",
-		Value: "application/json",
+	headers = []Header{
+		{
+			Key:   "Cache-Control",
+			Value: "no-cache, no-store, must-revalidate",
+		},
+		{
+			Key:   "Pragma",
+			Value: "no-cache",
+		},
+		{
+			Key:   "Expires",
+			Value: "0",
+		},
 	}
-	headers = append(headers, *header)
 
 	if config.GetConfig().ListenPort > 0 {
 		templates.Init()

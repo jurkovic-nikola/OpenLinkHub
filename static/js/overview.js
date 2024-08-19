@@ -106,8 +106,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     $.each(result.device.devices, function( index, value ) {
                         const elementSpeedId = "#speed-" + value.deviceId;
                         const elementTemperatureId = "#temperature-" + value.deviceId;
-                        $(elementSpeedId).html(value.rpm);
-                        $(elementTemperatureId).html(value.temperature);
+                        $(elementSpeedId).html(value.rpm + " RPM");
+                        $(elementTemperatureId).html(value.temperature + " °C");
                     });
                 }
             });

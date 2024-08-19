@@ -24,6 +24,8 @@ type Web struct {
 	Rgb           map[string]rgb.Profile
 	SystemInfo    interface{}
 	CpuTemp       float32
+	GpuTemp       float32
+	StorageTemp   []temperatures.StorageTemperatures
 	BuildInfo     *version.BuildInfo
 }
 

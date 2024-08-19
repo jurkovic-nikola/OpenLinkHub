@@ -568,12 +568,12 @@ func (d *Device) getDeviceData() {
 			}
 			val := binary.BigEndian.Uint16(rpm[1:])
 			if _, ok := d.Devices[m]; ok {
-				if val > 0 {
+				if val > 1 {
 					d.Devices[m].Rpm = int16(val)
 				}
-				m++
 			}
 		}
+		m++
 	}
 
 	// Temperature probes
@@ -592,12 +592,12 @@ func (d *Device) getDeviceData() {
 			}
 			val := binary.BigEndian.Uint16(temp[1:]) / 100
 			if _, ok := d.Devices[m]; ok {
-				if val > 0 {
+				if val > 1 {
 					d.Devices[m].Temperature = float32(val)
 				}
-				m++
 			}
 		}
+		m++
 	}
 }
 
@@ -639,7 +639,9 @@ func (d *Device) getDevices() int {
 					}
 					// Device label
 					if lb, ok := d.DeviceProfile.Labels[m]; ok {
-						label = lb
+						if len(lb) > 0 {
+							label = lb
+						}
 					}
 				} else {
 					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -647,9 +649,9 @@ func (d *Device) getDevices() int {
 
 				// Build device object
 				device := &Devices{
-					ChannelId:   m,
-					DeviceId:    fmt.Sprintf("%s-%v", "Fan", m),
-					Name:        fmt.Sprintf("Fan %d", m+1),
+					ChannelId:   s,
+					DeviceId:    fmt.Sprintf("%s-%v", "Fan", s),
+					Name:        fmt.Sprintf("Fan %d", s+1),
 					Rpm:         int16(val),
 					Temperature: 0,
 					Description: "Fan",
@@ -661,9 +663,9 @@ func (d *Device) getDevices() int {
 					HasTemps:    false,
 				}
 				devices[m] = device
-				m++
 			}
 		}
+		m++
 	}
 
 	// Temperature probes
@@ -696,8 +698,8 @@ func (d *Device) getDevices() int {
 				HasTemps:    true,
 			}
 			devices[m] = device
-			m++
 		}
+		m++
 	}
 
 	// RGB

@@ -61,7 +61,6 @@ nav#sidebar {
 }
 
 .newTemp {
-    outline:1px solid #7c7c7c;
     cursor: pointer;
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
@@ -72,7 +71,7 @@ nav#sidebar {
     cursor: pointer;
 }
 .newTemp:hover {
-    outline:1px solid #a6a6a6;
+    border: 1px solid #a6a6a6;
     cursor: pointer;
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
@@ -87,4 +86,95 @@ nav#sidebar {
     background-color: #1c1c1c;
     width: 100%;
     border: 1px solid #3a6999;
+}
+
+.page-content {
+    overflow: hidden;
+    margin: 0 auto;
+    background: #121212;
+}
+
+.container-fluid {
+    width: auto;
+    overflow: hidden;
+    height: auto;
+}
+
+.bg-dash-dark-2 {
+    background: #181818 !important;
+    border-bottom: 1px solid #454545;
+}
+.py-4 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+footer {
+    border-top: 1px solid #454545;
+}
+
+.card {
+    background-color: #181818;
+    border: 1px solid #535353;
+}
+
+.card-header {
+    padding: 1.125rem 1.5rem;
+    margin-bottom: 0;
+    background-color: #181818;
+    border-bottom: 0 solid rgba(0, 0, 0, .125);
+}
+
+.text-dash-color-2 {
+    color: #487fa1 !important;
+}
+
+.text-dash-color-3 {
+    color: #898989 !important;
+}
+
+.progress {
+    color: #2d2d2d !important;
+}
+
+.progress-bar {
+    background-color: #555555;
+}
+
+.form-select {
+    background-color: #181818 !important;
+}
+
+.form-control {
+    background-color: #181818 !important;
+}
+
+.btn-secondary {
+    color: #a1a1a1;
+    background-color: #252525;
+    border-color: #535353;
+}
+
+.btn-secondary:hover {
+    color: #fff;
+    background-color: #484848;
+    border-color: #6e6e6e;
+}
+
+.active-nav-link {
+    color: #fff;
+    background-color: #484848;
+    border-color: #6e6e6e;
+}
+
+.modal-content {
+    background-color: #181818;
+}
+
+.box-info {
+    margin-left: 12px;
+    border: 1px solid #454545;
+    margin-bottom:10px;
+    width:auto;
+    padding-top: 0;
 }

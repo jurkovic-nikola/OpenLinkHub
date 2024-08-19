@@ -1,5 +1,7 @@
 .idea/
 build/
+rpmbuild/
+release/
 build.sh
 OpenLinkHub
 stdout.log

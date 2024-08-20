@@ -30,6 +30,11 @@ func (r *ActiveRGB) Colorwarp(i int, RGBStartColor *Color, RGBEndColor *Color) {
 			byte(colors[j].G),
 			byte(colors[j].B),
 		}
+		if r.ContainsPump && r.HasLCD {
+			if j > 15 && j < 20 {
+				buf[j] = []byte{0, 0, 0}
+			}
+		}
 	}
 	r.Output = SetColor(buf)
 }

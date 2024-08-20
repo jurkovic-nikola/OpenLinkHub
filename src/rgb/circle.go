@@ -33,6 +33,11 @@ func (r *ActiveRGB) Circle(i int) {
 				byte(color.B),
 			}
 		}
+		if r.ContainsPump && r.HasLCD {
+			if j > 15 && j < 20 {
+				buf[j] = []byte{0, 0, 0}
+			}
+		}
 	}
 	r.Output = SetColor(buf)
 }

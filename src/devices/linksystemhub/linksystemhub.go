@@ -917,11 +917,37 @@ func (d *Device) setDeviceColor() {
 		if s == l { // number of devices matches number of devices with static profile
 			profile := rgb.GetRgbProfile("static")
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for i := 0; i < lightChannels; i++ {
-				reset[i] = []byte{
-					byte(profileColor.Red),
-					byte(profileColor.Green),
-					byte(profileColor.Blue),
+			m := 0
+			keys := make([]int, 0)
+			for k := range d.Devices {
+				keys = append(keys, k)
+			}
+			sort.Ints(keys)
+
+			for _, k := range keys {
+				if d.Devices[k].LedChannels > 0 {
+					if d.HasLCD && d.Devices[k].AIO {
+						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+							reset[m] = []byte{
+								byte(profileColor.Red),
+								byte(profileColor.Green),
+								byte(profileColor.Blue),
+							}
+							if i > 15 && i < 20 {
+								reset[m] = []byte{byte(color.Red), byte(color.Green), byte(color.Blue)}
+							}
+							m++
+						}
+					} else {
+						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+							reset[m] = []byte{
+								byte(profileColor.Red),
+								byte(profileColor.Green),
+								byte(profileColor.Blue),
+							}
+							m++
+						}
+					}
 				}
 			}
 			buffer = rgb.SetColor(reset)
@@ -979,6 +1005,8 @@ func (d *Device) setDeviceColor() {
 						time.Duration(rgbModeSpeed)*time.Second,
 						rgbCustomColor,
 					)
+					r.ContainsPump = d.Devices[k].AIO
+					r.HasLCD = d.HasLCD
 
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor

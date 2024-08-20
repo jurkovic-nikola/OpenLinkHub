@@ -13,17 +13,17 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 - Take care and have fun!
 ## Supported devices
 
-| Device                 | VID    | PID                | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-|------------------------|--------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| iCUE LINK System Hub   | `1b1c` | `0c3f`             | iCUE LINK QX Fan<br />iCUE LINK RX Fan<br/>iCUE LINK RX RGB Fan<br/>iCUE LINK RX MAX Fan<br/>iCUE LINK H100i<br/>iCUE LINK H115i<br/>iCUE LINK H150i<br/>iCUE LINK H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module<br />iCUE LINK TITAN H100i<br />iCUE LINK TITAN H150i<br />iCUE LINK TITAN H115i<br />iCUE LINK TITAN H170i                                                                                                                                                                   | |                                                                                                                                                                   |
-| iCUE COMMANDER Core    | `1b1c` | `0c32`<br />`0c1c` | H100i ELITE CAPELLIX<br />H115i ELITE CAPELLIX<br />H150i ELITE CAPELLIX<br />H170i ELITE CAPELLIX<br />H100i ELITE LCD<br />H150i ELITE LCD<br />H170i ELITE LCD<br />H100i ELITE LCD XT<br />H115i ELITE LCD XT<br />H150i ELITE LCD XT<br />H170i ELITE LCD XT<br />H100i ELITE CAPELLIX XT<br />H115i ELITE CAPELLIX XT<br />H150i ELITE CAPELLIX XT<br />H170i ELITE CAPELLIX XT<br />1x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan |
-| iCUE COMMANDER Core XT | `1b1c` | `0c2a`             | External RGB Hub<br />2x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan<br />H55 RGB AIO<br />H100 RGB AIO<br />H150 RGB AIO                                                                                                                                                                                                                                                                                                                 |
-| iCUE H100i RGB ELITE   | `1b1c` | `0c35`<br />`0c40` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| iCUE H115i RGB ELITE   | `1b1c` | `0c36`             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| iCUE H150i RGB ELITE   | `1b1c` | `0c37`<br />`0c41` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Lighting Node CORE     | `1b1c` | `0c1a`             | HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                                                                                                              |
-| Lighting Node PRO      | `1b1c` | `0c0b`             | 2x External RGB Hub<br />HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan                                                                                                                                                                                                                                                                                                                                                                     |
-| Commander PRO          | `1b1c` | `0c10`             | 2x External RGB Hub<br />4x Temperature Probe<br />Any PWM Fan                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Device                 | VID    | PID                | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+|------------------------|--------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| iCUE LINK System Hub   | `1b1c` | `0c3f`             | <details><summary>Show</summary>iCUE LINK QX Fan<br />iCUE LINK RX Fan<br/>iCUE LINK RX RGB Fan<br/>iCUE LINK RX MAX Fan<br/>iCUE LINK H100i<br/>iCUE LINK H115i<br/>iCUE LINK H150i<br/>iCUE LINK H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module<br />iCUE LINK TITAN H100i<br />iCUE LINK TITAN H150i<br />iCUE LINK TITAN H115i<br />iCUE LINK TITAN H170i</details>                                                                                                                                                                   | |                                                                                                                                                                   |
+| iCUE COMMANDER Core    | `1b1c` | `0c32`<br />`0c1c` | <details><summary>Show</summary>H100i ELITE CAPELLIX<br />H115i ELITE CAPELLIX<br />H150i ELITE CAPELLIX<br />H170i ELITE CAPELLIX<br />H100i ELITE LCD<br />H150i ELITE LCD<br />H170i ELITE LCD<br />H100i ELITE LCD XT<br />H115i ELITE LCD XT<br />H150i ELITE LCD XT<br />H170i ELITE LCD XT<br />H100i ELITE CAPELLIX XT<br />H115i ELITE CAPELLIX XT<br />H150i ELITE CAPELLIX XT<br />H170i ELITE CAPELLIX XT<br />1x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan</details> |
+| iCUE COMMANDER Core XT | `1b1c` | `0c2a`             | <details><summary>Show</summary>External RGB Hub<br />2x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan<br />H55 RGB AIO<br />H100 RGB AIO<br />H150 RGB AIO</details>                                                                                                                                                                                                                                                                                                                 |
+| iCUE H100i RGB ELITE   | `1b1c` | `0c35`<br />`0c40` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| iCUE H115i RGB ELITE   | `1b1c` | `0c36`             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| iCUE H150i RGB ELITE   | `1b1c` | `0c37`<br />`0c41` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Lighting Node CORE     | `1b1c` | `0c1a`             | <details><summary>Show</summary>HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan</details>                                                                                                                                                                                                                                                                                                                                                                                              |
+| Lighting Node PRO      | `1b1c` | `0c0b`             | <details><summary>Show</summary>2x External RGB Hub<br />HD RGB Series Fan<br />LL RGB Series Fan<br />ML PRO RGB Series Fan<br />QL RGB Series Fan<br />8-LED Series Fan<br />SP RGB Series Fan</details>                                                                                                                                                                                                                                                                                                                                                                     |
+| Commander PRO          | `1b1c` | `0c10`             | <details><summary>Show</summary>2x External RGB Hub<br />4x Temperature Probe<br />Any PWM Fan</details>                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## Installation (automatic)
 As of 0.1.5 version, OpenLinkHub ships with `.deb` and `.rpm` packages for ease of installation.
@@ -34,7 +34,7 @@ Packages will also take care of systemd service creation and first startup.
 3. Navigate to the folder where the package is downloaded
 ```bash
 # Debian Based (deb)
-$ sudo dpkg -i openlinkhub_X.X.X_amd64.deb 
+$ sudo dpkg -i OpenLinkHub_X.X.X_amd64.deb 
 
 # RPM based (rpm)
 $ sudo rpm -ivh OpenLinkHub-X.X.X-1.x86_64.rpm
@@ -51,108 +51,26 @@ $ sudo apt-get install libudev-dev
 # Required packages (rpm)
 $ sudo dnf install libudev-devel
 ```
-### 2. Build
+### 2. Build & install
 ```bash
-# Build
-git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
-cd OpenLinkHub/
-go build .
-```
-### 3. Installation
-```bash
-# Installation
-# Make root directory
-sudo mkdir /opt/OpenLinkHub
-
-# Copy binary to a root directory
-sudo cp OpenLinkHub /opt/OpenLinkHub
-
-# Copy service configuration to a root directory
-sudo cp config.json /opt/OpenLinkHub
-
-# Copy database/ folder to to a root directory
-sudo cp -r database/ /opt/OpenLinkHub
-
-# Copy static/ folder to to a root directory
-sudo cp -r static/ /opt/OpenLinkHub/
-
-# Copy web/ folder to to a root directory
-sudo cp -r web/ /opt/OpenLinkHub/
-
-# Give your username permission to a root folder and everything bellow
-# Replace your-username with your login name
-sudo chown -R your-username:root /opt/OpenLinkHub/
-
-# Finding your device:
-$ lsusb -d 1b1c:
-Bus 003 Device 007: ID 1b1c:0c2a Corsair CORSAIR iCUE COMMANDER CORE XT
-Bus 003 Device 005: ID 1b1c:0c1c Corsair CORSAIR iCUE Commander CORE
-Bus 003 Device 002: ID 1b1c:0c3f Corsair iCUE LINK System Hub
-Bus 001 Device 004: ID 1b1c:0c3f Corsair iCUE LINK System Hub
-Bus 003 Device 010: ID 1b1c:0c35 Corsair H100iELITE
-Bus 003 Device 011: ID 1b1c:0c37 Corsair H150iELITE
-
-# Allow hidraw communication as non-root - Link System Hub
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c3f\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-icuelink.rules
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c4e\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-icuelink-lcd.rules
-
-# Allow hidraw communication as non-root - iCUE Commander Core
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c32\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-cc-64.rules
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c39\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-lcd.rules
-
-# Allow hidraw communication as non-root - iCUE Commander Core
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c1c\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-cc-96.rules
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c39\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-lcd.rules
-
-# Allow hidraw communication as non-root - iCUE Commander Core XT
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c2a\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-ccxt.rules
-
-# Allow hidraw communication as non-root - iCUE H100i Elite RGB
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c35\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-h100i.rules
-
-# Allow hidraw communication as non-root - iCUE H100i Elite White RGB
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c40\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-h100i-white.rules
-
-# Allow hidraw communication as non-root - iCUE H115i Elite RGB
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c36\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-h115i.rules
-
-# Allow hidraw communication as non-root - iCUE H150i Elite RGB
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c37\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-h150i.rules
-
-# Allow hidraw communication as non-root - iCUE H150i Elite White RGB
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c41\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-elite-h150i-white.rules
-
-# Allow hidraw communication as non-root - CORSAIR Lighting Node CORE
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c1a\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-lncore.rules
-
-# Allow hidraw communication as non-root - CORSAIR Lighting Node Pro
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c0b\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-corsair-lnpro.rules
-
-# Allow hidraw communication as non-root - Corsair Commander PRO
-echo "KERNEL==\"hidraw*\", SUBSYSTEMS==\"usb\", ATTRS{idVendor}==\"1b1c\", ATTRS{idProduct}==\"0c10\", MODE=\"0666\"" | sudo tee /etc/udev/rules.d/99-cpro.rules
-
-
-# Reload udev rules without reboot
-sudo udevadm control --reload-rules && sudo udevadm trigger
+$ git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
+$ cd OpenLinkHub/
+$ go build .
+$ chmod +x install.sh
+$ sudo sh install.sh
 ```
 
-### 4. Installation from compiled build
+### 3. Installation from compiled build
 ```bash
-# Installation
-
-# Make main folder
-$ mkdir OpenLinkHub && cd OpenLinkHub
-
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.5-rc/OpenLinkHub_0.1.5_amd64.tar.gz
-
-# Extract package
-$ tar xvf OpenLinkHub_0.1.5_amd64.tar.gz
-
-# Continue from 3. Installation section for next steps
+$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.6-rc/OpenLinkHub_0.1.6_amd64.tar.gz
+$ tar xvf OpenLinkHub_0.1.6_amd64.tar.gz
+$ cd OpenLinkHub/
+$ chmod +x install.sh
+$ sudo sh install.sh
 ```
 
-### 5. Configuration
+### 4. Configuration
 ```json
 {
   "listenPort": 27003,
@@ -187,8 +105,6 @@ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.
   - Device Overview:
     - Change temperature profile per channel
     - Change RGB mode per device
-  - RGB Overview:
-    - Overview of existing RGB modes
   - Temperature Overview:
     - Create new profiles
     - Update existing profiles

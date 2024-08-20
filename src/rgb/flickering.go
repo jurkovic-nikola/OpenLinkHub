@@ -30,30 +30,21 @@ func (r *ActiveRGB) Flickering(i int) {
 	for j, color := range colors {
 		if rand.Intn(2) == 1 {
 			buf[j] = []byte{0, 0, 0}
+			if r.ContainsPump && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
+			}
 		} else {
 			buf[j] = []byte{
 				byte(color.R),
 				byte(color.G),
 				byte(color.B),
 			}
-		}
-	}
-	r.Output = SetColor(buf)
-}
-
-// FlickeringSync will run RGB function
-func (r *ActiveRGB) FlickeringSync(i, lc int) {
-	buf := map[int][]byte{}
-	t := float64(i) / float64(r.Smoothness) // Calculate interpolation factor
-	colors := generateFlickeringColors(lc, r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
-	for j, color := range colors {
-		if rand.Intn(2) == 1 {
-			buf[j] = []byte{0, 0, 0}
-		} else {
-			buf[j] = []byte{
-				byte(color.R),
-				byte(color.G),
-				byte(color.B),
+			if r.ContainsPump && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

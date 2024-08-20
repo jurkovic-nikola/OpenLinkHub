@@ -50,6 +50,8 @@ type ActiveRGB struct {
 	Tracking               []int
 	Phase                  int
 	TempColor              *Color
+	ContainsPump           bool
+	HasLCD                 bool
 }
 
 var rgb RGB

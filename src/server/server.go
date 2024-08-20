@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"sync"
 )
@@ -89,12 +90,12 @@ func getGpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getNvmeTemperature will return current gpu temperature
-func getNvmeTemperature(w http.ResponseWriter, _ *http.Request) {
+// getStorageTemperature will return current storage temperature
+func getStorageTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
 		Status: 1,
-		Data:   temperatures.GetNvmeTemperature(),
+		Data:   temperatures.GetStorageTemperatures(),
 	}
 	resp.Send(w)
 }
@@ -107,6 +108,12 @@ func getAIOData(w http.ResponseWriter, _ *http.Request) {
 		Data:   devices.GetAIOData(),
 	}
 	resp.Send(w)
+}
+
+// getDeviceMetrics will return a list device metrics in prometheus format
+func getDeviceMetrics(w http.ResponseWriter, r *http.Request) {
+	devices.UpdateDeviceMetrics()
+	promhttp.Handler().ServeHTTP(w, r)
 }
 
 // getDevices returns response on /devices
@@ -448,8 +455,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getCpuTemperature)
 	r.Methods(http.MethodGet).Path("/api/gpuTemp").
 		HandlerFunc(getGpuTemperature)
-	r.Methods(http.MethodGet).Path("/api/nvmeTemp").
-		HandlerFunc(getNvmeTemperature)
+	r.Methods(http.MethodGet).Path("/api/storageTemp").
+		HandlerFunc(getStorageTemperature)
 	r.Methods(http.MethodGet).Path("/api/aio").
 		HandlerFunc(getAIOData)
 	r.Methods(http.MethodGet).Path("/api/devices").
@@ -484,6 +491,12 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setDeviceLabel)
 	r.Methods(http.MethodPost).Path("/api/lcd").
 		HandlerFunc(setDeviceLcd)
+
+	// Prometheus metrics
+	if config.GetConfig().Metrics {
+		r.Methods(http.MethodGet).Path("/api/metrics").
+			HandlerFunc(getDeviceMetrics)
+	}
 
 	if config.GetConfig().Frontend {
 		// Frontend

@@ -207,8 +207,8 @@
                         {{ end }}
 
                         <!-- Storage -->
-                        {{ if .SystemInfo.NVME }}
-                        {{ range .SystemInfo.NVME }}
+                        {{ if .SystemInfo.Storage }}
+                        {{ range .SystemInfo.Storage }}
                         <div class="col-md-2">
                             <div class="card mb-4">
                                 <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .Model }}</div>
@@ -220,7 +220,7 @@
                                             </svg>
                                             <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temperature</p>
                                         </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="nvme_temp-{{ .Key }}">{{ .Temperature }} °C</p>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="storage_temp-{{ .Key }}">{{ .Temperature }} °C</p>
                                     </div>
                                     <div class="progress" style="height: 3px">
                                         <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>

@@ -4,5 +4,6 @@
   "cpuSensorChip": "",
   "manual": false,
   "frontend": true,
-  "refreshOnStart": false
+  "refreshOnStart": false,
+  "metrics": false
 }

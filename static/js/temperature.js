@@ -57,6 +57,9 @@ document.addEventListener("DOMContentLoaded", function () {
         pf["static"] = staticMode;
         pf["zeroRpm"] = zeroRpmMode;
         pf["sensor"] = parseInt(sensor);
+        if (parseInt(sensor) === 3) {
+            pf["hwmonDeviceId"] = $("#hwmonDeviceId").val();
+        }
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -190,5 +193,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         });
+    });
+
+    $('#sensor').on('change', function () {
+        const value = $(this).val();
+        if (value === "3") {
+            $("#storage-data").show();
+        } else {
+            $("#storage-data").hide();
+        }
     });
 });

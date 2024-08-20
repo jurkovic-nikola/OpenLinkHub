@@ -12,6 +12,7 @@ type Configuration struct {
 	Manual         bool   `json:"manual"`
 	Frontend       bool   `json:"frontend"`
 	RefreshOnStart bool   `json:"refreshOnStart"`
+	Metrics        bool   `json:"metrics"`
 }
 
 var configuration Configuration

@@ -98,7 +98,19 @@
                                                     <option value="0" selected>CPU</option>
                                                     <option value="1">GPU</option>
                                                     <option value="2">Liquid Temperature</option>
+                                                    <option value="3">Storage Temperature</option>
                                                 </select>
+
+                                                {{ if .SystemInfo.Storage }}
+                                                <div id="storage-data" style="display: none;">
+                                                    <label class="form-label" for="hwmonDeviceId">Storage Device:</label>
+                                                    <select class="form-select mb-1 tempProfile" id="hwmonDeviceId">
+                                                        {{ range .SystemInfo.Storage }}
+                                                        <option value="{{ .Key }}">{{ .Model }}</option>
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                {{ end }}
 
                                                 <div class="form-check">
                                                     <input class="form-check-input" id="staticCheckbox" type="checkbox">
@@ -153,6 +165,10 @@
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: GPU</p>
                                                 {{ else if eq $value.Sensor 2 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: Liquid Temperature</p>
+                                                {{ else if eq $value.Sensor 3 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Storage Temperature</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">Device ID: {{ $value.Device }}</p>
+
                                                 {{ end }}
 
                                                 {{ if $value.ZeroRpm }}

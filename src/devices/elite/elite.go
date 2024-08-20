@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
@@ -62,22 +63,23 @@ type SupportedDevice struct {
 }
 
 type Devices struct {
-	ChannelId    int     `json:"channelId"`
-	DeviceId     string  `json:"deviceId"`
-	Type         byte    `json:"type"`
-	Mode         byte    `json:"-"`
-	Name         string  `json:"name"`
-	Rpm          uint16  `json:"rpm"`
-	Temperature  float64 `json:"temperature"`
-	LedChannels  uint8   `json:"-"`
-	ContainsPump bool    `json:"-"`
-	Description  string  `json:"description"`
-	Profile      string  `json:"profile"`
-	RGB          string  `json:"rgb"`
-	Label        string  `json:"label"`
-	PumpModes    map[byte]string
-	HasSpeed     bool
-	HasTemps     bool
+	ChannelId          int     `json:"channelId"`
+	DeviceId           string  `json:"deviceId"`
+	Type               byte    `json:"type"`
+	Mode               byte    `json:"-"`
+	Name               string  `json:"name"`
+	Rpm                uint16  `json:"rpm"`
+	Temperature        float64 `json:"temperature"`
+	LedChannels        uint8   `json:"-"`
+	ContainsPump       bool    `json:"-"`
+	Description        string  `json:"description"`
+	Profile            string  `json:"profile"`
+	RGB                string  `json:"rgb"`
+	Label              string  `json:"label"`
+	PumpModes          map[byte]string
+	HasSpeed           bool
+	HasTemps           bool
+	IsTemperatureProbe bool
 }
 
 type Device struct {
@@ -684,6 +686,30 @@ func (d *Device) GetAIOData() (uint16, float64) {
 		}
 	}
 	return 0, 0
+}
+
+// UpdateDeviceMetrics will update device metrics
+func (d *Device) UpdateDeviceMetrics() {
+	for _, device := range d.Devices {
+		header := &metrics.Header{
+			Product:          d.Product,
+			Serial:           d.Serial,
+			Firmware:         d.Firmware,
+			ChannelId:        strconv.Itoa(device.ChannelId),
+			Name:             device.Name,
+			Description:      device.Description,
+			Profile:          device.Profile,
+			Label:            device.Label,
+			RGB:              device.RGB,
+			AIO:              strconv.FormatBool(device.ContainsPump),
+			ContainsPump:     strconv.FormatBool(device.ContainsPump),
+			Temperature:      device.Temperature,
+			LedChannels:      strconv.Itoa(int(device.LedChannels)),
+			Rpm:              int16(device.Rpm),
+			TemperatureProbe: strconv.FormatBool(device.IsTemperatureProbe),
+		}
+		metrics.Populate(header)
+	}
 }
 
 // getDevices will fetch all devices connected to a hub

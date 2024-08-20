@@ -14,23 +14,24 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId     string    `json:"deviceId"`
-	ChannelId    int       `json:"channelId"`
-	Mode         uint8     `json:"mode"`
-	Value        uint16    `json:"value"`
-	Color        rgb.Color `json:"color"`
-	Profile      string    `json:"profile"`
-	Label        string    `json:"label"`
-	Static       bool      `json:"static"`
-	Sensor       uint8     `json:"sensor"`
-	ZeroRpm      bool      `json:"zeroRpm"`
-	Enabled      bool      `json:"enabled"`
-	DeviceType   int       `json:"deviceType"`
-	DeviceAmount int       `json:"deviceAmount"`
-	PortId       int       `json:"portId"`
-	Status       int
-	Code         int
-	Message      string
+	DeviceId      string    `json:"deviceId"`
+	ChannelId     int       `json:"channelId"`
+	Mode          uint8     `json:"mode"`
+	Value         uint16    `json:"value"`
+	Color         rgb.Color `json:"color"`
+	Profile       string    `json:"profile"`
+	Label         string    `json:"label"`
+	Static        bool      `json:"static"`
+	Sensor        uint8     `json:"sensor"`
+	ZeroRpm       bool      `json:"zeroRpm"`
+	HwmonDeviceId string    `json:"hwmonDeviceId"`
+	Enabled       bool      `json:"enabled"`
+	DeviceType    int       `json:"deviceType"`
+	DeviceAmount  int       `json:"deviceAmount"`
+	PortId        int       `json:"portId"`
+	Status        int
+	Code          int
+	Message       string
 }
 
 func ProcessDeleteTemperatureProfile(r *http.Request) *Payload {
@@ -146,7 +147,6 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	static := req.Static
 	sensor := req.Sensor
 	zeroRpm := req.ZeroRpm
-
 	if len(profile) < 3 {
 		return &Payload{
 			Message: "Unable to validate your request. Profile name is less then 3 characters",
@@ -163,15 +163,19 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 2 || sensor < 0 {
+	if sensor > 3 || sensor < 0 {
 		return &Payload{
 			Message: "Unable to validate your request. Invalid sensor value",
 			Code:    http.StatusOK,
 			Status:  0,
 		}
 	}
+	hwmonDeviceId := ""
+	if sensor == 3 {
+		hwmonDeviceId = req.HwmonDeviceId
+	}
 
-	if temperatures.AddTemperatureProfile(profile, static, zeroRpm, sensor) {
+	if temperatures.AddTemperatureProfile(profile, hwmonDeviceId, static, zeroRpm, sensor) {
 		return &Payload{
 			Message: "Speed profile is successfully saved",
 			Code:    http.StatusOK,

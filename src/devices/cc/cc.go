@@ -33,6 +33,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
@@ -43,6 +44,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -76,6 +78,7 @@ var (
 	dataTypeSetColor           = []byte{0x12, 0x00}
 	dataTypeSubColor           = []byte{0x07, 0x00}
 	mutex                      sync.Mutex
+	mutexLcd                   sync.Mutex
 	bufferSize                 = 64
 	bufferSizeWrite            = bufferSize + 1
 	transferTimeout            = 500
@@ -961,6 +964,13 @@ func (d *Device) updateDeviceSpeed() {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
 							}
 						}
+					case temperatures.SensorTypeStorage:
+						{
+							temp = temperatures.GetStorageTemperature(profiles.Device)
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get storage temperature.")
+							}
+						}
 					}
 
 					// All temps failed, default to 50
@@ -1312,6 +1322,30 @@ func (d *Device) GetAIOData() (int16, float32) {
 	return 0, 0
 }
 
+// UpdateDeviceMetrics will update device metrics
+func (d *Device) UpdateDeviceMetrics() {
+	for _, device := range d.Devices {
+		header := &metrics.Header{
+			Product:          d.Product,
+			Serial:           d.Serial,
+			Firmware:         d.Firmware,
+			ChannelId:        strconv.Itoa(device.ChannelId),
+			Name:             device.Name,
+			Description:      device.Description,
+			Profile:          device.Profile,
+			Label:            device.Label,
+			RGB:              device.RGB,
+			AIO:              strconv.FormatBool(device.ContainsPump),
+			ContainsPump:     strconv.FormatBool(device.ContainsPump),
+			Temperature:      float64(device.Temperature),
+			LedChannels:      strconv.Itoa(int(device.LedChannels)),
+			Rpm:              device.Rpm,
+			TemperatureProbe: strconv.FormatBool(device.IsTemperatureProbe),
+		}
+		metrics.Populate(header)
+	}
+}
+
 // initLedPorts will prep LED physical ports for reading
 func (d *Device) initLedPorts() {
 	for i := 1; i <= 6; i++ {
@@ -1647,8 +1681,8 @@ func (d *Device) setupLCD() {
 
 // transferToLcd will transfer data to LCD panel
 func (d *Device) transferToLcd(buffer []byte) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutexLcd.Lock()
+	defer mutexLcd.Unlock()
 	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
 	for i, chunk := range chunks {
 		bufferW := make([]byte, lcdBufferSize)

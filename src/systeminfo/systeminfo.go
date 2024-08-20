@@ -23,7 +23,7 @@ type GpuData struct {
 	Model string
 }
 
-type NvmeData struct {
+type StorageData struct {
 	Model       string
 	Temperature float32
 	Key         string
@@ -35,10 +35,10 @@ type KernelData struct {
 }
 
 type SystemInfo struct {
-	CPU    *CpuData
-	GPU    *GpuData
-	Kernel *KernelData
-	NVME   *[]NvmeData
+	CPU     *CpuData
+	GPU     *GpuData
+	Kernel  *KernelData
+	Storage *[]StorageData
 }
 
 var info *SystemInfo
@@ -49,7 +49,7 @@ func Init() {
 	info.getCpuData()
 	info.getKernelData()
 	info.getGpuData()
-	info.GetNvmeData()
+	info.GetStorageData()
 }
 
 // GetInfo will return currently stored system info
@@ -213,56 +213,60 @@ func GetNVIDIAGpuModel() string {
 	return ""
 }
 
-// GetNvmeData will return NVME information
-func (si *SystemInfo) GetNvmeData() {
-	hwmonDir := "/sys/class/nvme"
+// GetStorageData will return storage information
+func (si *SystemInfo) GetStorageData() {
+	hwmonDir := "/sys/class/hwmon"
 	entries, err := os.ReadDir(hwmonDir)
 	if err != nil {
 		logger.Log(logger.Fields{"dir": hwmonDir, "error": err}).Error("Unable to read hwmon directory")
 		return
 	}
 
-	var storageList []NvmeData
+	var storageList []StorageData
 
 	for _, entry := range entries {
-		modelFile := filepath.Join(hwmonDir, entry.Name(), "model")
-		model, e := os.ReadFile(modelFile)
+		nameFile := filepath.Join(hwmonDir, entry.Name(), "name")
+		nameBytes, e := os.ReadFile(nameFile)
 		if e != nil {
 			continue
 		}
 
-		hwmonTemp := filepath.Join(hwmonDir, entry.Name())
-		hwmonList, e := os.ReadDir(hwmonTemp)
-		if e != nil {
-			logger.Log(logger.Fields{"dir": hwmonTemp, "error": err}).Error("Unable to read hwmon directory")
-			continue
-		}
-		var temperature float32 = 0.0
-		for _, hwmon := range hwmonList {
-			if strings.Contains(hwmon.Name(), "hwmon") {
-				tempFile := filepath.Join(hwmonTemp, hwmon.Name(), "temp1_input")
-				temp, e := os.ReadFile(tempFile)
-				if e != nil {
-					logger.Log(logger.Fields{"dir": hwmonTemp, "file": tempFile, "error": e}).Error("Unable to read hwmon file")
-					continue
-				}
+		name := strings.TrimSpace(string(nameBytes))
 
-				// Convert the temperature from milli-Celsius to Celsius
-				tempMilliC, e := strconv.Atoi(strings.TrimSpace(string(temp)))
-				if e != nil {
-					logger.Log(logger.Fields{"dir": hwmonTemp, "file": tempFile, "error": e}).Error("Unable to read nvme temperature file")
-					continue
-				}
-				temperature = float32(tempMilliC / 1000)
+		if string(name) == "nvme" || string(name) == "drivetemp" {
+			var temperature float32 = 0.0
+			tempFile := filepath.Join(hwmonDir, entry.Name(), "temp1_input")
+			temp, e := os.ReadFile(tempFile)
+			if e != nil {
+				logger.Log(logger.Fields{"dir": entry.Name(), "file": tempFile, "error": e}).Error("Unable to read hwmon file")
+				continue
 			}
+
+			// Convert the temperature from milli-Celsius to Celsius
+			tempMilliC, e := strconv.Atoi(strings.TrimSpace(string(temp)))
+			if e != nil {
+				logger.Log(logger.Fields{"dir": entry.Name(), "file": tempFile, "error": e}).Error("Unable to read nvme temperature file")
+				continue
+			}
+			temperature = float32(tempMilliC / 1000)
+
+			modelFile := filepath.Join(hwmonDir, entry.Name(), "device/model")
+			deviceModel, e := os.ReadFile(modelFile)
+			if e != nil {
+				logger.Log(logger.Fields{"dir": entry.Name(), "file": tempFile, "error": e}).Error("Unable to read hwmon file")
+				continue
+			}
+
+			model := strings.TrimSpace(string(deviceModel))
+
+			storage := StorageData{
+				Key:         entry.Name(),
+				Temperature: temperature,
+				Model:       model,
+			}
+			storageList = append(storageList, storage)
 		}
-		storage := NvmeData{
-			Key:         entry.Name(),
-			Temperature: temperature,
-			Model:       strings.TrimSpace(string(model)),
-		}
-		storageList = append(storageList, storage)
 	}
 
-	si.NVME = &storageList
+	si.Storage = &storageList
 }

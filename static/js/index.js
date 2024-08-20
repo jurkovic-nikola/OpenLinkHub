@@ -19,11 +19,11 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             $.ajax({
-                url:'/api/nvmeTemp',
+                url:'/api/storageTemp',
                 type:'get',
                 success:function(result){
                     $.each(result.data, function( index, value ) {
-                        $("#nvme_temp-" + value.Key).html(value.Temperature + " °C");
+                        $("#storage_temp-" + value.Key).html(value.Temperature + " °C");
                     });
                 }
             });

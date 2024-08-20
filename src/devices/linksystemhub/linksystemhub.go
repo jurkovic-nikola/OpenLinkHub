@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
@@ -21,6 +22,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -55,25 +57,26 @@ type SupportedDevice struct {
 
 // Devices contain information about devices connected to an iCUE Link
 type Devices struct {
-	ChannelId    int             `json:"channelId"`
-	Type         byte            `json:"type"`
-	Model        byte            `json:"-"`
-	DeviceId     string          `json:"deviceId"`
-	Name         string          `json:"name"`
-	DefaultValue byte            `json:"-"`
-	Rpm          int16           `json:"rpm"`
-	Temperature  float32         `json:"temperature"`
-	LedChannels  uint8           `json:"-"`
-	ContainsPump bool            `json:"-"`
-	Description  string          `json:"description"`
-	HubId        string          `json:"-"`
-	PumpModes    map[byte]string `json:"-"`
-	Profile      string          `json:"profile"`
-	RGB          string          `json:"rgb"`
-	Label        string          `json:"label"`
-	HasSpeed     bool
-	HasTemps     bool
-	AIO          bool
+	ChannelId          int             `json:"channelId"`
+	Type               byte            `json:"type"`
+	Model              byte            `json:"-"`
+	DeviceId           string          `json:"deviceId"`
+	Name               string          `json:"name"`
+	DefaultValue       byte            `json:"-"`
+	Rpm                int16           `json:"rpm"`
+	Temperature        float32         `json:"temperature"`
+	LedChannels        uint8           `json:"-"`
+	ContainsPump       bool            `json:"-"`
+	Description        string          `json:"description"`
+	HubId              string          `json:"-"`
+	PumpModes          map[byte]string `json:"-"`
+	Profile            string          `json:"profile"`
+	RGB                string          `json:"rgb"`
+	Label              string          `json:"label"`
+	IsTemperatureProbe bool
+	HasSpeed           bool
+	HasTemps           bool
+	AIO                bool
 }
 
 type Device struct {
@@ -120,6 +123,7 @@ var (
 	dataTypeSetColor           = []byte{0x12, 0x00}
 	dataTypeSubColor           = []byte{0x07, 0x00}
 	mutex                      sync.Mutex
+	mutexLcd                   sync.Mutex
 	authRefreshChan            = make(chan bool)
 	speedRefreshChan           = make(chan bool)
 	lcdRefreshChan             = make(chan bool)
@@ -498,6 +502,30 @@ func (d *Device) GetAIOData() (int16, float32) {
 	return 0, 0
 }
 
+// UpdateDeviceMetrics will update device metrics
+func (d *Device) UpdateDeviceMetrics() {
+	for _, device := range d.Devices {
+		header := &metrics.Header{
+			Product:          d.Product,
+			Serial:           d.Serial,
+			Firmware:         d.Firmware,
+			ChannelId:        strconv.Itoa(device.ChannelId),
+			Name:             device.Name,
+			Description:      device.Description,
+			Profile:          device.Profile,
+			Label:            device.Label,
+			RGB:              device.RGB,
+			AIO:              strconv.FormatBool(device.AIO),
+			ContainsPump:     strconv.FormatBool(device.ContainsPump),
+			Temperature:      float64(device.Temperature),
+			LedChannels:      strconv.Itoa(int(device.LedChannels)),
+			Rpm:              device.Rpm,
+			TemperatureProbe: strconv.FormatBool(device.IsTemperatureProbe),
+		}
+		metrics.Populate(header)
+	}
+}
+
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	if rgb.GetRgbProfile(profile) == nil {
@@ -580,6 +608,13 @@ func (d *Device) updateDeviceSpeed() {
 							temp = d.getLiquidTemperature()
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
+							}
+						}
+					case temperatures.SensorTypeStorage:
+						{
+							temp = temperatures.GetStorageTemperature(profiles.Device)
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get storage temperature.")
 							}
 						}
 					}
@@ -1453,8 +1488,8 @@ func (d *Device) writeColor(data []byte) {
 
 // transferToLcd will transfer data to LCD panel
 func (d *Device) transferToLcd(buffer []byte) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mutexLcd.Lock()
+	defer mutexLcd.Unlock()
 	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
 	for i, chunk := range chunks {
 		bufferW := make([]byte, lcdBufferSize)

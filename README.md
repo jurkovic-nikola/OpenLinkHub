@@ -63,8 +63,8 @@ $ sudo sh install.sh
 ### 3. Installation from compiled build
 ```bash
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.6-rc/OpenLinkHub_0.1.6_amd64.tar.gz
-$ tar xvf OpenLinkHub_0.1.6_amd64.tar.gz
+$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.7-rc/OpenLinkHub_0.1.7_amd64.tar.gz
+$ tar xvf OpenLinkHub_0.1.7_amd64.tar.gz
 $ cd OpenLinkHub/
 $ chmod +x install.sh
 $ sudo sh install.sh
@@ -77,7 +77,8 @@ $ sudo sh install.sh
   "listenAddress": "127.0.0.1",
   "cpuSensorChip": "k10temp",
   "manual": false,
-  "frontend": true
+  "frontend": true,
+  "metrics": true
 }
 ```
 - listenPort: HTTP server port.
@@ -85,6 +86,7 @@ $ sudo sh install.sh
 - cpuSensorChip: CPU sensor chip for temperature. `k10temp` or `zenpower` for AMD and `coretemp` for Intel
 - manual: set to true if you want to use your own UI for device control. Setting this to true will disable temperature monitoring and automatic device speed adjustments. 
 - frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
+- metrics: enable or disable Prometheus metrics
 
 ## Running in Docker
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json

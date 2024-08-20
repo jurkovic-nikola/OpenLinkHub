@@ -14,6 +14,7 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
@@ -24,6 +25,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1355,6 +1357,13 @@ func (d *Device) updateDeviceSpeed() {
 						{
 							temp = temperatures.GetCpuTemperature()
 						}
+					case temperatures.SensorTypeStorage:
+						{
+							temp = temperatures.GetStorageTemperature(profiles.Device)
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get storage temperature.")
+							}
+						}
 					}
 
 					// All temps failed, default to 50
@@ -1438,6 +1447,30 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 	d.Devices[channelId].Label = label
 	d.saveDeviceProfile()
 	return 1
+}
+
+// UpdateDeviceMetrics will update device metrics
+func (d *Device) UpdateDeviceMetrics() {
+	for _, device := range d.Devices {
+		header := &metrics.Header{
+			Product:          d.Product,
+			Serial:           d.Serial,
+			Firmware:         d.Firmware,
+			ChannelId:        strconv.Itoa(device.ChannelId),
+			Name:             device.Name,
+			Description:      device.Description,
+			Profile:          device.Profile,
+			Label:            device.Label,
+			RGB:              device.RGB,
+			AIO:              strconv.FormatBool(device.ContainsPump),
+			ContainsPump:     strconv.FormatBool(device.ContainsPump),
+			Temperature:      float64(device.Temperature),
+			LedChannels:      strconv.Itoa(int(device.LedChannels)),
+			Rpm:              device.Rpm,
+			TemperatureProbe: strconv.FormatBool(device.IsTemperatureProbe),
+		}
+		metrics.Populate(header)
+	}
 }
 
 // initLedPorts will prep LED physical ports for reading

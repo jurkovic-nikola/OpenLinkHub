@@ -171,6 +171,44 @@ func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) uint
 	return 0
 }
 
+// UpdateDeviceMetrics will update device LCD
+func UpdateDeviceMetrics() {
+	for _, device := range devices {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.LinkSystemHub != nil {
+					device.LinkSystemHub.UpdateDeviceMetrics()
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.UpdateDeviceMetrics()
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					device.Elite.UpdateDeviceMetrics()
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					device.CPro.UpdateDeviceMetrics()
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.UpdateDeviceMetrics()
+				}
+			}
+		}
+	}
+}
+
 // UpdateDeviceLcd will update device LCD
 func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {

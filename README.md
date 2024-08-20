@@ -82,7 +82,7 @@ $ sudo sh install.sh
 ```
 - listenPort: HTTP server port.
 - listenAddress: Address for HTTP server to listen on.
-- cpuSensorChip: CPU sensor chip for temperature. `k10temp` for AMD and `coretemp` for Intel
+- cpuSensorChip: CPU sensor chip for temperature. `k10temp` or `zenpower` for AMD and `coretemp` for Intel
 - manual: set to true if you want to use your own UI for device control. Setting this to true will disable temperature monitoring and automatic device speed adjustments. 
 - frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
 

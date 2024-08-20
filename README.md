@@ -82,7 +82,7 @@ $ sudo sh install.sh
 ```
 - listenPort: HTTP server port.
 - listenAddress: Address for HTTP server to listen on.
-- cpuSensorChip: CPU sensor chip for temperature. `k10temp` for AMD and `coretemp` for Intel
+- cpuSensorChip: CPU sensor chip for temperature. `k10temp` or `zenpower` for AMD and `coretemp` for Intel
 - manual: set to true if you want to use your own UI for device control. Setting this to true will disable temperature monitoring and automatic device speed adjustments. 
 - frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
 
@@ -90,13 +90,14 @@ $ sudo sh install.sh
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json
 ```
 $ docker build . -t openlinkhub
+$ # To build a specific version you can use the GIT_TAG build argument
+$ docker build --build-arg GIT_TAG=0.1.3-beta -t openlinkhub .
+
 $ docker run --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
 
 # For WebUI access, networking is required
 $ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
 ```
-
-docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
 
 ## Device Dashboard
 - Simple Device Dashboard is accessible by browser via link `http://127.0.0.1:27003/`

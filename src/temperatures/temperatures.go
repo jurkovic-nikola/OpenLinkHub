@@ -141,7 +141,7 @@ var (
 			{Id: 6, Min: 50, Max: 55, Mode: 0, Fans: 70, Pump: 70},
 			{Id: 7, Min: 55, Max: 60, Mode: 0, Fans: 80, Pump: 70},
 			{Id: 8, Min: 60, Max: 65, Mode: 0, Fans: 90, Pump: 70},
-			{Id: 8, Min: 65, Max: 70, Mode: 0, Fans: 100, Pump: 70},
+			{Id: 9, Min: 65, Max: 70, Mode: 0, Fans: 100, Pump: 70},
 		},
 	}
 )

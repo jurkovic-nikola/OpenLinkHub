@@ -32,6 +32,11 @@ func (r *ActiveRGB) Spinner(i int) {
 			}
 		} else {
 			buf[j] = []byte{0, 0, 0}
+			if r.ContainsPump && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
+			}
 		}
 	}
 	r.Output = SetColor(buf)

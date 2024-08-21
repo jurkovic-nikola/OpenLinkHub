@@ -102,19 +102,8 @@ $ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/confi
 ```
 
 ## Device Dashboard
-- Simple Device Dashboard is accessible by browser via link `http://127.0.0.1:27003/`
-- Device Dashboard:
-  - System Overview
-  - Device Overview:
-    - Change temperature profile per channel
-    - Change RGB mode per device
-  - Temperature Overview:
-    - Create new profiles
-    - Update existing profiles
-    - Delete existing profile
-  - General dashboard settings
-- You should use Device Dashboard for any configuration
-- Bootstrap 5 Dark Admin template
+- Device Dashboard is accessible by browser via link `http://127.0.0.1:27003/`
+- Device Dashboard allows you to control your devices. 
 
 ## RGB Modes
 - RGB configuration is located at `database/rgb.json` file.
@@ -132,26 +121,3 @@ $ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/confi
 ## API
 - OpenLinkHub ships with built-in HTTP server for device overview and control.
 - Documentation is available at `http://127.0.0.1:27003/docs`
-## Automatic startup
-### systemd config
-- This is a plain basic systemd example to get you running. You can create systemd service how you like. 
-```
-[Unit]
-Description=Open source interface for iCUE LINK System Hub
-
-[Service]
-User=your-user
-WorkingDirectory=/opt/OpenLinkHub
-ExecStart=/opt/OpenLinkHub/OpenLinkHub
-ExecReload=/bin/kill -s HUP $MAINPID
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-- Modify User= to match user who will run this
-- Modify WorkingDirectory= to match where executable is
-- Modify ExecStart= to match an executable path
-- Save content to `/etc/systemd/system/OpenLinkHub.service` (deb based)
-- Save content to `/usr/lib/systemd/system/OpenLinkHub.service` (rpm based)
-- Run `systemctl enable --now OpenLinkHub`

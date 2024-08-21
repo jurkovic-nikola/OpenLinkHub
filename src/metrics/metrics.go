@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"OpenLinkHub/src/systeminfo"
+	"OpenLinkHub/src/temperatures"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -18,6 +20,7 @@ type Header struct {
 	ContainsPump     string
 	TemperatureProbe string
 	LedChannels      string
+	HwmonDevice      string
 	Temperature      float64
 	Rpm              int16
 }
@@ -46,6 +49,22 @@ var (
 		},
 		[]string{"serial", "channelId", "name", "description", "profile", "label", "rgb", "aio", "pump", "probe", "led"},
 	)
+
+	storageTempGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openlinkhub_storage_temp",
+			Help: "Current temperature of storage devices.",
+		},
+		[]string{"hwmonDevice", "model"},
+	)
+
+	defaultTempGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openlinkhub_default_temp",
+			Help: "Current temperature of storage devices.",
+		},
+		[]string{"model"},
+	)
 )
 
 // Init will initialize metric headers
@@ -53,6 +72,29 @@ func Init() {
 	prometheus.MustRegister(productGauge)
 	prometheus.MustRegister(temperatureGauge)
 	prometheus.MustRegister(rpmGauge)
+	prometheus.MustRegister(storageTempGauge)
+	prometheus.MustRegister(defaultTempGauge)
+}
+
+// PopulateDefault will populate default metrics like CPU, GPU...
+func PopulateDefault() {
+	defaultTempGauge.WithLabelValues(
+		systeminfo.GetInfo().CPU.Model,
+	).Set(float64(temperatures.GetCpuTemperature()))
+
+	defaultTempGauge.WithLabelValues(
+		systeminfo.GetInfo().GPU.Model,
+	).Set(float64(temperatures.GetGpuTemperature()))
+}
+
+// PopulateStorage will populate storage device metrics
+func PopulateStorage() {
+	for _, storageTemp := range temperatures.GetStorageTemperatures() {
+		storageTempGauge.WithLabelValues(
+			storageTemp.Key,
+			storageTemp.Model,
+		).Set(float64(storageTemp.Temperature))
+	}
 }
 
 // Populate will populate device metrics

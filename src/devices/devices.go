@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"fmt"
 	"github.com/sstallion/go-hid"
 	"strconv"
@@ -171,8 +172,15 @@ func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) uint
 	return 0
 }
 
-// UpdateDeviceMetrics will update device LCD
+// UpdateDeviceMetrics will update device metrics
 func UpdateDeviceMetrics() {
+	// Default
+	metrics.PopulateDefault()
+
+	// Storage
+	metrics.PopulateStorage()
+
+	// Devices
 	for _, device := range devices {
 		switch device.ProductType {
 		case productTypeLinkHub:

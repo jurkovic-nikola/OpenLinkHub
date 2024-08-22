@@ -165,7 +165,10 @@
                         <!-- CPU -->
                         <div class="col-md-2">
                             <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.CPU.Model }}</div>
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">
+                                    <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy" style="padding-top: 3px;"></i>
+                                    {{ .SystemInfo.CPU.Model }}
+                                </div>
                                 <div class="card-body" style="padding-top: 0;">
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div class="me-2">
@@ -187,7 +190,10 @@
                         {{ if .SystemInfo.GPU }}
                         <div class="col-md-2">
                             <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .SystemInfo.GPU.Model }}</div>
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">
+                                    <i class="bi bi-gpu-card svg-icon svg-icon-sm svg-icon-heavy" style="padding-top: 3px;"></i>
+                                    {{ .SystemInfo.GPU.Model }}
+                                </div>
                                 <div class="card-body" style="padding-top: 0;">
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div class="me-2">
@@ -211,7 +217,10 @@
                         {{ range .SystemInfo.Storage }}
                         <div class="col-md-2">
                             <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1 text-sm">{{ .Model }}</div>
+                                <div class="card-header border-bottom border-dash-dark-1 text-sm">
+                                    <i class="bi bi-database svg-icon svg-icon-sm svg-icon-heavy" style="padding-top: 3px;"></i>
+                                    {{ .Model }}
+                                </div>
                                 <div class="card-body" style="padding-top: 0;">
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div class="me-2">

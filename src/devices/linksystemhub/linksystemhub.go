@@ -1286,6 +1286,10 @@ func (d *Device) newDeviceMonitor() {
 		d.setSoftwareMode()  // Activate software mode
 		d.setColorEndpoint() // Set device color endpoint
 		d.setDeviceColor()   // Set RGB
+		if !config.GetConfig().Manual {
+			timerSpeed.Stop()
+			d.updateDeviceSpeed() // Update device speed
+		}
 		d.newDeviceMonitor() // Device monitor
 	})
 	d.deviceMonitor = m

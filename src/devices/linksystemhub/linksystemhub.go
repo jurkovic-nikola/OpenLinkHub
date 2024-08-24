@@ -145,6 +145,7 @@ var (
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 	supportedDevices           = []SupportedDevice{
 		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 2, Model: 0, Name: "iCUE LINK LX RGB", LedChannels: 18, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 15, Model: 0, Name: "iCUE LINK RX RGB", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan"},

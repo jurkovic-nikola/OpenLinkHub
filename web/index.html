@@ -252,6 +252,11 @@
                 <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }}</p><br />
                 <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
             </div>
+
+            <div class="container-fluid fa-pull-right">
+                <p class="mb-0 text-dash-gray fa-pull-right">{{ .SystemInfo.CPU.Model }} ({{ .SystemInfo.CPU.Cores }}C - {{ .SystemInfo.CPU.Threads }}T)</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-right">{{ .SystemInfo.Motherboard.Model }} ({{ .SystemInfo.Motherboard.BIOS }} - {{ .SystemInfo.Motherboard.BIOSDate }})</p>
+            </div>
         </footer>
     </div>
 </div>

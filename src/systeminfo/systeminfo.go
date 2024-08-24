@@ -34,11 +34,18 @@ type KernelData struct {
 	Architecture string
 }
 
+type MotherboardData struct {
+	Model    string
+	BIOS     string
+	BIOSDate string
+}
+
 type SystemInfo struct {
-	CPU     *CpuData
-	GPU     *GpuData
-	Kernel  *KernelData
-	Storage *[]StorageData
+	CPU         *CpuData
+	GPU         *GpuData
+	Kernel      *KernelData
+	Storage     *[]StorageData
+	Motherboard *MotherboardData
 }
 
 var info *SystemInfo
@@ -50,6 +57,7 @@ func Init() {
 	info.getKernelData()
 	info.getGpuData()
 	info.GetStorageData()
+	info.GetBoardData()
 }
 
 // GetInfo will return currently stored system info
@@ -269,4 +277,34 @@ func (si *SystemInfo) GetStorageData() {
 	}
 
 	si.Storage = &storageList
+}
+
+// GetBoardData will return motherboard details
+func (si *SystemInfo) GetBoardData() {
+	board := &MotherboardData{}
+
+	// Motherboard model
+	f, err := os.ReadFile("/sys/class/dmi/id/product_name")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to read kernel ostype")
+		return
+	}
+	board.Model = strings.TrimSpace(string(f))
+
+	// BIOS version
+	f, err = os.ReadFile("/sys/class/dmi/id/bios_version")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to read kernel ostype")
+		return
+	}
+	board.BIOS = strings.TrimSpace(string(f))
+
+	// BIOS release date
+	f, err = os.ReadFile("/sys/class/dmi/id/bios_date")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to read kernel ostype")
+		return
+	}
+	board.BIOSDate = strings.TrimSpace(string(f))
+	si.Motherboard = board
 }

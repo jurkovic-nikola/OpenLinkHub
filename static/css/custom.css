@@ -163,8 +163,8 @@ footer {
 
 .active-nav-link {
     color: #fff;
-    background-color: #484848;
-    border-color: #6e6e6e;
+    background: #3b3b3b;
+    border-color: #949494;
 }
 
 .modal-content {
@@ -177,4 +177,49 @@ footer {
     margin-bottom:10px;
     width:auto;
     padding-top: 0;
+}
+
+.custom-float-20-left {
+    float: left;
+    margin-top: 15px;
+    width: 15%;
+    text-align: left;
+}
+
+.custom-float-80-right {
+    float: right;
+    overflow: hidden;
+    width: 85%;
+}
+
+.custom-device-block {
+    overflow: hidden;
+    width: 100%;
+}
+
+.full-hd {
+    width: 1920px;
+    margin: 0 auto;
+}
+
+.top-px {
+    margin-top: 8px;
+}
+
+.device-px {
+    margin-top:5px;
+}
+
+.btn-secondary-empty {
+    cursor: auto;
+    color: #a1a1a1;
+    background-color: #181818;
+    border-color: #535353;
+}
+
+.btn-secondary-empty:hover {
+    cursor: auto;
+    color: #fff;
+    background-color: #232323;
+    border-color: #6e6e6e;
 }

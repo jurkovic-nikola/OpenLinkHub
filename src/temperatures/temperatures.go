@@ -5,9 +5,9 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
-	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -44,6 +44,7 @@ type TemperatureProfileData struct {
 	ZeroRpm  bool                 `json:"zeroRpm"`
 	Profiles []TemperatureProfile `json:"profiles"`
 	Device   string               `json:"device"`
+	Hidden   bool
 }
 
 type StorageTemperatures struct {
@@ -72,6 +73,7 @@ var (
 			{Id: 7, Min: 80, Max: 90, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 8, Min: 90, Max: 200, Mode: 0, Fans: 100, Pump: 100},
 		},
+		Hidden: false,
 	}
 
 	profileNormal = TemperatureProfileData{
@@ -86,6 +88,7 @@ var (
 			{Id: 7, Min: 80, Max: 90, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 8, Min: 90, Max: 200, Mode: 0, Fans: 100, Pump: 100},
 		},
+		Hidden: false,
 	}
 
 	profilePerformance = TemperatureProfileData{
@@ -100,6 +103,7 @@ var (
 			{Id: 7, Min: 80, Max: 90, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 8, Min: 90, Max: 200, Mode: 0, Fans: 100, Pump: 100},
 		},
+		Hidden: false,
 	}
 
 	// Static
@@ -108,6 +112,7 @@ var (
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 200, Mode: 0, Fans: 70, Pump: 70},
 		},
+		Hidden: false,
 	}
 
 	// AIO Liquid Temperature
@@ -127,6 +132,7 @@ var (
 			{Id: 11, Min: 48, Max: 50, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 12, Min: 50, Max: 60, Mode: 0, Fans: 100, Pump: 100}, // Critical
 		},
+		Hidden: false,
 	}
 
 	// Storage temperature profile
@@ -143,6 +149,16 @@ var (
 			{Id: 8, Min: 60, Max: 65, Mode: 0, Fans: 90, Pump: 70},
 			{Id: 9, Min: 65, Max: 70, Mode: 0, Fans: 100, Pump: 70},
 		},
+		Hidden: false,
+	}
+
+	// Static
+	aioCriticalTemperature = TemperatureProfileData{
+		Sensor: 2,
+		Profiles: []TemperatureProfile{
+			{Id: 1, Min: 0, Max: 65, Mode: 0, Fans: 100, Pump: 100},
+		},
+		Hidden: true,
 	}
 )
 
@@ -155,6 +171,7 @@ func Init() {
 	profiles["Quiet"] = profileQuiet
 	profiles["Normal"] = profileNormal
 	profiles["Performance"] = profilePerformance
+	profiles["aioCriticalTemperature"] = aioCriticalTemperature
 
 	temperatures = &Temperatures{
 		Profiles: profiles,
@@ -384,41 +401,22 @@ func GetAMDGpuTemperature() float32 {
 
 // GetNVIDIAGpuTemperature will return NVIDIA gpu temperature
 func GetNVIDIAGpuTemperature() float32 {
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		logger.Log(logger.Fields{"err": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to initialize new nvml")
-		return 0
-	}
-	defer func() {
-		ret := nvml.Shutdown()
-		if ret != nvml.SUCCESS {
-			return
-		}
-	}()
-
-	count, ret := nvml.DeviceGetCount()
-	if ret != nvml.SUCCESS {
-		logger.Log(logger.Fields{"err": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to get device count")
+	cmd := exec.Command("nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits")
+	output, err := cmd.Output()
+	if err != nil {
 		return 0
 	}
 
-	for i := 0; i < count; i++ {
-		device, ret := nvml.DeviceGetHandleByIndex(i)
-		if ret != nvml.SUCCESS {
-			logger.Log(logger.Fields{"index": i, "device": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to get device")
-			return 0
-		}
+	// Convert output to string and trim spaces
+	tempStr := strings.TrimSpace(string(output))
 
-		ts := nvml.TemperatureSensors(0)
-		temperature, ret := device.GetTemperature(ts)
-		if ret != nvml.SUCCESS {
-			logger.Log(logger.Fields{"err": nvml.ErrorString(ret), "caller": "GetNVIDIAGpuTemperature()"}).Warn("Unable to get device temperature")
-			continue
-		} else {
-			return float32(temperature)
-		}
+	// Convert temperature to an integer
+	temp, err := strconv.Atoi(tempStr)
+	if err != nil {
+		return 0
 	}
-	return 0
+
+	return float32(temp)
 }
 
 // GetGpuTemperature will return GPU temperature

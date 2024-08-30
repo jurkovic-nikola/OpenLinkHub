@@ -1,18 +1,5 @@
 package rgb
 
-// generateColors will generate color based on start and end color
-func generateColor(
-	c1,
-	c2 *Color,
-	factor,
-	bts float64,
-) struct{ R, G, B float64 } {
-	color := interpolateColor(c1, c2, factor)
-	color.Brightness = bts
-	modify := ModifyBrightness(*color)
-	return struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
-}
-
 // Spinner will run RGB function
 func (r *ActiveRGB) Spinner(i int) {
 	buf := map[int][]byte{}

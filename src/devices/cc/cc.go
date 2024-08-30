@@ -43,6 +43,7 @@ import (
 	"fmt"
 	"github.com/sstallion/go-hid"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -51,6 +52,7 @@ import (
 )
 
 var (
+	pwd, _                     = os.Getwd()
 	cmdOpenEndpoint            = []byte{0x0d, 0x01}
 	cmdOpenColorEndpoint       = []byte{0x0d, 0x00}
 	cmdCloseEndpoint           = []byte{0x05, 0x01, 0x01}
@@ -151,9 +153,12 @@ type LedChannel struct {
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
+	Active        bool
+	Path          string
 	Product       string
 	Serial        string
 	LCDMode       uint8
+	Brightness    uint8
 	RGBProfiles   map[int]string
 	SpeedProfiles map[int]string
 	Labels        map[int]string
@@ -186,21 +191,21 @@ type Devices struct {
 type Device struct {
 	dev           *hid.Device
 	lcd           *hid.Device
-	Manufacturer  string           `json:"manufacturer"`
-	Product       string           `json:"product"`
-	Serial        string           `json:"serial"`
-	Firmware      string           `json:"firmware"`
-	RGB           string           `json:"rgb"`
-	AIOType       string           `json:"-"`
-	Devices       map[int]*Devices `json:"devices"`
+	Manufacturer  string                    `json:"manufacturer"`
+	Product       string                    `json:"product"`
+	Serial        string                    `json:"serial"`
+	Firmware      string                    `json:"firmware"`
+	AIOType       string                    `json:"-"`
+	Devices       map[int]*Devices          `json:"devices"`
+	UserProfiles  map[string]*DeviceProfile `json:"userProfiles"`
 	DeviceProfile *DeviceProfile
 	deviceMonitor *DeviceMonitor
-	profileConfig string
 	activeRgb     *rgb.ActiveRGB
 	Template      string
 	HasLCD        bool
 	VendorId      uint16
 	LCDModes      map[int]string
+	Brightness    map[int]string
 }
 
 /*
@@ -244,6 +249,12 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			3: "GPU Temperature",
 			4: "Combined",
 		},
+		Brightness: map[int]string{
+			0: "RGB Profile",
+			1: "33 %",
+			2: "66 %",
+			3: "100 %",
+		},
 	}
 
 	// There are 2 CCs. One has a packet size of 64 and the other has 96.
@@ -255,21 +266,23 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
-	d.getManufacturer()   // Manufacturer
-	d.getProduct()        // Product
-	d.getSerial()         // Serial
-	d.getDeviceLcd()      // Check if LCD pump cover is installed
-	d.setProfileConfig()  // Device profile
-	d.getDeviceProfile()  // Get device profile if any
-	d.getDeviceFirmware() // Firmware
-	d.setSoftwareMode()   // Activate software mode
-	d.initLedPorts()      // Init LED ports
-	d.getDeviceType()     // Find an AIO device type
-	d.getLedDevices()     // Get LED devices
-	d.getDevices()        // Get devices connected to a hub
-	d.setColorEndpoint()  // Set device color endpoint
-	d.setDefaults()       // Set default speed and color values for fans and pumps
-	d.setAutoRefresh()    // Set auto device refresh
+	d.getManufacturer()    // Manufacturer
+	d.getProduct()         // Product
+	d.getSerial()          // Serial
+	d.loadDeviceProfiles() // Load all device profiles
+	d.getDeviceLcd()       // Check if LCD pump cover is installed
+	d.getDeviceProfile()   // Get device profile if any
+	d.getDeviceFirmware()  // Firmware
+	d.setSoftwareMode()    // Activate software mode
+	d.initLedPorts()       // Init LED ports
+	d.getDeviceType()      // Find an AIO device type
+	d.getLedDevices()      // Get LED devices
+	d.getDevices()         // Get devices connected to a hub
+	d.setColorEndpoint()   // Set device color endpoint
+	d.setDefaults()        // Set default speed and color values for fans and pumps
+	d.setAutoRefresh()     // Set auto device refresh
+	d.saveDeviceProfile()  // Save
+	d.resetLEDPorts()      // Reset device LED
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
@@ -277,10 +290,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
-	d.saveDeviceProfile() // Create device profile
-	d.resetLEDPorts()     // Reset device LED
-	d.setDeviceColor()    // Activate device RGB
-	d.newDeviceMonitor()  // Device monitor
+	d.setDeviceColor()   // Device color
+	d.newDeviceMonitor() // Device monitor
 	if d.HasLCD {
 		d.setupLCD() // LCD
 	}
@@ -304,9 +315,19 @@ func (d *Device) Stop() {
 	if d.lcd != nil {
 		lcdRefreshChan <- true
 		lcdTimer.Stop()
+
+		// Switch LCD back to hardware mode
+		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
+		for i := 0; i <= 1; i++ {
+			_, e := d.lcd.SendFeatureReport(lcdReports[i])
+			if e != nil {
+				logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
+			}
+		}
+		// Close it
 		err := d.lcd.Close()
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
 		}
 	}
 
@@ -314,9 +335,66 @@ func (d *Device) Stop() {
 	if d.dev != nil {
 		err := d.dev.Close()
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+}
+
+// loadDeviceProfiles will load custom user profiles
+func (d *Device) loadDeviceProfiles() {
+	profileList := make(map[string]*DeviceProfile, 0)
+	userProfileDirectory := pwd + "/database/profiles/"
+
+	files, err := os.ReadDir(userProfileDirectory)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": userProfileDirectory, "serial": d.Serial}).Fatal("Unable to read content of a folder")
+	}
+
+	for _, fi := range files {
+		pf := &DeviceProfile{}
+		if fi.IsDir() {
+			continue // Exclude folders if any
+		}
+
+		// Define a full path of filename
+		profileLocation := userProfileDirectory + fi.Name()
+
+		// Check if filename has .json extension
+		if !common.IsValidExtension(profileLocation, ".json") {
+			continue
+		}
+
+		fileName := strings.Split(fi.Name(), ".")[0]
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+			continue
+		}
+
+		file, err := os.Open(profileLocation)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to load profile")
+			continue
+		}
+		if err = json.NewDecoder(file).Decode(pf); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to decode profile")
+			continue
+		}
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": profileLocation, "serial": d.Serial}).Warn("Failed to close file handle")
+		}
+
+		if pf.Serial == d.Serial {
+			if fileName == d.Serial {
+				profileList["default"] = pf
+			} else {
+				name := strings.Split(fileName, "-")[1]
+				profileList[name] = pf
+			}
+			logger.Log(logger.Fields{"location": profileLocation, "serial": d.Serial}).Info("Loaded custom user profile")
+		}
+	}
+	d.UserProfiles = profileList
+	d.getDeviceProfile()
 }
 
 // getDeviceLcd will check if AIO has LCD pump cover
@@ -521,6 +599,10 @@ func (d *Device) setDeviceColor() {
 	if s > 0 || l > 0 { // We have some values
 		if s == l { // number of devices matches number of devices with static profile
 			profile := rgb.GetRgbProfile("static")
+			if d.DeviceProfile.Brightness != 0 {
+				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+			}
+
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
 			for i := 0; i < lightChannels; i++ {
 				reset[i] = []byte{
@@ -574,6 +656,13 @@ func (d *Device) setDeviceColor() {
 
 					rgbCustomColor := true
 					profile := rgb.GetRgbProfile(d.Devices[k].RGB)
+					if profile == nil {
+						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+							buff = append(buff, []byte{0, 0, 0}...)
+						}
+						logger.Log(logger.Fields{"profile": d.Devices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
+						continue
+					}
 					rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)
 					// Check if we have custom colors
 					if (rgb.Color{}) == profile.StartColor || (rgb.Color{}) == profile.EndColor {
@@ -599,7 +688,20 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
 
+					// Brightness
+					if d.DeviceProfile.Brightness > 0 {
+						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+						r.RGBStartColor.Brightness = r.RGBBrightness
+						r.RGBEndColor.Brightness = r.RGBBrightness
+					}
+
 					switch d.Devices[k].RGB {
+					case "off":
+						{
+							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
+								buff = append(buff, []byte{0, 0, 0}...)
+							}
+						}
 					case "rainbow":
 						{
 							r.Rainbow(startTime)
@@ -979,7 +1081,8 @@ func (d *Device) updateDeviceSpeed() {
 					}
 					for i := 0; i < len(profiles.Profiles); i++ {
 						profile := profiles.Profiles[i]
-						if common.InBetween(temp, profile.Min, profile.Max) {
+						minimum := profile.Min + 0.1
+						if common.InBetween(temp, minimum, profile.Max) {
 							cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
 							if ok := tmp[device.ChannelId]; ok != cp {
 								tmp[device.ChannelId] = cp
@@ -1073,34 +1176,16 @@ func (d *Device) setColorEndpoint() {
 	}
 }
 
-// setProfileConfig will set a static path for JSON configuration file
-func (d *Device) setProfileConfig() {
-	pwd, err := os.Getwd()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get working directory")
-		return
-	}
-	d.profileConfig = pwd + "/database/profiles/" + d.Serial + ".json"
-}
-
 // getDeviceProfile will load persistent device configuration
 func (d *Device) getDeviceProfile() {
-	if common.FileExists(d.profileConfig) {
-		f, err := os.Open(d.profileConfig)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to load profile")
-			return
-		}
-		if err = json.NewDecoder(f).Decode(&d.DeviceProfile); err != nil {
-			logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to decode profile json")
-		}
-		fmt.Println("[Profiles] Device profile successfully loaded", d.profileConfig)
-		err = f.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"location": d.profileConfig}).Warn("Failed to close file handle")
-		}
-	} else {
+	if len(d.UserProfiles) == 0 {
 		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No profile found for device. Probably initial start")
+	} else {
+		for _, pf := range d.UserProfiles {
+			if pf.Active {
+				d.DeviceProfile = pf
+			}
+		}
 	}
 }
 
@@ -1241,6 +1326,96 @@ func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
 	} else {
 		return 2
 	}
+}
+
+// ChangeDeviceBrightness will change device brightness
+func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
+	d.DeviceProfile.Brightness = mode
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceProfile will change device profile
+func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
+	if profile, ok := d.UserProfiles[profileName]; ok {
+		currentProfile := d.DeviceProfile
+		currentProfile.Active = false
+		d.DeviceProfile = currentProfile
+		d.saveDeviceProfile()
+
+		// RGB reset
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+
+		for _, device := range d.Devices {
+			if device.LedChannels > 0 {
+				d.Devices[device.ChannelId].RGB = profile.RGBProfiles[device.ChannelId]
+			}
+			if device.HasSpeed {
+				d.Devices[device.ChannelId].Profile = profile.SpeedProfiles[device.ChannelId]
+			}
+			d.Devices[device.ChannelId].Label = profile.Labels[device.ChannelId]
+		}
+
+		newProfile := profile
+		newProfile.Active = true
+		d.DeviceProfile = newProfile
+		d.saveDeviceProfile()
+		d.setDeviceColor()
+		// Speed reset
+		if !config.GetConfig().Manual {
+			timerSpeed.Stop()
+			d.updateDeviceSpeed() // Update device speed
+		}
+		return 1
+	}
+	return 0
+}
+
+// SaveUserProfile will generate a new user profile configuration and save it to a file
+func (d *Device) SaveUserProfile(profileName string) uint8 {
+	if d.DeviceProfile != nil {
+		profilePath := pwd + "/database/profiles/" + d.Serial + "-" + profileName + ".json"
+
+		newProfile := d.DeviceProfile
+		newProfile.Path = profilePath
+		newProfile.Active = false
+
+		buffer, err := json.Marshal(newProfile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return 0
+		}
+
+		// Create profile filename
+		file, err := os.Create(profilePath)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to create new device profile")
+			return 0
+		}
+
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to write data")
+			return 0
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to close file handle")
+			return 0
+		}
+		d.loadDeviceProfiles()
+		return 1
+	}
+	return 0
 }
 
 // UpdateSpeedProfile will update device channel speed.
@@ -1389,6 +1564,8 @@ func (d *Device) resetLEDPorts() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
+
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	labels := make(map[int]string, len(d.Devices))
@@ -1411,6 +1588,7 @@ func (d *Device) saveDeviceProfile() {
 		SpeedProfiles: speedProfiles,
 		RGBProfiles:   rgbProfiles,
 		Labels:        labels,
+		Path:          profilePath,
 	}
 
 	// First save, assign saved profile to a device
@@ -1433,8 +1611,17 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.LCDMode = 0
 		}
 
+		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
 	} else {
+		deviceProfile.Active = d.DeviceProfile.Active
+		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		if len(d.DeviceProfile.Path) < 1 {
+			deviceProfile.Path = profilePath
+			d.DeviceProfile.Path = profilePath
+		} else {
+			deviceProfile.Path = d.DeviceProfile.Path
+		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 	}
 
@@ -1446,24 +1633,26 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	// Create profile filename
-	file, fileErr := os.Create(d.profileConfig)
+	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": d.profileConfig}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 
 	// Write JSON buffer to file
 	_, err = file.Write(buffer)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": d.profileConfig}).Error("Unable to write data")
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
 		return
 	}
 
 	// Close file
 	err = file.Close()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": d.profileConfig}).Fatal("Unable to close file handle")
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
 	}
+
+	d.loadDeviceProfiles() // Reload
 }
 
 // newDeviceMonitor initializes and returns a new Monitor

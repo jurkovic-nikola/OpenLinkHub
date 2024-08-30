@@ -23,40 +23,40 @@
         {{ $device := .Device }}
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <div class="row" style="float: left;margin-left: 0;">
-                    <a class="btn btn-secondary" href="/">
-                        <i class="bi bi-house svg-icon svg-icon-sm svg-icon-heavy"></i>
-                        <span>Home</span>
+                <div class="row btn btn-secondary" style="float: left;margin-left:0;width: 120px;height: 92px;text-align: center;">
+                    <a href="/" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+                        <span style="font-size: 13px;">Dashboard</span>
                     </a>
                 </div>
 
                 {{ range .Devices }}
-                <div class="row" style="float: left;margin-left: 20px;">
-                    <a class="btn btn-secondary" href="/device/{{ .Serial }}">
-                        <i class="bi bi-cpu svg-icon svg-icon-sm svg-icon-heavy"></i>
-                        <span>{{ .Product }}</span>
+                <div class="row btn btn-secondary" style="float: left;margin-left: 20px;width: 230px;height: 92px;text-align: center;">
+                    <a style="color: #a1a1a1;" href="/device/{{ .Serial }}">
+                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
+                        <span style="font-size: 13px;">{{ .Product }}</span>
                     </a>
                 </div>
                 {{ end }}
 
-                <div class="row" style="float: right;margin-left: 20px;">
-                    <a class="btn btn-secondary" href="/docs/">
-                        <i class="bi bi-code svg-icon svg-icon-sm svg-icon-heavy"></i>
-                        <span>Documentation</span>
+                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                    <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                        <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
+                        <span style="font-size: 13px;">GitHub</span>
                     </a>
                 </div>
 
-                <div class="row" style="float: right;margin-left: 20px;">
-                    <a class="btn btn-secondary" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
-                        <i class="bi bi-github svg-icon svg-icon-sm svg-icon-heavy"></i>
-                        <span>GitHub</span>
+                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                    <a href="/docs/" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
+                        <span style="font-size: 13px;">API</span>
                     </a>
                 </div>
 
-                <div class="row" style="float: right;margin-left: 20px;">
-                    <a class="btn btn-secondary active-nav-link" href="/temperature">
-                        <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
-                        <span>Temperature Profiles</span>
+                <div class="row btn btn-secondary active-nav-link" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                    <a href="/temperature" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+                        <span style="font-size: 13px;">Profiles</span>
                     </a>
                 </div>
             </div>
@@ -117,7 +117,7 @@
                                                     <label class="form-check-label" for="staticCheckbox">Static (no temperature ranges)</label>
                                                 </div>
                                                 <div class="form-check">
-                                                    <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox">
+                                                    <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox" disabled>
                                                     <label class="form-check-label" for="zeroRpmCheckbox">Zero RPM (Only for AIOs that support Zero RPM)</label>
                                                 </div>
                                             </div>
@@ -152,6 +152,7 @@
                             </div>
                         </div>
                         {{ range $key, $value := .Temperatures }}
+                        {{ if eq $value.Hidden false }}
                         <div class="card tempList" id="{{ $key }}" style="margin-bottom: 20px;">
                             <div class="card-body">
                                 <div class="row gx-12">
@@ -185,6 +186,7 @@
                             </div>
                         </div>
                         {{ end }}
+                        {{ end }}
                     </div>
                     <input type="hidden" id="profile" name="profile" value="">
                     <div class="col-lg-10">
@@ -196,8 +198,8 @@
                                             <thead>
                                             <tr>
                                                 <th>Id</th>
-                                                <th>Minimum temperature (&deg;C)</th>
-                                                <th>Maximum temperature (&deg;C)</th>
+                                                <th>Minimum Temperature (&deg;C)</th>
+                                                <th>Maximum Temperature (&deg;C)</th>
                                                 <th>Fan Speed (%)</th>
                                                 <th>Pump Speed (%)</th>
                                             </tr>

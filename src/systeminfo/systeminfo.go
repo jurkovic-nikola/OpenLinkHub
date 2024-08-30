@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -185,40 +184,13 @@ func (si *SystemInfo) getCpuData() {
 // GetNVIDIAGpuModel will return NVIDIA gpu model
 func GetNVIDIAGpuModel() string {
 	model := ""
-	ret := nvml.Init()
-	if ret != nvml.SUCCESS {
-		logger.Log(logger.Fields{"err": nvml.ErrorString(ret)}).Warn("Unable to initialize new nvml")
+	cmd := exec.Command("nvidia-smi", "--query-gpu=gpu_name", "--format=csv,noheader,nounits")
+	output, err := cmd.Output()
+	if err != nil {
 		return ""
 	}
-	defer func() {
-		ret = nvml.Shutdown()
-		if ret != nvml.SUCCESS {
-			return
-		}
-	}()
-
-	count, ret := nvml.DeviceGetCount()
-	if ret != nvml.SUCCESS {
-		logger.Log(logger.Fields{"err": nvml.ErrorString(ret)}).Warn("Unable to get device count")
-		return ""
-	}
-
-	for i := 0; i < count; i++ {
-		device, ret := nvml.DeviceGetHandleByIndex(i)
-		if ret != nvml.SUCCESS {
-			logger.Log(logger.Fields{"index": i, "error": nvml.ErrorString(ret)}).Warn("Unable to get device")
-			return ""
-		}
-
-		model, ret = device.GetName()
-		if ret != nvml.SUCCESS {
-			logger.Log(logger.Fields{"err": nvml.ErrorString(ret)}).Warn("Unable to get GPU model")
-			continue
-		} else {
-			return model
-		}
-	}
-	return ""
+	model = strings.TrimSpace(string(output))
+	return model
 }
 
 // GetStorageData will return storage information

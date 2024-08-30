@@ -261,6 +261,39 @@ func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// saveUserProfile handles saving custom user profiles
+func saveUserProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSaveUserProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeUserProfile handles user profile change
+func changeUserProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeUserProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeBrightness handles user brightness change
+func changeBrightness(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessBrightnessChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setManualDeviceSpeed handles manual device speed changes
 func setManualDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessManualChangeSpeed(r)
@@ -491,6 +524,12 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setDeviceLabel)
 	r.Methods(http.MethodPost).Path("/api/lcd").
 		HandlerFunc(setDeviceLcd)
+	r.Methods(http.MethodPut).Path("/api/userProfile").
+		HandlerFunc(saveUserProfile)
+	r.Methods(http.MethodPost).Path("/api/userProfile").
+		HandlerFunc(changeUserProfile)
+	r.Methods(http.MethodPost).Path("/api/brightness").
+		HandlerFunc(changeBrightness)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

@@ -1,23 +1,11 @@
 package logger
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
-	"time"
 )
 
 type Fields = log.Fields
-
-// LogToConsole will log data into a console
-func LogToConsole(message string) {
-	msg := fmt.Sprintf(
-		"[%s] %s",
-		time.Now().Format("2006-01-02 15:04:05"),
-		message,
-	)
-	fmt.Println(msg)
-}
 
 // Init will initialize new instance of logger
 func Init() {

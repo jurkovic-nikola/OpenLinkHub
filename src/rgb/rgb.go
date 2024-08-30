@@ -54,7 +54,17 @@ type ActiveRGB struct {
 	HasLCD                 bool
 }
 
-var rgb RGB
+var (
+	rgb        RGB
+	profileOff = Profile{
+		Speed:       0,
+		Brightness:  0,
+		Smoothness:  0,
+		StartColor:  Color{Red: 0, Green: 0, Blue: 0, Brightness: 0},
+		MiddleColor: Color{Red: 0, Green: 0, Blue: 0, Brightness: 0},
+		EndColor:    Color{Red: 0, Green: 0, Blue: 0, Brightness: 0},
+	}
+)
 
 // GetRGB will return RGB
 func GetRGB() RGB {
@@ -72,6 +82,9 @@ func Init() {
 	if err = json.NewDecoder(f).Decode(&rgb); err != nil {
 		panic(err.Error())
 	}
+
+	// Off profile to disable RGB
+	rgb.Profiles["off"] = profileOff
 }
 
 // GetRgbProfile will return structs.RGBModes struct
@@ -107,7 +120,6 @@ func New(
 	rgbLoopDuration time.Duration,
 	RGBCustomColor bool,
 ) *ActiveRGB {
-
 	return &ActiveRGB{
 		LightChannels:   lightChannels,
 		Smoothness:      smoothness,
@@ -283,4 +295,17 @@ func SetColor(data map[int][]byte) []byte {
 	}
 
 	return buffer
+}
+
+// GetBrightnessValue will return brightness value in float64 based on mode
+func GetBrightnessValue(mode uint8) float64 {
+	switch mode {
+	case 1:
+		return 0.3
+	case 2:
+		return 0.6
+	case 3:
+		return 1
+	}
+	return 0
 }

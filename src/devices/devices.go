@@ -5,9 +5,9 @@ import (
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/elite"
-	"OpenLinkHub/src/devices/linksystemhub"
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
+	"OpenLinkHub/src/devices/lsh"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"fmt"
@@ -32,17 +32,17 @@ type AIOData struct {
 }
 
 type Device struct {
-	ProductType   uint8
-	Product       string
-	Serial        string
-	Firmware      string
-	LinkSystemHub *linksystemhub.Device `json:"linkSystemHub,omitempty"`
-	CC            *cc.Device            `json:"cc,omitempty"`
-	CCXT          *ccxt.Device          `json:"ccxt,omitempty"`
-	Elite         *elite.Device         `json:"elite,omitempty"`
-	LnCore        *lncore.Device        `json:"lncore,omitempty"`
-	LnPro         *lnpro.Device         `json:"lnpro,omitempty"`
-	CPro          *cpro.Device          `json:"cPro,omitempty"`
+	ProductType uint8
+	Product     string
+	Serial      string
+	Firmware    string
+	Lsh         *lsh.Device    `json:"lsh,omitempty"`
+	CC          *cc.Device     `json:"cc,omitempty"`
+	CCXT        *ccxt.Device   `json:"ccxt,omitempty"`
+	Elite       *elite.Device  `json:"elite,omitempty"`
+	LnCore      *lncore.Device `json:"lncore,omitempty"`
+	LnPro       *lnpro.Device  `json:"lnpro,omitempty"`
+	CPro        *cpro.Device   `json:"cPro,omitempty"`
 }
 
 var (
@@ -58,8 +58,8 @@ func Stop() {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					device.LinkSystemHub.Stop()
+				if device.Lsh != nil {
+					device.Lsh.Stop()
 				}
 			}
 		case productTypeCC:
@@ -185,8 +185,8 @@ func UpdateDeviceMetrics() {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					device.LinkSystemHub.UpdateDeviceMetrics()
+				if device.Lsh != nil {
+					device.Lsh.UpdateDeviceMetrics()
 				}
 			}
 		case productTypeCC:
@@ -217,6 +217,159 @@ func UpdateDeviceMetrics() {
 	}
 }
 
+// SaveUserProfile will save new device user profile
+func SaveUserProfile(deviceId, profileName string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					return device.Elite.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					return device.LnCore.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					return device.LnPro.SaveUserProfile(profileName)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeDeviceBrightness will change device brightness level
+func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					return device.LnPro.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					return device.LnCore.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					return device.Elite.ChangeDeviceBrightness(mode)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeUserProfile will change device user profile
+func ChangeUserProfile(deviceId, profileName string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					return device.CPro.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					return device.Elite.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					return device.LnCore.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					return device.LnPro.ChangeDeviceProfile(profileName)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateDeviceLcd will update device LCD
 func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -229,8 +382,8 @@ func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 			}
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					return device.LinkSystemHub.UpdateDeviceLcd(mode)
+				if device.Lsh != nil {
+					return device.Lsh.UpdateDeviceLcd(mode)
 				}
 			}
 		}
@@ -244,8 +397,8 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					return device.LinkSystemHub.UpdateDeviceLabel(channelId, label)
+				if device.Lsh != nil {
+					return device.Lsh.UpdateDeviceLabel(channelId, label)
 				}
 			}
 		case productTypeCC:
@@ -297,8 +450,8 @@ func GetAIOData() []AIOData {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					rpm, temperature := device.LinkSystemHub.GetAIOData()
+				if device.Lsh != nil {
+					rpm, temperature := device.Lsh.GetAIOData()
 					list = append(list, AIOData{
 						Serial:      device.Serial,
 						Rpm:         rpm,
@@ -339,8 +492,8 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) uint8 {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					return device.LinkSystemHub.UpdateSpeedProfile(channelId, profile)
+				if device.Lsh != nil {
+					return device.Lsh.UpdateSpeedProfile(channelId, profile)
 				}
 			}
 		case productTypeCC:
@@ -378,8 +531,8 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					return device.LinkSystemHub.UpdateDeviceSpeed(channelId, value)
+				if device.Lsh != nil {
+					return device.Lsh.UpdateDeviceSpeed(channelId, value)
 				}
 			}
 		case productTypeCC:
@@ -417,8 +570,8 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					return device.LinkSystemHub.UpdateRgbProfile(channelId, profile)
+				if device.Lsh != nil {
+					return device.Lsh.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		case productTypeCC:
@@ -468,8 +621,8 @@ func ResetSpeedProfiles(profile string) {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					device.LinkSystemHub.ResetSpeedProfiles(profile)
+				if device.Lsh != nil {
+					device.Lsh.ResetSpeedProfiles(profile)
 				}
 			}
 		case productTypeCC:
@@ -499,8 +652,8 @@ func GetDevice(deviceId string) interface{} {
 		switch device.ProductType {
 		case productTypeLinkHub:
 			{
-				if device.LinkSystemHub != nil {
-					return device.LinkSystemHub
+				if device.Lsh != nil {
+					return device.Lsh
 				}
 			}
 		case productTypeCC:
@@ -575,16 +728,16 @@ func Init() {
 		case 3135: // CORSAIR iCUE Link System Hub
 			{
 				go func(vendorId, productId uint16, serialId string) {
-					dev := linksystemhub.Init(vendorId, productId, serialId)
+					dev := lsh.Init(vendorId, productId, serialId)
 					if dev == nil {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						LinkSystemHub: dev,
-						ProductType:   productTypeLinkHub,
-						Product:       dev.Product,
-						Serial:        dev.Serial,
-						Firmware:      dev.Firmware,
+						Lsh:         dev,
+						ProductType: productTypeLinkHub,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
 					}
 				}(vendorId, productId, serial)
 			}

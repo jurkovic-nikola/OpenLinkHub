@@ -14,24 +14,26 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId      string    `json:"deviceId"`
-	ChannelId     int       `json:"channelId"`
-	Mode          uint8     `json:"mode"`
-	Value         uint16    `json:"value"`
-	Color         rgb.Color `json:"color"`
-	Profile       string    `json:"profile"`
-	Label         string    `json:"label"`
-	Static        bool      `json:"static"`
-	Sensor        uint8     `json:"sensor"`
-	ZeroRpm       bool      `json:"zeroRpm"`
-	HwmonDeviceId string    `json:"hwmonDeviceId"`
-	Enabled       bool      `json:"enabled"`
-	DeviceType    int       `json:"deviceType"`
-	DeviceAmount  int       `json:"deviceAmount"`
-	PortId        int       `json:"portId"`
-	Status        int
-	Code          int
-	Message       string
+	DeviceId        string    `json:"deviceId"`
+	ChannelId       int       `json:"channelId"`
+	Mode            uint8     `json:"mode"`
+	Value           uint16    `json:"value"`
+	Color           rgb.Color `json:"color"`
+	Profile         string    `json:"profile"`
+	Label           string    `json:"label"`
+	Static          bool      `json:"static"`
+	Sensor          uint8     `json:"sensor"`
+	ZeroRpm         bool      `json:"zeroRpm"`
+	HwmonDeviceId   string    `json:"hwmonDeviceId"`
+	Enabled         bool      `json:"enabled"`
+	DeviceType      int       `json:"deviceType"`
+	DeviceAmount    int       `json:"deviceAmount"`
+	PortId          int       `json:"portId"`
+	UserProfileName string    `json:"userProfileName"`
+	Brightness      uint8     `json:"brightness"`
+	Status          int
+	Code            int
+	Message         string
 }
 
 func ProcessDeleteTemperatureProfile(r *http.Request) *Payload {
@@ -286,6 +288,134 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change LCD mode. Either LCD is offline or you do not have LCD", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change lcd mode", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSaveUserProfile will process PUT request from a client for device profile save
+func ProcessSaveUserProfile(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.UserProfileName) < 0 {
+		return &Payload{Message: "Invalid profile name", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.UserProfileName); !m {
+		return &Payload{Message: "Profile name can contain only letters and numbers", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.SaveUserProfile(req.DeviceId, req.UserProfileName)
+	switch status {
+	case 1:
+		return &Payload{Message: "User profile successfully saved", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to save user profile. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to save user profile.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeUserProfile will process POST request from a client for device profile change
+func ProcessChangeUserProfile(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.UserProfileName) < 0 {
+		return &Payload{Message: "Invalid profile name", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.UserProfileName); !m {
+		return &Payload{Message: "Profile name can contain only letters and numbers", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeUserProfile(req.DeviceId, req.UserProfileName)
+	switch status {
+	case 1:
+		return &Payload{Message: "User profile successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change user profile. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change user profile.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessBrightnessChange will process POST request from a client for device brightness change
+func ProcessBrightnessChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Brightness < 0 || req.Brightness > 3 {
+		return &Payload{Message: "Invalid brightness value", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeDeviceBrightness(req.DeviceId, req.Brightness)
+	switch status {
+	case 1:
+		return &Payload{Message: "Device brightness successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change device brightness. You have exceeded maximum amount of LED channels per physical port", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessLabelChange will process POST request from a client for label change

@@ -25,6 +25,146 @@ document.addEventListener("DOMContentLoaded", function () {
     // Init toastr
     const toast = CreateToastr();
 
+    $('.userProfile').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const userProfileValue = $(this).val();
+        if (userProfileValue.length < 1) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["userProfileName"] = userProfileValue;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/userProfile',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.brightness').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const brightness = $(this).val();
+        const brightnessValue = parseInt(brightness);
+
+        if (brightnessValue < 0 || brightnessValue > 3) {
+            toast.warning('Invalid brightness selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["brightness"] = brightnessValue;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/brightness',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.saveUserProfile').on('click', function () {
+        let modalElement = '<div class="modal fade text-start" id="newUserProfileModal" tabindex="-1" aria-labelledby="newUserProfileLabel" aria-hidden="true">';
+        modalElement+='<div class="modal-dialog">';
+        modalElement+='<div class="modal-content">';
+        modalElement+='<div class="modal-header">';
+        modalElement+='<h5 class="modal-title" id="newUserProfileLabel">Save user profile</h5>';
+        modalElement+='<button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>';
+        modalElement+='</div>';
+        modalElement+='<div class="modal-body">';
+        modalElement+='<form>';
+        modalElement+='<div class="mb-3">';
+        modalElement+='<label class="form-label" for="userProfileName">Profile Name</label>';
+        modalElement+='<input class="form-control" id="userProfileName" type="text" placeholder="Enter profile name (a-z, A-Z, 0-9, -)">';
+        modalElement+='</div>';
+        modalElement+='</form>';
+        modalElement+='</div>';
+        modalElement+='<div class="modal-footer">';
+        modalElement+='<button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>';
+        modalElement+='<button class="btn btn-primary" type="button" id="btnSaveUserProfile">Save</button>';
+        modalElement+='</div>';
+        modalElement+='</div>';
+        modalElement+='</div>';
+        modalElement+='</div>';
+        const modal = $(modalElement).modal('toggle');
+
+        modal.on('hidden.bs.modal', function () {
+            modal.data('bs.modal', null);
+        })
+
+        modal.on('shown.bs.modal', function (e) {
+            const userProfileName = modal.find('#userProfileName');
+            userProfileName.focus();
+
+            modal.find('#btnSaveUserProfile').on('click', function () {
+                const userProfileValue = userProfileName.val();
+                if (userProfileValue.length < 1) {
+                    toast.warning('Profile name can not be empty');
+                    return false
+                }
+                const deviceId = $("#deviceId").val();
+
+                const pf = {};
+                pf["deviceId"] = deviceId;
+                pf["userProfileName"] = userProfileValue;
+                const json = JSON.stringify(pf, null, 2);
+
+                $.ajax({
+                    url: '/api/userProfile',
+                    type: 'PUT',
+                    data: json,
+                    cache: false,
+                    success: function(response) {
+                        try {
+                            if (response.status === 1) {
+                                modal.modal('toggle');
+                                $('.userProfile').append($('<option>', {
+                                    value: userProfileValue,
+                                    text: userProfileValue
+                                }));
+                                toast.success(response.message);
+                            } else {
+                                toast.warning(response.message);
+                            }
+                        } catch (err) {
+                            toast.warning(response.message);
+                        }
+                    }
+                });
+            });
+        })
+    });
+
     $('.newLabel').on('click', function () {
         const channelId = $(this).children('.deviceData').val();
         const valueOut = $(this).children('.labelValue');

@@ -213,7 +213,10 @@
                               {{ end }}
                               {{ end }}
                               {{ else }}
-                              {{ range $key, $_ := $temperatures }}
+                              {{ range $key, $pf := $temperatures }}
+                              {{ if $pf.Hidden }}
+                              {{ continue }}
+                              {{ end }}
                               {{ if eq $device.Profile $key }}
                               <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
                               {{ else }}

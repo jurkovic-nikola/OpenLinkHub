@@ -63,7 +63,7 @@ $ sudo sh install.sh
 ### 3. Installation from compiled build
 ```bash
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.2.0/OpenLinkHub_0.1.7_amd64.tar.gz
+$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.2.0/OpenLinkHub_0.2.0_amd64.tar.gz
 $ tar xvf OpenLinkHub_0.2.0_amd64.tar.gz
 $ cd OpenLinkHub/
 $ chmod +x install.sh

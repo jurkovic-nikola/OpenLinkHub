@@ -15,7 +15,7 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 
 | Device                 | VID    | PID                | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 |------------------------|--------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| iCUE LINK System Hub   | `1b1c` | `0c3f`             | <details><summary>Show</summary>iCUE LINK QX Fan<br />iCUE LINK RX Fan<br/>iCUE LINK RX RGB Fan<br/>iCUE LINK RX MAX Fan<br/>iCUE LINK H100i<br/>iCUE LINK H115i<br/>iCUE LINK H150i<br/>iCUE LINK H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module<br />iCUE LINK TITAN H100i<br />iCUE LINK TITAN H150i<br />iCUE LINK TITAN H115i<br />iCUE LINK TITAN H170i<br />LCD Pump Cover</details>                                                                                                                                               | |                                                                                                                                                                   |
+| iCUE LINK System Hub   | `1b1c` | `0c3f`             | <details><summary>Show</summary>iCUE LINK QX RGB<br />iCUE LINK RX<br/>iCUE LINK RX RGB<br/>iCUE LINK RX MAX<br/>iCUE LINK RX MAX RGB<br/>iCUE LINK H100i<br/>iCUE LINK H115i<br/>iCUE LINK H150i<br/>iCUE LINK H170i<br/>XC7 Elite<br/>XG7<br/>XD5 Elite<br/>XD5 Elite LCD <br/>VRM Cooling Module<br />iCUE LINK TITAN H100i<br />iCUE LINK TITAN H150i<br />iCUE LINK TITAN H115i<br />iCUE LINK TITAN H170i<br />LCD Pump Cover</details>                                                                                                                                  | |                                                                                                                                                                   |
 | iCUE COMMANDER Core    | `1b1c` | `0c32`<br />`0c1c` | <details><summary>Show</summary>H100i ELITE CAPELLIX<br />H115i ELITE CAPELLIX<br />H150i ELITE CAPELLIX<br />H170i ELITE CAPELLIX<br />H100i ELITE LCD<br />H150i ELITE LCD<br />H170i ELITE LCD<br />H100i ELITE LCD XT<br />H115i ELITE LCD XT<br />H150i ELITE LCD XT<br />H170i ELITE LCD XT<br />H100i ELITE CAPELLIX XT<br />H115i ELITE CAPELLIX XT<br />H150i ELITE CAPELLIX XT<br />H170i ELITE CAPELLIX XT<br />1x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan</details> |
 | iCUE COMMANDER Core XT | `1b1c` | `0c2a`             | <details><summary>Show</summary>External RGB Hub<br />2x Temperature Probe<br /> 4-LED RGB Fan<br /> 8-LED RGB Fan<br /> QL Fan Series<br /> LL Fan Series<br /> ML Fan Series<br />Any PWM Fan<br />H55 RGB AIO<br />H100 RGB AIO<br />H150 RGB AIO</details>                                                                                                                                                                                                                                                                                                                 |
 | iCUE H100i RGB ELITE   | `1b1c` | `0c35`<br />`0c40` |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -63,8 +63,8 @@ $ sudo sh install.sh
 ### 3. Installation from compiled build
 ```bash
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases
-$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.1.7-rc/OpenLinkHub_0.1.7_amd64.tar.gz
-$ tar xvf OpenLinkHub_0.1.7_amd64.tar.gz
+$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.2.0/OpenLinkHub_0.1.7_amd64.tar.gz
+$ tar xvf OpenLinkHub_0.2.0_amd64.tar.gz
 $ cd OpenLinkHub/
 $ chmod +x install.sh
 $ sudo sh install.sh
@@ -90,7 +90,7 @@ $ sudo sh install.sh
 
 ## Running in Docker
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json
-```
+```bash
 $ docker build . -t openlinkhub
 $ # To build a specific version you can use the GIT_TAG build argument
 $ docker build --build-arg GIT_TAG=0.1.3-beta -t openlinkhub .

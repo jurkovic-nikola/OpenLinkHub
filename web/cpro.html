@@ -27,23 +27,23 @@
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <div class="row btn btn-secondary" style="float: left;margin-left:0;width: 120px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-left-small">
                     <a href="/" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+                        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
                         <span style="font-size: 13px;">Dashboard</span>
                     </a>
                 </div>
 
                 {{ range $d := $devs }}
                 {{ if eq $d.Serial $device.Serial }}
-                <div class="row btn btn-secondary active-nav-link" style="float: left;margin-left: 20px;width: 230px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary active-nav-link navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
                 {{ else }}
-                <div class="row btn btn-secondary" style="float: left;margin-left: 20px;width: 230px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
@@ -52,21 +52,21 @@
                 {{ end }}
                 {{ end }}
 
-                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-right-small">
                     <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
                         <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
                         <span style="font-size: 13px;">GitHub</span>
                     </a>
                 </div>
 
-                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-right-small">
                     <a href="/docs/" style="color: #a1a1a1;">
                         <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
                         <span style="font-size: 13px;">API</span>
                     </a>
                 </div>
 
-                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-right-small">
                     <a href="/temperature" style="color: #a1a1a1;">
                         <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
                         <span style="font-size: 13px;">Profiles</span>
@@ -82,10 +82,10 @@
                         <div style="width: 300px;">
                             <div class="card mb-4">
                                 <div class="card-header border-bottom border-dash-dark-1">
-                                    <div style="float:left;width: 46px;height: 46px">
+                                    <div class="ds-svg-placeholder-left">
                                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="Device" />
                                     </div>
-                                    <div style="float:right;width: 155px;">
+                                    <div class="ds-svg-placeholder-right">
                                         <span style="font-size: 13px;">{{ .Device.Product }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
                                             <span>Device Settings</span>
@@ -149,10 +149,10 @@
                         <div style="width: 300px;">
                             <div class="card mb-4">
                                 <div class="card-header border-bottom border-dash-dark-1">
-                                    <div style="float:left;width: 46px;height: 46px">
+                                    <div class="ds-svg-placeholder-left">
                                         <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
                                     </div>
-                                    <div style="float:right;width: 155px;">
+                                    <div class="ds-svg-placeholder-right">
                                         <span style="font-size: 13px;">{{ $device.Product }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
                                             <span>LED Port {{ $hub.PortId }}</span>

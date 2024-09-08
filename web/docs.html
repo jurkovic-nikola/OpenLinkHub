@@ -21,7 +21,7 @@
         {{ $device := .Device }}
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <div class="row btn btn-secondary" style="float: left;margin-left:0;width: 120px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-left-small">
                     <a href="/" style="color: #a1a1a1;">
                         <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
                         <span style="font-size: 13px;">Dashboard</span>
@@ -29,29 +29,29 @@
                 </div>
 
                 {{ range .Devices }}
-                <div class="row btn btn-secondary" style="float: left;margin-left: 20px;width: 230px;height: 92px;text-align: center;">
-                    <a style="color: #a1a1a1;" href="/device/{{ .Serial }}">
+                <div class="row btn btn-secondary navigation-left-big">
+                    <a style="color: #a1a1a1;width: 100%;height: 100%" href="/device/{{ .Serial }}">
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ .Product }}</span>
                     </a>
                 </div>
                 {{ end }}
 
-                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-right-small">
                     <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
                         <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
                         <span style="font-size: 13px;">GitHub</span>
                     </a>
                 </div>
 
-                <div class="row btn btn-secondary active-nav-link" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary active-nav-link navigation-right-small">
                     <a href="/docs/" style="color: #a1a1a1;">
                         <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
                         <span style="font-size: 13px;">API</span>
                     </a>
                 </div>
 
-                <div class="row btn btn-secondary" style="float: right;margin-left: 20px;width: 92px;height: 92px;text-align: center;">
+                <div class="row btn btn-secondary navigation-right-small">
                     <a href="/temperature" style="color: #a1a1a1;">
                         <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
                         <span style="font-size: 13px;">Profiles</span>

@@ -223,3 +223,38 @@ footer {
     background-color: #232323;
     border-color: #6e6e6e;
 }
+
+.navigation-left-small {
+    float: left;
+    margin-left:0;
+    width: 120px;
+    height: 92px;
+    text-align: center;
+}
+
+.navigation-left-big {
+    float: left;
+    margin-left: 20px;
+    width: 230px;
+    height: 92px;
+    text-align: center;
+}
+
+.navigation-right-small {
+    float: right;
+    margin-left: 20px;
+    width: 92px;
+    height: 92px;
+    text-align: center;
+}
+
+.ds-svg-placeholder-left {
+    float:left;
+    width: 46px;
+    height: 46px;
+}
+
+.ds-svg-placeholder-right {
+    float:right;
+    width: 155px;
+}

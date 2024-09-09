@@ -924,8 +924,18 @@ func (d *Device) getDevices() int {
 	response = d.read(modeGetTemperatures, dataTypeGetTemperatures)
 	sensorData := response[9:]
 	for i, s := 0, 0; i < 1; i, s = i+1, s+3 {
+		label := "Not Set"
 		status := sensorData[s : s+3][0]
 		if status == 0x00 {
+			if d.DeviceProfile != nil {
+				// Device label
+				if lb, ok := d.DeviceProfile.Labels[m]; ok {
+					if len(lb) > 0 {
+						label = lb
+					}
+				}
+			}
+
 			// Build device object
 			device := &Devices{
 				ChannelId:          m,
@@ -938,6 +948,7 @@ func (d *Device) getDevices() int {
 				HasSpeed:           false,
 				HasTemps:           true,
 				IsTemperatureProbe: true,
+				Label:              label,
 			}
 			devices[m] = device
 			m++

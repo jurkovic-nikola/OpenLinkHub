@@ -1198,8 +1198,18 @@ func (d *Device) getDevices() int {
 	amount = d.getChannelAmount(response)
 	sensorData := response[6:]
 	for i, s := 0, 0; i < amount; i, s = i+1, s+3 {
+		label := "Not Set"
 		status := sensorData[s : s+3][0]
 		if status == 0x00 {
+			if d.DeviceProfile != nil {
+				// Device label
+				if lb, ok := d.DeviceProfile.Labels[m]; ok {
+					if len(lb) > 0 {
+						label = lb
+					}
+				}
+			}
+
 			// Build device object
 			device := &Devices{
 				ChannelId:          m,
@@ -1213,6 +1223,7 @@ func (d *Device) getDevices() int {
 				HasTemps:           true,
 				IsTemperatureProbe: true,
 				CellSize:           2,
+				Label:              label,
 			}
 			devices[m] = device
 		}

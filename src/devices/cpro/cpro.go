@@ -868,12 +868,15 @@ func (d *Device) getDevices() int {
 			val := binary.BigEndian.Uint16(temp[1:]) / 100
 
 			label := "Not Set"
-			// Device label
-			if lb, ok := d.DeviceProfile.Labels[m]; ok {
-				if len(lb) > 0 {
-					label = lb
+			if d.DeviceProfile != nil {
+				// Device label
+				if lb, ok := d.DeviceProfile.Labels[m]; ok {
+					if len(lb) > 0 {
+						label = lb
+					}
 				}
 			}
+
 			// Build device object
 			device := &Devices{
 				ChannelId:   m,

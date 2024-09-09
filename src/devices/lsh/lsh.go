@@ -29,13 +29,6 @@ import (
 	"time"
 )
 
-// DeviceMonitor struct contains the shared variable and synchronization primitives
-type DeviceMonitor struct {
-	Status byte
-	Lock   sync.Mutex
-	Cond   *sync.Cond
-}
-
 type DeviceProfile struct {
 	Active        bool
 	Path          string
@@ -96,7 +89,6 @@ type Device struct {
 	UserProfiles     map[string]*DeviceProfile `json:"userProfiles"`
 	DeviceProfile    *DeviceProfile
 	OriginalProfile  *DeviceProfile
-	deviceMonitor    *DeviceMonitor
 	activeRgb        *rgb.ActiveRGB
 	Template         string
 	HasLCD           bool
@@ -241,12 +233,10 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
-	d.setDeviceColor()   // Device color
-	d.newDeviceMonitor() // Device monitor
+	d.setDeviceColor() // Device color
 	if d.HasLCD {
 		d.setupLCD() // LCD
 	}
-
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
 }
@@ -775,7 +765,9 @@ func (d *Device) getLiquidTemperature() float32 {
 func (d *Device) updateDeviceSpeed() {
 	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	go func() {
+		tmp := make(map[int]string, 0)
 		channelSpeeds := map[int]byte{}
+
 		keys := make([]int, 0)
 		for k := range d.Devices {
 			keys = append(keys, k)
@@ -842,24 +834,28 @@ func (d *Device) updateDeviceSpeed() {
 						profile := profiles.Profiles[i]
 						minimum := profile.Min + 0.1
 						if common.InBetween(temp, minimum, profile.Max) {
-							// Validation
-							if profile.Mode < 0 || profile.Mode > 1 {
-								profile.Mode = 0
-							}
+							cp := fmt.Sprintf("%s-%d-%d-%d", d.Devices[k].Profile, d.Devices[k].ChannelId, profile.Fans, profile.Pump)
+							if ok := tmp[d.Devices[k].ChannelId]; ok != cp {
+								tmp[d.Devices[k].ChannelId] = cp
+								// Validation
+								if profile.Mode < 0 || profile.Mode > 1 {
+									profile.Mode = 0
+								}
 
-							if profile.Pump < 50 || profile.Pump > 100 {
-								profile.Pump = 70
-							}
+								if profile.Pump < 50 || profile.Pump > 100 {
+									profile.Pump = 70
+								}
 
-							var speed byte = 0x00
-							if d.Devices[k].ContainsPump {
-								speed = byte(profile.Pump)
-							} else {
-								speed = byte(profile.Fans)
-							}
-							if channelSpeeds[d.Devices[k].ChannelId] != speed {
-								channelSpeeds[d.Devices[k].ChannelId] = speed
-								d.setSpeed(channelSpeeds, 0)
+								var speed byte = 0x00
+								if d.Devices[k].ContainsPump {
+									speed = byte(profile.Pump)
+								} else {
+									speed = byte(profile.Fans)
+								}
+								if channelSpeeds[d.Devices[k].ChannelId] != speed {
+									channelSpeeds[d.Devices[k].ChannelId] = speed
+									d.setSpeed(channelSpeeds, 0)
+								}
 							}
 						}
 					}
@@ -933,6 +929,41 @@ func (d *Device) setAutoRefresh() {
 			}
 		}
 	}()
+}
+
+// setDeviceStatus sets the status and notifies a waiting goroutine if necessary
+func (d *Device) setDeviceStatus() {
+	mode, err := d.transfer(cmdGetDeviceMode, nil, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+	}
+	if len(mode) == 0 {
+		return
+	}
+
+	if mode[1] != 0x00 {
+		for {
+			time.Sleep(time.Duration(deviceRefreshInterval) * time.Millisecond)
+			mode, err = d.transfer(cmdGetDeviceMode, nil, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			}
+			if mode[1] == 0x00 {
+				// Device woke up after machine was sleeping
+				if d.activeRgb != nil {
+					d.activeRgb.Exit <- true
+					d.activeRgb = nil
+				}
+				d.setSoftwareMode()  // Activate software mode
+				d.setColorEndpoint() // Set device color endpoint
+				d.setDeviceColor()   // Set RGB
+				if !config.GetConfig().Manual {
+					d.updateDeviceSpeed() // Update device speed
+				}
+				break
+			}
+		}
+	}
 }
 
 // setDefaults will set default mode for all devices
@@ -1569,59 +1600,6 @@ func (d *Device) getDeviceFirmware() {
 
 	v1, v2, v3 := int(fw[4]), int(fw[5]), int(binary.LittleEndian.Uint16(fw[6:8]))
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
-}
-
-// newDeviceMonitor initializes and returns a new Monitor
-func (d *Device) newDeviceMonitor() {
-	m := &DeviceMonitor{}
-	m.Cond = sync.NewCond(&m.Lock)
-	go d.waitForDevice(func() {
-		// Device woke up after machine was sleeping
-		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true
-		}
-		d.setSoftwareMode()  // Activate software mode
-		d.setColorEndpoint() // Set device color endpoint
-		d.setDeviceColor()   // Set RGB
-		if !config.GetConfig().Manual {
-			timerSpeed.Stop()
-			d.updateDeviceSpeed() // Update device speed
-		}
-		d.newDeviceMonitor() // Device monitor
-	})
-	d.deviceMonitor = m
-}
-
-// setDeviceStatus sets the status and notifies a waiting goroutine if necessary
-func (d *Device) setDeviceStatus() {
-	mode, err := d.transfer(cmdGetDeviceMode, nil, nil)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-	}
-	if len(mode) == 0 {
-		return
-	}
-
-	d.deviceMonitor.Lock.Lock()
-	defer d.deviceMonitor.Lock.Unlock()
-	d.deviceMonitor.Status = mode[1]
-	d.deviceMonitor.Cond.Broadcast()
-}
-
-// waitForDevice waits for the status to change from zero to one and back to zero before running the action
-func (d *Device) waitForDevice(action func()) {
-	d.deviceMonitor.Lock.Lock()
-	for d.deviceMonitor.Status != 1 {
-		d.deviceMonitor.Cond.Wait()
-	}
-	d.deviceMonitor.Lock.Unlock()
-
-	d.deviceMonitor.Lock.Lock()
-	for d.deviceMonitor.Status != 0 {
-		d.deviceMonitor.Cond.Wait()
-	}
-	d.deviceMonitor.Lock.Unlock()
-	action()
 }
 
 // read will read data from a device and return data as a byte array

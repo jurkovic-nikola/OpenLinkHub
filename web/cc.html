@@ -153,6 +153,8 @@
                       <div class="ds-svg-placeholder-left">
                         {{ if $device.ContainsPump }}
                         <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
+                        {{ else if $device.IsTemperatureProbe }}
+                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
                         {{ else }}
                         <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                         {{ end }}

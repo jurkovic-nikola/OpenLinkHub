@@ -879,17 +879,18 @@ func (d *Device) getDevices() int {
 
 			// Build device object
 			device := &Devices{
-				ChannelId:   m,
-				DeviceId:    fmt.Sprintf("%s-%v", "Probe", s),
-				Name:        fmt.Sprintf("Temperature Probe %d", s),
-				Rpm:         0,
-				Temperature: float32(val),
-				Description: "Probe",
-				LedChannels: 0,
-				HubId:       d.Serial,
-				HasSpeed:    false,
-				HasTemps:    true,
-				Label:       label,
+				ChannelId:          m,
+				DeviceId:           fmt.Sprintf("%s-%v", "Probe", s),
+				Name:               fmt.Sprintf("Temperature Probe %d", s),
+				Rpm:                0,
+				Temperature:        float32(val),
+				Description:        "Probe",
+				LedChannels:        0,
+				HubId:              d.Serial,
+				HasSpeed:           false,
+				HasTemps:           true,
+				Label:              label,
+				IsTemperatureProbe: true,
 			}
 			devices[m] = device
 		}

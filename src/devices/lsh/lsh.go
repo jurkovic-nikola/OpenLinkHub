@@ -98,6 +98,7 @@ type Device struct {
 	PortProtection   map[uint8]int
 	GlobalBrightness float64
 	IsCritical       bool
+	FirmwareInternal []int
 }
 
 var (
@@ -1169,9 +1170,14 @@ func (d *Device) getDevices() int {
 			AIO:          deviceMeta.AIO,
 			PortId:       0,
 		}
-
 		if i >= 13 {
 			device.PortId = 1
+		}
+
+		if d.FirmwareInternal[0] < 2 {
+			if i >= 7 {
+				device.PortId = 1
+			}
 		}
 		devices[i] = device
 		position += 8 + int(deviceIdLen)
@@ -1600,6 +1606,11 @@ func (d *Device) getDeviceFirmware() {
 
 	v1, v2, v3 := int(fw[4]), int(fw[5]), int(binary.LittleEndian.Uint16(fw[6:8]))
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
+	if v1 < 2 {
+		// 2.3.427 firmware implemented 24 devices and 2.4.438 was released as stable firmware
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product, "firmware": d.Firmware}).Info("This firmware can support only 14 devices.")
+	}
+	d.FirmwareInternal = []int{v1, v2, v3}
 }
 
 // read will read data from a device and return data as a byte array

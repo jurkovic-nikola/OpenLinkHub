@@ -93,6 +93,7 @@ type Device struct {
 	Template         string
 	HasLCD           bool
 	VendorId         uint16
+	ProductId        uint16
 	LCDModes         map[int]string
 	Brightness       map[int]string
 	PortProtection   map[uint8]int
@@ -194,9 +195,10 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:      dev,
-		Template: "lsh.html",
-		VendorId: vendorId,
+		dev:       dev,
+		Template:  "lsh.html",
+		VendorId:  vendorId,
+		ProductId: productId,
 		LCDModes: map[int]string{
 			0: "Liquid Temperature",
 			1: "Pump Speed",
@@ -939,31 +941,57 @@ func (d *Device) setDeviceStatus() {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
 	if len(mode) == 0 {
-		return
-	}
-
-	if mode[1] != 0x00 {
-		for {
-			logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Warn("Device status changed, trying to recover...")
-			time.Sleep(time.Duration(deviceRefreshInterval) * time.Millisecond)
-			mode, err = d.transfer(cmdGetDeviceMode, nil, nil)
+		// USB header connection is terminated, re-initialize device
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("Device connection is terminated. Trying to reinitialize")
+		if d.dev != nil {
+			err := d.dev.Close()
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+				logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 			}
-			if mode[1] == 0x00 {
-				// Device woke up after machine was sleeping
-				if d.activeRgb != nil {
-					d.activeRgb.Exit <- true
-					d.activeRgb = nil
+		}
+
+		dev, err := hid.Open(d.VendorId, d.ProductId, d.Serial)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to re-open HID device")
+			return
+		}
+		d.dev = dev
+		// Device woke up after machine was sleeping
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true
+			d.activeRgb = nil
+		}
+		d.setSoftwareMode()  // Activate software mode
+		d.setColorEndpoint() // Set device color endpoint
+		d.setDeviceColor()   // Set RGB
+		if !config.GetConfig().Manual {
+			d.updateDeviceSpeed() // Update device speed
+		}
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Info("Device recovery completed")
+	} else {
+		if mode[1] != 0x00 {
+			for {
+				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Warn("Device status changed, trying to recover...")
+				time.Sleep(time.Duration(deviceRefreshInterval) * time.Millisecond)
+				mode, err = d.transfer(cmdGetDeviceMode, nil, nil)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 				}
-				d.setSoftwareMode()  // Activate software mode
-				d.setColorEndpoint() // Set device color endpoint
-				d.setDeviceColor()   // Set RGB
-				if !config.GetConfig().Manual {
-					d.updateDeviceSpeed() // Update device speed
+				if mode[1] == 0x00 {
+					// Device woke up after machine was sleeping
+					if d.activeRgb != nil {
+						d.activeRgb.Exit <- true
+						d.activeRgb = nil
+					}
+					d.setSoftwareMode()  // Activate software mode
+					d.setColorEndpoint() // Set device color endpoint
+					d.setDeviceColor()   // Set RGB
+					if !config.GetConfig().Manual {
+						d.updateDeviceSpeed() // Update device speed
+					}
+					logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Info("Device recovery completed")
+					break
 				}
-				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Info("Device recovery completed")
-				break
 			}
 		}
 	}

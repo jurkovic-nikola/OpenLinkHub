@@ -944,6 +944,7 @@ func (d *Device) setDeviceStatus() {
 
 	if mode[1] != 0x00 {
 		for {
+			logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Warn("Device status changed, trying to recover...")
 			time.Sleep(time.Duration(deviceRefreshInterval) * time.Millisecond)
 			mode, err = d.transfer(cmdGetDeviceMode, nil, nil)
 			if err != nil {
@@ -961,6 +962,7 @@ func (d *Device) setDeviceStatus() {
 				if !config.GetConfig().Manual {
 					d.updateDeviceSpeed() // Update device speed
 				}
+				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Info("Device recovery completed")
 				break
 			}
 		}

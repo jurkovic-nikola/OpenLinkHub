@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/godbus/dbus/v5"
 	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
@@ -28,6 +29,13 @@ import (
 	"sync"
 	"time"
 )
+
+// DeviceMonitor struct contains the shared variable and synchronization primitives
+type DeviceMonitor struct {
+	Status byte
+	Lock   sync.Mutex
+	Cond   *sync.Cond
+}
 
 type DeviceProfile struct {
 	Active        bool
@@ -88,6 +96,7 @@ type Device struct {
 	Devices          map[int]*Devices          `json:"devices"`
 	UserProfiles     map[string]*DeviceProfile `json:"userProfiles"`
 	DeviceProfile    *DeviceProfile
+	deviceMonitor    *DeviceMonitor
 	OriginalProfile  *DeviceProfile
 	activeRgb        *rgb.ActiveRGB
 	Template         string
@@ -113,7 +122,7 @@ var (
 	cmdWrite                    = []byte{0x06, 0x01}
 	cmdWriteColor               = []byte{0x06, 0x00}
 	cmdRead                     = []byte{0x08, 0x01}
-	cmdGetDeviceMode            = []byte{0x01, 0x08, 0x01}
+	cmdGetDeviceMode            = []byte{0x01, 0x12, 0x00}
 	cmdRefreshDevices           = []byte{0x1a, 0x01}
 	cmdWaitForDevice            = []byte{0x12, 0x00}
 	modeGetDevices              = []byte{0x36}
@@ -142,6 +151,7 @@ var (
 	temperaturePullingInterval  = 3000
 	lcdRefreshInterval          = 1000
 	deviceRefreshInterval       = 1000
+	deviceWakeupDelay           = 5000
 	timer                       = &time.Ticker{}
 	timerSpeed                  = &time.Ticker{}
 	lcdTimer                    = &time.Ticker{}
@@ -237,6 +247,14 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		d.updateDeviceSpeed() // Update device speed
 	}
 	d.setDeviceColor() // Device color
+	if config.GetConfig().DbusMonitor {
+		// DBus Device monitor, use this flag if your device is not re-initialized after sleep / resume
+		d.dbusDeviceMonitor()
+	} else {
+		// Normal device monitor via software
+		d.newDeviceMonitor()
+	}
+
 	if d.HasLCD {
 		d.setupLCD() // LCD
 	}
@@ -924,7 +942,9 @@ func (d *Device) setAutoRefresh() {
 		for {
 			select {
 			case <-timer.C:
-				d.setDeviceStatus()
+				if !config.GetConfig().DbusMonitor {
+					d.setDeviceStatus()
+				}
 				d.getDeviceData()
 			case <-authRefreshChan:
 				timer.Stop()
@@ -934,28 +954,64 @@ func (d *Device) setAutoRefresh() {
 	}()
 }
 
-// setDeviceStatus sets the status and notifies a waiting goroutine if necessary
-func (d *Device) setDeviceStatus() {
-	mode, err := d.transfer(cmdGetDeviceMode, nil, nil)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-	}
-	if len(mode) == 0 {
-		// USB header connection is terminated, re-initialize device
-		logger.Log(logger.Fields{"serial": d.Serial}).Error("Device connection is terminated. Trying to reinitialize")
-		if d.dev != nil {
-			err := d.dev.Close()
+// dbusDeviceMonitor will monitor dbus events for suspend and resume
+func (d *Device) dbusDeviceMonitor() {
+	go func() {
+		// Connect to the session bus
+		conn, err := dbus.ConnectSystemBus()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to connect to system bus")
+		}
+		defer func(conn *dbus.Conn) {
+			err = conn.Close()
 			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Error closing dbus")
 			}
+		}(conn)
+
+		// Listen for the PrepareForSleep signal
+		_ = conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
+		ch := make(chan *dbus.Signal, 10)
+		conn.Signal(ch)
+
+		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
+		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to add D-Bus match")
 		}
 
-		dev, err := hid.Open(d.VendorId, d.ProductId, d.Serial)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to re-open HID device")
-			return
+		for signal := range ch {
+			if len(signal.Body) > 0 {
+				if isSleeping, ok := signal.Body[0].(bool); ok {
+					if isSleeping {
+						d.setHardwareMode()
+					} else {
+						// Wait for 5 seconds until the hub wakes up
+						time.Sleep(time.Duration(deviceWakeupDelay) * time.Millisecond)
+
+						// Device woke up after machine was sleeping
+						if d.activeRgb != nil {
+							d.activeRgb.Exit <- true
+							d.activeRgb = nil
+						}
+						d.setSoftwareMode()  // Activate software mode
+						d.setColorEndpoint() // Set device color endpoint
+						d.setDeviceColor()   // Set RGB
+						if !config.GetConfig().Manual {
+							d.updateDeviceSpeed() // Update device speed
+						}
+					}
+				}
+			}
 		}
-		d.dev = dev
+	}()
+}
+
+// newDeviceMonitor initializes and returns a new Monitor
+func (d *Device) newDeviceMonitor() {
+	m := &DeviceMonitor{}
+	m.Cond = sync.NewCond(&m.Lock)
+	go d.waitForDevice(func() {
 		// Device woke up after machine was sleeping
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true
@@ -967,34 +1023,40 @@ func (d *Device) setDeviceStatus() {
 		if !config.GetConfig().Manual {
 			d.updateDeviceSpeed() // Update device speed
 		}
-		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Info("Device recovery completed")
-	} else {
-		if mode[1] != 0x00 {
-			for {
-				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Warn("Device status changed, trying to recover...")
-				time.Sleep(time.Duration(deviceRefreshInterval) * time.Millisecond)
-				mode, err = d.transfer(cmdGetDeviceMode, nil, nil)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-				}
-				if mode[1] == 0x00 {
-					// Device woke up after machine was sleeping
-					if d.activeRgb != nil {
-						d.activeRgb.Exit <- true
-						d.activeRgb = nil
-					}
-					d.setSoftwareMode()  // Activate software mode
-					d.setColorEndpoint() // Set device color endpoint
-					d.setDeviceColor()   // Set RGB
-					if !config.GetConfig().Manual {
-						d.updateDeviceSpeed() // Update device speed
-					}
-					logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", mode[:10])}).Info("Device recovery completed")
-					break
-				}
-			}
-		}
+	})
+	d.deviceMonitor = m
+}
+
+// setDeviceStatus sets the status and notifies a waiting goroutine if necessary
+func (d *Device) setDeviceStatus() {
+	mode, err := d.transfer(cmdGetDeviceMode, nil, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
+	if len(mode) == 0 {
+		return
+	}
+
+	d.deviceMonitor.Lock.Lock()
+	defer d.deviceMonitor.Lock.Unlock()
+	d.deviceMonitor.Status = mode[1]
+	d.deviceMonitor.Cond.Broadcast()
+}
+
+// waitForDevice waits for the status to change from zero to one and back to zero before running the action
+func (d *Device) waitForDevice(action func()) {
+	d.deviceMonitor.Lock.Lock()
+	for d.deviceMonitor.Status != 1 {
+		d.deviceMonitor.Cond.Wait()
+	}
+	d.deviceMonitor.Lock.Unlock()
+
+	d.deviceMonitor.Lock.Lock()
+	for d.deviceMonitor.Status != 0 {
+		d.deviceMonitor.Cond.Wait()
+	}
+	d.deviceMonitor.Lock.Unlock()
+	action()
 }
 
 // setDefaults will set default mode for all devices

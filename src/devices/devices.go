@@ -839,7 +839,6 @@ func Init() {
 				}(vendorId, productId, serial)
 			}
 		default:
-			logger.Log(logger.Fields{"vendor": vendorId, "product": productId, "serial": serial}).Warn("Unsupported device detected. Please open a new feature request for your device on OpenLinkHub repository")
 			continue
 		}
 	}

@@ -34,7 +34,7 @@ Packages will also take care of systemd service creation and first startup.
 3. Navigate to the folder where the package is downloaded
 ```bash
 # Debian Based (deb)
-$ sudo dpkg -i OpenLinkHub_X.X.X_amd64.deb 
+$ sudo apt install ./OpenLinkHub_X.X.X_amd64.deb 
 
 # RPM based (rpm)
 $ sudo rpm -ivh OpenLinkHub-X.X.X-1.x86_64.rpm

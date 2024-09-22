@@ -52,6 +52,14 @@ type DeviceProfile struct {
 	Labels        map[int]string
 }
 
+type TemperatureProbe struct {
+	ChannelId int
+	Name      string
+	Label     string
+	Serial    string
+	Product   string
+}
+
 type Device struct {
 	dev                     *hid.Device
 	Manufacturer            string                    `json:"manufacturer"`
@@ -63,6 +71,7 @@ type Device struct {
 	DeviceProfile           *DeviceProfile
 	ExternalLedDeviceAmount map[int]string
 	ExternalLedDevice       []ExternalLedDevice
+	TemperatureProbes       *[]TemperatureProbe
 	activeRgb               map[int]*rgb.ActiveRGB
 	Template                string
 	Brightness              map[int]string
@@ -190,18 +199,19 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
-	d.getManufacturer()    // Manufacturer
-	d.getProduct()         // Product
-	d.getSerial()          // Serial
-	d.loadDeviceProfiles() // Load all device profiles
-	d.getDeviceFirmware()  // Firmware
-	d.getDevices()         // Get devices connected to a hub
-	d.setFanMode()         // Set default fan mode
-	d.saveDeviceProfile()  // Create device profile
-	d.setColorEndpoint()   // Setup lightning
-	d.setDefaults()        // Set default speed value
-	d.setAutoRefresh()     // Set auto device refresh
-	d.setDeviceColor()     // Device color
+	d.getManufacturer()     // Manufacturer
+	d.getProduct()          // Product
+	d.getSerial()           // Serial
+	d.loadDeviceProfiles()  // Load all device profiles
+	d.getDeviceFirmware()   // Firmware
+	d.getDevices()          // Get devices connected to a hub
+	d.setFanMode()          // Set default fan mode
+	d.saveDeviceProfile()   // Create device profile
+	d.getTemperatureProbe() // Devices with temperature probes
+	d.setColorEndpoint()    // Setup lightning
+	d.setDefaults()         // Set default speed value
+	d.setAutoRefresh()      // Set auto device refresh
+	d.setDeviceColor()      // Device color
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
@@ -417,6 +427,30 @@ func (d *Device) setSpeed(data map[int]byte) {
 	}
 }
 
+// getTemperatureProbe will return all devices with a temperature probe
+func (d *Device) getTemperatureProbe() {
+	var probes []TemperatureProbe
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].IsTemperatureProbe {
+			probe := TemperatureProbe{
+				ChannelId: d.Devices[k].ChannelId,
+				Name:      d.Devices[k].Name,
+				Label:     d.Devices[k].Label,
+				Serial:    d.Serial,
+				Product:   d.Product,
+			}
+			probes = append(probes, probe)
+		}
+	}
+	d.TemperatureProbes = &probes
+}
+
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	if rgb.GetRgbProfile(profile) == nil {
@@ -467,6 +501,11 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// GetTemperatureProbes will return a list of temperature probes
+func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
+	return d.TemperatureProbes
 }
 
 // UpdateDeviceLabel will set / update device label
@@ -592,6 +631,16 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
 		// This device does not have an option for AIO pump
 		return 2
+	}
+
+	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
+		if profiles.Device != d.Serial {
+			return 3
+		}
+
+		if _, ok := d.Devices[profiles.ChannelId]; !ok {
+			return 4
+		}
 	}
 
 	// Check if actual channelId exists in the device list
@@ -1416,6 +1465,15 @@ func (d *Device) updateDeviceSpeed() {
 								temp = temperatures.GetStorageTemperature(profiles.Device)
 								if temp == 0 {
 									logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get storage temperature.")
+								}
+							}
+						case temperatures.SensorTypeTemperatureProbe:
+							{
+								if d.Devices[profiles.ChannelId].IsTemperatureProbe {
+									temp = d.Devices[profiles.ChannelId].Temperature
+								}
+								if temp == 0 {
+									logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 								}
 							}
 						}

@@ -73,6 +73,7 @@ $ sudo sh install.sh
 ### 4. Configuration
 ```json
 {
+  "debug": false,
   "listenPort": 27003,
   "listenAddress": "127.0.0.1",
   "cpuSensorChip": "k10temp",

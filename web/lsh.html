@@ -26,6 +26,7 @@
         {{ $lcd := .Device.HasLCD }}
         {{ $lcdModes := .Device.LCDModes }}
         {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
+        {{ $positions := .Device.DeviceProfile.Positions }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
           <div class="container-fluid">
@@ -149,16 +150,26 @@
                     </div>
                   </div>
                 </div>
-                {{ range $device := $devices }}
+                {{ range $position, $channel := $positions }}
+                {{ $device := index $devices $channel }}
                 <div style="width: 300px;">
                   <div class="card mb-4">
                     <div class="card-header border-bottom border-dash-dark-1">
-                      <div class="ds-svg-placeholder-left">
+                      <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
                         {{ if $device.ContainsPump }}
                         <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                         {{ else }}
                         <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                         {{ end }}
+                        <div class="align-center-text">
+                          {{ if ne $position 1 }}
+                          <span class="bi bi-arrow-left svg-icon svg-icon-sm svg-icon-heavy moveLeft" data="{{ $position }};{{ $channel }}"></span>
+                          {{ end }}
+
+                          {{ $length := len $positions }}{{ if ne $position $length }}
+                          <span class="bi bi-arrow-right svg-icon svg-icon-sm svg-icon-heavy moveRight" data="{{ $position }};{{ $channel }}"></span>
+                          {{ end }}
+                        </div>
                       </div>
 
                       <div class="ds-svg-placeholder-right">
@@ -177,7 +188,7 @@
                           <div class="me-2">
                             <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
                           </div>
-                          <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ .DeviceId }}">{{ $device.Temperature }} °C</p>
+                          <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.Temperature }} °C</p>
                         </div>
                         <div class="progress" style="height: 3px">
                           <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
@@ -190,7 +201,7 @@
                           <div class="me-2">
                             <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
                           </div>
-                          <p class="text-sm lh-1 mb-0 text-dash-color-2" id="speed-{{ .DeviceId }}" style="margin-top: 5px;">{{ $device.Rpm }} RPM</p>
+                          <p class="text-sm lh-1 mb-0 text-dash-color-2" id="speed-{{ $device.DeviceId }}" style="margin-top: 5px;">{{ $device.Rpm }} RPM</p>
                         </div>
                         <div class="progress" style="height: 3px">
                           <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>

@@ -6,6 +6,7 @@ import (
 )
 
 type Configuration struct {
+	Debug          bool   `json:"debug"`
 	ListenPort     int    `json:"listenPort"`
 	ListenAddress  string `json:"listenAddress"`
 	CPUSensorChip  string `json:"cpuSensorChip"`

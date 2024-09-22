@@ -258,3 +258,15 @@ footer {
     float:right;
     width: 155px;
 }
+
+.moveLeft {
+    cursor: pointer;
+}
+
+.moveRight {
+    cursor: pointer;
+}
+
+.align-center-text {
+    text-align: center;
+}

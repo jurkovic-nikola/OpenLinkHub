@@ -294,6 +294,17 @@ func changeBrightness(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changePosition handles device position change
+func changePosition(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessPositionChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setManualDeviceSpeed handles manual device speed changes
 func setManualDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessManualChangeSpeed(r)
@@ -407,6 +418,7 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
+	web.TemperatureProbes = devices.GetTemperatureProbes()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
@@ -530,6 +542,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeUserProfile)
 	r.Methods(http.MethodPost).Path("/api/brightness").
 		HandlerFunc(changeBrightness)
+	r.Methods(http.MethodPost).Path("/api/position").
+		HandlerFunc(changePosition)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

@@ -165,6 +165,76 @@ document.addEventListener("DOMContentLoaded", function () {
         })
     });
 
+    $('.moveLeft').on('click', function () {
+        const data = $(this).attr('data').split(";");
+        const deviceId = $("#deviceId").val();
+
+        if (data.length < 2 || data.length > 2) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["position"] = parseInt(data[0]);
+        pf["channelId"] = parseInt(data[1]);
+        pf["direction"] = 0;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/position',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.moveRight').on('click', function () {
+        const data = $(this).attr('data').split(";");
+        const deviceId = $("#deviceId").val();
+
+        if (data.length < 2 || data.length > 2) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["position"] = parseInt(data[0]);
+        pf["channelId"] = parseInt(data[1]);
+        pf["direction"] = 1;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/position',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.newLabel').on('click', function () {
         const channelId = $(this).children('.deviceData').val();
         const valueOut = $(this).children('.labelValue');

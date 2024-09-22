@@ -15,18 +15,19 @@ var (
 )
 
 type Web struct {
-	Title         string
-	Tpl           *template.Template
-	Devices       map[string]*devices.Device
-	Configuration config.Configuration
-	Device        interface{}
-	Temperatures  map[string]temperatures.TemperatureProfileData
-	Rgb           map[string]rgb.Profile
-	SystemInfo    interface{}
-	CpuTemp       float32
-	GpuTemp       float32
-	StorageTemp   []temperatures.StorageTemperatures
-	BuildInfo     *version.BuildInfo
+	Title             string
+	Tpl               *template.Template
+	Devices           map[string]*devices.Device
+	Configuration     config.Configuration
+	Device            interface{}
+	TemperatureProbes interface{}
+	Temperatures      map[string]temperatures.TemperatureProfileData
+	Rgb               map[string]rgb.Profile
+	SystemInfo        interface{}
+	CpuTemp           float32
+	GpuTemp           float32
+	StorageTemp       []temperatures.StorageTemperatures
+	BuildInfo         *version.BuildInfo
 }
 
 func Init() {

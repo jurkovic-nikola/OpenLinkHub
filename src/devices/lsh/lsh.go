@@ -47,17 +47,27 @@ type DeviceProfile struct {
 	SpeedProfiles map[int]string
 	RGBProfiles   map[int]string
 	Labels        map[int]string
+	Positions     map[int]int
+}
+
+type TemperatureProbe struct {
+	ChannelId int
+	Name      string
+	Label     string
+	Serial    string
+	Product   string
 }
 
 // SupportedDevice contains definition of supported devices
 type SupportedDevice struct {
-	DeviceId     byte   `json:"deviceId"`
-	Model        byte   `json:"deviceModel"`
-	Name         string `json:"deviceName"`
-	LedChannels  uint8  `json:"ledChannels"`
-	ContainsPump bool   `json:"containsPump"`
-	Desc         string `json:"desc"`
-	AIO          bool   `json:"aio"`
+	DeviceId         byte   `json:"deviceId"`
+	Model            byte   `json:"deviceModel"`
+	Name             string `json:"deviceName"`
+	LedChannels      uint8  `json:"ledChannels"`
+	ContainsPump     bool   `json:"containsPump"`
+	Desc             string `json:"desc"`
+	AIO              bool   `json:"aio"`
+	TemperatureProbe bool   `json:"temperatureProbe"`
 }
 
 // Devices contain information about devices connected to an iCUE Link
@@ -83,32 +93,35 @@ type Devices struct {
 	HasSpeed           bool
 	HasTemps           bool
 	AIO                bool
+	Position           int
 }
 
 type Device struct {
-	dev              *hid.Device
-	lcd              *hid.Device
-	Manufacturer     string                    `json:"manufacturer"`
-	Product          string                    `json:"product"`
-	Serial           string                    `json:"serial"`
-	Firmware         string                    `json:"firmware"`
-	AIO              bool                      `json:"aio"`
-	Devices          map[int]*Devices          `json:"devices"`
-	UserProfiles     map[string]*DeviceProfile `json:"userProfiles"`
-	DeviceProfile    *DeviceProfile
-	deviceMonitor    *DeviceMonitor
-	OriginalProfile  *DeviceProfile
-	activeRgb        *rgb.ActiveRGB
-	Template         string
-	HasLCD           bool
-	VendorId         uint16
-	ProductId        uint16
-	LCDModes         map[int]string
-	Brightness       map[int]string
-	PortProtection   map[uint8]int
-	GlobalBrightness float64
-	IsCritical       bool
-	FirmwareInternal []int
+	Debug             bool
+	dev               *hid.Device
+	lcd               *hid.Device
+	Manufacturer      string                    `json:"manufacturer"`
+	Product           string                    `json:"product"`
+	Serial            string                    `json:"serial"`
+	Firmware          string                    `json:"firmware"`
+	AIO               bool                      `json:"aio"`
+	Devices           map[int]*Devices          `json:"devices"`
+	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
+	DeviceProfile     *DeviceProfile
+	deviceMonitor     *DeviceMonitor
+	OriginalProfile   *DeviceProfile
+	TemperatureProbes *[]TemperatureProbe
+	activeRgb         *rgb.ActiveRGB
+	Template          string
+	HasLCD            bool
+	VendorId          uint16
+	ProductId         uint16
+	LCDModes          map[int]string
+	Brightness        map[int]string
+	PortProtection    map[uint8]int
+	GlobalBrightness  float64
+	IsCritical        bool
+	FirmwareInternal  []int
 }
 
 var (
@@ -164,7 +177,7 @@ var (
 	portProtectionMaximumStage3 = 442
 	criticalAioCoolantTemp      = 57.0
 	supportedDevices            = []SupportedDevice{
-		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan"},
+		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan", TemperatureProbe: true},
 		{DeviceId: 2, Model: 0, Name: "iCUE LINK LX RGB", LedChannels: 18, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 3, Model: 0, Name: "iCUE LINK RX RGB MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan"},
 		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan"},
@@ -226,6 +239,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
+	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
@@ -239,6 +253,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setDefaults()         // Set default speed and color values for fans and pumps
 	d.setAutoRefresh()      // Set auto device refresh
 	d.saveDeviceProfile()   // Save profile
+	d.getTemperatureProbe() // Devices with temperature probes
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
@@ -441,6 +456,8 @@ func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	labels := make(map[int]string, len(d.Devices))
+	positions := make(map[int]int, len(d.Devices))
+
 	for _, device := range d.Devices {
 		speedProfiles[device.ChannelId] = device.Profile
 		rgbProfiles[device.ChannelId] = device.RGB
@@ -458,13 +475,28 @@ func (d *Device) saveDeviceProfile() {
 
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
+		m := 1
 		for _, device := range d.Devices {
 			rgbProfiles[device.ChannelId] = "static"
 			labels[device.ChannelId] = "Not Set"
+			positions[m] = device.ChannelId
+			m++
 		}
 		deviceProfile.Active = true
+		deviceProfile.Positions = positions
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.Positions == nil {
+			m := 1
+			for _, device := range d.Devices {
+				positions[m] = device.ChannelId
+				m++
+			}
+			deviceProfile.Positions = positions
+		} else {
+			deviceProfile.Positions = d.DeviceProfile.Positions
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		if len(d.DeviceProfile.Path) < 1 {
@@ -476,8 +508,20 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 	}
 
+	keys := make([]int, 0, len(deviceProfile.Positions))
+	for k := range deviceProfile.Positions {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	pos := make(map[int]int, len(d.Devices))
+	for _, k := range keys {
+		pos[k] = deviceProfile.Positions[k]
+	}
+	deviceProfile.Positions = pos
+
 	// Convert to JSON
-	buffer, err := json.Marshal(deviceProfile)
+	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
 		return
@@ -522,6 +566,52 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 	if i > 0 {
 		// Save only if something was changed
 		d.saveDeviceProfile()
+	}
+}
+
+// GetTemperatureProbes will return a list of temperature probes
+func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
+	return d.TemperatureProbes
+}
+
+// UpdateDevicePosition will update device position on WebUI
+func (d *Device) UpdateDevicePosition(position, direction int) uint8 {
+	newChannelId := 0
+	newPosition := 0
+	if _, ok := d.DeviceProfile.Positions[position]; ok {
+		if direction == 0 {
+			if position == 1 {
+				return 2
+			}
+			newChannelId = d.DeviceProfile.Positions[position-1]
+			newPosition = position - 1
+		} else {
+			if position >= len(d.DeviceProfile.Positions) {
+				return 2
+			}
+			newChannelId = d.DeviceProfile.Positions[position+1]
+			newPosition = position + 1
+		}
+
+		for ck, ch := range d.DeviceProfile.Positions {
+			if ch == newChannelId {
+				newPosition = ck
+				break
+			}
+		}
+
+		// Current channel id
+		currentChannelId := d.DeviceProfile.Positions[position]
+
+		// Swap positions
+		d.DeviceProfile.Positions[position] = newChannelId
+		d.DeviceProfile.Positions[newPosition] = currentChannelId
+
+		// Save it
+		d.saveDeviceProfile()
+		return 1
+	} else {
+		return 0
 	}
 }
 
@@ -696,6 +786,16 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
+	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
+		if profiles.Device != d.Serial {
+			return 3
+		}
+
+		if _, ok := d.Devices[profiles.ChannelId]; !ok {
+			return 4
+		}
+	}
+
 	if channelId < 0 {
 		// All devices
 		for _, device := range d.Devices {
@@ -746,6 +846,30 @@ func (d *Device) UpdateDeviceMetrics() {
 		}
 		metrics.Populate(header)
 	}
+}
+
+// getTemperatureProbe will return all devices with a temperature probe
+func (d *Device) getTemperatureProbe() {
+	var probes []TemperatureProbe
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].IsTemperatureProbe {
+			probe := TemperatureProbe{
+				ChannelId: d.Devices[k].ChannelId,
+				Name:      d.Devices[k].Name,
+				Label:     d.Devices[k].Label,
+				Serial:    d.Serial,
+				Product:   d.Product,
+			}
+			probes = append(probes, probe)
+		}
+	}
+	d.TemperatureProbes = &probes
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -842,6 +966,15 @@ func (d *Device) updateDeviceSpeed() {
 							temp = temperatures.GetStorageTemperature(profiles.Device)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get storage temperature.")
+							}
+						}
+					case temperatures.SensorTypeTemperatureProbe:
+						{
+							if d.Devices[profiles.ChannelId].IsTemperatureProbe {
+								temp = d.Devices[profiles.ChannelId].Temperature
+							}
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 							}
 						}
 					}
@@ -1037,6 +1170,10 @@ func (d *Device) setDeviceStatus() {
 		return
 	}
 
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "mode": fmt.Sprintf("%2x", mode)}).Info("setDeviceStatus()")
+	}
+
 	d.deviceMonitor.Lock.Lock()
 	defer d.deviceMonitor.Lock.Unlock()
 	d.deviceMonitor.Status = mode[1]
@@ -1063,6 +1200,9 @@ func (d *Device) waitForDevice(action func()) {
 func (d *Device) getDeviceData() {
 	// Speed
 	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "type": "speed"}).Info("getDeviceData()")
+	}
 	amount := response[6]
 	sensorData := response[7:]
 	valid := response[7]
@@ -1087,6 +1227,9 @@ func (d *Device) getDeviceData() {
 		amount = response[6]
 		sensorData = response[7:]
 		valid = response[7]
+		if d.Debug {
+			logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "type": "temperature"}).Info("getDeviceData()")
+		}
 		if valid == 0x01 {
 			for i, s := 0, 0; i < int(amount); i, s = i+1, s+3 {
 				currentSensor := sensorData[s : s+3]
@@ -1164,6 +1307,10 @@ func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices, 0)
 
 	response := d.read(modeGetDevices, dataTypeGetDevices)
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response)}).Info("getDevices()")
+	}
+
 	channels := response[6]
 	data := response[7:]
 	position := 0
@@ -1242,25 +1389,26 @@ func (d *Device) getDevices() int {
 
 		// Build device object
 		device := &Devices{
-			ChannelId:    i,
-			Type:         deviceTypeModel[2],
-			Model:        deviceTypeModel[3],
-			DeviceId:     string(deviceId),
-			Name:         deviceMeta.Name,
-			DefaultValue: 0,
-			Rpm:          0,
-			Temperature:  0,
-			LedChannels:  ledChannels,
-			ContainsPump: deviceMeta.ContainsPump,
-			Description:  deviceMeta.Desc,
-			HubId:        d.Serial,
-			Profile:      speedProfile,
-			RGB:          rgbProfile,
-			Label:        label,
-			HasSpeed:     true,
-			HasTemps:     true,
-			AIO:          deviceMeta.AIO,
-			PortId:       0,
+			ChannelId:          i,
+			Type:               deviceTypeModel[2],
+			Model:              deviceTypeModel[3],
+			DeviceId:           string(deviceId),
+			Name:               deviceMeta.Name,
+			DefaultValue:       0,
+			Rpm:                0,
+			Temperature:        0,
+			LedChannels:        ledChannels,
+			ContainsPump:       deviceMeta.ContainsPump,
+			Description:        deviceMeta.Desc,
+			HubId:              d.Serial,
+			Profile:            speedProfile,
+			RGB:                rgbProfile,
+			Label:              label,
+			HasSpeed:           true,
+			HasTemps:           true,
+			AIO:                deviceMeta.AIO,
+			PortId:             0,
+			IsTemperatureProbe: deviceMeta.TemperatureProbe,
 		}
 		if i >= 13 {
 			device.PortId = 1
@@ -1271,6 +1419,11 @@ func (d *Device) getDevices() int {
 				device.PortId = 1
 			}
 		}
+
+		if d.Debug {
+			logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("getDevices()")
+		}
+
 		devices[i] = device
 		position += 8 + int(deviceIdLen)
 	}
@@ -1656,6 +1809,11 @@ func (d *Device) setSoftwareMode() {
 			}
 		}
 	}
+}
+
+// getManufacturer will return device manufacturer
+func (d *Device) getDebugMode() {
+	d.Debug = config.GetConfig().Debug
 }
 
 // getManufacturer will return device manufacturer

@@ -19,6 +19,7 @@ const (
 	SensorTypeGPU               = 1
 	SensorTypeLiquidTemperature = 2
 	SensorTypeStorage           = 3
+	SensorTypeTemperatureProbe  = 4
 )
 
 type UpdateData struct {
@@ -40,11 +41,12 @@ type Temperatures struct {
 }
 
 type TemperatureProfileData struct {
-	Sensor   uint8                `json:"sensor"`
-	ZeroRpm  bool                 `json:"zeroRpm"`
-	Profiles []TemperatureProfile `json:"profiles"`
-	Device   string               `json:"device"`
-	Hidden   bool
+	Sensor    uint8                `json:"sensor"`
+	ZeroRpm   bool                 `json:"zeroRpm"`
+	Profiles  []TemperatureProfile `json:"profiles"`
+	Device    string               `json:"device"`
+	ChannelId int                  `json:"channelId"`
+	Hidden    bool
 }
 
 type StorageTemperatures struct {
@@ -160,6 +162,23 @@ var (
 		},
 		Hidden: true,
 	}
+
+	// Temperature probes
+	profileProbeTemperature = TemperatureProfileData{
+		Sensor: 2,
+		Profiles: []TemperatureProfile{
+			{Id: 1, Min: 0, Max: 20, Mode: 0, Fans: 30, Pump: 50},
+			{Id: 2, Min: 20, Max: 25, Mode: 0, Fans: 35, Pump: 50},
+			{Id: 3, Min: 25, Max: 30, Mode: 0, Fans: 40, Pump: 50},
+			{Id: 4, Min: 30, Max: 35, Mode: 0, Fans: 45, Pump: 50},
+			{Id: 5, Min: 35, Max: 40, Mode: 0, Fans: 50, Pump: 60},
+			{Id: 6, Min: 40, Max: 45, Mode: 0, Fans: 60, Pump: 60},
+			{Id: 7, Min: 45, Max: 50, Mode: 0, Fans: 70, Pump: 70},
+			{Id: 8, Min: 50, Max: 55, Mode: 0, Fans: 80, Pump: 80},
+			{Id: 9, Min: 55, Max: 60, Mode: 0, Fans: 100, Pump: 100},
+		},
+		Hidden: false,
+	}
 )
 
 // Init will initialize temperature data
@@ -179,7 +198,7 @@ func Init() {
 }
 
 // AddTemperatureProfile will save new temperature profile
-func AddTemperatureProfile(profile, hwmonDeviceId string, static, zeroRpm bool, sensor uint8) bool {
+func AddTemperatureProfile(profile, deviceId string, static, zeroRpm bool, sensor uint8, channelId int) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -191,7 +210,15 @@ func AddTemperatureProfile(profile, hwmonDeviceId string, static, zeroRpm bool, 
 			return true
 		}
 
-		if sensor == 3 && len(hwmonDeviceId) < 1 {
+		if sensor == 3 && len(deviceId) < 1 {
+			return false
+		}
+
+		if sensor == 4 && len(deviceId) < 1 {
+			return false
+		}
+
+		if sensor == 4 && channelId < 1 {
 			return false
 		}
 
@@ -212,10 +239,18 @@ func AddTemperatureProfile(profile, hwmonDeviceId string, static, zeroRpm bool, 
 			{
 				pf = profileStorageTemperature
 			}
+		case SensorTypeTemperatureProbe:
+			{
+				pf = profileProbeTemperature
+			}
 		}
 
-		if len(hwmonDeviceId) > 0 {
-			pf.Device = hwmonDeviceId
+		if len(deviceId) > 0 {
+			pf.Device = deviceId
+		}
+
+		if sensor == 4 {
+			pf.ChannelId = channelId
 		}
 
 		pf.Sensor = sensor

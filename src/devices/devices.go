@@ -268,6 +268,21 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 	return 0
 }
 
+// UpdateDevicePosition will change device position
+func UpdateDevicePosition(deviceId string, position, direction int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.UpdateDevicePosition(position, direction)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // ChangeDeviceBrightness will change device brightness level
 func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -646,6 +661,40 @@ func GetDevices() map[string]*Device {
 	return devices
 }
 
+// GetTemperatureProbes will return a list of temperature probes
+func GetTemperatureProbes() interface{} {
+	var probes []interface{}
+	for _, device := range devices {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					probes = append(probes, device.Lsh.GetTemperatureProbes())
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					probes = append(probes, device.CC.GetTemperatureProbes())
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					probes = append(probes, device.CCXT.GetTemperatureProbes())
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					probes = append(probes, device.CPro.GetTemperatureProbes())
+				}
+			}
+		}
+	}
+	return probes
+}
+
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
 	if device, ok := devices[deviceId]; ok {
@@ -741,7 +790,6 @@ func Init() {
 					}
 				}(vendorId, productId, serial)
 			}
-
 		case 3122, 3100: // CORSAIR iCUE COMMANDER Core
 			{
 				go func(vendorId, productId uint16, serialId string) {

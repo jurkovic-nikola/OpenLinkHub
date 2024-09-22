@@ -60,8 +60,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (parseInt(sensor) === 3) {
             pf["hwmonDeviceId"] = $("#hwmonDeviceId").val();
         }
+        if (parseInt(sensor) === 4) {
+            const probeData = $("#probeData").val().split(';')
+            pf["deviceId"] = probeData[0];
+            pf["channelId"] = parseInt(probeData[1]);
+        }
         const json = JSON.stringify(pf, null, 2);
 
+        console.log(json)
         $.ajax({
             url: '/api/temperatures',
             type: 'POST',
@@ -199,8 +205,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const value = $(this).val();
         if (value === "3") {
             $("#storage-data").show();
+            $("#temperature-probe-data").hide();
+        } else if (value === "4") {
+            $("#storage-data").hide();
+            $("#temperature-probe-data").show();
         } else {
             $("#storage-data").hide();
+            $("#temperature-probe-data").hide();
         }
     });
 });

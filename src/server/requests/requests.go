@@ -31,6 +31,8 @@ type Payload struct {
 	PortId          int       `json:"portId"`
 	UserProfileName string    `json:"userProfileName"`
 	Brightness      uint8     `json:"brightness"`
+	Position        int       `json:"position"`
+	Direction       int       `json:"direction"`
 	Status          int
 	Code            int
 	Message         string
@@ -165,19 +167,41 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 3 || sensor < 0 {
+	if sensor > 4 || sensor < 0 {
 		return &Payload{
 			Message: "Unable to validate your request. Invalid sensor value",
 			Code:    http.StatusOK,
 			Status:  0,
 		}
 	}
-	hwmonDeviceId := ""
+	deviceId := ""
+	channelId := 0
 	if sensor == 3 {
-		hwmonDeviceId = req.HwmonDeviceId
+		deviceId = req.HwmonDeviceId
 	}
 
-	if temperatures.AddTemperatureProfile(profile, hwmonDeviceId, static, zeroRpm, sensor) {
+	if sensor == 4 {
+		deviceId = req.DeviceId
+		channelId = req.ChannelId
+
+		if len(deviceId) < 1 {
+			return &Payload{
+				Message: "Unable to validate your request. Invalid sensor value",
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		if channelId < 1 {
+			return &Payload{
+				Message: "Unable to validate your request. Invalid sensor value",
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+	}
+
+	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, sensor, channelId) {
 		return &Payload{
 			Message: "Speed profile is successfully saved",
 			Code:    http.StatusOK,
@@ -246,6 +270,10 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 		return &Payload{Message: "Device speed profile is successfully applied", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Liquid temperature profile require pump device with temperature sensor", Code: http.StatusOK, Status: 0}
+	case 3:
+		return &Payload{Message: "Profile and device mismatch. Please try again", Code: http.StatusOK, Status: 0}
+	case 4:
+		return &Payload{Message: "Non-existing device specified in the profile. Please re-create profile", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
 }
@@ -414,6 +442,48 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 		return &Payload{Message: "Device brightness successfully changed", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to change device brightness. You have exceeded maximum amount of LED channels per physical port", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessPositionChange will process POST request from a client for device position change
+func ProcessPositionChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.Direction < 0 || req.Direction > 1 {
+		return &Payload{Message: "Non-existing direction", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDevicePosition(req.DeviceId, req.Position, req.Direction)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to change device position. Invalid position selected", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device position successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change device position. Invalid position selected", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
 }

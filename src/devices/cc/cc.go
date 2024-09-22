@@ -164,6 +164,14 @@ type DeviceProfile struct {
 	Labels        map[int]string
 }
 
+type TemperatureProbe struct {
+	ChannelId int
+	Name      string
+	Label     string
+	Serial    string
+	Product   string
+}
+
 // Devices struct contain information about connected devices
 type Devices struct {
 	ChannelId          int             `json:"channelId"`
@@ -189,23 +197,24 @@ type Devices struct {
 
 // Device struct contains primary device data
 type Device struct {
-	dev           *hid.Device
-	lcd           *hid.Device
-	Manufacturer  string                    `json:"manufacturer"`
-	Product       string                    `json:"product"`
-	Serial        string                    `json:"serial"`
-	Firmware      string                    `json:"firmware"`
-	AIOType       string                    `json:"-"`
-	Devices       map[int]*Devices          `json:"devices"`
-	UserProfiles  map[string]*DeviceProfile `json:"userProfiles"`
-	DeviceProfile *DeviceProfile
-	deviceMonitor *DeviceMonitor
-	activeRgb     *rgb.ActiveRGB
-	Template      string
-	HasLCD        bool
-	VendorId      uint16
-	LCDModes      map[int]string
-	Brightness    map[int]string
+	dev               *hid.Device
+	lcd               *hid.Device
+	Manufacturer      string                    `json:"manufacturer"`
+	Product           string                    `json:"product"`
+	Serial            string                    `json:"serial"`
+	Firmware          string                    `json:"firmware"`
+	AIOType           string                    `json:"-"`
+	Devices           map[int]*Devices          `json:"devices"`
+	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
+	DeviceProfile     *DeviceProfile
+	deviceMonitor     *DeviceMonitor
+	TemperatureProbes *[]TemperatureProbe
+	activeRgb         *rgb.ActiveRGB
+	Template          string
+	HasLCD            bool
+	VendorId          uint16
+	LCDModes          map[int]string
+	Brightness        map[int]string
 }
 
 /*
@@ -266,23 +275,24 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
-	d.getManufacturer()    // Manufacturer
-	d.getProduct()         // Product
-	d.getSerial()          // Serial
-	d.loadDeviceProfiles() // Load all device profiles
-	d.getDeviceLcd()       // Check if LCD pump cover is installed
-	d.getDeviceProfile()   // Get device profile if any
-	d.getDeviceFirmware()  // Firmware
-	d.setSoftwareMode()    // Activate software mode
-	d.initLedPorts()       // Init LED ports
-	d.getDeviceType()      // Find an AIO device type
-	d.getLedDevices()      // Get LED devices
-	d.getDevices()         // Get devices connected to a hub
-	d.setColorEndpoint()   // Set device color endpoint
-	d.setDefaults()        // Set default speed and color values for fans and pumps
-	d.setAutoRefresh()     // Set auto device refresh
-	d.saveDeviceProfile()  // Save
-	d.resetLEDPorts()      // Reset device LED
+	d.getManufacturer()     // Manufacturer
+	d.getProduct()          // Product
+	d.getSerial()           // Serial
+	d.loadDeviceProfiles()  // Load all device profiles
+	d.getDeviceLcd()        // Check if LCD pump cover is installed
+	d.getDeviceProfile()    // Get device profile if any
+	d.getDeviceFirmware()   // Firmware
+	d.setSoftwareMode()     // Activate software mode
+	d.initLedPorts()        // Init LED ports
+	d.getDeviceType()       // Find an AIO device type
+	d.getLedDevices()       // Get LED devices
+	d.getDevices()          // Get devices connected to a hub
+	d.setColorEndpoint()    // Set device color endpoint
+	d.setDefaults()         // Set default speed and color values for fans and pumps
+	d.setAutoRefresh()      // Set auto device refresh
+	d.saveDeviceProfile()   // Save
+	d.getTemperatureProbe() // Devices with temperature probes
+	d.resetLEDPorts()       // Reset device LED
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
@@ -1015,6 +1025,11 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 	}
 }
 
+// GetTemperatureProbes will return a list of temperature probes
+func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
+	return d.TemperatureProbes
+}
+
 // getLiquidTemperature will fetch temperature from AIO device
 func (d *Device) getLiquidTemperature() float32 {
 	for _, device := range d.Devices {
@@ -1082,6 +1097,15 @@ func (d *Device) updateDeviceSpeed() {
 							temp = temperatures.GetStorageTemperature(profiles.Device)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get storage temperature.")
+							}
+						}
+					case temperatures.SensorTypeTemperatureProbe:
+						{
+							if d.Devices[profiles.ChannelId].IsTemperatureProbe {
+								temp = d.Devices[profiles.ChannelId].Temperature
+							}
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 							}
 						}
 					}
@@ -1456,6 +1480,16 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
+	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
+		if profiles.Device != d.Serial {
+			return 3
+		}
+
+		if _, ok := d.Devices[profiles.ChannelId]; !ok {
+			return 4
+		}
+	}
+
 	if channelId < 0 {
 		// All devices
 		for _, device := range d.Devices {
@@ -1472,6 +1506,30 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	// Save to profile
 	d.saveDeviceProfile()
 	return 1
+}
+
+// getTemperatureProbe will return all devices with a temperature probe
+func (d *Device) getTemperatureProbe() {
+	var probes []TemperatureProbe
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].IsTemperatureProbe {
+			probe := TemperatureProbe{
+				ChannelId: d.Devices[k].ChannelId,
+				Name:      d.Devices[k].Name,
+				Label:     d.Devices[k].Label,
+				Serial:    d.Serial,
+				Product:   d.Product,
+			}
+			probes = append(probes, probe)
+		}
+	}
+	d.TemperatureProbes = &probes
 }
 
 // UpdateRgbProfile will update device RGB profile

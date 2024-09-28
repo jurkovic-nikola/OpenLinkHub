@@ -313,12 +313,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 url:'/api/devices/' + deviceId,
                 type:'get',
                 success:function(result){
-                    $.each(result.device.devices, function( index, value ) {
-                        const elementSpeedId = "#speed-" + value.deviceId;
-                        const elementTemperatureId = "#temperature-" + value.deviceId;
-                        $(elementSpeedId).html(value.rpm + " RPM");
-                        $(elementTemperatureId).html(value.temperature + " °C");
-                    });
+                    if (result.device.devices == null) {
+                        // Single device, e.g CPU block
+                        const elementTemperatureId = "#temperature-0";
+                        $(elementTemperatureId).html(result.device.Temperature + " °C");
+                    } else {
+                        const length = Object.keys(result.device.devices).length;
+                        if (length > 0) {
+                            $.each(result.device.devices, function( index, value ) {
+                                const elementSpeedId = "#speed-" + value.deviceId;
+                                const elementTemperatureId = "#temperature-" + value.deviceId;
+                                $(elementSpeedId).html(value.rpm + " RPM");
+                                $(elementTemperatureId).html(value.temperature + " °C");
+                            });
+                        }
+                    }
                 }
             });
         },1500);

@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
+	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"fmt"
@@ -23,6 +24,7 @@ const (
 	productTypeLNCore  = 4
 	productTypeLnPro   = 5
 	productTypeCPro    = 6
+	productTypeXC7     = 7
 )
 
 type AIOData struct {
@@ -43,6 +45,7 @@ type Device struct {
 	LnCore      *lncore.Device `json:"lncore,omitempty"`
 	LnPro       *lnpro.Device  `json:"lnpro,omitempty"`
 	CPro        *cpro.Device   `json:"cPro,omitempty"`
+	XC7         *xc7.Device    `json:"xc7,omitempty"`
 }
 
 var (
@@ -96,6 +99,12 @@ func Stop() {
 			{
 				if device.CPro != nil {
 					device.CPro.Stop()
+				}
+			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					device.XC7.Stop()
 				}
 			}
 		}
@@ -245,6 +254,12 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 					return device.CPro.SaveUserProfile(profileName)
 				}
 			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.SaveUserProfile(profileName)
+				}
+			}
 		case productTypeElite:
 			{
 				if device.Elite != nil {
@@ -329,6 +344,12 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 					return device.Elite.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.ChangeDeviceBrightness(mode)
+				}
+			}
 		}
 	}
 	return 0
@@ -380,6 +401,12 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 					return device.LnPro.ChangeDeviceProfile(profileName)
 				}
 			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.ChangeDeviceProfile(profileName)
+				}
+			}
 		}
 	}
 	return 0
@@ -399,6 +426,12 @@ func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 			{
 				if device.Lsh != nil {
 					return device.Lsh.UpdateDeviceLcd(mode)
+				}
+			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.UpdateDeviceLcd(mode)
 				}
 			}
 		}
@@ -450,6 +483,12 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 			{
 				if device.LnPro != nil {
 					return device.LnPro.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.UpdateDeviceLabel(label)
 				}
 			}
 		}
@@ -625,6 +664,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 					return device.CPro.UpdateRgbProfile(channelId, profile)
 				}
 			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.UpdateRgbProfile(profile)
+				}
+			}
 		}
 	}
 	return 0
@@ -739,6 +784,12 @@ func GetDevice(deviceId string) interface{} {
 			{
 				if device.CPro != nil {
 					return device.CPro
+				}
+			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7
 				}
 			}
 		}
@@ -880,6 +931,22 @@ func Init() {
 					devices[dev.Serial] = &Device{
 						CPro:        dev,
 						ProductType: productTypeCPro,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, serial)
+			}
+		case 3138: // CORSAIR XC7 ELITE LCD CPU Water Block
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := xc7.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						XC7:         dev,
+						ProductType: productTypeXC7,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

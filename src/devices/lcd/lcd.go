@@ -24,11 +24,12 @@ import (
 // License: GPL-3.0 or later
 
 const (
-	DisplayLiquid   uint8 = 0
-	DisplayPump     uint8 = 1
-	DisplayCPU      uint8 = 2
-	DisplayGPU      uint8 = 3
-	DisplayAllInOne uint8 = 4
+	DisplayLiquid    uint8 = 0
+	DisplayPump      uint8 = 1
+	DisplayCPU       uint8 = 2
+	DisplayGPU       uint8 = 3
+	DisplayAllInOne  uint8 = 4
+	DisplayLiquidCPU uint8 = 5
 )
 
 var (
@@ -109,6 +110,8 @@ func Init() {
 			lcdImages[DisplayPump] = img
 		case "aio":
 			lcdImages[DisplayAllInOne] = img
+		case "liquid-cpu":
+			lcdImages[DisplayLiquidCPU] = img
 		}
 	}
 
@@ -192,6 +195,29 @@ func GenerateScreenImage(imageType uint8, value, value1, value2 int) []byte {
 
 				pt = freetype.Pt(160+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6))
 				_, err = c.DrawString(strconv.Itoa(value2), pt)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
+					return nil
+				}
+			}
+		case DisplayLiquidCPU:
+			{
+				c.SetDPI(100)
+				c.SetFont(lcdConfiguration.font)
+				c.SetFontSize(100)
+				c.SetClip(rgba.Bounds())
+				c.SetDst(rgba)
+				c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
+
+				pt = freetype.Pt(95+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6))
+				_, err := c.DrawString(strconv.Itoa(value), pt)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
+					return nil
+				}
+
+				pt = freetype.Pt(250+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6))
+				_, err = c.DrawString(strconv.Itoa(value1), pt)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
 					return nil

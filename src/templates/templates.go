@@ -42,6 +42,7 @@ func Init() {
 		"web/lncore.html",
 		"web/lnpro.html",
 		"web/cpro.html",
+		"web/xc7.html",
 		"web/rgb.html",
 		"web/temperature.html",
 	)

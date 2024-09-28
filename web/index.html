@@ -70,7 +70,7 @@
                         <!-- CPU -->
                         <div class="btn btn-secondary-empty" style="margin-left: 10px;width: 300px;height: 150px;text-align: center;">
                             <span style="color: #a1a1a1;">
-                                <img src="/static/img/icons/icon-cpu.svg" width="64" height="64" alt="GitHub" class="top-px" />
+                                <img src="/static/img/icons/icon-cpu.svg" width="64" height="64" alt="CPU" class="top-px" /><br />
                                 <span style="font-size: 13px;margin-top:10px;">{{ .SystemInfo.CPU.Model }}</span>
                                 <p class="text-lg lh-1 mb-0 text-dash-color-2 device-px" id="cpu_temp">{{ .CpuTemp }} °C</p>
                             </span>
@@ -80,7 +80,7 @@
                         {{ if .SystemInfo.GPU }}
                         <div class="btn btn-secondary-empty" style="margin-left: 10px;width: 300px;height: 150px;text-align: center;">
                             <span style="color: #a1a1a1;">
-                                <img src="/static/img/icons/icon-gpu.svg" width="64" height="64" alt="GitHub" class="top-px" /><br />
+                                <img src="/static/img/icons/icon-gpu.svg" width="64" height="64" alt="GPU" class="top-px" /><br />
                                 <span style="font-size: 13px;margin-top:10px;">{{ .SystemInfo.GPU.Model }}</span>
                                 <p class="text-lg lh-1 mb-0 text-dash-color-2 device-px" id="gpu_temp">{{ .GpuTemp }} °C</p>
                             </span>
@@ -92,7 +92,7 @@
                         {{ range .SystemInfo.Storage }}
                         <div class="btn btn-secondary-empty" style="margin-left: 10px;width: 300px;height: 150px;text-align: center;">
                             <span style="color: #a1a1a1;">
-                                <img src="/static/img/icons/icon-storage.svg" width="64" height="64" alt="GitHub" class="top-px" /><br />
+                                <img src="/static/img/icons/icon-storage.svg" width="64" height="64" alt="Storage" class="top-px" /><br />
                                 <span style="font-size: 13px;margin-top:10px;">{{ .Model }}</span>
                                 <p class="text-lg lh-1 mb-0 text-dash-color-2 device-px" id="storage_temp-{{ .Key }}">{{ .Temperature }} °C</p>
                             </span>

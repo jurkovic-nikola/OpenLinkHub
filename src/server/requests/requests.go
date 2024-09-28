@@ -291,7 +291,7 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		}
 	}
 
-	if req.Mode < 0 || req.Mode > 4 {
+	if req.Mode < 0 || req.Mode > 5 {
 		return &Payload{Message: "Invalid LCD mode", Code: http.StatusOK, Status: 0}
 	}
 

@@ -439,6 +439,33 @@ func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 	return 0
 }
 
+// UpdateDeviceLcdRotation will update device LCD rotation
+func UpdateDeviceLcdRotation(deviceId string, rotation uint8) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.UpdateDeviceLcdRotation(rotation)
+				}
+			}
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.UpdateDeviceLcdRotation(rotation)
+				}
+			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					return device.XC7.UpdateDeviceLcdRotation(rotation)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateDeviceLabel will set / update device label
 func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 	if device, ok := devices[deviceId]; ok {

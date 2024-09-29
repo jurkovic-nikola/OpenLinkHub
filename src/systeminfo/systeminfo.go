@@ -8,8 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type CpuData struct {
@@ -193,6 +195,22 @@ func GetNVIDIAGpuModel() string {
 	return model
 }
 
+// GetNVIDIAUtilization will return NVIDIA gpu utilization
+func getNVIDIAUtilization() int {
+	cmd := exec.Command("nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits")
+	output, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+	utilization := strings.TrimSpace(string(output))
+	util, e := strconv.Atoi(utilization)
+	if e != nil {
+		logger.Log(logger.Fields{"error": e}).Error("Unable to convert GPU utilization")
+		return 0
+	}
+	return util
+}
+
 // GetStorageData will return storage information
 func (si *SystemInfo) GetStorageData() {
 	hwmonDir := "/sys/class/hwmon"
@@ -279,4 +297,103 @@ func (si *SystemInfo) GetBoardData() {
 	}
 	board.BIOSDate = strings.TrimSpace(string(f))
 	si.Motherboard = board
+}
+
+// getCpuUtilizationData will return cpu utilization data
+func getCpuUtilizationData() (idle, total uint64) {
+	contents, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		return
+	}
+	lines := strings.Split(string(contents), "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if fields[0] == "cpu" {
+			numFields := len(fields)
+			for i := 1; i < numFields; i++ {
+				val, err := strconv.ParseUint(fields[i], 10, 64)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "line": i}).Error("Unable to parse cpu stats line")
+				}
+				total += val // tally up all the numbers to get total ticks
+				if i == 4 {  // idle is the 5th field in the cpu line
+					idle = val
+				}
+			}
+			return
+		}
+	}
+	return
+}
+
+// GetCpuUtilization will return CPU utilization
+func GetCpuUtilization() float64 {
+	idle0, total0 := getCpuUtilizationData()
+	time.Sleep(100 * time.Millisecond)
+	idle1, total1 := getCpuUtilizationData()
+
+	idleTicks := float64(idle1 - idle0)
+	totalTicks := float64(total1 - total0)
+	cpuUsage := 100 * (totalTicks - idleTicks) / totalTicks
+	return cpuUsage
+}
+
+// getAMDUtilization fetches the GPU utilization using rocm-smi
+func getAMDUtilization() (float64, error) {
+	// Execute the rocm-smi command to get utilization
+	cmd := exec.Command("rocm-smi", "--show-utilization")
+
+	// Run the command and capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to get AMD GPU utilization")
+		return 0, err
+	}
+
+	// Parse the output to find GPU utilization
+	output := out.String()
+	utilization, err := parseAMDUtilization(output)
+	if err != nil {
+		return 0, err
+	}
+
+	return utilization, nil
+}
+
+// parseUtilization parses the rocm-smi output to find GPU utilization
+func parseAMDUtilization(output string) (float64, error) {
+	// Example line: "GPU[0] : 35.0%"
+	// Find lines that contain the utilization information
+	re := regexp.MustCompile(`GPU\[\d+\]\s*:\s*(\d+\.\d+)%`)
+	matches := re.FindStringSubmatch(output)
+	if len(matches) < 2 {
+		return 0, fmt.Errorf("failed to parse GPU utilization from output")
+	}
+
+	// Convert utilization to float
+	utilizationStr := strings.TrimSpace(matches[1])
+	utilization, err := strconv.ParseFloat(utilizationStr, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse utilization value: %v", err)
+	}
+
+	return utilization, nil
+}
+
+func GetGPUUtilization() int {
+	utilization := 0
+	if strings.Contains(strings.ToLower(info.GPU.Model), "nvidia") {
+		// NVIDIA
+		utilization = getNVIDIAUtilization()
+	} else {
+		// AMD
+		util, err := getAMDUtilization()
+		if err == nil {
+			utilization = int(util)
+		}
+	}
+
+	return utilization
 }

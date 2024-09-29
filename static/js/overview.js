@@ -432,6 +432,35 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.lcdRotation').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const rotation = $(this).val()
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["rotation"] = parseInt(rotation);
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/rotation',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('#deviceSpeed').on('change', function () {
         const deviceId = $("#deviceId").val();
         const pf = {};

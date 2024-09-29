@@ -261,6 +261,17 @@ func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceLcd handles device LCD changes
+func setDeviceLcdRotation(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdRotationChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // saveUserProfile handles saving custom user profiles
 func saveUserProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSaveUserProfile(r)
@@ -536,6 +547,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setDeviceLabel)
 	r.Methods(http.MethodPost).Path("/api/lcd").
 		HandlerFunc(setDeviceLcd)
+	r.Methods(http.MethodPost).Path("/api/lcd/rotation").
+		HandlerFunc(setDeviceLcdRotation)
 	r.Methods(http.MethodPut).Path("/api/userProfile").
 		HandlerFunc(saveUserProfile)
 	r.Methods(http.MethodPost).Path("/api/userProfile").

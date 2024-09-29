@@ -1,19 +1,22 @@
 package lcd
 
 import (
-	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/logger"
 	"bytes"
+	"fmt"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/draw"
+	"golang.org/x/image/font"
 	_ "golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/f64"
 	"image"
 	"image/color"
-	"image/draw"
 	"image/jpeg"
+	"math"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -24,95 +27,49 @@ import (
 // License: GPL-3.0 or later
 
 const (
-	DisplayLiquid    uint8 = 0
-	DisplayPump      uint8 = 1
-	DisplayCPU       uint8 = 2
-	DisplayGPU       uint8 = 3
-	DisplayAllInOne  uint8 = 4
-	DisplayLiquidCPU uint8 = 5
+	DisplayLiquid         uint8 = 0
+	DisplayPump           uint8 = 1
+	DisplayCPU            uint8 = 2
+	DisplayGPU            uint8 = 3
+	DisplayAllInOne       uint8 = 4
+	DisplayLiquidCPU      uint8 = 5
+	DisplayCpuGpuTemp     uint8 = 6
+	DisplayCpuGpuLoad     uint8 = 7
+	DisplayCpuGpuLoadTemp uint8 = 8
 )
 
 var (
 	pwd, _       = os.Getwd()
-	location     = pwd + "/static/img/lcd/"
+	location     = pwd + "/static/img/lcd/background.jpg"
 	fontLocation = pwd + "/static/fonts/teko.ttf"
 	mutex        sync.Mutex
 )
 
 type LCD struct {
-	images map[uint8]image.Image
-	font   *truetype.Font
+	image image.Image
+	font  *truetype.Font
 }
 
-var lcdConfiguration LCD
+var lcd LCD
 
 // Init will initialize LCD data
 func Init() {
-	lcdImages := make(map[uint8]image.Image, 0)
-
-	// Read folder content
-	files, err := os.ReadDir(location)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to read content of a folder")
+	// Open image
+	file, e := os.Open(location)
+	if e != nil {
+		logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to open LCD image")
+		return
 	}
 
-	// Load LCD images
-	for _, fi := range files {
-		if fi.IsDir() {
-			continue // Exclude folders if any
-		}
-
-		// Define a full path of filename
-		profileLocation := location + fi.Name()
-
-		// Check if filename has .json extension
-		if !common.IsValidExtension(profileLocation, ".jpg") {
-			continue
-		}
-
-		// Open image
-		file, e := os.Open(profileLocation)
+	// Decode the image
+	img, e := jpeg.Decode(file)
+	if e != nil {
+		logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to decode LCD image")
+		e = file.Close()
 		if e != nil {
-			logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to open LCD image")
-			continue
+			logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to close LCD image")
 		}
-
-		// Decode the image
-		img, e := jpeg.Decode(file)
-		if e != nil {
-			logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to decode LCD image")
-			e = file.Close()
-			if e != nil {
-				logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to close LCD image")
-			}
-			continue
-		}
-
-		fileInfo, e := file.Stat()
-		if e != nil {
-			logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to get LCD image fileinfo")
-			e = file.Close()
-			if e != nil {
-				logger.Log(logger.Fields{"error": e, "location": location}).Error("Unable to close LCD image")
-			}
-			continue
-		}
-
-		imageType := strings.Split(fileInfo.Name(), ".")[0]
-		switch imageType {
-		case "cpu":
-			lcdImages[DisplayCPU] = img
-		case "gpu":
-			lcdImages[DisplayGPU] = img
-		case "liquid":
-			lcdImages[DisplayLiquid] = img
-		case "pump":
-			lcdImages[DisplayPump] = img
-		case "aio":
-			lcdImages[DisplayAllInOne] = img
-		case "liquid-cpu":
-			lcdImages[DisplayLiquidCPU] = img
-		}
+		return
 	}
 
 	// Load LCD font
@@ -126,113 +83,174 @@ func Init() {
 		logger.Log(logger.Fields{"error": e, "location": fontLocation}).Error("Unable to parse LCD font")
 	}
 
-	lcd := &LCD{
-		images: lcdImages,
-		font:   fontParsed,
+	lcdData := &LCD{
+		image: img,
+		font:  fontParsed,
 	}
-	lcdConfiguration = *lcd
+	lcd = *lcdData
+}
+
+// drawString will create a new string for image
+func drawString(x, y int, fontSite float64, c *freetype.Context, text string) *freetype.Context {
+	c.SetFontSize(fontSite)
+	pt := freetype.Pt(x, y)
+	_, err := c.DrawString(text, pt)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
+		return nil
+	}
+	return c
 }
 
 // GenerateScreenImage will generate LCD screen image with given value
-func GenerateScreenImage(imageType uint8, value, value1, value2 int) []byte {
+func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotation int) []byte {
 	mutex.Lock()
 	defer mutex.Unlock()
-	if img, ok := lcdConfiguration.images[imageType]; ok {
-		rgba := image.NewRGBA(img.Bounds())
-		draw.Draw(rgba, rgba.Bounds(), img, image.Point{}, draw.Src)
 
-		c := freetype.NewContext()
-		c.SetDPI(72)
-		c.SetFont(lcdConfiguration.font)
-		c.SetFontSize(220)
-		c.SetClip(rgba.Bounds())
-		c.SetDst(rgba)
-		c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
+	rgba := image.NewRGBA(lcd.image.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), lcd.image, image.Point{}, draw.Src)
 
-		pt := freetype.Pt(135+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6))
+	c := freetype.NewContext()
+	c.SetFont(lcd.font)
+	c.SetFontSize(220)
+	c.SetClip(rgba.Bounds())
+	c.SetDst(rgba)
+	c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
 
-		switch imageType {
-		case DisplayLiquid, DisplayGPU, DisplayCPU:
-			{
-				pt = freetype.Pt(140+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6))
-				_, err := c.DrawString(strconv.Itoa(value), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-			}
-		case DisplayPump:
-			{
-				pt = freetype.Pt(90+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6))
-				_, err := c.DrawString(strconv.Itoa(value), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-			}
-		case DisplayAllInOne:
-			{
-				c.SetDPI(72)
-				c.SetFont(lcdConfiguration.font)
-				c.SetFontSize(100)
-				c.SetClip(rgba.Bounds())
-				c.SetDst(rgba)
-				c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
-
-				pt = freetype.Pt(120+int(c.PointToFixed(24)>>6), 200+int(c.PointToFixed(24)>>6))
-				_, err := c.DrawString(strconv.Itoa(value), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-
-				pt = freetype.Pt(270+int(c.PointToFixed(24)>>6), 200+int(c.PointToFixed(24)>>6))
-				_, err = c.DrawString(strconv.Itoa(value1), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-
-				pt = freetype.Pt(160+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6))
-				_, err = c.DrawString(strconv.Itoa(value2), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-			}
-		case DisplayLiquidCPU:
-			{
-				c.SetDPI(100)
-				c.SetFont(lcdConfiguration.font)
-				c.SetFontSize(100)
-				c.SetClip(rgba.Bounds())
-				c.SetDst(rgba)
-				c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
-
-				pt = freetype.Pt(95+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6))
-				_, err := c.DrawString(strconv.Itoa(value), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-
-				pt = freetype.Pt(250+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6))
-				_, err = c.DrawString(strconv.Itoa(value1), pt)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-					return nil
-				}
-			}
+	switch imageType {
+	case DisplayLiquid:
+		{
+			c = drawString(150+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "LIQUID TEMP")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			c = drawString(150+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 220, c, strconv.Itoa(value))
+		}
+	case DisplayGPU:
+		{
+			c = drawString(170+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "GPU TEMP")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			c = drawString(150+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 220, c, strconv.Itoa(value))
+		}
+	case DisplayCPU:
+		{
+			c = drawString(170+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "CPU TEMP")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			c = drawString(150+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 220, c, strconv.Itoa(value))
+		}
+	case DisplayPump:
+		{
+			c = drawString(150+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "PUMP SPEED")
+			c = drawString(180+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ RPM ]")
+			c = drawString(95+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 200, c, strconv.Itoa(value))
+		}
+	case DisplayAllInOne:
+		{
+			c = drawString(120+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "LIQUID")
+			c = drawString(280+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "CPU")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "PUMP")
+			c = drawString(120+int(c.PointToFixed(24)>>6), 200+int(c.PointToFixed(24)>>6), 100, c, strconv.Itoa(value))
+			c = drawString(270+int(c.PointToFixed(24)>>6), 200+int(c.PointToFixed(24)>>6), 100, c, strconv.Itoa(value1))
+			c = drawString(160+int(c.PointToFixed(24)>>6), 300+int(c.PointToFixed(24)>>6), 100, c, strconv.Itoa(value2))
+		}
+	case DisplayLiquidCPU:
+		{
+			c = drawString(120+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "LIQUID")
+			c = drawString(280+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "CPU")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			c = drawString(95+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value))
+			c = drawString(250+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value1))
+		}
+	case DisplayCpuGpuTemp:
+		{
+			c = drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "CPU")
+			c = drawString(270+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "GPU")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			c = drawString(90+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value))
+			c = drawString(240+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value1))
 		}
 
-		// Buff it and return
-		buffer := new(bytes.Buffer)
-		err := jpeg.Encode(buffer, rgba, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
-			return nil
+	case DisplayCpuGpuLoadTemp:
+		{
+			c = drawString(130+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, c, "CPU")
+			c = drawString(270+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, c, "GPU")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 90+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ % ]")
+			c = drawString(120+int(c.PointToFixed(24)>>6), 220+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value))
+			c = drawString(260+int(c.PointToFixed(24)>>6), 220+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value1))
+			c = drawString(120+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value2))
+			c = drawString(260+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value3))
 		}
-		return buffer.Bytes()
+
+	case DisplayCpuGpuLoad:
+		{
+			c = drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "CPU")
+			c = drawString(270+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "GPU")
+			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ % ]")
+
+			reduce := 0
+			bounds, _ := font.BoundString(basicfont.Face7x13, strconv.Itoa(value))
+			textWidth := (bounds.Max.X - bounds.Min.X).Floor()
+			if value == 100 {
+				reduce = 30
+			}
+			x := 100 + textWidth - reduce
+			c = drawString(x, 270+int(c.PointToFixed(24)>>6), 160, c, fmt.Sprintf("%02d", value))
+
+			bounds, _ = font.BoundString(basicfont.Face7x13, strconv.Itoa(value1))
+			textWidth = (bounds.Max.X - bounds.Min.X).Floor()
+			if value == 100 {
+				reduce = 30
+			}
+			x = 240 + textWidth + 15 - reduce
+			c = drawString(x, 270+int(c.PointToFixed(24)>>6), 160, c, fmt.Sprintf("%02d", value1))
+		}
 	}
-	return nil
+
+	// Rotation
+	output := rotateRGBA(rgba, float64(rotation))
+
+	// Buff it and return
+	buffer := new(bytes.Buffer)
+	err := jpeg.Encode(buffer, output, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
+		return nil
+	}
+
+	return buffer.Bytes()
+}
+
+// rotateRGBA rotates an RGBA image by the specified angle (in degrees).
+func rotateRGBA(img *image.RGBA, angle float64) *image.RGBA {
+	// Convert degrees to radians.
+	radians := angle * math.Pi / 180
+
+	// Calculate the sine and cosine of the angle.
+	sin, cos := math.Sin(radians), math.Cos(radians)
+
+	// Get the original image bounds.
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+
+	// Calculate the dimensions of the new rotated image.
+	newWidth := int(math.Abs(float64(width)*cos) + math.Abs(float64(height)*sin))
+	newHeight := int(math.Abs(float64(width)*sin) + math.Abs(float64(height)*cos))
+
+	// Create a new RGBA image to hold the rotated image.
+	rotatedImg := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
+
+	// Calculate the center of the original and new images.
+	cx, cy := float64(width)/2, float64(height)/2
+	ncx, ncy := float64(newWidth)/2, float64(newHeight)/2
+
+	// Create an affine matrix for the rotation and translation.
+	transform := f64.Aff3{
+		cos, -sin, ncx - cos*cx + sin*cy,
+		sin, cos, ncy - sin*cx - cos*cy,
+	}
+
+	// Draw the rotated image onto the new image.
+	draw.NearestNeighbor.Transform(rotatedImg, transform, img, bounds, draw.Over, nil)
+
+	// Send it
+	return rotatedImg
 }

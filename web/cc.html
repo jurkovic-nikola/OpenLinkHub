@@ -26,7 +26,8 @@
         {{ $lcd := .Device.HasLCD }}
         {{ $lcdModes := .Device.LCDModes }}
         {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
-
+        {{ $lcdRotations := .Device.LCDRotations }}
+        {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
           <div class="container-fluid">
@@ -255,6 +256,22 @@
                           <select class="form-select lcdMode" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
                             {{ range $key, $value := $lcdModes }}
                             {{ if eq $key $lcdMode }}
+                            <option value="{{ $key }}" selected>{{ $value }}</option>
+                            {{ else }}
+                            <option value="{{ $key }}">{{ $value }}</option>
+                            {{ end }}
+                            {{ end }}
+                          </select>
+                        </div>
+                      </div>
+                      <div class="custom-device-block">
+                        <div class="custom-float-20-left">
+                          <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
+                        </div>
+                        <div class="custom-float-80-right">
+                          <select class="form-select lcdRotation" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                            {{ range $key, $value := $lcdRotations }}
+                            {{ if eq $key $lcdRotation }}
                             <option value="{{ $key }}" selected>{{ $value }}</option>
                             {{ else }}
                             <option value="{{ $key }}">{{ $value }}</option>

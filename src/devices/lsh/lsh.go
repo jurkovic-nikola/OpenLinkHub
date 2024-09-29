@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
 	"context"
@@ -43,6 +44,7 @@ type DeviceProfile struct {
 	Product       string
 	Serial        string
 	LCDMode       uint8
+	LCDRotation   uint8
 	Brightness    uint8
 	SpeedProfiles map[int]string
 	RGBProfiles   map[int]string
@@ -117,6 +119,7 @@ type Device struct {
 	VendorId          uint16
 	ProductId         uint16
 	LCDModes          map[int]string
+	LCDRotations      map[int]string
 	Brightness        map[int]string
 	PortProtection    map[uint8]int
 	GlobalBrightness  float64
@@ -228,6 +231,15 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "CPU Temperature",
 			3: "GPU Temperature",
 			4: "Combined",
+			6: "CPU / GPU Temp",
+			7: "CPU / GPU Load",
+			8: "CPU / GPU Load/Temp",
+		},
+		LCDRotations: map[int]string{
+			0: "default",
+			1: "90 degrees",
+			2: "180 degrees",
+			3: "270 degrees",
 		},
 		Brightness: map[int]string{
 			0: "RGB Profile",
@@ -506,6 +518,7 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
+		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
 	}
 
 	keys := make([]int, 0, len(deviceProfile.Positions))
@@ -658,6 +671,20 @@ func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
 
 	if d.HasLCD {
 		d.DeviceProfile.LCDMode = mode
+		d.saveDeviceProfile()
+		return 1
+	} else {
+		return 2
+	}
+}
+
+// UpdateDeviceLcdRotation will update device LCD rotation
+func (d *Device) UpdateDeviceLcdRotation(rotation uint8) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if d.HasLCD {
+		d.DeviceProfile.LCDRotation = rotation
 		d.saveDeviceProfile()
 		return 1
 	} else {
@@ -1894,6 +1921,21 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	return buffer
 }
 
+// getLCDRotation will return rotation value based on rotation mode
+func (d *Device) getLCDRotation() int {
+	switch d.DeviceProfile.LCDRotation {
+	case 0:
+		return 0
+	case 1:
+		return 90
+	case 2:
+		return 180
+	case 3:
+		return 270
+	}
+	return 0
+}
+
 // setupLCD will activate and configure LCD
 func (d *Device) setupLCD() {
 	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
@@ -1905,19 +1947,40 @@ func (d *Device) setupLCD() {
 				switch d.DeviceProfile.LCDMode {
 				case lcd.DisplayCPU:
 					{
-						buffer := lcd.GenerateScreenImage(lcd.DisplayCPU, int(temperatures.GetCpuTemperature()), 0, 0)
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayCPU,
+							int(temperatures.GetCpuTemperature()),
+							0,
+							0,
+							0,
+							d.getLCDRotation(),
+						)
 						d.transferToLcd(buffer)
 					}
 				case lcd.DisplayGPU:
 					{
-						buffer := lcd.GenerateScreenImage(lcd.DisplayGPU, int(temperatures.GetGpuTemperature()), 0, 0)
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayGPU,
+							int(temperatures.GetGpuTemperature()),
+							0,
+							0,
+							0,
+							d.getLCDRotation(),
+						)
 						d.transferToLcd(buffer)
 					}
 				case lcd.DisplayLiquid:
 					{
 						for _, device := range d.Devices {
 							if device.ContainsPump {
-								buffer := lcd.GenerateScreenImage(lcd.DisplayLiquid, int(device.Temperature), 0, 0)
+								buffer := lcd.GenerateScreenImage(
+									lcd.DisplayLiquid,
+									int(device.Temperature),
+									0,
+									0,
+									0,
+									d.getLCDRotation(),
+								)
 								d.transferToLcd(buffer)
 							}
 						}
@@ -1926,7 +1989,14 @@ func (d *Device) setupLCD() {
 					{
 						for _, device := range d.Devices {
 							if device.ContainsPump {
-								buffer := lcd.GenerateScreenImage(lcd.DisplayPump, int(device.Rpm), 0, 0)
+								buffer := lcd.GenerateScreenImage(
+									lcd.DisplayPump,
+									int(device.Rpm),
+									0,
+									0,
+									0,
+									d.getLCDRotation(),
+								)
 								d.transferToLcd(buffer)
 							}
 						}
@@ -1944,7 +2014,58 @@ func (d *Device) setupLCD() {
 						}
 
 						cpuTemp = int(temperatures.GetCpuTemperature())
-						buffer := lcd.GenerateScreenImage(lcd.DisplayAllInOne, liquidTemp, cpuTemp, pumpSpeed)
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayAllInOne,
+							liquidTemp,
+							cpuTemp,
+							pumpSpeed,
+							0,
+							d.getLCDRotation(),
+						)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayCpuGpuTemp:
+					{
+						cpuTemp := int(temperatures.GetCpuTemperature())
+						gpuTemp := int(temperatures.GetGpuTemperature())
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayCpuGpuTemp,
+							cpuTemp,
+							gpuTemp,
+							0,
+							0,
+							d.getLCDRotation(),
+						)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayCpuGpuLoad:
+					{
+						cpuUtil := int(systeminfo.GetCpuUtilization())
+						gpuUtil := systeminfo.GetGPUUtilization()
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayCpuGpuLoad,
+							cpuUtil,
+							gpuUtil,
+							0,
+							0,
+							d.getLCDRotation(),
+						)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayCpuGpuLoadTemp:
+					{
+						cpuTemp := int(temperatures.GetCpuTemperature())
+						gpuTemp := int(temperatures.GetGpuTemperature())
+						cpuUtil := int(systeminfo.GetCpuUtilization())
+						gpuUtil := systeminfo.GetGPUUtilization()
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayCpuGpuLoadTemp,
+							cpuTemp,
+							gpuTemp,
+							cpuUtil,
+							gpuUtil,
+							d.getLCDRotation(),
+						)
 						d.transferToLcd(buffer)
 					}
 				}

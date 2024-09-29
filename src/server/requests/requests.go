@@ -17,6 +17,7 @@ type Payload struct {
 	DeviceId        string    `json:"deviceId"`
 	ChannelId       int       `json:"channelId"`
 	Mode            uint8     `json:"mode"`
+	Rotation        uint8     `json:"rotation"`
 	Value           uint16    `json:"value"`
 	Color           rgb.Color `json:"color"`
 	Profile         string    `json:"profile"`
@@ -291,7 +292,7 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		}
 	}
 
-	if req.Mode < 0 || req.Mode > 5 {
+	if req.Mode < 0 || req.Mode > 10 {
 		return &Payload{Message: "Invalid LCD mode", Code: http.StatusOK, Status: 0}
 	}
 
@@ -316,6 +317,46 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change LCD mode. Either LCD is offline or you do not have LCD", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change lcd mode", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessLcdRotationChange will process POST request from a client for LCD rotation change
+func ProcessLcdRotationChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Rotation < 0 || req.Rotation > 3 {
+		return &Payload{Message: "Invalid LCD rotation value", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDeviceLcdRotation(req.DeviceId, req.Rotation)
+	switch status {
+	case 1:
+		return &Payload{Message: "LCD rotation successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change LCD rotation. Either LCD is offline or you do not have LCD", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change lcd rotation", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessSaveUserProfile will process PUT request from a client for device profile save

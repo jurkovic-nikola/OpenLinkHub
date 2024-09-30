@@ -261,7 +261,7 @@ func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// setDeviceLcd handles device LCD changes
+// setDeviceLcdRotation handles device LCD rotation changes
 func setDeviceLcdRotation(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLcdRotationChange(r)
 	resp := &Response{

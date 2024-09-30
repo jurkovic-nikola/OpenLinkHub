@@ -167,7 +167,6 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 			c = drawString(90+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value))
 			c = drawString(240+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value1))
 		}
-
 	case DisplayCpuGpuLoadTemp:
 		{
 			c = drawString(130+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, c, "CPU")
@@ -179,7 +178,6 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 			c = drawString(120+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value2))
 			c = drawString(260+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value3))
 		}
-
 	case DisplayCpuGpuLoad:
 		{
 			c = drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "CPU")
@@ -215,7 +213,6 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
 		return nil
 	}
-
 	return buffer.Bytes()
 }
 

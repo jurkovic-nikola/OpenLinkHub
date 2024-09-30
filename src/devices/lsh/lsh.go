@@ -192,8 +192,8 @@ var (
 		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
 		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
 		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true},
-		{DeviceId: 9, Model: 0, Name: "iCUE LINK XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
-		{DeviceId: 9, Model: 1, Name: "iCUE LINK XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block"},
+		{DeviceId: 9, Model: 0, Name: "iCUE LINK XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block", TemperatureProbe: true},
+		{DeviceId: 9, Model: 1, Name: "iCUE LINK XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block", TemperatureProbe: true},
 		{DeviceId: 10, Model: 0, Name: "iCUE LINK XG3 HYBRID", LedChannels: 22, ContainsPump: false, Desc: "GPU Block"},
 		{DeviceId: 13, Model: 1, Name: "iCUE LINK XG7", LedChannels: 16, ContainsPump: false, Desc: "GPU Hybrid Block"},
 		{DeviceId: 12, Model: 0, Name: "iCUE LINK XD5 Elite", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res"},
@@ -506,7 +506,21 @@ func (d *Device) saveDeviceProfile() {
 			}
 			deviceProfile.Positions = positions
 		} else {
-			deviceProfile.Positions = d.DeviceProfile.Positions
+			posLen := len(d.DeviceProfile.Positions)
+			devLen := len(d.Devices)
+			if posLen != devLen {
+				// New devices are connected, override positions with new data
+				logger.Log(logger.Fields{"positions": posLen, "devices": devLen}).Info("Device amount changed compared to positions.")
+				m := 1
+				for _, device := range d.Devices {
+					positions[m] = device.ChannelId
+					m++
+				}
+				deviceProfile.Positions = positions
+			} else {
+				logger.Log(logger.Fields{"positions": posLen, "devices": devLen}).Info("Device amount matches position amount.")
+				deviceProfile.Positions = d.DeviceProfile.Positions
+			}
 		}
 
 		deviceProfile.Active = d.DeviceProfile.Active

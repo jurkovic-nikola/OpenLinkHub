@@ -8,6 +8,7 @@ package xc7
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -16,6 +17,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/godbus/dbus/v5"
 	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
@@ -87,6 +89,7 @@ var (
 	firmwareReportId           = byte(5)
 	featureReportSize          = 32
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
+	deviceWakeupDelay          = 5000
 )
 
 // Init will initialize a new device
@@ -144,7 +147,9 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getTemperatureProbe() // Devices with temperature probes
 	d.setDeviceColor()      // Device color
 	d.setupLCD()            // LCD
-
+	if config.GetConfig().DbusMonitor {
+		d.dbusDeviceMonitor()
+	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
 }
@@ -900,6 +905,54 @@ func (d *Device) setupLCD() {
 			case <-lcdRefreshChan:
 				lcdTimer.Stop()
 				return
+			}
+		}
+	}()
+}
+
+// dbusDeviceMonitor will monitor dbus events for suspend and resume
+func (d *Device) dbusDeviceMonitor() {
+	go func() {
+		// Connect to the session bus
+		conn, err := dbus.ConnectSystemBus()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to connect to system bus")
+		}
+		defer func(conn *dbus.Conn) {
+			err = conn.Close()
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Error closing dbus")
+			}
+		}(conn)
+
+		// Listen for the PrepareForSleep signal
+		_ = conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
+		ch := make(chan *dbus.Signal, 10)
+		conn.Signal(ch)
+
+		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
+		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to add D-Bus match")
+		}
+
+		for signal := range ch {
+			if len(signal.Body) > 0 {
+				if isSleeping, ok := signal.Body[0].(bool); ok {
+					if isSleeping {
+						//
+					} else {
+						// Wait for 5 seconds until the hub wakes up
+						time.Sleep(time.Duration(deviceWakeupDelay) * time.Millisecond)
+
+						// Device woke up after machine was sleeping
+						if d.activeRgb != nil {
+							d.activeRgb.Exit <- true
+							d.activeRgb = nil
+						}
+						d.setDeviceColor() // Set RGB
+					}
+				}
 			}
 		}
 	}()

@@ -992,6 +992,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
 			}
 		case 3138: // CORSAIR XC7 ELITE LCD CPU Water Block

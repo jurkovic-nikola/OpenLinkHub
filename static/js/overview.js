@@ -330,6 +330,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 }
             });
+
+            $.ajax({
+                url:'/api/cpuTemp',
+                type:'get',
+                success:function(result){
+                    $("#cpu_temp").html(result.data + " °C");
+                }
+            });
+            $.ajax({
+                url:'/api/gpuTemp',
+                type:'get',
+                success:function(result){
+                    $("#gpu_temp").html(result.data + " °C");
+                }
+            });
         },1500);
     }
 

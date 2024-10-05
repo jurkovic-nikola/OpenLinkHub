@@ -107,6 +107,7 @@ type Device struct {
 	RGBDeviceOnly bool
 	Template      string
 	Brightness    map[int]string
+	HasLCD        bool
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -647,7 +648,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
-			labels[device.ChannelId] = "Not Set"
+			labels[device.ChannelId] = "Set Label"
 		}
 		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
@@ -901,7 +902,7 @@ func (d *Device) getDevices() int {
 
 		// Get a persistent speed profile. Fallback to Normal is anything fails
 		speedProfile := "Normal"
-		label := "Not Set"
+		label := "Set Label"
 		speedMode := &SpeedMode{
 			ZeroRpm: false,
 			Pump:    deviceList[device].Pump,

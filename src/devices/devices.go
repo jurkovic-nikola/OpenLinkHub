@@ -46,6 +46,7 @@ type Device struct {
 	LnPro       *lnpro.Device  `json:"lnpro,omitempty"`
 	CPro        *cpro.Device   `json:"cPro,omitempty"`
 	XC7         *xc7.Device    `json:"xc7,omitempty"`
+	GetDevice   interface{}
 }
 
 var (
@@ -767,6 +768,32 @@ func GetTemperatureProbes() interface{} {
 	return probes
 }
 
+// UpdateDeviceTemplate will update device HTML template
+func UpdateDeviceTemplate(vertical bool) {
+	for _, device := range devices {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					device.Lsh.UpdateDeviceTemplate(vertical)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.UpdateDeviceTemplate(vertical)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.UpdateDeviceTemplate(vertical)
+				}
+			}
+		}
+	}
+}
+
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
 	if device, ok := devices[deviceId]; ok {
@@ -866,6 +893,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
 			}
 		case 3122, 3100: // CORSAIR iCUE COMMANDER Core
@@ -882,6 +910,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
 			}
 		case 3114: // CORSAIR iCUE COMMANDER CORE XT
@@ -898,6 +927,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
 			}
 		case 3125, 3126, 3127, 3136, 3137: // CORSAIR iCUE H100i,H115i,H150i ELITE RGB + H100i, H150i White
@@ -978,6 +1008,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
 			}
 		default:

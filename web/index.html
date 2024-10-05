@@ -55,11 +55,111 @@
                         <span style="font-size: 13px;">Profiles</span>
                     </a>
                 </div>
+
+                <div class="row btn btn-secondary navigation-right-small">
+                    <a href="#" style="color: #a1a1a1;" id="app-settings">
+                        <img src="/static/img/icons/icon-settings.svg" width="46" height="46" alt="Settings" class="top-px" />
+                        <span style="font-size: 13px;">Settings</span>
+                    </a>
+                </div>
             </div>
         </div>
 
         <section class="pt-0 pt-sm-4">
             <div class="container-fluid">
+                {{ if .Dashboard.ShowDevices }}
+                {{ range .Devices }}
+                {{ $dev := .GetDevice }}
+                {{ if $dev }}
+                {{ $devices := $dev.Devices }}
+                <div class="row gy-4" style="margin-bottom: 20px;">
+                    <div class="bg-dash-dark-2 py-4 box-info">
+                        <div class="container-fluid">
+                            <h2 class="h5 mb-0">{{ .Product }}</h2>
+                        </div>
+                    </div>
+                    <div class="row">
+                        {{ if eq (len $devices) 0 }}
+                        {{ if $dev.HasLCD }}
+                        <div style="width: 370px;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
+                                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
+                                    </div>
+
+                                    <div class="ds-svg-placeholder-left left-20-auto">
+                                        <span style="font-size: 13px;">{{ $dev.Product }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                            <span>{{ $dev.DeviceProfile.Label }}</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="ds-svg-placeholder-right left-20-auto-text-right">
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                            {{ if gt $dev.Temperature 0.00 }}
+                                            <span class="text-dash-color-2" id="temperature-0">{{ $dev.Temperature }} °C</span>
+                                            {{ end }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                        {{ else }}
+                        {{ range $device := $devices }}
+                        <div style="width: 370px;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div class="ds-svg-placeholder-left size-46-46">
+                                        {{ if $device.ContainsPump }}
+                                        <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
+                                        {{ else if and (eq $device.IsTemperatureProbe true) (eq $device.HasSpeed false) }}
+                                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
+                                        {{ else }}
+                                        <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
+                                        {{ end }}
+                                    </div>
+
+                                    <div class="ds-svg-placeholder-left left-20-auto">
+                                        <span class="custom-device-name">{{ $device.Name }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                            <span>{{ $device.Label }}</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="ds-svg-placeholder-right left-20-auto-text-right">
+                                        {{ if $device.HasSpeed }}
+                                        {{ if $device.HasTemps }}
+                                        <span class="text-dash-color-2-custom" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
+                                        {{ else }}
+                                        <span class="text-dash-color-2-custom-15" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
+                                        {{ end }}
+                                        {{ end }}
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                            {{ if $device.HasTemps }}
+                                            {{ if gt $device.Temperature 0.00 }}
+                                            {{ if $device.HasSpeed }}
+                                            <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Temperature }} °C</span>
+                                            {{ else }}
+                                            <span class="text-dash-color-2-custom-15" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Temperature }} °C</span>
+                                            {{ end }}
+                                            {{ end }}
+                                            {{ end }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                        {{ end }}
+                    </div>
+                </div>
+                {{ end }}
+                {{ end }}
+                {{ end }}
+
+
                 <div class="row gy-4">
                     <div class="bg-dash-dark-2 py-4 box-info">
                         <div class="container-fluid">
@@ -67,36 +167,73 @@
                         </div>
                     </div>
                     <div class="row">
+                        {{ if .Dashboard.ShowCpu }}
                         <!-- CPU -->
-                        <div class="btn btn-secondary-empty" style="margin-left: 10px;width: 300px;height: 150px;text-align: center;">
-                            <span style="color: #a1a1a1;">
-                                <img src="/static/img/icons/icon-cpu.svg" width="64" height="64" alt="CPU" class="top-px" /><br />
-                                <span style="font-size: 13px;margin-top:10px;">{{ .SystemInfo.CPU.Model }}</span>
-                                <p class="text-lg lh-1 mb-0 text-dash-color-2 device-px" id="cpu_temp">{{ .CpuTemp }} °C</p>
-                            </span>
-                        </div>
+                        <div style="width: auto;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
+                                        <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
+                                    </div>
 
-                        <!-- GPU -->
-                        {{ if .SystemInfo.GPU }}
-                        <div class="btn btn-secondary-empty" style="margin-left: 10px;width: 300px;height: 150px;text-align: center;">
-                            <span style="color: #a1a1a1;">
-                                <img src="/static/img/icons/icon-gpu.svg" width="64" height="64" alt="GPU" class="top-px" /><br />
-                                <span style="font-size: 13px;margin-top:10px;">{{ .SystemInfo.GPU.Model }}</span>
-                                <p class="text-lg lh-1 mb-0 text-dash-color-2 device-px" id="gpu_temp">{{ .GpuTemp }} °C</p>
-                            </span>
+                                    <div class="ds-svg-placeholder-left" style="margin-left: 20px;width:auto">
+                                        <span style="font-size: 13px;">{{ .SystemInfo.CPU.Model }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
+                                            <span class="temp-left-70">Temperature</span>
+                                            <span id="cpu_temp" class="temp-right-30 text-dash-color-2">{{ .CpuTemp }} °C</span><br />
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         {{ end }}
 
+                        {{ if .Dashboard.ShowGpu }}
+                        <!-- GPU -->
+                        {{ if .SystemInfo.GPU }}
+                        <div style="width: auto;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
+                                        <img src="/static/img/icons/icon-gpu.svg" width="46" height="46" alt="Device" />
+                                    </div>
+
+                                    <div class="ds-svg-placeholder-left" style="margin-left: 20px;width:auto">
+                                        <span style="font-size: 13px;">{{ .SystemInfo.GPU.Model }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
+                                            <span class="temp-left-70">Temperature</span>
+                                            <span id="gpu_temp" class="temp-right-30 text-dash-color-2">{{ .GpuTemp }} °C</span><br />
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                        {{ end }}
+
+                        {{ if .Dashboard.ShowDisk }}
                         <!-- Storage -->
                         {{ if .SystemInfo.Storage }}
                         {{ range .SystemInfo.Storage }}
-                        <div class="btn btn-secondary-empty" style="margin-left: 10px;width: 300px;height: 150px;text-align: center;">
-                            <span style="color: #a1a1a1;">
-                                <img src="/static/img/icons/icon-storage.svg" width="64" height="64" alt="Storage" class="top-px" /><br />
-                                <span style="font-size: 13px;margin-top:10px;">{{ .Model }}</span>
-                                <p class="text-lg lh-1 mb-0 text-dash-color-2 device-px" id="storage_temp-{{ .Key }}">{{ .Temperature }} °C</p>
-                            </span>
+
+                        <div style="width: auto;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
+                                        <img src="/static/img/icons/icon-storage.svg" width="46" height="46" alt="Device" />
+                                    </div>
+
+                                    <div class="ds-svg-placeholder-right" style="margin-left: 20px;min-width: 200px">
+                                        <span style="font-size: 13px;">{{ .Model }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
+                                            <span class="temp-left-70">Temperature</span>
+                                            <span id="storage_temp-{{ .Key }}" class="temp-right-30 text-dash-color-2">{{ .Temperature }} °C</span><br />
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        {{ end }}
                         {{ end }}
                         {{ end }}
                     </div>
@@ -122,6 +259,7 @@
 </div>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/index.js"></script>
 </body>
 </html>

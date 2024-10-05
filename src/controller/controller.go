@@ -2,6 +2,7 @@ package controller
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
@@ -17,6 +18,7 @@ import (
 func Start() {
 	version.Init()      // Build info
 	config.Init()       // Configuration
+	dashboard.Init()    // Dashboard
 	logger.Init()       // Logger
 	systeminfo.Init()   // Build system info
 	metrics.Init()      // Metrics

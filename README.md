@@ -4,6 +4,7 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 ![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
 
 ![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
+![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui-1.png?raw=true)
 
 # Info
 - This project was created out of own necessity to control fans and pumps on workstations after switching everything to Linux.

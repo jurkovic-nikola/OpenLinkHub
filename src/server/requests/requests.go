@@ -2,6 +2,7 @@ package requests
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -728,4 +729,31 @@ func ProcessExternalHubDeviceAmount(r *http.Request) *Payload {
 		return &Payload{Message: "You have exceeded maximum amount of supported LED channels.", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change external LED hub device amount", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessDashboardSettingsChange will process POST request from a client for dashboard settings change
+func ProcessDashboardSettingsChange(r *http.Request) *Payload {
+	req := &dashboard.Dashboard{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	status := dashboard.SaveDashboardSettings(req)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to save dashboard settings", Code: http.StatusOK, Status: 0}
+	case 1:
+		{
+			// Update device html template
+			devices.UpdateDeviceTemplate(req.VerticalUi)
+			return &Payload{Message: "Dashboard settings updated.", Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: "Unable to save dashboard settings", Code: http.StatusOK, Status: 0}
 }

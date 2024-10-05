@@ -1,9 +1,15 @@
 {{ if eq .Device.Template "lsh.html" }}
 {{ template "lsh.html" . }}
+{{ else if eq .Device.Template "lsh-vertical.html" }}
+{{ template "lsh-vertical.html" . }}
 {{ else if eq .Device.Template "cc.html" }}
 {{ template "cc.html" . }}
+{{ else if eq .Device.Template "cc-vertical.html" }}
+{{ template "cc-vertical.html" . }}
 {{ else if eq .Device.Template "ccxt.html" }}
 {{ template "ccxt.html" . }}
+{{ else if eq .Device.Template "ccxt-vertical.html" }}
+{{ template "ccxt-vertical.html" . }}
 {{ else if eq .Device.Template "elite.html" }}
 {{ template "elite.html" . }}
 {{ else if eq .Device.Template "lncore.html" }}

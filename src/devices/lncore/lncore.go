@@ -72,6 +72,7 @@ type Device struct {
 	activeRgb               *rgb.ActiveRGB
 	Template                string
 	Brightness              map[int]string
+	HasLCD                  bool
 }
 
 var (
@@ -364,7 +365,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
-			labels[device.ChannelId] = "Not Set"
+			labels[device.ChannelId] = "Set Label"
 		}
 		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
@@ -423,7 +424,7 @@ func (d *Device) getDevices() int {
 
 		if LedChannels > 0 {
 			rgbProfile := "static"
-			label := "Not Set"
+			label := "Set Label"
 			for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
 				if d.DeviceProfile != nil {
 					// Profile is set

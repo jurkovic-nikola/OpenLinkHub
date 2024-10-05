@@ -13,6 +13,7 @@ package ccxt
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
@@ -205,6 +206,7 @@ type Device struct {
 	RGBDeviceOnly           bool
 	Brightness              map[int]string
 	Template                string
+	HasLCD                  bool
 }
 
 // Init will initialize a new device
@@ -237,6 +239,10 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+	}
+
+	if dashboard.GetDashboard().VerticalUi {
+		d.Template = "ccxt-vertical.html"
 	}
 
 	// Bootstrap
@@ -286,6 +292,15 @@ func (d *Device) Stop() {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
+	}
+}
+
+// UpdateDeviceTemplate will update device template
+func (d *Device) UpdateDeviceTemplate(vertical bool) {
+	if vertical {
+		d.Template = "ccxt-vertical.html"
+	} else {
+		d.Template = "ccxt.html"
 	}
 }
 
@@ -1170,7 +1185,7 @@ func (d *Device) getDevices() int {
 		if status == 0x07 {
 			// Get a persistent speed profile. Fallback to Normal is anything fails
 			speedProfile := "Normal"
-			label := "Not Set"
+			label := "Set Label"
 			if d.DeviceProfile != nil {
 				// Profile is set
 				if sp, ok := d.DeviceProfile.SpeedProfiles[i]; ok {
@@ -1247,7 +1262,7 @@ func (d *Device) getDevices() int {
 	amount = d.getChannelAmount(response)
 	sensorData := response[6:]
 	for i, s := 0, 0; i < amount; i, s = i+1, s+3 {
-		label := "Not Set"
+		label := "Set Label"
 		status := sensorData[s : s+3][0]
 		if status == 0x00 {
 			if d.DeviceProfile != nil {
@@ -1291,7 +1306,7 @@ func (d *Device) getDevices() int {
 			if LedChannels > 0 {
 				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
 					rgbProfile := "static"
-					label := "Not Set"
+					label := "Set Label"
 					// Profile is set
 					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
 						// Profile device channel exists
@@ -1378,7 +1393,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
-			labels[device.ChannelId] = "Not Set"
+			labels[device.ChannelId] = "Set Label"
 		}
 		deviceProfile.ExternalHubDeviceAmount = 0
 		deviceProfile.ExternalHubDeviceType = 0

@@ -75,6 +75,7 @@ type Device struct {
 	activeRgb               map[int]*rgb.ActiveRGB
 	Template                string
 	Brightness              map[int]string
+	HasLCD                  bool
 }
 
 type Devices struct {
@@ -726,7 +727,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
-			labels[device.ChannelId] = "Not Set"
+			labels[device.ChannelId] = "Set Label"
 		}
 		deviceProfile.Active = true
 
@@ -855,7 +856,7 @@ func (d *Device) getDevices() int {
 			val := binary.BigEndian.Uint16(rpm[1:])
 			if val > 0 {
 				speedProfile := "Normal"
-				label := "Not Set"
+				label := "Set Label"
 				if d.DeviceProfile != nil {
 					// Profile is set
 					if sp, ok := d.DeviceProfile.SpeedProfiles[m]; ok {
@@ -916,7 +917,7 @@ func (d *Device) getDevices() int {
 			}
 			val := binary.BigEndian.Uint16(temp[1:]) / 100
 
-			label := "Not Set"
+			label := "Set Label"
 			if d.DeviceProfile != nil {
 				// Device label
 				if lb, ok := d.DeviceProfile.Labels[m]; ok {
@@ -955,7 +956,7 @@ func (d *Device) getDevices() int {
 				LedChannels := uint8(externalDeviceType.Total)
 				for z := 0; z < externalHub.ExternalHubDeviceAmount; z++ {
 					rgbProfile := "static"
-					label := "Not Set"
+					label := "Set Label"
 
 					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
 						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration

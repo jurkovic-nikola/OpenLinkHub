@@ -31,6 +31,7 @@ package cc
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
@@ -278,6 +279,10 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		},
 	}
 
+	if dashboard.GetDashboard().VerticalUi {
+		d.Template = "cc-vertical.html"
+	}
+
 	// There are 2 CCs. One has a packet size of 64 and the other has 96.
 	// This matters only for RGB operations due to packet chunking.
 	if productId == 3100 { // 0c1c
@@ -359,6 +364,15 @@ func (d *Device) Stop() {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
+	}
+}
+
+// UpdateDeviceTemplate will update device template
+func (d *Device) UpdateDeviceTemplate(vertical bool) {
+	if vertical {
+		d.Template = "cc-vertical.html"
+	} else {
+		d.Template = "cc.html"
 	}
 }
 
@@ -862,7 +876,7 @@ func (d *Device) getDevices() int {
 		if status == 0x07 {
 			// Get a persistent speed profile. Fallback to Normal is anything fails
 			speedProfile := "Normal"
-			label := "Not Set"
+			label := "Set Label"
 			if d.DeviceProfile != nil {
 				// Profile is set
 				if sp, ok := d.DeviceProfile.SpeedProfiles[i]; ok {
@@ -946,7 +960,7 @@ func (d *Device) getDevices() int {
 	response = d.read(modeGetTemperatures, dataTypeGetTemperatures)
 	sensorData := response[9:]
 	for i, s := 0, 0; i < 1; i, s = i+1, s+3 {
-		label := "Not Set"
+		label := "Set Label"
 		status := sensorData[s : s+3][0]
 		if status == 0x00 {
 			if d.DeviceProfile != nil {
@@ -1698,7 +1712,7 @@ func (d *Device) saveDeviceProfile() {
 
 		// Labels
 		for _, device := range d.Devices {
-			labels[device.ChannelId] = "Not Set"
+			labels[device.ChannelId] = "Set Label"
 		}
 
 		// LCD

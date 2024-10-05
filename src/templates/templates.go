@@ -2,6 +2,7 @@ package templates
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -28,6 +29,7 @@ type Web struct {
 	GpuTemp           float32
 	StorageTemp       []temperatures.StorageTemperatures
 	BuildInfo         *version.BuildInfo
+	Dashboard         dashboard.Dashboard
 }
 
 func Init() {
@@ -36,8 +38,11 @@ func Init() {
 		"web/docs.html",
 		"web/index.html",
 		"web/lsh.html",
+		"web/lsh-vertical.html",
 		"web/cc.html",
+		"web/cc-vertical.html",
 		"web/ccxt.html",
+		"web/ccxt-vertical.html",
 		"web/elite.html",
 		"web/lncore.html",
 		"web/lnpro.html",
@@ -46,7 +51,6 @@ func Init() {
 		"web/rgb.html",
 		"web/temperature.html",
 	)
-
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Failed to load templates")
 	}

@@ -218,6 +218,10 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 
 // rotateRGBA rotates an RGBA image by the specified angle (in degrees).
 func rotateRGBA(img *image.RGBA, angle float64) *image.RGBA {
+	if angle == 0 {
+		return img
+	}
+
 	// Convert degrees to radians.
 	radians := angle * math.Pi / 180
 

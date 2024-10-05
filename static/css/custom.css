@@ -129,6 +129,17 @@ footer {
     color: #487fa1 !important;
 }
 
+.text-dash-color-2-custom {
+    color: #487fa1 !important;
+    font-size: 13px;
+}
+
+.text-dash-color-2-custom-15 {
+    color: #487fa1 !important;
+    font-size: 13px;
+    margin-top: 15px;
+}
+
 .text-dash-color-3 {
     color: #898989 !important;
 }
@@ -269,4 +280,60 @@ footer {
 
 .align-center-text {
     text-align: center;
+}
+
+.card-secondary-empty {
+    cursor: auto;
+    background-color: #181818;
+    border-color: #535353;
+}
+
+.card-secondary-empty:hover {
+    cursor: auto;
+    background-color: #232323;
+    border-color: #6e6e6e;
+}
+
+.button-100 {
+    width: 100%;
+}
+
+.div-100-10 {
+    width: 100%;
+    margin-top:10px;
+}
+
+.temp-left-70 {
+    text-align: left;
+    width: 70%;
+}
+
+.temp-right-30 {
+    text-align: right;
+    width: 30%;
+    float: right;
+}
+
+.custom-device-name {
+    font-size: 13px;
+}
+
+.size-46-46 {
+    width: 46px;
+    height: 46px;
+}
+
+.left-20-auto {
+    margin-left: 20px;
+    width:auto;
+}
+
+.left-20-auto-text-right {
+    margin-left: 20px;
+    width:auto;
+    text-align: right;
+}
+
+.custom-lh-1 {
+    line-height: 1;
 }

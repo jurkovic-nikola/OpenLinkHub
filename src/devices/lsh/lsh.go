@@ -9,6 +9,7 @@ package lsh
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
@@ -250,6 +251,10 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		PortProtection: make(map[uint8]int, 2),
 	}
 
+	if dashboard.GetDashboard().VerticalUi {
+		d.Template = "lsh-vertical.html"
+	}
+
 	// Bootstrap
 	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
@@ -353,6 +358,15 @@ func (d *Device) Stop() {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 		}
+	}
+}
+
+// UpdateDeviceTemplate will update device template
+func (d *Device) UpdateDeviceTemplate(vertical bool) {
+	if vertical {
+		d.Template = "lsh-vertical.html"
+	} else {
+		d.Template = "lsh.html"
 	}
 }
 
@@ -490,7 +504,7 @@ func (d *Device) saveDeviceProfile() {
 		m := 1
 		for _, device := range d.Devices {
 			rgbProfiles[device.ChannelId] = "static"
-			labels[device.ChannelId] = "Not Set"
+			labels[device.ChannelId] = "Set Label"
 			positions[m] = device.ChannelId
 			m++
 		}
@@ -1382,7 +1396,7 @@ func (d *Device) getDevices() int {
 
 		// Get a persistent speed profile. Fallback to Normal is anything fails
 		speedProfile := "Normal"
-		label := "Not Set"
+		label := "Set Label"
 		if d.DeviceProfile != nil {
 			// Profile is set
 			if sp, ok := d.DeviceProfile.SpeedProfiles[i]; ok {

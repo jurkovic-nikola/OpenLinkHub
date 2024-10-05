@@ -2,6 +2,7 @@ package server
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -21,12 +22,13 @@ import (
 // Response contains data what is sent back to a client
 type Response struct {
 	sync.Mutex
-	Code    int         `json:"code"`
-	Status  int         `json:"status"`
-	Message string      `json:"message,omitempty"`
-	Device  interface{} `json:"device,omitempty"`
-	Devices interface{} `json:"devices,omitempty"`
-	Data    interface{} `json:"data,omitempty"` // For dataTables
+	Code      int         `json:"code"`
+	Status    int         `json:"status"`
+	Message   string      `json:"message,omitempty"`
+	Device    interface{} `json:"device,omitempty"`
+	Devices   interface{} `json:"devices,omitempty"`
+	Dashboard interface{} `json:"dashboard,omitempty"`
+	Data      interface{} `json:"data,omitempty"` // For dataTables
 }
 
 type Header struct {
@@ -360,6 +362,27 @@ func setExternalHubDeviceAmount(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getDashboardSettings will get dashboard settings
+func getDashboardSettings(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{
+		Code:      http.StatusOK,
+		Status:    1,
+		Dashboard: dashboard.GetDashboard(),
+	}
+	resp.Send(w)
+}
+
+// setDashboardSettings handles dashboard settings change
+func setDashboardSettings(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDashboardSettingsChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -381,6 +404,8 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Rgb = rgb.GetRGB().Profiles
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.CpuTemp = temperatures.GetCpuTemperature()
+	web.GpuTemp = temperatures.GetGpuTemperature()
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -407,6 +432,7 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.SystemInfo = systeminfo.GetInfo()
 	web.CpuTemp = temperatures.GetCpuTemperature()
 	web.GpuTemp = temperatures.GetGpuTemperature()
+	web.Dashboard = dashboard.GetDashboard()
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -557,6 +583,10 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeBrightness)
 	r.Methods(http.MethodPost).Path("/api/position").
 		HandlerFunc(changePosition)
+	r.Methods(http.MethodGet).Path("/api/dashboard").
+		HandlerFunc(getDashboardSettings)
+	r.Methods(http.MethodPost).Path("/api/dashboard").
+		HandlerFunc(setDashboardSettings)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

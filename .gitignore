@@ -5,5 +5,6 @@ release/
 build.sh
 OpenLinkHub
 stdout.log
+dashboard.json
 database/temperatures/*.json
 database/profiles/*.json

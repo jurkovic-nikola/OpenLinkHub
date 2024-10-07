@@ -31,14 +31,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 url:'/api/cpuTemp',
                 type:'get',
                 success:function(result){
-                    $("#cpu_temp").html(result.data + " °C");
+                    $("#cpu_temp").html(result.data);
                 }
             });
             $.ajax({
                 url:'/api/gpuTemp',
                 type:'get',
                 success:function(result){
-                    $("#gpu_temp").html(result.data + " °C");
+                    $("#gpu_temp").html(result.data);
                 }
             });
 
@@ -47,23 +47,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 type:'get',
                 success:function(result){
                     $.each(result.data, function( index, value ) {
-                        $("#storage_temp-" + value.Key).html(value.Temperature + " °C");
+                        $("#storage_temp-" + value.Key).html(value.TemperatureString);
                     });
-                }
-            });
-
-            $.ajax({
-                url:'/api/aio',
-                type:'get',
-                success:function(result){
-                    if (result.data != null) {
-                        if (result.data.length > 0) {
-                            $.each(result.data, function( index, value ) {
-                                $("#aio_temp-" + value.Serial).html(value.Temperature + " °C");
-                                $("#aio_speed-" + value.Serial).html(value.Rpm + " RPM");
-                            });
-                        }
-                    }
                 }
             });
 
@@ -76,13 +61,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (value.GetDevice.devices == null) {
                             // Single device, e.g CPU block
                             const elementTemperatureId = "#temperature-0";
-                            $(elementTemperatureId).html(value.GetDevice.Temperature + " °C");
+                            $(elementTemperatureId).html(value.GetDevice.temperatureString);
                         } else {
                             $.each(value.GetDevice.devices, function( key, device ) {
                                 const elementSpeedId = "#speed-" + serialId + "-" + device.channelId;
                                 const elementTemperatureId = "#temp-" + serialId + "-" + device.channelId;
                                 $(elementSpeedId).html(device.rpm + " RPM");
-                                $(elementTemperatureId).html(device.temperature + " °C");
+                                $(elementTemperatureId).html(device.temperatureString);
                             });
                         }
                     });
@@ -144,7 +129,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
         modalElement+='<div class="form-check" style="overflow: hidden;padding-left: 1em;">';
         modalElement+='<div style="float:left;">';
-        modalElement+='<label class="form-check-label" for="checkbox-verticalUi">Vertical Device View</label>';
+        modalElement+='<label class="form-check-label" for="checkbox-celsius">Show Temperature in Celsius</label>';
+        modalElement+='</div>';
+        modalElement+='<div style="float:right;">';
+        modalElement+='<input class="form-check-input" id="checkbox-celsius" type="checkbox">';
+        modalElement+='</div>';
+        modalElement+='</div>';
+
+        modalElement+='<div class="form-check" style="overflow: hidden;padding-left: 1em;">';
+        modalElement+='<div style="float:left;">';
+        modalElement+='<label class="form-check-label" for="checkbox-verticalUi">Show Vertical Device View</label>';
         modalElement+='</div>';
         modalElement+='<div style="float:right;">';
         modalElement+='<input class="form-check-input" id="checkbox-verticalUi" type="checkbox">';
@@ -177,6 +171,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const checkboxStorage = modal.find('#checkbox-storage');
             const checkboxDevices = modal.find('#checkbox-devices');
             const checkboxVerticalUi = modal.find('#checkbox-verticalUi');
+            const checkboxCelsius = modal.find('#checkbox-celsius');
 
             // Load current settings
             $.ajax({
@@ -200,6 +195,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (response.dashboard.verticalUi === true) {
                             checkboxVerticalUi.attr('Checked','Checked');
                         }
+                        if (response.dashboard.celsius === true) {
+                            checkboxCelsius.attr('Checked','Checked');
+                        }
                     }
                 }
             });
@@ -210,6 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const v_checkboxStorage = checkboxStorage.is(':checked');
                 const v_checkboxDevices = checkboxDevices.is(':checked');
                 const v_checkboxVerticalUi = checkboxVerticalUi.is(':checked');
+                const v_checkboxCelsius = checkboxCelsius.is(':checked');
 
                 const pf = {};
                 pf["showCpu"] = v_checkboxCpu;
@@ -217,6 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 pf["showDisk"] = v_checkboxStorage;
                 pf["showDevices"] = v_checkboxDevices;
                 pf["verticalUi"] = v_checkboxVerticalUi;
+                pf["celsius"] = v_checkboxCelsius;
 
                 const json = JSON.stringify(pf, null, 2);
 

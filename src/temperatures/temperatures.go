@@ -3,6 +3,7 @@ package temperatures
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
 	"math"
@@ -50,9 +51,10 @@ type TemperatureProfileData struct {
 }
 
 type StorageTemperatures struct {
-	Key         string
-	Model       string
-	Temperature float32
+	Key               string
+	Model             string
+	Temperature       float32
+	TemperatureString string
 }
 
 var (
@@ -569,9 +571,10 @@ func GetStorageTemperatures() []StorageTemperatures {
 			model := strings.TrimSpace(string(deviceModel))
 
 			storage := StorageTemperatures{
-				Key:         entry.Name(),
-				Temperature: temperature,
-				Model:       model,
+				Key:               entry.Name(),
+				Temperature:       temperature,
+				TemperatureString: dashboard.GetDashboard().TemperatureToString(temperature),
+				Model:             model,
 			}
 			storageList = append(storageList, storage)
 		}

@@ -33,6 +33,8 @@ type Profile struct {
 	StartColor  Color   `json:"start"`
 	MiddleColor Color   `json:"middle,omitempty"`
 	EndColor    Color   `json:"end"`
+	MinTemp     float64 `json:"minTemp"`
+	MaxTemp     float64 `json:"maxTemp"`
 }
 
 type ActiveRGB struct {
@@ -52,6 +54,8 @@ type ActiveRGB struct {
 	TempColor              *Color
 	ContainsPump           bool
 	HasLCD                 bool
+	MinTemp                float64
+	MaxTemp                float64
 }
 
 var (

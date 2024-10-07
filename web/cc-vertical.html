@@ -96,7 +96,7 @@
                                                             <div class="btn btn-secondary-empty" style="text-align: center;width: 95%;">
                                                                 <span style="color: #a1a1a1;">
                                                                     <img src="/static/img/icons/icon-cpu.svg" width="64" height="64" alt="CPU" class="top-px" /><br />
-                                                                    <p class="text-md-center lh-1 mb-0 text-dash-color-2 device-px" id="cpu_temp">{{ .CpuTemp }} °C</p>
+                                                                    <p class="text-md-center lh-1 mb-0 text-dash-color-2 device-px" id="cpu_temp">{{ .CpuTemp }}</p>
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -105,7 +105,7 @@
                                                             <div class="btn btn-secondary-empty" style="text-align: center;width: 95%;">
                                                                 <span style="color: #a1a1a1;">
                                                                     <img src="/static/img/icons/icon-gpu.svg" width="64" height="64" alt="CPU" class="top-px" /><br />
-                                                                    <p class="text-md-center lh-1 mb-0 text-dash-color-2 device-px" id="gpu_temp">{{ .GpuTemp }} °C</p>
+                                                                    <p class="text-md-center lh-1 mb-0 text-dash-color-2 device-px" id="gpu_temp">{{ .GpuTemp }}</p>
                                                                 </span>
                                                             </div>
                                                             {{ end }}
@@ -215,7 +215,7 @@
                                                             {{ if $device.HasTemps }}
                                                             {{ if gt $device.Temperature 0.00 }}
                                                             <div class="ds-svg-placeholder-left" style="width: 100px;margin-left: 20px;padding-top: 5px;text-align: left;">
-                                                                <p class="text-lg text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.Temperature }} °C</p>
+                                                                <p class="text-lg text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.TemperatureString }}</p>
                                                             </div>
                                                             {{ end }}
                                                             {{ end }}

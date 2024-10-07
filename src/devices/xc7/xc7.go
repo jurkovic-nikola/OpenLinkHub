@@ -9,6 +9,7 @@ package xc7
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -71,7 +72,10 @@ type Device struct {
 	GlobalBrightness  float64
 	FirmwareInternal  []int
 	Temperature       float32
+	TemperatureString string `json:"temperatureString"`
 	LEDChannels       int
+	CpuTemp           float32
+	GpuTemp           float32
 }
 
 var (
@@ -400,7 +404,10 @@ func (d *Device) getTemperatureProbeData() {
 		return
 	}
 	buffer := buf[:n]
-	d.Temperature = float32(int16(binary.LittleEndian.Uint16(buffer[2:4]))) / 10.0
+	temp := float32(int16(binary.LittleEndian.Uint16(buffer[2:4]))) / 10.0
+
+	d.Temperature = temp
+	d.TemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
 }
 
 // getDeviceFirmware will get device firmware
@@ -418,6 +425,17 @@ func (d *Device) getDeviceFirmware() {
 	d.Firmware = fmt.Sprintf("%s.%s.%s.%s", v1, v2, v3, v4)
 }
 
+// setCpuTemperature will store current CPU temperature
+func (d *Device) setTemperatures() {
+	d.CpuTemp = temperatures.GetCpuTemperature()
+	d.GpuTemp = temperatures.GetGpuTemperature()
+}
+
+// getLiquidTemperature will fetch temperature from AIO device
+func (d *Device) getLiquidTemperature() float32 {
+	return d.Temperature
+}
+
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
 	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
@@ -426,6 +444,7 @@ func (d *Device) setAutoRefresh() {
 		for {
 			select {
 			case <-timer.C:
+				d.setTemperatures()
 				d.getTemperatureProbeData()
 			case <-authRefreshChan:
 				timer.Stop()
@@ -490,6 +509,10 @@ func (d *Device) setDeviceColor() {
 		counterCircle := 0
 		counterColorwarp := 0
 		counterSpinner := 0
+		counterCpuTemp := 0
+		counterGpuTemp := 0
+		counterLiquidTemp := 0
+		var temperatureKeys *rgb.Color
 		colorwarpGeneratedReverse := false
 		d.activeRgb = rgb.Exit()
 
@@ -560,6 +583,63 @@ func (d *Device) setDeviceColor() {
 				case "watercolor":
 					{
 						r.Watercolor(startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "liquid-temperature":
+					{
+						lock.Lock()
+						counterLiquidTemp++
+						if counterLiquidTemp >= r.Smoothness {
+							counterLiquidTemp = 0
+						}
+
+						if temperatureKeys == nil {
+							temperatureKeys = r.RGBStartColor
+						}
+
+						r.MinTemp = profile.MinTemp
+						r.MaxTemp = profile.MaxTemp
+						res := r.Temperature(float64(d.getLiquidTemperature()), counterLiquidTemp, temperatureKeys)
+						temperatureKeys = res
+						lock.Unlock()
+						buff = append(buff, r.Output...)
+					}
+				case "cpu-temperature":
+					{
+						lock.Lock()
+						counterCpuTemp++
+						if counterCpuTemp >= r.Smoothness {
+							counterCpuTemp = 0
+						}
+
+						if temperatureKeys == nil {
+							temperatureKeys = r.RGBStartColor
+						}
+
+						r.MinTemp = profile.MinTemp
+						r.MaxTemp = profile.MaxTemp
+						res := r.Temperature(float64(d.CpuTemp), counterCpuTemp, temperatureKeys)
+						temperatureKeys = res
+						lock.Unlock()
+						buff = append(buff, r.Output...)
+					}
+				case "gpu-temperature":
+					{
+						lock.Lock()
+						counterGpuTemp++
+						if counterGpuTemp >= r.Smoothness {
+							counterGpuTemp = 0
+						}
+
+						if temperatureKeys == nil {
+							temperatureKeys = r.RGBStartColor
+						}
+
+						r.MinTemp = profile.MinTemp
+						r.MaxTemp = profile.MaxTemp
+						res := r.Temperature(float64(d.GpuTemp), counterGpuTemp, temperatureKeys)
+						temperatureKeys = res
+						lock.Unlock()
 						buff = append(buff, r.Output...)
 					}
 				case "colorpulse":

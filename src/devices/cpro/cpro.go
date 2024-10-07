@@ -3,6 +3,7 @@ package cpro
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
@@ -76,6 +77,8 @@ type Device struct {
 	Template                string
 	Brightness              map[int]string
 	HasLCD                  bool
+	CpuTemp                 float32
+	GpuTemp                 float32
 }
 
 type Devices struct {
@@ -87,6 +90,7 @@ type Devices struct {
 	DefaultValue       byte            `json:"-"`
 	Rpm                int16           `json:"rpm"`
 	Temperature        float32         `json:"temperature"`
+	TemperatureString  string          `json:"temperatureString"`
 	LedChannels        uint8           `json:"-"`
 	ContainsPump       bool            `json:"-"`
 	Description        string          `json:"description"`
@@ -459,9 +463,27 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
+	valid := false
 	if _, ok := d.Devices[channelId]; ok {
-		// Update channel with new profile
-		d.Devices[channelId].RGB = profile
+		if profile == "liquid-temperature" {
+			// Apply only if we have pump
+			for _, device := range d.Devices {
+				if device.ContainsPump {
+					valid = true
+					break
+				}
+			}
+			if valid {
+				// Update channel with new profile
+				d.Devices[channelId].RGB = profile
+			} else {
+				logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+				return 2
+			}
+		} else {
+			// Update channel with new profile
+			d.Devices[channelId].RGB = profile
+		}
 	} else {
 		return 0
 	}
@@ -827,6 +849,7 @@ func (d *Device) getDeviceData() {
 			if _, ok := d.Devices[m]; ok {
 				if val > 1 {
 					d.Devices[m].Temperature = float32(val)
+					d.Devices[m].TemperatureString = dashboard.GetDashboard().TemperatureToString(float32(val))
 				}
 			}
 		}
@@ -1210,6 +1233,9 @@ func (d *Device) setDeviceColor() {
 			counterCircle := map[int]int{}
 			counterColorwarp := map[int]int{}
 			counterSpinner := map[int]int{}
+			counterCpuTemp := map[int]int{}
+			counterGpuTemp := map[int]int{}
+			temperatureKeys := map[int]*rgb.Color{}
 			colorwarpGeneratedReverse := false
 			d.activeRgb[i] = rgb.Exit()
 
@@ -1249,6 +1275,9 @@ func (d *Device) setDeviceColor() {
 						time.Duration(rgbModeSpeed)*time.Second,
 						rgbCustomColor,
 					)
+
+					r.MinTemp = profile.MinTemp
+					r.MaxTemp = profile.MaxTemp
 
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor
@@ -1294,6 +1323,40 @@ func (d *Device) setDeviceColor() {
 						case "watercolor":
 							{
 								r.Watercolor(startTime)
+								buff = append(buff, r.Output...)
+							}
+						case "cpu-temperature":
+							{
+								lock.Lock()
+								counterCpuTemp[k]++
+								if counterCpuTemp[k] >= r.Smoothness {
+									counterCpuTemp[k] = 0
+								}
+
+								if _, ok := temperatureKeys[k]; !ok {
+									temperatureKeys[k] = r.RGBStartColor
+								}
+
+								res := r.Temperature(float64(d.CpuTemp), counterCpuTemp[k], temperatureKeys[k])
+								temperatureKeys[k] = res
+								lock.Unlock()
+								buff = append(buff, r.Output...)
+							}
+						case "gpu-temperature":
+							{
+								lock.Lock()
+								counterGpuTemp[k]++
+								if counterGpuTemp[k] >= r.Smoothness {
+									counterGpuTemp[k] = 0
+								}
+
+								if _, ok := temperatureKeys[k]; !ok {
+									temperatureKeys[k] = r.RGBStartColor
+								}
+
+								res := r.Temperature(float64(d.GpuTemp), counterGpuTemp[k], temperatureKeys[k])
+								temperatureKeys[k] = res
+								lock.Unlock()
 								buff = append(buff, r.Output...)
 							}
 						case "colorpulse":
@@ -1410,6 +1473,12 @@ func (d *Device) setDeviceColor() {
 	}
 }
 
+// setCpuTemperature will store current CPU temperature
+func (d *Device) setTemperatures() {
+	d.CpuTemp = temperatures.GetCpuTemperature()
+	d.GpuTemp = temperatures.GetGpuTemperature()
+}
+
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
 	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
@@ -1418,6 +1487,7 @@ func (d *Device) setAutoRefresh() {
 		for {
 			select {
 			case <-timer.C:
+				d.setTemperatures()
 				d.getDeviceData()
 			case <-authRefreshChan:
 				timer.Stop()

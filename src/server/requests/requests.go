@@ -658,6 +658,8 @@ func ProcessChangeColor(r *http.Request) *Payload {
 	switch status {
 	case 0:
 		return &Payload{Message: "Unable to change device RGB profile", Code: http.StatusOK, Status: 0}
+	case 2:
+		return &Payload{Message: "Unable to change device RGB profile. This profile requires a pump or AIO", Code: http.StatusOK, Status: 0}
 	case 1:
 		return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
 	}
@@ -744,7 +746,7 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		}
 	}
 
-	status := dashboard.SaveDashboardSettings(req)
+	status := dashboard.SaveDashboardSettings(req, true)
 	switch status {
 	case 0:
 		return &Payload{Message: "Unable to save dashboard settings", Code: http.StatusOK, Status: 0}

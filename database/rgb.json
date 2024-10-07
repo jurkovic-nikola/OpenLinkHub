@@ -10,6 +10,63 @@
       "speed": 4,
       "brightness": 1
     },
+    "liquid-temperature": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 40,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "minTemp": 0,
+      "maxTemp": 60
+    },
+    "cpu-temperature": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 40,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "minTemp": 20,
+      "maxTemp": 95
+    },
+    "gpu-temperature": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 40,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "minTemp": 20,
+      "maxTemp": 80
+    },
     "static": {
       "speed": 4,
       "brightness": 1,

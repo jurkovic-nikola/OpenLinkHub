@@ -1,6 +1,7 @@
 package systeminfo
 
 import (
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"bufio"
 	"bytes"
@@ -25,9 +26,10 @@ type GpuData struct {
 }
 
 type StorageData struct {
-	Model       string
-	Temperature float32
-	Key         string
+	Model             string
+	Temperature       float32
+	TemperatureString string
+	Key               string
 }
 
 type KernelData struct {
@@ -258,9 +260,10 @@ func (si *SystemInfo) GetStorageData() {
 			model := strings.TrimSpace(string(deviceModel))
 
 			storage := StorageData{
-				Key:         entry.Name(),
-				Temperature: temperature,
-				Model:       model,
+				Key:               entry.Name(),
+				Temperature:       temperature,
+				TemperatureString: dashboard.GetDashboard().TemperatureToString(temperature),
+				Model:             model,
 			}
 			storageList = append(storageList, storage)
 		}

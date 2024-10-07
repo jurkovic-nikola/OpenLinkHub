@@ -77,7 +77,7 @@ func getCpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
 		Status: 1,
-		Data:   temperatures.GetCpuTemperature(),
+		Data:   dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature()),
 	}
 	resp.Send(w)
 }
@@ -87,7 +87,7 @@ func getGpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
 		Status: 1,
-		Data:   temperatures.GetGpuTemperature(),
+		Data:   dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature()),
 	}
 	resp.Send(w)
 }
@@ -404,8 +404,8 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Rgb = rgb.GetRGB().Profiles
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
-	web.CpuTemp = temperatures.GetCpuTemperature()
-	web.GpuTemp = temperatures.GetGpuTemperature()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -430,8 +430,8 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.Devices = devices.GetDevices()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
-	web.CpuTemp = temperatures.GetCpuTemperature()
-	web.GpuTemp = temperatures.GetGpuTemperature()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Dashboard = dashboard.GetDashboard()
 	t := templates.GetTemplate()
 

@@ -18,8 +18,8 @@ import (
 func Start() {
 	version.Init()      // Build info
 	config.Init()       // Configuration
-	dashboard.Init()    // Dashboard
 	logger.Init()       // Logger
+	dashboard.Init()    // Dashboard
 	systeminfo.Init()   // Build system info
 	metrics.Init()      // Metrics
 	rgb.Init()          // RGB

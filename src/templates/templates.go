@@ -25,8 +25,8 @@ type Web struct {
 	Temperatures      map[string]temperatures.TemperatureProfileData
 	Rgb               map[string]rgb.Profile
 	SystemInfo        interface{}
-	CpuTemp           float32
-	GpuTemp           float32
+	CpuTemp           string
+	GpuTemp           string
 	StorageTemp       []temperatures.StorageTemperatures
 	BuildInfo         *version.BuildInfo
 	Dashboard         dashboard.Dashboard

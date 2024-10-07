@@ -316,7 +316,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (result.device.devices == null) {
                         // Single device, e.g CPU block
                         const elementTemperatureId = "#temperature-0";
-                        $(elementTemperatureId).html(result.device.Temperature + " °C");
+                        $(elementTemperatureId).html(result.device.TemperatureString);
                     } else {
                         const length = Object.keys(result.device.devices).length;
                         if (length > 0) {
@@ -324,7 +324,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const elementSpeedId = "#speed-" + value.deviceId;
                                 const elementTemperatureId = "#temperature-" + value.deviceId;
                                 $(elementSpeedId).html(value.rpm + " RPM");
-                                $(elementTemperatureId).html(value.temperature + " °C");
+                                $(elementTemperatureId).html(value.temperatureString);
                             });
                         }
                     }
@@ -335,14 +335,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 url:'/api/cpuTemp',
                 type:'get',
                 success:function(result){
-                    $("#cpu_temp").html(result.data + " °C");
+                    $("#cpu_temp").html(result.data);
                 }
             });
             $.ajax({
                 url:'/api/gpuTemp',
                 type:'get',
                 success:function(result){
-                    $("#gpu_temp").html(result.data + " °C");
+                    $("#gpu_temp").html(result.data);
                 }
             });
         },1500);

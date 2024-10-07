@@ -12,6 +12,8 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 - Most of the devices are actually tested on live hardware.
 - OpenLinkHub supports multiple devices.
 - Take care and have fun!
+- This project does not accept any donations.
+
 ## Supported devices
 
 | Device                        | VID    | PID                | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -28,9 +30,6 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 | XC7 ELITE LCD CPU Water Block | `1b1c` | `0c42`             | <details><summary>Show</summary>RGB Control<br />LCD Control</details>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ## Installation (automatic)
-As of 0.1.5 version, OpenLinkHub ships with `.deb` and `.rpm` packages for ease of installation.
-Packages will automatically set up all the required device and folder permissions.
-Packages will also take care of systemd service creation and first startup.
 1. Download either .deb or .rpm package from the latest Release, depends on your Linux distribution
 2. Open terminal
 3. Navigate to the folder where the package is downloaded

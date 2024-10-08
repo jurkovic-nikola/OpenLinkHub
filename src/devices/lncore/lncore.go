@@ -755,6 +755,8 @@ func (d *Device) setDeviceColor() {
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
+		hue := 1
+		wavePosition := 0.0
 		for {
 			select {
 			case <-d.activeRgb.Exit:
@@ -898,6 +900,16 @@ func (d *Device) setDeviceColor() {
 							r.Static()
 							buff = append(buff, r.Output...)
 						}
+					case "rotator":
+						{
+							r.Rotator(hue)
+							buff = append(buff, r.Output...)
+						}
+					case "wave":
+						{
+							r.Wave(wavePosition)
+							buff = append(buff, r.Output...)
+						}
 					case "flickering":
 						{
 							lock.Lock()
@@ -991,6 +1003,8 @@ func (d *Device) setDeviceColor() {
 				// Send it
 				d.writeColor(buff, lightChannels)
 				time.Sleep(10 * time.Millisecond)
+				hue++
+				wavePosition += 0.2
 			}
 		}
 	}(lightChannels)

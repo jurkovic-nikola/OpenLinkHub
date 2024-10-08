@@ -1300,6 +1300,9 @@ func (d *Device) setDeviceColor() {
 			}
 			sort.Ints(keys)
 
+			hue := 1
+			wavePosition := 0.0
+
 			for {
 				buff := make([]byte, 0)
 				select {
@@ -1374,6 +1377,16 @@ func (d *Device) setDeviceColor() {
 						case "static":
 							{
 								r.Static()
+								buff = append(buff, r.Output...)
+							}
+						case "rotator":
+							{
+								r.Rotator(hue)
+								buff = append(buff, r.Output...)
+							}
+						case "wave":
+							{
+								r.Wave(wavePosition)
 								buff = append(buff, r.Output...)
 							}
 						case "flickering":
@@ -1468,6 +1481,8 @@ func (d *Device) setDeviceColor() {
 				}
 				d.writeColor(buff, lc, externalHub.PortId)
 				time.Sleep(10 * time.Millisecond)
+				hue++
+				wavePosition += 0.2
 			}
 		}(*externalHub, i)
 	}

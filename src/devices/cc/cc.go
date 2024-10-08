@@ -685,6 +685,8 @@ func (d *Device) setDeviceColor() {
 			keys = append(keys, k)
 		}
 		sort.Ints(keys)
+		hue := 1
+		wavePosition := 0.0
 
 		for {
 			select {
@@ -830,6 +832,16 @@ func (d *Device) setDeviceColor() {
 							r.Static()
 							buff = append(buff, r.Output...)
 						}
+					case "rotator":
+						{
+							r.Rotator(hue)
+							buff = append(buff, r.Output...)
+						}
+					case "wave":
+						{
+							r.Wave(wavePosition)
+							buff = append(buff, r.Output...)
+						}
 					case "flickering":
 						{
 							lock.Lock()
@@ -923,6 +935,8 @@ func (d *Device) setDeviceColor() {
 				// Send it
 				d.writeColor(buff)
 				time.Sleep(20 * time.Millisecond)
+				hue++
+				wavePosition += 0.2
 			}
 		}
 	}(lightChannels)

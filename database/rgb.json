@@ -105,6 +105,36 @@
         "brightness": 1
       }
     },
+    "rotator": {
+      "speed": 5,
+      "start": {
+        "red": 255,
+        "green": 100,
+        "blue": 149
+      },
+      "end": {
+        "red": 255,
+        "green": 100,
+        "blue": 152
+      }
+    },
+    "wave": {
+      "speed": 20,
+      "brightness": 1,
+      "smoothness": 10,
+      "start": {
+        "red": 65,
+        "green": 143,
+        "blue": 232,
+        "brightness": 1
+      },
+      "end": {
+        "red": 65,
+        "green": 143,
+        "blue": 232,
+        "brightness": 1
+      }
+    },
     "colorpulse": {
       "speed": 1,
       "brightness": 1,

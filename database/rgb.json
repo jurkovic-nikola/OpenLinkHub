@@ -84,6 +84,23 @@
         "brightness": 0.5
       }
     },
+    "storm": {
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 20,
+      "start": {
+        "red": 32,
+        "green": 62,
+        "blue": 77,
+        "brightness": 0.5
+      },
+      "end": {
+        "red": 32,
+        "green": 62,
+        "blue": 77,
+        "brightness": 0.5
+      }
+    },
     "watercolor": {
       "speed": 4,
       "brightness": 1

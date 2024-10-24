@@ -842,6 +842,11 @@ func (d *Device) setDeviceColor() {
 							r.Wave(wavePosition)
 							buff = append(buff, r.Output...)
 						}
+					case "storm":
+						{
+							r.Storm()
+							buff = append(buff, r.Output...)
+						}
 					case "flickering":
 						{
 							lock.Lock()
@@ -1031,8 +1036,8 @@ func (d *Device) getDevices() int {
 
 			device.RGB = rgbProfile
 			devices[m] = device
-			m++
 		}
+		m++
 	}
 
 	// Temperature probe
@@ -1066,8 +1071,8 @@ func (d *Device) getDevices() int {
 				Label:              label,
 			}
 			devices[m] = device
-			m++
 		}
+		m++
 	}
 
 	d.Devices = devices
@@ -1092,6 +1097,7 @@ func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 		buffer[i+2] = data[k]
 		i += 4
 	}
+
 	response := d.write(modeSetSpeed, dataTypeSetSpeed, buffer, true)
 	if len(response) >= 4 {
 		if response[5] != 0x07 {
@@ -1353,12 +1359,12 @@ func (d *Device) getDeviceData() {
 		if status == 0x07 {
 			if _, ok := d.Devices[m]; ok {
 				rpm := int16(binary.LittleEndian.Uint16(currentSensor))
-				if rpm > 1 {
+				if rpm > 20 {
 					d.Devices[m].Rpm = rpm
 				}
-				m++
 			}
 		}
+		m++
 	}
 
 	// Temperature
@@ -1381,6 +1387,7 @@ func (d *Device) getDeviceData() {
 						d.Devices[m].Temperature = float32(int16(binary.LittleEndian.Uint16(currentSensor[1:3]))) / 10.0
 						d.Devices[m].TemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
 					}
+					m++
 				}
 			}
 		}
@@ -1667,49 +1674,44 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
-	valid := false
-	if _, ok := d.Devices[channelId]; ok {
-		if profile == "liquid-temperature" {
-			// Apply only if we have pump
-			for _, device := range d.Devices {
-				if device.ContainsPump {
-					valid = true
-					break
-				}
-			}
-			if valid {
-				// Update channel with new profile
-				d.Devices[channelId].RGB = profile
-			} else {
-				logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
-				return 2
-			}
-		} else {
-			// Update channel with new profile
-			d.Devices[channelId].RGB = profile
+	hasPump := false
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
 		}
-	} else {
-		return 0
 	}
 
-	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
-	d.saveDeviceProfile()                            // Save profile
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if channelId < 0 {
+		for _, device := range d.Devices {
+			if device.LedChannels > 0 {
+				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
+				d.Devices[device.ChannelId].RGB = profile
+			}
+		}
+	} else {
+		if _, ok := d.Devices[channelId]; ok {
+			d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
+			d.Devices[channelId].RGB = profile
+		} else {
+			return 0
+		}
+	}
+
+	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
 	return 1
-}
-
-// GetAIOData will return AIO pump speed and liquid temperature
-func (d *Device) GetAIOData() (int16, float32) {
-	for _, device := range d.Devices {
-		if device.ContainsPump {
-			return device.Rpm, device.Temperature
-		}
-	}
-	return 0, 0
 }
 
 // UpdateDeviceMetrics will update device metrics
@@ -1843,7 +1845,7 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	// Convert to JSON
-	buffer, err := json.Marshal(deviceProfile)
+	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
 		return

@@ -41,14 +41,22 @@
                 {{ if eq $d.Serial $device.Serial }}
                 <div class="row btn btn-secondary active-nav-link navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
+                        {{ if eq $d.ProductType 8 }}
+                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ else }}
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ end }}
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
                 {{ else }}
                 <div class="row btn btn-secondary navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
+                        {{ if eq $d.ProductType 8 }}
+                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ else }}
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ end }}
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
@@ -109,7 +117,7 @@
 
                                         <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
                                             <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid</p>
+                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
                                             </div>
                                             <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-0">{{ $device.TemperatureString }}</p>
                                         </div>

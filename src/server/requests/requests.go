@@ -35,6 +35,7 @@ type Payload struct {
 	Brightness      uint8     `json:"brightness"`
 	Position        int       `json:"position"`
 	Direction       int       `json:"direction"`
+	StripId         int       `json:"stripId"`
 	Status          int
 	Code            int
 	Message         string
@@ -381,7 +382,7 @@ func ProcessSaveUserProfile(r *http.Request) *Payload {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
@@ -425,7 +426,7 @@ func ProcessChangeUserProfile(r *http.Request) *Payload {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
@@ -469,7 +470,7 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
@@ -555,7 +556,7 @@ func ProcessLabelChange(r *http.Request) *Payload {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
 
@@ -644,10 +645,6 @@ func ProcessChangeColor(r *http.Request) *Payload {
 		return &Payload{Message: "Non-existing RGB profile", Code: http.StatusOK, Status: 0}
 	}
 
-	if rgb.GetRgbProfile(req.Profile) == nil {
-		return &Payload{Message: "Non-existing RGB profile", Code: http.StatusOK, Status: 0}
-	}
-
 	if devices.GetDevice(req.DeviceId) == nil {
 		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
 	}
@@ -664,6 +661,41 @@ func ProcessChangeColor(r *http.Request) *Payload {
 		return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: "Unable to change device RGB profile", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeStrip will process POST request from a client for RGB strip change
+func ProcessChangeStrip(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.StripId < 0 || req.StripId > 4 {
+		return &Payload{Message: "Non-existing RGB strip", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateRgbStrip(req.DeviceId, req.ChannelId, req.StripId)
+
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to change device RGB strip", Code: http.StatusOK, Status: 0}
+	case 2:
+		return &Payload{Message: "Unable to change device RGB strip. You need iCUE Link Adapter", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device RGB strip is successfully changed", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to change device RGB strip", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessExternalHubDeviceType will process POST request from a client for external-LED hub

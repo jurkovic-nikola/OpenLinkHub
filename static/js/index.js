@@ -58,17 +58,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 success:function(result){
                     $.each(result.devices, function( index, value ) {
                         const serialId = value.Serial
-                        if (value.GetDevice.devices == null) {
-                            // Single device, e.g CPU block
-                            const elementTemperatureId = "#temperature-0";
-                            $(elementTemperatureId).html(value.GetDevice.temperatureString);
-                        } else {
-                            $.each(value.GetDevice.devices, function( key, device ) {
-                                const elementSpeedId = "#speed-" + serialId + "-" + device.channelId;
-                                const elementTemperatureId = "#temp-" + serialId + "-" + device.channelId;
-                                $(elementSpeedId).html(device.rpm + " RPM");
-                                $(elementTemperatureId).html(device.temperatureString);
-                            });
+                        if (value.GetDevice != null) {
+                            if (value.GetDevice.devices == null) {
+                                // Single device, e.g CPU block
+                                const elementTemperatureId = "#temperature-0";
+                                $(elementTemperatureId).html(value.GetDevice.temperatureString);
+                            } else {
+                                $.each(value.GetDevice.devices, function( key, device ) {
+                                    const elementSpeedId = "#speed-" + serialId + "-" + device.channelId;
+                                    const elementTemperatureId = "#temp-" + serialId + "-" + device.channelId;
+                                    $(elementSpeedId).html(device.rpm + " RPM");
+                                    $(elementTemperatureId).html(device.temperatureString);
+                                });
+                            }
                         }
                     });
                 }

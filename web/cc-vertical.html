@@ -42,14 +42,22 @@
                 {{ if eq $d.Serial $device.Serial }}
                 <div class="row btn btn-secondary active-nav-link navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
+                        {{ if eq $d.ProductType 8 }}
+                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ else }}
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ end }}
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
                 {{ else }}
                 <div class="row btn btn-secondary navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
+                        {{ if eq $d.ProductType 8 }}
+                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ else }}
                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                        {{ end }}
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
@@ -141,6 +149,19 @@
                                                                 {{ else }}
                                                                 <option value="{{ $key }}">{{ $key }}</option>
                                                                 {{ end }}
+                                                                {{ end }}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="custom-device-block div-100-10">
+                                                        <div style="float: left;text-align: left;width: 50%;margin-top: 2px;">
+                                                            <span class="text-uppercase">Global RGB</span>
+                                                        </div>
+                                                        <div style="float: right;text-align: right;width: 50%;">
+                                                            <select class="form-select globalRgb custom-lh-1">
+                                                                {{ range $key, $_ := $rgb }}
+                                                                <option value="{{ $key }}">{{ $key }}</option>
                                                                 {{ end }}
                                                             </select>
                                                         </div>

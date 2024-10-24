@@ -20,4 +20,6 @@
 {{ template "cpro.html" . }}
 {{ else if eq .Device.Template "xc7.html" }}
 {{ template "xc7.html" . }}
+{{ else if eq .Device.Template "memory.html" }}
+{{ template "memory.html" . }}
 {{ end }}

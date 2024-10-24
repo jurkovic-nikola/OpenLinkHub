@@ -371,3 +371,145 @@ $ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569A
   "message": "LCD mode successfully changed"
 }
 ```
+### LCD - Change device LCD mode - Combined Metrics (Liquid, CPU)
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 5}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - Combined Metrics (CPU, GPU Temp)
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 6}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - Combined Metrics (CPU, GPU Load)
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 7}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD mode - Combined Metrics (CPU, GPU Load/Temp)
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode": 7}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD rotation - Normal
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation": 0}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD rotation - 90 clockwise
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation": 1}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD rotation - 180 clockwise
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation": 2}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### LCD - Change device LCD rotation - 270 clockwise
+```bash
+$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation": 3}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+```
+### Temperature - Get CPU temperature - string
+```bash
+$ curl -X GET http:/127.0.0.1:27003/api/cpuTemp --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": "37.8 °C"
+}
+```
+### Temperature - Get CPU temperature - float
+```bash
+$ curl -X GET http:/127.0.0.1:27003/api/cpuTemp/clean --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": 38
+}
+```
+### Temperature - Get GPU temperature - string
+```bash
+$ curl -X GET http:/127.0.0.1:27003/api/gpuTemp --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": "37.8 °C"
+}
+```
+### Temperature - Get GPU temperature - float
+```bash
+$ curl -X GET http:/127.0.0.1:27003/api/gpuTemp/clean --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": 38
+}
+```
+### Temperature - Get Storage temperature
+```bash
+$ curl -X GET http:/127.0.0.1:27003/api/storageTemp --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": [
+    {
+      "Key": "hwmon1",
+      "Model": "KINGSTON SA2000M81000G",
+      "Temperature": 42,
+      "TemperatureString": "42.0 °C"
+    },
+    {
+      "Key": "hwmon2",
+      "Model": "KINGSTON SNVS2000G",
+      "Temperature": 32,
+      "TemperatureString": "32.0 °C"
+    },
+    {
+      "Key": "hwmon3",
+      "Model": "KINGSTON SNVS2000G",
+      "Temperature": 33,
+      "TemperatureString": "33.0 °C"
+    },
+    {
+      "Key": "hwmon6",
+      "Model": "Samsung SSD 860",
+      "Temperature": 21,
+      "TemperatureString": "21.0 °C"
+    }
+  ]
+}
+```

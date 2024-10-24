@@ -615,6 +615,278 @@ $ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.Listen
                                             </div>
                                         </div>
                                         <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD mode - Combined Metrics (Liquid, CPU)
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode":5}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD mode - Combined Metrics (CPU, GPU Temp)
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode":6}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD mode - Combined Metrics (CPU, GPU Load)
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode":7}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD mode - Combined Metrics (CPU, GPU Load/Temp)
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "mode":8}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD rotation - Normal
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation":0}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD rotation - 90 clockwise
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation":1}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD rotation - 180 clockwise
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation":2}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>LCD</b> - Change device LCD rotation - 270 clockwise
+$ curl -X POST http:/{{ .Configuration.ListenAddress }}:{{ .Configuration.ListenPort }}/api/lcd/rotation -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "rotation":3}' --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "message": "LCD mode successfully changed"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature</b> - Get CPU temperature string
+$ curl -X GET http:/127.0.0.1:27003/api/cpuTemp --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": "37.8 °C"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature</b> - Get CPU temperature float
+$ curl -X GET http:/127.0.0.1:27003/api/cpuTemp/clean --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": "37.8 °C"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature</b> - Get GPU temperature string
+$ curl -X GET http:/127.0.0.1:27003/api/gpuTemp --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": "37.8 °C"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature</b> - Get GPU temperature float
+$ curl -X GET http:/127.0.0.1:27003/api/gpuTemp/clean --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": "37.8 °C"
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
+                                        <br />
+                                        <!-- Code block start -->
+                                        <div class="col-lg-12">
+                                            <div class="card">
+                                                <div class="d-flex">
+                                                    <div class="custom-code-div">
+                                                        <pre style="margin:20px;"><code style="color:#ffffff"><b>Temperature</b> - Get storage temperature
+$ curl -X GET http:/127.0.0.1:27003/api/storageTemp --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": [
+    {
+      "Key": "hwmon1",
+      "Model": "KINGSTON SA2000M81000G",
+      "Temperature": 42,
+      "TemperatureString": "42.0 °C"
+    },
+    {
+      "Key": "hwmon2",
+      "Model": "KINGSTON SNVS2000G",
+      "Temperature": 32,
+      "TemperatureString": "32.0 °C"
+    },
+    {
+      "Key": "hwmon3",
+      "Model": "KINGSTON SNVS2000G",
+      "Temperature": 33,
+      "TemperatureString": "33.0 °C"
+    },
+    {
+      "Key": "hwmon6",
+      "Model": "Samsung SSD 860",
+      "Temperature": 21,
+      "TemperatureString": "21.0 °C"
+    }
+  ]
+}
+</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Code block end -->
                                     </div>
                                 </div>
                     </div>

@@ -15,6 +15,8 @@ type Configuration struct {
 	RefreshOnStart bool   `json:"refreshOnStart"`
 	Metrics        bool   `json:"metrics"`
 	DbusMonitor    bool   `json:"dbusMonitor"`
+	Memory         bool   `json:"memory"`
+	MemorySmBus    string `json:"memorySmBus"`
 }
 
 var configuration Configuration

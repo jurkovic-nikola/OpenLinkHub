@@ -27,6 +27,7 @@
         {{ $lcdModes := .Device.LCDModes }}
         {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
         {{ $positions := .Device.DeviceProfile.Positions }}
+        {{ $rgbStrips := .Device.RGBStrips }}
         {{ $lcdRotations := .Device.LCDRotations }}
         {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
@@ -43,14 +44,22 @@
             {{ if eq $d.Serial $device.Serial }}
             <div class="row btn btn-secondary active-nav-link navigation-left-big">
               <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
+                {{ if eq $d.ProductType 8 }}
+                <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                {{ else }}
                 <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                {{ end }}
                 <span style="font-size: 13px;">{{ $d.Product }}</span>
               </a>
             </div>
             {{ else }}
             <div class="row btn btn-secondary navigation-left-big">
               <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
+                {{ if eq $d.ProductType 8 }}
+                <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                {{ else }}
                 <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                {{ end }}
                 <span style="font-size: 13px;">{{ $d.Product }}</span>
               </a>
             </div>
@@ -143,6 +152,19 @@
                           </div>
                         </div>
 
+                        <div class="custom-device-block">
+                          <div class="custom-float-20-left">
+                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                          </div>
+                          <div class="custom-float-80-right">
+                            <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
+                              {{ range $key, $_ := $rgb }}
+                              <option value="{{ $key }}">{{ $key }}</option>
+                              {{ end }}
+                            </select>
+                          </div>
+                        </div>
+                        
                         <div style="overflow: hidden; margin-top: 10px;">
                           <button class="btn btn-secondary saveUserProfile">
                             <span>Save As</span>
@@ -160,6 +182,10 @@
                       <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
                         {{ if $device.ContainsPump }}
                         <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
+                        {{ else if $device.IsLinkAdapter }}
+                        <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
+                        {{ else if $device.IsCpuBlock }}
+                        <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
                         {{ else }}
                         <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                         {{ end }}
@@ -188,7 +214,13 @@
                         {{ if gt $device.Temperature 0.00 }}
                         <div class="d-flex align-items-end justify-content-between mb-2">
                           <div class="me-2">
+                            {{ if $device.ContainsPump }}
+                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                            {{ else if $device.IsCpuBlock }}
+                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                            {{ else }}
                             <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
+                            {{ end }}
                           </div>
                           <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.TemperatureString }}</p>
                         </div>
@@ -208,9 +240,7 @@
                         <div class="progress" style="height: 3px">
                           <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        {{ end }}
 
-                        {{ if $device.HasSpeed }}
                         <div class="custom-device-block">
                           <div class="custom-float-20-left">
                             <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
@@ -235,6 +265,25 @@
                               {{ else }}
                               <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
                               {{ end }}
+                              {{ end }}
+                              {{ end }}
+                            </select>
+                          </div>
+                        </div>
+                        {{ end }}
+
+                        {{ if $device.IsLinkAdapter }}
+                        <div class="custom-device-block">
+                          <div class="custom-float-20-left">
+                            <i class="bi bi-type-strikethrough svg-icon svg-icon-sm svg-icon-heavy"></i>
+                          </div>
+                          <div class="custom-float-80-right">
+                            <select class="form-select rgbStrips" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                              {{ range $key, $value := $rgbStrips }}
+                              {{ if eq $key $device.ExternalAdapter }}
+                              <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $value }}</option>
+                              {{ else }}
+                              <option value="{{ $device.ChannelId }};{{ $key }}">{{ $value }}</option>
                               {{ end }}
                               {{ end }}
                             </select>

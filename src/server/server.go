@@ -72,7 +72,7 @@ func homePage(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getCpuTemperature will return current cpu temperature
+// getCpuTemperature will return current cpu temperature in string format
 func getCpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
@@ -82,12 +82,32 @@ func getCpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getGpuTemperature will return current gpu temperature
+// getCpuTemperatureClean will return current cpu temperature in float value
+func getCpuTemperatureClean(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   temperatures.GetCpuTemperature(),
+	}
+	resp.Send(w)
+}
+
+// getGpuTemperature will return current gpu temperature in string format
 func getGpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
 		Status: 1,
 		Data:   dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature()),
+	}
+	resp.Send(w)
+}
+
+// getGpuTemperatureClean will return current gpu temperature in float value
+func getGpuTemperatureClean(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   temperatures.GetGpuTemperature(),
 	}
 	resp.Send(w)
 }
@@ -98,16 +118,6 @@ func getStorageTemperature(w http.ResponseWriter, _ *http.Request) {
 		Code:   http.StatusOK,
 		Status: 1,
 		Data:   temperatures.GetStorageTemperatures(),
-	}
-	resp.Send(w)
-}
-
-// getAIOData will return a list of all AIOs pump speed and liquid temperature
-func getAIOData(w http.ResponseWriter, _ *http.Request) {
-	resp := &Response{
-		Code:   http.StatusOK,
-		Status: 1,
-		Data:   devices.GetAIOData(),
 	}
 	resp.Send(w)
 }
@@ -340,6 +350,17 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceStrip handles device RGB strip changes
+func setDeviceStrip(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeStrip(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setExternalHubDeviceType handles device change of external-LED hub
 func setExternalHubDeviceType(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessExternalHubDeviceType(r)
@@ -535,12 +556,14 @@ func setRoutes() *mux.Router {
 		HandlerFunc(homePage)
 	r.Methods(http.MethodGet).Path("/api/cpuTemp").
 		HandlerFunc(getCpuTemperature)
+	r.Methods(http.MethodGet).Path("/api/cpuTemp/clean").
+		HandlerFunc(getCpuTemperatureClean)
 	r.Methods(http.MethodGet).Path("/api/gpuTemp").
 		HandlerFunc(getGpuTemperature)
+	r.Methods(http.MethodGet).Path("/api/gpuTemp/clean").
+		HandlerFunc(getGpuTemperatureClean)
 	r.Methods(http.MethodGet).Path("/api/storageTemp").
 		HandlerFunc(getStorageTemperature)
-	r.Methods(http.MethodGet).Path("/api/aio").
-		HandlerFunc(getAIOData)
 	r.Methods(http.MethodGet).Path("/api/devices").
 		HandlerFunc(getDevice)
 	r.Methods(http.MethodGet).Path("/api/devices/{deviceOd}").
@@ -565,6 +588,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setManualDeviceSpeed)
 	r.Methods(http.MethodPost).Path("/api/color").
 		HandlerFunc(setDeviceColor)
+	r.Methods(http.MethodPost).Path("/api/hub/strip").
+		HandlerFunc(setDeviceStrip)
 	r.Methods(http.MethodPost).Path("/api/hub/type").
 		HandlerFunc(setExternalHubDeviceType)
 	r.Methods(http.MethodPost).Path("/api/hub/amount").

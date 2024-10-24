@@ -247,6 +247,7 @@ footer {
     width: 120px;
     height: 92px;
     text-align: center;
+    padding: 6px 0 0;
 }
 
 .navigation-left-big {
@@ -255,6 +256,7 @@ footer {
     width: 230px;
     height: 92px;
     text-align: center;
+    padding: 6px 0 0;
 }
 
 .navigation-right-small {
@@ -263,6 +265,7 @@ footer {
     width: 92px;
     height: 92px;
     text-align: center;
+    padding: 6px 0 0;
 }
 
 .ds-svg-placeholder-left {
@@ -274,6 +277,11 @@ footer {
 .ds-svg-placeholder-right {
     float:right;
     width: 155px;
+}
+
+.ds-svg-placeholder-right-2 {
+    float:right;
+    width: 205px;
 }
 
 .moveLeft {

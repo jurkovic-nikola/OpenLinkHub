@@ -48,6 +48,7 @@ func Init() {
 		"web/lnpro.html",
 		"web/cpro.html",
 		"web/xc7.html",
+		"web/memory.html",
 		"web/rgb.html",
 		"web/temperature.html",
 	)

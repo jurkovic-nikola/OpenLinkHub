@@ -2,11 +2,16 @@ package elite
 
 /*
 Author: Nikola Jurkovic
-License: GPL-3
+License: GPL-3.0 or later
 Supported devices:
 - iCUE H100i Elite RGB
 - iCUE H115i Elite RGB
 - iCUE H150i Elite RGB
+- iCUE H100i ELITE RGB White
+- iCUE H150i ELITE RGB White
+- iCUE H100i RGB PRO XT
+- iCUE H115i RGB PRO XT
+- iCUE H150i RGB PRO XT
 */
 
 import (
@@ -90,28 +95,29 @@ type Devices struct {
 }
 
 type Device struct {
-	dev           *hid.Device
-	ProductId     uint16
-	Manufacturer  string                    `json:"manufacturer"`
-	Product       string                    `json:"product"`
-	Serial        string                    `json:"serial"`
-	Firmware      string                    `json:"firmware"`
-	RGB           string                    `json:"rgb"`
-	Fans          int                       `json:"fans"`
-	AIO           bool                      `json:"aio"`
-	Devices       map[int]*Devices          `json:"devices"`
-	UserProfiles  map[string]*DeviceProfile `json:"userProfiles"`
-	ActiveDevice  SupportedDevice
-	activeRgb     *rgb.ActiveRGB
-	sequence      byte
-	DeviceProfile *DeviceProfile
-	ExternalHub   bool
-	RGBDeviceOnly bool
-	Template      string
-	Brightness    map[int]string
-	HasLCD        bool
-	CpuTemp       float32
-	GpuTemp       float32
+	dev               *hid.Device
+	ProductId         uint16
+	Manufacturer      string                    `json:"manufacturer"`
+	Product           string                    `json:"product"`
+	Serial            string                    `json:"serial"`
+	Firmware          string                    `json:"firmware"`
+	RGB               string                    `json:"rgb"`
+	Fans              int                       `json:"fans"`
+	RequireActivation bool                      `json:"requireActivation"`
+	AIO               bool                      `json:"aio"`
+	Devices           map[int]*Devices          `json:"devices"`
+	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
+	ActiveDevice      SupportedDevice
+	activeRgb         *rgb.ActiveRGB
+	sequence          byte
+	DeviceProfile     *DeviceProfile
+	ExternalHub       bool
+	RGBDeviceOnly     bool
+	Template          string
+	Brightness        map[int]string
+	HasLCD            bool
+	CpuTemp           float32
+	GpuTemp           float32
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -134,12 +140,20 @@ var crcTable = [256]uint8{
 	0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5, 0xCC, 0xCB, 0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3,
 }
 
+var controlLighting = []byte{
+	0x01, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+	0x7f, 0x7f, 0x7f, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff,
+	0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+}
+
 var (
 	pwd, _                     = os.Getwd()
 	cmdGetState                = []byte{0xff, 0x00}
 	modeSetSpeed               = []byte{0x00, 0x03}
 	cmdState                   = byte(0x00)
 	cmdWriteColor              = byte(0x04)
+	cmdControlLighting         = byte(0x01)
 	mutex                      sync.Mutex
 	BufferSize                 = 64
 	HidBufferSize              = BufferSize + 1
@@ -152,6 +166,9 @@ var (
 	timerSpeed                 = &time.Ticker{}
 	manualSpeedModes           = map[int]*SpeedMode{}
 	supportedDevices           = []SupportedDevice{
+		{ProductId: 3104, Product: "iCUE H100i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},
+		{ProductId: 3105, Product: "iCUE H115i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},
+		{ProductId: 3106, Product: "iCUE H150i RGB PRO XT", Fans: 3, FanLeds: 0, PumpLeds: 16},
 		{ProductId: 3125, Product: "iCUE H100i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16}, // Black
 		{ProductId: 3126, Product: "iCUE H115i RGB ELITE", Fans: 2, FanLeds: 0, PumpLeds: 16}, // Black
 		{ProductId: 3127, Product: "iCUE H150i RGB ELITE", Fans: 3, FanLeds: 0, PumpLeds: 16}, // Black
@@ -240,6 +257,7 @@ func Init(vendorId, productId uint16) *Device {
 	d.getDevices()         // Get devices
 	d.setAutoRefresh()     // Set auto device refresh
 	d.saveDeviceProfile()  // Save profile
+	d.controlDevice(true)  // Device lighting mode
 	d.setDeviceColor()     // Device color
 	if config.GetConfig().Manual {
 		fmt.Println(
@@ -264,12 +282,24 @@ func (d *Device) Stop() {
 		speedRefreshChan <- true
 	}
 	authRefreshChan <- true
+	d.controlDevice(false) // Device lighting mode
 	if d.dev != nil {
 		err := d.dev.Close()
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+}
+
+// controlDevice will control device lighting mode.
+func (d *Device) controlDevice(active bool) {
+	if !active {
+		// Lights out
+		controlLighting[0] = 0x00
+		controlLighting[19] = 0x7f
+		controlLighting[50] = 0x00
+	}
+	d.transfer(cmdControlLighting, controlLighting)
 }
 
 // loadDeviceProfiles will load custom user profiles
@@ -584,6 +614,11 @@ func (d *Device) setDeviceColor() {
 							r.Wave(wavePosition)
 							buff = append(buff, r.Output...)
 						}
+					case "storm":
+						{
+							r.Storm()
+							buff = append(buff, r.Output...)
+						}
 					case "flickering":
 						{
 							lock.Lock()
@@ -743,7 +778,7 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	// Convert to JSON
-	buffer, err := json.Marshal(deviceProfile)
+	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
 		return
@@ -916,29 +951,36 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
-	valid := false
-	if _, ok := d.Devices[channelId]; ok {
-		if profile == "liquid-temperature" {
-			// Apply only if we have pump
-			for _, device := range d.Devices {
-				if device.ContainsPump {
-					valid = true
-					break
-				}
+	hasPump := false
+
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if channelId < 0 {
+		for _, device := range d.Devices {
+			if device.LedChannels > 0 {
+				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
+				d.Devices[device.ChannelId].RGB = profile
 			}
-			if valid {
-				// Update channel with new profile
-				d.Devices[channelId].RGB = profile
-			} else {
-				logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
-				return 2
-			}
-		} else {
-			// Update channel with new profile
-			d.Devices[channelId].RGB = profile
 		}
 	} else {
-		return 0
+		if _, ok := d.Devices[channelId]; ok {
+			d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
+			d.Devices[channelId].RGB = profile
+		} else {
+			return 0
+		}
 	}
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
@@ -949,16 +991,6 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 	d.setDeviceColor() // Restart RGB
 	return 1
-}
-
-// GetAIOData will return AIO pump speed and liquid temperature
-func (d *Device) GetAIOData() (uint16, float64) {
-	for _, device := range d.Devices {
-		if device.ChannelId == 0 {
-			return device.Rpm, device.Temperature
-		}
-	}
-	return 0, 0
 }
 
 // UpdateDeviceMetrics will update device metrics
@@ -1234,14 +1266,9 @@ func (d *Device) setSequence(value byte) {
 	d.sequence = value
 }
 
-// newHidBuffer will create and return new HID buffer for a device
-func (d *Device) newHidBuffer() []byte {
-	return make([]byte, HidBufferSize)
-}
-
 // newHidPacket will create a new HID packet and append data to it
 func (d *Device) newHidPacket(data []byte) []byte {
-	buf := d.newHidBuffer()
+	buf := make([]byte, HidBufferSize)
 	copy(buf[1:], data)
 	return buf
 }

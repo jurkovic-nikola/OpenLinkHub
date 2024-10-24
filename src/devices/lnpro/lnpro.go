@@ -405,7 +405,7 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	// Convert to JSON
-	buffer, err := json.Marshal(deviceProfile)
+	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
 		return
@@ -502,29 +502,36 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
-	valid := false
-	if _, ok := d.Devices[channelId]; ok {
-		if profile == "liquid-temperature" {
-			// Apply only if we have pump
-			for _, device := range d.Devices {
-				if device.ContainsPump {
-					valid = true
-					break
-				}
+
+	hasPump := false
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if channelId < 0 {
+		for _, device := range d.Devices {
+			if device.LedChannels > 0 {
+				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
+				d.Devices[device.ChannelId].RGB = profile
 			}
-			if valid {
-				// Update channel with new profile
-				d.Devices[channelId].RGB = profile
-			} else {
-				logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
-				return 2
-			}
-		} else {
-			// Update channel with new profile
-			d.Devices[channelId].RGB = profile
 		}
 	} else {
-		return 0
+		if _, ok := d.Devices[channelId]; ok {
+			d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
+			d.Devices[channelId].RGB = profile
+		} else {
+			return 0
+		}
 	}
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
@@ -979,6 +986,11 @@ func (d *Device) setDeviceColor() {
 						case "wave":
 							{
 								r.Wave(wavePosition)
+								buff = append(buff, r.Output...)
+							}
+						case "storm":
+							{
+								r.Storm()
 								buff = append(buff, r.Output...)
 							}
 						case "flickering":

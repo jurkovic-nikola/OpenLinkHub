@@ -365,7 +365,7 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	// Convert to JSON
-	buffer, err := json.Marshal(deviceProfile)
+	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
 		return
@@ -669,6 +669,11 @@ func (d *Device) setDeviceColor() {
 				case "wave":
 					{
 						r.Wave(wavePosition)
+						buff = append(buff, r.Output...)
+					}
+				case "storm":
+					{
+						r.Storm()
 						buff = append(buff, r.Output...)
 					}
 				case "flickering":

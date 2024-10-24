@@ -7,5 +7,7 @@
   "frontend": true,
   "refreshOnStart": false,
   "metrics": false,
-  "dbusMonitor": false
+  "dbusMonitor": false,
+  "memory": false,
+  "memorySmBus": "i2c-0"
 }

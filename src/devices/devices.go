@@ -1,6 +1,7 @@
 package devices
 
 import (
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
@@ -8,12 +9,14 @@ import (
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
+	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
-	"fmt"
+	"OpenLinkHub/src/smbus"
 	"github.com/sstallion/go-hid"
 	"strconv"
+	"sync"
 )
 
 const (
@@ -25,6 +28,7 @@ const (
 	productTypeLnPro   = 5
 	productTypeCPro    = 6
 	productTypeXC7     = 7
+	productTypeMemory  = 8
 )
 
 type AIOData struct {
@@ -46,14 +50,16 @@ type Device struct {
 	LnPro       *lnpro.Device  `json:"lnpro,omitempty"`
 	CPro        *cpro.Device   `json:"cPro,omitempty"`
 	XC7         *xc7.Device    `json:"xc7,omitempty"`
+	Memory      *memory.Device `json:"memory,omitempty"`
 	GetDevice   interface{}
 }
 
 var (
 	vendorId    uint16 = 6940 // Corsair
 	interfaceId        = 0
-	devices            = make(map[string]*Device)
+	devices            = make(map[string]*Device, 0)
 	products           = make(map[string]uint16)
+	mutex       sync.Mutex
 )
 
 // Stop will stop all active devices
@@ -106,6 +112,12 @@ func Stop() {
 			{
 				if device.XC7 != nil {
 					device.XC7.Stop()
+				}
+			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					device.Memory.Stop()
 				}
 			}
 		}
@@ -279,6 +291,12 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 					return device.LnPro.SaveUserProfile(profileName)
 				}
 			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					return device.Memory.SaveUserProfile(profileName)
+				}
+			}
 		}
 	}
 	return 0
@@ -351,6 +369,12 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 					return device.XC7.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					return device.Memory.ChangeDeviceBrightness(mode)
+				}
+			}
 		}
 	}
 	return 0
@@ -406,6 +430,12 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.XC7 != nil {
 					return device.XC7.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					return device.Memory.ChangeDeviceProfile(profileName)
 				}
 			}
 		}
@@ -519,53 +549,15 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 					return device.XC7.UpdateDeviceLabel(label)
 				}
 			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					return device.Memory.UpdateDeviceLabel(channelId, label)
+				}
+			}
 		}
 	}
 	return 0
-}
-
-// GetAIOData will return a list of all AIOs pump speed and liquid temperature
-func GetAIOData() []AIOData {
-	var list []AIOData
-
-	for _, device := range devices {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					rpm, temperature := device.Lsh.GetAIOData()
-					list = append(list, AIOData{
-						Serial:      device.Serial,
-						Rpm:         rpm,
-						Temperature: temperature,
-					})
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					rpm, temperature := device.CC.GetAIOData()
-					list = append(list, AIOData{
-						Serial:      device.Serial,
-						Rpm:         rpm,
-						Temperature: temperature,
-					})
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					rpm, temperature := device.Elite.GetAIOData()
-					list = append(list, AIOData{
-						Serial:      device.Serial,
-						Rpm:         int16(rpm),
-						Temperature: float32(temperature),
-					})
-				}
-			}
-		}
-	}
-	return list
 }
 
 // UpdateSpeedProfile will update device speeds with a given serial number
@@ -646,6 +638,21 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 	return 0
 }
 
+// UpdateRgbStrip will update device RGB strip
+func UpdateRgbStrip(deviceId string, channelId int, stripId int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.UpdateExternalAdapter(channelId, stripId)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateRgbProfile will update device RGB profile
 func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -696,6 +703,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 			{
 				if device.XC7 != nil {
 					return device.XC7.UpdateRgbProfile(profile)
+				}
+			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					return device.Memory.UpdateRgbProfile(channelId, profile)
 				}
 			}
 		}
@@ -846,6 +859,12 @@ func GetDevice(deviceId string) interface{} {
 					return device.XC7
 				}
 			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					return device.Memory
+				}
+			}
 		}
 	}
 	return nil
@@ -872,11 +891,18 @@ func Init() {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
 
-	if len(products) == 0 {
-		fmt.Println("Found 0 compatible devices. Exit")
-		logger.Log(logger.Fields{"vendor": vendorId}).Fatal("No compatible devices")
+	if config.GetConfig().Memory {
+		sm, err := smbus.GetSmBus()
+		if err == nil {
+			if len(sm.Path) > 0 {
+				products[sm.Path] = 0
+			}
+		} else {
+			logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
+		}
 	}
 
+	// USB-HID
 	for serial, productId := range products {
 		switch productId {
 		case 3135: // CORSAIR iCUE Link System Hub
@@ -930,7 +956,15 @@ func Init() {
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
 			}
-		case 3125, 3126, 3127, 3136, 3137: // CORSAIR iCUE H100i,H115i,H150i ELITE RGB + H100i, H150i White
+		case 3104, 3105, 3106, 3125, 3126, 3127, 3136, 3137:
+			// iCUE H100i ELITE RGB,
+			// iCUE H115i ELITE RGB,
+			// iCUE H150i ELITE RGB
+			// iCUE H100i ELITE RGB White
+			// iCUE H150i ELITE RGB White
+			// iCUE H100i RGB PRO XT
+			// iCUE H115i RGB PRO XT
+			// iCUE H150i RGB PRO XT
 			{
 				go func(vendorId, productId uint16) {
 					dev := elite.Init(vendorId, productId)
@@ -944,6 +978,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId)
 			}
 		case 3098: // CORSAIR Lighting Node CORE
@@ -1011,6 +1046,21 @@ func Init() {
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, serial)
+			}
+		case 0: // Memory
+			{
+				go func(serialId string) {
+					dev := memory.Init(serialId, "Memory")
+					if dev != nil {
+						devices[dev.Serial] = &Device{
+							Memory:      dev,
+							ProductType: productTypeMemory,
+							Product:     dev.Product,
+							Serial:      dev.Serial,
+							Firmware:    "0",
+						}
+					}
+				}(serial)
 			}
 		default:
 			continue

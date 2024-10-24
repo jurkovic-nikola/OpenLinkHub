@@ -31,10 +31,10 @@ type Devices struct {
 	DeviceId          int     `json:"deviceId"`
 	Sku               string  `json:"sku"`
 	Size              uint8   `json:"size"`
-	MemoryType        uint8   `json:"memoryType"`
-	Amount            uint8   `json:"amount"`
-	Speed             uint32  `json:"speed"`
-	Latency           uint8   `json:"latency"`
+	MemoryType        int     `json:"memoryType"`
+	Amount            int     `json:"amount"`
+	Speed             int     `json:"speed"`
+	Latency           int     `json:"latency"`
 	LedChannels       uint8   `json:"ledChannels"`
 	ColorRegister     uint8   `json:"colorRegister"`
 	Name              string  `json:"name"`
@@ -225,11 +225,26 @@ func (d *Device) getDevices() int {
 			colorRegister := 0
 			if vendor == "CM" { // Corsair Memory
 				line := dimmInfo[2:3]
-				size, _ := strconv.Atoi(dimmInfo[3:5])
-				memoryType, _ := strconv.Atoi(dimmInfo[7:8])
-				amount, _ := strconv.Atoi(dimmInfo[9:10])
-				speed, _ := strconv.Atoi(dimmInfo[11:15])
-				latency, _ := strconv.Atoi(dimmInfo[16:18])
+				size, e := strconv.Atoi(dimmInfo[3:5])
+				if e != nil {
+					continue
+				}
+				memoryType, e := strconv.Atoi(dimmInfo[7:8])
+				if e != nil {
+					continue
+				}
+				amount, e := strconv.Atoi(dimmInfo[9:10])
+				if e != nil {
+					continue
+				}
+				speed, e := strconv.Atoi(dimmInfo[11:15])
+				if e != nil {
+					continue
+				}
+				latency, e := strconv.Atoi(dimmInfo[16:18])
+				if e != nil {
+					continue
+				}
 
 				if memoryType == 4 {
 					// DDR4
@@ -335,10 +350,10 @@ func (d *Device) getDevices() int {
 						DeviceId:          i,
 						Sku:               dimmInfo,
 						Size:              uint8(size / amount),
-						MemoryType:        uint8(memoryType),
-						Amount:            uint8(amount),
-						Speed:             uint32(speed),
-						Latency:           uint8(latency),
+						MemoryType:        memoryType,
+						Amount:            amount,
+						Speed:             speed,
+						Latency:           latency,
 						LedChannels:       uint8(ledChannels),
 						ColorRegister:     uint8(colorRegister),
 						Name:              skuLine,

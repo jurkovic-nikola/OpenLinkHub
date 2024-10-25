@@ -1054,6 +1054,54 @@ func (d *Device) getDevices() int {
 
 			device.RGB = rgbProfile
 			devices[m] = device
+		} else {
+			if internalLedDevice, ok := internalLedDevices[i]; ok {
+				if internalLedDevice.Total > 0 {
+					rgbProfile := "static"
+					label := "Set Label"
+					if d.DeviceProfile != nil {
+						// Profile is set
+						if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
+							// Profile device channel exists
+							if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+								// Speed profile exists in configuration
+								rgbProfile = rp
+							} else {
+								logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+							}
+						} else {
+							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+						}
+
+						// Device label
+						if lb, ok := d.DeviceProfile.Labels[i]; ok {
+							if len(lb) > 0 {
+								label = lb
+							}
+						}
+					} else {
+						logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+					}
+
+					// Build device object
+					device := &Devices{
+						ChannelId:   i,
+						DeviceId:    fmt.Sprintf("%s-%v", "Fan", i),
+						Name:        fmt.Sprintf("Fan %d", i),
+						Rpm:         0,
+						Temperature: 0,
+						Description: "Fan",
+						LedChannels: internalLedDevice.Total,
+						HubId:       d.Serial,
+						Profile:     "",
+						Label:       label,
+						RGB:         rgbProfile,
+						HasSpeed:    false,
+						HasTemps:    false,
+					}
+					devices[m] = device
+				}
+			}
 		}
 		m++
 	}

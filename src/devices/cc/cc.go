@@ -201,6 +201,7 @@ type Devices struct {
 
 // Device struct contains primary device data
 type Device struct {
+	Debug             bool
 	dev               *hid.Device
 	lcd               *hid.Device
 	Manufacturer      string                    `json:"manufacturer"`
@@ -222,6 +223,7 @@ type Device struct {
 	Brightness        map[int]string
 	CpuTemp           float32
 	GpuTemp           float32
+	FreeLedPorts      map[int]string
 }
 
 /*
@@ -280,6 +282,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		FreeLedPorts: make(map[int]string, 6),
 	}
 
 	if dashboard.GetDashboard().VerticalUi {
@@ -295,6 +298,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
+	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
@@ -469,6 +473,11 @@ func (d *Device) getDeviceLcd() {
 }
 
 // getManufacturer will return device manufacturer
+func (d *Device) getDebugMode() {
+	d.Debug = config.GetConfig().Debug
+}
+
+// getManufacturer will return device manufacturer
 func (d *Device) getManufacturer() {
 	manufacturer, err := d.dev.GetMfrStr()
 	if err != nil {
@@ -574,6 +583,8 @@ func (d *Device) getLedDevices() {
 			// Set values
 			leds.Total = uint8(numLEDs)
 			leds.Command = command
+		} else {
+			d.FreeLedPorts[i] = fmt.Sprintf("LED Port %d", i)
 		}
 
 		// Add to a device map
@@ -955,8 +966,15 @@ func (d *Device) getDevices() int {
 	// Fans
 	response := d.read(modeGetFans, dataTypeGetFans)
 	amount := d.getChannelAmount(response)
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "amount": amount, "device": d.Product}).Info("getDevices() - Speed")
+	}
+
 	for i := 0; i < amount; i++ {
 		status := response[6:][i]
+		if d.Debug {
+			logger.Log(logger.Fields{"serial": d.Serial, "status": status, "device": d.Product, "channel": i}).Info("getDevices() - Speed")
+		}
 		if status == 0x07 {
 			// Get a persistent speed profile. Fallback to Normal is anything fails
 			speedProfile := "Normal"
@@ -1043,9 +1061,15 @@ func (d *Device) getDevices() int {
 	// Temperature probe
 	response = d.read(modeGetTemperatures, dataTypeGetTemperatures)
 	sensorData := response[9:]
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response)}).Info("getDevices() - Temperature")
+	}
 	for i, s := 0, 0; i < 1; i, s = i+1, s+3 {
 		label := "Set Label"
 		status := sensorData[s : s+3][0]
+		if d.Debug {
+			logger.Log(logger.Fields{"serial": d.Serial, "status": status, "device": d.Product, "channel": i}).Info("getDevices() - Temperature")
+		}
 		if status == 0x00 {
 			if d.DeviceProfile != nil {
 				// Device label
@@ -1296,7 +1320,7 @@ func (d *Device) getDeviceType() {
 
 	// We match a device with radiator size and pump version
 	for _, aioType := range aioList {
-		if aioType.RadiatorSize == radiatorSize && aioType.PumpVersion == pumpVersion {
+		if aioType.RadiatorSize == radiatorSize && aioType.PumpVersion == pumpVersion && aioType.LCD == d.HasLCD {
 			d.AIOType = aioType.Name
 			break
 		}
@@ -1353,6 +1377,11 @@ func (d *Device) getDeviceData() {
 	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
 	amount := d.getChannelAmount(channels)
 	sensorData := response[6:]
+
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "amount": amount, "device": d.Product}).Info("getDeviceData() - Speed")
+	}
+
 	for i, s := 0, 0; i < amount; i, s = i+1, s+2 {
 		currentSensor := sensorData[s : s+2]
 		status := channels[6:][i]

@@ -190,7 +190,7 @@ $ sudo i2cdetect -y 0 # this is i2c-0 from i2cdetect -l command
 # If you have 2 DIMM, 50,51 address will be populated, 58,59 if DIMM has RGB control, 18,19 if there is temperature probe on the DIMM.
 # If you have 3 DIMM, 50,51,52 address will be populated, 58,59,5a if DIMM has RGB control, 18,19,1a if there is temperature probe on the DIMM.
 # If you have 4 DIMM, 50,51,52,53 will be populated, 58,59,5a,5b if DIMM has RGB control, 18,19,1a,1b if there is temperature probe on the DIMM.
-# If your result looks similar to this, you are no the right i2c sensor. If not, try different SMBus device ID.
+# If your result looks similar to this, you are on the right i2c sensor. If not, try different SMBus device ID.
 
 # Set I2C permission
 $ echo 'KERNEL=="i2c-0", MODE="0666"' | sudo tee /etc/udev/rules.d/99-corsair-memory.rules

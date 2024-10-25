@@ -168,7 +168,7 @@
                   </div>
                 </div>
                 {{ range $device := $devices }}
-                <div style="width: 300px;">
+                <div style="width: 320px;">
                   <div class="card mb-4">
                     <div class="card-header border-bottom border-dash-dark-1">
                       <div class="ds-svg-placeholder-left">
@@ -181,7 +181,7 @@
                         {{ end }}
                       </div>
 
-                      <div class="ds-svg-placeholder-right">
+                      <div class="ds-svg-placeholder-right" style="width: 170px;">
                         <span style="font-size: 13px;">{{ $device.Name }}</span><br />
                         <p class="text-md-start lh-1 mb-0 text-dash-color-3 newLabel" style="margin-top: 5px;">
                           <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">

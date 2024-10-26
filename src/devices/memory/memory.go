@@ -1141,7 +1141,6 @@ func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister
 					time.Sleep(1 * time.Millisecond)
 				}
 			} else {
-				buf = append(buf, d.calculateChecksum(buf))
 				err := smbus.WriteBlockData(d.dev.File, address, colorRegister, buf)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")

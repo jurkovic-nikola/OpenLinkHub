@@ -102,7 +102,7 @@ const (
 )
 
 var (
-	pwd, _                = os.Getwd()
+	pwd                   = ""
 	deviceWakeupDelay     = 5000
 	timer                 = &time.Ticker{}
 	mutex                 sync.Mutex
@@ -130,6 +130,9 @@ func (d *Device) Stop() {
 }
 
 func Init(device, product string) *Device {
+	// Set global working directory
+	pwd = config.GetConfig().ConfigPath
+
 	dev, err := smbus.Open(device)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "device": device}).Error("Unable to open I2C device")

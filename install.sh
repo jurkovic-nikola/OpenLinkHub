@@ -23,6 +23,7 @@ else
         cat > $SYSTEMD_FILE <<- EOM
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
+After=multi-user.target
 
 [Service]
 User=$USER_TO_CHECK
@@ -69,6 +70,7 @@ echo "Creating systemd file..."
 cat > $SYSTEMD_FILE <<- EOM
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
+After=multi-user.target
 
 [Service]
 User=$USER_TO_CHECK

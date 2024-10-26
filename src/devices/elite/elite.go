@@ -148,7 +148,7 @@ var controlLighting = []byte{
 }
 
 var (
-	pwd, _                     = os.Getwd()
+	pwd                        = ""
 	cmdGetState                = []byte{0xff, 0x00}
 	modeSetSpeed               = []byte{0x00, 0x03}
 	cmdState                   = byte(0x00)
@@ -225,6 +225,9 @@ var (
 )
 
 func Init(vendorId, productId uint16) *Device {
+	// Set global working directory
+	pwd = config.GetConfig().ConfigPath
+
 	// Open device, return if failure
 	dev, err := hid.OpenFirst(vendorId, productId)
 	if err != nil {

@@ -8,6 +8,7 @@ package lncore
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
@@ -79,7 +80,7 @@ type Device struct {
 }
 
 var (
-	pwd, _                  = os.Getwd()
+	pwd                     = ""
 	cmdGetFirmware          = byte(0x02)
 	cmdLedReset             = byte(0x37)
 	cmdPortState            = byte(0x38)
@@ -130,6 +131,9 @@ var (
 
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial string) *Device {
+	// Set global working directory
+	pwd = config.GetConfig().ConfigPath
+
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
 	if err != nil {

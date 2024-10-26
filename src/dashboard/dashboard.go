@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
 	"fmt"
@@ -19,8 +20,7 @@ type Dashboard struct {
 }
 
 var (
-	pwd, _    = os.Getwd()
-	location  = pwd + "/dashboard.json"
+	location  = ""
 	dashboard Dashboard
 	upgrade   = map[string]any{
 		"celsius": true,
@@ -29,6 +29,7 @@ var (
 
 // Init will initialize a new config object
 func Init() {
+	location = config.GetConfig().ConfigPath + "/dashboard.json"
 	upgradeFile()
 	file, err := os.Open(location)
 	defer func(file *os.File) {

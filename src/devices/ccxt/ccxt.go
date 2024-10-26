@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	pwd, _                     = os.Getwd()
+	pwd                        = ""
 	cmdOpenEndpoint            = []byte{0x0d, 0x01}
 	cmdOpenColorEndpoint       = []byte{0x0d, 0x00}
 	cmdCloseEndpoint           = []byte{0x05, 0x01, 0x01}
@@ -214,6 +214,9 @@ type Device struct {
 
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial string) *Device {
+	// Set global working directory
+	pwd = config.GetConfig().ConfigPath
+
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
 	if err != nil {

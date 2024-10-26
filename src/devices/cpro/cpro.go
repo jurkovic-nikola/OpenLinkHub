@@ -107,7 +107,7 @@ type Devices struct {
 }
 
 var (
-	pwd, _                     = os.Getwd()
+	pwd                        = ""
 	cmdGetFirmware             = byte(0x02)
 	cmdInitDevice              = byte(0x03)
 	cmdGetConnectedFans        = byte(0x20)
@@ -173,6 +173,9 @@ var (
 
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial string) *Device {
+	// Set global working directory
+	pwd = config.GetConfig().ConfigPath
+
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
 	if err != nil {

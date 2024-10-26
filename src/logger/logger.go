@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"OpenLinkHub/src/config"
 	log "github.com/sirupsen/logrus"
 	"os"
 )
@@ -9,8 +10,9 @@ type Fields = log.Fields
 
 // Init will initialize new instance of logger
 func Init() {
+	logFilename := config.GetConfig().ConfigPath + "/stdout.log"
 	log.SetFormatter(&log.JSONFormatter{})
-	file, err := os.OpenFile("stdout.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logFilename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		log.SetOutput(file)
 	} else {

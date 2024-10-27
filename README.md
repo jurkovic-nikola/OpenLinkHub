@@ -38,6 +38,10 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 | DOMINATOR PLATINUM RGB        | `1b1c` | DDR4               | RGB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | VENGEANCE LPX                 | `1b1c` | DDR4               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | DOMINATOR PLATINUM            | `1b1c` | DDR4               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| VENGEANCE                     | `1b1c` | DDR5               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| VENGEANCE RGB                 | `1b1c` | DDR5               | RGB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| DOMINATOR PLATINUM RGB        | `1b1c` | DDR5               | RGB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| DOMINATOR TITANIUM RGB        | `1b1c` | DDR5               | RGB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## Installation (automatic)
 1. Download either .deb or .rpm package from the latest Release, depends on your Linux distribution
@@ -168,6 +172,7 @@ i2c-9	i2c       	NVIDIA i2c adapter 7 at c:00.0  	I2C adapter
 # Before setting acpi_enforce_resources=lax please research pros and cons of this and decide on your own!
 
 # In most of the cases, memory will be registered under SMBus PIIX4 adapter port 0 at 0b00 device, aka i2c-0. Lets validate that.
+# DDR4 example:
 $ sudo i2cdetect -y 0 # this is i2c-0 from i2cdetect -l command
      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
 00:                         08 -- -- -- -- -- -- -- 
@@ -179,17 +184,44 @@ $ sudo i2cdetect -y 0 # this is i2c-0 from i2cdetect -l command
 60: -- -- -- -- -- -- -- -- 68 -- -- -- 6c -- -- -- 
 70: 70 -- -- -- -- -- -- --
 
-# Lets explain this wall of text.
+# Lets explain this wall of text. (DDR4)
 # DDR4 memory uses i2c addresses from 0x50 to 0x57 for DIMM information.
 # In this example, I have 4 DIMMs of DDR4 in the workstation, so addresses 50,51,52 and 53 are populated. 
 # If you have 2 DIMMs, 50 and 51 will be populated. 
 # DIMMs with RGB control will have addresses from 58 to 5f. In this example, I have 2 DIMMs with RGB, 2 are without. So 58 and 59 are populated.
 # DIMMs with temperature reporting have addresses from 18 to 1f. In this example, I have 2 DIMMs with temperature probe, 2 are without. So 18 and 19 are populated. 
+
 # To summarize:
 # If you have 1 DIMM, 50 address will be populated, 58 if DIMM has RGB control, 18 if there is temperature probe on the DIMM.
 # If you have 2 DIMM, 50,51 address will be populated, 58,59 if DIMM has RGB control, 18,19 if there is temperature probe on the DIMM.
 # If you have 3 DIMM, 50,51,52 address will be populated, 58,59,5a if DIMM has RGB control, 18,19,1a if there is temperature probe on the DIMM.
 # If you have 4 DIMM, 50,51,52,53 will be populated, 58,59,5a,5b if DIMM has RGB control, 18,19,1a,1b if there is temperature probe on the DIMM.
+# If your result looks similar to this, you are on the right i2c sensor. If not, try different SMBus device ID.
+
+# DDR5 example:
+$ sudo i2cdetect -y 2 # this is i2c-0 from i2cdetect -l command
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:                         -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- 19 -- 1b -- -- -- -- 
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: -- -- -- -- -- -- -- -- -- 49 -- 4b -- -- -- -- 
+50: -- 51 -- 53 -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- -- -- -- --
+
+# Lets explain this wall of text. (DDR5)
+# DDR5 memory uses i2c addresses from 0x50 to 0x57 for DIMM information.
+# In this example, I have 2 DIMMs of DDR5 in the workstation, so addresses 51 and 53 are populated. 
+# If you have 4 DIMMs, 50,51,52 and 53 will be populated. 
+# DIMMs with RGB control will have addresses from 18 to 1f. In this example, I have 2 DIMMs with RGB, so 19 and 1b are populated.
+# DIMMs with temperature reporting uses same DIMM info registers, from 50 to 5f. Temperature data is stored in 0x31 address.
+
+# To summarize:
+# If you have 1 DIMM, 50 address will be populated, 18 if DIMM has RGB control.
+# If you have 2 DIMM, 50,51 address will be populated, 18,19 if DIMM has RGB control.
+# If you have 3 DIMM, 50,51,52 address will be populated, 18,19,1a if DIMM has RGB control.
+# If you have 4 DIMM, 50,51,52,53 will be populated, 18,19,1a,1b if DIMM has RGB control.
 # If your result looks similar to this, you are on the right i2c sensor. If not, try different SMBus device ID.
 
 # Set I2C permission
@@ -200,4 +232,7 @@ $ sudo udevadm trigger
 ```
 - Modify `"memorySmBus": "i2c-0"` if needed.
 - Set `"memory":true` in config.json file.
+- Set `"memoryType"` in config.json
+  - `4` if you have a DDR4 platform
+  - `5` if you have a DDR5 platform
 - Restart OpenLinkHub service.

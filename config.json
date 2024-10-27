@@ -9,5 +9,6 @@
   "metrics": false,
   "dbusMonitor": false,
   "memory": false,
-  "memorySmBus": "i2c-0"
+  "memorySmBus": "i2c-0",
+  "memoryType": 4
 }

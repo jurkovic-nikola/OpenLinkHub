@@ -18,6 +18,7 @@ type Configuration struct {
 	DbusMonitor    bool   `json:"dbusMonitor"`
 	Memory         bool   `json:"memory"`
 	MemorySmBus    string `json:"memorySmBus"`
+	MemoryType     int    `json:"memoryType"`
 	ConfigPath     string
 }
 

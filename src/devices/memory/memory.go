@@ -16,6 +16,7 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"github.com/godbus/dbus/v5"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -110,9 +111,10 @@ var (
 	deviceRefreshInterval = 1000
 	cmdActivations        = []byte{0x36, 0x37} // SPA0 and SPA1
 	maximumRegisters      = 8
-	colorAddresses        = []byte{0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f}
-	temperatureAddresses  = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f}
-	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57}
+	colorAddresses        = []byte{0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f} // DDR4
+	temperatureAddresses  = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR4
+	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
+	temperatureRegister   = byte(0x05)
 )
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -130,6 +132,12 @@ func (d *Device) Stop() {
 }
 
 func Init(device, product string) *Device {
+	if config.GetConfig().MemoryType == 5 {
+		temperatureAddresses = dimmInfoAddresses                                // DDR5
+		colorAddresses = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR5
+		temperatureRegister = byte(0x31)                                        // DDR5 temperature register
+	}
+
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -171,9 +179,19 @@ func Init(device, product string) *Device {
 	return d
 }
 
+// getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices, 0)
 	activated := 0
+
+	// DDR4
+	skuRangeLow := byte(0x49)
+	skuRangeHigh := byte(0x5b)
+	if config.GetConfig().MemoryType == 5 {
+		// DDR5
+		skuRangeLow = byte(0x89)
+		skuRangeHigh = byte(0x9b)
+	}
 	for i := 0; i < maximumRegisters; i++ {
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
@@ -182,21 +200,30 @@ func (d *Device) getDevices() int {
 			continue
 		}
 
-		// We send 0x00 to 0x00 to SPA addresses
-		for _, cmdActivation := range cmdActivations {
-			err = smbus.WriteRegister(d.dev.File, cmdActivation, 0x00, 0x00)
+		if config.GetConfig().MemoryType == 5 {
+			// DDR5 has no SPA0 and SPA1, it uses actual DIMM info addresses for different info
+			// 0x0b with 0x04 decodes memory SKU
+			err = smbus.WriteRegister(d.dev.File, dimmInfoAddresses[i], 0x0b, 0x04)
 			if err != nil {
 				continue
 			}
-			activated++
-		}
-		if activated == 0 {
-			continue
+		} else {
+			// We send 0x00 to 0x00 to SPA addresses
+			for _, cmdActivation := range cmdActivations {
+				err = smbus.WriteRegister(d.dev.File, cmdActivation, 0x00, 0x00)
+				if err != nil {
+					continue
+				}
+				activated++
+			}
+			if activated == 0 {
+				continue
+			}
 		}
 
 		time.Sleep(1 * time.Millisecond)
 		// Check SKU 1st letter, must match to C = Corsair
-		check, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x49)
+		check, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], skuRangeLow)
 		if err != nil {
 			continue
 		}
@@ -206,7 +233,7 @@ func (d *Device) getDevices() int {
 
 		// Get SKU
 		var buf []byte
-		for addr := uint8(0x49); addr <= 0x5b; addr++ {
+		for addr := skuRangeLow; addr <= skuRangeHigh; addr++ {
 			reg, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], addr)
 			if err != nil {
 				break
@@ -249,7 +276,7 @@ func (d *Device) getDevices() int {
 					continue
 				}
 
-				if memoryType == 4 {
+				if config.GetConfig().MemoryType == 4 {
 					// DDR4
 					switch line {
 					case "U":
@@ -1051,14 +1078,25 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 
 // calculateTemperature will calculate temperature to readable value
 func (d *Device) calculateTemperature(temp uint16) float64 {
-	res := ((temp & 0xff) << 8) | (temp >> 8)
-	res = res & 0x1fff
-	if res > 0x0fff {
-		res -= 0x2000
+	temperature := 0.0
+	if config.GetConfig().MemoryType == 4 {
+		// DDR4
+		res := ((temp & 0xff) << 8) | (temp >> 8)
+		res = res & 0x1fff
+		if res > 0x0fff {
+			res -= 0x2000
+		}
+		scale, bits := 0.25, 10.0
+		multiplier := res >> (12 - int(bits))
+		temperature = scale * float64(multiplier)
+	} else {
+		// DDR5 SPD5118 standard
+		res := (temp >> 8) | temp
+		shift := 21
+		val := (int32(res>>2) << shift) >> shift
+		val = val * 256
+		temperature = math.Round((float64(val)/1000)*100) / 100
 	}
-	scale, bits := 0.25, 10.0
-	multiplier := res >> (12 - int(bits))
-	temperature := scale * float64(multiplier)
 	return temperature
 }
 
@@ -1150,7 +1188,7 @@ func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister
 	case transferTypeTemperature:
 		{
 			// Temperature
-			temp, err := smbus.ReadWord(d.dev.File, address, 0x05)
+			temp, err := smbus.ReadWord(d.dev.File, address, temperatureRegister)
 			if err == nil {
 				return temp
 			}

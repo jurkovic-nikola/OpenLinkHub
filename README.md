@@ -215,7 +215,7 @@ $ sudo i2cdetect -y 2 # this is i2c-0 from i2cdetect -l command
 # In this example, I have 2 DIMMs of DDR5 in the workstation, so addresses 51 and 53 are populated. 
 # If you have 4 DIMMs, 50,51,52 and 53 will be populated. 
 # DIMMs with RGB control will have addresses from 18 to 1f. In this example, I have 2 DIMMs with RGB, so 19 and 1b are populated.
-# DIMMs with temperature reporting uses same DIMM info registers, from 50 to 5f. Temperature data is stored in 0x31 address.
+# DIMMs with temperature reporting uses same DIMM info registers, from 50 to 57. Temperature data is stored in 0x31 address.
 
 # To summarize:
 # If you have 1 DIMM, 50 address will be populated, 18 if DIMM has RGB control.

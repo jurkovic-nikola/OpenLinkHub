@@ -1403,59 +1403,61 @@ func (d *Device) getRgbDevices() {
 				}
 				devices[m] = device
 			} else {
-				if deviceType, ok := d.DeviceProfile.CustomLEDs[i]; ok {
-					if deviceType > 0 {
-						rgbProfile := "static"
-						label := "Set Label"
-						if d.DeviceProfile != nil {
-							// Profile is set
-							if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
-								// Profile device channel exists
-								if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
-									// Speed profile exists in configuration
-									rgbProfile = rp
+				if d.DeviceProfile != nil {
+					if deviceType, ok := d.DeviceProfile.CustomLEDs[i]; ok {
+						if deviceType > 0 {
+							rgbProfile := "static"
+							label := "Set Label"
+							if d.DeviceProfile != nil {
+								// Profile is set
+								if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
+									// Profile device channel exists
+									if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+										// Speed profile exists in configuration
+										rgbProfile = rp
+									} else {
+										logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+									}
 								} else {
-									logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+									logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+								}
+
+								// Device label
+								if lb, ok := d.DeviceProfile.RGBLabels[i]; ok {
+									if len(lb) > 0 {
+										label = lb
+									}
 								}
 							} else {
-								logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+								logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 							}
 
-							// Device label
-							if lb, ok := d.DeviceProfile.RGBLabels[i]; ok {
-								if len(lb) > 0 {
-									label = lb
-								}
+							ledChannels := 0
+							name := ""
+							externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.CustomLEDs[i])
+							if externalDeviceType != nil {
+								ledChannels = externalDeviceType.Total
+								name = externalDeviceType.Name
 							}
-						} else {
-							logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-						}
 
-						ledChannels := 0
-						name := ""
-						externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.CustomLEDs[i])
-						if externalDeviceType != nil {
-							ledChannels = externalDeviceType.Total
-							name = externalDeviceType.Name
+							// Build device object
+							device := &Devices{
+								ChannelId:   i,
+								DeviceId:    fmt.Sprintf("%s-%v", "Fan", i),
+								Name:        name,
+								Rpm:         0,
+								Temperature: 0,
+								Description: "LED",
+								LedChannels: uint8(ledChannels),
+								HubId:       d.Serial,
+								Profile:     "",
+								Label:       label,
+								RGB:         rgbProfile,
+								HasSpeed:    false,
+								HasTemps:    false,
+							}
+							devices[m] = device
 						}
-
-						// Build device object
-						device := &Devices{
-							ChannelId:   i,
-							DeviceId:    fmt.Sprintf("%s-%v", "Fan", i),
-							Name:        name,
-							Rpm:         0,
-							Temperature: 0,
-							Description: "LED",
-							LedChannels: uint8(ledChannels),
-							HubId:       d.Serial,
-							Profile:     "",
-							Label:       label,
-							RGB:         rgbProfile,
-							HasSpeed:    false,
-							HasTemps:    false,
-						}
-						devices[m] = device
 					}
 				}
 			}

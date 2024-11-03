@@ -20,6 +20,11 @@ func (r *ActiveRGB) Storm() {
 	for i := 0; i < r.LightChannels; i++ {
 		red, green, blue := stormColorEffect(r.RGBStartColor, r.RGBStartColor.Brightness)
 		buf[i] = []byte{red, green, blue}
+		if r.IsAIO && r.HasLCD {
+			if i > 15 && i < 20 {
+				buf[i] = []byte{0, 0, 0}
+			}
+		}
 	}
 	r.Output = SetColor(buf)
 }

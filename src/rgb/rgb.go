@@ -52,8 +52,8 @@ type ActiveRGB struct {
 	Tracking               []int
 	Phase                  int
 	TempColor              *Color
-	ContainsPump           bool
 	HasLCD                 bool
+	IsAIO                  bool
 	MinTemp                float64
 	MaxTemp                float64
 }

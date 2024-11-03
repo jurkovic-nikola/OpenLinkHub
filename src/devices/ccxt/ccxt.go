@@ -139,6 +139,7 @@ type DeviceMonitor struct {
 type LedChannel struct {
 	Total   int
 	Command byte
+	Name    string
 }
 
 type DeviceProfile struct {
@@ -150,6 +151,8 @@ type DeviceProfile struct {
 	RGBProfiles             map[int]string
 	SpeedProfiles           map[int]string
 	Labels                  map[int]string
+	RGBLabels               map[int]string
+	CustomLEDs              map[int]int
 	ExternalHubDeviceType   int
 	ExternalHubDeviceAmount int
 }
@@ -196,6 +199,7 @@ type Device struct {
 	RGB                     string                    `json:"rgb"`
 	AIO                     bool                      `json:"aio"`
 	Devices                 map[int]*Devices          `json:"devices"`
+	RgbDevices              map[int]*Devices          `json:"rgbDevices"`
 	UserProfiles            map[string]*DeviceProfile `json:"userProfiles"`
 	DeviceProfile           *DeviceProfile
 	deviceMonitor           *DeviceMonitor
@@ -210,6 +214,8 @@ type Device struct {
 	HasLCD                  bool
 	CpuTemp                 float32
 	GpuTemp                 float32
+	FreeLedPorts            map[int]string
+	FreeLedPortLEDs         map[int]string
 }
 
 // Init will initialize a new device
@@ -245,10 +251,17 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		FreeLedPorts:    make(map[int]string, 6),
+		FreeLedPortLEDs: make(map[int]string, 34),
 	}
 
-	if dashboard.GetDashboard().VerticalUi {
-		d.Template = "ccxt-vertical.html"
+	// Generate maximum amount of LEDs port can hold
+	for i := 1; i < 35; i++ {
+		if i > 1 {
+			d.FreeLedPortLEDs[i] = fmt.Sprintf("%d LEDs", i)
+		} else {
+			d.FreeLedPortLEDs[i] = fmt.Sprintf("%d LED", i)
+		}
 	}
 
 	// Bootstrap
@@ -261,6 +274,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.initLedPorts()        // Init LED ports
 	d.getLedDevices()       // Get LED devices
 	d.getDevices()          // Get devices connected to a hub
+	d.getRgbDevices()       // Get RGB devices connected to a hub
 	d.setColorEndpoint()    // Set device color endpoint
 	d.setDefaults()         // Set default speed and color values for fans and pumps
 	d.setAutoRefresh()      // Set auto device refresh
@@ -298,15 +312,6 @@ func (d *Device) Stop() {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
-	}
-}
-
-// UpdateDeviceTemplate will update device template
-func (d *Device) UpdateDeviceTemplate(vertical bool) {
-	if vertical {
-		d.Template = "ccxt-vertical.html"
-	} else {
-		d.Template = "ccxt.html"
 	}
 }
 
@@ -467,7 +472,7 @@ func (d *Device) setDeviceColor() {
 
 	// Get the number of LED channels we have
 	lightChannels := 0
-	for _, device := range d.Devices {
+	for _, device := range d.RgbDevices {
 		if device.LedChannels > 0 {
 			lightChannels += int(device.LedChannels)
 		}
@@ -502,7 +507,7 @@ func (d *Device) setDeviceColor() {
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.
 	s, l := 0, 0
-	for _, device := range d.Devices {
+	for _, device := range d.RgbDevices {
 		if device.LedChannels > 0 {
 			l++ // device has LED
 			if device.RGB == "static" {
@@ -564,9 +569,9 @@ func (d *Device) setDeviceColor() {
 				keys := make([]int, 0)
 				externalKeys := make([]int, 0)
 				internalKeys := make([]int, 0)
-				for k := range d.Devices {
-					if d.Devices[k].LedChannels > 0 {
-						if d.Devices[k].ExternalLed {
+				for k := range d.RgbDevices {
+					if d.RgbDevices[k].LedChannels > 0 {
+						if d.RgbDevices[k].ExternalLed {
 							externalKeys = append(externalKeys, k)
 						} else {
 							internalKeys = append(internalKeys, k)
@@ -585,12 +590,12 @@ func (d *Device) setDeviceColor() {
 
 				for _, k := range keys {
 					rgbCustomColor := true
-					profile := rgb.GetRgbProfile(d.Devices[k].RGB)
+					profile := rgb.GetRgbProfile(d.RgbDevices[k].RGB)
 					if profile == nil {
-						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+						for i := 0; i < int(d.RgbDevices[k].LedChannels); i++ {
 							buff = append(buff, []byte{0, 0, 0}...)
 						}
-						logger.Log(logger.Fields{"profile": d.Devices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
+						logger.Log(logger.Fields{"profile": d.RgbDevices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
 						continue
 					}
 					rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)
@@ -600,7 +605,7 @@ func (d *Device) setDeviceColor() {
 					}
 
 					r := rgb.New(
-						int(d.Devices[k].LedChannels),
+						int(d.RgbDevices[k].LedChannels),
 						rgbModeSpeed,
 						nil,
 						nil,
@@ -625,10 +630,10 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor.Brightness = r.RGBBrightness
 					}
 
-					switch d.Devices[k].RGB {
+					switch d.RgbDevices[k].RGB {
 					case "off":
 						{
-							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
+							for n := 0; n < int(d.RgbDevices[k].LedChannels); n++ {
 								buff = append(buff, []byte{0, 0, 0}...)
 							}
 						}
@@ -744,7 +749,7 @@ func (d *Device) setDeviceColor() {
 					case "circleshift":
 						{
 							lock.Lock()
-							if counterCircleshift[k] >= int(d.Devices[k].LedChannels) {
+							if counterCircleshift[k] >= int(d.RgbDevices[k].LedChannels) {
 								counterCircleshift[k] = 0
 							} else {
 								counterCircleshift[k]++
@@ -757,7 +762,7 @@ func (d *Device) setDeviceColor() {
 					case "circle":
 						{
 							lock.Lock()
-							if counterCircle[k] >= int(d.Devices[k].LedChannels) {
+							if counterCircle[k] >= int(d.RgbDevices[k].LedChannels) {
 								counterCircle[k] = 0
 							} else {
 								counterCircle[k]++
@@ -770,7 +775,7 @@ func (d *Device) setDeviceColor() {
 					case "spinner":
 						{
 							lock.Lock()
-							if counterSpinner[k] >= int(d.Devices[k].LedChannels) {
+							if counterSpinner[k] >= int(d.RgbDevices[k].LedChannels) {
 								counterSpinner[k] = 0
 							} else {
 								counterSpinner[k]++
@@ -853,11 +858,23 @@ func (d *Device) resetLEDPorts() {
 			if z.Total > 0 {
 				// Channel activation
 				buf = append(buf, 0x01)
-
 				// Fan LED command code, each LED device has different command code
 				buf = append(buf, z.Command)
 			} else {
-				buf = append(buf, 0x00)
+				if deviceType, customOK := d.DeviceProfile.CustomLEDs[i]; customOK {
+					if deviceType > 0 {
+						externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.CustomLEDs[i])
+						// Channel activation
+						buf = append(buf, 0x01)
+						buf = append(buf, externalDeviceType.Command)
+					} else {
+						// Port is not configured for ARGB
+						buf = append(buf, 0x00)
+					}
+				} else {
+					// Empty, disable port
+					buf = append(buf, 0x00)
+				}
 			}
 		} else {
 			// Channel is not active
@@ -1121,6 +1138,10 @@ func (d *Device) getTemperatureProbe() {
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
+	if profile == "keyboard" {
+		return 3
+	}
+
 	if rgb.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -1143,16 +1164,16 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	if channelId < 0 {
-		for _, device := range d.Devices {
+		for _, device := range d.RgbDevices {
 			if device.LedChannels > 0 {
 				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
-				d.Devices[device.ChannelId].RGB = profile
+				d.RgbDevices[device.ChannelId].RGB = profile
 			}
 		}
 	} else {
-		if _, ok := d.Devices[channelId]; ok {
+		if _, ok := d.RgbDevices[channelId]; ok {
 			d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
-			d.Devices[channelId].RGB = profile
+			d.RgbDevices[channelId].RGB = profile
 		} else {
 			return 0
 		}
@@ -1179,7 +1200,7 @@ func (d *Device) UpdateExternalHubDeviceType(externalType int) uint8 {
 			}
 
 			d.resetLEDPorts()     // Reset LED ports
-			d.getDevices()        // Reload devices
+			d.getRgbDevices()     // Reload devices
 			d.saveDeviceProfile() // Save profile
 			d.setDeviceColor()    // Restart RGB
 			return 1
@@ -1201,13 +1222,64 @@ func (d *Device) UpdateExternalHubDeviceAmount(externalDevices int) uint8 {
 			}
 
 			d.resetLEDPorts()     // Reset LED ports
-			d.getDevices()        // Reload devices
+			d.getRgbDevices()     // Reload devices
 			d.saveDeviceProfile() // Save profile
 			d.setDeviceColor()    // Restart RGB
 			return 1
 		}
 	}
 	return 0
+}
+
+// UpdateARGBDevice will update or create a new device with ARGB 3-pin support
+func (d *Device) UpdateARGBDevice(portId, deviceType int) uint8 {
+	if portId < 0 || portId > 5 {
+		return 0
+	}
+
+	if _, ok := d.FreeLedPorts[portId]; ok {
+		d.DeviceProfile.CustomLEDs[portId] = deviceType
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		time.Sleep(50 * time.Millisecond)
+		if deviceType == 0 {
+			delete(d.RgbDevices, portId)
+		} else {
+			externalLedDevice := d.getExternalLedDevice(deviceType)
+			if externalLedDevice != nil {
+				ledChannels := externalLedDevice.Total
+				name := externalLedDevice.Name
+
+				// Build device object
+				device := &Devices{
+					ChannelId:   portId,
+					DeviceId:    fmt.Sprintf("%s-%v", "Fan", portId),
+					Name:        name,
+					Rpm:         0,
+					Temperature: 0,
+					Description: "RGB Device",
+					LedChannels: uint8(ledChannels),
+					HubId:       d.Serial,
+					Profile:     "",
+					Label:       "Set Label",
+					RGB:         "static",
+					HasSpeed:    false,
+					HasTemps:    false,
+				}
+				d.RgbDevices[portId] = device
+			}
+		}
+
+		d.resetLEDPorts()     // Reset LED ports
+		d.saveDeviceProfile() // Save profile
+		d.setDeviceColor()    // Restart RGB
+
+		return 1
+	} else {
+		return 2 // No such free port
+	}
 }
 
 // getLedDevices will get all connected LED data
@@ -1220,6 +1292,7 @@ func (d *Device) getLedDevices() {
 	for i := 0; i < amount; i++ {
 		var numLEDs uint16 = 0
 		var command byte = 00
+		var name = ""
 
 		// Initialize LED channel data
 		leds := &LedChannel{
@@ -1232,44 +1305,219 @@ func (d *Device) getLedDevices() {
 		if connected {
 			// Get number of LEDs
 			numLEDs = binary.LittleEndian.Uint16(ld[i*4+2 : i*4+2+2])
-			// Each LED device has different command code
 			switch numLEDs {
 			case 4:
 				{
+
 					command = 03
+					name = "ML PRO RGB Series Fan"
 				}
 			case 8:
 				{
 					command = 05
+					name = "8-LED Series Fan"
 				}
 			case 10:
 				{
 					command = 01
+					name = "RGB Led Strip"
 				}
 			case 12:
 				{
 					command = 04
+					name = "HD RGB Series Fan"
 				}
 			case 16:
 				{
 					command = 02
+					name = "LL RGB Series Fan"
 				}
 			case 34:
 				{
 					command = 06
+					name = "QL RGB Series Fan"
 				}
 			}
 
 			// Set values
 			leds.Total = int(numLEDs)
 			leds.Command = command
-			// Add to a device map
-			internalLedDevices[i] = leds
+			leds.Name = name
 		} else {
-			// Add to a device map
-			internalLedDevices[i] = leds
+			d.FreeLedPorts[i] = fmt.Sprintf("RGB Port %d", i+1)
+		}
+		internalLedDevices[i] = leds
+	}
+}
+
+// getRgbDevices will get all RGB devices
+func (d *Device) getRgbDevices() {
+	var devices = make(map[int]*Devices, 0)
+	var m = 0
+	amount := 6
+
+	for i := 0; i < amount; i++ {
+		if internalLedDevice, ok := internalLedDevices[i]; ok {
+			if internalLedDevice.Total > 0 {
+				rgbProfile := "static"
+				label := "Set Label"
+				if d.DeviceProfile != nil {
+					// Profile is set
+					if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
+						// Profile device channel exists
+						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+							// Speed profile exists in configuration
+							rgbProfile = rp
+						} else {
+							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+						}
+					} else {
+						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+					}
+
+					// Device label
+					if lb, ok := d.DeviceProfile.RGBLabels[i]; ok {
+						if len(lb) > 0 {
+							label = lb
+						}
+					}
+				} else {
+					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+				}
+
+				// Build device object
+				device := &Devices{
+					ChannelId:   i,
+					DeviceId:    fmt.Sprintf("%s-%v", "Fan", i),
+					Name:        internalLedDevice.Name,
+					Rpm:         0,
+					Temperature: 0,
+					Description: "LED",
+					LedChannels: uint8(internalLedDevice.Total),
+					HubId:       d.Serial,
+					Profile:     "",
+					Label:       label,
+					RGB:         rgbProfile,
+					HasSpeed:    false,
+					HasTemps:    false,
+				}
+				devices[m] = device
+			} else {
+				if deviceType, ok := d.DeviceProfile.CustomLEDs[i]; ok {
+					if deviceType > 0 {
+						rgbProfile := "static"
+						label := "Set Label"
+						if d.DeviceProfile != nil {
+							// Profile is set
+							if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
+								// Profile device channel exists
+								if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+									// Speed profile exists in configuration
+									rgbProfile = rp
+								} else {
+									logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+								}
+							} else {
+								logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+							}
+
+							// Device label
+							if lb, ok := d.DeviceProfile.RGBLabels[i]; ok {
+								if len(lb) > 0 {
+									label = lb
+								}
+							}
+						} else {
+							logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+						}
+
+						ledChannels := 0
+						name := ""
+						externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.CustomLEDs[i])
+						if externalDeviceType != nil {
+							ledChannels = externalDeviceType.Total
+							name = externalDeviceType.Name
+						}
+
+						// Build device object
+						device := &Devices{
+							ChannelId:   i,
+							DeviceId:    fmt.Sprintf("%s-%v", "Fan", i),
+							Name:        name,
+							Rpm:         0,
+							Temperature: 0,
+							Description: "LED",
+							LedChannels: uint8(ledChannels),
+							HubId:       d.Serial,
+							Profile:     "",
+							Label:       label,
+							RGB:         rgbProfile,
+							HasSpeed:    false,
+							HasTemps:    false,
+						}
+						devices[m] = device
+					}
+				}
+			}
+		}
+		m++
+	}
+
+	if d.DeviceProfile != nil {
+		// External LED hub
+		externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
+		if externalDeviceType != nil {
+			var LedChannels uint8 = 0
+			var name = ""
+			LedChannels = uint8(externalDeviceType.Total)
+			name = externalDeviceType.Name
+
+			if LedChannels > 0 {
+				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
+					rgbProfile := "static"
+					label := "Set Label"
+					// Profile is set
+					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
+						// Profile device channel exists
+						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+							// Speed profile exists in configuration
+							rgbProfile = rp
+						} else {
+							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+						}
+					} else {
+						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+					}
+
+					// Device label
+					if lb, ok := d.DeviceProfile.RGBLabels[m]; ok {
+						label = lb
+					}
+
+					device := &Devices{
+						ChannelId:          m,
+						DeviceId:           fmt.Sprintf("%s-%v", "LED", z),
+						Name:               name,
+						Rpm:                0,
+						Temperature:        0,
+						Description:        "LED",
+						HubId:              d.Serial,
+						HasSpeed:           false,
+						HasTemps:           false,
+						IsTemperatureProbe: false,
+						LedChannels:        LedChannels,
+						RGB:                rgbProfile,
+						ExternalLed:        true,
+						CellSize:           2,
+						Label:              label,
+					}
+					devices[m] = device
+					m++
+				}
+			}
 		}
 	}
+	d.RgbDevices = devices
 }
 
 // getDevices will fetch all devices connected to a hub
@@ -1310,31 +1558,6 @@ func (d *Device) getDevices() int {
 				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 			}
 
-			// Get a persistent speed profile. Fallback to Normal is anything fails
-			rgbProfile := "static"
-			if d.DeviceProfile != nil {
-				// Profile is set
-				if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
-					// Profile device channel exists
-					if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
-						// Speed profile exists in configuration
-						rgbProfile = rp
-					} else {
-						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
-					}
-				} else {
-					logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
-				}
-			} else {
-				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-			}
-
-			// Get LED data
-			var LedChannels uint8 = 0
-			if internalLedDevice, ok := internalLedDevices[m]; ok {
-				LedChannels = uint8(internalLedDevice.Total)
-			}
-
 			// Build device object
 			device := &Devices{
 				ChannelId:   i,
@@ -1343,12 +1566,10 @@ func (d *Device) getDevices() int {
 				Rpm:         0,
 				Temperature: 0,
 				Description: "Fan",
-				LedChannels: LedChannels,
 				HubId:       d.Serial,
 				Profile:     speedProfile,
 				HasSpeed:    true,
 				HasTemps:    false,
-				RGB:         rgbProfile,
 				Label:       label,
 				CellSize:    4,
 			}
@@ -1394,61 +1615,6 @@ func (d *Device) getDevices() int {
 		m++
 	}
 
-	if d.DeviceProfile != nil {
-		// External LED hub
-		externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
-		if externalDeviceType != nil {
-			var LedChannels uint8 = 0
-			if externalDeviceType != nil {
-				LedChannels = uint8(externalDeviceType.Total)
-			}
-
-			if LedChannels > 0 {
-				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
-					rgbProfile := "static"
-					label := "Set Label"
-					// Profile is set
-					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
-						// Profile device channel exists
-						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
-							// Speed profile exists in configuration
-							rgbProfile = rp
-						} else {
-							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
-						}
-					} else {
-						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
-					}
-
-					// Device label
-					if lb, ok := d.DeviceProfile.Labels[m]; ok {
-						label = lb
-					}
-
-					device := &Devices{
-						ChannelId:          m,
-						DeviceId:           fmt.Sprintf("%s-%v", "LED", z),
-						Name:               externalDeviceType.Name,
-						Rpm:                0,
-						Temperature:        0,
-						Description:        "LED",
-						HubId:              d.Serial,
-						HasSpeed:           false,
-						HasTemps:           false,
-						IsTemperatureProbe: false,
-						LedChannels:        LedChannels,
-						RGB:                rgbProfile,
-						ExternalLed:        true,
-						CellSize:           2,
-						Label:              label,
-					}
-					devices[m] = device
-					m++
-				}
-			}
-		}
-	}
-
 	d.Devices = devices
 	return len(devices)
 }
@@ -1460,6 +1626,8 @@ func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	labels := make(map[int]string, len(d.Devices))
+	rgbLabels := make(map[int]string, len(d.Devices))
+	customLEDs := make(map[int]int, len(d.Devices))
 
 	for _, device := range d.Devices {
 		if device.IsTemperatureProbe {
@@ -1471,10 +1639,14 @@ func (d *Device) saveDeviceProfile() {
 		speedProfiles[device.ChannelId] = device.Profile
 	}
 
-	for _, device := range d.Devices {
+	for _, device := range d.RgbDevices {
 		if device.LedChannels > 0 {
 			rgbProfiles[device.ChannelId] = device.RGB
 		}
+		rgbLabels[device.ChannelId] = device.Label
+	}
+
+	for _, device := range d.Devices {
 		labels[device.ChannelId] = device.Label
 	}
 
@@ -1484,22 +1656,38 @@ func (d *Device) saveDeviceProfile() {
 		SpeedProfiles: speedProfiles,
 		RGBProfiles:   rgbProfiles,
 		Labels:        labels,
+		RGBLabels:     rgbLabels,
 		Path:          profilePath,
 	}
 
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
-		for _, device := range d.Devices {
+		for _, device := range d.RgbDevices {
 			if device.LedChannels > 0 {
 				rgbProfiles[device.ChannelId] = "static"
 			}
+			rgbLabels[device.ChannelId] = "Set Label"
+		}
+		for _, device := range d.Devices {
 			labels[device.ChannelId] = "Set Label"
 		}
+
+		for i := 0; i < 6; i++ {
+			customLEDs[i] = 0
+		}
+		deviceProfile.CustomLEDs = customLEDs
 		deviceProfile.ExternalHubDeviceAmount = 0
 		deviceProfile.ExternalHubDeviceType = 0
 		deviceProfile.Active = true
-
 	} else {
+		if d.DeviceProfile.CustomLEDs == nil {
+			for i := 0; i < 6; i++ {
+				customLEDs[i] = 0
+			}
+			deviceProfile.CustomLEDs = customLEDs
+		} else {
+			deviceProfile.CustomLEDs = d.DeviceProfile.CustomLEDs
+		}
 		deviceProfile.ExternalHubDeviceAmount = d.DeviceProfile.ExternalHubDeviceAmount
 		deviceProfile.ExternalHubDeviceType = d.DeviceProfile.ExternalHubDeviceType
 		deviceProfile.Active = d.DeviceProfile.Active
@@ -1722,6 +1910,21 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 	}
 
 	d.Devices[channelId].Label = label
+
+	d.saveDeviceProfile()
+	return 1
+}
+
+// UpdateRGBDeviceLabel will set / update device label
+func (d *Device) UpdateRGBDeviceLabel(channelId int, label string) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, ok := d.RgbDevices[channelId]; !ok {
+		return 0
+	}
+
+	d.RgbDevices[channelId].Label = label
 	d.saveDeviceProfile()
 	return 1
 }
@@ -1791,10 +1994,14 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 			d.activeRgb = nil
 		}
 
-		for _, device := range d.Devices {
+		for _, device := range d.RgbDevices {
 			if device.LedChannels > 0 {
-				d.Devices[device.ChannelId].RGB = profile.RGBProfiles[device.ChannelId]
+				d.RgbDevices[device.ChannelId].RGB = profile.RGBProfiles[device.ChannelId]
 			}
+			d.RgbDevices[device.ChannelId].Label = profile.RGBLabels[device.ChannelId]
+		}
+
+		for _, device := range d.Devices {
 			if device.HasSpeed {
 				d.Devices[device.ChannelId].Profile = profile.SpeedProfiles[device.ChannelId]
 			}

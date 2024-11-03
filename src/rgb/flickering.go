@@ -30,7 +30,7 @@ func (r *ActiveRGB) Flickering(i int) {
 	for j, color := range colors {
 		if rand.Intn(2) == 1 {
 			buf[j] = []byte{0, 0, 0}
-			if r.ContainsPump && r.HasLCD {
+			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {
 					buf[j] = []byte{0, 0, 0}
 				}
@@ -41,7 +41,7 @@ func (r *ActiveRGB) Flickering(i int) {
 				byte(color.G),
 				byte(color.B),
 			}
-			if r.ContainsPump && r.HasLCD {
+			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {
 					buf[j] = []byte{0, 0, 0}
 				}

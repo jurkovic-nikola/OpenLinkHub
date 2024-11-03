@@ -58,8 +58,8 @@ type StorageTemperatures struct {
 }
 
 var (
-	pwd, _       = os.Getwd()
-	location     = pwd + "/database/temperatures/"
+	pwd          = ""
+	location     = ""
 	profiles     = map[string]TemperatureProfileData{}
 	mutex        sync.Mutex
 	temperatures *Temperatures
@@ -185,6 +185,9 @@ var (
 
 // Init will initialize temperature data
 func Init() {
+	pwd = config.GetConfig().ConfigPath
+	location = pwd + "/database/temperatures/"
+
 	// Load any custom profile user created
 	LoadUserProfiles(profiles)
 

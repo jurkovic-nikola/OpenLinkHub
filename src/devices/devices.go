@@ -6,6 +6,9 @@ import (
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/elite"
+	"OpenLinkHub/src/devices/k55core"
+	"OpenLinkHub/src/devices/k65pm"
+	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
@@ -13,10 +16,11 @@ import (
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"github.com/sstallion/go-hid"
+	"slices"
 	"strconv"
-	"sync"
 )
 
 const (
@@ -29,6 +33,9 @@ const (
 	productTypeCPro    = 6
 	productTypeXC7     = 7
 	productTypeMemory  = 8
+	productTypeK65PM   = 101
+	productTypeK70Core = 102
+	productTypeK55Core = 103
 )
 
 type AIOData struct {
@@ -42,15 +49,18 @@ type Device struct {
 	Product     string
 	Serial      string
 	Firmware    string
-	Lsh         *lsh.Device    `json:"lsh,omitempty"`
-	CC          *cc.Device     `json:"cc,omitempty"`
-	CCXT        *ccxt.Device   `json:"ccxt,omitempty"`
-	Elite       *elite.Device  `json:"elite,omitempty"`
-	LnCore      *lncore.Device `json:"lncore,omitempty"`
-	LnPro       *lnpro.Device  `json:"lnpro,omitempty"`
-	CPro        *cpro.Device   `json:"cPro,omitempty"`
-	XC7         *xc7.Device    `json:"xc7,omitempty"`
-	Memory      *memory.Device `json:"memory,omitempty"`
+	Lsh         *lsh.Device     `json:"lsh,omitempty"`
+	CC          *cc.Device      `json:"cc,omitempty"`
+	CCXT        *ccxt.Device    `json:"ccxt,omitempty"`
+	Elite       *elite.Device   `json:"elite,omitempty"`
+	LnCore      *lncore.Device  `json:"lncore,omitempty"`
+	LnPro       *lnpro.Device   `json:"lnpro,omitempty"`
+	CPro        *cpro.Device    `json:"cPro,omitempty"`
+	XC7         *xc7.Device     `json:"xc7,omitempty"`
+	Memory      *memory.Device  `json:"memory,omitempty"`
+	K65PM       *k65pm.Device   `json:"k65PM,omitempty"`
+	K70Core     *k70core.Device `json:"k70core,omitempty"`
+	K55Core     *k55core.Device `json:"k55core,omitempty"`
 	GetDevice   interface{}
 }
 
@@ -59,7 +69,7 @@ var (
 	interfaceId        = 0
 	devices            = make(map[string]*Device, 0)
 	products           = make(map[string]uint16)
-	mutex       sync.Mutex
+	keyboards          = []uint16{7127, 7165, 7166}
 )
 
 // Stop will stop all active devices
@@ -120,12 +130,78 @@ func Stop() {
 					device.Memory.Stop()
 				}
 			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					device.K65PM.Stop()
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					device.K70Core.Stop()
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					device.K55Core.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
 	}
+}
+
+// UpdateKeyboardColor will process POST request from a client for keyboard color change
+func UpdateKeyboardColor(deviceId string, keyId, keyOptions int, color rgb.Color) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateARGBDevice will process POST request from a client for ARGB 3-pin devices
+func UpdateARGBDevice(deviceId string, portId, deviceType int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					return device.CCXT.UpdateARGBDevice(portId, deviceType)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					return device.CC.UpdateARGBDevice(portId, deviceType)
+				}
+			}
+		}
+	}
+	return 0
 }
 
 // UpdateExternalHubDeviceType will update a device type connected to an external-LED hub
@@ -239,6 +315,87 @@ func UpdateDeviceMetrics() {
 	}
 }
 
+// SaveKeyboardProfile will save keyboard profile
+func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.SaveKeyboardProfile(profileName, new)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.SaveKeyboardProfile(profileName, new)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.SaveKeyboardProfile(profileName, new)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeKeyboardProfile will change keyboard profile
+func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.UpdateKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.UpdateKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.UpdateKeyboardProfile(profileName)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// DeleteKeyboardProfile will save keyboard profile
+func DeleteKeyboardProfile(deviceId, profileName string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.DeleteKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.DeleteKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.DeleteKeyboardProfile(profileName)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // SaveUserProfile will save new device user profile
 func SaveUserProfile(deviceId, profileName string) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -295,6 +452,24 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.Memory != nil {
 					return device.Memory.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.SaveUserProfile(profileName)
 				}
 			}
 		}
@@ -375,6 +550,24 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 					return device.Memory.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.ChangeDeviceBrightness(mode)
+				}
+			}
 		}
 	}
 	return 0
@@ -438,13 +631,31 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 					return device.Memory.ChangeDeviceProfile(profileName)
 				}
 			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.ChangeDeviceProfile(profileName)
+				}
+			}
 		}
 	}
 	return 0
 }
 
 // UpdateDeviceLcd will update device LCD
-func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
+func UpdateDeviceLcd(deviceId string, channelId int, mode uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeCC:
@@ -456,7 +667,7 @@ func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 		case productTypeLinkHub:
 			{
 				if device.Lsh != nil {
-					return device.Lsh.UpdateDeviceLcd(mode)
+					return device.Lsh.UpdateDeviceLcd(channelId, mode)
 				}
 			}
 		case productTypeXC7:
@@ -470,8 +681,23 @@ func UpdateDeviceLcd(deviceId string, mode uint8) uint8 {
 	return 0
 }
 
+// ChangeDeviceLcd will change device LCD
+func ChangeDeviceLcd(deviceId string, channelId int, lcdSerial string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					return device.Lsh.ChangeDeviceLcd(channelId, lcdSerial)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateDeviceLcdRotation will update device LCD rotation
-func UpdateDeviceLcdRotation(deviceId string, rotation uint8) uint8 {
+func UpdateDeviceLcdRotation(deviceId string, channelId int, rotation uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeCC:
@@ -483,7 +709,7 @@ func UpdateDeviceLcdRotation(deviceId string, rotation uint8) uint8 {
 		case productTypeLinkHub:
 			{
 				if device.Lsh != nil {
-					return device.Lsh.UpdateDeviceLcdRotation(rotation)
+					return device.Lsh.UpdateDeviceLcdRotation(channelId, rotation)
 				}
 			}
 		case productTypeXC7:
@@ -498,7 +724,7 @@ func UpdateDeviceLcdRotation(deviceId string, rotation uint8) uint8 {
 }
 
 // UpdateDeviceLabel will set / update device label
-func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
+func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		switch device.ProductType {
 		case productTypeLinkHub:
@@ -510,13 +736,21 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 		case productTypeCC:
 			{
 				if device.CC != nil {
-					return device.CC.UpdateDeviceLabel(channelId, label)
+					if deviceType == 0 {
+						return device.CC.UpdateDeviceLabel(channelId, label)
+					} else {
+						return device.CC.UpdateRGBDeviceLabel(channelId, label)
+					}
 				}
 			}
 		case productTypeCCXT:
 			{
 				if device.CCXT != nil {
-					return device.CCXT.UpdateDeviceLabel(channelId, label)
+					if deviceType == 0 {
+						return device.CCXT.UpdateDeviceLabel(channelId, label)
+					} else {
+						return device.CCXT.UpdateRGBDeviceLabel(channelId, label)
+					}
 				}
 			}
 		case productTypeElite:
@@ -553,6 +787,24 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string) uint8 {
 			{
 				if device.Memory != nil {
 					return device.Memory.UpdateDeviceLabel(channelId, label)
+				}
+			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.UpdateDeviceLabel(label)
 				}
 			}
 		}
@@ -711,6 +963,24 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 					return device.Memory.UpdateRgbProfile(channelId, profile)
 				}
 			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.UpdateRgbProfile(profile)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.UpdateRgbProfile(profile)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.UpdateRgbProfile(profile)
+				}
+			}
 		}
 	}
 	return 0
@@ -781,32 +1051,6 @@ func GetTemperatureProbes() interface{} {
 	return probes
 }
 
-// UpdateDeviceTemplate will update device HTML template
-func UpdateDeviceTemplate(vertical bool) {
-	for _, device := range devices {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					device.Lsh.UpdateDeviceTemplate(vertical)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					device.CC.UpdateDeviceTemplate(vertical)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					device.CCXT.UpdateDeviceTemplate(vertical)
-				}
-			}
-		}
-	}
-}
-
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
 	if device, ok := devices[deviceId]; ok {
@@ -865,6 +1109,24 @@ func GetDevice(deviceId string) interface{} {
 					return device.Memory
 				}
 			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core
+				}
+			}
 		}
 	}
 	return nil
@@ -878,9 +1140,19 @@ func Init() {
 	}
 
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		// We only need interface 0
+		keyboard := false
+		if slices.Contains(keyboards, info.ProductID) {
+			interfaceId = 1 // Keyboards
+			keyboard = true
+		} else {
+			interfaceId = 0
+		}
 		if info.InterfaceNbr == interfaceId {
-			products[info.SerialNbr] = info.ProductID
+			if keyboard {
+				products[info.Path] = info.ProductID
+			} else {
+				products[info.SerialNbr] = info.ProductID
+			}
 		}
 		return nil
 	})
@@ -903,7 +1175,7 @@ func Init() {
 	}
 
 	// USB-HID
-	for serial, productId := range products {
+	for key, productId := range products {
 		switch productId {
 		case 3135: // CORSAIR iCUE Link System Hub
 			{
@@ -920,7 +1192,7 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
 			}
 		case 3122, 3100: // CORSAIR iCUE COMMANDER Core
 			{
@@ -937,7 +1209,7 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
 			}
 		case 3114: // CORSAIR iCUE COMMANDER CORE XT
 			{
@@ -954,7 +1226,7 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
 			}
 		case 3104, 3105, 3106, 3125, 3126, 3127, 3136, 3137:
 			// iCUE H100i ELITE RGB,
@@ -995,7 +1267,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
 			}
 		case 3083: // CORSAIR Lighting Node Pro
 			{
@@ -1011,7 +1283,7 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 					}
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
 			}
 		case 3088: // Corsair Commander Pro
 			{
@@ -1028,7 +1300,7 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
 			}
 		case 3138: // CORSAIR XC7 ELITE LCD CPU Water Block
 			{
@@ -1045,7 +1317,55 @@ func Init() {
 						Firmware:    dev.Firmware,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}(vendorId, productId, serial)
+				}(vendorId, productId, key)
+			}
+		case 7127: // K65 Pro Mini
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k65pm.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K65PM:       dev,
+						ProductType: productTypeK65PM,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7165: // K70 CORE RGB
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70core.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K70Core:     dev,
+						ProductType: productTypeK70Core,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7166: // K55 CORE RGB
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k55core.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K55Core:     dev,
+						ProductType: productTypeK55Core,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
 			}
 		case 0: // Memory
 			{
@@ -1060,7 +1380,7 @@ func Init() {
 							Firmware:    "0",
 						}
 					}
-				}(serial)
+				}(key)
 			}
 		default:
 			continue

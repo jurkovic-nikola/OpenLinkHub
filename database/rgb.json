@@ -6,6 +6,7 @@
     "brightness": 1
   },
   "profiles": {
+    "keyboard": {},
     "rainbow": {
       "speed": 4,
       "brightness": 1

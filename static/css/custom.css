@@ -70,6 +70,11 @@ nav#sidebar {
 .newLabel {
     cursor: pointer;
 }
+
+.newRgbLabel {
+    cursor: pointer;
+}
+
 .newTemp:hover {
     border: 1px solid #a6a6a6;
     cursor: pointer;
@@ -253,7 +258,6 @@ footer {
 .navigation-left-big {
     float: left;
     margin-left: 20px;
-    width: 230px;
     height: 92px;
     text-align: center;
     padding: 6px 0 0;
@@ -351,4 +355,43 @@ footer {
 
 .custom-lh-1 {
     line-height: 1;
+}
+
+.ctn {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.ctn-left {
+    float: left;
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.row-custom {
+    --bs-gutter-x: 1.5rem;
+    --bs-gutter-y: 0;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+    margin-top: calc(var(--bs-gutter-y)* -1);
+    margin-right: calc(var(--bs-gutter-x)* -.5);
+    margin-left: calc(var(--bs-gutter-x)* -.5);
+}
+
+.row-custom>* {
+    -ms-flex-negative: 0;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 100%;
+    margin-top: var(--bs-gutter-y);
+}
+
+.key-uppercase {
+    text-transform: uppercase;
 }

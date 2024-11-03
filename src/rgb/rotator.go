@@ -11,6 +11,11 @@ func (r *ActiveRGB) Rotator(hue int) {
 			byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Green))),
 			byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Blue))),
 		}
+		if r.IsAIO && r.HasLCD {
+			if j > 15 && j < 20 {
+				buf[j] = []byte{0, 0, 0}
+			}
+		}
 	}
 	r.Output = SetColor(buf)
 }

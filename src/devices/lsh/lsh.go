@@ -53,6 +53,9 @@ type DeviceProfile struct {
 	Labels          map[int]string
 	Positions       map[int]int
 	ExternalAdapter map[int]int
+	LCDModes        map[int]uint8
+	LCDRotations    map[int]uint8
+	LCDDevices      map[int]string
 }
 
 type LCD struct {
@@ -114,12 +117,13 @@ type Devices struct {
 	AIO                bool
 	Position           int
 	ExternalAdapter    int
+	LCDSerial          string
 }
 
 type Device struct {
 	Debug             bool
 	dev               *hid.Device
-	lcd               map[int]*LCD
+	Lcd               map[int]*LCD
 	Manufacturer      string                    `json:"manufacturer"`
 	Product           string                    `json:"product"`
 	Serial            string                    `json:"serial"`
@@ -146,6 +150,7 @@ type Device struct {
 	FirmwareInternal  []int
 	CpuTemp           float32
 	GpuTemp           float32
+	XD5LCDs           int
 }
 
 var (
@@ -200,6 +205,7 @@ var (
 	portProtectionMaximumStage2 = 340
 	portProtectionMaximumStage3 = 442
 	criticalAioCoolantTemp      = 57.0
+	zeroRpmLimit                = 40
 	supportedDevices            = []SupportedDevice{
 		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan", TemperatureProbe: true, HasSpeed: true},
 		{DeviceId: 2, Model: 0, Name: "iCUE LINK LX RGB", LedChannels: 18, ContainsPump: false, Desc: "Fan", HasSpeed: true},
@@ -218,7 +224,6 @@ var (
 		{DeviceId: 10, Model: 0, Name: "iCUE LINK XG3 HYBRID", LedChannels: 22, ContainsPump: false, Desc: "GPU Block", HasSpeed: true},
 		{DeviceId: 13, Model: 1, Name: "iCUE LINK XG7", LedChannels: 16, ContainsPump: false, Desc: "GPU Hybrid Block"},
 		{DeviceId: 12, Model: 0, Name: "iCUE LINK XD5 Elite", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
-		{DeviceId: 14, Model: 0, Name: "iCUE LINK XD5 Elite LCD", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
 		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
 		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
 		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
@@ -244,7 +249,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		lcd:       make(map[int]*LCD, 0),
+		Lcd:       make(map[int]*LCD, 0),
 		dev:       dev,
 		Template:  "lsh.html",
 		VendorId:  vendorId,
@@ -281,17 +286,13 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		PortProtection: make(map[uint8]int, 2),
 	}
 
-	if dashboard.GetDashboard().VerticalUi {
-		d.Template = "lsh-vertical.html"
-	}
-
 	// Bootstrap
 	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
 	d.loadDeviceProfiles()  // Load all device profiles
-	d.getDeviceLcd()        // Check if LCD pump cover is installed
+	d.getDeviceLcd()        // Check for LCDs
 	d.getDeviceFirmware()   // Firmware
 	d.setSoftwareMode()     // Activate software mode
 	d.getDevices()          // Get devices connected to a hub
@@ -362,22 +363,22 @@ func (d *Device) Stop() {
 		speedRefreshChan <- true
 	}
 
-	if d.HasLCD && len(d.lcd) > 0 {
+	if d.HasLCD && len(d.Lcd) > 0 {
 		lcdRefreshChan <- true
 		lcdTimer.Stop()
 
 		// Switch LCD back to hardware mode
 		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
 		for i := 0; i <= 1; i++ {
-			for k := range d.lcd {
-				_, e := d.lcd[k].Lcd.SendFeatureReport(lcdReports[i])
+			for k := range d.Lcd {
+				_, e := d.Lcd[k].Lcd.SendFeatureReport(lcdReports[i])
 				if e != nil {
 					logger.Log(logger.Fields{"error": e}).Fatal("Unable to send report to LCD HID device")
 				}
 			}
 		}
-		for k := range d.lcd {
-			err := d.lcd[k].Lcd.Close()
+		for k := range d.Lcd {
+			err := d.Lcd[k].Lcd.Close()
 			if err != nil {
 				logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
 			}
@@ -391,15 +392,6 @@ func (d *Device) Stop() {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
 		}
-	}
-}
-
-// UpdateDeviceTemplate will update device template
-func (d *Device) UpdateDeviceTemplate(vertical bool) {
-	if vertical {
-		d.Template = "lsh-vertical.html"
-	} else {
-		d.Template = "lsh.html"
 	}
 }
 
@@ -502,7 +494,7 @@ func (d *Device) getDeviceLcd() {
 			case 3139:
 				product = "iCUE LINK XD5 LCD"
 			}
-			d.lcd[i] = &LCD{
+			d.Lcd[i] = &LCD{
 				Lcd:       lcdPanel,
 				ProductId: productId,
 				Product:   product,
@@ -513,9 +505,43 @@ func (d *Device) getDeviceLcd() {
 		}
 	}
 
-	if len(d.lcd) == 0 {
+	if len(d.Lcd) == 0 {
 		d.HasLCD = false
 	}
+
+	d.XD5LCDs = len(d.getNonAIOLCDSerials())
+}
+
+// getAioLCDSerial will return serial number of AIO LCD pumps
+func (d *Device) getAioLCDSerial() string {
+	for _, lcdDevice := range d.Lcd {
+		if lcdDevice.AIO {
+			return lcdDevice.Serial
+		}
+	}
+	return ""
+}
+
+// getXD5LCDSerials will return serial numbers of XD5 pumps
+func (d *Device) getNonAIOLCDSerials() []string {
+	var serials []string
+	for _, lcdDevice := range d.Lcd {
+		if lcdDevice.AIO {
+			continue
+		}
+		serials = append(serials, lcdDevice.Serial)
+	}
+	return serials
+}
+
+// getAioLCDSerial will return serial number of AIO LCD pumps
+func (d *Device) getLCDBySerial(serial string) *hid.Device {
+	for _, lcdDevice := range d.Lcd {
+		if lcdDevice.Serial == serial {
+			return lcdDevice.Lcd
+		}
+	}
+	return nil
 }
 
 // getLedStripData will return number of LEDs for given strip ID
@@ -560,11 +586,18 @@ func (d *Device) saveDeviceProfile() {
 	labels := make(map[int]string, len(d.Devices))
 	positions := make(map[int]int, len(d.Devices))
 	external := make(map[int]int, len(d.Devices))
+	lcdModes := make(map[int]uint8, len(d.Devices))
+	lcdRotations := make(map[int]uint8, len(d.Devices))
+	lcdDevices := make(map[int]string, len(d.Devices))
 
 	for _, device := range d.Devices {
 		speedProfiles[device.ChannelId] = device.Profile
 		rgbProfiles[device.ChannelId] = device.RGB
 		labels[device.ChannelId] = device.Label
+
+		if device.ContainsPump || device.AIO {
+			lcdDevices[device.ChannelId] = device.LCDSerial
+		}
 	}
 
 	deviceProfile := &DeviceProfile{
@@ -583,6 +616,12 @@ func (d *Device) saveDeviceProfile() {
 			if device.IsLinkAdapter {
 				external[device.ChannelId] = 0
 			}
+
+			if device.ContainsPump || device.AIO {
+				lcdModes[device.ChannelId] = 0
+				lcdRotations[device.ChannelId] = 0
+			}
+
 			rgbProfiles[device.ChannelId] = "static"
 			labels[device.ChannelId] = "Set Label"
 			positions[m] = device.ChannelId
@@ -591,8 +630,44 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = true
 		deviceProfile.Positions = positions
 		deviceProfile.ExternalAdapter = external
+		deviceProfile.LCDModes = lcdModes
+		deviceProfile.LCDRotations = lcdRotations
+		deviceProfile.LCDDevices = lcdDevices
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.LCDModes == nil {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					lcdModes[device.ChannelId] = d.DeviceProfile.LCDMode
+				}
+			}
+			deviceProfile.LCDModes = lcdModes
+		} else {
+			deviceProfile.LCDModes = d.DeviceProfile.LCDModes
+		}
+
+		if d.DeviceProfile.LCDRotations == nil {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					lcdRotations[device.ChannelId] = d.DeviceProfile.LCDRotation
+				}
+			}
+			deviceProfile.LCDRotations = lcdRotations
+		} else {
+			deviceProfile.LCDRotations = d.DeviceProfile.LCDRotations
+		}
+
+		if d.DeviceProfile.LCDDevices == nil {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					lcdDevices[device.ChannelId] = device.LCDSerial
+				}
+			}
+			deviceProfile.LCDDevices = lcdDevices
+		} else {
+			deviceProfile.LCDDevices = d.DeviceProfile.LCDDevices
+		}
+
 		if d.DeviceProfile.ExternalAdapter == nil {
 			for _, device := range d.Devices {
 				if device.IsLinkAdapter {
@@ -785,12 +860,41 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 }
 
 // UpdateDeviceLcd will update device LCD
-func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
+func (d *Device) UpdateDeviceLcd(channelId int, mode uint8) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	if d.HasLCD {
-		d.DeviceProfile.LCDMode = mode
+		if _, ok := d.DeviceProfile.LCDModes[channelId]; ok {
+			d.DeviceProfile.LCDModes[channelId] = mode
+		}
+		d.saveDeviceProfile()
+		return 1
+	} else {
+		return 2
+	}
+}
+
+// ChangeDeviceLcd will change device LCD
+func (d *Device) ChangeDeviceLcd(channelId int, lcdSerial string) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if d.HasLCD {
+		if _, ok := d.DeviceProfile.LCDDevices[channelId]; ok {
+			if device, ok := d.Devices[channelId]; ok {
+				if device.ContainsPump {
+					d.DeviceProfile.LCDDevices[channelId] = lcdSerial
+					d.Devices[channelId].LCDSerial = lcdSerial
+				} else {
+					return 2
+				}
+			} else {
+				return 0
+			}
+		} else {
+			return 0
+		}
 		d.saveDeviceProfile()
 		return 1
 	} else {
@@ -799,12 +903,14 @@ func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
 }
 
 // UpdateDeviceLcdRotation will update device LCD rotation
-func (d *Device) UpdateDeviceLcdRotation(rotation uint8) uint8 {
+func (d *Device) UpdateDeviceLcdRotation(channelId int, rotation uint8) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	if d.HasLCD {
-		d.DeviceProfile.LCDRotation = rotation
+		if _, ok := d.DeviceProfile.LCDRotations[channelId]; ok {
+			d.DeviceProfile.LCDRotations[channelId] = rotation
+		}
 		d.saveDeviceProfile()
 		return 1
 	} else {
@@ -909,6 +1015,7 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
+	valid := false
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -920,7 +1027,6 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 
 	// If the profile is liquid temperature, check for the presence of AIOs
 	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
-		valid := false
 		for _, device := range d.Devices {
 			if device.AIO || device.ContainsPump {
 				valid = true
@@ -931,6 +1037,10 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		if !valid {
 			return 2
 		}
+	}
+
+	if profiles.ZeroRpm && !valid {
+		return 2
 	}
 
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
@@ -1103,6 +1213,8 @@ func (d *Device) updateDeviceSpeed() {
 		for _, k := range keys {
 			channelSpeeds[d.Devices[k].ChannelId] = byte(defaultSpeedValue)
 		}
+
+		zeroRpmFraction := 1.0
 		for {
 			select {
 			case <-timerSpeed.C:
@@ -1183,14 +1295,42 @@ func (d *Device) updateDeviceSpeed() {
 								}
 
 								var speed byte = 0x00
-								if d.Devices[k].ContainsPump {
-									speed = byte(profile.Pump)
+								if profiles.ZeroRpm {
+									if d.getLiquidTemperature() < 10 {
+										if d.Devices[k].ContainsPump {
+											speed = byte(profile.Pump)
+										} else {
+											speed = byte(profile.Fans)
+										}
+										if channelSpeeds[d.Devices[k].ChannelId] != speed {
+											channelSpeeds[d.Devices[k].ChannelId] = speed
+											d.setSpeed(channelSpeeds, 0)
+										}
+									} else {
+										if d.Devices[k].ContainsPump {
+											speed = byte(profile.Pump)
+										} else {
+											if d.getLiquidTemperature()+float32(zeroRpmFraction) <= float32(zeroRpmLimit) {
+												speed = 0x00
+											} else {
+												speed = byte(profile.Fans)
+											}
+										}
+										if channelSpeeds[d.Devices[k].ChannelId] != speed {
+											channelSpeeds[d.Devices[k].ChannelId] = speed
+											d.setSpeed(channelSpeeds, 0)
+										}
+									}
 								} else {
-									speed = byte(profile.Fans)
-								}
-								if channelSpeeds[d.Devices[k].ChannelId] != speed {
-									channelSpeeds[d.Devices[k].ChannelId] = speed
-									d.setSpeed(channelSpeeds, 0)
+									if d.Devices[k].ContainsPump {
+										speed = byte(profile.Pump)
+									} else {
+										speed = byte(profile.Fans)
+									}
+									if channelSpeeds[d.Devices[k].ChannelId] != speed {
+										channelSpeeds[d.Devices[k].ChannelId] = speed
+										d.setSpeed(channelSpeeds, 0)
+									}
 								}
 							}
 						}
@@ -1493,8 +1633,9 @@ func (d *Device) getSupportedDevice(deviceId byte, deviceModel byte) *SupportedD
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	lcdCover := false
+	lcdAvailable := false
 	var devices = make(map[int]*Devices, 0)
+	var xd5Serials = d.getNonAIOLCDSerials()
 
 	response := d.read(modeGetDevices, dataTypeGetDevices)
 	if d.Debug {
@@ -1511,9 +1652,10 @@ func (d *Device) getDevices() int {
 			continue
 		}
 		deviceTypeModel := data[position : position+8]
-		if deviceTypeModel[2] == 6 {
+		if deviceTypeModel[2] == 6 || deviceTypeModel[2] == 14 {
 			// iCUE LINK COOLER PUMP LCD
-			lcdCover = true
+			// iCUE LINK XD5 Elite LCD
+			lcdAvailable = true
 		}
 
 		deviceId := data[position+8 : position+8+int(deviceIdLen)]
@@ -1575,6 +1717,20 @@ func (d *Device) getDevices() int {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 		}
 
+		lcdSerial := ""
+		if d.DeviceProfile != nil {
+			// Profile is set
+			if ls, ok := d.DeviceProfile.LCDDevices[i]; ok {
+				if len(ls) > 0 {
+					lcdSerial = ls
+				}
+			} else {
+				logger.Log(logger.Fields{"serial": d.Serial, "lcdSerial": ls}).Warn("Tried to apply rgb profile to the non-existing channel")
+			}
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+		}
+
 		var ledChannels uint8 = 0
 		var adapterLedData uint8 = 0
 		var adapterData = 0
@@ -1618,6 +1774,16 @@ func (d *Device) getDevices() int {
 			IsLinkAdapter:      deviceMeta.LinkAdapter,
 			ExternalAdapter:    adapterData,
 		}
+
+		if len(lcdSerial) > 0 {
+			device.LCDSerial = lcdSerial
+		} else {
+			// Single XD5 pump installed, default to single serial
+			if lcdAvailable && device.Type == 12 && len(xd5Serials) == 1 {
+				device.LCDSerial = xd5Serials[0]
+			}
+		}
+
 		if i >= 13 {
 			device.PortId = 1
 		}
@@ -1636,15 +1802,21 @@ func (d *Device) getDevices() int {
 		position += 8 + int(deviceIdLen)
 	}
 
-	if !lcdCover {
-		d.HasLCD = lcdCover
+	if !lcdAvailable {
+		d.HasLCD = lcdAvailable
 	}
+
 	// Check if we have LCD Pump Cap and add additional LED channels
 	for key, device := range devices {
 		// LCD
-		if lcdCover {
+		if lcdAvailable {
 			if device.ContainsPump {
-				devices[key].LedChannels = devices[key].LedChannels + uint8(lcdLedChannels)
+				if device.AIO {
+					// AIO LCD cover with additional LEDs
+					devices[key].LedChannels = devices[key].LedChannels + uint8(lcdLedChannels)
+					// AIO have single LCD pump cover, default to single one
+					devices[key].LCDSerial = d.getAioLCDSerial()
+				}
 				devices[key].Name = devices[key].Name + " LCD"
 			}
 		}
@@ -1813,8 +1985,8 @@ func (d *Device) setDeviceColor() {
 						time.Duration(rgbModeSpeed)*time.Second,
 						rgbCustomColor,
 					)
-					r.ContainsPump = d.Devices[k].AIO
 					r.HasLCD = d.HasLCD
+					r.IsAIO = d.Devices[k].AIO
 
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor
@@ -2183,16 +2355,19 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 }
 
 // getLCDRotation will return rotation value based on rotation mode
-func (d *Device) getLCDRotation() int {
-	switch d.DeviceProfile.LCDRotation {
-	case 0:
+func (d *Device) getLCDRotation(channelId int) int {
+	if rotation, ok := d.DeviceProfile.LCDRotations[channelId]; ok {
+		switch rotation {
+		case 0:
+			return 0
+		case 1:
+			return 90
+		case 2:
+			return 180
+		case 3:
+			return 270
+		}
 		return 0
-	case 1:
-		return 90
-	case 2:
-		return 180
-	case 3:
-		return 270
 	}
 	return 0
 }
@@ -2205,129 +2380,127 @@ func (d *Device) setupLCD() {
 		for {
 			select {
 			case <-lcdTimer.C:
-				switch d.DeviceProfile.LCDMode {
-				case lcd.DisplayCPU:
-					{
-						buffer := lcd.GenerateScreenImage(
-							lcd.DisplayCPU,
-							int(temperatures.GetCpuTemperature()),
-							0,
-							0,
-							0,
-							d.getLCDRotation(),
-						)
-						d.transferToLcd(buffer, 0)
-					}
-				case lcd.DisplayGPU:
-					{
-						buffer := lcd.GenerateScreenImage(
-							lcd.DisplayGPU,
-							int(temperatures.GetGpuTemperature()),
-							0,
-							0,
-							0,
-							d.getLCDRotation(),
-						)
-						d.transferToLcd(buffer, 0)
-					}
-				case lcd.DisplayLiquid:
-					{
-						for _, device := range d.Devices {
-							if device.ContainsPump {
-								buffer := lcd.GenerateScreenImage(
-									lcd.DisplayLiquid,
-									int(device.Temperature),
-									0,
-									0,
-									0,
-									d.getLCDRotation(),
-								)
-								d.transferToLcd(buffer, 0)
-							}
+				for _, device := range d.Devices {
+					if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
+						lcdDevice := d.getLCDBySerial(device.LCDSerial)
+						if lcdDevice == nil {
+							continue
 						}
-					}
-				case lcd.DisplayPump:
-					{
-						for _, device := range d.Devices {
-							if device.ContainsPump {
-								buffer := lcd.GenerateScreenImage(
-									lcd.DisplayPump,
-									int(device.Rpm),
-									0,
-									0,
-									0,
-									d.getLCDRotation(),
-								)
-								d.transferToLcd(buffer, 0)
-							}
-						}
-					}
-				case lcd.DisplayAllInOne:
-					{
-						liquidTemp := 0
-						cpuTemp := 0
-						pumpSpeed := 0
-						for _, device := range d.Devices {
-							if device.ContainsPump {
-								liquidTemp = int(device.Temperature)
-								pumpSpeed = int(device.Rpm)
-							}
-						}
+						if lcdMode, ok := d.DeviceProfile.LCDModes[device.ChannelId]; ok {
+							switch lcdMode {
+							case lcd.DisplayCPU:
+								{
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayCPU,
+										int(temperatures.GetCpuTemperature()),
+										0,
+										0,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayGPU:
+								{
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayGPU,
+										int(temperatures.GetGpuTemperature()),
+										0,
+										0,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayLiquid:
+								{
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayLiquid,
+										int(device.Temperature),
+										0,
+										0,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayPump:
+								{
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayPump,
+										int(device.Rpm),
+										0,
+										0,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayAllInOne:
+								{
+									liquidTemp := 0
+									cpuTemp := 0
+									pumpSpeed := 0
+									liquidTemp = int(device.Temperature)
+									pumpSpeed = int(device.Rpm)
 
-						cpuTemp = int(temperatures.GetCpuTemperature())
-						buffer := lcd.GenerateScreenImage(
-							lcd.DisplayAllInOne,
-							liquidTemp,
-							cpuTemp,
-							pumpSpeed,
-							0,
-							d.getLCDRotation(),
-						)
-						d.transferToLcd(buffer, 0)
-					}
-				case lcd.DisplayCpuGpuTemp:
-					{
-						cpuTemp := int(temperatures.GetCpuTemperature())
-						gpuTemp := int(temperatures.GetGpuTemperature())
-						buffer := lcd.GenerateScreenImage(
-							lcd.DisplayCpuGpuTemp,
-							cpuTemp,
-							gpuTemp,
-							0,
-							0,
-							d.getLCDRotation(),
-						)
-						d.transferToLcd(buffer, 0)
-					}
-				case lcd.DisplayCpuGpuLoad:
-					{
-						cpuUtil := int(systeminfo.GetCpuUtilization())
-						gpuUtil := systeminfo.GetGPUUtilization()
-						buffer := lcd.GenerateScreenImage(
-							lcd.DisplayCpuGpuLoad,
-							cpuUtil,
-							gpuUtil,
-							0,
-							0,
-							d.getLCDRotation(),
-						)
-						d.transferToLcd(buffer, 0)
-					}
-				case lcd.DisplayCpuGpuLoadTemp:
-					{
-						cpuTemp := int(temperatures.GetCpuTemperature())
-						gpuTemp := int(temperatures.GetGpuTemperature())
-						cpuUtil := int(systeminfo.GetCpuUtilization())
-						gpuUtil := systeminfo.GetGPUUtilization()
-						buffer := lcd.GenerateScreenImage(
-							lcd.DisplayCpuGpuLoadTemp,
-							cpuTemp,
-							gpuTemp,
-							cpuUtil,
-							gpuUtil,
-							d.getLCDRotation(),
-						)
-						d.transferToLcd(buffer, 0)
+									cpuTemp = int(temperatures.GetCpuTemperature())
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayAllInOne,
+										liquidTemp,
+										cpuTemp,
+										pumpSpeed,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayCpuGpuTemp:
+								{
+									cpuTemp := int(temperatures.GetCpuTemperature())
+									gpuTemp := int(temperatures.GetGpuTemperature())
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayCpuGpuTemp,
+										cpuTemp,
+										gpuTemp,
+										0,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayCpuGpuLoad:
+								{
+									cpuUtil := int(systeminfo.GetCpuUtilization())
+									gpuUtil := systeminfo.GetGPUUtilization()
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayCpuGpuLoad,
+										cpuUtil,
+										gpuUtil,
+										0,
+										0,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							case lcd.DisplayCpuGpuLoadTemp:
+								{
+									cpuTemp := int(temperatures.GetCpuTemperature())
+									gpuTemp := int(temperatures.GetGpuTemperature())
+									cpuUtil := int(systeminfo.GetCpuUtilization())
+									gpuUtil := systeminfo.GetGPUUtilization()
+									buffer := lcd.GenerateScreenImage(
+										lcd.DisplayCpuGpuLoadTemp,
+										cpuTemp,
+										gpuTemp,
+										cpuUtil,
+										gpuUtil,
+										d.getLCDRotation(device.ChannelId),
+									)
+									d.transferToLcd(buffer, lcdDevice)
+								}
+							}
+						}
 					}
 				}
 			case <-lcdRefreshChan:
@@ -2409,7 +2582,7 @@ func (d *Device) writeColor(data []byte) {
 }
 
 // transferToLcd will transfer data to LCD panel
-func (d *Device) transferToLcd(buffer []byte, lcdId int) {
+func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 	mutexLcd.Lock()
 	defer mutexLcd.Unlock()
 	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
@@ -2428,8 +2601,8 @@ func (d *Device) transferToLcd(buffer []byte, lcdId int) {
 		binary.LittleEndian.PutUint16(bufferW[6:8], uint16(len(chunk)))
 		copy(bufferW[8:], chunk)
 
-		if d.lcd != nil {
-			if _, err := d.lcd[lcdId].Lcd.Write(bufferW); err != nil {
+		if d.Lcd != nil {
+			if _, err := lcdDevice.Write(bufferW); err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 				break
 			}

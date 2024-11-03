@@ -273,6 +273,17 @@ func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeDeviceLcd handles device LCD updates
+func changeDeviceLcd(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdDeviceChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceLcdRotation handles device LCD rotation changes
 func setDeviceLcdRotation(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLcdRotationChange(r)
@@ -372,6 +383,17 @@ func setExternalHubDeviceType(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setARGBDevice handles device change of ARGB 3-pin devices
+func setARGBDevice(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessARGBDevice(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setExternalHubDeviceAmount handles device amount change of external-LED hub
 func setExternalHubDeviceAmount(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessExternalHubDeviceAmount(r)
@@ -396,6 +418,50 @@ func getDashboardSettings(w http.ResponseWriter, r *http.Request) {
 // setDashboardSettings handles dashboard settings change
 func setDashboardSettings(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDashboardSettingsChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setKeyboardColor handles keyboard color change
+func setKeyboardColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessKeyboardColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// saveKeyboardProfile handles a new keyboard profile
+func saveKeyboardProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSaveKeyboardProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// deleteKeyboardProfile handles deletion of keyboard profile
+func deleteKeyboardProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteKeyboardProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeKeyboardProfile handles keyboard profile change
+func changeKeyboardProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeKeyboardProfile(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -598,6 +664,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setDeviceLabel)
 	r.Methods(http.MethodPost).Path("/api/lcd").
 		HandlerFunc(setDeviceLcd)
+	r.Methods(http.MethodPost).Path("/api/lcd/device").
+		HandlerFunc(changeDeviceLcd)
 	r.Methods(http.MethodPost).Path("/api/lcd/rotation").
 		HandlerFunc(setDeviceLcdRotation)
 	r.Methods(http.MethodPut).Path("/api/userProfile").
@@ -612,6 +680,18 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getDashboardSettings)
 	r.Methods(http.MethodPost).Path("/api/dashboard").
 		HandlerFunc(setDashboardSettings)
+	r.Methods(http.MethodPost).Path("/api/argb").
+		HandlerFunc(setARGBDevice)
+	r.Methods(http.MethodPost).Path("/api/keyboard/color").
+		HandlerFunc(setKeyboardColor)
+	r.Methods(http.MethodPut).Path("/api/keyboard/profile/new").
+		HandlerFunc(saveKeyboardProfile)
+	r.Methods(http.MethodPost).Path("/api/keyboard/profile/change").
+		HandlerFunc(changeKeyboardProfile)
+	r.Methods(http.MethodPost).Path("/api/keyboard/profile/save").
+		HandlerFunc(saveKeyboardProfile)
+	r.Methods(http.MethodDelete).Path("/api/keyboard/profile/delete").
+		HandlerFunc(deleteKeyboardProfile)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

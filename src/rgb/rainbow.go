@@ -77,7 +77,7 @@ func (r *ActiveRGB) Rainbow(startTime time.Time) {
 			byte(color.G),
 			byte(color.B),
 		}
-		if r.ContainsPump && r.HasLCD {
+		if r.IsAIO && r.HasLCD {
 			if i > 15 && i < 20 {
 				buf[i] = []byte{0, 0, 0}
 			}

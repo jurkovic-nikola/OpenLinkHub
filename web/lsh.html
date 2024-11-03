@@ -21,15 +21,16 @@
         {{ $devs := .Devices }}
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
+        {{ $lcdDeviceAmount := .Device.XD5LCDs }}
+        {{ $lcdDevices := .Device.Lcd }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
         {{ $devices := $device.Devices }}
         {{ $rgb := .Rgb }}
         {{ $lcd := .Device.HasLCD }}
         {{ $lcdModes := .Device.LCDModes }}
-        {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
         {{ $positions := .Device.DeviceProfile.Positions }}
         {{ $rgbStrips := .Device.RGBStrips }}
         {{ $lcdRotations := .Device.LCDRotations }}
-        {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
           <div class="container-fluid">
@@ -46,6 +47,8 @@
               <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
                 {{ if eq $d.ProductType 8 }}
                 <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                {{ else if gt $d.ProductType 100 }}
+                <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                 {{ else }}
                 <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                 {{ end }}
@@ -57,6 +60,8 @@
               <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
                 {{ if eq $d.ProductType 8 }}
                 <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
+                {{ else if gt $d.ProductType 100 }}
+                <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                 {{ else }}
                 <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                 {{ end }}
@@ -91,264 +96,318 @@
 
         <section class="pt-0 pt-sm-4">
           <div class="container-fluid">
-            <div class="row gy-4" style="margin-top: 10px;">
-              <div class="row">
-                <div style="width: 300px;">
-                  <div class="card mb-4">
-                    <div class="card-header border-bottom border-dash-dark-1">
-                      <div class="ds-svg-placeholder-left">
-                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="Device" />
-                      </div>
-                      <div class="ds-svg-placeholder-right">
-                        <span style="font-size: 13px;">{{ .Device.Product }}</span><br />
-                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                          <span>Device Settings</span>
-                        </p>
+            <div class="row gy-4">
+              <div class="ctn">
+                <div style="float: left;width:auto;">
+                  <div class="custom-device-block" style="width: 100%;">
+                    <div style="float: left;text-align: left;width: 50%;">
+                      <div class="btn btn-secondary-empty" style="text-align: center;width: 95%;">
+                            <span style="color: #a1a1a1;">
+                                <img src="/static/img/icons/icon-cpu.svg" width="64" height="64" alt="CPU" class="top-px" /><br />
+                                <p class="text-md-center lh-1 mb-0 text-dash-color-2 device-px" id="cpu_temp">{{ .CpuTemp }}</p>
+                            </span>
                       </div>
                     </div>
-                    <div class="card-body" style="padding: 1rem 1rem;">
-                      <div style="text-align: center;">
-                        <div class="d-flex align-items-end justify-content-between mb-2">
-                          <div class="me-2">
-                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Firmware</p>
-                          </div>
-                          <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Device.Firmware }}</p>
-                        </div>
-                        <div class="progress" style="height: 3px">
-                          <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
+                    <div style="float: right;text-align: right;width: 50%;">
+                      {{ if .SystemInfo.GPU }}
+                      <div class="btn btn-secondary-empty" style="text-align: center;width: 95%;">
+                            <span style="color: #a1a1a1;">
+                                <img src="/static/img/icons/icon-gpu.svg" width="64" height="64" alt="CPU" class="top-px" /><br />
+                                <p class="text-md-center lh-1 mb-0 text-dash-color-2 device-px" id="gpu_temp">{{ .GpuTemp }}</p>
+                            </span>
+                      </div>
+                      {{ end }}
+                    </div>
+                  </div>
 
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-person svg-icon svg-icon-sm svg-icon-heavy"></i>
-                          </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select userProfile" style="line-height: 1;margin-top: 10px;">
-                              {{ range $key, $profile := $device.UserProfiles }}
-                              {{ if $profile.Active }}
-                              <option value="{{ $key }}" selected>{{ $key }}</option>
-                              {{ else }}
-                              <option value="{{ $key }}">{{ $key }}</option>
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
+                  <div style="width: 280px;margin-top:10px;">
+                    <div class="card mb-4">
+                      <div class="card-header border-bottom border-dash-dark-1">
+                        <div class="ds-svg-placeholder-left">
+                          <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="Device" />
                         </div>
+                        <div class="ds-svg-placeholder-right">
+                          <span style="font-size: 13px;">{{ .Device.Product }}</span><br />
+                          <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                            <span>Device Settings</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div class="card-body" style="padding: 1rem 1rem;">
+                        <div style="text-align: center;">
+                          <div class="d-flex align-items-end justify-content-between mb-2">
+                            <div class="me-2">
+                              <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Firmware</p>
+                            </div>
+                            <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Device.Firmware }}</p>
+                          </div>
+                          <div class="progress" style="height: 3px">
+                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                          </div>
 
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-lightning-charge svg-icon svg-icon-sm svg-icon-heavy"></i>
+                          <div class="custom-device-block">
+                            <div class="custom-float-20-left">
+                              <i class="bi bi-person svg-icon svg-icon-sm svg-icon-heavy"></i>
+                            </div>
+                            <div class="custom-float-80-right">
+                              <select class="form-select userProfile" style="line-height: 1;margin-top: 10px;">
+                                {{ range $key, $profile := $device.UserProfiles }}
+                                {{ if $profile.Active }}
+                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                {{ else }}
+                                <option value="{{ $key }}">{{ $key }}</option>
+                                {{ end }}
+                                {{ end }}
+                              </select>
+                            </div>
                           </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select brightness" style="line-height: 1;margin-top: 10px;">
-                              {{ range $key, $brightness := $device.Brightness }}
-                              {{ if eq $device.DeviceProfile.Brightness $key }}
-                              <option value="{{ $key }}" selected>{{ $brightness }}</option>
-                              {{ else }}
-                              <option value="{{ $key }}">{{ $brightness }}</option>
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
-                        </div>
 
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                          <div class="custom-device-block">
+                            <div class="custom-float-20-left">
+                              <i class="bi bi-lightning-charge svg-icon svg-icon-sm svg-icon-heavy"></i>
+                            </div>
+                            <div class="custom-float-80-right">
+                              <select class="form-select brightness" style="line-height: 1;margin-top: 10px;">
+                                {{ range $key, $brightness := $device.Brightness }}
+                                {{ if eq $device.DeviceProfile.Brightness $key }}
+                                <option value="{{ $key }}" selected>{{ $brightness }}</option>
+                                {{ else }}
+                                <option value="{{ $key }}">{{ $brightness }}</option>
+                                {{ end }}
+                                {{ end }}
+                              </select>
+                            </div>
                           </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
-                              {{ range $key, $_ := $rgb }}
-                              <option value="{{ $key }}">{{ $key }}</option>
-                              {{ end }}
-                            </select>
+
+                          <div class="custom-device-block">
+                            <div class="custom-float-20-left">
+                              <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                            </div>
+                            <div class="custom-float-80-right">
+                              <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
+                                {{ range $key, $_ := $rgb }}
+                                <option value="{{ $key }}">{{ $key }}</option>
+                                {{ end }}
+                              </select>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div style="overflow: hidden; margin-top: 10px;">
-                          <button class="btn btn-secondary saveUserProfile">
-                            <span>Save As</span>
-                          </button>
+
+                          <div style="overflow: hidden; margin-top: 10px;">
+                            <button class="btn btn-secondary saveUserProfile">
+                              <span>Save As</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-                {{ range $position, $channel := $positions }}
-                {{ $device := index $devices $channel }}
-                <div style="width: 300px;">
-                  <div class="card mb-4">
-                    <div class="card-header border-bottom border-dash-dark-1">
-                      <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
-                        {{ if $device.ContainsPump }}
-                        <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
-                        {{ else if $device.IsLinkAdapter }}
-                        <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
-                        {{ else if $device.IsCpuBlock }}
-                        <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
-                        {{ else }}
-                        <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
-                        {{ end }}
-                        <div class="align-center-text">
-                          {{ if ne $position 1 }}
-                          <span class="bi bi-arrow-left svg-icon svg-icon-sm svg-icon-heavy moveLeft" data="{{ $position }};{{ $channel }}"></span>
-                          {{ end }}
-
-                          {{ $length := len $positions }}{{ if ne $position $length }}
-                          <span class="bi bi-arrow-right svg-icon svg-icon-sm svg-icon-heavy moveRight" data="{{ $position }};{{ $channel }}"></span>
-                          {{ end }}
-                        </div>
-                      </div>
-
-                      <div class="ds-svg-placeholder-right">
-                        <span style="font-size: 13px;">{{ $device.Name }}</span><br />
-                        <p class="text-md-start lh-1 mb-0 text-dash-color-3 newLabel" style="margin-top: 5px;">
-                          <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                          <span class="labelValue">{{ $device.Label }}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div class="card-body" style="padding: 1rem 1rem;">
-                      <div style="text-align: center;">
-                        {{ if $device.HasTemps }}
-                        {{ if gt $device.Temperature 0.00 }}
-                        <div class="d-flex align-items-end justify-content-between mb-2">
-                          <div class="me-2">
+                <div class="ctn-left">
+                  <div class="row">
+                    {{ range $position, $channel := $positions }}
+                    {{ $device := index $devices $channel }}
+                    <div style="width: 300px;">
+                      <div class="card mb-4">
+                        <div class="card-header border-bottom border-dash-dark-1">
+                          <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
                             {{ if $device.ContainsPump }}
-                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                            <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
+                            {{ else if $device.IsLinkAdapter }}
+                            <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
                             {{ else if $device.IsCpuBlock }}
-                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                            <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
                             {{ else }}
-                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
+                            <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
+                            {{ end }}
+                            <div class="align-center-text">
+                              {{ if ne $position 1 }}
+                              <span class="bi bi-arrow-left svg-icon svg-icon-sm svg-icon-heavy moveLeft" data="{{ $position }};{{ $channel }}"></span>
+                              {{ end }}
+
+                              {{ $length := len $positions }}{{ if ne $position $length }}
+                              <span class="bi bi-arrow-right svg-icon svg-icon-sm svg-icon-heavy moveRight" data="{{ $position }};{{ $channel }}"></span>
+                              {{ end }}
+                            </div>
+                          </div>
+
+                          <div class="ds-svg-placeholder-right">
+                            <span style="font-size: 13px;">{{ $device.Name }}</span><br />
+                            <p class="text-md-start lh-1 mb-0 text-dash-color-3 newLabel" style="margin-top: 5px;">
+                              <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                              <span class="labelValue">{{ $device.Label }}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div class="card-body" style="padding: 1rem 1rem;">
+                          <div style="text-align: center;">
+                            {{ if $device.HasTemps }}
+                            {{ if gt $device.Temperature 0.00 }}
+                            <div class="d-flex align-items-end justify-content-between mb-2">
+                              <div class="me-2">
+                                {{ if $device.ContainsPump }}
+                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                                {{ else if $device.IsCpuBlock }}
+                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                                {{ else }}
+                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
+                                {{ end }}
+                              </div>
+                              <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.TemperatureString }}</p>
+                            </div>
+                            <div class="progress" style="height: 3px">
+                              <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            {{ end }}
+                            {{ end }}
+
+                            {{ if $device.HasSpeed }}
+                            <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
+                              <div class="me-2">
+                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
+                              </div>
+                              <p class="text-sm lh-1 mb-0 text-dash-color-2" id="speed-{{ $device.DeviceId }}" style="margin-top: 5px;">{{ $device.Rpm }} RPM</p>
+                            </div>
+                            <div class="progress" style="height: 3px">
+                              <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+
+                            <div class="custom-device-block">
+                              <div class="custom-float-20-left">
+                                <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                              </div>
+                              <div class="custom-float-80-right">
+                                <select class="form-select tempProfile" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top: 10px;">
+                                  {{ if $device.PumpModes }}
+                                  {{ range $key, $value := $device.PumpModes }}
+                                  {{ if eq $device.Profile $value }}
+                                  <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                  {{ else }}
+                                  {{ range $key, $pf := $temperatures }}
+                                  {{ if $pf.Hidden }}
+                                  {{ continue }}
+                                  {{ end }}
+                                  {{ if eq $device.Profile $key }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                  {{ end }}
+                                </select>
+                              </div>
+                            </div>
+                            {{ end }}
+
+                            {{ if $device.IsLinkAdapter }}
+                            <div class="custom-device-block">
+                              <div class="custom-float-20-left">
+                                <i class="bi bi-type-strikethrough svg-icon svg-icon-sm svg-icon-heavy"></i>
+                              </div>
+                              <div class="custom-float-80-right">
+                                <select class="form-select rgbStrips" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                                  {{ range $key, $value := $rgbStrips }}
+                                  {{ if eq $key $device.ExternalAdapter }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $value }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}">{{ $value }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                </select>
+                              </div>
+                            </div>
+                            {{ end }}
+
+                            {{ if gt $device.LedChannels 0 }}
+                            <div class="custom-device-block">
+                              <div class="custom-float-20-left">
+                                <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                              </div>
+                              <div class="custom-float-80-right">
+                                <select class="form-select rgbProfile" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                                  {{ range $key, $_ := $rgb }}
+                                  {{ if eq $key $device.RGB }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                </select>
+                              </div>
+                            </div>
+                            {{ end }}
+
+                            {{ if and $lcd $device.ContainsPump }}
+                            {{ $lcdMode := index $deviceProfile.LCDModes $device.ChannelId }}
+                            {{ $lcdRotation := index $deviceProfile.LCDRotations $device.ChannelId }}
+                            {{ $lcdDevs := index $deviceProfile.LCDDevices $device.ChannelId }}
+
+                            {{ if gt $lcdDeviceAmount 1 }}
+                            <div class="custom-device-block">
+                              <div class="custom-float-20-left">
+                                <i class="bi bi-display svg-icon svg-icon-sm svg-icon-heavy"></i>
+                              </div>
+                              <div class="custom-float-80-right">
+                                <select class="form-select lcdDevices" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                                  <option value="0;0">Select LCD Device</option>
+                                  {{ range $value := $lcdDevices }}
+                                  {{ if $value.AIO }}
+                                  {{ continue }}
+                                  {{ end }}
+                                  {{ if eq $lcdDevs $value.Serial }}
+                                  <option value="{{ $device.ChannelId }};{{ $value.Serial }}" selected>{{ $value.Product }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $value.Serial }}">{{ $value.Product }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                </select>
+                              </div>
+                            </div>
+                            {{ end }}
+
+                            <div class="custom-device-block">
+                              <div class="custom-float-20-left">
+                                <i class="bi bi-display svg-icon svg-icon-sm svg-icon-heavy"></i>
+                              </div>
+                              <div class="custom-float-80-right">
+                                <select class="form-select lcdMode" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                                  {{ range $key, $value := $lcdModes }}
+                                  {{ if eq $key $lcdMode }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $value }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}">{{ $value }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                </select>
+                              </div>
+                            </div>
+                            <div class="custom-device-block">
+                              <div class="custom-float-20-left">
+                                <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
+                              </div>
+                              <div class="custom-float-80-right">
+                                <select class="form-select lcdRotation" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                                  {{ range $key, $value := $lcdRotations }}
+                                  {{ if eq $key $lcdRotation }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $value }}</option>
+                                  {{ else }}
+                                  <option value="{{ $device.ChannelId }};{{ $key }}">{{ $value }}</option>
+                                  {{ end }}
+                                  {{ end }}
+                                </select>
+                              </div>
+                            </div>
                             {{ end }}
                           </div>
-                          <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.TemperatureString }}</p>
                         </div>
-                        <div class="progress" style="height: 3px">
-                          <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        {{ end }}
-                        {{ end }}
-
-                        {{ if $device.HasSpeed }}
-                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                          <div class="me-2">
-                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
-                          </div>
-                          <p class="text-sm lh-1 mb-0 text-dash-color-2" id="speed-{{ $device.DeviceId }}" style="margin-top: 5px;">{{ $device.Rpm }} RPM</p>
-                        </div>
-                        <div class="progress" style="height: 3px">
-                          <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
-                          </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select tempProfile" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top: 10px;">
-                              {{ if $device.PumpModes }}
-                              {{ range $key, $value := $device.PumpModes }}
-                              {{ if eq $device.Profile $value }}
-                              <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
-                              {{ else }}
-                              <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
-                              {{ end }}
-                              {{ end }}
-                              {{ else }}
-                              {{ range $key, $pf := $temperatures }}
-                              {{ if $pf.Hidden }}
-                              {{ continue }}
-                              {{ end }}
-                              {{ if eq $device.Profile $key }}
-                              <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                              {{ else }}
-                              <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                              {{ end }}
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
-                        </div>
-                        {{ end }}
-
-                        {{ if $device.IsLinkAdapter }}
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-type-strikethrough svg-icon svg-icon-sm svg-icon-heavy"></i>
-                          </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select rgbStrips" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
-                              {{ range $key, $value := $rgbStrips }}
-                              {{ if eq $key $device.ExternalAdapter }}
-                              <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $value }}</option>
-                              {{ else }}
-                              <option value="{{ $device.ChannelId }};{{ $key }}">{{ $value }}</option>
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
-                        </div>
-                        {{ end }}
-
-                        {{ if gt $device.LedChannels 0 }}
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                          </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select rgbProfile" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
-                              {{ range $key, $_ := $rgb }}
-                              {{ if eq $key $device.RGB }}
-                              <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                              {{ else }}
-                              <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
-                        </div>
-                        {{ end }}
-
-                        {{ if and $lcd $device.ContainsPump }}
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-display svg-icon svg-icon-sm svg-icon-heavy"></i>
-                          </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select lcdMode" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
-                              {{ range $key, $value := $lcdModes }}
-                              {{ if eq $key $lcdMode }}
-                              <option value="{{ $key }}" selected>{{ $value }}</option>
-                              {{ else }}
-                              <option value="{{ $key }}">{{ $value }}</option>
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
-                        </div>
-                        <div class="custom-device-block">
-                          <div class="custom-float-20-left">
-                            <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
-                          </div>
-                          <div class="custom-float-80-right">
-                            <select class="form-select lcdRotation" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
-                              {{ range $key, $value := $lcdRotations }}
-                              {{ if eq $key $lcdRotation }}
-                              <option value="{{ $key }}" selected>{{ $value }}</option>
-                              {{ else }}
-                              <option value="{{ $key }}">{{ $value }}</option>
-                              {{ end }}
-                              {{ end }}
-                            </select>
-                          </div>
-                        </div>
-                        {{ end }}
                       </div>
                     </div>
+                    {{ end }}
                   </div>
                 </div>
-                {{ end }}
               </div>
             </div>
           </div>

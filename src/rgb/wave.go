@@ -15,6 +15,11 @@ func (r *ActiveRGB) Wave(wavePosition float64) {
 		green := modify.Green * intensity
 		blue := modify.Blue * intensity
 		buf[i] = []byte{byte(red), byte(green), byte(blue)}
+		if r.IsAIO && r.HasLCD {
+			if i > 15 && i < 20 {
+				buf[i] = []byte{0, 0, 0}
+			}
+		}
 	}
 	r.Output = SetColor(buf)
 }

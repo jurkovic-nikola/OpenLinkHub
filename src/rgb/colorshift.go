@@ -31,7 +31,7 @@ func (r *ActiveRGB) Colorshift(i int, reverse bool) {
 				byte(color.G),
 				byte(color.B),
 			}
-			if r.ContainsPump && r.HasLCD {
+			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {
 					buf[j] = []byte{0, 0, 0}
 				}
@@ -46,7 +46,7 @@ func (r *ActiveRGB) Colorshift(i int, reverse bool) {
 				byte(color.G),
 				byte(color.B),
 			}
-			if r.ContainsPump && r.HasLCD {
+			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {
 					buf[j] = []byte{0, 0, 0}
 				}

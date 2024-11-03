@@ -100,3 +100,12 @@ func IsValidExtension(path, extension string) bool {
 	}
 	return true
 }
+
+func IndexOfString(slice []string, target string) int {
+	for i, v := range slice {
+		if v == target {
+			return i
+		}
+	}
+	return -1 // Return -1 if the target is not found
+}

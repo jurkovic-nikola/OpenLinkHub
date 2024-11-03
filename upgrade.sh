@@ -16,6 +16,7 @@ if [ -f $PRODUCT_FILE ]; then
   cp OpenLinkHub "/opt/$PRODUCT/"
   cp -r web/ "/opt/$PRODUCT/"
   cp -r static/ "/opt/$PRODUCT/"
+  cp -r database/ "/opt/$PRODUCT/"
   cp config.json "/opt/$PRODUCT/"
   chmod -R 755 /opt/$PRODUCT
   chown -R "$CURRENT_USER":root /opt/$PRODUCT

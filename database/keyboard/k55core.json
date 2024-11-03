@@ -1,0 +1,952 @@
+{
+  "key": "k55core-default",
+  "device": "K55 Core RGB",
+  "layout": "US",
+  "rows": 5,
+  "zones": {
+    "1":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "2":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "3":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "4":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "5":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "6":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "7":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "8":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "9":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    },
+    "10":{
+      "color": {
+        "red": 0,
+        "green": 255,
+        "blue": 255
+      }
+    }
+  },
+  "row": {
+    "0": {
+      "keys": {
+        "1": {
+          "keyName": "ESC",
+          "width": 65,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "zone": 1
+        },
+        "2": {
+          "keyName": "F1",
+          "width": 65,
+          "height": 70,
+          "left": 95,
+          "top": 0,
+          "zone": 2
+        },
+        "3": {
+          "keyName": "F2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 2
+        },
+        "4": {
+          "keyName": "F3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 3
+        },
+        "5": {
+          "keyName": "F4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 3
+        },
+        "6": {
+          "keyName": "F5",
+          "width": 65,
+          "height": 70,
+          "left": 55,
+          "top": 0,
+          "zone": 4
+        },
+        "7": {
+          "keyName": "F6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 4
+        },
+        "8": {
+          "keyName": "F7",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 5
+        },
+        "9": {
+          "keyName": "F8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 5
+        },
+        "10": {
+          "keyName": "F9",
+          "width": 65,
+          "height": 70,
+          "left": 60,
+          "top": 0,
+          "zone": 6
+        },
+        "11": {
+          "keyName": "F10",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 6
+        },
+        "12": {
+          "keyName": "F11",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 7
+        },
+        "13": {
+          "keyName": "F12",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 7
+        },
+        "14": {
+          "keyName": "PrtSc",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 0,
+          "zone": 8
+        },
+        "15": {
+          "keyName": "ScrLk",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 8
+        },
+        "16": {
+          "keyName": "Pause",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 8
+        }
+      }
+    },
+    "1": {
+      "keys": {
+        "17": {
+          "keyName": "` ~",
+          "width": 65,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 1
+        },
+        "18": {
+          "keyName": "1",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 1
+        },
+        "19": {
+          "keyName": "2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "20": {
+          "keyName": "3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "21": {
+          "keyName": "4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "22": {
+          "keyName": "5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "23": {
+          "keyName": "6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "24": {
+          "keyName": "7",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "25": {
+          "keyName": "8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "26": {
+          "keyName": "9",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "27": {
+          "keyName": "0",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "28": {
+          "keyName": "-",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "29": {
+          "keyName": "=",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "30": {
+          "keyName": "<---",
+          "width": 150,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "31": {
+          "keyName": "Ins",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "zone": 8
+        },
+        "32": {
+          "keyName": "Home",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 8
+        },
+        "33": {
+          "keyName": "PgUp",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 8
+        },
+        "34": {
+          "keyName": "Num",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "zone": 9
+        },
+        "35": {
+          "keyName": "/",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 9
+        },
+        "36": {
+          "keyName": "*",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        },
+        "37": {
+          "keyName": "-",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        }
+      }
+    },
+    "2": {
+      "keys": {
+        "38": {
+          "keyName": "Tab",
+          "width": 108,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 1
+        },
+        "39": {
+          "keyName": "Q",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "40": {
+          "keyName": "W",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "41": {
+          "keyName": "E",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "42": {
+          "keyName": "R",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "43": {
+          "keyName": "T",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "44": {
+          "keyName": "Y",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "45": {
+          "keyName": "U",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "46": {
+          "keyName": "I",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "47": {
+          "keyName": "O",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "48": {
+          "keyName": "P",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "49": {
+          "keyName": "[ {",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "50": {
+          "keyName": "] }",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "51": {
+          "keyName": "\\ |",
+          "width": 107,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "52": {
+          "keyName": "Del",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "zone": 8
+        },
+        "53": {
+          "keyName": "End",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 8
+        },
+        "54": {
+          "keyName": "PgDn",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 8
+        },
+        "55": {
+          "keyName": "7",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "zone": 9
+        },
+        "56": {
+          "keyName": "8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 9
+        },
+        "57": {
+          "keyName": "9",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        },
+        "58": {
+          "keyName": "+",
+          "width": 65,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        }
+      }
+    },
+    "3": {
+      "keys": {
+        "59": {
+          "keyName": "CAPS",
+          "width": 131,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 1
+        },
+        "60": {
+          "keyName": "A",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "61": {
+          "keyName": "S",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "62": {
+          "keyName": "D",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "63": {
+          "keyName": "F",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "64": {
+          "keyName": "G",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "65": {
+          "keyName": "H",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "66": {
+          "keyName": "J",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "67": {
+          "keyName": "K",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "68": {
+          "keyName": "L",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "69": {
+          "keyName": "; :",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "70": {
+          "keyName": "' ''",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "71": {
+          "keyName": "Enter",
+          "width": 164,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "72": {
+          "keyName": "4",
+          "width": 65,
+          "height": 70,
+          "left": 275,
+          "top": 15,
+          "zone": 9
+        },
+        "73": {
+          "keyName": "5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 9
+        },
+        "74": {
+          "keyName": "6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        }
+      }
+    },
+    "4": {
+      "keys": {
+        "75": {
+          "keyName": "Shift",
+          "width": 170,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 1
+        },
+        "76": {
+          "keyName": "Z",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "77": {
+          "keyName": "X",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "78": {
+          "keyName": "C",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "79": {
+          "keyName": "V",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "80": {
+          "keyName": "B",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "81": {
+          "keyName": "N",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 4
+        },
+        "82": {
+          "keyName": "M",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "83": {
+          "keyName": ", <",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 5
+        },
+        "84": {
+          "keyName": ". >",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "85": {
+          "keyName": "/ ?",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "86": {
+          "keyName": "Shift",
+          "width": 205,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "87": {
+          "keyName": "↑",
+          "width": 65,
+          "height": 70,
+          "left": 105,
+          "top": 15,
+          "zone": 8
+        },
+        "88": {
+          "keyName": "1",
+          "width": 65,
+          "height": 70,
+          "left": 105,
+          "top": 15,
+          "zone": 9
+        },
+        "89": {
+          "keyName": "2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 9
+        },
+        "90": {
+          "keyName": "3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        },
+        "91": {
+          "keyName": "Enter",
+          "width": 65,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        }
+      }
+    },
+    "5": {
+      "keys": {
+        "92": {
+          "keyName": "Ctrl",
+          "width": 90,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 1
+        },
+        "93": {
+          "keyName": "⊞",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "94": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2
+        },
+        "95": {
+          "keyName": "----------",
+          "width": 151,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 3
+        },
+        "96": {
+          "keyName": "----------",
+          "width": 153,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 4
+        },
+        "97": {
+          "keyName": "----------",
+          "width": 151,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "zone": 5
+        },
+        "98": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "99": {
+          "keyName": "Fn",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 6
+        },
+        "100": {
+          "keyName": "RC",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "101": {
+          "keyName": "Ctrl",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 7
+        },
+        "102": {
+          "keyName": "←",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "zone": 8
+        },
+        "103": {
+          "keyName": "↓",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 8
+        },
+        "104": {
+          "keyName": "→",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 8
+        },
+        "105": {
+          "keyName": "0",
+          "width": 145,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "zone": 9
+        },
+        "106": {
+          "keyName": ".",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 10
+        }
+      }
+    }
+  }
+}

@@ -1072,4 +1072,30 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    $('.keyLayout').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyboardLayout"] = $(this).val();
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/keyboard/layout',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload()
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

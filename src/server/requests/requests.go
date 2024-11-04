@@ -36,6 +36,7 @@ type Payload struct {
 	UserProfileName     string    `json:"userProfileName"`
 	LcdSerial           string    `json:"lcdSerial"`
 	KeyboardProfileName string    `json:"keyboardProfileName"`
+	KeyboardLayout      string    `json:"keyboardLayout"`
 	Brightness          uint8     `json:"brightness"`
 	Position            int       `json:"position"`
 	Direction           int       `json:"direction"`
@@ -504,6 +505,50 @@ func ProcessSaveKeyboardProfile(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to save keyboard profile. Please try again", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to save keyboard profile.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeKeyboardLayout will process POST request from a client for device layout change
+func ProcessChangeKeyboardLayout(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.KeyboardLayout) < 0 {
+		return &Payload{Message: "Invalid profile name", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.KeyboardLayout); !m {
+		return &Payload{Message: "Profile name can contain only letters and numbers", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeKeyboardLayout(req.DeviceId, req.KeyboardLayout)
+	switch status {
+	case 1:
+		return &Payload{Message: "Keyboard layout successfully changed.", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change keyboard layout. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change keyboard layout.", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDeleteKeyboardProfile will process DELETE request from a client for device profile deletion

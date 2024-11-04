@@ -448,6 +448,17 @@ func saveKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeKeyboardLayout handles keyboard layout change
+func changeKeyboardLayout(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeKeyboardLayout(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // deleteKeyboardProfile handles deletion of keyboard profile
 func deleteKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDeleteKeyboardProfile(r)
@@ -692,6 +703,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(saveKeyboardProfile)
 	r.Methods(http.MethodDelete).Path("/api/keyboard/profile/delete").
 		HandlerFunc(deleteKeyboardProfile)
+	r.Methods(http.MethodPost).Path("/api/keyboard/layout").
+		HandlerFunc(changeKeyboardLayout)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

@@ -37,6 +37,7 @@ type DeviceProfile struct {
 	Brightness  uint8
 	RGBProfile  string
 	Label       string
+	Layout      string
 	Keyboards   map[string]*keyboards.Keyboard
 	Profile     string
 	Profiles    []string
@@ -60,13 +61,14 @@ type Device struct {
 	LEDChannels     int
 	CpuTemp         float32
 	GpuTemp         float32
+	Layouts         []string
 }
 
 var (
 	pwd                     = ""
 	cmdSoftwareMode         = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode         = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdActivateLed          = []byte{0x0d, 0x00, 0x22}
+	cmdActivateLed          = []byte{0x0d, 0x01, 0x22}
 	cmdGetFirmware          = []byte{0x02, 0x13}
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
@@ -85,6 +87,8 @@ var (
 	headerWriteSize         = 4
 	maxBufferSizePerRequest = 61
 	colorPacketLength       = 35
+	keyboardKey             = "k55core-default"
+	defaultLayout           = "k55core-default-US"
 )
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -131,6 +135,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		},
 		Product:     "K55 Core RGB",
 		LEDChannels: 10,
+		Layouts:     keyboards.GetLayouts(keyboardKey),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -237,11 +242,17 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.RGBProfile = "keyboard"
 		deviceProfile.Label = "Keyboard"
 		deviceProfile.Active = true
-		keyboardMap["default"] = keyboards.GetKeyboard("k55core-default")
+		keyboardMap["default"] = keyboards.GetKeyboard(defaultLayout)
 		deviceProfile.Keyboards = keyboardMap
 		deviceProfile.Profile = "default"
 		deviceProfile.Profiles = []string{"default"}
+		deviceProfile.Layout = "US"
 	} else {
+		if len(d.DeviceProfile.Layout) == 0 {
+			deviceProfile.Layout = "US"
+		} else {
+			deviceProfile.Layout = d.DeviceProfile.Layout
+		}
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
@@ -466,6 +477,39 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.saveDeviceProfile()
 		d.setDeviceColor()
 		return 1
+	}
+	return 0
+}
+
+// ChangeKeyboardLayout will change keyboard layout
+func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
+	layouts := keyboards.GetLayouts(keyboardKey)
+	if len(layouts) < 1 {
+		return 2
+	}
+
+	if slices.Contains(layouts, layout) {
+		if d.DeviceProfile != nil {
+			if _, ok := d.DeviceProfile.Keyboards["default"]; ok {
+				layoutKey := fmt.Sprintf("%s-%s", keyboardKey, layout)
+				keyboardLayout := keyboards.GetKeyboard(layoutKey)
+				if keyboardLayout == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Trying to apply non-existing keyboard layout")
+					return 2
+				}
+
+				d.DeviceProfile.Keyboards["default"] = keyboardLayout
+				d.DeviceProfile.Layout = layout
+				d.saveDeviceProfile()
+				return 1
+			}
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is null")
+			return 0
+		}
+	} else {
+		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No such layout")
+		return 2
 	}
 	return 0
 }

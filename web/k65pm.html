@@ -115,8 +115,14 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <select class="form-select layout" style="margin-top: 10px;" name="keyLayout">
-                                                <option value="1" selected>US</option>
+                                            <select class="form-select keyLayout" style="margin-top: 10px;" name="keyLayout">
+                                                {{ range $layout := $device.Layouts }}
+                                                {{ if eq $device.DeviceProfile.Layout $layout }}
+                                                <option value="{{ $layout }}" selected>{{ $layout }}</option>
+                                                {{ else }}
+                                                <option value="{{ $layout }}">{{ $layout }}</option>
+                                                {{ end }}
+                                                {{ end }}
                                             </select>
                                         </td>
                                         <td style="padding-left: 15px;">

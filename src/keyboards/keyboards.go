@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -81,7 +82,13 @@ func Init() {
 			continue
 		}
 
-		keyboards[keyboard.Key] = keyboard
+		if len(keyboard.Layout) < 1 {
+			logger.Log(logger.Fields{"error": fe, "location": pullPath}).Error("Keyboard has no layout field defined")
+			continue
+		}
+
+		key := fmt.Sprintf("%s-%s", keyboard.Key, keyboard.Layout)
+		keyboards[key] = keyboard
 		err = file.Close()
 		if err != nil {
 			logger.Log(logger.Fields{"error": fe, "location": pullPath}).Error("Unable to close keyboard file")
@@ -95,4 +102,15 @@ func GetKeyboard(key string) *Keyboard {
 		return &keyboard
 	}
 	return nil
+}
+
+// GetLayouts will return a list of available layouts for given keyboard
+func GetLayouts(key string) []string {
+	var layouts []string
+	for _, keyboard := range keyboards {
+		if keyboard.Key == key {
+			layouts = append(layouts, keyboard.Layout)
+		}
+	}
+	return layouts
 }

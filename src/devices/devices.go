@@ -342,6 +342,33 @@ func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
 	return 0
 }
 
+// ChangeKeyboardLayout will change keyboard layout
+func ChangeKeyboardLayout(deviceId, layout string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					return device.K65PM.ChangeKeyboardLayout(layout)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					return device.K70Core.ChangeKeyboardLayout(layout)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					return device.K55Core.ChangeKeyboardLayout(layout)
+				}
+			}
+		}
+	}
+	return 0
+}
+
 // ChangeKeyboardProfile will change keyboard profile
 func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
 	if device, ok := devices[deviceId]; ok {

@@ -2,7 +2,7 @@
   "key": "k55core-default",
   "device": "K55 Core RGB",
   "layout": "US",
-  "rows": 5,
+  "rows": 6,
   "zones": {
     "1":{
       "color": {

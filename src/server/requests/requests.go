@@ -520,7 +520,7 @@ func ProcessChangeKeyboardLayout(r *http.Request) *Payload {
 		}
 	}
 
-	if len(req.KeyboardLayout) < 0 {
+	if len(req.KeyboardLayout) < 1 {
 		return &Payload{Message: "Invalid profile name", Code: http.StatusOK, Status: 0}
 	}
 

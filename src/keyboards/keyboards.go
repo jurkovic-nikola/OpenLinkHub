@@ -42,6 +42,7 @@ type Key struct {
 	PacketIndex []int     `json:"packetIndex"`
 	Color       rgb.Color `json:"color"`
 	Zone        int       `json:"zone"`
+	Svg         bool      `json:"svg"`
 }
 
 // Init will load and initialize keyboard data

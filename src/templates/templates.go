@@ -48,6 +48,7 @@ func Init() {
 		"web/memory.html",
 		"web/k65pm.html",
 		"web/k70core.html",
+		"web/k70pro.html",
 		"web/k55core.html",
 		"web/rgb.html",
 		"web/temperature.html",

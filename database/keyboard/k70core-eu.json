@@ -2,7 +2,7 @@
   "key": "k70core-default",
   "device": "K70 Core RGB",
   "layout": "EU",
-  "rows": 5,
+  "rows": 6,
   "row": {
     "0": {
       "keys": {

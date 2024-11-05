@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/devices/k55core"
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
+	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
@@ -36,6 +37,7 @@ const (
 	productTypeK65PM   = 101
 	productTypeK70Core = 102
 	productTypeK55Core = 103
+	productTypeK70Pro  = 104
 )
 
 type AIOData struct {
@@ -61,7 +63,9 @@ type Device struct {
 	K65PM       *k65pm.Device   `json:"k65PM,omitempty"`
 	K70Core     *k70core.Device `json:"k70core,omitempty"`
 	K55Core     *k55core.Device `json:"k55core,omitempty"`
-	GetDevice   interface{}
+	K70Pro      *k70pro.Device  `json:"k70pro,omitempty"`
+
+	GetDevice interface{}
 }
 
 var (
@@ -69,7 +73,7 @@ var (
 	interfaceId        = 0
 	devices            = make(map[string]*Device, 0)
 	products           = make(map[string]uint16)
-	keyboards          = []uint16{7127, 7165, 7166}
+	keyboards          = []uint16{7127, 7165, 7166, 7110}
 )
 
 // Stop will stop all active devices
@@ -148,6 +152,12 @@ func Stop() {
 					device.K55Core.Stop()
 				}
 			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					device.K70Pro.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
@@ -170,6 +180,12 @@ func UpdateKeyboardColor(deviceId string, keyId, keyOptions int, color rgb.Color
 			{
 				if device.K70Core != nil {
 					return device.K70Core.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.UpdateDeviceColor(keyId, keyOptions, color)
 				}
 			}
 		case productTypeK55Core:
@@ -331,6 +347,12 @@ func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
 					return device.K70Core.SaveKeyboardProfile(profileName, new)
 				}
 			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.SaveKeyboardProfile(profileName, new)
+				}
+			}
 		case productTypeK55Core:
 			{
 				if device.K55Core != nil {
@@ -356,6 +378,12 @@ func ChangeKeyboardLayout(deviceId, layout string) uint8 {
 			{
 				if device.K70Core != nil {
 					return device.K70Core.ChangeKeyboardLayout(layout)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.ChangeKeyboardLayout(layout)
 				}
 			}
 		case productTypeK55Core:
@@ -385,6 +413,12 @@ func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
 					return device.K70Core.UpdateKeyboardProfile(profileName)
 				}
 			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.UpdateKeyboardProfile(profileName)
+				}
+			}
 		case productTypeK55Core:
 			{
 				if device.K55Core != nil {
@@ -410,6 +444,12 @@ func DeleteKeyboardProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K70Core != nil {
 					return device.K70Core.DeleteKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.DeleteKeyboardProfile(profileName)
 				}
 			}
 		case productTypeK55Core:
@@ -491,6 +531,12 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K70Core != nil {
 					return device.K70Core.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.SaveUserProfile(profileName)
 				}
 			}
 		case productTypeK55Core:
@@ -589,6 +635,12 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 					return device.K70Core.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.ChangeDeviceBrightness(mode)
+				}
+			}
 		case productTypeK55Core:
 			{
 				if device.K55Core != nil {
@@ -668,6 +720,12 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K70Core != nil {
 					return device.K70Core.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.ChangeDeviceProfile(profileName)
 				}
 			}
 		case productTypeK55Core:
@@ -826,6 +884,12 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType 
 			{
 				if device.K70Core != nil {
 					return device.K70Core.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.UpdateDeviceLabel(label)
 				}
 			}
 		case productTypeK55Core:
@@ -1002,6 +1066,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 					return device.K70Core.UpdateRgbProfile(profile)
 				}
 			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro.UpdateRgbProfile(profile)
+				}
+			}
 		case productTypeK55Core:
 			{
 				if device.K55Core != nil {
@@ -1146,6 +1216,12 @@ func GetDevice(deviceId string) interface{} {
 			{
 				if device.K70Core != nil {
 					return device.K70Core
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					return device.K70Pro
 				}
 			}
 		case productTypeK55Core:
@@ -1388,6 +1464,22 @@ func Init() {
 					devices[dev.Serial] = &Device{
 						K55Core:     dev,
 						ProductType: productTypeK55Core,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7110: // K70 RGB PRO
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70pro.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K70Pro:      dev,
+						ProductType: productTypeK70Pro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

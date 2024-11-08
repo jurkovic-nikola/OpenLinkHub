@@ -98,7 +98,11 @@ $ sudo sh install.sh
   "manual": false,
   "frontend": true,
   "metrics": true,
-  "dbusMonitor": false
+  "dbusMonitor": false,
+  "memory": false,
+  "memorySmBus": "i2c-0",
+  "memoryType": 4,
+  "exclude": []
 }
 ```
 - listenPort: HTTP server port.
@@ -108,6 +112,10 @@ $ sudo sh install.sh
 - frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
 - metrics: enable or disable Prometheus metrics
 - dbusMonitor: enable or disable iCUE Link System Hub suspend / resume via DBus. Set this to true of your hub is not recovering after sleep via normal method
+- memory: Enable overview / control over the memory
+- memorySmBus: i2c smbus sensor id
+- memoryType: 4 for DDR4. 5 for DDR5
+- exclude: list of device ids in uint16 format to exclude from program control
 ## Running in Docker
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json
 ```bash

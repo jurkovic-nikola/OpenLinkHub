@@ -37,6 +37,7 @@ type Payload struct {
 	LcdSerial           string    `json:"lcdSerial"`
 	KeyboardProfileName string    `json:"keyboardProfileName"`
 	KeyboardLayout      string    `json:"keyboardLayout"`
+	KeyboardControlDial int       `json:"keyboardControlDial"`
 	Brightness          uint8     `json:"brightness"`
 	Position            int       `json:"position"`
 	Direction           int       `json:"direction"`
@@ -549,6 +550,46 @@ func ProcessChangeKeyboardLayout(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change keyboard layout. Please try again", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change keyboard layout.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeControlDial will process POST request from a client for device control dial change
+func ProcessChangeControlDial(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.KeyboardControlDial < 1 {
+		return &Payload{Message: "Invalid control dial option", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeKeyboardControlDial(req.DeviceId, req.KeyboardControlDial)
+	switch status {
+	case 1:
+		return &Payload{Message: "Keyboard control dial successfully changed.", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change keyboard control dial. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change keyboard control dial.", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDeleteKeyboardProfile will process DELETE request from a client for device profile deletion

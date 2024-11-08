@@ -727,6 +727,11 @@ func (d *Device) setDeviceColor() {
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
 
+	if d.DeviceProfile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
 	if d.DeviceProfile.RGBProfile == "keyboard" {
 		var buf = make([]byte, colorPacketLength)
 

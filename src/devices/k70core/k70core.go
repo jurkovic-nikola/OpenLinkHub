@@ -721,19 +721,29 @@ func (d *Device) setDeviceColor() {
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
 
+	if d.DeviceProfile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
 	if d.DeviceProfile.RGBProfile == "keyboard" {
 		var buf = make([]byte, colorPacketLength)
-		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
-			for _, keys := range rows.Keys {
-				for _, packetIndex := range keys.PacketIndex {
-					buf[packetIndex] = byte(keys.Color.Red)
-					buf[packetIndex+1] = byte(keys.Color.Green)
-					buf[packetIndex+2] = byte(keys.Color.Blue)
+		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+			for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for _, keys := range rows.Keys {
+					for _, packetIndex := range keys.PacketIndex {
+						buf[packetIndex] = byte(keys.Color.Red)
+						buf[packetIndex+1] = byte(keys.Color.Green)
+						buf[packetIndex+2] = byte(keys.Color.Blue)
+					}
 				}
 			}
+			d.writeColor(buf) // Write color once
+			return
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. Unknown keyboard")
+			return
 		}
-		d.writeColor(buf) // Write color once
-		return
 	}
 
 	if d.DeviceProfile.RGBProfile == "static" {

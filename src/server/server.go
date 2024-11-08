@@ -459,6 +459,17 @@ func changeKeyboardLayout(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeControlDial handles keyboard control dial function change
+func changeControlDial(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeControlDial(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // deleteKeyboardProfile handles deletion of keyboard profile
 func deleteKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDeleteKeyboardProfile(r)
@@ -705,6 +716,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(deleteKeyboardProfile)
 	r.Methods(http.MethodPost).Path("/api/keyboard/layout").
 		HandlerFunc(changeKeyboardLayout)
+	r.Methods(http.MethodPost).Path("/api/keyboard/dial").
+		HandlerFunc(changeControlDial)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

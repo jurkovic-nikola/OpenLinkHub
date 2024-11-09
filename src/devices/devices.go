@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/k55core"
 	"OpenLinkHub/src/devices/k65plus"
+	"OpenLinkHub/src/devices/k65plusW"
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70pro"
@@ -26,20 +27,21 @@ import (
 )
 
 const (
-	productTypeLinkHub = 0
-	productTypeCC      = 1
-	productTypeCCXT    = 2
-	productTypeElite   = 3
-	productTypeLNCore  = 4
-	productTypeLnPro   = 5
-	productTypeCPro    = 6
-	productTypeXC7     = 7
-	productTypeMemory  = 8
-	productTypeK65PM   = 101
-	productTypeK70Core = 102
-	productTypeK55Core = 103
-	productTypeK70Pro  = 104
-	productTypeK65Plus = 105
+	productTypeLinkHub  = 0
+	productTypeCC       = 1
+	productTypeCCXT     = 2
+	productTypeElite    = 3
+	productTypeLNCore   = 4
+	productTypeLnPro    = 5
+	productTypeCPro     = 6
+	productTypeXC7      = 7
+	productTypeMemory   = 8
+	productTypeK65PM    = 101
+	productTypeK70Core  = 102
+	productTypeK55Core  = 103
+	productTypeK70Pro   = 104
+	productTypeK65Plus  = 105
+	productTypeK65PlusW = 106
 )
 
 type AIOData struct {
@@ -53,20 +55,21 @@ type Device struct {
 	Product     string
 	Serial      string
 	Firmware    string
-	Lsh         *lsh.Device     `json:"lsh,omitempty"`
-	CC          *cc.Device      `json:"cc,omitempty"`
-	CCXT        *ccxt.Device    `json:"ccxt,omitempty"`
-	Elite       *elite.Device   `json:"elite,omitempty"`
-	LnCore      *lncore.Device  `json:"lncore,omitempty"`
-	LnPro       *lnpro.Device   `json:"lnpro,omitempty"`
-	CPro        *cpro.Device    `json:"cPro,omitempty"`
-	XC7         *xc7.Device     `json:"xc7,omitempty"`
-	Memory      *memory.Device  `json:"memory,omitempty"`
-	K65PM       *k65pm.Device   `json:"k65PM,omitempty"`
-	K70Core     *k70core.Device `json:"k70core,omitempty"`
-	K55Core     *k55core.Device `json:"k55core,omitempty"`
-	K70Pro      *k70pro.Device  `json:"k70pro,omitempty"`
-	K65Plus     *k65plus.Device `json:"k65plus,omitempty"`
+	Lsh         *lsh.Device      `json:"lsh,omitempty"`
+	CC          *cc.Device       `json:"cc,omitempty"`
+	CCXT        *ccxt.Device     `json:"ccxt,omitempty"`
+	Elite       *elite.Device    `json:"elite,omitempty"`
+	LnCore      *lncore.Device   `json:"lncore,omitempty"`
+	LnPro       *lnpro.Device    `json:"lnpro,omitempty"`
+	CPro        *cpro.Device     `json:"cPro,omitempty"`
+	XC7         *xc7.Device      `json:"xc7,omitempty"`
+	Memory      *memory.Device   `json:"memory,omitempty"`
+	K65PM       *k65pm.Device    `json:"k65PM,omitempty"`
+	K70Core     *k70core.Device  `json:"k70core,omitempty"`
+	K55Core     *k55core.Device  `json:"k55core,omitempty"`
+	K70Pro      *k70pro.Device   `json:"k70pro,omitempty"`
+	K65Plus     *k65plus.Device  `json:"k65plus,omitempty"`
+	K65PlusW    *k65plusW.Device `json:"k65plusW,omitempty"`
 
 	GetDevice interface{}
 }
@@ -76,7 +79,7 @@ var (
 	interfaceId        = 0
 	devices            = make(map[string]*Device, 0)
 	products           = make(map[string]uint16)
-	keyboards          = []uint16{7127, 7165, 7166, 7110, 11024}
+	keyboards          = []uint16{7127, 7165, 7166, 7110, 11024, 11015}
 )
 
 // Stop will stop all active devices
@@ -167,6 +170,12 @@ func Stop() {
 					device.K65Plus.Stop()
 				}
 			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					device.K65PlusW.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
@@ -207,6 +216,12 @@ func UpdateKeyboardColor(deviceId string, keyId, keyOptions int, color rgb.Color
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.UpdateDeviceColor(keyOptions, color)
 				}
 			}
 		}
@@ -380,6 +395,12 @@ func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
 					return device.K65Plus.SaveKeyboardProfile(profileName, new)
 				}
 			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.SaveKeyboardProfile(profileName, new)
+				}
+			}
 		}
 	}
 	return 0
@@ -419,6 +440,12 @@ func ChangeKeyboardLayout(deviceId, layout string) uint8 {
 					return device.K65Plus.ChangeKeyboardLayout(layout)
 				}
 			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.ChangeKeyboardLayout(layout)
+				}
+			}
 		}
 	}
 	return 0
@@ -432,6 +459,27 @@ func ChangeKeyboardControlDial(deviceId string, controlDial int) uint8 {
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus.UpdateControlDial(controlDial)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.UpdateControlDial(controlDial)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeKeyboardSleepMode will change keyboard control dial function
+func ChangeKeyboardSleepMode(deviceId string, sleepMode int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.UpdateSleepTimer(sleepMode)
 				}
 			}
 		}
@@ -473,6 +521,12 @@ func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
 					return device.K65Plus.UpdateKeyboardProfile(profileName)
 				}
 			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.UpdateKeyboardProfile(profileName)
+				}
+			}
 		}
 	}
 	return 0
@@ -510,6 +564,12 @@ func DeleteKeyboardProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus.DeleteKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.DeleteKeyboardProfile(profileName)
 				}
 			}
 		}
@@ -603,6 +663,12 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.SaveUserProfile(profileName)
 				}
 			}
 		}
@@ -713,6 +779,12 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 					return device.K65Plus.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.ChangeDeviceBrightness(mode)
+				}
+			}
 		}
 	}
 	return 0
@@ -804,6 +876,12 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.ChangeDeviceProfile(profileName)
 				}
 			}
 		}
@@ -974,6 +1052,12 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType 
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.UpdateDeviceLabel(label)
 				}
 			}
 		}
@@ -1162,6 +1246,12 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 					return device.K65Plus.UpdateRgbProfile(profile)
 				}
 			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW.UpdateRgbProfile(profile)
+				}
+			}
 		}
 	}
 	return 0
@@ -1318,6 +1408,12 @@ func GetDevice(deviceId string) interface{} {
 			{
 				if device.K65Plus != nil {
 					return device.K65Plus
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					return device.K65PlusW
 				}
 			}
 		}
@@ -1591,6 +1687,22 @@ func Init() {
 					devices[dev.Serial] = &Device{
 						K65Plus:     dev,
 						ProductType: productTypeK65Plus,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
+			}
+		case 11015: // K65 PLUS USB
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k65plusW.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K65PlusW:    dev,
+						ProductType: productTypeK65PlusW,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

@@ -26,4 +26,6 @@
 {{ template "k70pro.html" . }}
 {{ else if eq .Device.Template "k65plus.html" }}
 {{ template "k65plus.html" . }}
+{{ else if eq .Device.Template "k65plusW.html" }}
+{{ template "k65plusW.html" . }}
 {{ end }}

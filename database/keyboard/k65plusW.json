@@ -1,0 +1,685 @@
+{
+  "key": "k65plusW-default",
+  "device": "K65 Plus Wireless",
+  "layout": "US",
+  "rows": 6,
+  "color": {
+    "red": 0,
+    "green": 255,
+    "blue": 255
+  },
+  "row": {
+    "0": {
+      "keys": {
+        "1": {
+          "keyName": "ESC",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [123]
+        },
+        "2": {
+          "keyName": "F1",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [174]
+        },
+        "3": {
+          "keyName": "F2",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [177]
+        },
+        "4": {
+          "keyName": "F3",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [180]
+        },
+        "5": {
+          "keyName": "F4",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [183]
+        },
+        "6": {
+          "keyName": "F5",
+          "width": 70,
+          "height": 70,
+          "left": 47,
+          "top": 0,
+          "packetIndex": [186]
+        },
+        "7": {
+          "keyName": "F6",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [189]
+        },
+        "8": {
+          "keyName": "F7",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [192]
+        },
+        "9": {
+          "keyName": "F8",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [195]
+        },
+        "10": {
+          "keyName": "F9",
+          "width": 70,
+          "height": 70,
+          "left": 47,
+          "top": 0,
+          "packetIndex": [198]
+        },
+        "11": {
+          "keyName": "F10",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [201]
+        },
+        "12": {
+          "keyName": "F11",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [204]
+        },
+        "13": {
+          "keyName": "F12",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [207]
+        },
+        "14": {
+          "keyName": "Delete",
+          "width": 70,
+          "height": 70,
+          "left": 20,
+          "top": 0,
+          "packetIndex": [228]
+        }
+      }
+    },
+    "1": {
+      "keys": {
+        "15": {
+          "keyName": "` ~",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [159]
+        },
+        "16": {
+          "keyName": "1",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [90]
+        },
+        "17": {
+          "keyName": "2",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [93]
+        },
+        "18": {
+          "keyName": "3",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [96]
+        },
+        "19": {
+          "keyName": "4",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [99]
+        },
+        "20": {
+          "keyName": "5",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [102]
+        },
+        "21": {
+          "keyName": "6",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [105]
+        },
+        "22": {
+          "keyName": "7",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [108]
+        },
+        "23": {
+          "keyName": "8",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [111]
+        },
+        "24": {
+          "keyName": "9",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [114]
+        },
+        "25": {
+          "keyName": "0",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [117]
+        },
+        "26": {
+          "keyName": "-",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [135]
+        },
+        "27": {
+          "keyName": "=",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [138]
+        },
+        "28": {
+          "keyName": "Backspace",
+          "width": 140,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [126]
+        },
+        "29": {
+          "keyName": "Home",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [222]
+        }
+      }
+    },
+    "2": {
+      "keys": {
+        "30": {
+          "keyName": "Tab",
+          "width": 100,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [129]
+        },
+        "31": {
+          "keyName": "Q",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [60]
+        },
+        "32": {
+          "keyName": "W",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [78]
+        },
+        "33": {
+          "keyName": "E",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [24]
+        },
+        "34": {
+          "keyName": "R",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [63]
+        },
+        "35": {
+          "keyName": "T",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [69]
+        },
+        "36": {
+          "keyName": "Y",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [84]
+        },
+        "37": {
+          "keyName": "U",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [72]
+        },
+        "38": {
+          "keyName": "I",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [36]
+        },
+        "39": {
+          "keyName": "O",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [54]
+        },
+        "40": {
+          "keyName": "P",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [57]
+        },
+        "41": {
+          "keyName": "[ {",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [141]
+        },
+        "42": {
+          "keyName": "] }",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [144]
+        },
+        "43": {
+          "keyName": "\\ |",
+          "width": 110,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [147]
+        },
+        "44": {
+          "keyName": "PgUp",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [225]
+        }
+      }
+    },
+    "3": {
+      "keys": {
+        "45": {
+          "keyName": "Caps Lock",
+          "width": 120,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [171]
+        },
+        "46": {
+          "keyName": "A",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [12]
+        },
+        "47": {
+          "keyName": "S",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [66]
+        },
+        "48": {
+          "keyName": "D",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [21]
+        },
+        "49": {
+          "keyName": "F",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [27]
+        },
+        "50": {
+          "keyName": "G",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [30]
+        },
+        "51": {
+          "keyName": "H",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [33]
+        },
+        "52": {
+          "keyName": "J",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [39]
+        },
+        "53": {
+          "keyName": "K",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [42]
+        },
+        "54": {
+          "keyName": "L",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [45]
+        },
+        "55": {
+          "keyName": "; :",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [153]
+        },
+        "56": {
+          "keyName": "' ''",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [156]
+        },
+        "57": {
+          "keyName": "Enter",
+          "width": 175,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [120]
+        },
+        "58": {
+          "keyName": "PgDn",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [234]
+        }
+      }
+    },
+    "4": {
+      "keys": {
+        "59": {
+          "keyName": "Shift",
+          "width": 175,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [318]
+        },
+        "60": {
+          "keyName": "Z",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [87]
+        },
+        "61": {
+          "keyName": "X",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [81]
+        },
+        "62": {
+          "keyName": "C",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [18]
+        },
+        "63": {
+          "keyName": "V",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [75]
+        },
+        "64": {
+          "keyName": "B",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [15]
+        },
+        "65": {
+          "keyName": "N",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [51]
+        },
+        "66": {
+          "keyName": "M",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [48]
+        },
+        "67": {
+          "keyName": ", <",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [162]
+        },
+        "68": {
+          "keyName": ". >",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [165]
+        },
+        "69": {
+          "keyName": "/ ?",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [168]
+        },
+        "70": {
+          "keyName": "Shift",
+          "width": 120,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [330]
+        },
+        "71": {
+          "keyName": "↑",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [246]
+        }
+      }
+    },
+    "5": {
+      "keys": {
+        "72": {
+          "keyName": "Ctrl",
+          "width": 90,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [315]
+        },
+        "73": {
+          "keyName": "⊞",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [324]
+        },
+        "74": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [321]
+        },
+        "75": {
+          "keyName": "",
+          "width": 505,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [0, 3, 132]
+        },
+        "76": {
+          "keyName": "Alt",
+          "width": 60,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [333]
+        },
+        "77": {
+          "keyName": "Fn",
+          "width": 60,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [366]
+        },
+        "78": {
+          "keyName": "Ctrl",
+          "width": 60,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [327]
+        },
+        "79": {
+          "keyName": "←",
+          "width": 70,
+          "height": 70,
+          "left": 45,
+          "top": 15,
+          "packetIndex": [240]
+        },
+        "80": {
+          "keyName": "↓",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [243]
+        },
+        "81": {
+          "keyName": "→",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [237]
+        }
+      }
+    }
+  }
+}

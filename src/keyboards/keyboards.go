@@ -23,6 +23,7 @@ type Keyboard struct {
 	Rows   int           `json:"rows"`
 	Row    map[int]Row   `json:"row"`
 	Zones  map[int]Zones `json:"zones"`
+	Color  rgb.Color     `json:"color"`
 }
 
 type Zones struct {

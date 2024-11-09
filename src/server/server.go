@@ -470,6 +470,17 @@ func changeControlDial(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeSleepMode handles keyboard sleep mode change
+func changeSleepMode(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeSleepMode(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // deleteKeyboardProfile handles deletion of keyboard profile
 func deleteKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDeleteKeyboardProfile(r)
@@ -718,6 +729,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeKeyboardLayout)
 	r.Methods(http.MethodPost).Path("/api/keyboard/dial").
 		HandlerFunc(changeControlDial)
+	r.Methods(http.MethodPost).Path("/api/keyboard/sleep").
+		HandlerFunc(changeSleepMode)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

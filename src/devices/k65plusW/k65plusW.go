@@ -912,9 +912,11 @@ func (d *Device) writeColor(data []byte) {
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
+
 	// Split packet into chunks
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
+		fmt.Println(fmt.Sprintf("% 2x", chunk))
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
 			_, err := d.transfer(cmdWriteColor, chunk, byte(cmdKeyboard))
@@ -1037,7 +1039,7 @@ func (d *Device) controlDialListener() {
 							} else {
 								brightness += 100
 							}
-						} else {
+						} else if value == 255 {
 							if brightness <= 0 {
 								brightness = 0
 							} else {

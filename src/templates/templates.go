@@ -52,6 +52,8 @@ func Init() {
 		"web/k70core.html",
 		"web/k70pro.html",
 		"web/k55core.html",
+		"web/k100air.html",
+		"web/k100airW.html",
 		"web/rgb.html",
 		"web/temperature.html",
 	)

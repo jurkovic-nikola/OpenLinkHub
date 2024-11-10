@@ -6,6 +6,8 @@ import (
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/elite"
+	"OpenLinkHub/src/devices/k100air"
+	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k55core"
 	"OpenLinkHub/src/devices/k65plus"
 	"OpenLinkHub/src/devices/k65plusW"
@@ -42,6 +44,8 @@ const (
 	productTypeK70Pro   = 104
 	productTypeK65Plus  = 105
 	productTypeK65PlusW = 106
+	productTypeK100Air  = 107
+	productTypeK100AirW = 108
 )
 
 type AIOData struct {
@@ -70,8 +74,9 @@ type Device struct {
 	K70Pro      *k70pro.Device   `json:"k70pro,omitempty"`
 	K65Plus     *k65plus.Device  `json:"k65plus,omitempty"`
 	K65PlusW    *k65plusW.Device `json:"k65plusW,omitempty"`
-
-	GetDevice interface{}
+	K100Air     *k100air.Device  `json:"k100air,omitempty"`
+	K100AirW    *k100airW.Device `json:"k100airW,omitempty"`
+	GetDevice   interface{}
 }
 
 var (
@@ -79,7 +84,7 @@ var (
 	interfaceId        = 0
 	devices            = make(map[string]*Device, 0)
 	products           = make(map[string]uint16)
-	keyboards          = []uint16{7127, 7165, 7166, 7110, 11024, 11015}
+	keyboards          = []uint16{7127, 7165, 7166, 7110, 7083, 7132, 11024, 11015}
 )
 
 // Stop will stop all active devices
@@ -176,6 +181,18 @@ func Stop() {
 					device.K65PlusW.Stop()
 				}
 			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					device.K100Air.Stop()
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					device.K100AirW.Stop()
+				}
+			}
 		}
 	}
 	err := hid.Exit()
@@ -222,6 +239,18 @@ func UpdateKeyboardColor(deviceId string, keyId, keyOptions int, color rgb.Color
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW.UpdateDeviceColor(keyOptions, color)
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.UpdateDeviceColor(keyOptions, color)
 				}
 			}
 		}
@@ -401,6 +430,18 @@ func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
 					return device.K65PlusW.SaveKeyboardProfile(profileName, new)
 				}
 			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.SaveKeyboardProfile(profileName, new)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.SaveKeyboardProfile(profileName, new)
+				}
+			}
 		}
 	}
 	return 0
@@ -446,6 +487,18 @@ func ChangeKeyboardLayout(deviceId, layout string) uint8 {
 					return device.K65PlusW.ChangeKeyboardLayout(layout)
 				}
 			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.ChangeKeyboardLayout(layout)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.ChangeKeyboardLayout(layout)
+				}
+			}
 		}
 	}
 	return 0
@@ -480,6 +533,12 @@ func ChangeKeyboardSleepMode(deviceId string, sleepMode int) uint8 {
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW.UpdateSleepTimer(sleepMode)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.UpdateSleepTimer(sleepMode)
 				}
 			}
 		}
@@ -527,6 +586,18 @@ func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
 					return device.K65PlusW.UpdateKeyboardProfile(profileName)
 				}
 			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.UpdateKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.UpdateKeyboardProfile(profileName)
+				}
+			}
 		}
 	}
 	return 0
@@ -570,6 +641,18 @@ func DeleteKeyboardProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW.DeleteKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.DeleteKeyboardProfile(profileName)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.DeleteKeyboardProfile(profileName)
 				}
 			}
 		}
@@ -669,6 +752,18 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.SaveUserProfile(profileName)
 				}
 			}
 		}
@@ -785,6 +880,18 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 					return device.K65PlusW.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.ChangeDeviceBrightness(mode)
+				}
+			}
 		}
 	}
 	return 0
@@ -882,6 +989,18 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.ChangeDeviceProfile(profileName)
 				}
 			}
 		}
@@ -1058,6 +1177,18 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType 
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.UpdateDeviceLabel(label)
 				}
 			}
 		}
@@ -1252,6 +1383,18 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 					return device.K65PlusW.UpdateRgbProfile(profile)
 				}
 			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air.UpdateRgbProfile(profile)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW.UpdateRgbProfile(profile)
+				}
+			}
 		}
 	}
 	return 0
@@ -1414,6 +1557,18 @@ func GetDevice(deviceId string) interface{} {
 			{
 				if device.K65PlusW != nil {
 					return device.K65PlusW
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					return device.K100Air
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					return device.K100AirW
 				}
 			}
 		}
@@ -1703,6 +1858,38 @@ func Init() {
 					devices[dev.Serial] = &Device{
 						K65PlusW:    dev,
 						ProductType: productTypeK65PlusW,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7083: // K100 AIR USB
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k100air.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K100Air:     dev,
+						ProductType: productTypeK100Air,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7132: // K100 AIR WIRELESS
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k100airW.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						K100AirW:    dev,
+						ProductType: productTypeK100AirW,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

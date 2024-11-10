@@ -28,4 +28,8 @@
 {{ template "k65plus.html" . }}
 {{ else if eq .Device.Template "k65plusW.html" }}
 {{ template "k65plusW.html" . }}
+{{ else if eq .Device.Template "k100air.html" }}
+{{ template "k100air.html" . }}
+{{ else if eq .Device.Template "k100airW.html" }}
+{{ template "k100airW.html" . }}
 {{ end }}

@@ -69,6 +69,8 @@ type Device struct {
 	RGBModes           map[string]string
 	SleepModes         map[int]string
 	KeyAmount          int
+	Path               string
+	Connected          bool
 }
 
 var (
@@ -91,9 +93,8 @@ var (
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
 	cmdDongle               = 0x08
 	cmdKeyboard             = 0x09
-	deviceKeepAlive         = 20000
+	deviceKeepAlive         = 10000
 	timerKeepAlive          = &time.Ticker{}
-	keepAliveChan           = make(chan bool)
 	mutex                   sync.Mutex
 	transferTimeout         = 500
 	bufferSize              = 64
@@ -113,7 +114,6 @@ func (d *Device) Stop() {
 	}
 
 	timerKeepAlive.Stop()
-	keepAliveChan <- true
 
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -140,6 +140,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		Template:  "k100airW.html",
 		VendorId:  vendorId,
 		ProductId: productId,
+		Path:      key,
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -163,6 +164,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			"visor":         "Visor",
 		},
 		SleepModes: map[int]string{
+			1:  "1 minute",
 			5:  "5 minutes",
 			10: "10 minutes",
 			15: "15 minutes",
@@ -236,12 +238,13 @@ func (d *Device) getSerial() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+	if d.Connected {
+		_, err := d.transfer(cmdHardwareMode, nil, byte(cmdKeyboard))
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		}
 	}
-
-	_, err = d.transfer(cmdHardwareMode, nil, byte(cmdDongle))
+	_, err := d.transfer(cmdHardwareMode, nil, byte(cmdDongle))
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
@@ -258,6 +261,7 @@ func (d *Device) setSoftwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
+	d.Connected = true
 }
 
 // getDongleFirmware will return a dongle firmware version out as string
@@ -478,31 +482,60 @@ func (d *Device) getDeviceProfile() {
 	}
 }
 
+// reinit will re-initialize the device
+func (d *Device) reinit() {
+	d.setHardwareMode()
+	d.setSoftwareMode()
+	d.initLeds()           // Init LED ports
+	d.setDeviceColor()     // Device color
+	d.setBrightnessLevel() // Brightness
+	d.setSleepTimer()      // Sleep
+	d.controlListener()    // Control listener
+}
+
 // keepAlive will keep a device alive
 func (d *Device) keepAlive() {
-	_, err := d.transfer([]byte{0x12}, nil, byte(cmdDongle))
+	msg, err := d.transfer([]byte{0x12}, nil, byte(cmdDongle))
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		return
 	}
 
-	_, err = d.transfer([]byte{0x12}, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+	if msg[3] == 5 {
+		_, err := d.transfer([]byte{0x12}, nil, byte(cmdKeyboard))
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			return
+		}
+	} else {
+		if msg[4] == 0 {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("Lost connection to the device. Waiting...")
+			d.Connected = false
+		} else {
+			if msg[4] == 2 {
+				if !d.Connected {
+					logger.Log(logger.Fields{"serial": d.Serial}).Info("Connection active. Reconnect...")
+					d.reinit()
+				} else {
+					_, err := d.transfer([]byte{0x12}, nil, byte(cmdKeyboard))
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+						return
+					}
+				}
+			}
+		}
 	}
 }
 
 // setAutoRefresh will refresh device data
 func (d *Device) setKeepAlive() {
 	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	keepAliveChan = make(chan bool)
 	go func() {
 		for {
 			select {
 			case <-timerKeepAlive.C:
 				d.keepAlive()
-			case <-keepAliveChan:
-				timerKeepAlive.Stop()
-				return
 			}
 		}
 	}()

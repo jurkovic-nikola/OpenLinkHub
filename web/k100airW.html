@@ -91,6 +91,24 @@
             <div class="container-fluid">
                 <div class="row gy-4" style="margin-top: 10px;">
                     <div class="row">
+                        {{ if eq .Device.Connected false }}
+                        <div class="card mb-4">
+                        <div class="card-header border-bottom border-dash-dark-1">
+                            <div class="ds-svg-placeholder-left">
+                                <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device" />
+                            </div>
+                            <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                <span>{{ .Device.Product }}</span><br />
+                                <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                    <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                </p>
+                            </div>
+                            <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
+                                <span>Device is not connected!</span><br />
+                            </div>
+                        </div>
+                        </div>
+                        {{ else }}
                         <div class="card mb-4">
                             <div class="card-header border-bottom border-dash-dark-1">
                                 <div class="ds-svg-placeholder-left">
@@ -181,14 +199,8 @@
                             {{ if eq "keyboard" $device.DeviceProfile.RGBProfile }}
                             <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
                                 {{ range $index, $keys := $keyboard.Row }}
-                                {{ if eq $index 4 }}
-                                <div class="row" style="margin-top:-85px">
-                                    {{ else if eq $index 6 }}
-                                    <div class="row" style="margin-top:-85px">
-                                        {{ else }}
-                                        <div class="row">
-                                            {{ end }}
-                                            {{ range $index, $keys := .Keys }}
+                                <div class="row" style="{{ if eq $index 4 }}margin-top:-85px;{{ else if eq $index 6 }}margin-top:-85px;{{ else }}{{ end }}">
+                                    {{ range $index, $keys := .Keys }}
                                     <div class="keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}" style="cursor: pointer;border: 1px solid rgba({{ $keyboard.Color.Red }}, {{ $keyboard.Color.Green }}, {{ $keyboard.Color.Blue }}, 1);;width: {{ $keys.Width }}px;height: {{ $keys.Height }}px;text-align: center;vertical-align: middle;margin-left:{{ $keys.Left }}px;margin-top:{{ $keys.Top }}px;">
                                         <p style="margin-top:5px;font-size: 12px;" class="key-uppercase">
                                             {{ if $keys.Svg }}
@@ -242,6 +254,7 @@
                             {{ end }}
                         </div>
                     </div>
+                    {{ end }}
                 </div>
             </div>
         </section>

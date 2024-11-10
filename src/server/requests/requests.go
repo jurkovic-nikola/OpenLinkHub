@@ -606,7 +606,7 @@ func ProcessChangeSleepMode(r *http.Request) *Payload {
 		}
 	}
 
-	if req.SleepMode < 5 || req.SleepMode > 60 {
+	if req.SleepMode < 1 || req.SleepMode > 60 {
 		return &Payload{Message: "Invalid sleep option", Code: http.StatusOK, Status: 0}
 	}
 

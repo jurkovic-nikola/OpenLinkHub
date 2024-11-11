@@ -310,6 +310,8 @@ func GetBrightnessValue(mode uint8) float64 {
 		return 0.6
 	case 3:
 		return 1
+	case 4:
+		return 0
 	}
 	return 0
 }

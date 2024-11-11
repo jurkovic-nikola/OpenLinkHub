@@ -566,12 +566,24 @@ func (d *Device) UpdateRgbProfile(profile string) uint8 {
 // ChangeDeviceBrightness will change device brightness
 func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.DeviceProfile.Brightness = mode
+	d.DeviceProfile.BrightnessLevel = 1000
+
+	if mode == 4 {
+		d.DeviceProfile.BrightnessLevel = 0
+	}
+
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
+	_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+	}
 	return 1
 }
 

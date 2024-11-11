@@ -923,7 +923,6 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	if d.GlobalBrightness != 0 {
 		return 2
 	}
-
 	d.DeviceProfile.Brightness = mode
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {

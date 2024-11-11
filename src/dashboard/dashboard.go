@@ -47,6 +47,7 @@ func Init() {
 	}
 }
 
+// upgradeFile will perform json file upgrade or create initial file
 func upgradeFile() {
 	if !common.FileExists(location) {
 		logger.Log(logger.Fields{"file": location}).Info("Dashboard file is missing, creating initial one.")

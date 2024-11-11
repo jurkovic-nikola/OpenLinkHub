@@ -46,6 +46,9 @@ const (
 	productTypeK65PlusW = 106
 	productTypeK100Air  = 107
 	productTypeK100AirW = 108
+	productTypeST100    = 401
+	productTypeMM700    = 402
+	productTypeLT100    = 403
 )
 
 type AIOData struct {
@@ -784,6 +787,116 @@ func UpdateDevicePosition(deviceId string, position, direction int) uint8 {
 		}
 	}
 	return 0
+}
+
+// ScheduleDeviceBrightness will change device brightness level based on scheduler
+func ScheduleDeviceBrightness(mode uint8) {
+	for _, device := range GetDevices() {
+		switch device.ProductType {
+		case productTypeLinkHub:
+			{
+				if device.Lsh != nil {
+					device.Lsh.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeCCXT:
+			{
+				if device.CCXT != nil {
+					device.CCXT.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeCC:
+			{
+				if device.CC != nil {
+					device.CC.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeCPro:
+			{
+				if device.CPro != nil {
+					device.CPro.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeLnPro:
+			{
+				if device.LnPro != nil {
+					device.LnPro.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeLNCore:
+			{
+				if device.LnCore != nil {
+					device.LnCore.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeElite:
+			{
+				if device.Elite != nil {
+					device.Elite.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeXC7:
+			{
+				if device.XC7 != nil {
+					device.XC7.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeMemory:
+			{
+				if device.Memory != nil {
+					device.Memory.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK65PM:
+			{
+				if device.K65PM != nil {
+					device.K65PM.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK70Core:
+			{
+				if device.K70Core != nil {
+					device.K70Core.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK70Pro:
+			{
+				if device.K70Pro != nil {
+					device.K70Pro.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK55Core:
+			{
+				if device.K55Core != nil {
+					device.K55Core.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK65Plus:
+			{
+				if device.K65Plus != nil {
+					device.K65Plus.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK65PlusW:
+			{
+				if device.K65PlusW != nil {
+					device.K65PlusW.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK100Air:
+			{
+				if device.K100Air != nil {
+					device.K100Air.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeK100AirW:
+			{
+				if device.K100AirW != nil {
+					device.K100AirW.ChangeDeviceBrightness(mode)
+				}
+			}
+		}
+	}
 }
 
 // ChangeDeviceBrightness will change device brightness level
@@ -1678,8 +1791,8 @@ func Init() {
 				}(vendorId, productId, key)
 			}
 		case 3104, 3105, 3106, 3125, 3126, 3127, 3136, 3137:
-			// iCUE H100i ELITE RGB,
-			// iCUE H115i ELITE RGB,
+			// iCUE H100i ELITE RGB
+			// iCUE H115i ELITE RGB
 			// iCUE H150i ELITE RGB
 			// iCUE H100i ELITE RGB White
 			// iCUE H150i ELITE RGB White

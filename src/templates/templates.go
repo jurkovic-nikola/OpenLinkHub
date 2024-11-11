@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/version"
 	"html/template"
@@ -23,6 +24,7 @@ type Web struct {
 	Device            interface{}
 	TemperatureProbes interface{}
 	Temperatures      map[string]temperatures.TemperatureProfileData
+	Scheduler         *scheduler.Scheduler
 	Rgb               map[string]rgb.Profile
 	SystemInfo        interface{}
 	CpuTemp           string
@@ -56,6 +58,7 @@ func Init() {
 		"web/k100airW.html",
 		"web/rgb.html",
 		"web/temperature.html",
+		"web/scheduler.html",
 	)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Failed to load templates")

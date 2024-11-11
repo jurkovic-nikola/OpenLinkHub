@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{.Title}}</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="all,follow">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
+    <link rel="stylesheet" href="/static/vendor/simple-datatables/style.css">
+    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/css/toastr.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="shortcut icon" href="/static/img/favicon.ico">
+</head>
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $device := .Device }}
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                <div class="row btn btn-secondary navigation-left-small">
+                    <a href="/" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
+                        <span style="font-size: 13px;">Dashboard</span>
+                    </a>
+                </div>
+
+                {{ range .Devices }}
+                <div class="row btn btn-secondary navigation-left-big">
+                    <a style="color: #a1a1a1;width: 100%;height: 100%" href="/device/{{ .Serial }}">
+                        {{ if eq .ProductType 8 }}
+                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
+                        {{ else if gt .ProductType 100 }}
+                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
+                        {{ else }}
+                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
+                        {{ end }}
+                        <span style="font-size: 13px;">{{ .Product }}</span>
+                    </a>
+                </div>
+                {{ end }}
+
+                <div class="row btn btn-secondary navigation-right-small">
+                    <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                        <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
+                        <span style="font-size: 13px;">GitHub</span>
+                    </a>
+                </div>
+
+                <div class="row btn btn-secondary navigation-right-small">
+                    <a href="/docs/" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
+                        <span style="font-size: 13px;">API</span>
+                    </a>
+                </div>
+
+                <div class="row btn btn-secondary navigation-right-small">
+                    <a href="/temperature" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+                        <span style="font-size: 13px;">Profiles</span>
+                    </a>
+                </div>
+
+                <div class="row btn btn-secondary active-nav-link navigation-right-small">
+                    <a href="/scheduler" style="color: #a1a1a1;">
+                        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
+                        <span style="font-size: 13px;">Scheduler</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4">
+                    <div style="width: 300px;">
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-right">
+                                    <span style="font-size: 13px;">RGB Control</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span>Turn Off / On RGB</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 1rem 1rem;">
+                                <div style="text-align: center;">
+                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Enable</p>
+                                        </div>
+                                        {{ if .Scheduler.RGBControl }}
+                                        <input class="form-check-input" id="rgbControl" type="checkbox" checked>
+                                        {{ else }}
+                                        <input class="form-check-input" id="rgbControl" type="checkbox">
+                                        {{ end }}
+                                    </div>
+                                    <div class="progress" style="height: 3px">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+
+                                    <div class="custom-device-block">
+                                        <div class="custom-float-20-left">
+                                            <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </div>
+                                        <div class="custom-float-80-right" style="margin-top: 8px;">
+                                            <input type="time" id="rgbOff" name="rgbOff" value="{{ .Scheduler.RGBOff }}" class="form-control input-datepicker-autoclose datepicker-input" />
+                                        </div>
+                                    </div>
+
+                                    <div class="custom-device-block">
+                                        <div class="custom-float-20-left">
+                                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </div>
+                                        <div class="custom-float-80-right" style="margin-top: 8px;">
+                                            <input type="time" id="rgbOn" name="rgbOn" value="{{ .Scheduler.RGBOn }}" class="form-control input-datepicker-autoclose datepicker-input" />
+                                        </div>
+                                    </div>
+                                    <div style="overflow: hidden; margin-top: 10px;">
+                                        <button class="btn btn-secondary saveRgbControl">
+                                            <span>Save</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
+            <div class="container-fluid fa-pull-left" style="padding-left:20px;">
+                <p class="mb-0 text-dash-gray fa-pull-left">OS: {{ .SystemInfo.Kernel.OsType }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">Architecture: {{ .SystemInfo.Kernel.Architecture }}</p>
+            </div>
+            <div class="container-fluid fa-pull-left" style="padding-left:15px;">
+                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
+            </div>
+        </footer>
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/dataTables.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/scheduler.js"></script>
+</body>
+</html>

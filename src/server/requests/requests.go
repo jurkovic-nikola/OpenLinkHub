@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
@@ -39,6 +40,9 @@ type Payload struct {
 	KeyboardLayout      string    `json:"keyboardLayout"`
 	KeyboardControlDial int       `json:"keyboardControlDial"`
 	SleepMode           int       `json:"sleepMode"`
+	RgbControl          bool      `json:"rgbControl"`
+	RgbOff              string    `json:"rgbOff"`
+	RgbOn               string    `json:"rgbOn"`
 	Brightness          uint8     `json:"brightness"`
 	Position            int       `json:"position"`
 	Direction           int       `json:"direction"`
@@ -780,7 +784,7 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 		}
 	}
 
-	if req.Brightness < 0 || req.Brightness > 3 {
+	if req.Brightness < 0 || req.Brightness > 4 {
 		return &Payload{Message: "Invalid brightness value", Code: http.StatusOK, Status: 0}
 	}
 
@@ -1189,4 +1193,26 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: "Unable to save dashboard settings", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeRgbScheduler will process a POST request from a client for RGB scheduler change
+func ProcessChangeRgbScheduler(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	// Run it
+	status := scheduler.UpdateRgbSettings(req.RgbControl, req.RgbOff, req.RgbOn)
+	switch status {
+	case 1:
+		return &Payload{Message: "RGB scheduler successfully updated.", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to change keyboard sleep mode.", Code: http.StatusOK, Status: 0}
 }

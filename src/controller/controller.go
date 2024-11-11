@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
@@ -21,6 +22,7 @@ func Start() {
 	config.Init()       // Configuration
 	logger.Init()       // Logger
 	dashboard.Init()    // Dashboard
+	scheduler.Init()    // Scheduler
 	systeminfo.Init()   // Build system info
 	metrics.Init()      // Metrics
 	rgb.Init()          // RGB

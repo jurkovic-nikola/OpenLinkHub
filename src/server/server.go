@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server/requests"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
@@ -481,6 +482,17 @@ func changeSleepMode(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeRgbScheduler handles RGB scheduler change
+func changeRgbScheduler(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeRgbScheduler(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // deleteKeyboardProfile handles deletion of keyboard profile
 func deleteKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDeleteKeyboardProfile(r)
@@ -586,6 +598,30 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	err := t.ExecuteTemplate(w, "temperature.html", web)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		resp.Send(w)
+	}
+}
+
+// uiSchedulerOverview handles overview of scheduler settings
+func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.Scheduler = scheduler.GetScheduler()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "scheduler.html", web)
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
@@ -731,6 +767,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeControlDial)
 	r.Methods(http.MethodPost).Path("/api/keyboard/sleep").
 		HandlerFunc(changeSleepMode)
+	r.Methods(http.MethodPost).Path("/api/scheduler/rgb").
+		HandlerFunc(changeRgbScheduler)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {
@@ -750,6 +788,8 @@ func setRoutes() *mux.Router {
 			HandlerFunc(uiDocumentationOverview)
 		r.Methods(http.MethodGet).Path("/color").
 			HandlerFunc(uiColorOverview)
+		r.Methods(http.MethodGet).Path("/scheduler").
+			HandlerFunc(uiSchedulerOverview)
 	}
 	return r
 }

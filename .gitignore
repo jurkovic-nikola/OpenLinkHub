@@ -8,3 +8,4 @@ stdout.log
 dashboard.json
 database/temperatures/*.json
 database/profiles/*.json
+database/scheduler.json

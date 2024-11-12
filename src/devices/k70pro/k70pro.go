@@ -27,24 +27,26 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	LCDMode     uint8
-	LCDRotation uint8
-	Brightness  uint8
-	RGBProfile  string
-	Label       string
-	Layout      string
-	Keyboards   map[string]*keyboards.Keyboard
-	Profile     string
-	Profiles    []string
+	Active          bool
+	Path            string
+	Product         string
+	Serial          string
+	LCDMode         uint8
+	LCDRotation     uint8
+	Brightness      uint8
+	RGBProfile      string
+	Label           string
+	Layout          string
+	Keyboards       map[string]*keyboards.Keyboard
+	Profile         string
+	Profiles        []string
+	BrightnessLevel uint16
 }
 
 type Device struct {
 	Debug           bool
 	dev             *hid.Device
+	listener        *hid.Device
 	Manufacturer    string `json:"manufacturer"`
 	Product         string `json:"product"`
 	Serial          string `json:"serial"`
@@ -56,6 +58,7 @@ type Device struct {
 	OriginalProfile *DeviceProfile
 	Template        string
 	VendorId        uint16
+	ProductId       uint16
 	Brightness      map[int]string
 	LEDChannels     int
 	CpuTemp         float32
@@ -72,6 +75,7 @@ var (
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x01}
+	cmdBrightness           = []byte{0x01, 0x02, 0x00}
 	deviceRefreshInterval   = 1000
 	timer                   = &time.Ticker{}
 	authRefreshChan         = make(chan bool)
@@ -117,9 +121,10 @@ func Init(vendorId, productId uint16, key string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:      dev,
-		Template: "k70pro.html",
-		VendorId: vendorId,
+		dev:       dev,
+		Template:  "k70pro.html",
+		VendorId:  vendorId,
+		ProductId: productId,
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -141,6 +146,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.saveDeviceProfile()  // Save profile
 	d.setAutoRefresh()     // Set auto device refresh
 	d.setDeviceColor()     // Device color
+	d.setBrightnessLevel() // Brightness
+	d.controlListener()    // Control listener
 	return d
 }
 
@@ -239,6 +246,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = "default"
 		deviceProfile.Profiles = []string{"default"}
 		deviceProfile.Layout = "US"
+		deviceProfile.BrightnessLevel = 1000
 	} else {
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
@@ -252,6 +260,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
+		deviceProfile.BrightnessLevel = d.DeviceProfile.BrightnessLevel
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -410,6 +419,38 @@ func (d *Device) UpdateRgbProfile(profile string) uint8 {
 	d.setDeviceColor() // Restart RGB
 	return 1
 
+}
+
+// ChangeDeviceBrightnessButton will change device brightness
+func (d *Device) ChangeDeviceBrightnessButton(mode uint8) uint8 {
+	d.DeviceProfile.Brightness = mode
+	d.DeviceProfile.BrightnessLevel = 1000
+
+	switch mode {
+	case 1:
+		d.DeviceProfile.BrightnessLevel = 300
+	case 2:
+		d.DeviceProfile.BrightnessLevel = 600
+	case 3:
+		d.DeviceProfile.BrightnessLevel = 1000
+	case 4:
+		d.DeviceProfile.BrightnessLevel = 0
+	}
+
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
+	_, err := d.transfer(cmdBrightness, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+	}
+
+	return 1
 }
 
 // ChangeDeviceBrightness will change device brightness
@@ -694,6 +735,18 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 		}
 	}
 	return 0
+}
+
+// setBrightnessLevel will set global brightness level
+func (d *Device) setBrightnessLevel() {
+	if d.DeviceProfile != nil {
+		buf := make([]byte, 2)
+		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
+		_, err := d.transfer(cmdBrightness, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+		}
+	}
 }
 
 // setDeviceColor will activate and set device RGB
@@ -1080,4 +1133,66 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	}
 
 	return bufferR, nil
+}
+
+// controlListener will listen for events from the control buttons
+func (d *Device) controlListener() {
+	var brightness uint16 = 0
+
+	if d.DeviceProfile.BrightnessLevel == 0 {
+		brightness = 1000
+	} else {
+		brightness = d.DeviceProfile.BrightnessLevel
+	}
+
+	go func() {
+		buf := make([]byte, 2)
+		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+			if info.InterfaceNbr == 2 {
+				listener, err := hid.OpenPath(info.Path)
+				if err != nil {
+					return err
+				}
+				d.listener = listener
+			}
+			return nil
+		})
+
+		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+		}
+
+		// Listen loop
+		data := make([]byte, bufferSize)
+		for {
+			// Read data from the HID device
+			_, err := d.listener.Read(data)
+			if err != nil {
+				break
+			}
+
+			value := data[4]
+			if value == 0 && data[16] == 2 {
+				if brightness >= 1000 {
+					brightness = 0
+				} else {
+					brightness += 100
+				}
+
+				if d.DeviceProfile != nil {
+					d.DeviceProfile.BrightnessLevel = brightness
+					d.saveDeviceProfile()
+
+					// Send it
+					binary.LittleEndian.PutUint16(buf[0:2], brightness)
+					_, err := d.transfer(cmdBrightness, buf)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+					}
+				}
+			}
+			time.Sleep(40 * time.Millisecond)
+		}
+	}()
 }

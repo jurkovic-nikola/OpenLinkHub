@@ -344,7 +344,7 @@ func GetCpuUtilization() float64 {
 // getAMDUtilization fetches the GPU utilization using rocm-smi
 func getAMDUtilization() (float64, error) {
 	// Execute the rocm-smi command to get utilization
-	cmd := exec.Command("rocm-smi", "--show-utilization")
+	cmd := exec.Command("rocm-smi", "--showuse")
 
 	// Run the command and capture the output
 	var out bytes.Buffer
@@ -365,18 +365,17 @@ func getAMDUtilization() (float64, error) {
 	return utilization, nil
 }
 
-// parseUtilization parses the rocm-smi output to find GPU utilization
 func parseAMDUtilization(output string) (float64, error) {
 	// Example line: "GPU[0] : 35.0%"
 	// Find lines that contain the utilization information
-	re := regexp.MustCompile(`GPU\[\d+\]\s*:\s*(\d+\.\d+)%`)
+	re := regexp.MustCompile(`GPU\[(\d+)\]\s*:\s*GPU use \(%\):\s*(\d+)`)
 	matches := re.FindStringSubmatch(output)
-	if len(matches) < 2 {
+	if len(matches) < 3 {
 		return 0, fmt.Errorf("failed to parse GPU utilization from output")
 	}
 
 	// Convert utilization to float
-	utilizationStr := strings.TrimSpace(matches[1])
+	utilizationStr := strings.TrimSpace(matches[2])
 	utilization, err := strconv.ParseFloat(utilizationStr, 64)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse utilization value: %v", err)

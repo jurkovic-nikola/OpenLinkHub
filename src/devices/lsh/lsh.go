@@ -225,12 +225,12 @@ var (
 		{DeviceId: 13, Model: 1, Name: "iCUE LINK XG7", LedChannels: 16, ContainsPump: false, Desc: "GPU Hybrid Block"},
 		{DeviceId: 12, Model: 0, Name: "iCUE LINK XD5 Elite", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
 		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 11, Model: 0, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 11, Model: 4, Name: "iCUE LINK TITAN H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 11, Model: 2, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 11, Model: 5, Name: "iCUE LINK TITAN H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 11, Model: 1, Name: "iCUE LINK TITAN H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 11, Model: 3, Name: "iCUE LINK TITAN H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
+		{DeviceId: 17, Model: 0, Name: "iCUE LINK TITAN 240", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
+		{DeviceId: 17, Model: 4, Name: "iCUE LINK TITAN 240", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
+		{DeviceId: 17, Model: 2, Name: "iCUE LINK TITAN 360", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
+		{DeviceId: 17, Model: 5, Name: "iCUE LINK TITAN 360", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
+		{DeviceId: 17, Model: 1, Name: "iCUE LINK TITAN 280", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
+		{DeviceId: 17, Model: 3, Name: "iCUE LINK TITAN 420", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
 		{DeviceId: 5, Model: 0, Name: "iCUE LINK ADAPTER", LedChannels: 0, ContainsPump: false, Desc: "Adapter", LinkAdapter: true},
 	}
 )

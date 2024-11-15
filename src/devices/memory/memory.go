@@ -15,6 +15,7 @@ import (
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
+	"fmt"
 	"github.com/godbus/dbus/v5"
 	"math"
 	"os"
@@ -164,6 +165,7 @@ func Init(device, product string) *Device {
 		LEDChannels: 0,
 	}
 
+	d.getDebugMode()       // Debug mode
 	d.loadDeviceProfiles() // Load all device profiles
 	count := d.getDevices()
 	if count == 0 {
@@ -179,6 +181,11 @@ func Init(device, product string) *Device {
 	return d
 }
 
+// getManufacturer will return device manufacturer
+func (d *Device) getDebugMode() {
+	d.Debug = config.GetConfig().Debug
+}
+
 // getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices, 0)
@@ -192,7 +199,15 @@ func (d *Device) getDevices() int {
 		skuRangeLow = byte(0x89)
 		skuRangeHigh = byte(0x9b)
 	}
+
+	if d.Debug {
+		logger.Log(logger.Fields{"skuRangeLow": skuRangeLow, "skuRangeHigh": skuRangeHigh}).Info("DEBUG skuRange")
+	}
 	for i := 0; i < maximumRegisters; i++ {
+		if d.Debug {
+			logger.Log(logger.Fields{"address": dimmInfoAddresses[i]}).Info("Probing address")
+		}
+
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
 		if err != nil {
@@ -200,11 +215,16 @@ func (d *Device) getDevices() int {
 			continue
 		}
 
+		if d.Debug {
+			logger.Log(logger.Fields{"memoryType": config.GetConfig().MemoryType}).Info("Probing address")
+		}
+
 		if config.GetConfig().MemoryType == 5 {
 			// DDR5 has no SPA0 and SPA1, it uses actual DIMM info addresses for different info
 			// 0x0b with 0x04 decodes memory SKU
 			err = smbus.WriteRegister(d.dev.File, dimmInfoAddresses[i], 0x0b, 0x04)
 			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Failed to activate DIMM info")
 				continue
 			}
 		} else {
@@ -212,6 +232,7 @@ func (d *Device) getDevices() int {
 			for _, cmdActivation := range cmdActivations {
 				err = smbus.WriteRegister(d.dev.File, cmdActivation, 0x00, 0x00)
 				if err != nil {
+					logger.Log(logger.Fields{"error": err}).Error("Failed to activate DIMM info")
 					continue
 				}
 				activated++
@@ -225,10 +246,16 @@ func (d *Device) getDevices() int {
 		// Check SKU 1st letter, must match to C = Corsair
 		check, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], skuRangeLow)
 		if err != nil {
+			logger.Log(logger.Fields{"error": err, "register": skuRangeLow}).Error("Failed to get first letter of SKU")
 			continue
 		}
 		if string(check) != "C" {
+			logger.Log(logger.Fields{"error": err, "register": skuRangeLow, "letter": string(check)}).Warn("First SKU letter does not match to letter C")
 			continue
+		}
+
+		if d.Debug {
+			logger.Log(logger.Fields{"skuLetter": string(check)}).Info("Memory SKU - First letter")
 		}
 
 		// Get SKU
@@ -244,15 +271,28 @@ func (d *Device) getDevices() int {
 			buf = append(buf, reg)
 		}
 
+		if d.Debug {
+			logger.Log(logger.Fields{"sku": buf, "skuString": string(buf), "skuLen": len(buf)}).Info("Memory SKU")
+		}
+
 		if len(buf) > 15 {
 			// https://help.corsair.com/hc/en-us/articles/8528259685901-RAM-How-to-Read-the-CORSAIR-memory-part-number
 			// https://help.corsair.com/hc/en-us/articles/360051011331-RAM-DDR4-memory-module-dimensions
 			dimmInfo := string(buf)
 
+			if d.Debug {
+				logger.Log(logger.Fields{"dimmInfo": dimmInfo}).Info("Memory DIMM Info")
+			}
+
 			skuLine := ""
 			ledChannels := 0
 			vendor := dimmInfo[0:2]
 			colorRegister := 0
+
+			if d.Debug {
+				logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
+			}
+
 			if vendor == "CM" { // Corsair Memory
 				line := dimmInfo[2:3]
 				size, e := strconv.Atoi(dimmInfo[3:5])
@@ -274,6 +314,16 @@ func (d *Device) getDevices() int {
 				latency, e := strconv.Atoi(dimmInfo[16:18])
 				if e != nil {
 					continue
+				}
+
+				if d.Debug {
+					logger.Log(logger.Fields{
+						"dimmInfoLine": line,
+						"memoryType":   memoryType,
+						"amount":       amount,
+						"speed":        speed,
+						"latency":      latency,
+					}).Info("Memory DIMM Info - Data")
 				}
 
 				if config.GetConfig().MemoryType == 4 {
@@ -392,6 +442,9 @@ func (d *Device) getDevices() int {
 						Label:             label,
 						RGB:               rgbProfile,
 						HasTemps:          hasTemp,
+					}
+					if d.Debug {
+						logger.Log(logger.Fields{"memoryDevice": device}).Info("Memory DIMM Info - Device")
 					}
 					devices[i] = device
 					d.LEDChannels += ledChannels
@@ -1166,11 +1219,17 @@ func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister
 				buf = append(buf, buffer[i])
 			}
 			buf = append(buf, d.calculateChecksum(buf))
+			if d.Debug {
+				logger.Log(logger.Fields{"colorPacket": fmt.Sprint("% 2x", buf)}).Info("Memory Color")
+			}
 			if len(buf) > 32 {
 				// We have more than 10 LEDs, we need to chunk packet and increment color register.
 				// This is relevant for DOMINATOR PLATINUM RGB that has 12 LEDs.
 				chunks := common.ProcessMultiChunkPacket(buf, 32)
 				for _, chunk := range chunks {
+					if d.Debug {
+						logger.Log(logger.Fields{"colorPacket": fmt.Sprint("% 2x", chunk)}).Info("Memory Color - Chunk")
+					}
 					err := smbus.WriteBlockData(d.dev.File, address, colorRegister, chunk)
 					if err != nil {
 						logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")

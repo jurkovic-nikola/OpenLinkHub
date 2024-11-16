@@ -113,8 +113,11 @@ func (si *SystemInfo) getGpuData() {
 			si.GPU = &GpuData{Model: GetNVIDIAGpuModel()}
 			return
 		} else if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "Advanced Micro Devices") {
-			// AMD
-			si.GPU = &GpuData{Model: GetAMDGpuModels()[0]}
+			// AMD Models for now just use first one
+			models, err := GetAMDGpuModels()
+			if err == nil && len(models) > 0 {
+				si.GPU = &GpuData{Model: models[0]}
+			}
 			return
 		} else {
 			si.GPU = nil

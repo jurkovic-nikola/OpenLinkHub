@@ -221,10 +221,10 @@ func (d *Device) getDevices() int {
 
 		if config.GetConfig().MemoryType == 5 {
 			// DDR5 has no SPA0 and SPA1, it uses actual DIMM info addresses for different info
-			// 0x0b with 0x04 decodes memory SKU
+			// I2C Legacy Mode Device Configuration
 			err = smbus.WriteRegister(d.dev.File, dimmInfoAddresses[i], 0x0b, 0x04)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Failed to activate DIMM info")
+				logger.Log(logger.Fields{"error": err, "address": dimmInfoAddresses[i]}).Error("Failed to activate DIMM info")
 				continue
 			}
 		} else {

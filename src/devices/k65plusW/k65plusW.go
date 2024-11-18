@@ -1030,7 +1030,7 @@ func (d *Device) controlDialListener() {
 
 		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Unable to enumerate devices")
 		}
 
 		// Listen loop
@@ -1039,7 +1039,7 @@ func (d *Device) controlDialListener() {
 			// Read data from the HID device
 			_, err := d.listener.Read(data)
 			if err != nil {
-				fmt.Println("Error reading from device:", err)
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Error reading data from a device")
 				break
 			}
 			value := data[4]

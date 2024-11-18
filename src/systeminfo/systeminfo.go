@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -112,9 +113,11 @@ func (si *SystemInfo) getGpuData() {
 			si.GPU = &GpuData{Model: GetNVIDIAGpuModel()}
 			return
 		} else if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "Advanced Micro Devices") {
-			// AMD
-			// To-Do: Find proper AMD GPU model
-			si.GPU = &GpuData{Model: "AMD Compatible GPU"}
+			// AMD Models for now just use first one
+			models, err := GetAMDGpuModels()
+			if err == nil && len(models) > 0 {
+				si.GPU = &GpuData{Model: models[0]}
+			}
 			return
 		} else {
 			si.GPU = nil
@@ -195,6 +198,31 @@ func GetNVIDIAGpuModel() string {
 	}
 	model = strings.TrimSpace(string(output))
 	return model
+}
+
+func GetAMDGpuModels() ([]string, error) {
+	var data map[string]map[string]interface{}
+	cmd := exec.Command("rocm-smi", "--showallinfo", "--json")
+	jsonOutput, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("error executing rocm-smi: %v", err)
+	}
+
+	err = json.Unmarshal(jsonOutput, &data)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
+	}
+
+	var models []string
+	for key, value := range data {
+		if strings.HasPrefix(key, "card") {
+			if deviceName, ok := value["Device Name"].(string); ok {
+				models = append(models, deviceName)
+			}
+		}
+	}
+
+	return models, nil
 }
 
 // GetNVIDIAUtilization will return NVIDIA gpu utilization

@@ -29,13 +29,7 @@
                 {{ range .Devices }}
                 <div class="row btn btn-secondary navigation-left-big">
                     <a style="color: #a1a1a1;width: 100%;height: 100%" href="/device/{{ .Serial }}">
-                        {{ if eq .ProductType 8 }}
-                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        {{ else if gt .ProductType 100 }}
-                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        {{ else }}
-                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        {{ end }}
+                        <img src="/static/img/icons/{{ .Image }}" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ .Product }}</span>
                     </a>
                 </div>
@@ -83,6 +77,7 @@
                 {{ if $dash.ShowDevices }}
                 {{ range .Devices }}
                 {{ $dev := .GetDevice }}
+                {{ $productType := .ProductType }}
                 {{ if $dev }}
                 {{ $devices := $dev.Devices }}
                 <div class="row gy-4" style="margin-bottom: 20px;">
@@ -129,6 +124,8 @@
                                         <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                                         {{ else if and (eq $device.IsTemperatureProbe true) (eq $device.HasSpeed false) }}
                                         <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
+                                        {{ else if and (eq $productType 501) (eq $device.HasSpeed false) }}
+                                        <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
                                         {{ else }}
                                         <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                                         {{ end }}
@@ -149,8 +146,8 @@
                                         <span class="text-dash-color-2-custom-15" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
                                         {{ end }}
                                         {{ end }}
+                                        {{ if $device.HasTemps }}
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                            {{ if $device.HasTemps }}
                                             {{ if gt $device.Temperature 0.00 }}
                                             {{ if $device.HasSpeed }}
                                             <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
@@ -158,8 +155,24 @@
                                             <span class="text-dash-color-2-custom-15" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
                                             {{ end }}
                                             {{ end }}
-                                            {{ end }}
                                         </p>
+                                        {{ end }}
+                                        <!-- PSU -->
+                                        {{ if eq $productType 501 }}
+                                        {{ if and (eq $device.HasSpeed false) (eq $device.HasTemps false) }}
+                                        {{ if $device.Output }}
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3">
+                                            <span class="text-dash-color-2-custom-15" id="watts-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Watts }} W</span><br />
+                                        </p>
+                                        {{ else }}
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3">
+                                            <span class="text-dash-color-2-custom" id="watts-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Watts }} W</span><br />
+                                            <span class="text-dash-color-2-custom" id="volts-{{ $dev.Serial }}-{{ $device.ChannelId }}" style="margin-top: 5px;">{{ $device.Volts }} V</span><br />
+                                            <span class="text-dash-color-2-custom" id="amps-{{ $dev.Serial }}-{{ $device.ChannelId }}" style="margin-top: 5px;">{{ $device.Amps }} A</span><br />
+                                        </p>
+                                        {{ end }}
+                                        {{ end }}
+                                        {{ end }}
                                     </div>
                                 </div>
                             </div>

@@ -14,16 +14,22 @@ import (
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70pro"
+	"OpenLinkHub/src/devices/katarpro"
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
+	"OpenLinkHub/src/devices/lt100"
 	"OpenLinkHub/src/devices/memory"
+	"OpenLinkHub/src/devices/mm700"
+	"OpenLinkHub/src/devices/psuhid"
+	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"github.com/sstallion/go-hid"
+	"os"
 	"slices"
 	"strconv"
 )
@@ -46,9 +52,11 @@ const (
 	productTypeK65PlusW = 106
 	productTypeK100Air  = 107
 	productTypeK100AirW = 108
+	productTypeKatarPro = 201
 	productTypeST100    = 401
 	productTypeMM700    = 402
 	productTypeLT100    = 403
+	productTypePSUHid   = 501
 )
 
 type AIOData struct {
@@ -58,10 +66,11 @@ type AIOData struct {
 }
 
 type Device struct {
-	ProductType uint8
+	ProductType uint16
 	Product     string
 	Serial      string
 	Firmware    string
+	Image       string
 	Lsh         *lsh.Device      `json:"lsh,omitempty"`
 	CC          *cc.Device       `json:"cc,omitempty"`
 	CCXT        *ccxt.Device     `json:"ccxt,omitempty"`
@@ -79,15 +88,23 @@ type Device struct {
 	K65PlusW    *k65plusW.Device `json:"k65plusW,omitempty"`
 	K100Air     *k100air.Device  `json:"k100air,omitempty"`
 	K100AirW    *k100airW.Device `json:"k100airW,omitempty"`
+	ST100       *st100.Device    `json:"st100,omitempty"`
+	MM700       *mm700.Device    `json:"mm700,omitempty"`
+	LT100       *lt100.Device    `json:"lt100,omitempty"`
+	PSUHid      *psuhid.Device   `json:"psuhid,omitempty"`
+	KatarPro    *katarpro.Device `json:"katarpro,omitempty"`
 	GetDevice   interface{}
 }
 
 var (
-	vendorId    uint16 = 6940 // Corsair
-	interfaceId        = 0
-	devices            = make(map[string]*Device, 0)
-	products           = make(map[string]uint16)
-	keyboards          = []uint16{7127, 7165, 7166, 7110, 7083, 7132, 11024, 11015}
+	expectedPermission        = 0666
+	vendorId           uint16 = 6940 // Corsair
+	interfaceId               = 0
+	devices                   = make(map[string]*Device, 0)
+	products                  = make(map[string]uint16)
+	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 7132, 11024, 11015}
+	mouses                    = []uint16{7059}
+	pads                      = []uint16{7067}
 )
 
 // Stop will stop all active devices
@@ -196,12 +213,64 @@ func Stop() {
 					device.K100AirW.Stop()
 				}
 			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					device.ST100.Stop()
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					device.MM700.Stop()
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					device.LT100.Stop()
+				}
+			}
+		case productTypePSUHid:
+			{
+				if device.PSUHid != nil {
+					device.PSUHid.Stop()
+				}
+			}
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					device.KatarPro.Stop()
+				}
+			}
 		}
 	}
+
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
 	}
+}
+
+// UpdateMiscColor will process POST request from a client for misc color change
+func UpdateMiscColor(deviceId string, keyId, keyOptions int, color rgb.Color) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700.UpdateDeviceColor(keyId, keyOptions, color)
+				}
+			}
+		}
+	}
+	return 0
 }
 
 // UpdateKeyboardColor will process POST request from a client for keyboard color change
@@ -308,6 +377,36 @@ func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) uint8 
 			{
 				if device.CPro != nil {
 					return device.CPro.UpdateExternalHubDeviceType(portId, deviceType)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// UpdatePsuFanMode will update a device fan mode
+func UpdatePsuFanMode(deviceId string, fanMode int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypePSUHid:
+			{
+				if device.PSUHid != nil {
+					return device.PSUHid.UpdatePsuFan(fanMode)
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// SaveMouseDPI will save mouse DPI values
+func SaveMouseDPI(deviceId string, stages map[int]uint16) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		switch device.ProductType {
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					return device.KatarPro.SaveMouseDPI(stages)
 				}
 			}
 		}
@@ -443,6 +542,18 @@ func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
 			{
 				if device.K100AirW != nil {
 					return device.K100AirW.SaveKeyboardProfile(profileName, new)
+				}
+			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100.SaveDeviceProfile()
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700.SaveDeviceProfile()
 				}
 			}
 		}
@@ -769,6 +880,30 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 					return device.K100AirW.SaveUserProfile(profileName)
 				}
 			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					return device.LT100.SaveUserProfile(profileName)
+				}
+			}
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					return device.KatarPro.SaveUserProfile(profileName)
+				}
+			}
 		}
 	}
 	return 0
@@ -895,6 +1030,18 @@ func ScheduleDeviceBrightness(mode uint8) {
 					device.K100AirW.ChangeDeviceBrightness(mode)
 				}
 			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					device.ST100.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					device.LT100.ChangeDeviceBrightness(mode)
+				}
+			}
 		}
 	}
 }
@@ -1003,6 +1150,30 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 			{
 				if device.K100AirW != nil {
 					return device.K100AirW.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					return device.LT100.ChangeDeviceBrightness(mode)
+				}
+			}
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					return device.KatarPro.ChangeDeviceBrightness(mode)
 				}
 			}
 		}
@@ -1114,6 +1285,30 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 			{
 				if device.K100AirW != nil {
 					return device.K100AirW.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					return device.LT100.ChangeDeviceProfile(profileName)
+				}
+			}
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					return device.KatarPro.ChangeDeviceProfile(profileName)
 				}
 			}
 		}
@@ -1302,6 +1497,12 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType 
 			{
 				if device.K100AirW != nil {
 					return device.K100AirW.UpdateDeviceLabel(label)
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					return device.LT100.UpdateDeviceLabel(channelId, label)
 				}
 			}
 		}
@@ -1508,6 +1709,30 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 					return device.K100AirW.UpdateRgbProfile(profile)
 				}
 			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100.UpdateRgbProfile(profile)
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700.UpdateRgbProfile(profile)
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					return device.LT100.UpdateRgbProfile(channelId, profile)
+				}
+			}
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					return device.KatarPro.UpdateRgbProfile(profile)
+				}
+			}
 		}
 	}
 	return 0
@@ -1684,6 +1909,37 @@ func GetDevice(deviceId string) interface{} {
 					return device.K100AirW
 				}
 			}
+		case productTypeST100:
+			{
+				if device.ST100 != nil {
+					return device.ST100
+				}
+			}
+		case productTypeMM700:
+			{
+				if device.MM700 != nil {
+					return device.MM700
+				}
+			}
+		case productTypeLT100:
+			{
+				if device.LT100 != nil {
+					return device.LT100
+				}
+			}
+		case productTypePSUHid:
+			{
+				if device.PSUHid != nil {
+					return device.PSUHid
+				}
+			}
+
+		case productTypeKatarPro:
+			{
+				if device.KatarPro != nil {
+					return device.KatarPro
+				}
+			}
 		}
 	}
 	return nil
@@ -1697,15 +1953,30 @@ func Init() {
 	}
 
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		keyboard := false
+		devPath := info.Path
+		dev, err := os.Stat(devPath)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to get device info")
+			return nil
+		}
+
+		filePerm := dev.Mode().Perm()
+		if filePerm != os.FileMode(expectedPermission) {
+			logger.Log(logger.Fields{"error": err, "productId": info.ProductID}).Warn("Invalid permissions")
+			return nil
+		}
+
 		if slices.Contains(keyboards, info.ProductID) {
-			interfaceId = 1 // Keyboards
-			keyboard = true
+			interfaceId = 1 // Keyboard
+		} else if slices.Contains(mouses, info.ProductID) {
+			interfaceId = 1 // Mouse
+		} else if slices.Contains(pads, info.ProductID) {
+			interfaceId = 1 // Mousepad
 		} else {
 			interfaceId = 0
 		}
 		if info.InterfaceNbr == interfaceId {
-			if keyboard {
+			if interfaceId == 1 {
 				products[info.Path] = info.ProductID
 			} else {
 				products[info.SerialNbr] = info.ProductID
@@ -1752,6 +2023,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -1769,6 +2041,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -1786,6 +2059,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -1811,6 +2085,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId)
@@ -1828,6 +2103,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1844,6 +2120,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1860,6 +2137,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -1877,6 +2155,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -1894,6 +2173,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1910,6 +2190,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1926,6 +2207,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1942,6 +2224,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1958,6 +2241,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1974,6 +2258,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -1990,6 +2275,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -2006,6 +2292,96 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+					}
+				}(vendorId, productId, key)
+			}
+		case 2612: // Corsair ST100 LED Driver
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := st100.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ST100:       dev,
+						ProductType: productTypeST100,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-headphone.svg",
+					}
+				}(vendorId, productId, key)
+			}
+		case 7067: // Corsair MM700 RGB Gaming Mousepad
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := mm700.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						MM700:       dev,
+						ProductType: productTypeMM700,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mousepad.svg",
+					}
+				}(vendorId, productId, key)
+			}
+		case 3107: // Corsair iCUE LT100 Smart Lighting Tower
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := lt100.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						LT100:       dev,
+						ProductType: productTypeLT100,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-rgb.svg",
+					}
+				}(vendorId, productId, key)
+			}
+		case 7198, 7203, 7199:
+			// Corsair HX1000i Power Supply
+			// Corsair HX1200i Power Supply
+			// Corsair HX1500i Power Supply
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := psuhid.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						PSUHid:      dev,
+						ProductType: productTypePSUHid,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-psu.svg",
+					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
+				}(vendorId, productId, key)
+			}
+		case 7059: // Corsair KATAR PRO Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := katarpro.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						KatarPro:    dev,
+						ProductType: productTypeKatarPro,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
 					}
 				}(vendorId, productId, key)
 			}
@@ -2020,6 +2396,7 @@ func Init() {
 							Product:     dev.Product,
 							Serial:      dev.Serial,
 							Firmware:    "0",
+							Image:       "icon-ram.svg",
 						}
 					}
 				}(key)

@@ -16,38 +16,42 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId            string    `json:"deviceId"`
-	ChannelId           int       `json:"channelId"`
-	Mode                uint8     `json:"mode"`
-	Rotation            uint8     `json:"rotation"`
-	Value               uint16    `json:"value"`
-	Color               rgb.Color `json:"color"`
-	Profile             string    `json:"profile"`
-	Label               string    `json:"label"`
-	Static              bool      `json:"static"`
-	Sensor              uint8     `json:"sensor"`
-	ZeroRpm             bool      `json:"zeroRpm"`
-	HwmonDeviceId       string    `json:"hwmonDeviceId"`
-	Enabled             bool      `json:"enabled"`
-	DeviceType          int       `json:"deviceType"`
-	KeyOption           int       `json:"keyOption"`
-	KeyId               int       `json:"keyId"`
-	DeviceAmount        int       `json:"deviceAmount"`
-	PortId              int       `json:"portId"`
-	UserProfileName     string    `json:"userProfileName"`
-	LcdSerial           string    `json:"lcdSerial"`
-	KeyboardProfileName string    `json:"keyboardProfileName"`
-	KeyboardLayout      string    `json:"keyboardLayout"`
-	KeyboardControlDial int       `json:"keyboardControlDial"`
-	SleepMode           int       `json:"sleepMode"`
-	RgbControl          bool      `json:"rgbControl"`
-	RgbOff              string    `json:"rgbOff"`
-	RgbOn               string    `json:"rgbOn"`
-	Brightness          uint8     `json:"brightness"`
-	Position            int       `json:"position"`
-	Direction           int       `json:"direction"`
-	StripId             int       `json:"stripId"`
-	New                 bool      `json:"new"`
+	DeviceId            string         `json:"deviceId"`
+	ChannelId           int            `json:"channelId"`
+	Mode                uint8          `json:"mode"`
+	Rotation            uint8          `json:"rotation"`
+	Value               uint16         `json:"value"`
+	Color               rgb.Color      `json:"color"`
+	Profile             string         `json:"profile"`
+	Label               string         `json:"label"`
+	Static              bool           `json:"static"`
+	Sensor              uint8          `json:"sensor"`
+	ZeroRpm             bool           `json:"zeroRpm"`
+	HwmonDeviceId       string         `json:"hwmonDeviceId"`
+	Enabled             bool           `json:"enabled"`
+	DeviceType          int            `json:"deviceType"`
+	KeyOption           int            `json:"keyOption"`
+	AreaOption          int            `json:"areaOption"`
+	KeyId               int            `json:"keyId"`
+	AreaId              int            `json:"areaId"`
+	DeviceAmount        int            `json:"deviceAmount"`
+	PortId              int            `json:"portId"`
+	UserProfileName     string         `json:"userProfileName"`
+	LcdSerial           string         `json:"lcdSerial"`
+	KeyboardProfileName string         `json:"keyboardProfileName"`
+	KeyboardLayout      string         `json:"keyboardLayout"`
+	KeyboardControlDial int            `json:"keyboardControlDial"`
+	SleepMode           int            `json:"sleepMode"`
+	RgbControl          bool           `json:"rgbControl"`
+	RgbOff              string         `json:"rgbOff"`
+	RgbOn               string         `json:"rgbOn"`
+	Brightness          uint8          `json:"brightness"`
+	Position            int            `json:"position"`
+	Direction           int            `json:"direction"`
+	StripId             int            `json:"stripId"`
+	FanMode             int            `json:"fanMode"`
+	New                 bool           `json:"new"`
+	Stages              map[int]uint16 `json:"stages"`
 	Status              int
 	Code                int
 	Message             string
@@ -1126,13 +1130,58 @@ func ProcessKeyboardColor(r *http.Request) *Payload {
 	status := devices.UpdateKeyboardColor(req.DeviceId, req.KeyId, req.KeyOption, req.Color)
 	switch status {
 	case 0:
-		return &Payload{Message: "Unable to change external LED hub device", Code: http.StatusOK, Status: 0}
+		return &Payload{Message: "Unable to change device color", Code: http.StatusOK, Status: 0}
 	case 1:
-		return &Payload{Message: "External LED hub device is successfully changed", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Device color is successfully changed", Code: http.StatusOK, Status: 1}
 	case 2:
-		return &Payload{Message: "Non-existing external device type", Code: http.StatusOK, Status: 0}
+		return &Payload{Message: "Non-existing device type", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change external LED hub device", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change device color", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessMiscColor will process a POST request from a client for misc device color change
+func ProcessMiscColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.Color.Red > 255 || req.Color.Green > 255 || req.Color.Blue > 255 {
+		return &Payload{Message: "Invalid color selected", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.Color.Red < 0 || req.Color.Green < 0 || req.Color.Blue < 0 {
+		return &Payload{Message: "Invalid color selected", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.AreaId < 1 {
+		return &Payload{Message: "Invalid area selected", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.AreaOption < 0 || req.AreaOption > 2 {
+		return &Payload{Message: "Invalid area option selected", Code: http.StatusOK, Status: 0}
+	}
+
+	status := devices.UpdateMiscColor(req.DeviceId, req.AreaId, req.AreaOption, req.Color)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to change device color", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device color is successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Non-existing device type", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change device color", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessExternalHubDeviceAmount will process POST request from a client for external-LED hub
@@ -1215,4 +1264,68 @@ func ProcessChangeRgbScheduler(r *http.Request) *Payload {
 		return &Payload{Message: "RGB scheduler successfully updated.", Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: "Unable to change keyboard sleep mode.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessPsuFanModeChange will process a POST request from a client for PSU fan mode change
+func ProcessPsuFanModeChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.FanMode < 0 || req.FanMode > 10 {
+		return &Payload{Message: "Invalid fan mode selected", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdatePsuFanMode(req.DeviceId, req.FanMode)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to change PSU fan mode", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "PSU fan mode is successfully updated", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to change external LED hub device amount", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessMouseDpiSave will process a POST request from a client for mouse DPI save
+func ProcessMouseDpiSave(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.Stages) == 0 {
+		return &Payload{Message: "Invalid stages", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.SaveMouseDPI(req.DeviceId, req.Stages)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to save mouse DPI values", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Mouse DPI values are successfully updated", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to save mouse DPI values", Code: http.StatusOK, Status: 0}
 }

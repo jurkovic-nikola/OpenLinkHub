@@ -438,6 +438,17 @@ func setKeyboardColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setMiscColor handles misc device color change
+func setMiscColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessMiscColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // saveKeyboardProfile handles a new keyboard profile
 func saveKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSaveKeyboardProfile(r)
@@ -507,6 +518,28 @@ func deleteKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 // changeKeyboardProfile handles keyboard profile change
 func changeKeyboardProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeKeyboardProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changePsuFanMode handles PSU fan mode change
+func changePsuFanMode(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessPsuFanModeChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// saveMouseDpi handles mouse DPI save
+func saveMouseDpi(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessMouseDpiSave(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -753,6 +786,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setARGBDevice)
 	r.Methods(http.MethodPost).Path("/api/keyboard/color").
 		HandlerFunc(setKeyboardColor)
+	r.Methods(http.MethodPost).Path("/api/misc/color").
+		HandlerFunc(setMiscColor)
 	r.Methods(http.MethodPut).Path("/api/keyboard/profile/new").
 		HandlerFunc(saveKeyboardProfile)
 	r.Methods(http.MethodPost).Path("/api/keyboard/profile/change").
@@ -769,6 +804,10 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeSleepMode)
 	r.Methods(http.MethodPost).Path("/api/scheduler/rgb").
 		HandlerFunc(changeRgbScheduler)
+	r.Methods(http.MethodPost).Path("/api/psu/speed").
+		HandlerFunc(changePsuFanMode)
+	r.Methods(http.MethodPost).Path("/api/mouse/dpi").
+		HandlerFunc(saveMouseDpi)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

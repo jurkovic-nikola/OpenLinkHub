@@ -1499,7 +1499,7 @@ func (d *Device) setDeviceStatus() {
 	}
 
 	if d.Debug {
-		logger.Log(logger.Fields{"serial": d.Serial, "mode": fmt.Sprintf("%2x", mode)}).Info("setDeviceStatus()")
+		logger.Log(logger.Fields{"serial": d.Serial, "mode": fmt.Sprintf("% 2x", mode)}).Info("setDeviceStatus()")
 	}
 
 	d.deviceMonitor.Lock.Lock()
@@ -1529,7 +1529,7 @@ func (d *Device) getDeviceData() {
 	// Speed
 	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
 	if d.Debug {
-		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "type": "speed"}).Info("getDeviceData()")
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response), "type": "speed"}).Info("getDeviceData()")
 	}
 	amount := response[6]
 	sensorData := response[7:]
@@ -1556,7 +1556,7 @@ func (d *Device) getDeviceData() {
 		sensorData = response[7:]
 		valid = response[7]
 		if d.Debug {
-			logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "type": "temperature"}).Info("getDeviceData()")
+			logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response), "type": "temperature"}).Info("getDeviceData()")
 		}
 		if valid == 0x01 {
 			for i, s := 0, 0; i < int(amount); i, s = i+1, s+3 {
@@ -1638,7 +1638,7 @@ func (d *Device) getDevices() int {
 
 	response := d.read(modeGetDevices, dataTypeGetDevices)
 	if d.Debug {
-		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response)}).Info("getDevices()")
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response)}).Info("getDevices()")
 	}
 
 	channels := response[6]
@@ -1949,7 +1949,6 @@ func (d *Device) setDeviceColor() {
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 		hue := 1
 		wavePosition := 0.0
-		galaxyPosition := 0.0
 		rand.New(rand.NewSource(time.Now().UnixNano()))
 		for {
 			select {
@@ -2209,7 +2208,6 @@ func (d *Device) setDeviceColor() {
 				time.Sleep(30 * time.Millisecond)
 				hue++
 				wavePosition += 0.2
-				galaxyPosition += 1
 			}
 		}
 	}(lightChannels)
@@ -2598,8 +2596,15 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 
 		bufferW[4] = byte(i)
 		binary.LittleEndian.PutUint16(bufferW[6:8], uint16(len(chunk)))
-		copy(bufferW[8:], chunk)
+		copy(bufferW[lcdHeaderSize:], chunk)
 
+		if d.Debug {
+			logger.Log(logger.Fields{
+				"lcdData": fmt.Sprintf("% 2x", bufferW),
+				"length":  len(chunk),
+				"chunk":   i,
+			}).Info("LCD DEBUG DATA")
+		}
 		if d.Lcd != nil {
 			if _, err := lcdDevice.Write(bufferW); err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")

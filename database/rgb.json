@@ -7,6 +7,8 @@
   },
   "profiles": {
     "keyboard": {},
+    "stand": {},
+    "mousepad": {},
     "rainbow": {
       "speed": 4,
       "brightness": 1

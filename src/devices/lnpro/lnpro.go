@@ -1160,7 +1160,7 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 		packetsR[i] = chunkPacket
 	}
 
-	packetsG := make(map[int][]byte, len(chunksR))
+	packetsG := make(map[int][]byte, len(chunksG))
 	for i, chunk := range chunksG {
 		chunkLen := len(chunk)
 		chunkPacket := make([]byte, chunkLen+4)

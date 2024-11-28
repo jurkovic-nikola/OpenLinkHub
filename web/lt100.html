@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="" xmlns="http://www.w3.org/1999/html">
+<html lang="">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -9,24 +9,19 @@
     <meta name="robots" content="all,follow">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
     <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/static/css/custom.css">
     <link rel="stylesheet" href="/static/css/toastr.min.css">
     <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/static/css/all.css">
-    <link rel="stylesheet" href="/static/css/custom.css">
     <link rel="shortcut icon" href="/static/img/favicon.ico">
 </head>
 <body>
 <div class="d-flex align-items-stretch">
     <div class="page-content">
         {{ $devs := .Devices }}
-        {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
+        {{ $devices := $device.Devices }}
         {{ $rgb := .Rgb }}
-        {{ $lcd := .Device.HasLCD }}
-        {{ $lcdModes := .Device.LCDModes }}
-        {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
-        {{ $lcdRotations := .Device.LCDRotations }}
-        {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
@@ -89,16 +84,16 @@
             <div class="container-fluid">
                 <div class="row gy-4" style="margin-top: 10px;">
                     <div class="row">
-                        <div style="width: 300px;">
+                        <div style="width: 320px;">
                             <div class="card mb-4">
                                 <div class="card-header border-bottom border-dash-dark-1">
                                     <div class="ds-svg-placeholder-left">
                                         <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="Device" />
                                     </div>
-                                    <div class="ds-svg-placeholder-right">
+                                    <div class="ds-svg-placeholder-right" style="width: 175px;">
                                         <span style="font-size: 13px;">{{ .Device.Product }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                            <span>{{ .Device.DeviceProfile.Label }}</span>
+                                            <span>Device Settings</span>
                                         </p>
                                     </div>
                                 </div>
@@ -109,16 +104,6 @@
                                                 <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Firmware</p>
                                             </div>
                                             <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Device.Firmware }}</p>
-                                        </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-
-                                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-0">{{ $device.TemperatureString }}</p>
                                         </div>
                                         <div class="progress" style="height: 3px">
                                             <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
@@ -140,7 +125,6 @@
                                                 </select>
                                             </div>
                                         </div>
-
                                         <div class="custom-device-block">
                                             <div class="custom-float-20-left">
                                                 <i class="bi bi-lightning-charge svg-icon svg-icon-sm svg-icon-heavy"></i>
@@ -157,47 +141,12 @@
                                                 </select>
                                             </div>
                                         </div>
-
-                                        <div class="custom-device-block">
-                                            <div class="custom-float-20-left">
-                                                <i class="bi bi-display svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                            </div>
-                                            <div class="custom-float-80-right">
-                                                <select class="form-select lcdMode" name="{{ $device.Serial }}" style="line-height: 1;margin-top:10px;">
-                                                    {{ range $key, $value := $lcdModes }}
-                                                    {{ if eq $key $lcdMode }}
-                                                    <option value="{{ $key }}" selected>{{ $value }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $key }}">{{ $value }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="custom-device-block">
-                                            <div class="custom-float-20-left">
-                                                <i class="bi bi-0-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                            </div>
-                                            <div class="custom-float-80-right">
-                                                <select class="form-select lcdRotation" name="{{ $device.Serial }}" style="line-height: 1;margin-top:10px;">
-                                                    {{ range $key, $value := $lcdRotations }}
-                                                    {{ if eq $key $lcdRotation }}
-                                                    <option value="{{ $key }}" selected>{{ $value }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $key }}">{{ $value }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </div>
-                                        </div>
-
                                         <div class="custom-device-block">
                                             <div class="custom-float-20-left">
                                                 <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                             </div>
                                             <div class="custom-float-80-right">
-                                                <select class="form-select rgbProfile" name="0" style="line-height: 1;margin-top:10px;">
+                                                <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
                                                     {{ range $key, $_ := $rgb }}
                                                     {{ if eq $key "stand" }}
                                                     {{ continue }}
@@ -205,17 +154,14 @@
                                                     {{ continue }}
                                                     {{ else if eq $key "mousepad" }}
                                                     {{ continue }}
+                                                    {{ else if eq $key "liquid-temperature" }}
+                                                    {{ continue }}
                                                     {{ end }}
-                                                    {{ if eq $key $device.DeviceProfile.RGBProfile }}
-                                                    <option value="0;{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    <option value="0;{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
+                                                    <option value="{{ $key }}">{{ $key }}</option>
                                                     {{ end }}
                                                 </select>
                                             </div>
                                         </div>
-
                                         <div style="overflow: hidden; margin-top: 10px;">
                                             <button class="btn btn-secondary saveUserProfile">
                                                 <span>Save As</span>
@@ -225,6 +171,54 @@
                                 </div>
                             </div>
                         </div>
+                        {{ range $device := $devices }}
+                        <div style="width: 300px;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div style="float:left;width: 46px;height: 46px">
+                                        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Device" />
+                                    </div>
+
+                                    <div style="float:right;width: 155px;">
+                                        <span style="font-size: 13px;">{{ $device.Name }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3 newLabel" style="margin-top: 5px;">
+                                            <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                            <span class="labelValue">{{ $device.Label }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="card-body" style="padding: 1rem 1rem;">
+                                    {{ if gt $device.LedChannels 0 }}
+                                    <div class="custom-device-block">
+                                        <div class="custom-float-20-left" style="margin-top: 2px;">
+                                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </div>
+                                        <div class="custom-float-80-right">
+                                            <select class="form-select rgbProfile" name="{{ $device.DeviceId }}" style="line-height: 1;">
+                                                {{ range $key, $_ := $rgb }}
+                                                {{ if eq $key "stand" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "keyboard" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mousepad" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "liquid-temperature" }}
+                                                {{ continue }}
+                                                {{ end }}
+                                                {{ if eq $key $device.RGB }}
+                                                <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    {{ end }}
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
                     </div>
                 </div>
             </div>

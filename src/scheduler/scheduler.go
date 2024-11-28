@@ -6,9 +6,22 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
+	"fmt"
 	"os"
+	"sync"
 	"time"
 )
+
+// TaskManager manages the scheduling, execution, and lifecycle of tasks.
+type TaskManager struct {
+	mu       sync.Mutex
+	wg       sync.WaitGroup
+	exitCh   chan struct{}
+	updateCh chan string
+	runTime  string
+	taskName string
+	action   func()
+}
 
 type Scheduler struct {
 	LightsOut  bool
@@ -18,16 +31,18 @@ type Scheduler struct {
 }
 
 var (
-	location          = ""
-	scheduler         Scheduler
-	upgrade           = map[string]any{}
-	schedulerInterval = 10000
-	timer             = &time.Ticker{}
-	schedulerChan     = make(chan bool)
+	debug      = false
+	location   = ""
+	scheduler  Scheduler
+	upgrade    = map[string]any{}
+	layout     = "15:04"
+	taskRgbOff = &TaskManager{}
+	taskRgbOn  = &TaskManager{}
 )
 
 // Init will initialize a new config object
 func Init() {
+	debug = config.GetConfig().Debug
 	location = config.GetConfig().ConfigPath + "/database/scheduler.json"
 	upgradeFile()
 	file, err := os.Open(location)
@@ -44,7 +59,7 @@ func Init() {
 	if err = json.NewDecoder(file).Decode(&scheduler); err != nil {
 		panic(err.Error())
 	}
-	runScheduler(false)
+	rgbTasks(false)
 }
 
 // upgradeFile will perform json file upgrade or create initial file
@@ -140,7 +155,6 @@ func SaveSchedulerSettings(data any, reload bool) uint8 {
 
 // UpdateRgbSettings will update RGB scheduler settings
 func UpdateRgbSettings(enabled bool, start, end string) uint8 {
-	layout := "15:04"
 	rgbOff, err := time.Parse(layout, start)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Failed to process rgb scheduler start time")
@@ -157,7 +171,7 @@ func UpdateRgbSettings(enabled bool, start, end string) uint8 {
 	scheduler.RGBOn = rgbOn.Format(layout)
 	scheduler.RGBControl = enabled
 	SaveSchedulerSettings(scheduler, true)
-	runScheduler(true)
+	rgbTasks(true)
 	return 1
 }
 
@@ -166,58 +180,128 @@ func GetScheduler() *Scheduler {
 	return &scheduler
 }
 
-func runScheduler(restart bool) {
-	if restart {
-		timer.Stop()
-		schedulerChan <- true
-	}
+// rgbTasks controls tasks related to rgb
+func rgbTasks(update bool) {
+	if scheduler.RGBControl {
+		if update {
+			if taskRgbOff != nil {
+				taskRgbOff.updateTime(scheduler.RGBOff)
+			}
+			if taskRgbOn != nil {
+				taskRgbOn.updateTime(scheduler.RGBOn)
+			}
+		} else {
+			taskRgbOff = newTaskManager(
+				"Task_RGB_Off",
+				func() { devices.ScheduleDeviceBrightness(4) },
+				scheduler.RGBOff,
+			)
 
-	timer = time.NewTicker(time.Duration(schedulerInterval) * time.Millisecond)
-	schedulerChan = make(chan bool)
+			taskRgbOn = newTaskManager(
+				"Task_RGB_On",
+				func() { devices.ScheduleDeviceBrightness(0) },
+				scheduler.RGBOn,
+			)
+			taskRgbOff.startTask()
+			taskRgbOn.startTask()
+		}
+	} else {
+		if taskRgbOff != nil {
+			taskRgbOff.stopTask()
+		}
+		if taskRgbOn != nil {
+			taskRgbOn.stopTask()
+		}
+	}
+}
+
+// NewTaskManager creates a new TaskManager.
+func newTaskManager(taskName string, action func(), initialTime string) *TaskManager {
+	return &TaskManager{
+		exitCh:   make(chan struct{}),
+		updateCh: make(chan string),
+		runTime:  initialTime,
+		taskName: taskName,
+		action:   action,
+	}
+}
+
+// Start begins the task manager's execution loop.
+func (tm *TaskManager) startTask() {
+	tm.wg.Add(1)
 	go func() {
+		defer tm.wg.Done()
+
 		for {
+			tm.mu.Lock()
+			runTime := tm.runTime
+			tm.mu.Unlock()
+
+			// Calculate the next scheduled time
+			now := time.Now()
+			scheduledTime, _ := time.Parse("15:04", runTime)
+			scheduledDateTime := time.Date(now.Year(), now.Month(), now.Day(), scheduledTime.Hour(), scheduledTime.Minute(), scheduledTime.Second(), 0, now.Location())
+			if now.After(scheduledDateTime) {
+				scheduledDateTime = scheduledDateTime.Add(24 * time.Hour)
+			}
+
+			duration := time.Until(scheduledDateTime)
+			if debug {
+				msg := fmt.Sprintf("%s scheduled to run at %s (in %s)", tm.taskName, scheduledDateTime.Format("15:04"), duration)
+				logger.Log(logger.Fields{"message": msg}).Info("Scheduler")
+			}
+
+			// Wait for the scheduled time or an update/exit signal
 			select {
-			case <-timer.C:
-				rgbControl()
-			case <-schedulerChan:
-				timer.Stop()
+			case <-time.After(duration):
+				tm.action()
+			case newTime := <-tm.updateCh:
+				if debug {
+					msg := fmt.Sprintf("%s time updated to %s", tm.taskName, newTime)
+					logger.Log(logger.Fields{"message": msg}).Info("Scheduler")
+				}
+				tm.mu.Lock()
+				tm.runTime = newTime
+				tm.mu.Unlock()
+			case <-tm.exitCh:
+				if debug {
+					msg := fmt.Sprintf("%s received exit signal, stopping...", tm.taskName)
+					logger.Log(logger.Fields{"message": msg}).Info("Scheduler")
+				}
 				return
 			}
 		}
 	}()
 }
 
-func rgbControl() {
-	if scheduler.RGBControl {
-		layout := "15:04"
-		// Parse the string into a time.Time object
-		ptTimeOff, err := time.Parse(layout, scheduler.RGBOff)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to process rgb scheduler start time")
-			return
-		}
-		ptOffEnd, err := time.Parse(layout, scheduler.RGBOn)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to process rgb scheduler end time")
-			return
-		}
+// UpdateTime updates the task's scheduled time.
+func (tm *TaskManager) updateTime(newTime string) {
+	tm.updateCh <- newTime
+}
 
-		cd := time.Now()
-		combinedTimeOffStart := time.Date(cd.Year(), cd.Month(), cd.Day(), ptTimeOff.Hour(), ptTimeOff.Minute(), 0, 0, cd.Location())
-		combinedTimeOffEnd := time.Date(cd.Year(), cd.Month(), cd.Day(), ptOffEnd.Hour(), ptOffEnd.Minute(), 0, 0, cd.Location())
-
-		if cd.After(combinedTimeOffStart) && cd.Before(combinedTimeOffEnd) {
-			if !scheduler.LightsOut {
-				scheduler.LightsOut = true
-				SaveSchedulerSettings(scheduler, false)
-				devices.ScheduleDeviceBrightness(4)
-			}
-		} else {
-			if scheduler.LightsOut {
-				scheduler.LightsOut = false
-				SaveSchedulerSettings(scheduler, false)
-				devices.ScheduleDeviceBrightness(0)
-			}
-		}
+// Stop signals the task manager to stop.
+func (tm *TaskManager) stopTask() {
+	if tm.exitCh != nil {
+		close(tm.exitCh)
 	}
+}
+
+// Wait blocks until the task manager has stopped.
+func (tm *TaskManager) wait() {
+	tm.wg.Wait()
+}
+
+// Restart stops the task and starts it again with the same or updated parameters.
+func (tm *TaskManager) Restart(newTime string) {
+	if debug {
+		msg := fmt.Sprintf("%s is restarting...", tm.taskName)
+		logger.Log(logger.Fields{"message": msg}).Info("Scheduler")
+	}
+
+	tm.stopTask()
+	tm.wait()
+	tm.runTime = newTime
+	tm.exitCh = make(chan struct{}) // Create a new channel for restart
+	tm.updateCh = make(chan string)
+	tm.startTask()
 }

@@ -129,3 +129,16 @@ func MuteSound(mute bool) error {
 		return exec.Command("pactl", "set-sink-mute", "@DEFAULT_SINK@", "0").Run()
 	}
 }
+
+func FromLinear11(bytes []byte) float32 {
+	val := int(bytes[2]) | int(bytes[3])<<8
+	fraction := val & 0x7FF
+	if fraction > 1023 {
+		fraction -= 2048
+	}
+	exp := val >> 11
+	if exp > 15 {
+		exp -= 32
+	}
+	return float32(fraction) * float32(math.Pow(2, float64(exp)))
+}

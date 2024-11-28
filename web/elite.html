@@ -37,26 +37,14 @@
                 {{ if eq $d.Serial $device.Serial }}
                 <div class="row btn btn-secondary active-nav-link navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
-                        {{ if eq $d.ProductType 8 }}
-                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        {{ else if gt $d.ProductType 100 }}
-                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        {{ else }}
-                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        {{ end }}
+                        <img src="/static/img/icons/{{ $d.Image }}" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
                 {{ else }}
                 <div class="row btn btn-secondary navigation-left-big">
                     <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
-                        {{ if eq $d.ProductType 8 }}
-                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        {{ else if gt $d.ProductType 100 }}
-                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        {{ else }}
-                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        {{ end }}
+                        <img src="/static/img/icons/{{ $d.Image }}" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ $d.Product }}</span>
                     </a>
                 </div>
@@ -161,6 +149,13 @@
                                             <div class="custom-float-80-right">
                                                 <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
                                                     {{ range $key, $_ := $rgb }}
+                                                    {{ if eq $key "stand" }}
+                                                    {{ continue }}
+                                                    {{ else if eq $key "keyboard" }}
+                                                    {{ continue }}
+                                                    {{ else if eq $key "mousepad" }}
+                                                    {{ continue }}
+                                                    {{ end }}
                                                     <option value="{{ $key }}">{{ $key }}</option>
                                                     {{ end }}
                                                 </select>
@@ -266,6 +261,13 @@
                                         <div class="custom-float-80-right">
                                             <select class="form-select rgbProfile" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
                                                 {{ range $key, $_ := $rgb }}
+                                                {{ if eq $key "stand" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "keyboard" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mousepad" }}
+                                                {{ continue }}
+                                                {{ end }}
                                                 {{ if eq $key $device.RGB }}
                                                 <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
                                                 {{ else }}

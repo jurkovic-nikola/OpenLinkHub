@@ -31,13 +31,7 @@
                 {{ range .Devices }}
                 <div class="row btn btn-secondary navigation-left-big">
                     <a style="color: #a1a1a1;width: 100%;height: 100%" href="/device/{{ .Serial }}">
-                        {{ if eq .ProductType 8 }}
-                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        {{ else if gt .ProductType 100 }}
-                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        {{ else }}
-                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        {{ end }}
+                        <img src="/static/img/icons/{{ .Image }}" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
                         <span style="font-size: 13px;">{{ .Product }}</span>
                     </a>
                 </div>

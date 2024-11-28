@@ -67,8 +67,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $.each(value.GetDevice.devices, function( key, device ) {
                                     const elementSpeedId = "#speed-" + serialId + "-" + device.channelId;
                                     const elementTemperatureId = "#temp-" + serialId + "-" + device.channelId;
+                                    const elementWatts = "#watts-" + serialId + "-" + device.channelId;
+                                    const elementAmps = "#amps-" + serialId + "-" + device.channelId;
+                                    const elementVolts = "#volts-" + serialId + "-" + device.channelId;
                                     $(elementSpeedId).html(device.rpm + " RPM");
                                     $(elementTemperatureId).html(device.temperatureString);
+                                    $(elementWatts).html(device.watts + " W");
+                                    $(elementAmps).html(device.amps + " A");
+                                    $(elementVolts).html(device.volts + " V");
                                 });
                             }
                         }

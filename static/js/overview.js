@@ -572,6 +572,40 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.miscRgbProfile').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const profile = $(this).val().split(";");
+        if (profile.length < 2 || profile.length > 2) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(profile[0]);
+        pf["profile"] = profile[1];
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.rgbStrips').on('change', function () {
         const deviceId = $("#deviceId").val();
         const stripData = $(this).val().split(";");
@@ -901,6 +935,57 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log(json)
             $.ajax({
                 url: '/api/keyboard/color',
+                type: 'POST',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1) {
+                            location.reload();
+                        } else {
+                            toast.warning(response.message);
+                        }
+                    } catch (err) {
+                        toast.warning(response.message);
+                    }
+                }
+            });
+        });
+    });
+
+    $('.miscColor').on('click', function () {
+        const applyButton = $('#applyColors')
+        applyButton.unbind('click');
+
+        const deviceId = $("#deviceId").val();
+        const miscInfo = $(this).attr("data-info").split(";");
+        const areaId = parseInt(miscInfo[0]);
+        const colorR = parseInt(miscInfo[1]);
+        const colorG = parseInt(miscInfo[2]);
+        const colorB = parseInt(miscInfo[3]);
+        const hex = rgbToHex(colorR, colorG, colorB);
+        $("#miscColor").val('' + hex + '');
+
+        applyButton.on('click', function () {
+            const miscOptions = $(".miscOptions").val();
+            const miscColor = $('#miscColor').val();
+            const rgb = hexToRgb(miscColor);
+            if (rgb.r === colorR && rgb.g === colorG && rgb.b === colorB) {
+                toast.warning('Old and new colors are identical');
+                return false;
+            }
+
+            const pf = {};
+            const color = {red:rgb.r, green:rgb.g, blue:rgb.b}
+            pf["deviceId"] = deviceId;
+            pf["areaId"] = areaId;
+            pf["areaOption"] = parseInt(miscOptions);
+            pf["color"] = color;
+
+            const json = JSON.stringify(pf, null, 2);
+            console.log(json)
+            $.ajax({
+                url: '/api/misc/color',
                 type: 'POST',
                 data: json,
                 cache: false,

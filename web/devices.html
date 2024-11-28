@@ -32,4 +32,14 @@
 {{ template "k100air.html" . }}
 {{ else if eq .Device.Template "k100airW.html" }}
 {{ template "k100airW.html" . }}
+{{ else if eq .Device.Template "st100.html" }}
+{{ template "st100.html" . }}
+{{ else if eq .Device.Template "mm700.html" }}
+{{ template "mm700.html" . }}
+{{ else if eq .Device.Template "lt100.html" }}
+{{ template "lt100.html" . }}
+{{ else if eq .Device.Template "psuhid.html" }}
+{{ template "psuhid.html" . }}
+{{ else if eq .Device.Template "katarpro.html" }}
+{{ template "katarpro.html" . }}
 {{ end }}

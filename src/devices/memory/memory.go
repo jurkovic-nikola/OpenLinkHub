@@ -220,12 +220,14 @@ func (d *Device) getDevices() int {
 		}
 
 		if config.GetConfig().MemoryType == 5 {
-			// DDR5 has no SPA0 and SPA1, it uses actual DIMM info addresses for different info
-			// I2C Legacy Mode Device Configuration
-			err = smbus.WriteRegister(d.dev.File, dimmInfoAddresses[i], 0x0b, 0x04)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "address": dimmInfoAddresses[i]}).Error("Failed to activate DIMM info")
-				continue
+			if config.GetConfig().DecodeMemorySku {
+				// DDR5 has no SPA0 and SPA1, it uses actual DIMM info addresses for different info
+				// I2C Legacy Mode Device Configuration
+				err = smbus.WriteRegister(d.dev.File, dimmInfoAddresses[i], 0x0b, 0x04)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "address": dimmInfoAddresses[i]}).Error("Failed to activate DIMM info")
+					continue
+				}
 			}
 		} else {
 			// We send 0x00 to 0x00 to SPA addresses
@@ -241,38 +243,48 @@ func (d *Device) getDevices() int {
 				continue
 			}
 		}
-
-		time.Sleep(1 * time.Millisecond)
-		// Check SKU 1st letter, must match to C = Corsair
-		check, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], skuRangeLow)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "register": skuRangeLow}).Error("Failed to get first letter of SKU")
-			continue
-		}
-		if string(check) != "C" {
-			logger.Log(logger.Fields{"error": err, "register": skuRangeLow, "letter": string(check)}).Warn("First SKU letter does not match to letter C")
-			continue
-		}
-
-		if d.Debug {
-			logger.Log(logger.Fields{"skuLetter": string(check)}).Info("Memory SKU - First letter")
-		}
-
-		// Get SKU
 		var buf []byte
-		for addr := skuRangeLow; addr <= skuRangeHigh; addr++ {
-			reg, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], addr)
+
+		if config.GetConfig().DecodeMemorySku {
+			time.Sleep(1 * time.Millisecond)
+			// Check SKU 1st letter, must match to C = Corsair
+			check, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], skuRangeLow)
 			if err != nil {
-				break
-			}
-			if reg == 32 || reg == 0 {
+				logger.Log(logger.Fields{"error": err, "register": skuRangeLow}).Error("Failed to get first letter of SKU")
 				continue
 			}
-			buf = append(buf, reg)
-		}
+			if string(check) != "C" {
+				logger.Log(logger.Fields{"error": err, "register": skuRangeLow, "letter": string(check)}).Warn("First SKU letter does not match to letter C")
+				continue
+			}
 
-		if d.Debug {
-			logger.Log(logger.Fields{"sku": buf, "skuString": string(buf), "skuLen": len(buf)}).Info("Memory SKU")
+			if d.Debug {
+				logger.Log(logger.Fields{"skuLetter": string(check)}).Info("Memory SKU - First letter")
+			}
+
+			// Get SKU
+			for addr := skuRangeLow; addr <= skuRangeHigh; addr++ {
+				reg, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], addr)
+				if err != nil {
+					break
+				}
+				if reg == 32 || reg == 0 {
+					continue
+				}
+				buf = append(buf, reg)
+			}
+
+			if d.Debug {
+				logger.Log(logger.Fields{"sku": buf, "skuString": string(buf), "skuLen": len(buf)}).Info("Memory SKU")
+			}
+		} else {
+			// This is where memory SKU cannot be fetched
+			memorySku := config.GetConfig().MemorySku
+			if len(memorySku) < 1 {
+				logger.Log(logger.Fields{}).Warn("decodeMemorySku set to false without memorySku value")
+				continue
+			}
+			buf = []byte(memorySku)
 		}
 
 		if len(buf) > 15 {

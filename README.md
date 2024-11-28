@@ -110,7 +110,9 @@ $ sudo sh install.sh
   "memory": false,
   "memorySmBus": "i2c-0",
   "memoryType": 4,
-  "exclude": []
+  "exclude": [],
+  "decodeMemorySku": true,
+  "memorySku": ""
 }
 ```
 - listenPort: HTTP server port.
@@ -124,6 +126,10 @@ $ sudo sh install.sh
 - memorySmBus: i2c smbus sensor id
 - memoryType: 4 for DDR4. 5 for DDR5
 - exclude: list of device ids in uint16 format to exclude from program control
+- decodeMemorySku: set to false to manually define `memorySku` value.
+- memorySku: Memory part number, e.g. (CMT64GX5M2B5600Z40)
+- You can find memory part number by running the following command: `sudo dmidecode -t memory | grep 'Part Number'`
+
 ## Running in Docker
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json
 ```bash

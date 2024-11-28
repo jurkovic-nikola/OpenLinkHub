@@ -4,6 +4,7 @@ rpmbuild/
 release/
 build.sh
 OpenLinkHub
+config.json
 stdout.log
 dashboard.json
 database/temperatures/*.json

@@ -7,26 +7,31 @@ import (
 )
 
 type Configuration struct {
-	Debug          bool     `json:"debug"`
-	ListenPort     int      `json:"listenPort"`
-	ListenAddress  string   `json:"listenAddress"`
-	CPUSensorChip  string   `json:"cpuSensorChip"`
-	Manual         bool     `json:"manual"`
-	Frontend       bool     `json:"frontend"`
-	RefreshOnStart bool     `json:"refreshOnStart"`
-	Metrics        bool     `json:"metrics"`
-	DbusMonitor    bool     `json:"dbusMonitor"`
-	Memory         bool     `json:"memory"`
-	MemorySmBus    string   `json:"memorySmBus"`
-	MemoryType     int      `json:"memoryType"`
-	Exclude        []uint16 `json:"exclude"`
-	ConfigPath     string   `json:",omitempty"`
+	Debug           bool     `json:"debug"`
+	ListenPort      int      `json:"listenPort"`
+	ListenAddress   string   `json:"listenAddress"`
+	CPUSensorChip   string   `json:"cpuSensorChip"`
+	Manual          bool     `json:"manual"`
+	Frontend        bool     `json:"frontend"`
+	RefreshOnStart  bool     `json:"refreshOnStart"`
+	Metrics         bool     `json:"metrics"`
+	DbusMonitor     bool     `json:"dbusMonitor"`
+	Memory          bool     `json:"memory"`
+	MemorySmBus     string   `json:"memorySmBus"`
+	MemoryType      int      `json:"memoryType"`
+	Exclude         []uint16 `json:"exclude"`
+	DecodeMemorySku bool     `json:"decodeMemorySku"`
+	MemorySku       string   `json:"memorySku"`
+	ConfigPath      string   `json:",omitempty"`
 }
 
 var (
 	location      = ""
 	configuration Configuration
-	upgrade       = map[string]any{}
+	upgrade       = map[string]any{
+		"decodeMemorySku": true,
+		"memorySku":       "",
+	}
 )
 
 // Init will initialize a new config object
@@ -60,19 +65,21 @@ func Init() {
 func upgradeFile(cfg string) {
 	if !common.FileExists(cfg) {
 		value := &Configuration{
-			Debug:          false,
-			ListenPort:     27003,
-			ListenAddress:  "127.0.0.1",
-			CPUSensorChip:  "",
-			Manual:         false,
-			Frontend:       true,
-			RefreshOnStart: false,
-			Metrics:        false,
-			DbusMonitor:    false,
-			Memory:         false,
-			MemorySmBus:    "i2c-0",
-			MemoryType:     4,
-			Exclude:        make([]uint16, 0),
+			Debug:           false,
+			ListenPort:      27003,
+			ListenAddress:   "127.0.0.1",
+			CPUSensorChip:   "",
+			Manual:          false,
+			Frontend:        true,
+			RefreshOnStart:  false,
+			Metrics:         false,
+			DbusMonitor:     false,
+			Memory:          false,
+			MemorySmBus:     "i2c-0",
+			MemoryType:      4,
+			Exclude:         make([]uint16, 0),
+			DecodeMemorySku: true,
+			MemorySku:       "",
 		}
 		saveConfigSettings(value)
 	} else {

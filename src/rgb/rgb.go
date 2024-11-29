@@ -22,6 +22,7 @@ type Color struct {
 }
 
 type RGB struct {
+	Device       string             `json:"device"`
 	DefaultColor Color              `json:"defaultColor"`
 	Profiles     map[string]Profile `json:"profiles"`
 }

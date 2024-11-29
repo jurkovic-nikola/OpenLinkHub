@@ -9,4 +9,5 @@ stdout.log
 dashboard.json
 database/temperatures/*.json
 database/profiles/*.json
+database/rgb/*.json
 database/scheduler.json

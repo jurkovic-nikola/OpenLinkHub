@@ -541,7 +541,7 @@ func (d *Device) init() {
 	buf := d.createPacket(cmdInit, cmdRead, 0)
 	_, err := d.transfer(buf)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write data to a device")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write data to a device")
 	}
 }
 
@@ -581,13 +581,11 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return bufferR, nil
-
 	if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
 		return bufferR, nil
 	} else {
 		err := errors.New("response does not match the request")
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Invalid response")
-		return nil, err
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Invalid response. Probably another software is monitoring this device")
+		return make([]byte, 64), err
 	}
 }

@@ -116,7 +116,6 @@ func upgradeFile(cfg string) {
 // SaveConfigSettings will save dashboard settings
 func saveConfigSettings(data any) {
 	// Convert to JSON
-	// Convert to JSON
 	buffer, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		panic(err.Error())

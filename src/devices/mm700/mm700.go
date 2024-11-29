@@ -611,10 +611,14 @@ func (d *Device) setDeviceColor() {
 	if d.DeviceProfile.RGBProfile == "mousepad" {
 		for _, rows := range d.DeviceProfile.Stand.Row {
 			for _, keys := range rows.Zones {
+				if d.DeviceProfile.Brightness != 0 {
+					keys.Color.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+				}
+				profileColor := rgb.ModifyBrightness(keys.Color)
 				for _, packetIndex := range keys.PacketIndex {
-					buf[packetIndex] = byte(keys.Color.Red)
-					buf[packetIndex+3] = byte(keys.Color.Green)
-					buf[packetIndex+6] = byte(keys.Color.Blue)
+					buf[packetIndex] = byte(profileColor.Red)
+					buf[packetIndex+3] = byte(profileColor.Green)
+					buf[packetIndex+6] = byte(profileColor.Blue)
 				}
 			}
 		}

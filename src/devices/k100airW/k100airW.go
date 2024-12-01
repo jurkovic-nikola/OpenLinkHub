@@ -1,5 +1,11 @@
 package k100airW
 
+// Package: K100 AIR Wireless
+// This is the primary package for K100 AIR Wireless.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -17,12 +23,6 @@ import (
 	"sync"
 	"time"
 )
-
-// Package: K65 Pro Mini
-// This is the primary package for K65 Pro Mini.
-// All device actions are controlled from this package.
-// Author: Nikola Jurkovic
-// License: GPL-3.0 or later
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {

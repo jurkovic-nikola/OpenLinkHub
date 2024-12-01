@@ -1,5 +1,11 @@
 package mm700
 
+// Package: CORSAIR MM700 RGB Gaming Mousepad
+// This is the primary package for CORSAIR MM700 RGB Gaming Mousepad.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"

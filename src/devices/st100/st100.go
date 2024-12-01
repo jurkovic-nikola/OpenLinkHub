@@ -1,5 +1,11 @@
 package st100
 
+// Package: Corsair ST100
+// This is the primary package for Corsair ST100.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"

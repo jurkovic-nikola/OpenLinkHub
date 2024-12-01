@@ -1,5 +1,11 @@
 package lcd
 
+// Package: LCD Controller
+// This is the primary package for LCD pump covers.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/logger"
@@ -20,12 +26,6 @@ import (
 	"strconv"
 	"sync"
 )
-
-// Package: LCD Controller
-// This is the primary package for LCD pump covers.
-// All device actions are controlled from this package.
-// Author: Nikola Jurkovic
-// License: GPL-3.0 or later
 
 const (
 	DisplayLiquid         uint8 = 0

@@ -1,5 +1,11 @@
 package cpro
 
+// Package: Corsair Commander Pro
+// This is the primary package for Corsair Commander Pro.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -20,12 +26,6 @@ import (
 	"sync"
 	"time"
 )
-
-// Package: Corsair Commander Pro
-// This is the primary package for Corsair Commander Pro.
-// All device actions are controlled from this package.
-// Author: Nikola Jurkovic
-// License: GPL-3.0 or later
 
 // ExternalLedDevice contains a list of supported external-LED devices connected to a HUB
 type ExternalLedDevice struct {

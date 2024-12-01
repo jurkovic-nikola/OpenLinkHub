@@ -1,5 +1,11 @@
 package ironclaw
 
+// Package: CORSAIR IRONCLAW RGB
+// This is the primary package for CORSAIR IRONCLAW RGB.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"

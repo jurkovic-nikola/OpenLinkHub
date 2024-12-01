@@ -1,7 +1,7 @@
 package lnpro
 
 // Package: CORSAIR Lightning Node Pro
-// This is the primary package for CORSAIR Lightning Node Pro
+// This is the primary package for CORSAIR Lightning Node Pro.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later

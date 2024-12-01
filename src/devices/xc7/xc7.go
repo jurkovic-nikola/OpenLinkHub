@@ -1,7 +1,7 @@
 package xc7
 
-// Package: XC7 ELITE CPU Water Block
-// This is the primary package for iCUE Link System Hub.
+// Package: Corsair XC7
+// This is the primary package for Corsair XC7 CPU Block.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -940,7 +940,7 @@ func (d *Device) UpdateDeviceLabel(_, label string) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0

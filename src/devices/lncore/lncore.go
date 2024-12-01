@@ -1,7 +1,7 @@
 package lncore
 
 // Package: CORSAIR Lightning Node Core
-// This is the primary package for CORSAIR Lightning Node Core
+// This is the primary package for CORSAIR Lightning Node Core.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later

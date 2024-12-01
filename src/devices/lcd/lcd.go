@@ -1,6 +1,7 @@
 package lcd
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/logger"
 	"bytes"
 	"fmt"
@@ -36,6 +37,7 @@ const (
 	DisplayCpuGpuTemp     uint8 = 6
 	DisplayCpuGpuLoad     uint8 = 7
 	DisplayCpuGpuLoadTemp uint8 = 8
+	DisplayTime           uint8 = 9
 )
 
 var (
@@ -200,6 +202,10 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 			}
 			x = 240 + textWidth + 15 - reduce
 			c = drawString(x, 270+int(c.PointToFixed(24)>>6), 160, c, fmt.Sprintf("%02d", value1))
+		}
+	case DisplayTime:
+		{
+			c = drawString(90+int(c.PointToFixed(24)>>6), 250+int(c.PointToFixed(24)>>6), 130, c, common.GetTime())
 		}
 	}
 

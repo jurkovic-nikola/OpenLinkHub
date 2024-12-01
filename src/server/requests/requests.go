@@ -16,42 +16,44 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId            string         `json:"deviceId"`
-	ChannelId           int            `json:"channelId"`
-	Mode                uint8          `json:"mode"`
-	Rotation            uint8          `json:"rotation"`
-	Value               uint16         `json:"value"`
-	Color               rgb.Color      `json:"color"`
-	Profile             string         `json:"profile"`
-	Label               string         `json:"label"`
-	Static              bool           `json:"static"`
-	Sensor              uint8          `json:"sensor"`
-	ZeroRpm             bool           `json:"zeroRpm"`
-	HwmonDeviceId       string         `json:"hwmonDeviceId"`
-	Enabled             bool           `json:"enabled"`
-	DeviceType          int            `json:"deviceType"`
-	KeyOption           int            `json:"keyOption"`
-	AreaOption          int            `json:"areaOption"`
-	KeyId               int            `json:"keyId"`
-	AreaId              int            `json:"areaId"`
-	DeviceAmount        int            `json:"deviceAmount"`
-	PortId              int            `json:"portId"`
-	UserProfileName     string         `json:"userProfileName"`
-	LcdSerial           string         `json:"lcdSerial"`
-	KeyboardProfileName string         `json:"keyboardProfileName"`
-	KeyboardLayout      string         `json:"keyboardLayout"`
-	KeyboardControlDial int            `json:"keyboardControlDial"`
-	SleepMode           int            `json:"sleepMode"`
-	RgbControl          bool           `json:"rgbControl"`
-	RgbOff              string         `json:"rgbOff"`
-	RgbOn               string         `json:"rgbOn"`
-	Brightness          uint8          `json:"brightness"`
-	Position            int            `json:"position"`
-	Direction           int            `json:"direction"`
-	StripId             int            `json:"stripId"`
-	FanMode             int            `json:"fanMode"`
-	New                 bool           `json:"new"`
-	Stages              map[int]uint16 `json:"stages"`
+	DeviceId            string            `json:"deviceId"`
+	ChannelId           int               `json:"channelId"`
+	Mode                uint8             `json:"mode"`
+	Rotation            uint8             `json:"rotation"`
+	Value               uint16            `json:"value"`
+	Color               rgb.Color         `json:"color"`
+	Profile             string            `json:"profile"`
+	Label               string            `json:"label"`
+	Static              bool              `json:"static"`
+	Sensor              uint8             `json:"sensor"`
+	ZeroRpm             bool              `json:"zeroRpm"`
+	HwmonDeviceId       string            `json:"hwmonDeviceId"`
+	Enabled             bool              `json:"enabled"`
+	DeviceType          int               `json:"deviceType"`
+	KeyOption           int               `json:"keyOption"`
+	AreaOption          int               `json:"areaOption"`
+	KeyId               int               `json:"keyId"`
+	AreaId              int               `json:"areaId"`
+	DeviceAmount        int               `json:"deviceAmount"`
+	PortId              int               `json:"portId"`
+	UserProfileName     string            `json:"userProfileName"`
+	LcdSerial           string            `json:"lcdSerial"`
+	KeyboardProfileName string            `json:"keyboardProfileName"`
+	KeyboardLayout      string            `json:"keyboardLayout"`
+	KeyboardControlDial int               `json:"keyboardControlDial"`
+	SleepMode           int               `json:"sleepMode"`
+	RgbControl          bool              `json:"rgbControl"`
+	RgbOff              string            `json:"rgbOff"`
+	RgbOn               string            `json:"rgbOn"`
+	Brightness          uint8             `json:"brightness"`
+	Position            int               `json:"position"`
+	Direction           int               `json:"direction"`
+	StripId             int               `json:"stripId"`
+	FanMode             int               `json:"fanMode"`
+	New                 bool              `json:"new"`
+	Stages              map[int]uint16    `json:"stages"`
+	ColorDpi            rgb.Color         `json:"colorDpi"`
+	ColorZones          map[int]rgb.Color `json:"colorZones"`
 	Status              int
 	Code                int
 	Message             string
@@ -473,8 +475,8 @@ func ProcessSaveUserProfile(r *http.Request) *Payload {
 	return &Payload{Message: "Unable to save user profile.", Code: http.StatusOK, Status: 0}
 }
 
-// ProcessSaveKeyboardProfile will process PUT request from a client for device profile save
-func ProcessSaveKeyboardProfile(r *http.Request) *Payload {
+// ProcessSaveDeviceProfile will process PUT request from a client for device profile save
+func ProcessSaveDeviceProfile(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -507,7 +509,7 @@ func ProcessSaveKeyboardProfile(r *http.Request) *Payload {
 	}
 
 	// Run it
-	status := devices.SaveKeyboardProfile(req.DeviceId, req.KeyboardProfileName, req.New)
+	status := devices.SaveDeviceProfile(req.DeviceId, req.KeyboardProfileName, req.New)
 	switch status {
 	case 1:
 		return &Payload{Message: "Keyboard profile successfully saved.", Code: http.StatusOK, Status: 1}
@@ -1328,4 +1330,32 @@ func ProcessMouseDpiSave(r *http.Request) *Payload {
 		return &Payload{Message: "Mouse DPI values are successfully updated", Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: "Unable to save mouse DPI values", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessMouseZoneColorsSave will process a POST request from a client for mouse zone colors save
+func ProcessMouseZoneColorsSave(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.SaveMouseZoneColors(req.DeviceId, req.ColorDpi, req.ColorZones)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to save mouse zone colors", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Mouse zone colors are successfully updated", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to save mouse zone colors", Code: http.StatusOK, Status: 0}
 }

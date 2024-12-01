@@ -153,6 +153,11 @@ func (d *Device) Stop() {
 	}
 }
 
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
+}
+
 // getInputVoltage will get input voltage type, either 230 or 115 volts
 func (d *Device) getInputVoltage() {
 	d.init()
@@ -492,6 +497,17 @@ func (d *Device) loadDeviceProfiles() {
 
 		fileName := strings.Split(fi.Name(), ".")[0]
 		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+			continue
+		}
+
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
 			continue
 		}
 

@@ -57,6 +57,7 @@ type Device struct {
 	CpuTemp         float32
 	GpuTemp         float32
 	Layouts         []string
+	Rgb             *rgb.RGB
 }
 
 var (
@@ -85,35 +86,6 @@ var (
 	minDpiValue           uint16 = 200
 	maxDpiValue           uint16 = 12400
 )
-
-// Stop will stop all device operations and switch a device back to hardware mode
-func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-
-	timer.Stop()
-	authRefreshChan <- true
-
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
-
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-
-	if d.listener != nil {
-		err := d.listener.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close listener HID device")
-		}
-	}
-}
 
 func Init(vendorId, productId uint16, key string) *Device {
 	// Set global working directory
@@ -144,6 +116,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getDebugMode()       // Debug mode
 	d.getManufacturer()    // Manufacturer
 	d.getSerial()          // Serial
+	d.loadRgb()            // Load RGB
 	d.setSoftwareMode()    // Activate software mode
 	d.initLeds()           // Init LED ports
 	d.getDeviceFirmware()  // Firmware
@@ -156,6 +129,110 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.controlListener()    // Control listener
 	d.toggleDPI(false)     // Set current DPI
 	return d
+}
+
+// Stop will stop all device operations and switch a device back to hardware mode
+func (d *Device) Stop() {
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	timer.Stop()
+	authRefreshChan <- true
+
+	timerKeepAlive.Stop()
+	keepAliveChan <- true
+
+	d.setHardwareMode()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+
+	if d.listener != nil {
+		err := d.listener.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close listener HID device")
+		}
+	}
+}
+
+// loadRgb will load RGB file if found, or create the default.
+func (d *Device) loadRgb() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(rgbFilename, ".json") {
+		return
+	}
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(profile, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to load RGB")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+}
+
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
 }
 
 // getManufacturer will return device manufacturer
@@ -435,6 +512,17 @@ func (d *Device) loadDeviceProfiles() {
 			continue
 		}
 
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
+			continue
+		}
+
 		file, err := os.Open(profileLocation)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to load profile")
@@ -568,8 +656,8 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(profile string) uint8 {
-	if rgb.GetRgbProfile(profile) == nil {
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
@@ -619,7 +707,7 @@ func (d *Device) setDeviceColor() {
 	if d.DeviceProfile.RGBProfile == "static" {
 		static := map[int][]byte{}
 
-		profile := rgb.GetRgbProfile("static")
+		profile := d.GetRgbProfile("static")
 		if profile == nil {
 			return
 		}
@@ -672,7 +760,7 @@ func (d *Device) setDeviceColor() {
 				buff := make([]byte, 0)
 
 				rgbCustomColor := true
-				profile := rgb.GetRgbProfile(d.DeviceProfile.RGBProfile)
+				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
 				if profile == nil {
 					for i := 0; i < d.LEDChannels; i++ {
 						buff = append(buff, []byte{0, 0, 0}...)
@@ -989,10 +1077,10 @@ func (d *Device) controlListener() {
 					case 32: // DPI Button
 						d.toggleDPI(true)
 						break
-					case 8: // Side button 1
+					case 8: // Forward button
 						// TO-DO
 						break
-					case 16: // Side button 2
+					case 16: // Back button
 						// TO-DO
 						break
 					}

@@ -449,9 +449,9 @@ func setMiscColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// saveKeyboardProfile handles a new keyboard profile
-func saveKeyboardProfile(w http.ResponseWriter, r *http.Request) {
-	request := requests.ProcessSaveKeyboardProfile(r)
+// saveDeviceProfile handles a new device profile
+func saveDeviceProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSaveDeviceProfile(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -548,6 +548,17 @@ func saveMouseDpi(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// saveMouseZoneColors handles mouse zone colors save
+func saveMouseZoneColors(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessMouseZoneColorsSave(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -556,7 +567,18 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
 			Status:  0,
-			Message: "Unable to process temperature request. Please try again",
+			Message: "Unable to process device request. Please try again",
+		}
+		resp.Send(w)
+	}
+
+	device := devices.GetDevice(deviceOd)
+	template := devices.GetDeviceTemplate(device)
+	if len(template) == 0 {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Status:  0,
+			Message: "Unable to process device request. Please try again",
 		}
 		resp.Send(w)
 	}
@@ -564,7 +586,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web := templates.Web{}
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
-	web.Device = devices.GetDevice(deviceOd)
+	web.Device = device
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.Rgb = rgb.GetRGB().Profiles
 	web.BuildInfo = version.GetBuildInfo()
@@ -577,7 +599,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(headers[header].Key, headers[header].Value)
 	}
 
-	err := t.ExecuteTemplate(w, "devices.html", web)
+	err := t.ExecuteTemplate(w, template, web)
 	if err != nil {
 		fmt.Println(err)
 		resp := &Response{
@@ -598,6 +620,8 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Dashboard = dashboard.GetDashboard()
+	web.Page = "index"
+
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -624,6 +648,8 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "temperature"
+
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -648,6 +674,7 @@ func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Scheduler = scheduler.GetScheduler()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "scheduler"
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -672,6 +699,7 @@ func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Rgb = rgb.GetRgbProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "colors"
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -697,6 +725,7 @@ func uiDocumentationOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Configuration = config.GetConfig()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "documentation"
 	t := templates.GetTemplate()
 
 	for header := range headers {
@@ -789,11 +818,11 @@ func setRoutes() *mux.Router {
 	r.Methods(http.MethodPost).Path("/api/misc/color").
 		HandlerFunc(setMiscColor)
 	r.Methods(http.MethodPut).Path("/api/keyboard/profile/new").
-		HandlerFunc(saveKeyboardProfile)
+		HandlerFunc(saveDeviceProfile)
 	r.Methods(http.MethodPost).Path("/api/keyboard/profile/change").
 		HandlerFunc(changeKeyboardProfile)
 	r.Methods(http.MethodPost).Path("/api/keyboard/profile/save").
-		HandlerFunc(saveKeyboardProfile)
+		HandlerFunc(saveDeviceProfile)
 	r.Methods(http.MethodDelete).Path("/api/keyboard/profile/delete").
 		HandlerFunc(deleteKeyboardProfile)
 	r.Methods(http.MethodPost).Path("/api/keyboard/layout").
@@ -808,6 +837,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changePsuFanMode)
 	r.Methods(http.MethodPost).Path("/api/mouse/dpi").
 		HandlerFunc(saveMouseDpi)
+	r.Methods(http.MethodPost).Path("/api/mouse/zoneColors").
+		HandlerFunc(saveMouseZoneColors)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

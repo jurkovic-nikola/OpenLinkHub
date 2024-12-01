@@ -19,6 +19,7 @@ type Color struct {
 	Green      float64 `json:"green"`
 	Blue       float64 `json:"blue"`
 	Brightness float64 `json:"brightness"`
+	Hex        string
 }
 
 type RGB struct {
@@ -92,7 +93,7 @@ func Init() {
 	rgb.Profiles["off"] = profileOff
 }
 
-// GetRgbProfile will return structs.RGBModes struct
+// GetRgbProfile will return Profile struct
 func GetRgbProfile(profile string) *Profile {
 	if val, ok := rgb.Profiles[profile]; ok {
 		return &val

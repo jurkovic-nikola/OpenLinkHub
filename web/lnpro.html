@@ -1,20 +1,6 @@
 <!DOCTYPE html>
-<html lang="">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{.Title}}</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="all,follow">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
-    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
-    <link rel="stylesheet" href="/static/css/custom.css">
-    <link rel="stylesheet" href="/static/css/toastr.min.css">
-    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="/static/css/all.css">
-    <link rel="shortcut icon" href="/static/img/favicon.ico">
-</head>
+<html lang="en">
+{{ template "header" . }}
 <body>
 <div class="d-flex align-items-stretch">
     <div class="page-content">
@@ -27,58 +13,7 @@
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <div class="row btn btn-secondary navigation-left-small">
-                    <a href="/" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
-                        <span style="font-size: 13px;">Dashboard</span>
-                    </a>
-                </div>
-
-                {{ range $d := $devs }}
-                {{ if eq $d.Serial $device.Serial }}
-                <div class="row btn btn-secondary active-nav-link navigation-left-big">
-                    <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
-                        <img src="/static/img/icons/{{ $d.Image }}" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        <span style="font-size: 13px;">{{ $d.Product }}</span>
-                    </a>
-                </div>
-                {{ else }}
-                <div class="row btn btn-secondary navigation-left-big">
-                    <a style="color: #a1a1a1;" href="/device/{{ $d.Serial }}">
-                        <img src="/static/img/icons/{{ $d.Image }}" width="46" height="46" alt="{{ $d.Product }}" class="top-px" /><br />
-                        <span style="font-size: 13px;">{{ $d.Product }}</span>
-                    </a>
-                </div>
-                {{ end }}
-                {{ end }}
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
-                        <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
-                        <span style="font-size: 13px;">GitHub</span>
-                    </a>
-                </div>
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="/docs/" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
-                        <span style="font-size: 13px;">API</span>
-                    </a>
-                </div>
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="/temperature" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
-                        <span style="font-size: 13px;">Profiles</span>
-                    </a>
-                </div>
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="/scheduler" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
-                        <span style="font-size: 13px;">Scheduler</span>
-                    </a>
-                </div>
+                {{ template "navigation" . }}
             </div>
         </div>
 
@@ -155,6 +90,8 @@
                                                     {{ else if eq $key "keyboard" }}
                                                     {{ continue }}
                                                     {{ else if eq $key "mousepad" }}
+                                                    {{ continue }}
+                                                    {{ else if eq $key "mouse" }}
                                                     {{ continue }}
                                                     {{ else if eq $key "liquid-temperature" }}
                                                     {{ continue }}
@@ -257,6 +194,8 @@
                                                 {{ continue }}
                                                 {{ else if eq $key "mousepad" }}
                                                 {{ continue }}
+                                                {{ else if eq $key "mouse" }}
+                                                {{ continue }}
                                                 {{ else if eq $key "liquid-temperature" }}
                                                 {{ continue }}
                                                 {{ end }}
@@ -278,16 +217,7 @@
                 </div>
             </div>
         </section>
-        <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
-            <div class="container-fluid fa-pull-left" style="padding-left:20px;">
-                <p class="mb-0 text-dash-gray fa-pull-left">OS: {{ .SystemInfo.Kernel.OsType }}</p><br />
-                <p class="mb-0 text-dash-gray fa-pull-left">Architecture: {{ .SystemInfo.Kernel.Architecture }}</p>
-            </div>
-            <div class="container-fluid fa-pull-left" style="padding-left:15px;">
-                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }}</p><br />
-                <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
-            </div>
-        </footer>
+        {{ template "footer" . }}
     </div>
 </div>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

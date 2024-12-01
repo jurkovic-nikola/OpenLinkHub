@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"time"
 )
 
 // FileExists will check if given filename exists
@@ -141,4 +143,17 @@ func FromLinear11(bytes []byte) float32 {
 		exp -= 32
 	}
 	return float32(fraction) * float32(math.Pow(2, float64(exp)))
+}
+
+// GetTime will return current time as string
+func GetTime() string {
+	t := time.Now()
+	hour, minute, second := t.Clock()
+	return itoaTwoDigits(hour) + ":" + itoaTwoDigits(minute) + ":" + itoaTwoDigits(second)
+}
+
+// itoaTwoDigits time.Clock returns one digit on values, so we make sure to convert to two digits
+func itoaTwoDigits(i int) string {
+	b := "0" + strconv.Itoa(i)
+	return b[len(b)-2:]
 }

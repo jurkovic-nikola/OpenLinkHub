@@ -1,73 +1,12 @@
 <!DOCTYPE html>
-<html lang="">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{ .Title }}</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="all,follow">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Muli:300,400,700">
-    <link rel="stylesheet" href="/static/css/style.blue.min.css" id="theme-stylesheet">
-    <link rel="stylesheet" href="/static/css/custom.css">
-    <link rel="stylesheet" href="/static/css/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="/static/css/all.css">
-    <link rel="shortcut icon" href="/static/img/favicon.ico">
-</head>
+<html lang="en">
+{{ template "header" . }}
 <body>
 <div class="d-flex align-items-stretch">
     <div class="page-content">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
-                <div class="row btn btn-secondary active-nav-link navigation-left-small">
-                    <a href="/" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
-                        <span style="font-size: 13px;">Dashboard</span>
-                    </a>
-                </div>
-
-                {{ range .Devices }}
-                <div class="row btn btn-secondary navigation-left-big">
-                    <a style="color: #a1a1a1;width: 100%;height: 100%" href="/device/{{ .Serial }}">
-                        <img src="/static/img/icons/{{ .Image }}" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
-                        <span style="font-size: 13px;">{{ .Product }}</span>
-                    </a>
-                </div>
-                {{ end }}
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
-                        <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
-                        <span style="font-size: 13px;">GitHub</span>
-                    </a>
-                </div>
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="/docs/" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
-                        <span style="font-size: 13px;">API</span>
-                    </a>
-                </div>
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="/temperature" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
-                        <span style="font-size: 13px;">Profiles</span>
-                    </a>
-                </div>
-
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="#" style="color: #a1a1a1;" id="app-settings">
-                        <img src="/static/img/icons/icon-settings.svg" width="46" height="46" alt="Settings" class="top-px" />
-                        <span style="font-size: 13px;">Settings</span>
-                    </a>
-                </div>
-                <div class="row btn btn-secondary navigation-right-small">
-                    <a href="/scheduler" style="color: #a1a1a1;">
-                        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
-                        <span style="font-size: 13px;">Scheduler</span>
-                    </a>
-                </div>
+                {{ template "navigation" . }}
             </div>
         </div>
 
@@ -126,6 +65,8 @@
                                         <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
                                         {{ else if and (eq $productType 501) (eq $device.HasSpeed false) }}
                                         <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
+                                        {{ else if and (eq $productType 8) (eq $device.HasSpeed false) }}
+                                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
                                         {{ else }}
                                         <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                                         {{ end }}
@@ -140,23 +81,27 @@
 
                                     <div class="ds-svg-placeholder-right left-20-auto-text-right">
                                         {{ if $device.HasSpeed }}
-                                        {{ if $device.HasTemps }}
-                                        <span class="text-dash-color-2-custom" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
-                                        {{ else }}
-                                        <span class="text-dash-color-2-custom-15" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
+                                            {{ if $device.HasTemps }}
+                                                <span class="text-dash-color-2-custom" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
+                                            {{ else }}
+                                                <span class="text-dash-color-2-custom-15" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
+                                            {{ end }}
                                         {{ end }}
-                                        {{ end }}
+
                                         {{ if $device.HasTemps }}
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
                                             {{ if gt $device.Temperature 0.00 }}
-                                            {{ if $device.HasSpeed }}
-                                            <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
-                                            {{ else }}
-                                            <span class="text-dash-color-2-custom-15" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
-                                            {{ end }}
+                                                {{ if $device.HasSpeed }}
+                                                    <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
+                                                {{ else if eq $productType 8 }}
+                                                    <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
+                                                {{ else }}
+                                                    <span class="text-dash-color-2-custom-15" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
+                                                {{ end }}
                                             {{ end }}
                                         </p>
                                         {{ end }}
+
                                         <!-- PSU -->
                                         {{ if eq $productType 501 }}
                                         {{ if and (eq $device.HasSpeed false) (eq $device.HasTemps false) }}
@@ -172,6 +117,14 @@
                                         </p>
                                         {{ end }}
                                         {{ end }}
+                                        {{ end }}
+
+                                        <!-- Memory -->
+                                        {{ if eq $productType 8 }}
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3">
+                                            <span class="text-dash-color-2-custom">{{ $device.Size }} GB</span><br />
+                                            <span class="text-dash-color-2-custom">{{ $device.Speed }} MHz</span><br />
+                                        </p>
                                         {{ end }}
                                     </div>
                                 </div>

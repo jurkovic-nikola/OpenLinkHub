@@ -33,6 +33,7 @@ type Device struct {
 	LEDChannels   int
 	CpuTemp       float32
 	GpuTemp       float32
+	Rgb           *rgb.RGB
 }
 
 type ZoneColor struct {
@@ -93,24 +94,6 @@ var (
 	colorPacketLength     = 9
 )
 
-// Stop will stop all device operations and switch a device back to hardware mode
-func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-	timer.Stop()
-	authRefreshChan <- true
-
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-}
-
 func Init(vendorId, productId uint16, key string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
@@ -141,6 +124,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getDebugMode()       // Debug mode
 	d.getManufacturer()    // Manufacturer
 	d.getSerial()          // Serial
+	d.loadRgb()            // Load RGB
 	d.setSoftwareMode()    // Activate software mode
 	d.getDeviceFirmware()  // Firmware
 	d.loadDeviceProfiles() // Load all device profiles
@@ -150,6 +134,99 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.initLeds()           // Init LED
 	d.setDeviceColor()     // Device color
 	return d
+}
+
+// Stop will stop all device operations and switch a device back to hardware mode
+func (d *Device) Stop() {
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+	timer.Stop()
+	authRefreshChan <- true
+
+	d.setHardwareMode()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+}
+
+// loadRgb will load RGB file if found, or create the default.
+func (d *Device) loadRgb() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(rgbFilename, ".json") {
+		return
+	}
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(profile, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to load RGB")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+}
+
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
 }
 
 // getManufacturer will return device manufacturer
@@ -374,6 +451,17 @@ func (d *Device) loadDeviceProfiles() {
 			continue
 		}
 
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
+			continue
+		}
+
 		file, err := os.Open(profileLocation)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to load profile")
@@ -416,14 +504,14 @@ func (d *Device) getDeviceProfile() {
 }
 
 // SaveDeviceProfile will save a new device profile
-func (d *Device) SaveDeviceProfile() uint8 {
+func (d *Device) SaveDeviceProfile(_ string, _ bool) uint8 {
 	d.saveDeviceProfile()
 	return 1
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(profile string) uint8 {
-	if rgb.GetRgbProfile(profile) == nil {
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
@@ -449,7 +537,7 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 							Red:        color.Red,
 							Green:      color.Green,
 							Blue:       color.Blue,
-							Brightness: 0,
+							Brightness: 1,
 						}
 						d.DeviceProfile.Stand.Row[rowIndex].Zones[keyIndex] = key
 						if d.activeRgb != nil {
@@ -483,7 +571,7 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 					Red:        color.Red,
 					Green:      color.Green,
 					Blue:       color.Blue,
-					Brightness: 0,
+					Brightness: 1,
 				}
 				d.DeviceProfile.Stand.Row[rowId].Zones[keyIndex] = key
 			}
@@ -502,7 +590,7 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 						Red:        color.Red,
 						Green:      color.Green,
 						Blue:       color.Blue,
-						Brightness: 0,
+						Brightness: 1,
 					}
 					d.DeviceProfile.Stand.Row[rowIndex].Zones[keyIndex] = key
 				}
@@ -627,7 +715,7 @@ func (d *Device) setDeviceColor() {
 	}
 
 	if d.DeviceProfile.RGBProfile == "static" {
-		profile := rgb.GetRgbProfile("static")
+		profile := d.GetRgbProfile("static")
 		if profile == nil {
 			return
 		}
@@ -681,7 +769,7 @@ func (d *Device) setDeviceColor() {
 				buff := make([]byte, 0)
 
 				rgbCustomColor := true
-				profile := rgb.GetRgbProfile(d.DeviceProfile.RGBProfile)
+				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
 				if profile == nil {
 					for i := 0; i < d.LEDChannels; i++ {
 						buff = append(buff, []byte{0, 0, 0}...)

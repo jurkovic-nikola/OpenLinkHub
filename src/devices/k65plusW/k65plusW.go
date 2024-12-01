@@ -70,6 +70,7 @@ type Device struct {
 	ControlDialOptions map[int]string
 	RGBModes           map[string]string
 	SleepModes         map[int]string
+	Rgb                *rgb.RGB
 }
 
 var (
@@ -101,38 +102,6 @@ var (
 	keyboardKey             = "k65plusW-default"
 	defaultLayout           = "k65plusW-default-US"
 )
-
-// Stop will stop all device operations and switch a device back to hardware mode
-func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-	timer.Stop()
-	authRefreshChan <- true
-
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
-
-	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-		var buf = make([]byte, 93)
-		buf[2] = 0x01
-		buf[3] = 0xff
-		buf[4] = 0xff
-		buf[5] = 0xff
-		buf[6] = 0xff
-		dataTypeSetColor = []byte{0x22, 0x00, 0x03, 0x04}
-		d.writeColor(buf)
-	}
-
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-}
 
 func Init(vendorId, productId uint16, key string) *Device {
 	// Set global working directory
@@ -188,6 +157,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
 	d.getSerial()           // Serial
+	d.loadRgb()             // Load RGB
 	d.setSoftwareMode()     // Activate software mode
 	d.initLeds()            // Init LED ports
 	d.getDeviceFirmware()   // Firmware
@@ -201,6 +171,113 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setBrightnessLevel()  // Brightness
 	d.setSleepTimer()       // Sleep
 	return d
+}
+
+// Stop will stop all device operations and switch a device back to hardware mode
+func (d *Device) Stop() {
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+	timer.Stop()
+	authRefreshChan <- true
+
+	timerKeepAlive.Stop()
+	keepAliveChan <- true
+
+	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+		var buf = make([]byte, 93)
+		buf[2] = 0x01
+		buf[3] = 0xff
+		buf[4] = 0xff
+		buf[5] = 0xff
+		buf[6] = 0xff
+		dataTypeSetColor = []byte{0x22, 0x00, 0x03, 0x04}
+		d.writeColor(buf)
+	}
+
+	d.setHardwareMode()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+}
+
+// loadRgb will load RGB file if found, or create the default.
+func (d *Device) loadRgb() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(rgbFilename, ".json") {
+		return
+	}
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(profile, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to load RGB")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+}
+
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
 }
 
 // getManufacturer will return device manufacturer
@@ -414,6 +491,17 @@ func (d *Device) loadDeviceProfiles() {
 			continue
 		}
 
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
+			continue
+		}
+
 		file, err := os.Open(profileLocation)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to load profile")
@@ -536,7 +624,7 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 }
 
 // UpdateDeviceLabel will set / update device label
-func (d *Device) UpdateDeviceLabel(label string) uint8 {
+func (d *Device) UpdateDeviceLabel(_, label string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -546,7 +634,7 @@ func (d *Device) UpdateDeviceLabel(label string) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(profile string) uint8 {
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	if _, ok := d.RGBModes[profile]; !ok {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -652,8 +740,8 @@ func (d *Device) getCurrentKeyboard() *keyboards.Keyboard {
 	return nil
 }
 
-// SaveKeyboardProfile will save a new keyboard profile
-func (d *Device) SaveKeyboardProfile(profileName string, new bool) uint8 {
+// SaveDeviceProfile will save a new keyboard profile
+func (d *Device) SaveDeviceProfile(profileName string, new bool) uint8 {
 	if new {
 		if d.DeviceProfile == nil {
 			return 0

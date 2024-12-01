@@ -29,14 +29,15 @@ type Web struct {
 	SystemInfo        interface{}
 	CpuTemp           string
 	GpuTemp           string
+	Page              string
 	StorageTemp       []temperatures.StorageTemperatures
 	BuildInfo         *version.BuildInfo
 	Dashboard         dashboard.Dashboard
 }
 
+// Init will parse all templates
 func Init() {
 	tpl, err := template.ParseFiles(
-		"web/devices.html",
 		"web/docs.html",
 		"web/index.html",
 		"web/lsh.html",
@@ -61,9 +62,13 @@ func Init() {
 		"web/lt100.html",
 		"web/psuhid.html",
 		"web/katarpro.html",
+		"web/ironclaw.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",
+		"web/navigation.html",
+		"web/footer.html",
+		"web/header.html",
 	)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Failed to load templates")
@@ -72,6 +77,7 @@ func Init() {
 	templates = tpl
 }
 
+// GetTemplate will return a list of all templates
 func GetTemplate() *template.Template {
 	return templates
 }

@@ -66,6 +66,7 @@ type Device struct {
 	Layouts            []string
 	ProductId          uint16
 	ControlDialOptions map[int]string
+	Rgb                *rgb.RGB
 }
 
 var (
@@ -95,27 +96,6 @@ var (
 	keyboardKey             = "k65plus-default"
 	defaultLayout           = "k65plus-default-US"
 )
-
-// Stop will stop all device operations and switch a device back to hardware mode
-func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-	timer.Stop()
-	authRefreshChan <- true
-
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
-
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-}
 
 func Init(vendorId, productId uint16, key string) *Device {
 	// Set global working directory
@@ -151,6 +131,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
 	d.getSerial()           // Serial
+	d.loadRgb()             // Load RGB
 	d.setSoftwareMode()     // Activate software mode
 	d.initLeds()            // Init LED ports
 	d.getDeviceFirmware()   // Firmware
@@ -162,6 +143,102 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.controlDialListener() // Control Dial
 	d.setBrightnessLevel()  // Brightness
 	return d
+}
+
+// Stop will stop all device operations and switch a device back to hardware mode
+func (d *Device) Stop() {
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+	timer.Stop()
+	authRefreshChan <- true
+
+	timerKeepAlive.Stop()
+	keepAliveChan <- true
+
+	d.setHardwareMode()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+}
+
+// loadRgb will load RGB file if found, or create the default.
+func (d *Device) loadRgb() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(rgbFilename, ".json") {
+		return
+	}
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(profile, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to load RGB")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+}
+
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
 }
 
 // getManufacturer will return device manufacturer
@@ -347,6 +424,17 @@ func (d *Device) loadDeviceProfiles() {
 			continue
 		}
 
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
+			continue
+		}
+
 		file, err := os.Open(profileLocation)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to load profile")
@@ -437,7 +525,7 @@ func (d *Device) setTemperatures() {
 }
 
 // UpdateDeviceLabel will set / update device label
-func (d *Device) UpdateDeviceLabel(label string) uint8 {
+func (d *Device) UpdateDeviceLabel(_, label string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -447,8 +535,8 @@ func (d *Device) UpdateDeviceLabel(label string) uint8 {
 }
 
 // UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(profile string) uint8 {
-	if rgb.GetRgbProfile(profile) == nil {
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
@@ -540,8 +628,8 @@ func (d *Device) getCurrentKeyboard() *keyboards.Keyboard {
 	return nil
 }
 
-// SaveKeyboardProfile will save a new keyboard profile
-func (d *Device) SaveKeyboardProfile(profileName string, new bool) uint8 {
+// SaveDeviceProfile will save a new keyboard profile
+func (d *Device) SaveDeviceProfile(profileName string, new bool) uint8 {
 	if new {
 		if d.DeviceProfile == nil {
 			return 0
@@ -805,7 +893,7 @@ func (d *Device) setDeviceColor() {
 	}
 
 	if d.DeviceProfile.RGBProfile == "static" {
-		profile := rgb.GetRgbProfile("static")
+		profile := d.GetRgbProfile("static")
 		if d.DeviceProfile.Brightness != 0 {
 			profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 		}
@@ -854,7 +942,7 @@ func (d *Device) setDeviceColor() {
 				buff := make([]byte, 0)
 
 				rgbCustomColor := true
-				profile := rgb.GetRgbProfile(d.DeviceProfile.RGBProfile)
+				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
 				if profile == nil {
 					for i := 0; i < d.LEDChannels; i++ {
 						buff = append(buff, []byte{0, 0, 0}...)
@@ -1188,6 +1276,7 @@ func (d *Device) controlDialListener() {
 		// Listen loop
 		data := make([]byte, bufferSize)
 		for {
+			change := false
 			// Read data from the HID device
 			_, err := d.listener.Read(data)
 			if err != nil {
@@ -1204,13 +1293,15 @@ func (d *Device) controlDialListener() {
 							logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
 						}
 					} else {
-						increases := false
-						if value == 1 {
-							increases = true
-						}
+						if data[1] == 5 {
+							increases := false
+							if value == 1 {
+								increases = true
+							}
 
-						if e := common.ChangeVolume(5, increases); e != nil {
-							logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
+							if e := common.ChangeVolume(5, increases); e != nil {
+								logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
+							}
 						}
 					}
 				}
@@ -1223,31 +1314,37 @@ func (d *Device) controlDialListener() {
 						} else {
 							brightness = 1000
 						}
+						change = true
 					} else {
-						if value == 1 {
-							if brightness >= 1000 {
-								brightness = 1000
+						if data[1] == 5 {
+							if value == 1 {
+								if brightness >= 1000 {
+									brightness = 1000
+								} else {
+									brightness += 100
+								}
 							} else {
-								brightness += 100
+								if brightness <= 0 {
+									brightness = 0
+								} else {
+									brightness -= 100
+								}
 							}
-						} else {
-							if brightness <= 0 {
-								brightness = 0
-							} else {
-								brightness -= 100
-							}
+							change = true
 						}
 					}
 
-					if d.DeviceProfile != nil {
-						d.DeviceProfile.BrightnessLevel = brightness
-						d.saveDeviceProfile()
+					if change {
+						if d.DeviceProfile != nil {
+							d.DeviceProfile.BrightnessLevel = brightness
+							d.saveDeviceProfile()
 
-						// Send it
-						binary.LittleEndian.PutUint16(buf[0:2], brightness)
-						_, err := d.transfer(cmdBrightness, buf)
-						if err != nil {
-							logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+							// Send it
+							binary.LittleEndian.PutUint16(buf[0:2], brightness)
+							_, err := d.transfer(cmdBrightness, buf)
+							if err != nil {
+								logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+							}
 						}
 					}
 				}

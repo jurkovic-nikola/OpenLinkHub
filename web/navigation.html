@@ -1,0 +1,106 @@
+{{ define "navigation" }}
+{{ $dev := .Device }}
+
+{{ if eq .Page "index" }}
+<div class="row btn btn-secondary active-nav-link navigation-left-small">
+    <a href="/" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
+        <span style="font-size: 13px;">Dashboard</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-left-small">
+    <a href="/" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
+        <span style="font-size: 13px;">Dashboard</span>
+    </a>
+</div>
+{{ end }}
+
+{{ range .Devices }}
+{{ if eq $dev.Serial .Serial }}
+<div class="row btn btn-secondary active-nav-link navigation-left-big">
+    <a style="color: #a1a1a1;" href="/device/{{ .Serial }}">
+        <img src="/static/img/icons/{{ .Image }}" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
+        <span style="font-size: 13px;">{{ .Product }}</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-left-big">
+    <a style="color: #a1a1a1;" href="/device/{{ .Serial }}">
+        <img src="/static/img/icons/{{ .Image }}" width="46" height="46" alt="{{ .Product }}" class="top-px" /><br />
+        <span style="font-size: 13px;">{{ .Product }}</span>
+    </a>
+</div>
+{{ end }}
+{{ end }}
+
+<div class="row btn btn-secondary navigation-right-small">
+    <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+        <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
+        <span style="font-size: 13px;">GitHub</span>
+    </a>
+</div>
+
+<!-- API -->
+{{ if eq .Page "documentation" }}
+<div class="row btn btn-secondary active-nav-link navigation-right-small">
+    <a href="/docs/" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
+        <span style="font-size: 13px;">API</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="/docs/" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-api.svg" width="46" height="46" alt="API" class="top-px" />
+        <span style="font-size: 13px;">API</span>
+    </a>
+</div>
+{{ end }}
+
+<!-- Profiles -->
+{{ if eq .Page "temperature" }}
+<div class="row btn btn-secondary active-nav-link navigation-right-small">
+    <a href="/temperature" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+        <span style="font-size: 13px;">Profiles</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="/temperature" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+        <span style="font-size: 13px;">Profiles</span>
+    </a>
+</div>
+{{ end }}
+
+<!-- Settings -->
+{{ if eq .Page "index" }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="#" style="color: #a1a1a1;" id="app-settings">
+        <img src="/static/img/icons/icon-settings.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">Settings</span>
+    </a>
+</div>
+{{ end }}
+
+<!-- Scheduler -->
+{{ if eq .Page "scheduler" }}
+<div class="row btn btn-secondary active-nav-link navigation-right-small">
+    <a href="/scheduler" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">Scheduler</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="/scheduler" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">Scheduler</span>
+    </a>
+</div>
+{{ end }}
+
+{{ end }}

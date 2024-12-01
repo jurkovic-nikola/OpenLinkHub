@@ -79,6 +79,7 @@ type Device struct {
 	HasLCD                  bool
 	CpuTemp                 float32
 	GpuTemp                 float32
+	Rgb                     *rgb.RGB
 }
 
 type Devices struct {
@@ -210,6 +211,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
+	d.loadRgb()             // Load RGB
 	d.loadDeviceProfiles()  // Load all device profiles
 	d.getDeviceFirmware()   // Firmware
 	d.getDevices()          // Get devices connected to a hub
@@ -291,6 +293,81 @@ func (d *Device) Stop() {
 	}
 }
 
+// loadRgb will load RGB file if found, or create the default.
+func (d *Device) loadRgb() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(rgbFilename, ".json") {
+		return
+	}
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(profile, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to load RGB")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+}
+
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
+}
+
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
 	profileList := make(map[string]*DeviceProfile, 0)
@@ -317,6 +394,17 @@ func (d *Device) loadDeviceProfiles() {
 
 		fileName := strings.Split(fi.Name(), ".")[0]
 		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+			continue
+		}
+
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
 			continue
 		}
 
@@ -461,7 +549,7 @@ func (d *Device) getTemperatureProbe() {
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
-	if rgb.GetRgbProfile(profile) == nil {
+	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
@@ -991,7 +1079,7 @@ func (d *Device) getDevices() int {
 					label := "Set Label"
 
 					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
-						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+						if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
 							// Speed profile exists in configuration
 							rgbProfile = rp
 						}
@@ -1196,7 +1284,7 @@ func (d *Device) setDeviceColor() {
 
 	if ledEnabledDevices > 0 || ledEnabledStaticDevices > 0 {
 		if ledEnabledDevices == ledEnabledStaticDevices {
-			profile := rgb.GetRgbProfile("static")
+			profile := d.GetRgbProfile("static")
 			if d.DeviceProfile.Brightness != 0 {
 				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 			}
@@ -1262,7 +1350,7 @@ func (d *Device) setDeviceColor() {
 					lc += int(d.Devices[k].LedChannels)
 					keys = append(keys, k)
 
-					profile := rgb.GetRgbProfile(d.Devices[k].RGB)
+					profile := d.GetRgbProfile(d.Devices[k].RGB)
 					if profile == nil {
 						logger.Log(logger.Fields{"profile": d.Devices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
 						continue

@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/elite"
+	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/k100air"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k55core"
@@ -30,33 +31,35 @@ import (
 	"OpenLinkHub/src/smbus"
 	"github.com/sstallion/go-hid"
 	"os"
+	"reflect"
 	"slices"
 	"strconv"
 )
 
 const (
-	productTypeLinkHub  = 0
-	productTypeCC       = 1
-	productTypeCCXT     = 2
-	productTypeElite    = 3
-	productTypeLNCore   = 4
-	productTypeLnPro    = 5
-	productTypeCPro     = 6
-	productTypeXC7      = 7
-	productTypeMemory   = 8
-	productTypeK65PM    = 101
-	productTypeK70Core  = 102
-	productTypeK55Core  = 103
-	productTypeK70Pro   = 104
-	productTypeK65Plus  = 105
-	productTypeK65PlusW = 106
-	productTypeK100Air  = 107
-	productTypeK100AirW = 108
-	productTypeKatarPro = 201
-	productTypeST100    = 401
-	productTypeMM700    = 402
-	productTypeLT100    = 403
-	productTypePSUHid   = 501
+	productTypeLinkHub     = 0
+	productTypeCC          = 1
+	productTypeCCXT        = 2
+	productTypeElite       = 3
+	productTypeLNCore      = 4
+	productTypeLnPro       = 5
+	productTypeCPro        = 6
+	productTypeXC7         = 7
+	productTypeMemory      = 8
+	productTypeK65PM       = 101
+	productTypeK70Core     = 102
+	productTypeK55Core     = 103
+	productTypeK70Pro      = 104
+	productTypeK65Plus     = 105
+	productTypeK65PlusW    = 106
+	productTypeK100Air     = 107
+	productTypeK100AirW    = 108
+	productTypeKatarPro    = 201
+	productTypeIronClawRgb = 202
+	productTypeST100       = 401
+	productTypeMM700       = 402
+	productTypeLT100       = 403
+	productTypePSUHid      = 501
 )
 
 type AIOData struct {
@@ -71,29 +74,8 @@ type Device struct {
 	Serial      string
 	Firmware    string
 	Image       string
-	Lsh         *lsh.Device      `json:"lsh,omitempty"`
-	CC          *cc.Device       `json:"cc,omitempty"`
-	CCXT        *ccxt.Device     `json:"ccxt,omitempty"`
-	Elite       *elite.Device    `json:"elite,omitempty"`
-	LnCore      *lncore.Device   `json:"lncore,omitempty"`
-	LnPro       *lnpro.Device    `json:"lnpro,omitempty"`
-	CPro        *cpro.Device     `json:"cPro,omitempty"`
-	XC7         *xc7.Device      `json:"xc7,omitempty"`
-	Memory      *memory.Device   `json:"memory,omitempty"`
-	K65PM       *k65pm.Device    `json:"k65PM,omitempty"`
-	K70Core     *k70core.Device  `json:"k70core,omitempty"`
-	K55Core     *k55core.Device  `json:"k55core,omitempty"`
-	K70Pro      *k70pro.Device   `json:"k70pro,omitempty"`
-	K65Plus     *k65plus.Device  `json:"k65plus,omitempty"`
-	K65PlusW    *k65plusW.Device `json:"k65plusW,omitempty"`
-	K100Air     *k100air.Device  `json:"k100air,omitempty"`
-	K100AirW    *k100airW.Device `json:"k100airW,omitempty"`
-	ST100       *st100.Device    `json:"st100,omitempty"`
-	MM700       *mm700.Device    `json:"mm700,omitempty"`
-	LT100       *lt100.Device    `json:"lt100,omitempty"`
-	PSUHid      *psuhid.Device   `json:"psuhid,omitempty"`
-	KatarPro    *katarpro.Device `json:"katarpro,omitempty"`
 	GetDevice   interface{}
+	Instance    interface{}
 }
 
 var (
@@ -103,170 +85,63 @@ var (
 	devices                   = make(map[string]*Device, 0)
 	products                  = make(map[string]uint16)
 	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 7132, 11024, 11015}
-	mouses                    = []uint16{7059}
+	mouses                    = []uint16{7059, 7005}
 	pads                      = []uint16{7067}
 )
 
 // Stop will stop all active devices
 func Stop() {
 	for _, device := range devices {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					device.Lsh.Stop()
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					device.CC.Stop()
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					device.CCXT.Stop()
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					device.Elite.Stop()
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					device.LnCore.Stop()
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					device.LnPro.Stop()
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					device.CPro.Stop()
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					device.XC7.Stop()
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					device.Memory.Stop()
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					device.K65PM.Stop()
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					device.K70Core.Stop()
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					device.K55Core.Stop()
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					device.K70Pro.Stop()
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					device.K65Plus.Stop()
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					device.K65PlusW.Stop()
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					device.K100Air.Stop()
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					device.K100AirW.Stop()
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					device.ST100.Stop()
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					device.MM700.Stop()
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					device.LT100.Stop()
-				}
-			}
-		case productTypePSUHid:
-			{
-				if device.PSUHid != nil {
-					device.PSUHid.Stop()
-				}
-			}
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					device.KatarPro.Stop()
-				}
-			}
+		methodName := "Stop"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			continue
+		} else {
+			method.Call(nil)
 		}
 	}
-
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
 	}
 }
 
+// GetDeviceTemplate will return device template
+func GetDeviceTemplate(device interface{}) string {
+	methodName := "GetDeviceTemplate"
+	method := reflect.ValueOf(device).MethodByName(methodName)
+	if !method.IsValid() {
+		logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+		return ""
+	} else {
+		results := method.Call(nil)
+		if len(results) > 0 {
+			val := results[0]
+			return val.String()
+		}
+	}
+	return ""
+}
+
 // UpdateMiscColor will process POST request from a client for misc color change
 func UpdateMiscColor(deviceId string, keyId, keyOptions int, color rgb.Color) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700.UpdateDeviceColor(keyId, keyOptions, color)
-				}
+		methodName := "UpdateDeviceColor"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyOptions))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(color))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -276,54 +151,21 @@ func UpdateMiscColor(deviceId string, keyId, keyOptions int, color rgb.Color) ui
 // UpdateKeyboardColor will process POST request from a client for keyboard color change
 func UpdateKeyboardColor(deviceId string, keyId, keyOptions int, color rgb.Color) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.UpdateDeviceColor(keyOptions, color)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.UpdateDeviceColor(keyId, keyOptions, color)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.UpdateDeviceColor(keyOptions, color)
-				}
+		methodName := "UpdateDeviceColor"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyOptions))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(color))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -333,18 +175,20 @@ func UpdateKeyboardColor(deviceId string, keyId, keyOptions int, color rgb.Color
 // UpdateARGBDevice will process POST request from a client for ARGB 3-pin devices
 func UpdateARGBDevice(deviceId string, portId, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.UpdateARGBDevice(portId, deviceType)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.UpdateARGBDevice(portId, deviceType)
-				}
+		methodName := "UpdateARGBDevice"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(portId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(deviceType))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -354,30 +198,20 @@ func UpdateARGBDevice(deviceId string, portId, deviceType int) uint8 {
 // UpdateExternalHubDeviceType will update a device type connected to an external-LED hub
 func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.UpdateExternalHubDeviceType(deviceType)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.UpdateExternalHubDeviceType(deviceType)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.UpdateExternalHubDeviceType(portId, deviceType)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.UpdateExternalHubDeviceType(portId, deviceType)
-				}
+		methodName := "UpdateExternalHubDeviceType"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(portId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(deviceType))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -387,12 +221,19 @@ func UpdateExternalHubDeviceType(deviceId string, portId, deviceType int) uint8 
 // UpdatePsuFanMode will update a device fan mode
 func UpdatePsuFanMode(deviceId string, fanMode int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypePSUHid:
-			{
-				if device.PSUHid != nil {
-					return device.PSUHid.UpdatePsuFan(fanMode)
-				}
+		methodName := "UpdatePsuFan"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(fanMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -402,12 +243,42 @@ func UpdatePsuFanMode(deviceId string, fanMode int) uint8 {
 // SaveMouseDPI will save mouse DPI values
 func SaveMouseDPI(deviceId string, stages map[int]uint16) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					return device.KatarPro.SaveMouseDPI(stages)
-				}
+		methodName := "SaveMouseDPI"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(stages))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// SaveMouseZoneColors will save mouse DPI values
+func SaveMouseZoneColors(deviceId string, dpi rgb.Color, zones map[int]rgb.Color) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "SaveMouseZoneColors"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(dpi))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(zones))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -417,30 +288,20 @@ func SaveMouseDPI(deviceId string, stages map[int]uint16) uint8 {
 // UpdateExternalHubDeviceAmount will update a device amount connected to an external-LED hub
 func UpdateExternalHubDeviceAmount(deviceId string, portId, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.UpdateExternalHubDeviceAmount(deviceType)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.UpdateExternalHubDeviceAmount(deviceType)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.UpdateExternalHubDeviceAmount(portId, deviceType)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.UpdateExternalHubDeviceAmount(portId, deviceType)
-				}
+		methodName := "UpdateExternalHubDeviceAmount"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(portId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(deviceType))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -457,104 +318,40 @@ func UpdateDeviceMetrics() {
 
 	// Devices
 	for _, device := range devices {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					device.Lsh.UpdateDeviceMetrics()
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					device.CC.UpdateDeviceMetrics()
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					device.Elite.UpdateDeviceMetrics()
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					device.CPro.UpdateDeviceMetrics()
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					device.CCXT.UpdateDeviceMetrics()
-				}
+		if device.ProductType == productTypeLinkHub ||
+			device.ProductType == productTypeCC ||
+			device.ProductType == productTypeElite ||
+			device.ProductType == productTypeCPro ||
+			device.ProductType == productTypeCCXT {
+			methodName := "UpdateDeviceMetrics"
+			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+			if !method.IsValid() {
+				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+				continue
+			} else {
+				method.Call(nil)
 			}
 		}
 	}
 }
 
-// SaveKeyboardProfile will save keyboard profile
-func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
+// SaveDeviceProfile will save keyboard profile
+func SaveDeviceProfile(deviceId, profileName string, new bool) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.SaveKeyboardProfile(profileName, new)
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100.SaveDeviceProfile()
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700.SaveDeviceProfile()
-				}
+		methodName := "SaveDeviceProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profileName))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(new))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -564,54 +361,19 @@ func SaveKeyboardProfile(deviceId, profileName string, new bool) uint8 {
 // ChangeKeyboardLayout will change keyboard layout
 func ChangeKeyboardLayout(deviceId, layout string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.ChangeKeyboardLayout(layout)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.ChangeKeyboardLayout(layout)
-				}
+		methodName := "ChangeKeyboardLayout"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(layout))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -621,18 +383,19 @@ func ChangeKeyboardLayout(deviceId, layout string) uint8 {
 // ChangeKeyboardControlDial will change keyboard control dial function
 func ChangeKeyboardControlDial(deviceId string, controlDial int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.UpdateControlDial(controlDial)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.UpdateControlDial(controlDial)
-				}
+		methodName := "UpdateControlDial"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(controlDial))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -642,18 +405,19 @@ func ChangeKeyboardControlDial(deviceId string, controlDial int) uint8 {
 // ChangeKeyboardSleepMode will change keyboard control dial function
 func ChangeKeyboardSleepMode(deviceId string, sleepMode int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.UpdateSleepTimer(sleepMode)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.UpdateSleepTimer(sleepMode)
-				}
+		methodName := "UpdateSleepTimer"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(sleepMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -663,54 +427,19 @@ func ChangeKeyboardSleepMode(deviceId string, sleepMode int) uint8 {
 // ChangeKeyboardProfile will change keyboard profile
 func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.UpdateKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.UpdateKeyboardProfile(profileName)
-				}
+		methodName := "UpdateKeyboardProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profileName))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -720,54 +449,19 @@ func ChangeKeyboardProfile(deviceId, profileName string) uint8 {
 // DeleteKeyboardProfile will save keyboard profile
 func DeleteKeyboardProfile(deviceId, profileName string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.DeleteKeyboardProfile(profileName)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.DeleteKeyboardProfile(profileName)
-				}
+		methodName := "DeleteKeyboardProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profileName))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -777,132 +471,19 @@ func DeleteKeyboardProfile(deviceId, profileName string) uint8 {
 // SaveUserProfile will save new device user profile
 func SaveUserProfile(deviceId, profileName string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					return device.Memory.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					return device.LT100.SaveUserProfile(profileName)
-				}
-			}
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					return device.KatarPro.SaveUserProfile(profileName)
-				}
+		methodName := "SaveUserProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profileName))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -912,12 +493,20 @@ func SaveUserProfile(deviceId, profileName string) uint8 {
 // UpdateDevicePosition will change device position
 func UpdateDevicePosition(deviceId string, position, direction int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateDevicePosition(position, direction)
-				}
+		methodName := "UpdateDevicePosition"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(position))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(direction))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -927,121 +516,15 @@ func UpdateDevicePosition(deviceId string, position, direction int) uint8 {
 // ScheduleDeviceBrightness will change device brightness level based on scheduler
 func ScheduleDeviceBrightness(mode uint8) {
 	for _, device := range GetDevices() {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					device.Lsh.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					device.CCXT.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					device.CC.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					device.CPro.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					device.LnPro.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					device.LnCore.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					device.Elite.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					device.XC7.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					device.Memory.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					device.K65PM.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					device.K70Core.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					device.K70Pro.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					device.K55Core.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					device.K65Plus.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					device.K65PlusW.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					device.K100Air.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					device.K100AirW.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					device.ST100.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					device.LT100.ChangeDeviceBrightness(mode)
-				}
-			}
+		methodName := "ChangeDeviceBrightness"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(mode))
+			method.Call(reflectArgs)
 		}
 	}
 }
@@ -1049,132 +532,19 @@ func ScheduleDeviceBrightness(mode uint8) {
 // ChangeDeviceBrightness will change device brightness level
 func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					return device.Memory.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					return device.LT100.ChangeDeviceBrightness(mode)
-				}
-			}
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					return device.KatarPro.ChangeDeviceBrightness(mode)
-				}
+		methodName := "ChangeDeviceBrightness"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(mode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1184,132 +554,19 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 // ChangeUserProfile will change device user profile
 func ChangeUserProfile(deviceId, profileName string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					return device.Memory.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					return device.LT100.ChangeDeviceProfile(profileName)
-				}
-			}
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					return device.KatarPro.ChangeDeviceProfile(profileName)
-				}
+		methodName := "ChangeDeviceProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profileName))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1319,24 +576,20 @@ func ChangeUserProfile(deviceId, profileName string) uint8 {
 // UpdateDeviceLcd will update device LCD
 func UpdateDeviceLcd(deviceId string, channelId int, mode uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.UpdateDeviceLcd(mode)
-				}
-			}
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateDeviceLcd(channelId, mode)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.UpdateDeviceLcd(mode)
-				}
+		methodName := "UpdateDeviceLcd"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(mode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1346,12 +599,20 @@ func UpdateDeviceLcd(deviceId string, channelId int, mode uint8) uint8 {
 // ChangeDeviceLcd will change device LCD
 func ChangeDeviceLcd(deviceId string, channelId int, lcdSerial string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.ChangeDeviceLcd(channelId, lcdSerial)
-				}
+		methodName := "ChangeDeviceLcd"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(lcdSerial))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1361,24 +622,20 @@ func ChangeDeviceLcd(deviceId string, channelId int, lcdSerial string) uint8 {
 // UpdateDeviceLcdRotation will update device LCD rotation
 func UpdateDeviceLcdRotation(deviceId string, channelId int, rotation uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.UpdateDeviceLcdRotation(rotation)
-				}
-			}
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateDeviceLcdRotation(channelId, rotation)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.UpdateDeviceLcdRotation(rotation)
-				}
+		methodName := "UpdateDeviceLcdRotation"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(rotation))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1388,122 +645,25 @@ func UpdateDeviceLcdRotation(deviceId string, channelId int, rotation uint8) uin
 // UpdateDeviceLabel will set / update device label
 func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateDeviceLabel(channelId, label)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					if deviceType == 0 {
-						return device.CC.UpdateDeviceLabel(channelId, label)
-					} else {
-						return device.CC.UpdateRGBDeviceLabel(channelId, label)
-					}
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					if deviceType == 0 {
-						return device.CCXT.UpdateDeviceLabel(channelId, label)
-					} else {
-						return device.CCXT.UpdateRGBDeviceLabel(channelId, label)
-					}
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.UpdateDeviceLabel(channelId, label)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.UpdateDeviceLabel(channelId, label)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.UpdateDeviceLabel(channelId, label)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.UpdateDeviceLabel(channelId, label)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					return device.Memory.UpdateDeviceLabel(channelId, label)
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.UpdateDeviceLabel(label)
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					return device.LT100.UpdateDeviceLabel(channelId, label)
-				}
+		methodName := ""
+		if deviceType == 0 {
+			methodName = "UpdateDeviceLabel"
+		} else {
+			methodName = "UpdateRGBDeviceLabel"
+		}
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(label))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1513,36 +673,20 @@ func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType 
 // UpdateSpeedProfile will update device speeds with a given serial number
 func UpdateSpeedProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateSpeedProfile(channelId, profile)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.UpdateSpeedProfile(channelId, profile)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.UpdateSpeedProfile(channelId, profile)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.UpdateSpeedProfile(channelId, profile)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.UpdateSpeedProfile(channelId, profile)
-				}
+		methodName := "UpdateSpeedProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1552,36 +696,20 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) uint8 {
 // UpdateManualSpeed will update device speeds with a given serial number
 func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateDeviceSpeed(channelId, value)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.UpdateDeviceSpeed(channelId, value)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.UpdateDeviceSpeed(channelId, value)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.UpdateDeviceSpeed(channelId, value)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.UpdateDeviceSpeed(channelId, value)
-				}
+		methodName := "UpdateDeviceSpeed"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(value))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1591,12 +719,20 @@ func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 // UpdateRgbStrip will update device RGB strip
 func UpdateRgbStrip(deviceId string, channelId int, stripId int) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateExternalAdapter(channelId, stripId)
-				}
+		methodName := "UpdateExternalAdapter"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(stripId))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1606,132 +742,20 @@ func UpdateRgbStrip(deviceId string, channelId int, stripId int) uint8 {
 // UpdateRgbProfile will update device RGB profile
 func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					return device.Memory.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700.UpdateRgbProfile(profile)
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					return device.LT100.UpdateRgbProfile(channelId, profile)
-				}
-			}
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					return device.KatarPro.UpdateRgbProfile(profile)
-				}
+		methodName := "UpdateRgbProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
 			}
 		}
 	}
@@ -1741,24 +765,18 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 // ResetSpeedProfiles will reset the speed profile on each available device
 func ResetSpeedProfiles(profile string) {
 	for _, device := range devices {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					device.Lsh.ResetSpeedProfiles(profile)
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					device.CC.ResetSpeedProfiles(profile)
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					device.CCXT.ResetSpeedProfiles(profile)
-				}
+		if device.ProductType == productTypeLinkHub ||
+			device.ProductType == productTypeCC ||
+			device.ProductType == productTypeCCXT {
+			methodName := "ResetSpeedProfiles"
+			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+			if !method.IsValid() {
+				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+				return
+			} else {
+				var reflectArgs []reflect.Value
+				reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+				method.Call(reflectArgs)
 			}
 		}
 	}
@@ -1773,29 +791,21 @@ func GetDevices() map[string]*Device {
 func GetTemperatureProbes() interface{} {
 	var probes []interface{}
 	for _, device := range devices {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					probes = append(probes, device.Lsh.GetTemperatureProbes())
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					probes = append(probes, device.CC.GetTemperatureProbes())
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					probes = append(probes, device.CCXT.GetTemperatureProbes())
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					probes = append(probes, device.CPro.GetTemperatureProbes())
+		if device.ProductType == productTypeLinkHub ||
+			device.ProductType == productTypeCC ||
+			device.ProductType == productTypeCCXT ||
+			device.ProductType == productTypeCPro {
+			methodName := "GetTemperatureProbes"
+			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+			if !method.IsValid() {
+				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+				return 0
+			} else {
+				results := method.Call(nil)
+				if len(results) > 0 {
+					val := results[0]
+					res := val.Interface()
+					probes = append(probes, res)
 				}
 			}
 		}
@@ -1806,141 +816,7 @@ func GetTemperatureProbes() interface{} {
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
 	if device, ok := devices[deviceId]; ok {
-		switch device.ProductType {
-		case productTypeLinkHub:
-			{
-				if device.Lsh != nil {
-					return device.Lsh
-				}
-			}
-		case productTypeCC:
-			{
-				if device.CC != nil {
-					return device.CC
-				}
-			}
-		case productTypeCCXT:
-			{
-				if device.CCXT != nil {
-					return device.CCXT
-				}
-			}
-		case productTypeElite:
-			{
-				if device.Elite != nil {
-					return device.Elite
-				}
-			}
-		case productTypeLNCore:
-			{
-				if device.LnCore != nil {
-					return device.LnCore
-				}
-			}
-		case productTypeLnPro:
-			{
-				if device.LnPro != nil {
-					return device.LnPro
-				}
-			}
-		case productTypeCPro:
-			{
-				if device.CPro != nil {
-					return device.CPro
-				}
-			}
-		case productTypeXC7:
-			{
-				if device.XC7 != nil {
-					return device.XC7
-				}
-			}
-		case productTypeMemory:
-			{
-				if device.Memory != nil {
-					return device.Memory
-				}
-			}
-		case productTypeK65PM:
-			{
-				if device.K65PM != nil {
-					return device.K65PM
-				}
-			}
-		case productTypeK70Core:
-			{
-				if device.K70Core != nil {
-					return device.K70Core
-				}
-			}
-		case productTypeK70Pro:
-			{
-				if device.K70Pro != nil {
-					return device.K70Pro
-				}
-			}
-		case productTypeK55Core:
-			{
-				if device.K55Core != nil {
-					return device.K55Core
-				}
-			}
-		case productTypeK65Plus:
-			{
-				if device.K65Plus != nil {
-					return device.K65Plus
-				}
-			}
-		case productTypeK65PlusW:
-			{
-				if device.K65PlusW != nil {
-					return device.K65PlusW
-				}
-			}
-		case productTypeK100Air:
-			{
-				if device.K100Air != nil {
-					return device.K100Air
-				}
-			}
-		case productTypeK100AirW:
-			{
-				if device.K100AirW != nil {
-					return device.K100AirW
-				}
-			}
-		case productTypeST100:
-			{
-				if device.ST100 != nil {
-					return device.ST100
-				}
-			}
-		case productTypeMM700:
-			{
-				if device.MM700 != nil {
-					return device.MM700
-				}
-			}
-		case productTypeLT100:
-			{
-				if device.LT100 != nil {
-					return device.LT100
-				}
-			}
-		case productTypePSUHid:
-			{
-				if device.PSUHid != nil {
-					return device.PSUHid
-				}
-			}
-
-		case productTypeKatarPro:
-			{
-				if device.KatarPro != nil {
-					return device.KatarPro
-				}
-			}
-		}
+		return device.Instance
 	}
 	return nil
 }
@@ -2018,12 +894,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						Lsh:         dev,
 						ProductType: productTypeLinkHub,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -2036,12 +912,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						CC:          dev,
 						ProductType: productTypeCC,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -2054,12 +930,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						CCXT:        dev,
 						ProductType: productTypeCCXT,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -2080,12 +956,12 @@ func Init() {
 						return
 					}
 					devices[strconv.Itoa(int(productId))] = &Device{
-						Elite:       dev,
 						ProductType: productTypeElite,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId)
@@ -2098,12 +974,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						LnCore:      dev,
 						ProductType: productTypeLNCore,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2115,12 +991,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						LnPro:       dev,
 						ProductType: productTypeLnPro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2132,12 +1008,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						CPro:        dev,
 						ProductType: productTypeCPro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -2150,12 +1026,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						XC7:         dev,
 						ProductType: productTypeXC7,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-device.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -2168,12 +1044,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K65PM:       dev,
 						ProductType: productTypeK65PM,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2185,12 +1061,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K70Core:     dev,
 						ProductType: productTypeK70Core,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2202,12 +1078,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K55Core:     dev,
 						ProductType: productTypeK55Core,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2219,12 +1095,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K70Pro:      dev,
 						ProductType: productTypeK70Pro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2236,12 +1112,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K65Plus:     dev,
 						ProductType: productTypeK65Plus,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2253,12 +1129,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K65PlusW:    dev,
 						ProductType: productTypeK65PlusW,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2270,12 +1146,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K100Air:     dev,
 						ProductType: productTypeK100Air,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2287,12 +1163,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						K100AirW:    dev,
 						ProductType: productTypeK100AirW,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-keyboard.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2304,12 +1180,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						ST100:       dev,
 						ProductType: productTypeST100,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-headphone.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2321,12 +1197,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						MM700:       dev,
 						ProductType: productTypeMM700,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-mousepad.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2338,12 +1214,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						LT100:       dev,
 						ProductType: productTypeLT100,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-rgb.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2358,12 +1234,12 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						PSUHid:      dev,
 						ProductType: productTypePSUHid,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-psu.svg",
+						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
@@ -2376,12 +1252,29 @@ func Init() {
 						return
 					}
 					devices[dev.Serial] = &Device{
-						KatarPro:    dev,
 						ProductType: productTypeKatarPro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7005: // Corsair IRONCLAW RGB Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := ironclaw.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeIronClawRgb,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
 					}
 				}(vendorId, productId, key)
 			}
@@ -2391,13 +1284,14 @@ func Init() {
 					dev := memory.Init(serialId, "Memory")
 					if dev != nil {
 						devices[dev.Serial] = &Device{
-							Memory:      dev,
 							ProductType: productTypeMemory,
 							Product:     dev.Product,
 							Serial:      dev.Serial,
 							Firmware:    "0",
 							Image:       "icon-ram.svg",
+							Instance:    dev,
 						}
+						devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 					}
 				}(key)
 			}

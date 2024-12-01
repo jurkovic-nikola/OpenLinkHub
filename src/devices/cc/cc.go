@@ -281,6 +281,7 @@ type Device struct {
 	GpuTemp           float32
 	FreeLedPorts      map[int]string
 	FreeLedPortLEDs   map[int]string
+	Rgb               *rgb.RGB
 }
 
 /*
@@ -369,6 +370,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
+	d.loadRgb()             // Load RGB
 	d.loadDeviceProfiles()  // Load all device profiles
 	d.getDeviceLcd()        // Check if LCD pump cover is installed
 	d.getDeviceProfile()    // Get device profile if any
@@ -442,6 +444,81 @@ func (d *Device) Stop() {
 	}
 }
 
+// loadRgb will load RGB file if found, or create the default.
+func (d *Device) loadRgb() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(rgbFilename, ".json") {
+		return
+	}
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(profile, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to load RGB")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+}
+
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
+}
+
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
 	profileList := make(map[string]*DeviceProfile, 0)
@@ -468,6 +545,17 @@ func (d *Device) loadDeviceProfiles() {
 
 		fileName := strings.Split(fi.Name(), ".")[0]
 		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+			continue
+		}
+
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
 			continue
 		}
 
@@ -733,7 +821,7 @@ func (d *Device) setDeviceColor() {
 	}
 	if s > 0 || l > 0 { // We have some values
 		if s == l { // number of devices matches number of devices with static profile
-			profile := rgb.GetRgbProfile("static")
+			profile := d.GetRgbProfile("static")
 			if d.DeviceProfile.Brightness != 0 {
 				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 			}
@@ -797,7 +885,7 @@ func (d *Device) setDeviceColor() {
 					}
 
 					rgbCustomColor := true
-					profile := rgb.GetRgbProfile(d.RgbDevices[k].RGB)
+					profile := d.GetRgbProfile(d.RgbDevices[k].RGB)
 					if profile == nil {
 						for i := 0; i < int(d.RgbDevices[k].LedChannels); i++ {
 							buff = append(buff, []byte{0, 0, 0}...)
@@ -1058,7 +1146,7 @@ func (d *Device) getRgbDevices() {
 					// Profile is set
 					if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
 						// Profile device channel exists
-						if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+						if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
 							// Speed profile exists in configuration
 							rgbProfile = rp
 						} else {
@@ -1112,7 +1200,7 @@ func (d *Device) getRgbDevices() {
 								// Profile is set
 								if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
 									// Profile device channel exists
-									if rgb.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+									if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
 										// Speed profile exists in configuration
 										rgbProfile = rp
 									} else {
@@ -1695,7 +1783,7 @@ func (d *Device) UpdateRGBDeviceLabel(channelId int, label string) uint8 {
 }
 
 // UpdateDeviceLcd will update device LCD
-func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
+func (d *Device) UpdateDeviceLcd(_, mode uint8) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -1709,7 +1797,7 @@ func (d *Device) UpdateDeviceLcd(mode uint8) uint8 {
 }
 
 // UpdateDeviceLcdRotation will update device LCD rotation
-func (d *Device) UpdateDeviceLcdRotation(rotation uint8) uint8 {
+func (d *Device) UpdateDeviceLcdRotation(_, rotation uint8) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -1897,7 +1985,7 @@ func (d *Device) getTemperatureProbe() {
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
-	if rgb.GetRgbProfile(profile) == nil {
+	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
@@ -2487,6 +2575,18 @@ func (d *Device) setupLCD() {
 							gpuTemp,
 							cpuUtil,
 							gpuUtil,
+							d.getLCDRotation(),
+						)
+						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayTime:
+					{
+						buffer := lcd.GenerateScreenImage(
+							lcd.DisplayTime,
+							0,
+							0,
+							0,
+							0,
 							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)

@@ -24,6 +24,16 @@ import (
 	"time"
 )
 
+// DeviceInfo represents a USB device
+type DeviceInfo struct {
+	Bus         string
+	Device      string
+	ID          string
+	Vendor      string
+	Product     string
+	Description string
+}
+
 type DeviceProfile struct {
 	Active      bool
 	Path        string
@@ -73,6 +83,7 @@ type Device struct {
 
 var (
 	pwd                     = ""
+	cmdWakeUp               = byte(0x03)
 	cmdGetFirmware          = byte(0x02)
 	cmdLedReset             = byte(0x37)
 	cmdPortState            = byte(0x38)
@@ -130,7 +141,6 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getSerial()          // Serial
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
-	d.wakeUpDevice()       // Wake up
 	d.getDeviceFirmware()  // Firmware
 	d.resetLeds()          // Reset all LEDs
 	if d.getDevices() > 0 {
@@ -311,9 +321,6 @@ func (d *Device) resetLeds() {
 
 	// Flush it
 	d.write(cmdSave, dataFlush)
-
-	// Wait for 2 seconds
-	time.Sleep(2 * time.Second)
 }
 
 // startColors will initiate interface for receiving colors
@@ -449,7 +456,7 @@ func (d *Device) getSerial() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) wakeUpDevice() {
-	_, err := d.transfer(0x3c, nil)
+	_, err := d.transfer(cmdWakeUp, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 		return
@@ -458,11 +465,24 @@ func (d *Device) wakeUpDevice() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
+	// Init
+	d.write(0, nil)
+
 	fw, err := d.transfer(cmdGetFirmware, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 		return
 	}
+
+	if fw[0] == 0x01 {
+		// The initial response is always 0x01. We need to repeat to get the firmware
+		fw, err = d.transfer(cmdGetFirmware, nil)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
+			return
+		}
+	}
+
 	v1, v2, v3 := int(fw[1]), int(fw[2]), int(fw[3])
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
@@ -581,7 +601,6 @@ func (d *Device) getDevices() int {
 				break
 			}
 			m++
-			time.Sleep(500 * time.Millisecond)
 		}
 	}
 
@@ -1251,7 +1270,7 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 	}
 
 	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err := d.dev.ReadWithTimeout(bufferR, 1000); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return nil, err
 	}

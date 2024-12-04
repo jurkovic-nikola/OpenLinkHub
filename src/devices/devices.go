@@ -78,15 +78,21 @@ type Device struct {
 	Instance    interface{}
 }
 
+type Product struct {
+	ProductId uint16
+	Path      string
+}
+
 var (
 	expectedPermission        = 0666
 	vendorId           uint16 = 6940 // Corsair
 	interfaceId               = 0
 	devices                   = make(map[string]*Device, 0)
-	products                  = make(map[string]uint16)
-	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 7132, 11024, 11015}
+	products                  = make(map[string]Product, 0)
+	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015}
 	mouses                    = []uint16{7059, 7005}
 	pads                      = []uint16{7067}
+	dongles                   = []uint16{7132}
 )
 
 // Stop will stop all active devices
@@ -124,7 +130,7 @@ func GetDeviceTemplate(device interface{}) string {
 	return ""
 }
 
-// UpdateMiscColor will process POST request from a client for misc color change
+// UpdateMiscColor will process a POST request from a client for misc color change
 func UpdateMiscColor(deviceId string, keyId, keyOptions int, color rgb.Color) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		methodName := "UpdateDeviceColor"
@@ -848,14 +854,27 @@ func Init() {
 			interfaceId = 1 // Mouse
 		} else if slices.Contains(pads, info.ProductID) {
 			interfaceId = 1 // Mousepad
+		} else if slices.Contains(dongles, info.ProductID) {
+			interfaceId = 1 // USB Dongle
 		} else {
 			interfaceId = 0
 		}
 		if info.InterfaceNbr == interfaceId {
 			if interfaceId == 1 {
-				products[info.Path] = info.ProductID
+				products[info.Path] = Product{
+					ProductId: info.ProductID,
+					Path:      info.Path,
+				}
 			} else {
-				products[info.SerialNbr] = info.ProductID
+				serial := info.SerialNbr
+				if len(serial) == 0 {
+					// Devices with no serial, make serial based of productId
+					serial = strconv.Itoa(int(info.ProductID))
+				}
+				products[serial] = Product{
+					ProductId: info.ProductID,
+					Path:      info.Path,
+				}
 			}
 		}
 		return nil
@@ -871,7 +890,10 @@ func Init() {
 		sm, err := smbus.GetSmBus()
 		if err == nil {
 			if len(sm.Path) > 0 {
-				products[sm.Path] = 0
+				products[sm.Path] = Product{
+					ProductId: 0,
+					Path:      "",
+				}
 			}
 		} else {
 			logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
@@ -879,13 +901,13 @@ func Init() {
 	}
 
 	// USB-HID
-	for key, productId := range products {
+	for key, product := range products {
+		productId := product.ProductId
 		if slices.Contains(config.GetConfig().Exclude, productId) {
 			logger.Log(logger.Fields{"productId": productId}).Warn("Product excluded via config.json")
 			continue
 		}
-
-		switch productId {
+		switch product.ProductId {
 		case 3135: // CORSAIR iCUE Link System Hub
 			{
 				go func(vendorId, productId uint16, serialId string) {
@@ -940,7 +962,7 @@ func Init() {
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
 			}
-		case 3104, 3105, 3106, 3125, 3126, 3127, 3136, 3137:
+		case 3125, 3126, 3127, 3136, 3137, 3104, 3105, 3106, 3095, 3096, 3097:
 			// iCUE H100i ELITE RGB
 			// iCUE H115i ELITE RGB
 			// iCUE H150i ELITE RGB
@@ -949,6 +971,9 @@ func Init() {
 			// iCUE H100i RGB PRO XT
 			// iCUE H115i RGB PRO XT
 			// iCUE H150i RGB PRO XT
+			// H115i RGB PLATINUM
+			// H100i RGB PLATINUM
+			// H100i RGB PLATINUM SE
 			{
 				go func(vendorId, productId uint16) {
 					dev := elite.Init(vendorId, productId)
@@ -1223,10 +1248,16 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7198, 7203, 7199:
+		case 7198, 7203, 7199, 7173, 7174, 7175, 7176, 7181, 7180:
 			// Corsair HX1000i Power Supply
 			// Corsair HX1200i Power Supply
 			// Corsair HX1500i Power Supply
+			// Corsair HX750i Power Supply
+			// Corsair HX850i Power Supply
+			// Corsair HX1000i Power Supply
+			// Corsair HX1200i Power Supply
+			// Corsair RM1000i Power Supply
+			// Corsair RM850i Power Supply
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := psuhid.Init(vendorId, productId, key)

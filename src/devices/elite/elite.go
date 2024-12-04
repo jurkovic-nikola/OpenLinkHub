@@ -37,6 +37,11 @@ import (
 	"time"
 )
 
+type Shutdown struct {
+	command byte
+	data    []byte
+}
+
 type SpeedMode struct {
 	Value   byte
 	ZeroRpm bool
@@ -120,6 +125,7 @@ type Device struct {
 	CpuTemp           float32
 	GpuTemp           float32
 	Rgb               *rgb.RGB
+	InvertRgb         bool
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -149,6 +155,45 @@ var controlLighting = []byte{
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 }
 
+var shutdown = map[int]Shutdown{
+	0: {
+		command: cmdActivateChannels,
+		data: []byte{
+			0x0a, 0x01, 0x04, 0x07, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x00, 0x01, 0x02, 0x03, 0x04,
+			0x01, 0x0a, 0x07, 0x04, 0x0b, 0x0a, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00,
+			0x01, 0x0a, 0x07, 0x04, 0x01, 0x0a, 0x09, 0x08, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		},
+	},
+	1: {
+		command: cmdActivateChannels + 1,
+		data: []byte{
+			0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c,
+			0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c,
+			0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		},
+	},
+	2: {
+		command: cmdWriteColor,
+		data: []byte{
+			0x00, 0x00, 0xff, 0x00, 0x4a, 0xff, 0x00, 0x94, 0xff, 0x00, 0xdf, 0xff, 0x00, 0xff, 0xaa, 0x00,
+			0xff, 0x15, 0x7f, 0x7f, 0x00, 0xfa, 0x00, 0x06, 0xdb, 0x00, 0x32, 0xd7, 0x00, 0x58, 0xf6, 0x00,
+			0x76, 0x94, 0x00, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+	},
+	3: {
+		command: cmdControlLighting,
+		data: []byte{
+			0x00, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+			0x7f, 0x7f, 0x7f, 0x7f, 0x09, 0x20, 0x07, 0x00, 0x0b, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff,
+			0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		},
+	},
+}
+
 var (
 	pwd                        = ""
 	cmdGetState                = []byte{0xff, 0x00}
@@ -156,7 +201,9 @@ var (
 	cmdState                   = byte(0x00)
 	cmdWriteColor              = byte(0x04)
 	cmdControlLighting         = byte(0x01)
+	cmdActivateChannels        = byte(0x02)
 	mutex                      sync.Mutex
+	sequence                   sync.Mutex
 	BufferSize                 = 64
 	HidBufferSize              = BufferSize + 1
 	BufferLength               = BufferSize - 1
@@ -168,6 +215,9 @@ var (
 	timerSpeed                 = &time.Ticker{}
 	manualSpeedModes           = map[int]*SpeedMode{}
 	supportedDevices           = []SupportedDevice{
+		{ProductId: 3095, Product: "H115i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
+		{ProductId: 3096, Product: "H100i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
+		{ProductId: 3097, Product: "H100i RGB PLATINUM SE", Fans: 2, FanLeds: 16, PumpLeds: 16},
 		{ProductId: 3104, Product: "iCUE H100i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},
 		{ProductId: 3105, Product: "iCUE H115i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},
 		{ProductId: 3106, Product: "iCUE H150i RGB PRO XT", Fans: 3, FanLeds: 0, PumpLeds: 16},
@@ -248,6 +298,7 @@ func Init(vendorId, productId uint16) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		InvertRgb: true,
 	}
 
 	d.ProductId = productId
@@ -263,7 +314,7 @@ func Init(vendorId, productId uint16) *Device {
 	d.getDevices()         // Get devices
 	d.setAutoRefresh()     // Set auto device refresh
 	d.saveDeviceProfile()  // Save profile
-	d.controlDevice(true)  // Device lighting mode
+	d.initLeds()           // Device lighting mode
 	d.setDeviceColor()     // Device color
 	if config.GetConfig().Manual {
 		fmt.Println(
@@ -288,7 +339,7 @@ func (d *Device) Stop() {
 		speedRefreshChan <- true
 	}
 	authRefreshChan <- true
-	d.controlDevice(false) // Device lighting mode
+	d.setHardwareMode() // Hardware mode
 	if d.dev != nil {
 		err := d.dev.Close()
 		if err != nil {
@@ -372,13 +423,50 @@ func (d *Device) GetDeviceTemplate() string {
 	return d.Template
 }
 
-// controlDevice will control device lighting mode.
-func (d *Device) controlDevice(active bool) {
-	if !active {
-		// Lights out
-		controlLighting[0] = 0x00
-		controlLighting[19] = 0x7f
-		controlLighting[50] = 0x00
+// lightingControl will create an empty byte slice with length of 80.
+// After that, we fill an array with byte value from 0 to 79
+func (d *Device) lightingControl() []byte {
+	buf := make([]byte, 80)
+	for i := 0; i < len(buf); i++ {
+		buf[i] = byte(i)
+	}
+	return buf
+}
+
+// setHardwareMode will put a device back to hardware mode
+func (d *Device) setHardwareMode() {
+	indexes := d.lightingControl()
+	chunks := common.ProcessMultiChunkPacket(indexes, 40)
+	for i, chunk := range chunks {
+		buf := make([]byte, 61)
+		copy(buf[0:], chunk)
+		for m := len(chunk); m < 61; m++ {
+			buf[m] = byte(0xff)
+		}
+		command := cmdActivateChannels + byte(i)
+		d.transfer(command, buf)
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	for i := 0; i < len(shutdown); i++ {
+		value := shutdown[i]
+		d.transfer(value.command, value.data)
+	}
+}
+
+// initLeds will initialize LED channels
+func (d *Device) initLeds() {
+	indexes := d.lightingControl()
+	chunks := common.ProcessMultiChunkPacket(indexes, 40)
+	for i, chunk := range chunks {
+		buf := make([]byte, 61)
+		copy(buf[0:], chunk)
+		for m := len(chunk); m < 61; m++ {
+			buf[m] = byte(0xff)
+		}
+		command := cmdActivateChannels + byte(i)
+		d.transfer(command, buf)
+		time.Sleep(100 * time.Millisecond)
 	}
 	d.transfer(cmdControlLighting, controlLighting)
 }
@@ -465,23 +553,9 @@ func (d *Device) setDeviceColor() {
 		Brightness: 0,
 	}
 
-	for _, device := range d.Devices {
-		LedChannels := device.LedChannels
-		if LedChannels > 0 {
-			for i := 0; i < int(LedChannels); i++ {
-				reset[i] = []byte{
-					byte(color.Red),
-					byte(color.Green),
-					byte(color.Blue),
-				}
-			}
-		}
-	}
-	buffer = rgb.SetColor(reset)
-	d.transfer(cmdWriteColor, buffer)
-
 	// Get the number of LED channels we have
 	lightChannels := 0
+	m := 0
 	for _, device := range d.Devices {
 		lightChannels += int(device.LedChannels)
 	}
@@ -491,6 +565,20 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
 		return
 	}
+
+	if lightChannels > 0 {
+		for i := 0; i < lightChannels; i++ {
+			reset[i] = []byte{
+				byte(color.Red),
+				byte(color.Green),
+				byte(color.Blue),
+			}
+		}
+		m++
+	}
+
+	buffer = rgb.SetColorInverted(reset)
+	d.writeColor(buffer)
 
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
@@ -520,7 +608,7 @@ func (d *Device) setDeviceColor() {
 				}
 			}
 			buffer = rgb.SetColor(reset)
-			d.transfer(cmdWriteColor, buffer)
+			d.writeColor(buffer)
 			return
 		}
 	}
@@ -605,6 +693,7 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor.Brightness = r.RGBBrightness
 					}
 
+					r.Inverted = d.InvertRgb
 					switch d.Devices[k].RGB {
 					case "off":
 						{
@@ -802,8 +891,8 @@ func (d *Device) setDeviceColor() {
 				}
 
 				// Send it
-				d.transfer(cmdWriteColor, buff)
-				time.Sleep(40 * time.Millisecond)
+				d.writeColor(buff)
+				time.Sleep(20 * time.Millisecond)
 				hue++
 				wavePosition += 0.2
 			}
@@ -1282,8 +1371,8 @@ func (d *Device) getDeviceFirmware() {
 		logger.Log(logger.Fields{}).Error("Unable to get device firmware")
 	}
 
-	v1, v2, v3 := int(response[2]>>4), int(response[2]&0x0F), int(response[3])
-	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
+	v1, v2, v3 := int(response[2]>>4), int(response[2]>>4), int(response[3])
+	d.Firmware = fmt.Sprintf("%d.%.2d.%d", v1, v2, v3)
 }
 
 // getManufacturer will return device manufacturer
@@ -1345,6 +1434,8 @@ func (d *Device) getSupportedDevice(productId uint16) *SupportedDevice {
 
 // nextSequence will increment next sequence for packet
 func (d *Device) nextSequence() byte {
+	sequence.Lock()
+	sequence.Unlock()
 	for {
 		d.sequence += 0x08
 		if d.sequence != 0x00 {
@@ -1355,6 +1446,8 @@ func (d *Device) nextSequence() byte {
 
 // setSequence will set sequence with given value from packet response
 func (d *Device) setSequence(value byte) {
+	sequence.Lock()
+	defer sequence.Unlock()
 	d.sequence = value
 }
 
@@ -1599,6 +1692,14 @@ func (d *Device) read(command byte, data []byte) []byte {
 	return bufferR
 }
 
+func (d *Device) writeColor(data []byte) {
+	chunks := common.ProcessMultiChunkPacket(data, 60)
+	for i, chunk := range chunks {
+		command := cmdWriteColor + byte(i)
+		d.transfer(command, chunk)
+	}
+}
+
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(command byte, data []byte) []byte {
 	mutex.Lock()
@@ -1612,7 +1713,6 @@ func (d *Device) transfer(command byte, data []byte) []byte {
 			buffer[i] = 0x00
 		}
 	}
-
 	buffer[0] = byte(BufferLength)
 	buffer[1] = d.nextSequence() | command
 
@@ -1620,13 +1720,40 @@ func (d *Device) transfer(command byte, data []byte) []byte {
 	buffer[len(buffer)-1] = d.calculateChecksum(buffer[1 : len(buffer)-1])
 
 	bufferR := make([]byte, BufferSize)
+	reports := make([]byte, 1)
 	bufferW := d.newHidPacket(buffer)
-	if _, err := d.dev.Write(bufferW); err != nil {
+
+	// Every now and often, we get a HUD_REPORT that break sequence chain.
+	err := d.dev.SetNonblock(true)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+	}
+
+	for {
+		n, err := d.dev.Read(reports)
+		if err != nil {
+			if n < 0 {
+				// discarding packet
+			}
+			if err == hid.ErrTimeout || n == 0 {
+				break
+			}
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	err = d.dev.SetNonblock(false)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+	}
+
+	if _, err = d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
 
 	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err = d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read data from device")
 	}
 

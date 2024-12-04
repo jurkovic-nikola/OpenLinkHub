@@ -37,7 +37,11 @@ func (r *ActiveRGB) Colorshift(i int, reverse bool) {
 				}
 			}
 		}
-		r.Output = SetColor(buf)
+		if r.Inverted {
+			r.Output = SetColorInverted(buf)
+		} else {
+			r.Output = SetColor(buf)
+		}
 	} else {
 		colors := generateColorshiftColors(r.LightChannels, r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
 		for j, color := range colors {
@@ -52,6 +56,10 @@ func (r *ActiveRGB) Colorshift(i int, reverse bool) {
 				}
 			}
 		}
-		r.Output = SetColor(buf)
+		if r.Inverted {
+			r.Output = SetColorInverted(buf)
+		} else {
+			r.Output = SetColor(buf)
+		}
 	}
 }

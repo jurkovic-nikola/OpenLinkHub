@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
@@ -29,6 +30,7 @@ func Start() {
 	lcd.Init()          // LCD
 	temperatures.Init() // Temperatures
 	keyboards.Init()    // Keyboards
+	inputmanager.Init() // Input Manager
 	devices.Init()      // Devices
 	server.Init()       // REST & WebUI
 }

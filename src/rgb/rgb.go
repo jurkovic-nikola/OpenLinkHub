@@ -58,6 +58,7 @@ type ActiveRGB struct {
 	IsAIO                  bool
 	MinTemp                float64
 	MaxTemp                float64
+	Inverted               bool
 }
 
 var (
@@ -297,6 +298,29 @@ func SetColor(data map[int][]byte) []byte {
 		buffer[i] = data[k][0]   // r
 		buffer[i+1] = data[k][1] // g
 		buffer[i+2] = data[k][2] // b
+		i += 3                   // Move to the next place
+	}
+
+	return buffer
+}
+
+// SetColorInverted will generate byte output for RGB data in inverted state
+func SetColorInverted(data map[int][]byte) []byte {
+	buffer := make([]byte, len(data)*3)
+	i := 0
+
+	// We need to sort array due to the nature of RGB.
+	// R G B needs to be applied in the same way it was created.
+	keys := make([]int, 0)
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		buffer[i] = data[k][2]   // r
+		buffer[i+1] = data[k][1] // g
+		buffer[i+2] = data[k][0] // b
 		i += 3                   // Move to the next place
 	}
 

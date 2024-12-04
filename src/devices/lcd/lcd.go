@@ -17,6 +17,7 @@ import (
 	"golang.org/x/image/font"
 	_ "golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/f64"
 	"image"
 	"image/color"
@@ -45,11 +46,15 @@ var (
 	location     = pwd + "/static/img/lcd/background.jpg"
 	fontLocation = pwd + "/static/fonts/teko.ttf"
 	mutex        sync.Mutex
+	imgWidth     = 480
+	imgHeight    = 480
 )
 
 type LCD struct {
-	image image.Image
-	font  *truetype.Font
+	image     image.Image
+	font      *truetype.Font
+	fontBytes []byte
+	sfntFont  *opentype.Font
 }
 
 var lcd LCD
@@ -85,9 +90,16 @@ func Init() {
 		logger.Log(logger.Fields{"error": e, "location": fontLocation}).Error("Unable to parse LCD font")
 	}
 
+	sfntFont, e := opentype.Parse(fontBytes)
+	if e != nil {
+		logger.Log(logger.Fields{"error": e, "location": fontLocation}).Error("Unable to parse LCD font")
+	}
+
 	lcdData := &LCD{
-		image: img,
-		font:  fontParsed,
+		image:     img,
+		font:      fontParsed,
+		fontBytes: fontBytes,
+		sfntFont:  sfntFont,
 	}
 	lcd = *lcdData
 }
@@ -205,7 +217,21 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 		}
 	case DisplayTime:
 		{
-			c = drawString(90+int(c.PointToFixed(24)>>6), 250+int(c.PointToFixed(24)>>6), 130, c, common.GetTime())
+			opts := opentype.FaceOptions{Size: 130, DPI: 72, Hinting: 0}
+			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+			}
+
+			bounds, _ := font.BoundString(fontFace, common.GetTime())
+			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+			x := (imgWidth - textWidth) / 2
+			y := (imgHeight+textHeight)/2 - 10
+			c = drawString(x, y, 130, c, common.GetTime())
+
+			//c = drawString(85+int(c.PointToFixed(24)>>6), 250+int(c.PointToFixed(24)>>6), 130, c, common.GetTime())
 		}
 	}
 

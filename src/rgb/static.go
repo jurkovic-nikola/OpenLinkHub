@@ -16,5 +16,9 @@ func (r *ActiveRGB) Static() {
 			}
 		}
 	}
-	r.Output = SetColor(buf)
+	if r.Inverted {
+		r.Output = SetColorInverted(buf)
+	} else {
+		r.Output = SetColor(buf)
+	}
 }

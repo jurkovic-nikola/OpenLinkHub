@@ -1069,7 +1069,7 @@ func (d *Device) toggleDPI(set bool) {
 		buf[2] = byte(pf)
 		err := d.transfer([]byte{cmdWrite}, buf)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to set dpi")
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 		}
 	}
 }
@@ -1090,7 +1090,7 @@ func (d *Device) controlListener() {
 
 	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
 	}
 
 	go func() {

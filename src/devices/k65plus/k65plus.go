@@ -9,6 +9,7 @@ package k65plus
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -1270,7 +1271,8 @@ func (d *Device) controlDialListener() {
 
 		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+			return
 		}
 
 		// Listen loop
@@ -1278,9 +1280,9 @@ func (d *Device) controlDialListener() {
 		for {
 			change := false
 			// Read data from the HID device
-			_, err := d.listener.Read(data)
+			_, err = d.listener.Read(data)
 			if err != nil {
-				fmt.Println("Error reading from device:", err)
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
 				break
 			}
 			value := data[4]
@@ -1288,19 +1290,16 @@ func (d *Device) controlDialListener() {
 			case 1:
 				{
 					if value == 0 && data[19] == 2 {
-						pv = pv != true
-						if e := common.MuteSound(pv); e != nil {
-							logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
-						}
+						inputmanager.VolumeControl(inputmanager.VolumeMute)
 					} else {
 						if data[1] == 5 {
-							increases := false
-							if value == 1 {
-								increases = true
-							}
-
-							if e := common.ChangeVolume(5, increases); e != nil {
-								logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
+							switch value {
+							case 1:
+								inputmanager.VolumeControl(inputmanager.VolumeUp)
+								break
+							case 255:
+								inputmanager.VolumeControl(inputmanager.VolumeDown)
+								break
 							}
 						}
 					}
@@ -1349,7 +1348,7 @@ func (d *Device) controlDialListener() {
 					}
 				}
 			}
-			time.Sleep(40 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 }

@@ -9,6 +9,7 @@ package k65plusW
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -1118,16 +1119,16 @@ func (d *Device) controlDialListener() {
 
 		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Unable to enumerate devices")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to enumerate devices")
 		}
 
 		// Listen loop
 		data := make([]byte, bufferSize)
 		for {
 			// Read data from the HID device
-			_, err := d.listener.Read(data)
+			_, err = d.listener.Read(data)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Error reading data from a device")
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
 				break
 			}
 			value := data[4]
@@ -1135,18 +1136,17 @@ func (d *Device) controlDialListener() {
 			case 1:
 				{
 					if value == 0 && data[19] == 2 {
-						pv = pv != true
-						if e := common.MuteSound(pv); e != nil {
-							logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
-						}
+						inputmanager.VolumeControl(inputmanager.VolumeMute)
 					} else {
-						increases := false
-						if value == 1 {
-							increases = true
-						}
-
-						if e := common.ChangeVolume(5, increases); e != nil {
-							logger.Log(logger.Fields{"error": e, "serial": d.Serial}).Warn("Unable to change volume level")
+						if data[1] == 5 {
+							switch value {
+							case 1:
+								inputmanager.VolumeControl(inputmanager.VolumeUp)
+								break
+							case 255:
+								inputmanager.VolumeControl(inputmanager.VolumeDown)
+								break
+							}
 						}
 					}
 				}

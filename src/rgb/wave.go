@@ -21,5 +21,9 @@ func (r *ActiveRGB) Wave(wavePosition float64) {
 			}
 		}
 	}
-	r.Output = SetColor(buf)
+	if r.Inverted {
+		r.Output = SetColorInverted(buf)
+	} else {
+		r.Output = SetColor(buf)
+	}
 }

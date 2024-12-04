@@ -36,5 +36,9 @@ func (r *ActiveRGB) Colorwarp(i int, RGBStartColor *Color, RGBEndColor *Color) {
 			}
 		}
 	}
-	r.Output = SetColor(buf)
+	if r.Inverted {
+		r.Output = SetColorInverted(buf)
+	} else {
+		r.Output = SetColor(buf)
+	}
 }

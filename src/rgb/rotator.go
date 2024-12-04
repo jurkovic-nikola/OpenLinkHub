@@ -17,7 +17,11 @@ func (r *ActiveRGB) Rotator(hue int) {
 			}
 		}
 	}
-	r.Output = SetColor(buf)
+	if r.Inverted {
+		r.Output = SetColorInverted(buf)
+	} else {
+		r.Output = SetColor(buf)
+	}
 }
 
 // HsvToRgb converts an HSV color to RGB color

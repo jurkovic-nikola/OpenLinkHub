@@ -331,6 +331,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			6: "CPU / GPU Temp",
 			7: "CPU / GPU Load",
 			8: "CPU / GPU Load/Temp",
+			9: "Time",
 		},
 		LCDRotations: map[int]string{
 			0: "default",

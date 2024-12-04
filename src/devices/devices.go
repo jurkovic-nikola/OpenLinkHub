@@ -903,6 +903,7 @@ func Init() {
 	// USB-HID
 	for key, product := range products {
 		productId := product.ProductId
+		productPath := product.Path
 		if slices.Contains(config.GetConfig().Exclude, productId) {
 			logger.Log(logger.Fields{"productId": productId}).Warn("Product excluded via config.json")
 			continue
@@ -1273,7 +1274,7 @@ func Init() {
 						Instance:    dev,
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}(vendorId, productId, key)
+				}(vendorId, productId, productPath)
 			}
 		case 7059: // Corsair KATAR PRO Gaming Mouse
 			{

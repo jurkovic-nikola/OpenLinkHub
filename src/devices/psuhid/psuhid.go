@@ -106,14 +106,14 @@ var (
 	temperatureChannels   = 2
 )
 
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, key string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
 	// Open device, return if failure
-	dev, err := hid.Open(vendorId, productId, serial)
+	dev, err := hid.OpenPath(key)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "serial": serial}).Error("Unable to open HID device")
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "serial": key}).Error("Unable to open HID device")
 		return nil
 	}
 

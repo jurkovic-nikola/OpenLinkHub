@@ -44,6 +44,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math"
 	"os"
 	"regexp"
 	"sort"
@@ -1511,6 +1512,24 @@ func (d *Device) updateDeviceSpeed() {
 							}
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
+							}
+						}
+					case temperatures.SensorTypeCpuGpu:
+						{
+							cpuTemp := temperatures.GetCpuTemperature()
+							gpuTemp := temperatures.GetNVIDIAGpuTemperature()
+							if gpuTemp == 0 {
+								gpuTemp = temperatures.GetAMDGpuTemperature()
+							}
+
+							if gpuTemp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get GPU temperature. Setting to 50")
+								gpuTemp = 50
+							}
+
+							temp = float32(math.Max(float64(cpuTemp), float64(gpuTemp)))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get maximum temperature value out of 2 numbers.")
 							}
 						}
 					}

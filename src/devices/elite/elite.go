@@ -1598,6 +1598,24 @@ func (d *Device) updateDeviceSpeed() {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
 							}
 						}
+					case temperatures.SensorTypeCpuGpu:
+						{
+							cpuTemp := temperatures.GetCpuTemperature()
+							gpuTemp := temperatures.GetNVIDIAGpuTemperature()
+							if gpuTemp == 0 {
+								gpuTemp = temperatures.GetAMDGpuTemperature()
+							}
+
+							if gpuTemp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get GPU temperature. Setting to 50")
+								gpuTemp = 50
+							}
+
+							temp = float32(math.Max(float64(cpuTemp), float64(gpuTemp)))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get maximum temperature value out of 2 numbers.")
+							}
+						}
 					}
 
 					// All temps failed, default to 50

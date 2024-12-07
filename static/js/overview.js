@@ -110,6 +110,41 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('#brightnessSlider').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const brightness = $(this).val();
+        const brightnessValue = parseInt(brightness);
+
+        if (brightnessValue < 0 || brightnessValue > 100) {
+            toast.warning('Invalid brightness selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["brightness"] = brightnessValue;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/brightness/gradual',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.saveUserProfile').on('click', function () {
         let modalElement = '<div class="modal fade text-start" id="newUserProfileModal" tabindex="-1" aria-labelledby="newUserProfileLabel" aria-hidden="true">';
         modalElement+='<div class="modal-dialog">';

@@ -136,25 +136,81 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 		{
 			c = drawString(150+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "LIQUID TEMP")
 			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
-			c = drawString(150+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 220, c, strconv.Itoa(value))
+
+			opts := opentype.FaceOptions{Size: 220, DPI: 72, Hinting: 0}
+			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+			}
+
+			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
+			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+			x := (imgWidth - textWidth) / 2
+			y := (imgHeight+textHeight)/2 - 10
+
+			c = drawString(x, y, 220, c, strconv.Itoa(value))
 		}
 	case DisplayGPU:
 		{
 			c = drawString(170+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "GPU TEMP")
 			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
-			c = drawString(150+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 220, c, strconv.Itoa(value))
+
+			opts := opentype.FaceOptions{Size: 220, DPI: 72, Hinting: 0}
+			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+			}
+
+			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
+			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+			x := (imgWidth - textWidth) / 2
+			y := (imgHeight+textHeight)/2 - 10
+
+			c = drawString(x, y, 220, c, strconv.Itoa(value))
 		}
 	case DisplayCPU:
 		{
 			c = drawString(170+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "CPU TEMP")
 			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
-			c = drawString(150+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 220, c, strconv.Itoa(value))
+
+			opts := opentype.FaceOptions{Size: 220, DPI: 72, Hinting: 0}
+			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+			}
+
+			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
+			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+			x := (imgWidth - textWidth) / 2
+			y := (imgHeight+textHeight)/2 - 10
+
+			c = drawString(x, y, 220, c, strconv.Itoa(value))
 		}
 	case DisplayPump:
 		{
 			c = drawString(150+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "PUMP SPEED")
 			c = drawString(180+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ RPM ]")
-			c = drawString(95+int(c.PointToFixed(24)>>6), 280+int(c.PointToFixed(24)>>6), 200, c, strconv.Itoa(value))
+
+			opts := opentype.FaceOptions{Size: 200, DPI: 72, Hinting: 0}
+			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+			}
+
+			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
+			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+			x := (imgWidth - textWidth) / 2
+			y := (imgHeight+textHeight)/2 - 10
+
+			c = drawString(x, y, 200, c, strconv.Itoa(value))
 		}
 	case DisplayAllInOne:
 		{

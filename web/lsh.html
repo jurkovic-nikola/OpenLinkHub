@@ -97,6 +97,9 @@
                           <i class="bi bi-lightning-charge svg-icon svg-icon-sm svg-icon-heavy"></i>
                         </div>
                         <div class="custom-float-80-right">
+                          <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
+
+                          <!--
                           <select class="form-select brightness" style="line-height: 1;margin-top: 10px;">
                             {{ range $key, $brightness := $device.Brightness }}
                             {{ if eq $device.DeviceProfile.Brightness $key }}
@@ -105,7 +108,7 @@
                             <option value="{{ $key }}">{{ $brightness }}</option>
                             {{ end }}
                             {{ end }}
-                          </select>
+                          </select>-->
                         </div>
                       </div>
 

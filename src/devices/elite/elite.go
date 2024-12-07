@@ -1685,7 +1685,6 @@ func (d *Device) read(command byte, data []byte) []byte {
 
 	if crc != crcForCalc {
 		logger.Log(logger.Fields{"crc": crc, "calc": crcForCalc}).Error("Invalid CRC checksum")
-		fmt.Println("Invalid checksum received from a device")
 	}
 
 	d.setSequence(bufferR[1])

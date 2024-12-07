@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="zones" name="zones" value="3">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-dongle.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
+                                <div class="mouse">
+                                    <div class="row">
+                                        <table style="border-spacing: 30px;">
+                                            <tr>
+                                                <th style="width:10%;text-align: center;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">ID</p></th>
+                                                <th style="width:40%;text-align: center;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Device</p></th>
+                                                <th style="width:80%;text-align: center;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Serial</p></th>
+                                            </tr>
+                                            {{ range $key, $dev := $device.PairedDevices }}
+                                            <tr>
+                                                <td style="text-align: center;border-right: 1px solid #313131;border-left: 1px solid #313131;">
+                                                        <span>{{ $key }}</span>
+                                                </td>
+                                                <td style="text-align: center;border-right: 1px solid #313131;">
+                                                    <span>{{ $dev.Product }}</span>
+                                                </td>
+                                                <td style="text-align: center;border-right: 1px solid #313131;">
+                                                    <span>{{ $dev.Serial }}</span>
+                                                </td>
+                                            </tr>
+                                            {{ end }}
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/mouse.js"></script>
+</body>
+</html>

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/godbus/dbus/v5"
 	"github.com/sstallion/go-hid"
+	"math"
 	"math/rand"
 	"os"
 	"regexp"
@@ -41,21 +42,22 @@ type DeviceMonitor struct {
 }
 
 type DeviceProfile struct {
-	Active          bool
-	Path            string
-	Product         string
-	Serial          string
-	LCDMode         uint8
-	LCDRotation     uint8
-	Brightness      uint8
-	SpeedProfiles   map[int]string
-	RGBProfiles     map[int]string
-	Labels          map[int]string
-	Positions       map[int]int
-	ExternalAdapter map[int]int
-	LCDModes        map[int]uint8
-	LCDRotations    map[int]uint8
-	LCDDevices      map[int]string
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	LCDMode          uint8
+	LCDRotation      uint8
+	Brightness       uint8
+	BrightnessSlider *uint8
+	SpeedProfiles    map[int]string
+	RGBProfiles      map[int]string
+	Labels           map[int]string
+	Positions        map[int]int
+	ExternalAdapter  map[int]int
+	LCDModes         map[int]uint8
+	LCDRotations     map[int]uint8
+	LCDDevices       map[int]string
 }
 
 type LCD struct {
@@ -668,6 +670,7 @@ func (d *Device) getDeviceProfile() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	speedProfiles := make(map[int]string, len(d.Devices))
@@ -690,12 +693,13 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:       d.Product,
-		Serial:        d.Serial,
-		SpeedProfiles: speedProfiles,
-		RGBProfiles:   rgbProfiles,
-		Labels:        labels,
-		Path:          profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		SpeedProfiles:    speedProfiles,
+		RGBProfiles:      rgbProfiles,
+		Labels:           labels,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -724,6 +728,13 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDDevices = lcdDevices
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		if d.DeviceProfile.LCDModes == nil {
 			for _, device := range d.Devices {
 				if device.ContainsPump || device.AIO {
@@ -1019,6 +1030,29 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if d.GlobalBrightness != 0 {
+		return 2
+	}
+
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
 	return 1
 }
 
@@ -1359,6 +1393,24 @@ func (d *Device) updateDeviceSpeed() {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 							}
 						}
+					case temperatures.SensorTypeCpuGpu:
+						{
+							cpuTemp := temperatures.GetCpuTemperature()
+							gpuTemp := temperatures.GetNVIDIAGpuTemperature()
+							if gpuTemp == 0 {
+								gpuTemp = temperatures.GetAMDGpuTemperature()
+							}
+
+							if gpuTemp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get GPU temperature. Setting to 50")
+								gpuTemp = 50
+							}
+
+							temp = float32(math.Max(float64(cpuTemp), float64(gpuTemp)))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get maximum temperature value out of 2 numbers.")
+							}
+						}
 					}
 
 					// All temps failed, default to 50
@@ -1378,8 +1430,18 @@ func (d *Device) updateDeviceSpeed() {
 									profile.Mode = 0
 								}
 
-								if profile.Pump < 50 || profile.Pump > 100 {
+								if profile.Pump > 100 {
 									profile.Pump = 70
+								}
+
+								if d.Devices[k].AIO {
+									if profile.Pump < 50 {
+										profile.Pump = 70
+									}
+								} else {
+									if profile.Pump < 20 {
+										profile.Pump = 30
+									}
 								}
 
 								var speed byte = 0x00
@@ -1915,6 +1977,33 @@ func (d *Device) getDevices() int {
 	return len(devices)
 }
 
+// isRgbStatic will return true or false if all devices are set to static RGB mode
+func (d *Device) isRgbStatic() bool {
+	s, l := 0, 0
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			l++ // device has LED
+			if d.Devices[k].RGB == "static" {
+				s++ // led profile is set to static
+			}
+		}
+	}
+
+	if s > 0 || l > 0 { // We have some values
+		if s == l {
+			return true
+		}
+	}
+	return false
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -1956,63 +2045,52 @@ func (d *Device) setDeviceColor() {
 	// before sending any new color packets to devices.
 	time.Sleep(40 * time.Millisecond)
 
-	// Are all devices under static mode?
-	// In static mode, we only need to send color once;
-	// there is no need for continuous packet sending.
-	s, l := 0, 0
-	for _, k := range keys {
-		if d.Devices[k].LedChannels > 0 {
-			l++ // device has LED
-			if d.Devices[k].RGB == "static" {
-				s++ // led profile is set to static
-			}
-		}
-	}
-
-	if s > 0 || l > 0 { // We have some values
-		if s == l { // number of devices matches number of devices with static profile
-			static := map[int][]byte{}
-			profile := d.GetRgbProfile("static")
+	if d.isRgbStatic() {
+		static := map[int][]byte{}
+		profile := d.GetRgbProfile("static")
+		/*
 			if d.DeviceProfile.Brightness != 0 {
 				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 			}
+		*/
 
-			// Global override
-			if d.GlobalBrightness != 0 {
-				profile.StartColor.Brightness = d.GlobalBrightness
-			}
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 
-			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			m := 0
+		// Global override
+		if d.GlobalBrightness != 0 {
+			profile.StartColor.Brightness = d.GlobalBrightness
+		}
 
-			for _, k := range keys {
-				if d.HasLCD && d.Devices[k].AIO {
-					for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-						static[m] = []byte{
-							byte(profileColor.Red),
-							byte(profileColor.Green),
-							byte(profileColor.Blue),
-						}
-						if i > 15 && i < 20 {
-							static[m] = []byte{byte(color.Red), byte(color.Green), byte(color.Blue)}
-						}
-						m++
+		profileColor := rgb.ModifyBrightness(profile.StartColor)
+		m := 0
+
+		for _, k := range keys {
+			if d.HasLCD && d.Devices[k].AIO {
+				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+					static[m] = []byte{
+						byte(profileColor.Red),
+						byte(profileColor.Green),
+						byte(profileColor.Blue),
 					}
-				} else {
-					for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-						static[m] = []byte{
-							byte(profileColor.Red),
-							byte(profileColor.Green),
-							byte(profileColor.Blue),
-						}
-						m++
+					if i > 15 && i < 20 {
+						static[m] = []byte{byte(color.Red), byte(color.Green), byte(color.Blue)}
 					}
+					m++
+				}
+			} else {
+				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+					static[m] = []byte{
+						byte(profileColor.Red),
+						byte(profileColor.Green),
+						byte(profileColor.Blue),
+					}
+					m++
 				}
 			}
-			buffer = rgb.SetColor(static)
-			d.writeColor(buffer) // Write color once
-			return
 		}
+		buffer = rgb.SetColor(static)
+		d.writeColor(buffer) // Write color once
+		return
 	}
 
 	go func(lightChannels int) {
@@ -2084,11 +2162,18 @@ func (d *Device) setDeviceColor() {
 					}
 
 					// Brightness
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
+					/*
+						if d.DeviceProfile.Brightness > 0 {
+							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+							r.RGBStartColor.Brightness = r.RGBBrightness
+							r.RGBEndColor.Brightness = r.RGBBrightness
+						}
+					*/
+
+					// Brightness
+					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					r.RGBStartColor.Brightness = r.RGBBrightness
+					r.RGBEndColor.Brightness = r.RGBBrightness
 
 					// Global override
 					if d.GlobalBrightness != 0 {
@@ -2377,6 +2462,7 @@ func (d *Device) getProduct() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
 	}
+	product = strings.Replace(product, "CORSAIR ", "", -1)
 	d.Product = product
 }
 
@@ -2460,7 +2546,7 @@ func (d *Device) getLCDRotation(channelId int) int {
 
 // setupLCD will activate and configure LCD
 func (d *Device) setupLCD() {
-	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
+	lcdTimer := time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
 	lcdRefreshChan = make(chan bool)
 	go func() {
 		for {
@@ -2683,6 +2769,7 @@ func (d *Device) writeColor(data []byte) {
 func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 	mutexLcd.Lock()
 	defer mutexLcd.Unlock()
+
 	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
 	for i, chunk := range chunks {
 		bufferW := make([]byte, lcdBufferSize)

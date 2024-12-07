@@ -52,13 +52,14 @@ type Devices struct {
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	Brightness  uint8
-	RGBProfiles map[int]string
-	Labels      map[int]string
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	Brightness       uint8
+	BrightnessSlider *uint8
+	RGBProfiles      map[int]string
+	Labels           map[int]string
 }
 
 type Device struct {
@@ -619,6 +620,7 @@ func (d *Device) loadDeviceProfiles() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	rgbProfiles := make(map[int]string, len(d.Devices))
@@ -630,11 +632,12 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:     d.Product,
-		Serial:      d.Serial,
-		RGBProfiles: rgbProfiles,
-		Labels:      labels,
-		Path:        profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		RGBProfiles:      rgbProfiles,
+		Labels:           labels,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -646,6 +649,13 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		if len(d.DeviceProfile.Path) < 1 {
@@ -775,6 +785,33 @@ func (d *Device) disableLighting() {
 	}
 }
 
+// isRgbStatic will return true or false if all devices are set to static RGB mode
+func (d *Device) isRgbStatic() bool {
+	s, l := 0, 0
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			l++ // device has LED
+			if d.Devices[k].RGB == "static" {
+				s++ // led profile is set to static
+			}
+		}
+	}
+
+	if s > 0 || l > 0 { // We have some values
+		if s == l {
+			return true
+		}
+	}
+	return false
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -796,48 +833,37 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	// Are all devices under static mode?
-	// In static mode, we only need to send color once;
-	// there is no need for continuous packet sending.
-	s, l := 0, 0
-	for _, k := range keys {
-		if d.Devices[k].LedChannels > 0 {
-			l++ // device has LED
-			if d.Devices[k].RGB == "static" {
-				s++ // led profile is set to static
-			}
-		}
-	}
-
-	if s > 0 || l > 0 { // We have some values
-		if s == l { // number of devices matches number of devices with static profile
-			profile := d.GetRgbProfile("static")
+	if d.isRgbStatic() {
+		profile := d.GetRgbProfile("static")
+		/*
 			if d.DeviceProfile.Brightness != 0 {
 				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 			}
+		*/
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 
-			// Global override
-			if d.GlobalBrightness != 0 {
-				profile.StartColor.Brightness = d.GlobalBrightness
-			}
-
-			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for _, k := range keys {
-				static := map[int][]byte{}
-				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-					static[i] = []byte{
-						byte(profileColor.Red),
-						byte(profileColor.Green),
-						byte(profileColor.Blue),
-					}
-				}
-				buffer = rgb.SetColor(static)
-				d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
-				time.Sleep(5 * time.Millisecond)
-			}
-			return
+		// Global override
+		if d.GlobalBrightness != 0 {
+			profile.StartColor.Brightness = d.GlobalBrightness
 		}
+
+		profileColor := rgb.ModifyBrightness(profile.StartColor)
+		for _, k := range keys {
+			static := map[int][]byte{}
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				static[i] = []byte{
+					byte(profileColor.Red),
+					byte(profileColor.Green),
+					byte(profileColor.Blue),
+				}
+			}
+			buffer = rgb.SetColor(static)
+			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
+			time.Sleep(5 * time.Millisecond)
+		}
+		return
 	}
+
 	go func(lightChannels int) {
 		lock := sync.Mutex{}
 		startTime := time.Now()
@@ -903,11 +929,16 @@ func (d *Device) setDeviceColor() {
 					}
 
 					// Brightness
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
+					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					r.RGBStartColor.Brightness = r.RGBBrightness
+					r.RGBEndColor.Brightness = r.RGBBrightness
+					/*
+						if d.DeviceProfile.Brightness > 0 {
+							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+							r.RGBStartColor.Brightness = r.RGBBrightness
+							r.RGBEndColor.Brightness = r.RGBBrightness
+						}
+					*/
 
 					// Global override
 					if d.GlobalBrightness != 0 {
@@ -1113,6 +1144,29 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if d.GlobalBrightness != 0 {
+		return 2
+	}
+
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
 	return 1
 }
 

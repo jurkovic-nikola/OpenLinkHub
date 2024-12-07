@@ -188,7 +188,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 4 || sensor < 0 {
+	if sensor > 5 || sensor < 0 {
 		return &Payload{
 			Message: "Unable to validate your request. Invalid sensor value",
 			Code:    http.StatusOK,
@@ -633,14 +633,14 @@ func ProcessChangeSleepMode(r *http.Request) *Payload {
 	}
 
 	// Run it
-	status := devices.ChangeKeyboardSleepMode(req.DeviceId, req.SleepMode)
+	status := devices.ChangeDeviceSleepMode(req.DeviceId, req.SleepMode)
 	switch status {
 	case 1:
-		return &Payload{Message: "Keyboard sleep mode successfully changed.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Device sleep mode successfully changed.", Code: http.StatusOK, Status: 1}
 	case 2:
-		return &Payload{Message: "Unable to change keyboard sleep mode. Please try again", Code: http.StatusOK, Status: 0}
+		return &Payload{Message: "Unable to change device sleep mode. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change keyboard sleep mode.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change device sleep mode.", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDeleteKeyboardProfile will process DELETE request from a client for device profile deletion
@@ -808,6 +808,46 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 
 	// Run it
 	status := devices.ChangeDeviceBrightness(req.DeviceId, req.Brightness)
+	switch status {
+	case 1:
+		return &Payload{Message: "Device brightness successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change device brightness. You have exceeded maximum amount of LED channels per physical port", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessBrightnessChangeGradual will process POST request from a client for device brightness change via defined number from 0-100
+func ProcessBrightnessChangeGradual(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Brightness < 0 || req.Brightness > 100 {
+		return &Payload{Message: "Invalid brightness value", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeDeviceBrightnessGradual(req.DeviceId, req.Brightness)
 	switch status {
 	case 1:
 		return &Payload{Message: "Device brightness successfully changed", Code: http.StatusOK, Status: 1}

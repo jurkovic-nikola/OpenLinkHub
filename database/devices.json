@@ -1,0 +1,186 @@
+{
+  "vendor": [
+    {
+      "vendorName": "corsair",
+      "vendorId": "1b1c",
+      "devices": [
+        {
+          "productId": "0c3f",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c4e",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c32",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c39",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c1c",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c2a",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c35",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c40",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c36",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c37",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c41",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c1a",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c0b",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c10",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c42",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c20",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c21",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c22",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c43",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bfe",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bd7",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bfd",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "2b10",
+          "kernel": ""
+        },
+        {
+          "productId": "2b07",
+          "kernel": ""
+        },
+        {
+          "productId": "1bab",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bdc",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0a34",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1b9b",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c23",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c05",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c06",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c07",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c1e",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c08",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c23",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c1f",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c0c",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1c0d",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1b93",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1b5d",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c17",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c18",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "0c19",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1b4c",
+          "kernel": "hidraw*"
+        }
+      ]
+    }
+  ]
+}

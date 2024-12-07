@@ -7,6 +7,8 @@ import (
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/ironclaw"
+	"OpenLinkHub/src/devices/ironclawW"
+	"OpenLinkHub/src/devices/ironclawWU"
 	"OpenLinkHub/src/devices/k100air"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k55core"
@@ -23,6 +25,7 @@ import (
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/psuhid"
+	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
@@ -37,29 +40,31 @@ import (
 )
 
 const (
-	productTypeLinkHub     = 0
-	productTypeCC          = 1
-	productTypeCCXT        = 2
-	productTypeElite       = 3
-	productTypeLNCore      = 4
-	productTypeLnPro       = 5
-	productTypeCPro        = 6
-	productTypeXC7         = 7
-	productTypeMemory      = 8
-	productTypeK65PM       = 101
-	productTypeK70Core     = 102
-	productTypeK55Core     = 103
-	productTypeK70Pro      = 104
-	productTypeK65Plus     = 105
-	productTypeK65PlusW    = 106
-	productTypeK100Air     = 107
-	productTypeK100AirW    = 108
-	productTypeKatarPro    = 201
-	productTypeIronClawRgb = 202
-	productTypeST100       = 401
-	productTypeMM700       = 402
-	productTypeLT100       = 403
-	productTypePSUHid      = 501
+	productTypeLinkHub       = 0
+	productTypeCC            = 1
+	productTypeCCXT          = 2
+	productTypeElite         = 3
+	productTypeLNCore        = 4
+	productTypeLnPro         = 5
+	productTypeCPro          = 6
+	productTypeXC7           = 7
+	productTypeMemory        = 8
+	productTypeK65PM         = 101
+	productTypeK70Core       = 102
+	productTypeK55Core       = 103
+	productTypeK70Pro        = 104
+	productTypeK65Plus       = 105
+	productTypeK65PlusW      = 106
+	productTypeK100Air       = 107
+	productTypeK100AirW      = 108
+	productTypeKatarPro      = 201
+	productTypeIronClawRgb   = 202
+	productTypeIronClawRgbW  = 203
+	productTypeIronClawRgbWU = 204
+	productTypeST100         = 401
+	productTypeMM700         = 402
+	productTypeLT100         = 403
+	productTypePSUHid        = 501
 )
 
 type AIOData struct {
@@ -90,7 +95,7 @@ var (
 	devices                   = make(map[string]*Device, 0)
 	products                  = make(map[string]Product, 0)
 	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015}
-	mouses                    = []uint16{7059, 7005}
+	mouses                    = []uint16{7059, 7005, 6988}
 	pads                      = []uint16{7067}
 	dongles                   = []uint16{7132}
 )
@@ -408,8 +413,8 @@ func ChangeKeyboardControlDial(deviceId string, controlDial int) uint8 {
 	return 0
 }
 
-// ChangeKeyboardSleepMode will change keyboard control dial function
-func ChangeKeyboardSleepMode(deviceId string, sleepMode int) uint8 {
+// ChangeDeviceSleepMode will change device sleep mode
+func ChangeDeviceSleepMode(deviceId string, sleepMode int) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		methodName := "UpdateSleepTimer"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
@@ -522,7 +527,7 @@ func UpdateDevicePosition(deviceId string, position, direction int) uint8 {
 // ScheduleDeviceBrightness will change device brightness level based on scheduler
 func ScheduleDeviceBrightness(mode uint8) {
 	for _, device := range GetDevices() {
-		methodName := "ChangeDeviceBrightness"
+		methodName := "ChangeDeviceBrightnessValue"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 		if !method.IsValid() {
 			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
@@ -536,7 +541,7 @@ func ScheduleDeviceBrightness(mode uint8) {
 }
 
 // ChangeDeviceBrightness will change device brightness level
-func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
+func ChangeDeviceBrightness(deviceId string, value uint8) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		methodName := "ChangeDeviceBrightness"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
@@ -545,7 +550,29 @@ func ChangeDeviceBrightness(deviceId string, mode uint8) uint8 {
 			return 0
 		} else {
 			var reflectArgs []reflect.Value
-			reflectArgs = append(reflectArgs, reflect.ValueOf(mode))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(value))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeDeviceBrightnessGradual will change device brightness level via defined number from 0-100
+func ChangeDeviceBrightnessGradual(deviceId string, value uint8) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ChangeDeviceBrightnessValue"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(value))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
 				val := results[0]
@@ -927,6 +954,7 @@ func Init() {
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
 			}
+
 		case 3122, 3100: // CORSAIR iCUE COMMANDER Core
 			{
 				go func(vendorId, productId uint16, serialId string) {
@@ -1181,20 +1209,63 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7132: // K100 AIR WIRELESS
+		case 7132: // Corsair SLIPSTREAM WIRELESS USB Receiver
 			{
 				go func(vendorId, productId uint16, key string) {
-					dev := k100airW.Init(vendorId, productId, key)
-					if dev == nil {
-						return
-					}
+					dev := slipstream.Init(vendorId, productId, key)
 					devices[dev.Serial] = &Device{
-						ProductType: productTypeK100AirW,
-						Product:     dev.Product,
+						ProductType: productTypeIronClawRgbW,
+						Product:     "SLIPSTREAM",
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
-						Image:       "icon-keyboard.svg",
+						Image:       "icon-dongle.svg",
 						Instance:    dev,
+					}
+					for _, value := range dev.Devices {
+						switch value.ProductId {
+						case 7083: // K100 AIR WIRELESS
+							{
+								d := k100airW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeK100AirW,
+									Product:     "K100 AIR",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-keyboard.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						case 6988: // IRONCLAW RGB WIRELESS
+							{
+								d := ironclawW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeIronClawRgbW,
+									Product:     "IRONCLAW RGB",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						default:
+							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
+						}
 					}
 				}(vendorId, productId, key)
 			}
@@ -1302,6 +1373,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeIronClawRgb,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 6988: // Corsair IRONCLAW RGB WIRELESS Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := ironclawWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeIronClawRgbWU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

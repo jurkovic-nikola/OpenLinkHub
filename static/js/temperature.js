@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = this.data();
             let fans = $("#pf-fans-" + data[0] + "").val();
             let pump = $("#pf-pump-" + data[0] + "").val();
-            if (pump < 50) {
+            if (pump < 20) {
                 pump = 50;
             }
 

@@ -276,6 +276,7 @@ func ModifyBrightness(c Color) *Color {
 	} else if c.Brightness < 0 {
 		c.Brightness = 0
 	}
+
 	hsl := toHSL(c)
 	hsl.L *= c.Brightness
 	return toRGB(hsl)
@@ -340,4 +341,9 @@ func GetBrightnessValue(mode uint8) float64 {
 		return 0
 	}
 	return 0
+}
+
+// GetBrightnessValueFloat will return brightness value in float64
+func GetBrightnessValueFloat(mode uint8) float64 {
+	return float64(mode) / 100
 }

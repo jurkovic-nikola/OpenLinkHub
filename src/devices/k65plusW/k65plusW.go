@@ -625,7 +625,7 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 }
 
 // UpdateDeviceLabel will set / update device label
-func (d *Device) UpdateDeviceLabel(_, label string) uint8 {
+func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 

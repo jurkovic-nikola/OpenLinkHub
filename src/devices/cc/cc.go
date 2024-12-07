@@ -1784,7 +1784,7 @@ func (d *Device) UpdateRGBDeviceLabel(channelId int, label string) uint8 {
 }
 
 // UpdateDeviceLcd will update device LCD
-func (d *Device) UpdateDeviceLcd(_, mode uint8) uint8 {
+func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -1798,7 +1798,7 @@ func (d *Device) UpdateDeviceLcd(_, mode uint8) uint8 {
 }
 
 // UpdateDeviceLcdRotation will update device LCD rotation
-func (d *Device) UpdateDeviceLcdRotation(_, rotation uint8) uint8 {
+func (d *Device) UpdateDeviceLcdRotation(_ int, rotation uint8) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 

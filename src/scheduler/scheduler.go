@@ -193,13 +193,13 @@ func rgbTasks(update bool) {
 		} else {
 			taskRgbOff = newTaskManager(
 				"Task_RGB_Off",
-				func() { devices.ScheduleDeviceBrightness(4) },
+				func() { devices.ScheduleDeviceBrightness(0) },
 				scheduler.RGBOff,
 			)
 
 			taskRgbOn = newTaskManager(
 				"Task_RGB_On",
-				func() { devices.ScheduleDeviceBrightness(0) },
+				func() { devices.ScheduleDeviceBrightness(50) },
 				scheduler.RGBOn,
 			)
 			taskRgbOff.startTask()

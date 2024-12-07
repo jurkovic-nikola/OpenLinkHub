@@ -4,7 +4,6 @@ import (
 	"OpenLinkHub/src/logger"
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,7 +36,6 @@ type inputEvent struct {
 // Init will fetch an input device
 func Init() {
 	devicePath = findDevice()
-	fmt.Println(devicePath)
 }
 
 // VolumeControl will emulate volume control keys

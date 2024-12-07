@@ -329,6 +329,17 @@ func changeBrightness(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeBrightnessGradual handles user brightness change via defined number from 0-100
+func changeBrightnessGradual(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessBrightnessChangeGradual(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changePosition handles device position change
 func changePosition(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessPositionChange(r)
@@ -805,6 +816,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeUserProfile)
 	r.Methods(http.MethodPost).Path("/api/brightness").
 		HandlerFunc(changeBrightness)
+	r.Methods(http.MethodPost).Path("/api/brightness/gradual").
+		HandlerFunc(changeBrightnessGradual)
 	r.Methods(http.MethodPost).Path("/api/position").
 		HandlerFunc(changePosition)
 	r.Methods(http.MethodGet).Path("/api/dashboard").
@@ -839,6 +852,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(saveMouseDpi)
 	r.Methods(http.MethodPost).Path("/api/mouse/zoneColors").
 		HandlerFunc(saveMouseZoneColors)
+	r.Methods(http.MethodPost).Path("/api/mouse/sleep").
+		HandlerFunc(changeSleepMode)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

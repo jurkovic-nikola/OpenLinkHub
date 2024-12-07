@@ -21,6 +21,7 @@ const (
 	SensorTypeLiquidTemperature = 2
 	SensorTypeStorage           = 3
 	SensorTypeTemperatureProbe  = 4
+	SensorTypeCpuGpu            = 5
 )
 
 type UpdateData struct {
@@ -248,6 +249,10 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm bool, senso
 			{
 				pf = profileProbeTemperature
 			}
+		case SensorTypeCpuGpu:
+			{
+				pf = profileNormal
+			}
 		}
 
 		if len(deviceId) > 0 {
@@ -288,6 +293,9 @@ func UpdateTemperatureProfile(profile string, values string) int {
 	for key := range profileList.Profiles {
 		// Extract payload data by given key
 		if payloadValue, ok := payload[profileList.Profiles[key].Id]; ok {
+			if payloadValue.Pump < 20 {
+				payloadValue.Pump = 50
+			}
 			// Payload contains our key, update values
 			if profiles[profile].Profiles[key].Pump != payloadValue.Pump || profiles[profile].Profiles[key].Fans != payloadValue.Fans {
 				// Update if original is different from new

@@ -35,13 +35,14 @@ type DeviceInfo struct {
 }
 
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	Brightness  uint8
-	RGBProfiles map[int]string
-	Labels      map[int]string
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	Brightness       uint8
+	BrightnessSlider *uint8
+	RGBProfiles      map[int]string
+	Labels           map[int]string
 }
 
 type Devices struct {
@@ -325,8 +326,13 @@ func (d *Device) resetLeds() {
 
 // startColors will initiate interface for receiving colors
 func (d *Device) startColors() {
-	buf := make([]byte, 8)
+	buf := make([]byte, 2)
 	buf[0] = 0x00
+	buf[1] = 0x02
+	d.write(cmdPortState, buf)
+
+	buf[0] = 0x00
+	buf[1] = 0x00
 	d.write(cmdStart, buf)
 }
 
@@ -465,22 +471,10 @@ func (d *Device) wakeUpDevice() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
-	// Init
-	d.write(0, nil)
-
 	fw, err := d.transfer(cmdGetFirmware, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 		return
-	}
-
-	if fw[0] == 0x01 {
-		// The initial response is always 0x01. We need to repeat to get the firmware
-		fw, err = d.transfer(cmdGetFirmware, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
-			return
-		}
 	}
 
 	v1, v2, v3 := int(fw[1]), int(fw[2]), int(fw[3])
@@ -502,6 +496,7 @@ func (d *Device) getDeviceProfile() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	rgbProfiles := make(map[int]string, len(d.Devices))
@@ -515,11 +510,12 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:     d.Product,
-		Serial:      d.Serial,
-		RGBProfiles: rgbProfiles,
-		Labels:      labels,
-		Path:        profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		RGBProfiles:      rgbProfiles,
+		Labels:           labels,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -533,6 +529,13 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		if len(d.DeviceProfile.Path) < 1 {
@@ -738,6 +741,25 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	return 1
 }
 
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
 // ChangeDeviceProfile will change device profile
 func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 
@@ -808,6 +830,33 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 	return 0
 }
 
+// isRgbStatic will return true or false if all devices are set to static RGB mode
+func (d *Device) isRgbStatic() bool {
+	s, l := 0, 0
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			l++ // device has LED
+			if d.Devices[k].RGB == "static" {
+				s++ // led profile is set to static
+			}
+		}
+	}
+
+	if s > 0 || l > 0 { // We have some values
+		if s == l {
+			return true
+		}
+	}
+	return false
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -840,45 +889,38 @@ func (d *Device) setDeviceColor() {
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
 
-	// Are all devices under static mode?
-	// In static mode, we only need to send color once;
-	// there is no need for continuous packet sending.
-	s, l := 0, 0
-	for _, k := range keys {
-		if d.Devices[k].LedChannels > 0 {
-			l++ // device has LED
-			if d.Devices[k].RGB == "static" {
-				s++ // led profile is set to static
-			}
+	if d.isRgbStatic() {
+		static := map[int][]byte{}
+		profile := d.GetRgbProfile("static")
+		if profile == nil {
+			return
 		}
-	}
 
-	if s > 0 || l > 0 { // We have some values
-		if s == l { // number of devices matches number of devices with static profile
-			static := map[int][]byte{}
-			profile := d.GetRgbProfile("static")
+		/*
 			if d.DeviceProfile.Brightness != 0 {
 				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 			}
-			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			m := 0
-			for _, k := range keys {
-				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-					static[m] = []byte{
-						byte(profileColor.Red),
-						byte(profileColor.Green),
-						byte(profileColor.Blue),
-					}
-					m++
+		*/
+
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		profileColor := rgb.ModifyBrightness(profile.StartColor)
+		m := 0
+		for _, k := range keys {
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				static[m] = []byte{
+					byte(profileColor.Red),
+					byte(profileColor.Green),
+					byte(profileColor.Blue),
 				}
+				m++
 			}
-			buffer = rgb.SetColor(static)
-			d.writeColor(buffer)
-			d.setKeepAlive()
-			return
-		} else {
-			d.unsetKeepAlive()
 		}
+		buffer = rgb.SetColor(static)
+		d.writeColor(buffer)
+		d.setKeepAlive()
+		return
+	} else {
+		d.unsetKeepAlive()
 	}
 
 	go func(lightChannels int) {
@@ -947,11 +989,17 @@ func (d *Device) setDeviceColor() {
 					}
 
 					// Brightness
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
+					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					r.RGBStartColor.Brightness = r.RGBBrightness
+					r.RGBEndColor.Brightness = r.RGBBrightness
+
+					/*
+						if d.DeviceProfile.Brightness > 0 {
+							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+							r.RGBStartColor.Brightness = r.RGBBrightness
+							r.RGBEndColor.Brightness = r.RGBBrightness
+						}
+					*/
 
 					switch d.Devices[k].RGB {
 					case "off":
@@ -1270,7 +1318,7 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 	}
 
 	// Get data from a device
-	if _, err := d.dev.ReadWithTimeout(bufferR, 1000); err != nil {
+	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return nil, err
 	}

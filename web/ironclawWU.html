@@ -8,9 +8,9 @@
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
         {{ $rgb := .Rgb }}
-        {{ $stand := $device.DeviceProfile.Stand }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
+        {{ $profile := $device.DeviceProfile.Profile }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="zones" name="zones" value="3">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -24,7 +24,7 @@
                         <div class="card mb-4">
                             <div class="card-header border-bottom border-dash-dark-1">
                                 <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-mousepad.svg" width="46" height="46" alt="Device" />
+                                    <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
                                 </div>
                                 <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
                                     <span>{{ .Device.Product }}</span><br />
@@ -43,7 +43,7 @@
                                         <th style="width:60%;padding-left: 15px;"></th>
                                     </tr>
                                     <tr>
-                                        <td style="">
+                                        <td >
                                             <select class="form-select userProfile" style="margin-top: 10px;" name="userProfile">
                                                 {{ range $key, $profile := $device.UserProfiles }}
                                                 {{ if $profile.Active }}
@@ -55,8 +55,6 @@
                                             </select>
                                         </td>
                                         <td style="padding-left: 15px;">
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
-                                            <!--
                                             <select class="form-select brightness" style="margin-top: 10px;" name="brightness">
                                                 {{ range $key, $brightness := $device.Brightness }}
                                                 {{ if eq $device.DeviceProfile.Brightness $key }}
@@ -66,22 +64,23 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                            -->
                                         </td>
                                         <td style="padding-left: 15px;">
-                                            <select class="form-select miscRgbProfile" name="miscRgbProfile" style="margin-top:10px;">
+                                            <select class="form-select mouseRgbProfile" name="mouseRgbProfile" style="margin-top:10px;">
                                                 {{ range $key, $_ := $rgb }}
-                                                {{ if eq $key "liquid-temperature" }}
+                                                {{ if eq $key "stand" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "liquid-temperature" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mousepad" }}
                                                 {{ continue }}
                                                 {{ else if eq $key "keyboard" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "stand" }}
                                                 {{ continue }}
                                                 {{ else if eq $key "circle" }}
                                                 {{ continue }}
                                                 {{ else if eq $key "circleshift" }}
                                                 {{ continue }}
-                                                {{ else if eq $key "mouse" }}
+                                                {{ else if eq $key "spinner" }}
                                                 {{ continue }}
                                                 {{ end }}
                                                 {{ if eq $key $device.DeviceProfile.RGBProfile }}
@@ -100,39 +99,66 @@
                                     </tr>
                                 </table>
                             </div>
-                            {{ if eq "mousepad" $device.DeviceProfile.RGBProfile }}
                             <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
-                                <div class="mousepad">
-                                    {{ range $index, $keys := $stand.Row }}
+                                <div class="mouse">
                                     <div class="row">
-                                        {{ range $index, $zones := .Zones }}
-                                        <div class="miscColor" data-info="{{ $index }};{{ $zones.Color.Red }};{{ $zones.Color.Green }};{{ $zones.Color.Blue }}" style="cursor: pointer;border: 1px solid rgba({{ $zones.Color.Red }}, {{ $zones.Color.Green }}, {{ $zones.Color.Blue }}, 1);;width: {{ $zones.Width }}px;height: {{ $zones.Height }}px;text-align: center;vertical-align: middle;margin-left:{{ $zones.Left }}px;margin-top:{{ $zones.Top }}px;">
-                                            <p style="margin-top:5px;font-size: 12px;" class="key-uppercase">
-                                                {{ $zones.Name }}
-                                            </p>
+                                        {{ range $key, $pf := $device.DeviceProfile.Profiles }}
+                                        <div style="margin-top: 10px;">
+                                            <div class="dpi-left">
+                                                <p style="color: rgba({{ $device.DeviceProfile.DPIColor.Red }}, {{ $device.DeviceProfile.DPIColor.Green }}, {{ $device.DeviceProfile.DPIColor.Blue }}, 1);">
+                                                    {{ if eq $key $device.DeviceProfile.Profile }}
+                                                    {{ $pf.Name }} *
+                                                    {{ else }}
+                                                    {{ $pf.Name }}
+                                                    {{ end }}
+                                                </p>
+                                            </div>
+                                            <div class="dpi-middle">
+                                                <input type="range" min="200" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
+                                            </div>
+                                            <div class="dpi-right">
+                                                <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">
+                                            </div>
                                         </div>
                                         {{ end }}
+
+                                        {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
+                                        <div style="margin-top: 10px;">
+                                            <div class="dpi-left" style="margin-top: 15px;">
+                                                DPI Color
+                                            </div>
+                                            <div class="dpi-middle">
+                                                <input type="color" id="dpiColor" value="{{ $device.DeviceProfile.DPIColor.Hex }}" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
+                                            </div>
+                                        </div>
+
+                                        {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                        <div style="margin-top: 10px;">
+                                            <div class="dpi-left" style="margin-top: 15px;">
+                                                Zone {{ $key }} Color
+                                            </div>
+                                            <div class="dpi-middle">
+                                                <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
+                                            </div>
+                                        </div>
+                                        {{ end }}
+                                        {{ end }}
                                     </div>
-                                    {{ end }}
                                 </div>
                                 <div style="margin: 0 auto;">
-                                    <div style="float: left;width: 700px;">
-                                        <input type="color" id="miscColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
-
-                                        <select class="form-select miscOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
-                                            <option value="0">Current Area</option>
-                                            <option value="1">Current Row</option>
-                                            <option value="2">All Rows</option>
-                                        </select>
-
-                                        <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Apply</span>
+                                    <div style="float: left;width: 530px;">
+                                        <button class="btn btn-secondary" id="defaultDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Default</span>
                                         </button>
-                                        <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Save</span>
+                                        <button class="btn btn-secondary" id="saveDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Save DPI</span>
                                         </button>
+                                        {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
+                                        <button class="btn btn-secondary" id="saveZoneColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Save Zone Colors</span>
+                                        </button>
+                                        {{ end }}
                                     </div>
-                                    {{ end }}
                                 </div>
                             </div>
                         </div>
@@ -147,5 +173,6 @@
 <script src="/static/js/jquery-3.7.1.min.js"></script>
 <script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
+<script src="/static/js/mouse.js"></script>
 </body>
 </html>

@@ -65,24 +65,23 @@ type Device struct {
 	GpuTemp            float32
 	Layouts            []string
 	ProductId          uint16
+	SlipstreamId       uint16
 	ControlDialOptions map[int]string
 	RGBModes           map[string]string
 	SleepModes         map[int]string
 	KeyAmount          int
-	Path               string
 	Connected          bool
 	Rgb                *rgb.RGB
+	Endpoint           byte
 }
 
 var (
 	pwd                     = ""
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x01}
-	cmdSoftwareMode         = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdSoftwareModeKeyboard = []byte{0x01, 0x03, 0x00, 0x06}
+	cmdSoftwareMode         = []byte{0x01, 0x03, 0x00, 0x06}
 	cmdHardwareMode         = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdOpenColorEndpoint    = []byte{0x0d, 0x01}
 	cmdSetLeds              = []byte{0x13}
-	cmdHeartbeat            = []byte{0x12}
 	cmdInitProtocol         = []byte{0x0b, 0x65, 0x6d}
 	cmdFlush                = []byte{0x15, 0x01}
 	cmdRead                 = []byte{0x09, 0x01}
@@ -93,13 +92,6 @@ var (
 	dataTypeSubColor        = []byte{0x07, 0x01}
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
-	cmdRefresh              = []byte{0x02, 0x36}
-	cmdGetDevices           = []byte{0x0d, 0x00, 0x24}
-	cmdActivateDevices      = []byte{0x08}
-	cmdDongle               = 0x08
-	cmdKeyboard             = 0x09
-	deviceKeepAlive         = 12000
-	timerKeepAlive          = &time.Ticker{}
 	mutex                   sync.Mutex
 	transferTimeout         = 500
 	bufferSize              = 64
@@ -111,23 +103,20 @@ var (
 	defaultLayout           = "k100airW-default-US"
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
-	dev, err := hid.OpenPath(key)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
-		return nil
-	}
-
 	// Init new struct with HID device
 	d := &Device{
-		dev:       dev,
-		Template:  "k100airW.html",
-		VendorId:  vendorId,
-		ProductId: productId,
-		Path:      key,
+		dev:          dev,
+		Template:     "k100airW.html",
+		VendorId:     vendorId,
+		ProductId:    productId,
+		SlipstreamId: slipstreamId,
+		Serial:       serial,
+		Endpoint:     endpoint,
+		Firmware:     "n/a",
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -161,40 +150,42 @@ func Init(vendorId, productId uint16, key string) *Device {
 	}
 
 	d.getDebugMode()       // Debug mode
-	d.getManufacturer()    // Manufacturer
-	d.getSerial()          // Serial
 	d.loadRgb()            // Load RGB
-	d.setSoftwareMode()    // Activate software mode
-	d.getActiveDevices()   // Active devices
-	d.getDeviceFirmware()  // Firmware
-	d.getDongleFirmware()  // Dongle firmware
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
-	d.setKeyAmount()       // Set number of keys
-	d.setKeepAlive()       // Keepalive
-	d.initLeds()           // Init LED ports
-	d.setDeviceColor()     // Device color
-	d.setBrightnessLevel() // Brightness
-	d.setSleepTimer()      // Sleep
-	d.controlListener()    // Control listener
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	// Placeholder
+}
+
+// StopInternal will stop all device operations and switch a device back to hardware mode
+func (d *Device) StopInternal() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-
-	timerKeepAlive.Stop()
-
 	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
+}
+
+// SetConnected will change connected status
+func (d *Device) SetConnected(value bool) {
+	d.Connected = value
+}
+
+// Connect will connect to a device
+func (d *Device) Connect() {
+	if !d.Connected {
+		d.Connected = true
+		d.setSoftwareMode()    // Activate software mode
+		d.getDeviceFirmware()  // Firmware
+		d.setKeyAmount()       // Set number of keys
+		d.initLeds()           // Init LED ports
+		d.setDeviceColor()     // Device color
+		d.setBrightnessLevel() // Brightness
+		d.setSleepTimer()      // Sleep
 	}
 }
 
@@ -295,7 +286,7 @@ func (d *Device) getDebugMode() {
 func (d *Device) getManufacturer() {
 	manufacturer, err := d.dev.GetMfrStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get manufacturer")
 	}
 	d.Manufacturer = manufacturer
 }
@@ -304,118 +295,35 @@ func (d *Device) getManufacturer() {
 func (d *Device) getProduct() {
 	product, err := d.dev.GetProductStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get product")
 	}
 	d.Product = product
-}
-
-// getSerial will return device serial number
-func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
-	}
-	d.Serial = serial
 }
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
 	if d.Connected {
-		_, err := d.transfer(cmdHardwareMode, nil, byte(cmdKeyboard))
+		_, err := d.transfer(cmdHardwareMode, nil)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-		}
-	}
-	_, err := d.transfer(cmdHardwareMode, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-}
-
-// getActiveDevices will get active devices on dongle
-func (d *Device) getActiveDevices() {
-	_, err := d.transfer(cmdGetDevices, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-
-	_, err = d.transfer([]byte{0x09}, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-
-	_, err = d.transfer(cmdActivateDevices, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-
-	_, err = d.transfer([]byte{0x05, 0x01}, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-}
-
-// waitForDevice will wait for a device
-func (d *Device) waitForDevice() {
-	msg, err := d.transfer(cmdRefresh, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-	if msg[3] == 0 {
-		for {
-			msg, err = d.transfer(cmdRefresh, nil, byte(cmdDongle))
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-			}
-			if msg[3] != 0 {
-				break
-			}
-			time.Sleep(5000 * time.Millisecond)
+			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 		}
 	}
 }
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil, byte(cmdDongle))
+	_, err := d.transfer(cmdSoftwareMode, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
-	}
-
-	// Wait for an active device
-	d.waitForDevice()
-
-	_, err = d.transfer(cmdSoftwareModeKeyboard, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 	d.Connected = true
 }
 
-// getDongleFirmware will return a dongle firmware version out as string
-func (d *Device) getDongleFirmware() {
-	fw, err := d.transfer(
-		cmdGetFirmware,
-		nil,
-		byte(cmdDongle),
-	)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
-	}
-
-	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))
-	d.DongleFirmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
-}
-
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
-	fw, err := d.transfer(
-		cmdGetFirmware,
-		nil,
-		byte(cmdKeyboard),
-	)
+	fw, err := d.transfer(cmdGetFirmware, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
 
 	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))
@@ -424,9 +332,9 @@ func (d *Device) getDeviceFirmware() {
 
 // initLeds will initialize LED ports
 func (d *Device) initLeds() {
-	_, err := d.transfer(cmdOpenColorEndpoint, cmdSetLeds, byte(cmdKeyboard))
+	_, err := d.transfer(cmdOpenColorEndpoint, cmdSetLeds)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 
 	buf := make([]byte, 12)
@@ -437,19 +345,19 @@ func (d *Device) initLeds() {
 	buf[8] = 0x08
 	buf[10] = 0x65
 	buf[11] = 0x6d
-	_, err = d.transfer(cmdWriteColor, buf, byte(cmdKeyboard))
+	_, err = d.transfer(cmdWriteColor, buf)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 
-	_, err = d.transfer(cmdCloseEndpoint, nil, byte(cmdKeyboard))
+	_, err = d.transfer(cmdCloseEndpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 
-	_, err = d.transfer(cmdInitProtocol, nil, byte(cmdKeyboard))
+	_, err = d.transfer(cmdInitProtocol, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 
 	// We need to wait around 500 ms for physical ports to re-initialize
@@ -534,7 +442,7 @@ func (d *Device) saveDeviceProfile() {
 	// Close file
 	err = file.Close()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to close file handle")
 	}
 
 	d.loadDeviceProfiles() // Reload
@@ -547,7 +455,7 @@ func (d *Device) loadDeviceProfiles() {
 
 	files, err := os.ReadDir(userProfileDirectory)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": userProfileDirectory, "serial": d.Serial}).Fatal("Unable to read content of a folder")
+		logger.Log(logger.Fields{"error": err, "location": userProfileDirectory, "serial": d.Serial}).Error("Unable to read content of a folder")
 	}
 
 	for _, fi := range files {
@@ -621,84 +529,13 @@ func (d *Device) getDeviceProfile() {
 	}
 }
 
-// reinit will re-initialize the device
-func (d *Device) reinit() {
-	d.setHardwareMode()
-	d.setSoftwareMode()
-	d.initLeds()           // Init LED ports
-	d.setDeviceColor()     // Device color
-	d.setBrightnessLevel() // Brightness
-	d.setSleepTimer()      // Sleep
-	d.controlListener()    // Control listener
-}
-
-// keepAlive will keep a device alive
-func (d *Device) keepAlive() {
-	msg, err := d.transfer(cmdHeartbeat, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return
-	}
-
-	switch msg[4] {
-	case 4:
-		{
-			_, err = d.transfer(cmdHeartbeat, nil, byte(cmdKeyboard))
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-				return
-			}
-		}
-	case 2:
-		{
-			if !d.Connected {
-				logger.Log(logger.Fields{"serial": d.Serial}).Info("Connection active. Reconnect...")
-				d.reinit()
-			} else {
-				_, err = d.transfer(cmdHeartbeat, nil, byte(cmdKeyboard))
-				if err != nil {
-					logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-					return
-				}
-			}
-		}
-	case 0:
-		{
-			if msg[3] != 2 {
-				d.Connected = false
-			}
-		}
-	}
-
-	if msg[3] == 2 {
-		_, err = d.transfer(cmdHeartbeat, nil, byte(cmdKeyboard))
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-			return
-		}
-	}
-}
-
-// setAutoRefresh will refresh device data
-func (d *Device) setKeepAlive() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	go func() {
-		for {
-			select {
-			case <-timerKeepAlive.C:
-				d.keepAlive()
-			}
-		}
-	}()
-}
-
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
 	if d.DeviceProfile != nil {
 		buf := make([]byte, 4)
 		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
 		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-		_, err := d.transfer(cmdSleep, buf, byte(cmdKeyboard))
+		_, err := d.transfer(cmdSleep, buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
 			return 0
@@ -720,7 +557,7 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 }
 
 // UpdateDeviceLabel will set / update device label
-func (d *Device) UpdateDeviceLabel(_, label string) uint8 {
+func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -744,7 +581,6 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	}
 	d.setDeviceColor() // Restart RGB
 	return 1
-
 }
 
 // ChangeDeviceBrightness will change device brightness
@@ -771,7 +607,7 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.setDeviceColor() // Restart RGB
 	buf := make([]byte, 2)
 	binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
-	_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
+	_, err := d.transfer(cmdBrightness, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
 	}
@@ -978,7 +814,7 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 }
 
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(keyOption int, color rgb.Color) uint8 {
+func (d *Device) UpdateDeviceColor(_, keyOption int, color rgb.Color) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}
@@ -1004,7 +840,7 @@ func (d *Device) setBrightnessLevel() {
 	if d.DeviceProfile != nil {
 		buf := make([]byte, 2)
 		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
-		_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
+		_, err := d.transfer(cmdBrightness, buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
 		}
@@ -1286,14 +1122,16 @@ func (d *Device) writeColor(data []byte) {
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
 
-	_, err := d.transfer(cmdOpenColorEndpoint, cmdActivateLed, byte(cmdKeyboard))
+	_, err := d.transfer(cmdOpenColorEndpoint, cmdActivateLed)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
 	}
 
-	_, err = d.transfer(cmdRead, nil, byte(cmdKeyboard))
+	_, err = d.transfer(cmdRead, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
 	}
 
 	// Split packet into chunks
@@ -1301,40 +1139,41 @@ func (d *Device) writeColor(data []byte) {
 	for i, chunk := range chunks {
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk, byte(cmdKeyboard))
+			_, err := d.transfer(cmdWriteColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
 			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk, byte(cmdKeyboard))
+			_, err := d.transfer(dataTypeSubColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
 		}
 	}
 
-	_, err = d.transfer(cmdCloseEndpoint, nil, byte(cmdKeyboard))
+	_, err = d.transfer(cmdCloseEndpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
 	}
 
 	// Close endpoint
-	_, err = d.transfer(cmdFlush, nil, byte(cmdKeyboard))
+	_, err = d.transfer(cmdFlush, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 	}
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer []byte, command byte) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = command
+	bufferW[1] = d.Endpoint
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {
@@ -1358,65 +1197,55 @@ func (d *Device) transfer(endpoint, buffer []byte, command byte) ([]byte, error)
 	return bufferR, nil
 }
 
-// controlListener will listen for events from the control buttons
-func (d *Device) controlListener() {
-	var brightness uint16 = 0
+// transfer will send data to a device and retrieve device output
+func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
+	// Packet control, mandatory for this device
+	mutex.Lock()
+	defer mutex.Unlock()
 
-	if d.DeviceProfile.BrightnessLevel == 0 {
-		brightness = 1000
-	} else {
-		brightness = d.DeviceProfile.BrightnessLevel
+	// Create write buffer
+	bufferW := make([]byte, bufferSizeWrite)
+	bufferW[1] = d.Endpoint
+	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+	copy(endpointHeaderPosition, endpoint)
+	if len(buffer) > 0 {
+		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	go func() {
-		buf := make([]byte, 2)
-		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 2 {
-				listener, err := hid.OpenPath(info.Path)
-				if err != nil {
-					return err
-				}
-				d.listener = listener
-			}
-			return nil
-		})
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
 
-		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+	// Send command to a device
+	if _, err := d.dev.Write(bufferW); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		return nil, err
+	}
+
+	// Get data from a device
+	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		return nil, err
+	}
+	return bufferR, nil
+}
+
+// ModifyBrightness will modify brightness via control button
+func (d *Device) ModifyBrightness() {
+	buf := make([]byte, 2)
+	if d.DeviceProfile != nil {
+		if d.DeviceProfile.BrightnessLevel >= 1000 {
+			d.DeviceProfile.BrightnessLevel = 0
+		} else {
+			d.DeviceProfile.BrightnessLevel += 100
+		}
+		d.saveDeviceProfile()
+
+		// Send it
+		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
+
+		_, err := d.transfer(cmdBrightness, buf)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
 		}
-
-		// Listen loop
-		data := make([]byte, bufferSize)
-		for {
-			// Read data from the HID device
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
-
-			value := data[4]
-			if value == 0 && data[16] == 2 {
-				if brightness >= 1000 {
-					brightness = 0
-				} else {
-					brightness += 100
-				}
-
-				if d.DeviceProfile != nil {
-					d.DeviceProfile.BrightnessLevel = brightness
-					d.saveDeviceProfile()
-
-					// Send it
-					binary.LittleEndian.PutUint16(buf[0:2], brightness)
-					_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
-					}
-				}
-			}
-			time.Sleep(40 * time.Millisecond)
-		}
-	}()
+	}
 }

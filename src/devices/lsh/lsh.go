@@ -324,7 +324,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	if d.HasLCD {
-		d.setupLCD() // LCD
+		d.setLcdRotation() // LCD rotation
+		d.setupLCD()       // LCD
 	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
@@ -1012,9 +1013,26 @@ func (d *Device) UpdateDeviceLcdRotation(channelId int, rotation uint8) uint8 {
 			d.DeviceProfile.LCDRotations[channelId] = rotation
 		}
 		d.saveDeviceProfile()
+		d.setLcdRotation()
 		return 1
 	} else {
 		return 2
+	}
+}
+
+// setLcdRotation will change LCD rotation
+func (d *Device) setLcdRotation() {
+	for _, device := range d.Devices {
+		if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
+			lcdDevice := d.getLCDBySerial(device.LCDSerial)
+			if rotation, ok := d.DeviceProfile.LCDRotations[device.ChannelId]; ok {
+				lcdReport := []byte{0x03, 0x0c, rotation, 0x01}
+				_, err := lcdDevice.SendFeatureReport(lcdReport)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD rotation")
+				}
+			}
+		}
 	}
 }
 
@@ -1929,7 +1947,7 @@ func (d *Device) getDevices() int {
 			device.LCDSerial = lcdSerial
 		} else {
 			// Single XD5 pump installed, default to single serial
-			if lcdAvailable && device.Type == 12 && len(xd5Serials) == 1 {
+			if device.Type == 12 && len(xd5Serials) == 1 {
 				device.LCDSerial = xd5Serials[0]
 			}
 		}
@@ -2568,7 +2586,6 @@ func (d *Device) setupLCD() {
 										0,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2580,7 +2597,6 @@ func (d *Device) setupLCD() {
 										0,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2592,7 +2608,6 @@ func (d *Device) setupLCD() {
 										0,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2604,7 +2619,6 @@ func (d *Device) setupLCD() {
 										0,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2623,7 +2637,6 @@ func (d *Device) setupLCD() {
 										cpuTemp,
 										pumpSpeed,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2637,7 +2650,6 @@ func (d *Device) setupLCD() {
 										gpuTemp,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2651,7 +2663,6 @@ func (d *Device) setupLCD() {
 										gpuUtil,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2667,7 +2678,6 @@ func (d *Device) setupLCD() {
 										gpuTemp,
 										cpuUtil,
 										gpuUtil,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}
@@ -2679,7 +2689,6 @@ func (d *Device) setupLCD() {
 										0,
 										0,
 										0,
-										d.getLCDRotation(device.ChannelId),
 									)
 									d.transferToLcd(buffer, lcdDevice)
 								}

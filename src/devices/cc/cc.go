@@ -399,7 +399,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setDeviceColor()   // Device color
 	d.newDeviceMonitor() // Device monitor
 	if d.HasLCD {
-		d.setupLCD() // LCD
+		d.setLcdRotation() // LCD rotation
+		d.setupLCD()       // LCD
 	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
@@ -1824,6 +1825,7 @@ func (d *Device) UpdateDeviceLcdRotation(_ int, rotation uint8) uint8 {
 	if d.HasLCD {
 		d.DeviceProfile.LCDRotation = rotation
 		d.saveDeviceProfile()
+		d.setLcdRotation()
 		return 1
 	} else {
 		return 2
@@ -2001,6 +2003,15 @@ func (d *Device) getTemperatureProbe() {
 		}
 	}
 	d.TemperatureProbes = &probes
+}
+
+// setLcdRotation will change LCD rotation
+func (d *Device) setLcdRotation() {
+	lcdReport := []byte{0x03, 0x0c, d.DeviceProfile.LCDRotation, 0x01}
+	_, err := d.dev.SendFeatureReport(lcdReport)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Error("Unable to change LCD rotation")
+	}
 }
 
 // UpdateRgbProfile will update device RGB profile
@@ -2452,21 +2463,6 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) []byte {
 	return bufferR
 }
 
-// getLCDRotation will return rotation value based on rotation mode
-func (d *Device) getLCDRotation() int {
-	switch d.DeviceProfile.LCDRotation {
-	case 0:
-		return 0
-	case 1:
-		return 90
-	case 2:
-		return 180
-	case 3:
-		return 270
-	}
-	return 0
-}
-
 // setupLCD will activate and configure LCD
 func (d *Device) setupLCD() {
 	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
@@ -2484,7 +2480,6 @@ func (d *Device) setupLCD() {
 							0,
 							0,
 							0,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}
@@ -2496,7 +2491,6 @@ func (d *Device) setupLCD() {
 							0,
 							0,
 							0,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}
@@ -2510,7 +2504,6 @@ func (d *Device) setupLCD() {
 									0,
 									0,
 									0,
-									d.getLCDRotation(),
 								)
 								d.transferToLcd(buffer)
 							}
@@ -2526,7 +2519,6 @@ func (d *Device) setupLCD() {
 									0,
 									0,
 									0,
-									d.getLCDRotation(),
 								)
 								d.transferToLcd(buffer)
 							}
@@ -2551,7 +2543,6 @@ func (d *Device) setupLCD() {
 							cpuTemp,
 							pumpSpeed,
 							0,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}
@@ -2565,7 +2556,6 @@ func (d *Device) setupLCD() {
 							gpuTemp,
 							0,
 							0,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}
@@ -2579,7 +2569,6 @@ func (d *Device) setupLCD() {
 							gpuUtil,
 							0,
 							0,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}
@@ -2595,7 +2584,6 @@ func (d *Device) setupLCD() {
 							gpuTemp,
 							cpuUtil,
 							gpuUtil,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}
@@ -2607,7 +2595,6 @@ func (d *Device) setupLCD() {
 							0,
 							0,
 							0,
-							d.getLCDRotation(),
 						)
 						d.transferToLcd(buffer)
 					}

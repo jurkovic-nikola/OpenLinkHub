@@ -18,11 +18,9 @@ import (
 	_ "golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/font/opentype"
-	"golang.org/x/image/math/f64"
 	"image"
 	"image/color"
 	"image/jpeg"
-	"math"
 	"os"
 	"strconv"
 	"sync"
@@ -117,7 +115,7 @@ func drawString(x, y int, fontSite float64, c *freetype.Context, text string) *f
 }
 
 // GenerateScreenImage will generate LCD screen image with given value
-func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotation int) []byte {
+func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []byte {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -291,55 +289,12 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3, rotatio
 		}
 	}
 
-	// Rotation
-	output := rotateRGBA(rgba, float64(rotation))
-
 	// Buff it and return
 	buffer := new(bytes.Buffer)
-	err := jpeg.Encode(buffer, output, nil)
+	err := jpeg.Encode(buffer, rgba, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
 		return nil
 	}
 	return buffer.Bytes()
-}
-
-// rotateRGBA rotates an RGBA image by the specified angle (in degrees).
-func rotateRGBA(img *image.RGBA, angle float64) *image.RGBA {
-	if angle == 0 {
-		return img
-	}
-
-	// Convert degrees to radians.
-	radians := angle * math.Pi / 180
-
-	// Calculate the sine and cosine of the angle.
-	sin, cos := math.Sin(radians), math.Cos(radians)
-
-	// Get the original image bounds.
-	bounds := img.Bounds()
-	width, height := bounds.Dx(), bounds.Dy()
-
-	// Calculate the dimensions of the new rotated image.
-	newWidth := int(math.Abs(float64(width)*cos) + math.Abs(float64(height)*sin))
-	newHeight := int(math.Abs(float64(width)*sin) + math.Abs(float64(height)*cos))
-
-	// Create a new RGBA image to hold the rotated image.
-	rotatedImg := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-
-	// Calculate the center of the original and new images.
-	cx, cy := float64(width)/2, float64(height)/2
-	ncx, ncy := float64(newWidth)/2, float64(newHeight)/2
-
-	// Create an affine matrix for the rotation and translation.
-	transform := f64.Aff3{
-		cos, -sin, ncx - cos*cx + sin*cy,
-		sin, cos, ncy - sin*cx - cos*cy,
-	}
-
-	// Draw the rotated image onto the new image.
-	draw.NearestNeighbor.Transform(rotatedImg, transform, img, bounds, draw.Over, nil)
-
-	// Send it
-	return rotatedImg
 }

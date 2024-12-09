@@ -1,5 +1,6 @@
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
+After=sleep.target
 
 [Service]
 User=nikola

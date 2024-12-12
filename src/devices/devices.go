@@ -29,6 +29,7 @@ import (
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/scimitar"
+	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/xc7"
@@ -44,35 +45,36 @@ import (
 )
 
 const (
-	productTypeLinkHub          = 0
-	productTypeCC               = 1
-	productTypeCCXT             = 2
-	productTypeElite            = 3
-	productTypeLNCore           = 4
-	productTypeLnPro            = 5
-	productTypeCPro             = 6
-	productTypeXC7              = 7
-	productTypeMemory           = 8
-	productTypeK65PM            = 101
-	productTypeK70Core          = 102
-	productTypeK55Core          = 103
-	productTypeK70Pro           = 104
-	productTypeK65Plus          = 105
-	productTypeK65PlusW         = 106
-	productTypeK100Air          = 107
-	productTypeK100AirW         = 108
-	productTypeK100             = 109
-	productTypeKatarPro         = 201
-	productTypeIronClawRgb      = 202
-	productTypeIronClawRgbW     = 203
-	productTypeIronClawRgbWU    = 204
-	productTypeNightsabreW      = 205
-	productTypeNightsabreWU     = 206
-	productTypeScimitarRgbElite = 207
-	productTypeST100            = 401
-	productTypeMM700            = 402
-	productTypeLT100            = 403
-	productTypePSUHid           = 501
+	productTypeLinkHub            = 0
+	productTypeCC                 = 1
+	productTypeCCXT               = 2
+	productTypeElite              = 3
+	productTypeLNCore             = 4
+	productTypeLnPro              = 5
+	productTypeCPro               = 6
+	productTypeXC7                = 7
+	productTypeMemory             = 8
+	productTypeK65PM              = 101
+	productTypeK70Core            = 102
+	productTypeK55Core            = 103
+	productTypeK70Pro             = 104
+	productTypeK65Plus            = 105
+	productTypeK65PlusW           = 106
+	productTypeK100Air            = 107
+	productTypeK100AirW           = 108
+	productTypeK100               = 109
+	productTypeKatarPro           = 201
+	productTypeIronClawRgb        = 202
+	productTypeIronClawRgbW       = 203
+	productTypeIronClawRgbWU      = 204
+	productTypeNightsabreW        = 205
+	productTypeNightsabreWU       = 206
+	productTypeScimitarRgbElite   = 207
+	productTypeScimitarRgbEliteWU = 209
+	productTypeST100              = 401
+	productTypeMM700              = 402
+	productTypeLT100              = 403
+	productTypePSUHid             = 501
 )
 
 type AIOData struct {
@@ -103,7 +105,7 @@ var (
 	devices                   = make(map[string]*Device, 0)
 	products                  = make(map[string]Product, 0)
 	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091}
-	mouses                    = []uint16{7059, 7005, 6988, 7096, 7139}
+	mouses                    = []uint16{7059, 7005, 6988, 7096, 7139, 7131}
 	pads                      = []uint16{7067}
 	dongles                   = []uint16{7132, 7078}
 )
@@ -1484,7 +1486,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7139:
+		case 7139: // CORSAIR SCIMITAR RGB ELITE
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := scimitar.Init(vendorId, productId, key)
@@ -1493,6 +1495,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeScimitarRgbElite,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7131: // CORSAIR SCIMITAR RGB ELITE WIRELESS
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := scimitarWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeScimitarRgbEliteWU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

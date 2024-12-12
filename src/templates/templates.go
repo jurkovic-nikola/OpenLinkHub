@@ -71,6 +71,7 @@ func Init() {
 		"web/nightsabreW.html",
 		"web/nightsabreWU.html",
 		"web/scimitar.html",
+		"web/scimitarWU.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",

@@ -27,19 +27,20 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	LCDMode     uint8
-	LCDRotation uint8
-	Brightness  uint8
-	RGBProfile  string
-	Label       string
-	Layout      string
-	Keyboards   map[string]*keyboards.Keyboard
-	Profile     string
-	Profiles    []string
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	LCDMode          uint8
+	LCDRotation      uint8
+	Brightness       uint8
+	RGBProfile       string
+	BrightnessSlider *uint8
+	Label            string
+	Layout           string
+	Keyboards        map[string]*keyboards.Keyboard
+	Profile          string
+	Profiles         []string
 }
 
 type Device struct {
@@ -296,13 +297,15 @@ func (d *Device) initLeds() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
 
 	deviceProfile := &DeviceProfile{
-		Product: d.Product,
-		Serial:  d.Serial,
-		Path:    profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -317,6 +320,13 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = []string{"default"}
 		deviceProfile.Layout = "US"
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
 		} else {
@@ -510,6 +520,24 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
 	return 1
 }
 
@@ -820,10 +848,14 @@ func (d *Device) setDeviceColor() {
 		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 			for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 				for _, keys := range rows.Keys {
+					colors := keys.Color
+					colors.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					profileColor := rgb.ModifyBrightness(colors)
+
 					for _, packetIndex := range keys.PacketIndex {
-						buf[packetIndex] = byte(keys.Color.Red)
-						buf[packetIndex+1] = byte(keys.Color.Green)
-						buf[packetIndex+2] = byte(keys.Color.Blue)
+						buf[packetIndex] = byte(profileColor.Red)
+						buf[packetIndex+1] = byte(profileColor.Green)
+						buf[packetIndex+2] = byte(profileColor.Blue)
 					}
 				}
 			}
@@ -837,10 +869,16 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "static" {
 		profile := d.GetRgbProfile("static")
-		if d.DeviceProfile.Brightness != 0 {
-			profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+		if profile == nil {
+			return
 		}
 
+		/*
+			if d.DeviceProfile.Brightness != 0 {
+				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+			}
+		*/
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for i := 0; i < d.LEDChannels; i++ {
 			reset[i] = []byte{
@@ -919,12 +957,17 @@ func (d *Device) setDeviceColor() {
 				}
 
 				// Brightness
-				if d.DeviceProfile.Brightness > 0 {
-					r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-					r.RGBStartColor.Brightness = r.RGBBrightness
-					r.RGBEndColor.Brightness = r.RGBBrightness
-				}
+				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+				r.RGBStartColor.Brightness = r.RGBBrightness
+				r.RGBEndColor.Brightness = r.RGBBrightness
 
+				/*
+					if d.DeviceProfile.Brightness > 0 {
+						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+						r.RGBStartColor.Brightness = r.RGBBrightness
+						r.RGBEndColor.Brightness = r.RGBBrightness
+					}
+				*/
 				switch d.DeviceProfile.RGBProfile {
 				case "off":
 					{

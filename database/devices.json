@@ -82,7 +82,7 @@
         },
         {
           "productId": "1bfe",
-          "kernel": "hidraw*"
+          "kernel": ""
         },
         {
           "productId": "1bd7",
@@ -90,7 +90,7 @@
         },
         {
           "productId": "1bfd",
-          "kernel": "hidraw*"
+          "kernel": ""
         },
         {
           "productId": "2b10",
@@ -178,6 +178,26 @@
         },
         {
           "productId": "1b4c",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bc5",
+          "kernel": ""
+        },
+        {
+          "productId": "1bb3",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bc6",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1ba6",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "1bb8",
           "kernel": "hidraw*"
         }
       ]

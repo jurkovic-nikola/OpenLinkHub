@@ -8,13 +8,13 @@
     {{ $temperatures := .Temperatures }}
     {{ $device := .Device }}
     {{ $lcdDeviceAmount := .Device.XD5LCDs }}
-    {{ $lcdDevices := .Device.Lcd }}
+    {{ $lcdDevices := .Lcd }}
     {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $devices := $device.Devices }}
     {{ $rgb := .Rgb }}
     {{ $lcd := .Device.HasLCD }}
     {{ $lcdModes := .Device.LCDModes }}
-    {{ $positions := .Device.DeviceProfile.Positions }}
+    {{ $positions := .Device.DeviceProfile.DevicePosition }}
     {{ $rgbStrips := .Device.RGBStrips }}
     {{ $lcdRotations := .Device.LCDRotations }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
@@ -146,8 +146,10 @@
             </div>
             <div class="ctn-left">
               <div class="row">
-                {{ range $position, $channel := $positions }}
-                {{ $device := index $devices $channel }}
+                {{ range $position, $devId := $positions }}
+                {{ range $key, $device := $devices }}
+                {{ if eq $device.DeviceId $devId }}
+
                 <div style="width: 300px;">
                   <div class="card mb-4">
                     <div class="card-header border-bottom border-dash-dark-1">
@@ -163,11 +165,11 @@
                         {{ end }}
                         <div class="align-center-text">
                           {{ if ne $position 1 }}
-                          <span class="bi bi-arrow-left svg-icon svg-icon-sm svg-icon-heavy moveLeft" data="{{ $position }};{{ $channel }}"></span>
+                          <span class="bi bi-arrow-left svg-icon svg-icon-sm svg-icon-heavy moveLeft" data="{{ $position }};{{ $devId }}"></span>
                           {{ end }}
 
                           {{ $length := len $positions }}{{ if ne $position $length }}
-                          <span class="bi bi-arrow-right svg-icon svg-icon-sm svg-icon-heavy moveRight" data="{{ $position }};{{ $channel }}"></span>
+                          <span class="bi bi-arrow-right svg-icon svg-icon-sm svg-icon-heavy moveRight" data="{{ $position }};{{ $devId }}"></span>
                           {{ end }}
                         </div>
                       </div>
@@ -356,6 +358,8 @@
                     </div>
                   </div>
                 </div>
+                {{ end }}
+                {{ end }}
                 {{ end }}
               </div>
             </div>

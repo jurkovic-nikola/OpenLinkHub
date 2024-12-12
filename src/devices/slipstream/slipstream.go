@@ -3,6 +3,7 @@ package slipstream
 import (
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
+	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/logger"
 	"bytes"
 	"encoding/binary"
@@ -106,6 +107,11 @@ func (d *Device) Stop() {
 
 	for key, value := range d.PairedDevices {
 		switch key {
+		case 7096:
+			if dev, found := value.(*nightsabreW.Device); found {
+				dev.StopInternal()
+			}
+			break
 		case 7083:
 			if dev, found := value.(*k100airW.Device); found {
 				dev.StopInternal()
@@ -298,6 +304,43 @@ func (d *Device) read(endpoint []byte) []byte {
 func (d *Device) processDevice(productId uint16, packet []byte) {
 	if dev, ok := d.PairedDevices[productId]; ok {
 		switch productId {
+		case 7096:
+			{
+				if value, found := dev.(*nightsabreW.Device); found {
+					switch packet[1] {
+					case 0x01:
+						{
+							if d.SingleDevice {
+								if packet[0] == 0x01 {
+									value.SetConnected(false)
+								}
+							} else {
+								if packet[0] == 0x02 {
+									value.SetConnected(false)
+								}
+							}
+						}
+					case 0x00:
+						{
+							value.SetConnected(false)
+						}
+						break
+					case 0x12:
+						{
+							if d.SingleDevice {
+								if packet[0] == 0x01 {
+									value.Connect()
+								}
+							} else {
+								if packet[0] == 0x02 {
+									value.Connect()
+								}
+							}
+						}
+						break
+					}
+				}
+			}
 		case 7083:
 			{
 				if value, found := dev.(*k100airW.Device); found {
@@ -373,6 +416,10 @@ func (d *Device) monitorDevice() {
 			select {
 			case <-timerKeepAlive.C:
 				{
+					_, err := d.transfer(cmdCommand, cmdHeartbeat, nil)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
+					}
 					for _, value := range d.Devices {
 						msg, err := d.transfer(value.Endpoint, cmdHeartbeat, nil)
 						if err != nil {
@@ -402,11 +449,20 @@ func (d *Device) sleepMonitor() {
 							logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 						}
 
-						if msg[0] == 0x02 && msg[1] == 0x02 { // Mouse // Connected
+						if (msg[0] == 0x02 || msg[0] == 0x01) && msg[1] == 0x02 { // Mouse // Connected
 							inactive := int(binary.LittleEndian.Uint16(msg[3:5]))
 							if inactive > 0 {
 								if dev, ok := d.PairedDevices[value.ProductId]; ok {
 									switch value.ProductId {
+									case 7096:
+										{
+											if device, found := dev.(*nightsabreW.Device); found {
+												sleepMode := device.GetSleepMode() * 60
+												if inactive >= sleepMode {
+													device.SetSleepMode()
+												}
+											}
+										}
 									case 6988:
 										{
 											if device, found := dev.(*ironclawW.Device); found {
@@ -463,10 +519,20 @@ func (d *Device) controlListener() {
 			}
 
 			switch data[0] {
-			case 2: // Mouse
+			case 1, 2: // Mouse
 				{
 					for key, value := range d.PairedDevices {
 						switch key {
+						case 7096:
+							if dev, found := value.(*nightsabreW.Device); found {
+								if data[2] == 0x80 {
+									dev.ModifyDpi(true)
+								} else if data[2] == 0x00 && data[3] == 0x01 {
+									dev.ModifyDpi(false)
+								}
+							}
+							break
+
 						case 6988:
 							if dev, found := value.(*ironclawW.Device); found {
 								switch data[2] {

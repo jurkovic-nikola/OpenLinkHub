@@ -38,14 +38,15 @@ type ExternalHubData struct {
 }
 
 type DeviceProfile struct {
-	Active       bool
-	Path         string
-	Product      string
-	Serial       string
-	Brightness   uint8
-	RGBProfiles  map[int]string
-	Labels       map[int]string
-	ExternalHubs map[int]*ExternalHubData
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	Brightness       uint8
+	BrightnessSlider *uint8
+	RGBProfiles      map[int]string
+	Labels           map[int]string
+	ExternalHubs     map[int]*ExternalHubData
 }
 
 type Devices struct {
@@ -182,7 +183,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setAutoRefresh()     // Set auto device refresh
 	d.saveDeviceProfile()  // Create device profile
 	d.setColorEndpoint()   // Setup lightning
-	d.setDeviceColor()     // Device color
+	d.setDeviceColor(true) // Device color
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
 }
@@ -197,7 +198,7 @@ func (d *Device) ShutdownLed() {
 				lightChannels += int(device.LedChannels)
 			}
 		}
-		config := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
+		cfg := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
 		_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId})
 		if err != nil {
 			return
@@ -210,7 +211,7 @@ func (d *Device) ShutdownLed() {
 		if err != nil {
 			return
 		}
-		_, err = d.transfer(cmdWriteLedConfig, config)
+		_, err = d.transfer(cmdWriteLedConfig, cfg)
 		if err != nil {
 			return
 		}
@@ -444,6 +445,7 @@ func (d *Device) getDeviceProfile() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	rgbProfiles := make(map[int]string, len(d.Devices))
@@ -457,12 +459,13 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:      d.Product,
-		Serial:       d.Serial,
-		RGBProfiles:  rgbProfiles,
-		ExternalHubs: make(map[int]*ExternalHubData, 0),
-		Labels:       labels,
-		Path:         profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		RGBProfiles:      rgbProfiles,
+		ExternalHubs:     make(map[int]*ExternalHubData, 0),
+		Labels:           labels,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -485,6 +488,12 @@ func (d *Device) saveDeviceProfile() {
 		}
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
 		deviceProfile.ExternalHubs = d.DeviceProfile.ExternalHubs
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
@@ -634,7 +643,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 			d.activeRgb[i] = nil
 		}
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor(true) // Restart RGB
 	return 1
 }
 
@@ -646,9 +655,9 @@ func (d *Device) ResetRgb() {
 			d.activeRgb[i] = nil
 		}
 	}
-	d.getDevices()        // Reload devices
-	d.saveDeviceProfile() // Save profile
-	d.setDeviceColor()    // Restart RGB
+	d.getDevices()         // Reload devices
+	d.saveDeviceProfile()  // Save profile
+	d.setDeviceColor(true) // Restart RGB
 }
 
 // UpdateExternalHubDeviceType will update a device type connected to the external-LED hub
@@ -696,7 +705,26 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		}
 	}
 
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor(true) // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		if d.activeRgb[i] != nil {
+			d.activeRgb[i].Exit <- true // Exit current RGB mode
+			d.activeRgb[i] = nil
+		}
+	}
+	d.setDeviceColor(false) // Restart RGB
 	return 1
 }
 
@@ -728,7 +756,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		newProfile.Active = true
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
-		d.setDeviceColor()
+		d.setDeviceColor(true)
 		return 1
 	}
 	return 0
@@ -806,17 +834,44 @@ func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint
 					d.activeRgb[i] = nil
 				}
 			}
-			d.getDevices()        // Reload devices
-			d.saveDeviceProfile() // Save profile
-			d.setDeviceColor()    // Restart RGB
+			d.getDevices()         // Reload devices
+			d.saveDeviceProfile()  // Save profile
+			d.setDeviceColor(true) // Restart RGB
 			return 1
 		}
 	}
 	return 0
 }
 
+// isRgbStatic will return true or false if all devices are set to static RGB mode
+func (d *Device) isRgbStatic() bool {
+	s, l := 0, 0
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			l++ // device has LED
+			if d.Devices[k].RGB == "static" {
+				s++ // led profile is set to static
+			}
+		}
+	}
+
+	if s > 0 || l > 0 { // We have some values
+		if s == l {
+			return true
+		}
+	}
+	return false
+}
+
 // setDeviceColor will activate and set device RGB
-func (d *Device) setDeviceColor() {
+func (d *Device) setDeviceColor(resetColor bool) {
 	// Reset
 	reset := map[int][]byte{}
 	var buffer []byte
@@ -843,24 +898,26 @@ func (d *Device) setDeviceColor() {
 		Brightness: 0,
 	}
 
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		externalHub := d.DeviceProfile.ExternalHubs[i]
-		lightChannels = 0
-		for _, device := range d.Devices {
-			if device.PortId == externalHub.PortId {
-				lightChannels += int(device.LedChannels)
+	if resetColor {
+		for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+			externalHub := d.DeviceProfile.ExternalHubs[i]
+			lightChannels = 0
+			for _, device := range d.Devices {
+				if device.PortId == externalHub.PortId {
+					lightChannels += int(device.LedChannels)
+				}
 			}
-		}
-		for i := 0; i < lightChannels; i++ {
-			reset[i] = []byte{
-				byte(color.Red),
-				byte(color.Green),
-				byte(color.Blue),
+			for i := 0; i < lightChannels; i++ {
+				reset[i] = []byte{
+					byte(color.Red),
+					byte(color.Green),
+					byte(color.Blue),
+				}
 			}
-		}
 
-		buffer = rgb.SetColor(reset)
-		d.writeColor(buffer, lightChannels, externalHub.PortId)
+			buffer = rgb.SetColor(reset)
+			d.writeColor(buffer, lightChannels, externalHub.PortId)
+		}
 	}
 
 	// Are all devices under static mode?
@@ -879,10 +936,15 @@ func (d *Device) setDeviceColor() {
 	if ledEnabledDevices > 0 || ledEnabledStaticDevices > 0 {
 		if ledEnabledDevices == ledEnabledStaticDevices {
 			profile := d.GetRgbProfile("static")
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+			if profile == nil {
+				return
 			}
-
+			/*
+				if d.DeviceProfile.Brightness != 0 {
+					profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+				}
+			*/
+			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
 			for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
 				externalHub := d.DeviceProfile.ExternalHubs[i]
@@ -978,12 +1040,17 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor = d.activeRgb[i].RGBEndColor
 					}
 
-					// Brightness
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
+					/*
+						// Brightness
+						if d.DeviceProfile.Brightness > 0 {
+							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+							r.RGBStartColor.Brightness = r.RGBBrightness
+							r.RGBEndColor.Brightness = r.RGBBrightness
+						}
+					*/
+					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					r.RGBStartColor.Brightness = r.RGBBrightness
+					r.RGBEndColor.Brightness = r.RGBBrightness
 
 					rgbSettings[k] = r
 				} else {
@@ -1310,13 +1377,13 @@ func (d *Device) setColorEndpoint() {
 					lightChannels += int(device.LedChannels)
 				}
 			}
-			config := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
+			cfg := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
 			_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId})
 			if err != nil {
 				return
 			}
 
-			_, err = d.transfer(cmdWriteLedConfig, config)
+			_, err = d.transfer(cmdWriteLedConfig, cfg)
 			if err != nil {
 				return
 			}

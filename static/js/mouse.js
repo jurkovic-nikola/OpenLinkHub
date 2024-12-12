@@ -63,6 +63,31 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    $('#default5DPI').on('click', function () {
+        for (let i = 0; i <= 4; i++) {
+            const stage = document.getElementById("stage" + i);
+            const stageValue = document.getElementById("stageValue" + i);
+            switch (i) {
+                case 0:
+                    stage.value = 400
+                    break;
+                case 1:
+                    stage.value = 800
+                    break;
+                case 2:
+                    stage.value = 1200
+                    break;
+                case 3:
+                    stage.value = 1600
+                    break;
+                case 4:
+                    stage.value = 3200
+                    break;
+            }
+            stageValue.value = stage.value
+        }
+    });
+
     $('#saveDPI').on('click', function () {
         const deviceId = $("#deviceId").val();
 

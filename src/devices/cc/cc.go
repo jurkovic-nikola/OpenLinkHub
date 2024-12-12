@@ -208,18 +208,19 @@ type LedChannel struct {
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active        bool
-	Path          string
-	Product       string
-	Serial        string
-	LCDMode       uint8
-	LCDRotation   uint8
-	Brightness    uint8
-	RGBProfiles   map[int]string
-	SpeedProfiles map[int]string
-	Labels        map[int]string
-	RGBLabels     map[int]string
-	CustomLEDs    map[int]int
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	LCDMode          uint8
+	LCDRotation      uint8
+	Brightness       uint8
+	BrightnessSlider *uint8
+	RGBProfiles      map[int]string
+	SpeedProfiles    map[int]string
+	Labels           map[int]string
+	RGBLabels        map[int]string
+	CustomLEDs       map[int]int
 }
 
 type TemperatureProbe struct {
@@ -419,25 +420,6 @@ func (d *Device) Stop() {
 	}
 	authRefreshChan <- true
 
-	if d.lcd != nil {
-		lcdRefreshChan <- true
-		lcdTimer.Stop()
-
-		// Switch LCD back to hardware mode
-		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
-		for i := 0; i <= 1; i++ {
-			_, e := d.lcd.SendFeatureReport(lcdReports[i])
-			if e != nil {
-				logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
-			}
-		}
-		// Close it
-		err := d.lcd.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
-		}
-	}
-
 	d.setHardwareMode()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -592,34 +574,13 @@ func (d *Device) loadDeviceProfiles() {
 
 // getDeviceLcd will check if AIO has LCD pump cover
 func (d *Device) getDeviceLcd() {
-	lcdSerialNumber := ""
 	var lcdProductId uint16 = 3129
-
-	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		if info.InterfaceNbr == 0 {
-			d.HasLCD = true
-			lcdSerialNumber = info.SerialNbr
-		}
-		return nil
-	})
-
-	// Enumerate all Corsair devices
-	err := hid.Enumerate(d.VendorId, lcdProductId, enum)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Fatal("Unable to enumerate LCD devices")
+	lcdPanel := lcd.GetLcdByProductId(lcdProductId)
+	if lcdPanel == nil {
+		d.HasLCD = false
 		return
 	}
-
-	if d.HasLCD {
-		logger.Log(logger.Fields{"vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial, "lcdSerial": lcdSerialNumber}).Info("LCD pump cover detected")
-		lcdPanel, e := hid.Open(d.VendorId, lcdProductId, lcdSerialNumber)
-		if e != nil {
-			d.HasLCD = false // We failed
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": lcdProductId, "serial": d.Serial}).Error("Unable to open LCD HID device")
-			return
-		}
-		d.lcd = lcdPanel
-	}
+	d.lcd = lcdPanel
 }
 
 // getManufacturer will return device manufacturer
@@ -769,6 +730,33 @@ func (d *Device) getExternalLedDevice(index int) *ExternalLedDevice {
 	return nil
 }
 
+// isRgbStatic will return true or false if all devices are set to static RGB mode
+func (d *Device) isRgbStatic() bool {
+	s, l := 0, 0
+
+	keys := make([]int, 0)
+	for k := range d.RgbDevices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		if d.RgbDevices[k].LedChannels > 0 {
+			l++ // device has LED
+			if d.RgbDevices[k].RGB == "static" {
+				s++ // led profile is set to static
+			}
+		}
+	}
+
+	if s > 0 || l > 0 { // We have some values
+		if s == l {
+			return true
+		}
+	}
+	return false
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -825,10 +813,15 @@ func (d *Device) setDeviceColor() {
 	if s > 0 || l > 0 { // We have some values
 		if s == l { // number of devices matches number of devices with static profile
 			profile := d.GetRgbProfile("static")
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+			if profile == nil {
+				return
 			}
-
+			/*
+				if d.DeviceProfile.Brightness != 0 {
+					profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+				}
+			*/
+			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
 			for i := 0; i < lightChannels; i++ {
 				reset[i] = []byte{
@@ -920,13 +913,19 @@ func (d *Device) setDeviceColor() {
 						r.RGBStartColor = d.activeRgb.RGBStartColor
 						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
+					/*
+						// Brightness
+						if d.DeviceProfile.Brightness > 0 {
+							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+							r.RGBStartColor.Brightness = r.RGBBrightness
+							r.RGBEndColor.Brightness = r.RGBBrightness
+						}
+					*/
 
 					// Brightness
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
+					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					r.RGBStartColor.Brightness = r.RGBBrightness
+					r.RGBEndColor.Brightness = r.RGBBrightness
 
 					switch d.RgbDevices[k].RGB {
 					case "off":
@@ -1844,6 +1843,25 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	return 1
 }
 
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
 // ChangeDeviceProfile will change device profile
 func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	if profile, ok := d.UserProfiles[profileName]; ok {
@@ -2191,6 +2209,7 @@ func (d *Device) resetLEDPorts() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	speedProfiles := make(map[int]string, len(d.Devices))
@@ -2218,13 +2237,14 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:       d.Product,
-		Serial:        d.Serial,
-		SpeedProfiles: speedProfiles,
-		RGBProfiles:   rgbProfiles,
-		Labels:        labels,
-		RGBLabels:     rgbLabels,
-		Path:          profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		SpeedProfiles:    speedProfiles,
+		RGBProfiles:      rgbProfiles,
+		Labels:           labels,
+		RGBLabels:        rgbLabels,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -2257,6 +2277,13 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		if d.DeviceProfile.CustomLEDs == nil {
 			for i := 1; i < 7; i++ {
 				customLEDs[i] = 0

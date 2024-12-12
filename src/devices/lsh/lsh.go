@@ -53,7 +53,7 @@ type DeviceProfile struct {
 	SpeedProfiles    map[int]string
 	RGBProfiles      map[int]string
 	Labels           map[int]string
-	Positions        map[int]int
+	DevicePosition   map[int]string
 	ExternalAdapter  map[int]int
 	LCDModes         map[int]uint8
 	LCDRotations     map[int]uint8
@@ -125,7 +125,6 @@ type Devices struct {
 type Device struct {
 	Debug             bool
 	dev               *hid.Device
-	Lcd               map[int]*LCD
 	Manufacturer      string                    `json:"manufacturer"`
 	Product           string                    `json:"product"`
 	Serial            string                    `json:"serial"`
@@ -252,7 +251,6 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		Lcd:       make(map[int]*LCD, 0),
 		dev:       dev,
 		Template:  "lsh.html",
 		VendorId:  vendorId,
@@ -363,32 +361,11 @@ func (d *Device) Stop() {
 		d.activeRgb.Stop()
 	}
 	timer.Stop()
+	lcdTimer.Stop()
 
 	if !config.GetConfig().Manual {
 		timerSpeed.Stop()
 		speedRefreshChan <- true
-	}
-
-	if d.HasLCD && len(d.Lcd) > 0 {
-		lcdRefreshChan <- true
-		lcdTimer.Stop()
-
-		// Switch LCD back to hardware mode
-		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
-		for i := 0; i <= 1; i++ {
-			for k := range d.Lcd {
-				_, e := d.Lcd[k].Lcd.SendFeatureReport(lcdReports[i])
-				if e != nil {
-					logger.Log(logger.Fields{"error": e}).Fatal("Unable to send report to LCD HID device")
-				}
-			}
-		}
-		for k := range d.Lcd {
-			err := d.Lcd[k].Lcd.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
-			}
-		}
 	}
 
 	authRefreshChan <- true
@@ -396,7 +373,7 @@ func (d *Device) Stop() {
 	if d.dev != nil {
 		err := d.dev.Close()
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close HID device")
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
 }
@@ -546,94 +523,10 @@ func (d *Device) loadDeviceProfiles() {
 
 // getDeviceLcd will check if AIO has LCD pump cover
 func (d *Device) getDeviceLcd() {
-	lcdDevices := make(map[string]uint16)
-	lcdProductIds := []uint16{3150, 3139}
-
-	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		if info.InterfaceNbr == 0 {
-			for _, lcdProduct := range lcdProductIds {
-				if info.ProductID == lcdProduct {
-					lcdDevices[info.SerialNbr] = info.ProductID
-				}
-			}
-		}
-		return nil
-	})
-
-	// Enumerate all Corsair devices
-	err := hid.Enumerate(d.VendorId, hid.ProductIDAny, enum)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Fatal("Unable to enumerate LCD devices")
-		return
-	}
-
-	if len(lcdDevices) > 0 {
+	if lcd.GetLcdAmount() > 0 {
 		d.HasLCD = true
 	}
-
-	if d.HasLCD {
-		i := 0
-		for serial, productId := range lcdDevices {
-			lcdPanel, e := hid.Open(d.VendorId, productId, serial)
-			if e != nil {
-				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": productId, "serial": d.Serial}).Error("Unable to open LCD HID device")
-				continue
-			}
-			product := ""
-			switch productId {
-			case 3150:
-				product = "iCUE LINK AIO LCD"
-			case 3139:
-				product = "iCUE LINK XD5 LCD"
-			}
-			d.Lcd[i] = &LCD{
-				Lcd:       lcdPanel,
-				ProductId: productId,
-				Product:   product,
-				Serial:    serial,
-				AIO:       productId == 3150,
-			}
-			i++
-		}
-	}
-
-	if len(d.Lcd) == 0 {
-		d.HasLCD = false
-	}
-
-	d.XD5LCDs = len(d.getNonAIOLCDSerials())
-}
-
-// getAioLCDSerial will return serial number of AIO LCD pumps
-func (d *Device) getAioLCDSerial() string {
-	for _, lcdDevice := range d.Lcd {
-		if lcdDevice.AIO {
-			return lcdDevice.Serial
-		}
-	}
-	return ""
-}
-
-// getXD5LCDSerials will return serial numbers of XD5 pumps
-func (d *Device) getNonAIOLCDSerials() []string {
-	var serials []string
-	for _, lcdDevice := range d.Lcd {
-		if lcdDevice.AIO {
-			continue
-		}
-		serials = append(serials, lcdDevice.Serial)
-	}
-	return serials
-}
-
-// getAioLCDSerial will return serial number of AIO LCD pumps
-func (d *Device) getLCDBySerial(serial string) *hid.Device {
-	for _, lcdDevice := range d.Lcd {
-		if lcdDevice.Serial == serial {
-			return lcdDevice.Lcd
-		}
-	}
-	return nil
+	d.XD5LCDs = len(lcd.GetNonAIOLCDSerials())
 }
 
 // getLedStripData will return number of LEDs for given strip ID
@@ -677,7 +570,7 @@ func (d *Device) saveDeviceProfile() {
 	speedProfiles := make(map[int]string, len(d.Devices))
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	labels := make(map[int]string, len(d.Devices))
-	positions := make(map[int]int, len(d.Devices))
+	devicePositions := make(map[int]string, len(d.Devices))
 	external := make(map[int]int, len(d.Devices))
 	lcdModes := make(map[int]uint8, len(d.Devices))
 	lcdRotations := make(map[int]uint8, len(d.Devices))
@@ -718,11 +611,11 @@ func (d *Device) saveDeviceProfile() {
 
 			rgbProfiles[device.ChannelId] = "static"
 			labels[device.ChannelId] = "Set Label"
-			positions[m] = device.ChannelId
+			devicePositions[m] = device.DeviceId
 			m++
 		}
 		deviceProfile.Active = true
-		deviceProfile.Positions = positions
+		deviceProfile.DevicePosition = devicePositions
 		deviceProfile.ExternalAdapter = external
 		deviceProfile.LCDModes = lcdModes
 		deviceProfile.LCDRotations = lcdRotations
@@ -780,28 +673,28 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.ExternalAdapter = d.DeviceProfile.ExternalAdapter
 		}
 
-		if d.DeviceProfile.Positions == nil {
+		if d.DeviceProfile.DevicePosition == nil {
 			m := 1
 			for _, device := range d.Devices {
-				positions[m] = device.ChannelId
+				devicePositions[m] = device.DeviceId
 				m++
 			}
-			deviceProfile.Positions = positions
+			deviceProfile.DevicePosition = devicePositions
 		} else {
-			posLen := len(d.DeviceProfile.Positions)
+			posLen := len(d.DeviceProfile.DevicePosition)
 			devLen := len(d.Devices)
 			if posLen != devLen {
 				// New devices are connected, override positions with new data
 				logger.Log(logger.Fields{"positions": posLen, "devices": devLen}).Info("Device amount changed compared to positions.")
 				m := 1
 				for _, device := range d.Devices {
-					positions[m] = device.ChannelId
+					devicePositions[m] = device.DeviceId
 					m++
 				}
-				deviceProfile.Positions = positions
+				deviceProfile.DevicePosition = devicePositions
 			} else {
 				logger.Log(logger.Fields{"positions": posLen, "devices": devLen}).Info("Device amount matches position amount.")
-				deviceProfile.Positions = d.DeviceProfile.Positions
+				deviceProfile.DevicePosition = d.DeviceProfile.DevicePosition
 			}
 		}
 
@@ -817,17 +710,17 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
 	}
 
-	keys := make([]int, 0, len(deviceProfile.Positions))
-	for k := range deviceProfile.Positions {
+	keys := make([]int, 0, len(deviceProfile.DevicePosition))
+	for k := range deviceProfile.DevicePosition {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
 
-	pos := make(map[int]int, len(d.Devices))
+	pos := make(map[int]string, len(d.Devices))
 	for _, k := range keys {
-		pos[k] = deviceProfile.Positions[k]
+		pos[k] = deviceProfile.DevicePosition[k]
 	}
-	deviceProfile.Positions = pos
+	deviceProfile.DevicePosition = pos
 
 	// Convert to JSON
 	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
@@ -885,24 +778,24 @@ func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
 
 // UpdateDevicePosition will update device position on WebUI
 func (d *Device) UpdateDevicePosition(position, direction int) uint8 {
-	newChannelId := 0
+	newChannelId := ""
 	newPosition := 0
-	if _, ok := d.DeviceProfile.Positions[position]; ok {
+	if _, ok := d.DeviceProfile.DevicePosition[position]; ok {
 		if direction == 0 {
 			if position == 1 {
 				return 2
 			}
-			newChannelId = d.DeviceProfile.Positions[position-1]
+			newChannelId = d.DeviceProfile.DevicePosition[position-1]
 			newPosition = position - 1
 		} else {
-			if position >= len(d.DeviceProfile.Positions) {
+			if position >= len(d.DeviceProfile.DevicePosition) {
 				return 2
 			}
-			newChannelId = d.DeviceProfile.Positions[position+1]
+			newChannelId = d.DeviceProfile.DevicePosition[position+1]
 			newPosition = position + 1
 		}
 
-		for ck, ch := range d.DeviceProfile.Positions {
+		for ck, ch := range d.DeviceProfile.DevicePosition {
 			if ch == newChannelId {
 				newPosition = ck
 				break
@@ -910,11 +803,11 @@ func (d *Device) UpdateDevicePosition(position, direction int) uint8 {
 		}
 
 		// Current channel id
-		currentChannelId := d.DeviceProfile.Positions[position]
+		currentChannelId := d.DeviceProfile.DevicePosition[position]
 
 		// Swap positions
-		d.DeviceProfile.Positions[position] = newChannelId
-		d.DeviceProfile.Positions[newPosition] = currentChannelId
+		d.DeviceProfile.DevicePosition[position] = newChannelId
+		d.DeviceProfile.DevicePosition[newPosition] = currentChannelId
 
 		// Save it
 		d.saveDeviceProfile()
@@ -1024,12 +917,14 @@ func (d *Device) UpdateDeviceLcdRotation(channelId int, rotation uint8) uint8 {
 func (d *Device) setLcdRotation() {
 	for _, device := range d.Devices {
 		if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
-			lcdDevice := d.getLCDBySerial(device.LCDSerial)
-			if rotation, ok := d.DeviceProfile.LCDRotations[device.ChannelId]; ok {
-				lcdReport := []byte{0x03, 0x0c, rotation, 0x01}
-				_, err := lcdDevice.SendFeatureReport(lcdReport)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD rotation")
+			lcdDevice := lcd.GetLcdBySerial(device.LCDSerial)
+			if lcdDevice != nil {
+				if rotation, ok := d.DeviceProfile.LCDRotations[device.ChannelId]; ok {
+					lcdReport := []byte{0x03, 0x0c, rotation, 0x01}
+					_, err := lcdDevice.SendFeatureReport(lcdReport)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD rotation")
+					}
 				}
 			}
 		}
@@ -1590,12 +1485,13 @@ func (d *Device) dbusDeviceMonitor() {
 		// Connect to the session bus
 		conn, err := dbus.ConnectSystemBus()
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to connect to system bus")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Failed to connect to system bus")
+			return
 		}
 		defer func(conn *dbus.Conn) {
 			err = conn.Close()
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Error closing dbus")
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error closing dbus")
 			}
 		}(conn)
 
@@ -1607,7 +1503,7 @@ func (d *Device) dbusDeviceMonitor() {
 		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
 		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to add D-Bus match")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Failed to add D-Bus match")
 		}
 
 		for signal := range ch {
@@ -1803,7 +1699,7 @@ func (d *Device) getSupportedDevice(deviceId byte, deviceModel byte) *SupportedD
 func (d *Device) getDevices() int {
 	lcdAvailable := false
 	var devices = make(map[int]*Devices, 0)
-	var xd5Serials = d.getNonAIOLCDSerials()
+	var xd5Serials = lcd.GetNonAIOLCDSerials()
 
 	response := d.read(modeGetDevices, dataTypeGetDevices)
 	if d.Debug {
@@ -1983,7 +1879,7 @@ func (d *Device) getDevices() int {
 					// AIO LCD cover with additional LEDs
 					devices[key].LedChannels = devices[key].LedChannels + uint8(lcdLedChannels)
 					// AIO have single LCD pump cover, default to single one
-					devices[key].LCDSerial = d.getAioLCDSerial()
+					devices[key].LCDSerial = lcd.GetAioLCDSerial()
 				}
 				devices[key].Name = devices[key].Name + " LCD"
 			}
@@ -2066,6 +1962,9 @@ func (d *Device) setDeviceColor() {
 	if d.isRgbStatic() {
 		static := map[int][]byte{}
 		profile := d.GetRgbProfile("static")
+		if profile == nil {
+			return
+		}
 		/*
 			if d.DeviceProfile.Brightness != 0 {
 				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
@@ -2410,13 +2309,13 @@ func (d *Device) setColorEndpoint() {
 	// Close any RGB endpoint
 	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
 	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 }
 
@@ -2424,7 +2323,7 @@ func (d *Device) setColorEndpoint() {
 func (d *Device) setHardwareMode() {
 	_, err := d.transfer(cmdHardwareMode, nil, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 }
 
@@ -2432,7 +2331,7 @@ func (d *Device) setHardwareMode() {
 func (d *Device) setSoftwareMode() {
 	_, err := d.transfer(cmdSoftwareMode, nil, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 
@@ -2442,14 +2341,14 @@ func (d *Device) setSoftwareMode() {
 		// This is handy if you need to reconnect cables on HUB without power-cycle.
 		_, err = d.transfer(cmdRefreshDevices, nil, nil)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 		}
 
 		for {
 			time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 			res, err := d.transfer(cmdWaitForDevice, nil, nil)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to wait for device status")
+				logger.Log(logger.Fields{"error": err}).Error("Unable to wait for device status")
 			}
 			if res[1] == 0 {
 				// Device is initialized
@@ -2469,7 +2368,7 @@ func (d *Device) getDebugMode() {
 func (d *Device) getManufacturer() {
 	manufacturer, err := d.dev.GetMfrStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get manufacturer")
 	}
 	d.Manufacturer = manufacturer
 }
@@ -2478,7 +2377,7 @@ func (d *Device) getManufacturer() {
 func (d *Device) getProduct() {
 	product, err := d.dev.GetProductStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get product")
 	}
 	product = strings.Replace(product, "CORSAIR ", "", -1)
 	d.Product = product
@@ -2488,7 +2387,7 @@ func (d *Device) getProduct() {
 func (d *Device) getSerial() {
 	serial, err := d.dev.GetSerialNbr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get device serial number")
 	}
 	d.Serial = serial
 }
@@ -2501,7 +2400,7 @@ func (d *Device) getDeviceFirmware() {
 		nil,
 	)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
 
 	v1, v2, v3 := int(fw[4]), int(fw[5]), int(binary.LittleEndian.Uint16(fw[6:8]))
@@ -2521,25 +2420,25 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	// Close specified endpoint
 	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open endpoint
 	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
 	// Read data from endpoint
 	buffer, err = d.transfer(cmdRead, endpoint, bufferType)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to read endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
 	// Close specified endpoint
 	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 	return buffer
 }
@@ -2572,7 +2471,7 @@ func (d *Device) setupLCD() {
 			case <-lcdTimer.C:
 				for _, device := range d.Devices {
 					if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
-						lcdDevice := d.getLCDBySerial(device.LCDSerial)
+						lcdDevice := lcd.GetLcdBySerial(device.LCDSerial)
 						if lcdDevice == nil {
 							continue
 						}
@@ -2718,25 +2617,29 @@ func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 	// Close endpoint
 	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
+		return bufferR
 	}
 
 	// Open endpoint
 	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
+		return bufferR
 	}
 
 	// Send it
 	bufferR, err = d.transfer(cmdWrite, buffer, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write to endpoint")
+		return bufferR
 	}
 
 	// Close endpoint
 	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
+		return bufferR
 	}
 	return bufferR
 }
@@ -2802,7 +2705,7 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 				"chunk":   i,
 			}).Info("LCD DEBUG DATA")
 		}
-		if d.Lcd != nil {
+		if lcdDevice != nil {
 			if _, err := lcdDevice.Write(bufferW); err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 				break

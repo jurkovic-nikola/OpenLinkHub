@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/ironclawWU"
+	"OpenLinkHub/src/devices/k100"
 	"OpenLinkHub/src/devices/k100air"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k55core"
@@ -24,6 +25,8 @@ import (
 	"OpenLinkHub/src/devices/lt100"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
+	"OpenLinkHub/src/devices/nightsabreW"
+	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
@@ -57,10 +60,13 @@ const (
 	productTypeK65PlusW      = 106
 	productTypeK100Air       = 107
 	productTypeK100AirW      = 108
+	productTypeK100          = 109
 	productTypeKatarPro      = 201
 	productTypeIronClawRgb   = 202
 	productTypeIronClawRgbW  = 203
 	productTypeIronClawRgbWU = 204
+	productTypeNightsabreW   = 205
+	productTypeNightsabreWU  = 206
 	productTypeST100         = 401
 	productTypeMM700         = 402
 	productTypeLT100         = 403
@@ -94,10 +100,10 @@ var (
 	interfaceId               = 0
 	devices                   = make(map[string]*Device, 0)
 	products                  = make(map[string]Product, 0)
-	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015}
-	mouses                    = []uint16{7059, 7005, 6988}
+	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091}
+	mouses                    = []uint16{7059, 7005, 6988, 7096}
 	pads                      = []uint16{7067}
-	dongles                   = []uint16{7132}
+	dongles                   = []uint16{7132, 7078}
 )
 
 // Stop will stop all active devices
@@ -112,6 +118,7 @@ func Stop() {
 			method.Call(nil)
 		}
 	}
+
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
@@ -531,7 +538,7 @@ func ScheduleDeviceBrightness(mode uint8) {
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 		if !method.IsValid() {
 			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-			return
+			continue
 		} else {
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(mode))
@@ -1141,7 +1148,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7110: // K70 RGB PRO
+		case 7110, 7091: // K70 RGB PRO
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := k70pro.Init(vendorId, productId, key)
@@ -1209,7 +1216,24 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7132: // Corsair SLIPSTREAM WIRELESS USB Receiver
+		case 7109: // K100 RGB
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k100.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeK100,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7132, 7078: // Corsair SLIPSTREAM WIRELESS USB Receiver
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := slipstream.Init(vendorId, productId, key)
@@ -1223,6 +1247,26 @@ func Init() {
 					}
 					for _, value := range dev.Devices {
 						switch value.ProductId {
+						case 7096: // NIGHTSABRE
+							{
+								d := nightsabreW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeNightsabreW,
+									Product:     "NIGHTSABRE",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						case 7083: // K100 AIR WIRELESS
 							{
 								d := k100airW.Init(
@@ -1305,8 +1349,8 @@ func Init() {
 			}
 		case 3107: // Corsair iCUE LT100 Smart Lighting Tower
 			{
-				go func(vendorId, productId uint16, key string) {
-					dev := lt100.Init(vendorId, productId, key)
+				go func(vendorId, productId uint16, key, devicePath string) {
+					dev := lt100.Init(vendorId, productId, key, devicePath)
 					if dev == nil {
 						return
 					}
@@ -1318,7 +1362,7 @@ func Init() {
 						Image:       "icon-rgb.svg",
 						Instance:    dev,
 					}
-				}(vendorId, productId, key)
+				}(vendorId, productId, key, productPath)
 			}
 		case 7198, 7203, 7199, 7173, 7174, 7175, 7176, 7181, 7180:
 			// Corsair HX1000i Power Supply
@@ -1390,6 +1434,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeIronClawRgbWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7096: // Corsair NIGHTSABRE WIRELESS Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := nightsabreWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeNightsabreWU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

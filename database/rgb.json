@@ -128,15 +128,18 @@
     },
     "rotator": {
       "speed": 5,
+      "brightness": 1,
       "start": {
         "red": 255,
         "green": 100,
-        "blue": 149
+        "blue": 149,
+        "brightness": 1
       },
       "end": {
         "red": 255,
         "green": 100,
-        "blue": 152
+        "blue": 152,
+        "brightness": 1
       }
     },
     "wave": {

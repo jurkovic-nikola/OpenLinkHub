@@ -28,24 +28,26 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	LCDMode     uint8
-	LCDRotation uint8
-	Brightness  uint8
-	RGBProfile  string
-	Label       string
-	Layout      string
-	Keyboards   map[string]*keyboards.Keyboard
-	Profile     string
-	Profiles    []string
+	Active           bool
+	Path             string
+	Product          string
+	Serial           string
+	LCDMode          uint8
+	LCDRotation      uint8
+	Brightness       uint8
+	BrightnessSlider *uint8
+	RGBProfile       string
+	Label            string
+	Layout           string
+	Keyboards        map[string]*keyboards.Keyboard
+	Profile          string
+	Profiles         []string
 }
 
 type Device struct {
 	Debug           bool
 	dev             *hid.Device
+	listener        *hid.Device
 	Manufacturer    string `json:"manufacturer"`
 	Product         string `json:"product"`
 	Serial          string `json:"serial"`
@@ -57,6 +59,7 @@ type Device struct {
 	OriginalProfile *DeviceProfile
 	Template        string
 	VendorId        uint16
+	ProductId       uint16
 	Brightness      map[int]string
 	LEDChannels     int
 	CpuTemp         float32
@@ -104,9 +107,10 @@ func Init(vendorId, productId uint16, key string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:      dev,
-		Template: "k55core.html",
-		VendorId: vendorId,
+		dev:       dev,
+		Template:  "k55core.html",
+		VendorId:  vendorId,
+		ProductId: productId,
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -118,18 +122,19 @@ func Init(vendorId, productId uint16, key string) *Device {
 		Layouts:     keyboards.GetLayouts(keyboardKey),
 	}
 
-	d.getDebugMode()       // Debug mode
-	d.getManufacturer()    // Manufacturer
-	d.getSerial()          // Serial
-	d.loadRgb()            // Load RGB
-	d.setSoftwareMode()    // Activate software mode
-	d.initLeds()           // Init LED ports
-	d.getDeviceFirmware()  // Firmware
-	d.loadDeviceProfiles() // Load all device profiles
-	d.saveDeviceProfile()  // Save profile
-	d.setAutoRefresh()     // Set auto device refresh
-	d.setKeepAlive()       // Keepalive
-	d.setDeviceColor()     // Device color
+	d.getDebugMode()          // Debug mode
+	d.getManufacturer()       // Manufacturer
+	d.getSerial()             // Serial
+	d.loadRgb()               // Load RGB
+	d.setSoftwareMode()       // Activate software mode
+	d.initLeds()              // Init LED ports
+	d.getDeviceFirmware()     // Firmware
+	d.loadDeviceProfiles()    // Load all device profiles
+	d.saveDeviceProfile()     // Save profile
+	d.setAutoRefresh()        // Set auto device refresh
+	d.setKeepAlive()          // Keepalive
+	d.setDeviceColor()        // Device color
+	d.controlButtonListener() // Control buttons
 	return d
 }
 
@@ -304,13 +309,15 @@ func (d *Device) initLeds() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
 
 	deviceProfile := &DeviceProfile{
-		Product: d.Product,
-		Serial:  d.Serial,
-		Path:    profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -325,6 +332,13 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = []string{"default"}
 		deviceProfile.Layout = "US"
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
 		} else {
@@ -542,6 +556,24 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
 	return 1
 }
 
@@ -830,9 +862,13 @@ func (d *Device) setDeviceColor() {
 		sort.Ints(keys)
 		i := 0
 		for _, k := range keys {
-			buf[i] = byte(d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Zones[k].Color.Red)
-			buf[i+1] = byte(d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Zones[k].Color.Green)
-			buf[i+2] = byte(d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Zones[k].Color.Blue)
+			colors := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Zones[k].Color
+			colors.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+			profileColor := rgb.ModifyBrightness(colors)
+
+			buf[i] = byte(profileColor.Red)
+			buf[i+1] = byte(profileColor.Green)
+			buf[i+2] = byte(profileColor.Blue)
 			i += 3
 		}
 		d.writeColor(buf) // Write color once
@@ -841,10 +877,16 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "static" {
 		profile := d.GetRgbProfile("static")
-		if d.DeviceProfile.Brightness != 0 {
-			profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+		if profile == nil {
+			return
 		}
 
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		/*
+			if d.DeviceProfile.Brightness != 0 {
+				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+			}
+		*/
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for i := 0; i < d.LEDChannels; i++ {
 			reset[i] = []byte{
@@ -923,12 +965,16 @@ func (d *Device) setDeviceColor() {
 				}
 
 				// Brightness
-				if d.DeviceProfile.Brightness > 0 {
-					r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-					r.RGBStartColor.Brightness = r.RGBBrightness
-					r.RGBEndColor.Brightness = r.RGBBrightness
-				}
-
+				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+				r.RGBStartColor.Brightness = r.RGBBrightness
+				r.RGBEndColor.Brightness = r.RGBBrightness
+				/*
+					if d.DeviceProfile.Brightness > 0 {
+						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+						r.RGBStartColor.Brightness = r.RGBBrightness
+						r.RGBEndColor.Brightness = r.RGBBrightness
+					}
+				*/
 				switch d.DeviceProfile.RGBProfile {
 				case "off":
 					{
@@ -1145,6 +1191,66 @@ func (d *Device) writeColor(data []byte) {
 			}
 		}
 	}
+}
+
+// controlButtonListener will listen for events from the control buttons
+func (d *Device) controlButtonListener() {
+	var brightness uint8 = 0
+	brightness = *d.DeviceProfile.BrightnessSlider
+
+	go func() {
+		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+			if info.InterfaceNbr == 2 {
+				listener, err := hid.OpenPath(info.Path)
+				if err != nil {
+					return err
+				}
+				d.listener = listener
+			}
+			return nil
+		})
+
+		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+		}
+
+		// Listen loop
+		data := make([]byte, bufferSize)
+		for {
+			// Read data from the HID device
+			_, err = d.listener.Read(data)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
+				break
+			}
+
+			switch data[1] {
+			case 0x02:
+				{
+					if data[16] == 0x02 {
+
+						if brightness == 0 {
+							brightness = 100
+						} else {
+							brightness = 0
+						}
+
+						d.DeviceProfile.BrightnessSlider = &brightness
+						d.saveDeviceProfile()
+
+						if d.activeRgb != nil {
+							d.activeRgb.Exit <- true // Exit current RGB mode
+							d.activeRgb = nil
+						}
+						d.setDeviceColor() // Restart RGB
+
+					}
+				}
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+	}()
 }
 
 // transfer will send data to a device and retrieve device output

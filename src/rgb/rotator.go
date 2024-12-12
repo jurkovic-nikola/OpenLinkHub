@@ -6,11 +6,15 @@ func (r *ActiveRGB) Rotator(hue int) {
 	buf := map[int][]byte{}
 
 	for j := 0; j < r.LightChannels; j++ {
-		buf[j] = []byte{
-			byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Red))),
-			byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Green))),
-			byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Blue))),
+		color := &Color{
+			Red:        float64(byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Red)))),
+			Green:      float64(byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Green)))),
+			Blue:       float64(byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Blue)))),
+			Brightness: r.RGBBrightness,
 		}
+
+		modify := ModifyBrightness(*color)
+		buf[j] = []byte{byte(modify.Red), byte(modify.Green), byte(modify.Blue)}
 		if r.IsAIO && r.HasLCD {
 			if j > 15 && j < 20 {
 				buf[j] = []byte{0, 0, 0}

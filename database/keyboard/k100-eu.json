@@ -1,0 +1,3163 @@
+{
+  "key": "k100-default",
+  "device": "K100 RGB",
+  "layout": "EU",
+  "rows": 6,
+  "row": {
+    "0": {
+      "keys": {
+        "1": {
+          "keyName": "",
+          "width": 81,
+          "height": 20,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [
+            414
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "2": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            417
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "3": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            420
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "4": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            423
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "5": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            426
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "6": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            429
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "7": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            432
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "8": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            435
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "9": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            438
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "10": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            441
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "11": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            444
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "12": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            447
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "13": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            450
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "14": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            453
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "15": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            456
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "16": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            459
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "17": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            462
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "18": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            465
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "19": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            468
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "20": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            471
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "21": {
+          "keyName": "",
+          "width": 78,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            474
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "22": {
+          "keyName": "",
+          "width": 81,
+          "height": 20,
+          "left": 10,
+          "top": 0,
+          "packetIndex": [
+            477
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "1": {
+      "keys": {
+        "23": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": 20,
+          "packetIndex": [
+            480
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "24": {
+          "keyName": "icon-user.svg",
+          "width": 65,
+          "height": 40,
+          "left": 40,
+          "top": 20,
+          "packetIndex": [
+            384
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "25": {
+          "keyName": "icon-brightness.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            546,549,552,555,558,561,564,567,411
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "26": {
+          "keyName": "icon-lock.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            342
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "27": {
+          "keyName": "LOGO",
+          "width": 404,
+          "height": 40,
+          "left": 450,
+          "top": 20,
+          "packetIndex": [
+            570,
+            573,
+            576
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "28": {
+          "keyName": "icon-mute.svg",
+          "width": 65,
+          "height": 40,
+          "left": 441,
+          "top": 20,
+          "packetIndex": [
+            306
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "29": {
+          "keyName": "",
+          "width": 20,
+          "height": 40,
+          "left": 255,
+          "top": 20,
+          "packetIndex": [
+            513
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "2": {
+      "keys": {
+        "30": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": 10,
+          "packetIndex": [
+            483
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "31": {
+          "keyName": "G1",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            393
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "32": {
+          "keyName": "ESC",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            123
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "33": {
+          "keyName": "F1",
+          "width": 65,
+          "height": 70,
+          "left": 95,
+          "top": 20,
+          "packetIndex": [
+            174
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "34": {
+          "keyName": "F2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            177
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "35": {
+          "keyName": "F3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            180
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "36": {
+          "keyName": "F4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            183
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "37": {
+          "keyName": "F5",
+          "width": 65,
+          "height": 70,
+          "left": 55,
+          "top": 20,
+          "packetIndex": [
+            186
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "38": {
+          "keyName": "F6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            189
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "39": {
+          "keyName": "F7",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            192
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "40": {
+          "keyName": "F8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            195
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "41": {
+          "keyName": "F9",
+          "width": 65,
+          "height": 70,
+          "left": 60,
+          "top": 20,
+          "packetIndex": [
+            198
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "42": {
+          "keyName": "F10",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            201
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "43": {
+          "keyName": "F11",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            204
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "44": {
+          "keyName": "F12",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            207
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "45": {
+          "keyName": "PrtSc",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 20,
+          "packetIndex": [
+            210
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "46": {
+          "keyName": "ScrLk",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            213
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "47": {
+          "keyName": "Pause",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            216
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "48": {
+          "keyName": "icon-stop.svg",
+          "width": 65,
+          "height": 40,
+          "left": 25,
+          "top": 20,
+          "packetIndex": [
+            369
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "49": {
+          "keyName": "icon-backward.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            378
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "50": {
+          "keyName": "icon-pause.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            372
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "51": {
+          "keyName": "icon-forward.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 20,
+          "packetIndex": [
+            375
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": true
+        },
+        "52": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 15,
+          "top": 10,
+          "packetIndex": [
+            516
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "3": {
+      "keys": {
+        "53": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -30,
+          "packetIndex": [
+            486
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "54": {
+          "keyName": "G2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            396
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "55": {
+          "keyName": "` ~",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            159
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "56": {
+          "keyName": "1",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            90
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "57": {
+          "keyName": "2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            93
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "58": {
+          "keyName": "3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            96
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "59": {
+          "keyName": "4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            99
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "60": {
+          "keyName": "5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            102
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "61": {
+          "keyName": "6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            105
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "62": {
+          "keyName": "7",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            108
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "63": {
+          "keyName": "8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            111
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "64": {
+          "keyName": "9",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            114
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "65": {
+          "keyName": "0",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            117
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "66": {
+          "keyName": "-",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            135
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "67": {
+          "keyName": "=",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            138
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "68": {
+          "keyName": "\u003c---",
+          "width": 150,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            126
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "69": {
+          "keyName": "Ins",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [
+            219
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "70": {
+          "keyName": "Home",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            222
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "71": {
+          "keyName": "PgUp",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            225
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "72": {
+          "keyName": "Num",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [
+            249
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "73": {
+          "keyName": "/",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            252
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "74": {
+          "keyName": "*",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            255
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "75": {
+          "keyName": "-",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            258
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "76": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 15,
+          "top": -30,
+          "packetIndex": [
+            519
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "4": {
+      "keys": {
+        "77": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -65,
+          "packetIndex": [
+            489
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "78": {
+          "keyName": "G3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            399
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "79": {
+          "keyName": "Tab",
+          "width": 108,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            129
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "80": {
+          "keyName": "Q",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            60
+          ],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "81": {
+          "keyName": "W",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            78
+          ],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "82": {
+          "keyName": "E",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            24
+          ],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "83": {
+          "keyName": "R",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            63
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "84": {
+          "keyName": "T",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            69
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "85": {
+          "keyName": "Z",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            84
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "86": {
+          "keyName": "U",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            72
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "87": {
+          "keyName": "I",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            36
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "88": {
+          "keyName": "O",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            54
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "89": {
+          "keyName": "P",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            57
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "90": {
+          "keyName": "[ {",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            141
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "91": {
+          "keyName": "] }",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            144
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "92": {
+          "keyName": "\\ |",
+          "width": 107,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            147
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "93": {
+          "keyName": "Del",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [
+            228
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "94": {
+          "keyName": "End",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            231
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "95": {
+          "keyName": "PgDn",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            234
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "96": {
+          "keyName": "7",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [
+            285
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "97": {
+          "keyName": "8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            288
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "98": {
+          "keyName": "9",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            291
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "99": {
+          "keyName": "+",
+          "width": 65,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            261
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "100": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 15,
+          "top": -65,
+          "packetIndex": [
+            522
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "5": {
+      "keys": {
+        "101": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -100,
+          "packetIndex": [
+            492
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "102": {
+          "keyName": "G4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            402
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "103": {
+          "keyName": "CAPS",
+          "width": 131,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            171
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "104": {
+          "keyName": "A",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            12
+          ],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "105": {
+          "keyName": "S",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            66
+          ],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "106": {
+          "keyName": "D",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            21
+          ],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "107": {
+          "keyName": "F",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            27
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "108": {
+          "keyName": "G",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            30
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "109": {
+          "keyName": "H",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            33
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "110": {
+          "keyName": "J",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            39
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "111": {
+          "keyName": "K",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            42
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "112": {
+          "keyName": "L",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            45
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "113": {
+          "keyName": "; :",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            153
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "114": {
+          "keyName": "' ''",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            156
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "115": {
+          "keyName": "Enter",
+          "width": 164,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            120
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "116": {
+          "keyName": "4",
+          "width": 65,
+          "height": 70,
+          "left": 275,
+          "top": 15,
+          "packetIndex": [
+            276
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "117": {
+          "keyName": "5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            279
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "118": {
+          "keyName": "6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            282
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "119": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 95,
+          "top": -100,
+          "packetIndex": [
+            525
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "6": {
+      "keys": {
+        "120": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -135,
+          "packetIndex": [
+            495
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "121": {
+          "keyName": "G5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            405
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "122": {
+          "keyName": "Shift",
+          "width": 170,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            318
+          ],
+          "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 0,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "123": {
+          "keyName": "Y",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            87
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "124": {
+          "keyName": "X",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            81
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "125": {
+          "keyName": "C",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            18
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "126": {
+          "keyName": "V",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            75
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "127": {
+          "keyName": "B",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            15
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "128": {
+          "keyName": "N",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            51
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "129": {
+          "keyName": "M",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            48
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "130": {
+          "keyName": ", \u003c",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            162
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "131": {
+          "keyName": ". \u003e",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            165
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "132": {
+          "keyName": "/ ?",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            168
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "133": {
+          "keyName": "Shift",
+          "width": 205,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            330
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "134": {
+          "keyName": "↑",
+          "width": 65,
+          "height": 70,
+          "left": 105,
+          "top": 15,
+          "packetIndex": [
+            246
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "135": {
+          "keyName": "1",
+          "width": 65,
+          "height": 70,
+          "left": 105,
+          "top": 15,
+          "packetIndex": [
+            267
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "136": {
+          "keyName": "2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            270
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "137": {
+          "keyName": "3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            273
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "138": {
+          "keyName": "Enter",
+          "width": 65,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            264
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "139": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 15,
+          "top": -135,
+          "packetIndex": [
+            528
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "7": {
+      "keys": {
+        "140": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -170,
+          "packetIndex": [
+            498
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "141": {
+          "keyName": "G6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            408
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "142": {
+          "keyName": "Ctrl",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            315
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "143": {
+          "keyName": "⊞",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            324
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "144": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            321
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "145": {
+          "keyName": "----------",
+          "width": 455,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            132
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "146": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            333
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "147": {
+          "keyName": "Fn",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            366
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "148": {
+          "keyName": "RC",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            303
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "149": {
+          "keyName": "Ctrl",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            327
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "150": {
+          "keyName": "←",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [
+            240
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "151": {
+          "keyName": "↓",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            243
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "152": {
+          "keyName": "→",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            237
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "153": {
+          "keyName": "0",
+          "width": 145,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [
+            294
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "154": {
+          "keyName": ".",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            297
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "155": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 95,
+          "top": -170,
+          "packetIndex": [
+            531
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "8": {
+      "keys": {
+        "156": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -205,
+          "packetIndex": [
+            501
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "157": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 1880,
+          "top": -205,
+          "packetIndex": [
+            534
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "9": {
+      "keys": {
+        "158": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -155,
+          "packetIndex": [
+            504
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "159": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 1880,
+          "top": -155,
+          "packetIndex": [
+            537
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "10": {
+      "keys": {
+        "160": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -105,
+          "packetIndex": [
+            507
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "161": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 1880,
+          "top": -105,
+          "packetIndex": [
+            540
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    },
+    "11": {
+      "keys": {
+        "162": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 0,
+          "top": -55,
+          "packetIndex": [
+            510
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "163": {
+          "keyName": "",
+          "width": 10,
+          "height": 40,
+          "left": 1880,
+          "top": -55,
+          "packetIndex": [
+            543
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        }
+      }
+    }
+  },
+  "zones": null,
+  "color": {
+    "red": 0,
+    "green": 0,
+    "blue": 0,
+    "brightness": 0,
+    "Hex": ""
+  }
+}

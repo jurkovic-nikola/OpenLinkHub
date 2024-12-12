@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
+	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
@@ -598,6 +599,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.Device = device
+	web.Lcd = lcd.GetLcdDevices()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.Rgb = rgb.GetRGB().Profiles
 	web.BuildInfo = version.GetBuildInfo()

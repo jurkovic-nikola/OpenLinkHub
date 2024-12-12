@@ -78,6 +78,7 @@ var (
 	cmdBrightness           = []byte{0x01, 0x02, 0x00}
 	cmdGetFirmware          = []byte{0x02, 0x13}
 	dataTypeSetColor        = []byte{0x12, 0x00}
+	cmdKeepAlive            = []byte{0x12}
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x00}
 	deviceRefreshInterval   = 1000
@@ -479,7 +480,7 @@ func (d *Device) getDeviceProfile() {
 
 // keepAlive will keep a device alive
 func (d *Device) keepAlive() {
-	_, err := d.transfer([]byte{0x12}, nil)
+	_, err := d.transfer(cmdKeepAlive, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
@@ -1290,15 +1291,15 @@ func (d *Device) controlDialListener() {
 			case 1:
 				{
 					if value == 0 && data[19] == 2 {
-						inputmanager.VolumeControl(inputmanager.VolumeMute)
+						inputmanager.InputControl(inputmanager.VolumeMute, d.Serial)
 					} else {
 						if data[1] == 5 {
 							switch value {
 							case 1:
-								inputmanager.VolumeControl(inputmanager.VolumeUp)
+								inputmanager.InputControl(inputmanager.VolumeUp, d.Serial)
 								break
 							case 255:
-								inputmanager.VolumeControl(inputmanager.VolumeDown)
+								inputmanager.InputControl(inputmanager.VolumeDown, d.Serial)
 								break
 							}
 						}

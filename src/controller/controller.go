@@ -37,5 +37,6 @@ func Start() {
 
 // Stop will stop device control
 func Stop() {
-	devices.Stop()
+	devices.Stop() // Devices
+	lcd.Stop()     // LCDs
 }

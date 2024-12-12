@@ -22,6 +22,7 @@ type Web struct {
 	Devices           map[string]*devices.Device
 	Configuration     config.Configuration
 	Device            interface{}
+	Lcd               interface{}
 	TemperatureProbes interface{}
 	Temperatures      map[string]temperatures.TemperatureProfileData
 	Scheduler         *scheduler.Scheduler
@@ -55,6 +56,7 @@ func Init() {
 		"web/k70core.html",
 		"web/k70pro.html",
 		"web/k55core.html",
+		"web/k100.html",
 		"web/k100air.html",
 		"web/k100airW.html",
 		"web/st100.html",
@@ -66,6 +68,8 @@ func Init() {
 		"web/ironclawW.html",
 		"web/ironclawWU.html",
 		"web/slipstream.html",
+		"web/nightsabreW.html",
+		"web/nightsabreWU.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",

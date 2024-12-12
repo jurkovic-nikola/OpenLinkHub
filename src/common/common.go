@@ -148,8 +148,13 @@ func FromLinear11(bytes []byte) float32 {
 // GetTime will return current time as string
 func GetTime() string {
 	t := time.Now()
-	hour, minute, second := t.Clock()
-	return itoaTwoDigits(hour) + ":" + itoaTwoDigits(minute) + ":" + itoaTwoDigits(second)
+	hour, minute, _ := t.Clock()
+	return itoaTwoDigits(hour) + ":" + itoaTwoDigits(minute)
+}
+
+// GetDate will return the current date as string
+func GetDate() string {
+	return time.Now().Format("02, Jan 2006")
 }
 
 // itoaTwoDigits time.Clock returns one digit on values, so we make sure to convert to two digits

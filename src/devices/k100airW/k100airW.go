@@ -114,7 +114,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
-		Serial:       serial,
+		Serial:       serial + "W",
 		Endpoint:     endpoint,
 		Firmware:     "n/a",
 		Brightness: map[int]string{

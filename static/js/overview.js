@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const pf = {};
         pf["deviceId"] = deviceId;
         pf["position"] = parseInt(data[0]);
-        pf["channelId"] = parseInt(data[1]);
+        pf["deviceIdString"] = data[1];
         pf["direction"] = 0;
         const json = JSON.stringify(pf, null, 2);
 
@@ -264,7 +264,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const pf = {};
         pf["deviceId"] = deviceId;
         pf["position"] = parseInt(data[0]);
-        pf["channelId"] = parseInt(data[1]);
+        pf["deviceIdString"] = data[1];
         pf["direction"] = 1;
         const json = JSON.stringify(pf, null, 2);
 

@@ -47,6 +47,7 @@ type Payload struct {
 	RgbOn               string            `json:"rgbOn"`
 	Brightness          uint8             `json:"brightness"`
 	Position            int               `json:"position"`
+	DeviceIdString      string            `json:"deviceIdString"`
 	Direction           int               `json:"direction"`
 	StripId             int               `json:"stripId"`
 	FanMode             int               `json:"fanMode"`

@@ -21,7 +21,9 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
+	"unsafe"
 )
 
 // DeviceInfo represents a USB device
@@ -113,9 +115,15 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
+
+	// Set idle
+	err := setIdle(path)
+	if err != nil {
+		return nil
+	}
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
@@ -142,6 +150,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getSerial()          // Serial
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
+	d.wakeUpDevice()       // Wake up
 	d.getDeviceFirmware()  // Firmware
 	d.resetLeds()          // Reset all LEDs
 	if d.getDevices() > 0 {
@@ -180,6 +189,34 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+}
+
+// setIdle will set HID device to idle state
+func setIdle(devicePath string) error {
+	// Open the HID device
+	file, err := os.OpenFile(devicePath, os.O_RDWR, 0644)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open HID device")
+		return err
+	}
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}(file)
+
+	report := []byte{0x0a, 0}
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_IOCTL,
+		file.Fd(),
+		uintptr(0xC0094806),
+		uintptr(unsafe.Pointer(&report[0])),
+	)
+	if errno != 0 {
+		return errno
+	}
+	return nil
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -297,6 +334,7 @@ func (d *Device) keepAlive() {
 func (d *Device) resetLeds() {
 	buf := make([]byte, 8)
 	buf[0] = 0x00
+	d.write(0x06, buf)
 	d.write(cmdLedReset, buf) // Reset
 	d.write(cmdStart, buf)    // Start
 

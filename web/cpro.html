@@ -8,6 +8,7 @@
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
         {{ $devices := $device.Devices }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
         {{ $hubs := $device.DeviceProfile.ExternalHubs }}
         {{ $rgb := .Rgb }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
@@ -67,6 +68,8 @@
                                                 <i class="bi bi-lightning-charge svg-icon svg-icon-sm svg-icon-heavy"></i>
                                             </div>
                                             <div class="custom-float-80-right">
+                                                <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
+                                                <!--
                                                 <select class="form-select brightness" style="line-height: 1;margin-top: 10px;">
                                                     {{ range $key, $brightness := $device.Brightness }}
                                                     {{ if eq $device.DeviceProfile.Brightness $key }}
@@ -76,6 +79,7 @@
                                                     {{ end }}
                                                     {{ end }}
                                                 </select>
+                                                -->
                                             </div>
                                         </div>
                                         <div style="overflow: hidden; margin-top: 10px;">

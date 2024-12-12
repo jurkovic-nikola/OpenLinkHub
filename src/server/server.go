@@ -571,6 +571,17 @@ func saveMouseZoneColors(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// saveMouseDpiColors handles mouse DPI colors save
+func saveMouseDpiColors(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessMouseDpiColorsSave(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -854,6 +865,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(saveMouseDpi)
 	r.Methods(http.MethodPost).Path("/api/mouse/zoneColors").
 		HandlerFunc(saveMouseZoneColors)
+	r.Methods(http.MethodPost).Path("/api/mouse/dpiColors").
+		HandlerFunc(saveMouseDpiColors)
 	r.Methods(http.MethodPost).Path("/api/mouse/sleep").
 		HandlerFunc(changeSleepMode)
 

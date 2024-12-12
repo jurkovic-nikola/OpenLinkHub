@@ -1,7 +1,7 @@
-package nightsabreWU
+package scimitar
 
-// Package: CORSAIR IRONCLAW RGB Wireless
-// This is the primary package for CORSAIR IRONCLAW RGB Wireless.
+// Package: CORSAIR SCIMITAR RGB ELITE
+// This is the primary package for CORSAIR SCIMITAR RGB ELITE.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -39,7 +39,6 @@ type DeviceProfile struct {
 	BrightnessSlider *uint8
 	Label            string
 	Profile          int
-	DPIColor         *rgb.Color
 	ZoneColors       map[int]ZoneColors
 	Profiles         map[int]DPIProfile
 	SleepMode        int
@@ -50,6 +49,7 @@ type DPIProfile struct {
 	Value       uint16
 	PackerIndex int
 	ColorIndex  map[int][]int
+	Color       *rgb.Color
 }
 
 type Device struct {
@@ -86,18 +86,21 @@ var (
 	cmdWriteColor        = []byte{0x06, 0x00}
 	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
 	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi            = []byte{0x01, 0x20, 0x00}
-	cmdSleep             = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	mutex                sync.Mutex
-	timerKeepAlive       = &time.Ticker{}
-	keepAliveChan        = make(chan bool)
-	bufferSize           = 64
-	bufferSizeWrite      = bufferSize + 1
-	headerSize           = 2
-	headerWriteSize      = 4
-	minDpiValue          = 100
-	maxDpiValue          = 26000
-	deviceKeepAlive      = 20000
+	cmdSetDpi            = map[int][]byte{
+		0: {0x01, 0x21, 0x00},
+		1: {0x01, 0x22, 0x00},
+	}
+	cmdSleep        = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	mutex           sync.Mutex
+	timerKeepAlive  = &time.Ticker{}
+	keepAliveChan   = make(chan bool)
+	bufferSize      = 128
+	bufferSizeWrite = bufferSize + 1
+	headerSize      = 2
+	headerWriteSize = 4
+	minDpiValue     = 100
+	maxDpiValue     = 18000
+	deviceKeepAlive = 20000
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -113,7 +116,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
-		Template:  "nightsabreWU.html",
+		Template:  "scimitar.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Firmware:  "n/a",
@@ -123,7 +126,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "NIGHTSABRE",
+		Product: "SCIMITAR RGB ELITE",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -132,8 +135,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		LEDChannels:           15,
-		ChangeableLedChannels: 12,
+		LEDChannels:           5,
+		ChangeableLedChannels: 4,
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -430,14 +433,6 @@ func (d *Device) SaveMouseZoneColors(dpi rgb.Color, zoneColors map[int]rgb.Color
 		return 0
 	}
 
-	// DPI
-	dpiColor := d.DeviceProfile.DPIColor
-	dpiColor.Red = dpi.Red
-	dpiColor.Green = dpi.Green
-	dpiColor.Blue = dpi.Blue
-	dpiColor.Hex = fmt.Sprintf("#%02x%02x%02x", int(dpi.Red), int(dpi.Green), int(dpi.Blue))
-	d.DeviceProfile.DPIColor = dpiColor
-
 	// Zone Colors
 	for key, zone := range zoneColors {
 		if zone.Red > 255 ||
@@ -453,6 +448,52 @@ func (d *Device) SaveMouseZoneColors(dpi rgb.Color, zoneColors map[int]rgb.Color
 			zoneColor.Color.Green = zone.Green
 			zoneColor.Color.Blue = zone.Blue
 			zoneColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(zone.Red), int(zone.Green), int(zone.Blue))
+		}
+		i++
+	}
+
+	if i > 0 {
+		d.saveDeviceProfile()
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+		return 1
+	}
+	return 0
+}
+
+// SaveMouseDpiColors will save mouse dpi colors
+func (d *Device) SaveMouseDpiColors(dpi rgb.Color, dpiColors map[int]rgb.Color) uint8 {
+	i := 0
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if dpi.Red > 255 ||
+		dpi.Green > 255 ||
+		dpi.Blue > 255 ||
+		dpi.Red < 0 ||
+		dpi.Green < 0 ||
+		dpi.Blue < 0 {
+		return 0
+	}
+
+	// Zone Colors
+	for key, zone := range dpiColors {
+		if zone.Red > 255 ||
+			zone.Green > 255 ||
+			zone.Blue > 255 ||
+			zone.Red < 0 ||
+			zone.Green < 0 ||
+			zone.Blue < 0 {
+			continue
+		}
+		if profileColor, ok := d.DeviceProfile.Profiles[key]; ok {
+			profileColor.Color.Red = zone.Red
+			profileColor.Color.Green = zone.Green
+			profileColor.Color.Blue = zone.Blue
+			profileColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(zone.Red), int(zone.Green), int(zone.Blue))
 		}
 		i++
 	}
@@ -531,8 +572,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = "Mouse"
 		deviceProfile.Active = true
 		deviceProfile.ZoneColors = map[int]ZoneColors{
-			0: { // Front left
-				ColorIndex: []int{0, 15, 30},
+			0: { // Front
+				ColorIndex: []int{2, 7, 12},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      0,
@@ -540,21 +581,21 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
-				Name: "Front Left",
+				Name: "Front",
 			},
-			1: { // Front right
-				ColorIndex: []int{1, 16, 31},
+			1: { // Scroll
+				ColorIndex: []int{1, 6, 11},
 				Color: &rgb.Color{
 					Red:        255,
-					Green:      0,
+					Green:      255,
 					Blue:       0,
 					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
 				},
-				Name: "Front Right",
+				Name: "Scroll",
 			},
-			2: { // Left Palm 1
-				ColorIndex: []int{2, 17, 32},
+			2: { // Side
+				ColorIndex: []int{3, 8, 13},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -562,65 +603,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Left Palm 1",
+				Name: "Side",
 			},
-			3: { // Left Palm 2
-				ColorIndex: []int{3, 18, 33},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Left Palm 2",
-			},
-			4: { // Left Palm 3
-				ColorIndex: []int{4, 19, 34},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Left Palm 3",
-			},
-			5: { // Right Palm 1
-				ColorIndex: []int{5, 20, 35},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Right Palm 1",
-			},
-			6: { // Right Palm 2
-				ColorIndex: []int{6, 21, 36},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Right Palm 2",
-			},
-			7: { // Right Palm 3
-				ColorIndex: []int{7, 22, 37},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Right Palm 3",
-			},
-			8: { // Logo
-				ColorIndex: []int{8, 23, 38},
+			3: { // Logo
+				ColorIndex: []int{0, 5, 10},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -630,88 +616,81 @@ func (d *Device) saveDeviceProfile() {
 				},
 				Name: "Logo",
 			},
-			9: { // Rear Bottom 1
-				ColorIndex: []int{9, 24, 39},
-				Color: &rgb.Color{
-					Red:        255,
-					Green:      255,
-					Blue:       0,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
-				},
-				Name: "Rear Bottom 1",
-			},
-			10: { // Rear Bottom 2
-				ColorIndex: []int{10, 25, 40},
-				Color: &rgb.Color{
-					Red:        255,
-					Green:      255,
-					Blue:       0,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
-				},
-				Name: "Rear Bottom 2",
-			},
-			11: { // Rear Bottom 3
-				ColorIndex: []int{11, 26, 41},
-				Color: &rgb.Color{
-					Red:        255,
-					Green:      255,
-					Blue:       0,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
-				},
-				Name: "Rear Bottom 3",
-			},
-		}
-		deviceProfile.DPIColor = &rgb.Color{
-			Red:        0,
-			Green:      255,
-			Blue:       255,
-			Brightness: 1,
-			Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 		}
 		deviceProfile.Profiles = map[int]DPIProfile{
 			0: {
 				Name:        "Stage 1",
-				Value:       400,
+				Value:       800,
 				PackerIndex: 1,
 				ColorIndex: map[int][]int{
-					0: {12, 27, 42},
+					0: {4, 9, 14},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
 			},
 			1: {
 				Name:        "Stage 2",
-				Value:       800,
+				Value:       1500,
 				PackerIndex: 2,
 				ColorIndex: map[int][]int{
-					0: {12, 27, 42},
-					1: {13, 28, 43},
+					0: {4, 9, 14},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 255),
 				},
 			},
 			2: {
 				Name:        "Stage 3",
-				Value:       1200,
+				Value:       3000,
 				PackerIndex: 3,
 				ColorIndex: map[int][]int{
-					0: {13, 28, 43},
+					0: {4, 9, 14},
+				},
+				Color: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 0),
 				},
 			},
 			3: {
 				Name:        "Stage 4",
-				Value:       1600,
+				Value:       6000,
 				PackerIndex: 4,
 				ColorIndex: map[int][]int{
-					0: {13, 28, 43},
-					1: {14, 29, 44},
+					0: {4, 9, 14},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 255),
 				},
 			},
 			4: {
 				Name:        "Stage 5",
-				Value:       3200,
+				Value:       9000,
 				PackerIndex: 5,
 				ColorIndex: map[int][]int{
-					0: {14, 29, 44},
+					0: {4, 9, 14},
+				},
+				Color: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
 			},
 		}
@@ -730,7 +709,6 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Profile = d.DeviceProfile.Profile
-		deviceProfile.DPIColor = d.DeviceProfile.DPIColor
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 
@@ -920,13 +898,7 @@ func (d *Device) setDeviceColor() {
 	}
 
 	// DPI
-	dpiColor := d.DeviceProfile.DPIColor
-	/*
-		if d.DeviceProfile.Brightness != 0 {
-			dpiColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-		}
-	*/
-
+	dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
 	dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 	dpiColor = rgb.ModifyBrightness(*dpiColor)
 
@@ -947,14 +919,8 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "mouse" {
 		for _, zoneColor := range d.DeviceProfile.ZoneColors {
-			/*
-				if d.DeviceProfile.Brightness != 0 {
-					zoneColor.Color.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-				}
-			*/
 			zoneColor.Color.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			zoneColor.Color = rgb.ModifyBrightness(*zoneColor.Color)
-
 			zoneColorIndexRange := zoneColor.ColorIndex
 			for key, zoneColorIndex := range zoneColorIndexRange {
 				switch key {
@@ -978,13 +944,7 @@ func (d *Device) setDeviceColor() {
 		}
 
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-		/*
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-			}
-		*/
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
-
 		for _, zoneColor := range d.DeviceProfile.ZoneColors {
 			zoneColorIndexRange := zoneColor.ColorIndex
 			for key, zoneColorIndex := range zoneColorIndexRange {
@@ -1069,14 +1029,6 @@ func (d *Device) setDeviceColor() {
 				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
-
-				/*
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
-				*/
 
 				switch d.DeviceProfile.RGBProfile {
 				case "off":
@@ -1271,17 +1223,11 @@ func (d *Device) setDeviceColor() {
 	}(d.ChangeableLedChannels)
 }
 
-func (d *Device) ModifyDpi(increment bool) {
-	if increment {
-		if d.DeviceProfile.Profile >= 4 {
-			return
-		}
-		d.DeviceProfile.Profile++
+func (d *Device) ModifyDpi() {
+	if d.DeviceProfile.Profile >= 4 {
+		d.DeviceProfile.Profile = 0
 	} else {
-		if d.DeviceProfile.Profile <= 0 {
-			return
-		}
-		d.DeviceProfile.Profile--
+		d.DeviceProfile.Profile++
 	}
 	d.saveDeviceProfile()
 	d.toggleDPI()
@@ -1303,9 +1249,11 @@ func (d *Device) toggleDPI() {
 
 		buf := make([]byte, 2)
 		binary.LittleEndian.PutUint16(buf[0:2], value)
-		_, err := d.transfer(cmdSetDpi, buf)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
+		for i := 0; i <= 1; i++ {
+			_, err := d.transfer(cmdSetDpi[i], buf)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
+			}
 		}
 
 		if d.activeRgb != nil {
@@ -1449,12 +1397,10 @@ func (d *Device) controlListener() {
 				break
 			}
 
-			if data[2] == 0x80 {
-				d.ModifyDpi(true)
-			} else if data[2] == 0x00 && data[3] == 0x01 {
-				d.ModifyDpi(false)
+			if data[1] == 0x02 && data[2] == 0x08 {
+				d.ModifyDpi()
 			}
-			time.Sleep(20 * time.Millisecond)
+			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 }

@@ -168,15 +168,51 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const dpiColor = $("#dpiColor").val();
-        const dpiColorRgb = hexToRgb(dpiColor);
-
         const pf = {};
         pf["deviceId"] = deviceId;
-        pf["colorDpi"] = {red:dpiColorRgb.r, green:dpiColorRgb.g, blue:dpiColorRgb.b}
         pf["colorZones"] = colors
+        if (dpiColor != null) {
+            const dpiColorRgb = hexToRgb(dpiColor);
+            pf["colorDpi"] = {red:dpiColorRgb.r, green:dpiColorRgb.g, blue:dpiColorRgb.b}
+        }
+
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
             url: '/api/mouse/zoneColors',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload()
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('#saveDpiColors').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const dpis = parseInt($("#dpis").val());
+
+        let colors = {};
+        for (let i = 0; i < dpis; i++) {
+            const dpiColor = $("#dpiColor"+i).val();
+            const dpiColorRgb = hexToRgb(dpiColor);
+            colors[i] = {red: dpiColorRgb.r, green: dpiColorRgb.g, blue: dpiColorRgb.b}
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["colorZones"] = colors
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/mouse/dpiColors',
             type: 'POST',
             data: json,
             cache: false,

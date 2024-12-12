@@ -1400,3 +1400,31 @@ func ProcessMouseZoneColorsSave(r *http.Request) *Payload {
 	}
 	return &Payload{Message: "Unable to save mouse zone colors", Code: http.StatusOK, Status: 0}
 }
+
+// ProcessMouseDpiColorsSave will process a POST request from a client for mouse dpi colors save
+func ProcessMouseDpiColorsSave(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.SaveMouseDpiColors(req.DeviceId, req.ColorDpi, req.ColorZones)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to save mouse DPI colors", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Mouse DPI colors are successfully updated", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to save mouse DPI colors", Code: http.StatusOK, Status: 0}
+}

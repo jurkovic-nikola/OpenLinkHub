@@ -199,6 +199,10 @@
         {
           "productId": "1bb8",
           "kernel": "hidraw*"
+        },
+        {
+          "productId": "1be3",
+          "kernel": "hidraw*"
         }
       ]
     }

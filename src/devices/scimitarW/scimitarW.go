@@ -1,7 +1,7 @@
-package scimitar
+package scimitarW
 
-// Package: CORSAIR SCIMITAR RGB ELITE
-// This is the primary package for CORSAIR SCIMITAR RGB ELITE.
+// Package: CORSAIR SCIMITAR RGB ELITE WIRELESS
+// This is the primary package for CORSAIR SCIMITAR RGB ELITE WIRELESS.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -69,6 +69,7 @@ type Device struct {
 	Template              string
 	VendorId              uint16
 	ProductId             uint16
+	SlipstreamId          uint16
 	Brightness            map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
@@ -76,51 +77,47 @@ type Device struct {
 	GpuTemp               float32
 	Layouts               []string
 	Rgb                   *rgb.RGB
+	Endpoint              byte
 	SleepModes            map[int]string
+	Connected             bool
 }
 
 var (
 	pwd                  = ""
 	cmdSoftwareMode      = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode      = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdSleepMode         = []byte{0x01, 0x03, 0x00, 0x04}
 	cmdGetFirmware       = []byte{0x02, 0x13}
 	cmdWriteColor        = []byte{0x06, 0x00}
 	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
 	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
 	cmdSetDpi            = map[int][]byte{
-		0: {0x01, 0x21, 0x00},
-		1: {0x01, 0x22, 0x00},
+		0: {0x01, 0x20, 0x00},
 	}
 	cmdSleep        = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
 	mutex           sync.Mutex
-	timerKeepAlive  = &time.Ticker{}
-	keepAliveChan   = make(chan bool)
-	bufferSize      = 128
+	bufferSize      = 64
 	bufferSizeWrite = bufferSize + 1
 	headerSize      = 2
 	headerWriteSize = 4
 	minDpiValue     = 100
-	maxDpiValue     = 18000
-	deviceKeepAlive = 20000
+	maxDpiValue     = 26000
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
-	dev, err := hid.OpenPath(key)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
-		return nil
-	}
-
 	// Init new struct with HID device
 	d := &Device{
-		dev:       dev,
-		Template:  "scimitar.html",
-		VendorId:  vendorId,
-		ProductId: productId,
-		Firmware:  "n/a",
+		dev:          dev,
+		Template:     "scimitarW.html",
+		VendorId:     vendorId,
+		ProductId:    productId,
+		SlipstreamId: slipstreamId,
+		Serial:       serial,
+		Endpoint:     endpoint,
+		Firmware:     "n/a",
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -136,68 +133,46 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		LEDChannels:           5,
-		ChangeableLedChannels: 4,
+		LEDChannels:           4,
+		ChangeableLedChannels: 2,
 	}
 
 	d.getDebugMode()       // Debug mode
-	d.getManufacturer()    // Manufacturer
-	d.getSerial()          // Serial
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
-	d.getDeviceFirmware()  // Firmware
-	d.setSoftwareMode()    // Activate software mode
-	d.initLeds()           // Init LED ports
-	d.setDeviceColor()     // Device color
-	d.toggleDPI()          // DPI
-	d.controlListener()    // Control listener
-	d.setKeepAlive()       // Keepalive
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	// Placeholder
+}
+
+// StopInternal will stop all device operations and switch a device back to hardware mode
+func (d *Device) StopInternal() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
-
 	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			return
-		}
-	}
-
-	if d.listener != nil {
-		err := d.listener.Close()
-		if err != nil {
-			return
-		}
-	}
 }
 
-// getManufacturer will return device manufacturer
-func (d *Device) getManufacturer() {
-	manufacturer, err := d.dev.GetMfrStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
-	}
-	d.Manufacturer = manufacturer
+// SetConnected will change connected status
+func (d *Device) SetConnected(value bool) {
+	d.Connected = value
 }
 
-// getSerial will return device serial number
-func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
+// Connect will connect to a device
+func (d *Device) Connect() {
+	if !d.Connected {
+		d.Connected = true
+		d.getDeviceFirmware() // Firmware
+		d.setSoftwareMode()   // Activate software mode
+		d.initLeds()          // Init LED ports
+		d.setDeviceColor()    // Device color
+		d.toggleDPI()         // DPI
 	}
-	d.Serial = serial
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -532,6 +507,15 @@ func (d *Device) setSoftwareMode() {
 	}
 }
 
+// SetSleepMode will switch a device to sleep mode
+func (d *Device) SetSleepMode() {
+	_, err := d.transfer(cmdSleepMode, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+	}
+	d.Connected = false
+}
+
 // GetSleepMode will return current sleep mode
 func (d *Device) GetSleepMode() int {
 	if d.DeviceProfile != nil {
@@ -573,19 +557,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = "Mouse"
 		deviceProfile.Active = true
 		deviceProfile.ZoneColors = map[int]ZoneColors{
-			0: { // Front
-				ColorIndex: []int{2, 7, 12},
-				Color: &rgb.Color{
-					Red:        255,
-					Green:      0,
-					Blue:       0,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
-				},
-				Name: "Front",
-			},
-			1: { // Scroll
-				ColorIndex: []int{1, 6, 11},
+			0: { // Side
+				ColorIndex: []int{1, 5, 9},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      255,
@@ -593,21 +566,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
 				},
-				Name: "Scroll",
-			},
-			2: { // Side
-				ColorIndex: []int{3, 8, 13},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
 				Name: "Side",
 			},
-			3: { // Logo
-				ColorIndex: []int{0, 5, 10},
+			1: { // Logo
+				ColorIndex: []int{0, 4, 8},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -621,10 +583,10 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = map[int]DPIProfile{
 			0: {
 				Name:        "Stage 1",
-				Value:       800,
+				Value:       400,
 				PackerIndex: 1,
 				ColorIndex: map[int][]int{
-					0: {4, 9, 14},
+					0: {2, 6, 10},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -636,10 +598,10 @@ func (d *Device) saveDeviceProfile() {
 			},
 			1: {
 				Name:        "Stage 2",
-				Value:       1500,
+				Value:       800,
 				PackerIndex: 2,
 				ColorIndex: map[int][]int{
-					0: {4, 9, 14},
+					0: {2, 6, 10},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -651,10 +613,10 @@ func (d *Device) saveDeviceProfile() {
 			},
 			2: {
 				Name:        "Stage 3",
-				Value:       3000,
+				Value:       1200,
 				PackerIndex: 3,
 				ColorIndex: map[int][]int{
-					0: {4, 9, 14},
+					0: {2, 6, 10},
 				},
 				Color: &rgb.Color{
 					Red:        0,
@@ -666,10 +628,10 @@ func (d *Device) saveDeviceProfile() {
 			},
 			3: {
 				Name:        "Stage 4",
-				Value:       6000,
+				Value:       1600,
 				PackerIndex: 4,
 				ColorIndex: map[int][]int{
-					0: {4, 9, 14},
+					0: {2, 6, 10},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -681,10 +643,10 @@ func (d *Device) saveDeviceProfile() {
 			},
 			4: {
 				Name:        "Stage 5",
-				Value:       9000,
+				Value:       3200,
 				PackerIndex: 5,
 				ColorIndex: map[int][]int{
-					0: {4, 9, 14},
+					0: {2, 6, 10},
 				},
 				Color: &rgb.Color{
 					Red:        0,
@@ -1265,31 +1227,6 @@ func (d *Device) toggleDPI() {
 	}
 }
 
-// keepAlive will keep a device alive
-func (d *Device) keepAlive() {
-	_, err := d.transferDevice([]byte{0x12}, nil)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-	}
-}
-
-// setAutoRefresh will refresh device data
-func (d *Device) setKeepAlive() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	keepAliveChan = make(chan bool)
-	go func() {
-		for {
-			select {
-			case <-timerKeepAlive.C:
-				d.keepAlive()
-			case <-keepAliveChan:
-				timerKeepAlive.Stop()
-				return
-			}
-		}
-	}()
-}
-
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
 	buffer := make([]byte, len(data)+headerWriteSize)
@@ -1310,7 +1247,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = 0x08
+	bufferW[1] = d.Endpoint
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {
@@ -1342,7 +1279,7 @@ func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = 0x08
+	bufferW[1] = d.Endpoint
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {

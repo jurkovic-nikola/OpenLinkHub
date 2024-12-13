@@ -106,7 +106,7 @@
         },
         {
           "productId": "1bdc",
-          "kernel": "hidraw*"
+          "kernel": ""
         },
         {
           "productId": "0a34",
@@ -202,11 +202,11 @@
         },
         {
           "productId": "1be3",
-          "kernel": "hidraw*"
+          "kernel": ""
         },
         {
           "productId": "1bdb",
-          "kernel": "hidraw*"
+          "kernel": ""
         }
       ]
     }

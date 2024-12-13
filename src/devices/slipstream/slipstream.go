@@ -1,9 +1,12 @@
 package slipstream
 
 import (
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/nightsabreW"
+	"OpenLinkHub/src/devices/scimitarW"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"bytes"
 	"encoding/binary"
@@ -40,6 +43,7 @@ type Device struct {
 	PairedDevices map[uint16]any
 	SingleDevice  bool
 	Template      string
+	Debug         bool
 }
 
 var (
@@ -84,6 +88,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		Template:      "slipstream.html",
 	}
 
+	d.getDebugMode()      // Debug
 	d.getManufacturer()   // Manufacturer
 	d.getProduct()        // Product
 	d.getSerial()         // Serial
@@ -109,17 +114,30 @@ func (d *Device) Stop() {
 		switch key {
 		case 7096:
 			if dev, found := value.(*nightsabreW.Device); found {
-				dev.StopInternal()
+				if dev.Connected {
+					dev.StopInternal()
+				}
 			}
 			break
 		case 7083:
 			if dev, found := value.(*k100airW.Device); found {
-				dev.StopInternal()
+				if dev.Connected {
+					dev.StopInternal()
+				}
 			}
 			break
 		case 6988:
 			if dev, found := value.(*ironclawW.Device); found {
-				dev.StopInternal()
+				if dev.Connected {
+					dev.StopInternal()
+				}
+			}
+			break
+		case 7131:
+			if dev, found := value.(*scimitarW.Device); found {
+				if dev.Connected {
+					dev.StopInternal()
+				}
 			}
 			break
 		}
@@ -141,6 +159,11 @@ func (d *Device) Stop() {
 	}
 }
 
+// getManufacturer will return device manufacturer
+func (d *Device) getDebugMode() {
+	d.Debug = config.GetConfig().Debug
+}
+
 // GetDeviceTemplate will return device template name
 func (d *Device) GetDeviceTemplate() string {
 	return d.Template
@@ -160,6 +183,10 @@ func (d *Device) GetDevice() *hid.Device {
 func (d *Device) getDevices() {
 	var devices = make(map[int]*Devices, 0)
 	buff := d.read(cmdGetDevices)
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
+	}
+
 	channels := buff[5]
 	data := buff[6:]
 	position := 0
@@ -304,6 +331,43 @@ func (d *Device) read(endpoint []byte) []byte {
 func (d *Device) processDevice(productId uint16, packet []byte) {
 	if dev, ok := d.PairedDevices[productId]; ok {
 		switch productId {
+		case 7131:
+			{
+				if value, found := dev.(*scimitarW.Device); found {
+					switch packet[1] {
+					case 0x01:
+						{
+							if d.SingleDevice {
+								if packet[0] == 0x01 {
+									value.SetConnected(false)
+								}
+							} else {
+								if packet[0] == 0x02 {
+									value.SetConnected(false)
+								}
+							}
+						}
+					case 0x00:
+						{
+							value.SetConnected(false)
+						}
+						break
+					case 0x12:
+						{
+							if d.SingleDevice {
+								if packet[0] == 0x01 {
+									value.Connect()
+								}
+							} else {
+								if packet[0] == 0x02 {
+									value.Connect()
+								}
+							}
+						}
+						break
+					}
+				}
+			}
 		case 7096:
 			{
 				if value, found := dev.(*nightsabreW.Device); found {
@@ -454,6 +518,15 @@ func (d *Device) sleepMonitor() {
 							if inactive > 0 {
 								if dev, ok := d.PairedDevices[value.ProductId]; ok {
 									switch value.ProductId {
+									case 7131:
+										{
+											if device, found := dev.(*scimitarW.Device); found {
+												sleepMode := device.GetSleepMode() * 60
+												if inactive >= sleepMode {
+													device.SetSleepMode()
+												}
+											}
+										}
 									case 7096:
 										{
 											if device, found := dev.(*nightsabreW.Device); found {
@@ -523,6 +596,38 @@ func (d *Device) controlListener() {
 				{
 					for key, value := range d.PairedDevices {
 						switch key {
+						case 7131:
+							if dev, found := value.(*scimitarW.Device); found {
+								if data[1] == 0x02 {
+									if data[2] == 0x08 {
+										dev.ModifyDpi()
+									} else if data[2] == 0x20 {
+										inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
+									} else if data[2] == 0x40 {
+										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
+									} else if data[2] == 0x80 {
+										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
+									} else if data[3] == 0x01 {
+										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
+									} else if data[3] == 0x02 {
+										inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
+									} else if data[3] == 0x04 {
+										inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
+									} else if data[3] == 0x08 {
+										inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
+									} else if data[3] == 0x10 {
+										inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
+									} else if data[3] == 0x20 {
+										inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
+									} else if data[3] == 0x40 {
+										inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
+									} else if data[3] == 0x80 {
+										inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
+									} else if data[4] == 0x01 {
+										inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+									}
+								}
+							}
 						case 7096:
 							if dev, found := value.(*nightsabreW.Device); found {
 								if data[2] == 0x80 {
@@ -532,7 +637,6 @@ func (d *Device) controlListener() {
 								}
 							}
 							break
-
 						case 6988:
 							if dev, found := value.(*ironclawW.Device); found {
 								switch data[2] {
@@ -595,7 +699,7 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device

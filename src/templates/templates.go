@@ -72,12 +72,14 @@ func Init() {
 		"web/nightsabreWU.html",
 		"web/scimitar.html",
 		"web/scimitarWU.html",
+		"web/scimitarW.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",
 		"web/navigation.html",
 		"web/footer.html",
 		"web/header.html",
+		"web/404.html",
 	)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Failed to load templates")

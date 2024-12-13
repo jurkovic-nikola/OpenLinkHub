@@ -1,6 +1,7 @@
 package systeminfo
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"bufio"
@@ -13,7 +14,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type CpuData struct {
@@ -52,7 +52,11 @@ type SystemInfo struct {
 	Motherboard *MotherboardData
 }
 
-var info *SystemInfo
+var (
+	info      *SystemInfo
+	prevTotal = 0
+	prevIdle  = 0
+)
 
 // Init will initialize and store system info
 func Init() {
@@ -359,14 +363,47 @@ func getCpuUtilizationData() (idle, total uint64) {
 
 // GetCpuUtilization will return CPU utilization
 func GetCpuUtilization() float64 {
-	idle0, total0 := getCpuUtilizationData()
-	time.Sleep(100 * time.Millisecond)
-	idle1, total1 := getCpuUtilizationData()
+	file, err := os.Open("/proc/stat")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to open /proc/stat")
+		return 0
+	}
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
 
-	idleTicks := float64(idle1 - idle0)
-	totalTicks := float64(total1 - total0)
-	cpuUsage := 100 * (totalTicks - idleTicks) / totalTicks
-	return cpuUsage
+		}
+	}(file)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "cpu") {
+			fields := strings.Fields(line)
+			var (
+				user    = common.Atoi(fields[1])
+				nice    = common.Atoi(fields[2])
+				system  = common.Atoi(fields[3])
+				idle    = common.Atoi(fields[4])
+				iowait  = common.Atoi(fields[5])
+				irq     = common.Atoi(fields[6])
+				softirq = common.Atoi(fields[7])
+			)
+
+			total := user + nice + system + idle + iowait + irq + softirq
+			idleTime := idle + iowait
+
+			totalDiff := total - prevTotal
+			idleDiff := idleTime - prevIdle
+
+			prevTotal = total
+			prevIdle = idleTime
+
+			cpuUsage := float64(totalDiff-idleDiff) / float64(totalDiff) * 100
+			return cpuUsage
+		}
+	}
+	return 0
 }
 
 // getAMDUtilization fetches the GPU utilization using rocm-smi

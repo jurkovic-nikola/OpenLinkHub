@@ -1,5 +1,11 @@
 package inputmanager
 
+// Package: Input Manager
+// This is the primary package for handling user inputs.
+// All device input actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/logger"
 	"bytes"
@@ -19,6 +25,18 @@ const (
 	MediaPrev      uint8 = 4
 	MediaPlayPause uint8 = 5
 	MediaNext      uint8 = 6
+	Number1        uint8 = 7
+	Number2        uint8 = 8
+	Number3        uint8 = 9
+	Number4        uint8 = 10
+	Number5        uint8 = 11
+	Number6        uint8 = 12
+	Number7        uint8 = 13
+	Number8        uint8 = 14
+	Number9        uint8 = 15
+	Number10       uint8 = 16
+	Number11       uint8 = 17
+	Number12       uint8 = 18
 )
 
 var (
@@ -31,6 +49,18 @@ var (
 	keyMediaPrev  uint16 = 0xA5
 	keyMediaPlay  uint16 = 0xA4
 	keyMediaNext  uint16 = 0xA3
+	keyNumber1    uint16 = 0x2
+	keyNumber2    uint16 = 0x3
+	keyNumber3    uint16 = 0x4
+	keyNumber4    uint16 = 0x5
+	keyNumber5    uint16 = 0x6
+	keyNumber6    uint16 = 0x7
+	keyNumber7    uint16 = 0x8
+	keyNumber8    uint16 = 0x9
+	keyNumber9    uint16 = 0xA
+	keyNumber10   uint16 = 0xB
+	keyNumber11   uint16 = 0xC
+	keyNumber12   uint16 = 0xD
 	devicePath    []string
 )
 
@@ -91,6 +121,42 @@ func InputControl(controlType uint8, serial string) {
 		break
 	case 6:
 		events = createInputEvent(keyMediaNext)
+		break
+	case 7:
+		events = createInputEvent(keyNumber1)
+		break
+	case 8:
+		events = createInputEvent(keyNumber2)
+		break
+	case 9:
+		events = createInputEvent(keyNumber3)
+		break
+	case 10:
+		events = createInputEvent(keyNumber4)
+		break
+	case 11:
+		events = createInputEvent(keyNumber5)
+		break
+	case 12:
+		events = createInputEvent(keyNumber6)
+		break
+	case 13:
+		events = createInputEvent(keyNumber7)
+		break
+	case 14:
+		events = createInputEvent(keyNumber8)
+		break
+	case 15:
+		events = createInputEvent(keyNumber9)
+		break
+	case 16:
+		events = createInputEvent(keyNumber10)
+		break
+	case 17:
+		events = createInputEvent(keyNumber11)
+		break
+	case 18:
+		events = createInputEvent(keyNumber12)
 		break
 	}
 

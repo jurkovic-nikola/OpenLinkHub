@@ -9,7 +9,7 @@ vendor_id=$(echo "$ids" | cut -d':' -f1)
 device_id=$(echo "$ids" | cut -d':' -f2)
 
 match=false
-usb_array=("1bc5" "2b10" "2b07" "1bfd" "1bfe")
+usb_array=("1bc5" "2b10" "2b07" "1bfd" "1bfe" "1be3" "1bdb" "1bdc")
 for hex in "${usb_array[@]}"; do
     if [ "$hex" == "$device_id" ]; then
         match=true

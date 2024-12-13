@@ -9,6 +9,7 @@ package scimitarWU
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"encoding/binary"
@@ -1373,10 +1374,36 @@ func (d *Device) controlListener() {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
 				break
 			}
-			if data[1] == 0x02 && data[2] == 0x08 {
-				d.ModifyDpi()
+
+			if data[1] == 0x02 {
+				if data[2] == 0x08 {
+					d.ModifyDpi()
+				} else if data[2] == 0x20 {
+					inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
+				} else if data[2] == 0x40 {
+					inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
+				} else if data[2] == 0x80 {
+					inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
+				} else if data[3] == 0x01 {
+					inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
+				} else if data[3] == 0x02 {
+					inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
+				} else if data[3] == 0x04 {
+					inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
+				} else if data[3] == 0x08 {
+					inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
+				} else if data[3] == 0x10 {
+					inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
+				} else if data[3] == 0x20 {
+					inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
+				} else if data[3] == 0x40 {
+					inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
+				} else if data[3] == 0x80 {
+					inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
+				} else if data[4] == 0x01 {
+					inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+				}
 			}
-			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 }

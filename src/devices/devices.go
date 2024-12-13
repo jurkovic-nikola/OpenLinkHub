@@ -29,6 +29,7 @@ import (
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/scimitar"
+	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
@@ -70,6 +71,7 @@ const (
 	productTypeNightsabreW        = 205
 	productTypeNightsabreWU       = 206
 	productTypeScimitarRgbElite   = 207
+	productTypeScimitarRgbEliteW  = 208
 	productTypeScimitarRgbEliteWU = 209
 	productTypeST100              = 401
 	productTypeMM700              = 402
@@ -131,6 +133,9 @@ func Stop() {
 
 // GetDeviceTemplate will return device template
 func GetDeviceTemplate(device interface{}) string {
+	if device == nil {
+		return "404.html"
+	}
 	methodName := "GetDeviceTemplate"
 	method := reflect.ValueOf(device).MethodByName(methodName)
 	if !method.IsValid() {
@@ -1274,6 +1279,26 @@ func Init() {
 					}
 					for _, value := range dev.Devices {
 						switch value.ProductId {
+						case 7131:
+							{
+								d := scimitarW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeScimitarRgbEliteW,
+									Product:     "SCIMITAR RGB ELITE",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						case 7096: // NIGHTSABRE
 							{
 								d := nightsabreW.Init(

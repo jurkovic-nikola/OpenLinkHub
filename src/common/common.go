@@ -1,10 +1,8 @@
 package common
 
 import (
-	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -33,6 +31,12 @@ func Clamp(value, min, max int) int {
 	}
 
 	return value
+}
+
+// Atoi string to integer
+func Atoi(s string) int {
+	val, _ := strconv.Atoi(s)
+	return val
 }
 
 // FClamp function restricts the value within the specified range [min, max].
@@ -112,24 +116,6 @@ func IndexOfString(slice []string, target string) int {
 		}
 	}
 	return -1 // Return -1 if the target is not found
-}
-
-// ChangeVolume will change the volume by the given percentage.
-func ChangeVolume(percent int, increases bool) error {
-	if increases {
-		return exec.Command("pactl", "set-sink-volume", "@DEFAULT_SINK@", fmt.Sprintf("+%d%%", percent)).Run()
-	} else {
-		return exec.Command("pactl", "set-sink-volume", "@DEFAULT_SINK@", fmt.Sprintf("-%d%%", percent)).Run()
-	}
-}
-
-// MuteSound mutes the default sink
-func MuteSound(mute bool) error {
-	if mute {
-		return exec.Command("pactl", "set-sink-mute", "@DEFAULT_SINK@", "1").Run()
-	} else {
-		return exec.Command("pactl", "set-sink-mute", "@DEFAULT_SINK@", "0").Run()
-	}
 }
 
 func FromLinear11(bytes []byte) float32 {

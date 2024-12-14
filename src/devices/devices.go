@@ -101,7 +101,7 @@ type Product struct {
 }
 
 var (
-	expectedPermission        = 0666
+	expectedPermission        = 0600
 	vendorId           uint16 = 6940 // Corsair
 	interfaceId               = 0
 	devices                   = make(map[string]*Device, 0)

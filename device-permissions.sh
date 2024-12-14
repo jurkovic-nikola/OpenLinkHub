@@ -3,6 +3,7 @@ echo "Cleanup..."
 sudo rm -f /etc/udev/rules.d/99-corsair-*.rules
 
 echo "Setting udev device permissions..."
+APP_USERNAME="openlinkhub"
 lsusb -d 1b1c: | while read -r line; do
 ids=$(echo "$line" | awk '{print $6}')
 vendor_id=$(echo "$ids" | cut -d':' -f1)
@@ -19,11 +20,11 @@ done
 
 if [ "$match" = true ]; then
 cat > /etc/udev/rules.d/99-corsair-"$device_id".rules <<- EOM
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="$vendor_id", ATTRS{idProduct}=="$device_id", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="$vendor_id", ATTRS{idProduct}=="$device_id", MODE="0600", OWNER="$APP_USERNAME"
 EOM
 else
 cat > /etc/udev/rules.d/99-corsair-"$device_id".rules <<- EOM
-KERNEL=="hidraw*", SUBSYSTEMS=="usb", ATTRS{idVendor}=="$vendor_id", ATTRS{idProduct}=="$device_id", MODE="0666"
+KERNEL=="hidraw*", SUBSYSTEMS=="usb", ATTRS{idVendor}=="$vendor_id", ATTRS{idProduct}=="$device_id", MODE="0600", OWNER="$APP_USERNAME"
 EOM
 fi
 done

@@ -76,6 +76,7 @@ func Init() {
 		"web/m55.html",
 		"web/m55W.html",
 		"web/m55rgbpro.html",
+		"web/katarproW.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",

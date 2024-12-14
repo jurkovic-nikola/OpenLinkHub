@@ -18,6 +18,10 @@
 {{ end }}
 
 {{ range .Devices }}
+{{ if eq .Hidden true }}
+{{ continue }}
+{{ end }}
+
 {{ if eq $dev.Serial .Serial }}
 <div class="row btn btn-secondary active-nav-link navigation-left-big">
     <a style="color: #a1a1a1;" href="/device/{{ .Serial }}">

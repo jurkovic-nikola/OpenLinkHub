@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
+	"OpenLinkHub/src/devices/dongle"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
@@ -19,6 +20,7 @@ import (
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/katarpro"
+	"OpenLinkHub/src/devices/katarproW"
 	"OpenLinkHub/src/devices/lncore"
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
@@ -79,6 +81,7 @@ const (
 	productTypeM55                = 210
 	productTypeM55W               = 211
 	productTypeM55RgbPro          = 212
+	productTypeKatarProW          = 213
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -99,6 +102,7 @@ type Device struct {
 	Image       string
 	GetDevice   interface{}
 	Instance    interface{}
+	Hidden      bool
 }
 
 type Product struct {
@@ -115,7 +119,7 @@ var (
 	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091}
 	mouses                    = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024}
 	pads                      = []uint16{7067}
-	dongles                   = []uint16{7132, 7078, 11008}
+	dongles                   = []uint16{7132, 7078, 11008, 7060}
 )
 
 // Stop will stop all active devices
@@ -1602,6 +1606,47 @@ func Init() {
 						Firmware:    dev.Firmware,
 						Image:       "icon-mouse.svg",
 						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7060: // CORSAIR KATAR PRO Wireless Gaming Dongle
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := dongle.Init(vendorId, productId, key)
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeIronClawRgbW,
+						Product:     "SLIPSTREAM",
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-dongle.svg",
+						Instance:    dev,
+						Hidden:      true,
+					}
+
+					for _, value := range dev.Devices {
+						switch value.ProductId {
+						case 7195:
+							{
+								d := katarproW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeKatarProW,
+									Product:     "KATAR PRO WIRELESS",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+							break
+						}
 					}
 				}(vendorId, productId, key)
 			}

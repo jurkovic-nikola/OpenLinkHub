@@ -1,13 +1,8 @@
-package slipstream
+package dongle
 
 import (
 	"OpenLinkHub/src/config"
-	"OpenLinkHub/src/devices/ironclawW"
-	"OpenLinkHub/src/devices/k100airW"
-	"OpenLinkHub/src/devices/m55W"
-	"OpenLinkHub/src/devices/nightsabreW"
-	"OpenLinkHub/src/devices/scimitarW"
-	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/devices/katarproW"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
@@ -16,8 +11,8 @@ import (
 	"time"
 )
 
-// Package: Corsair Slipstream
-// This is the primary package for Corsair Slipstream.
+// Package: Corsair Dongle
+// This is the primary package for Corsair Dongle.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -58,7 +53,6 @@ var (
 	sleepChan        = make(chan bool)
 	cmdSoftwareMode  = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode  = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetDevices    = []byte{0x24}
 	cmdHeartbeat     = []byte{0x12}
 	cmdInactivity    = []byte{0x02, 0x40}
 	cmdOpenEndpoint  = []byte{0x0d, 0x00}
@@ -84,7 +78,6 @@ func Init(vendorId, productId uint16, key string) *Device {
 		VendorId:      vendorId,
 		ProductId:     productId,
 		PairedDevices: make(map[uint16]any, 0),
-		Template:      "slipstream.html",
 	}
 
 	d.getDebugMode()      // Debug
@@ -111,40 +104,12 @@ func (d *Device) Stop() {
 
 	for key, value := range d.PairedDevices {
 		switch key {
-		case 7163:
-			if dev, found := value.(*m55W.Device); found {
+		case 7195:
+			if dev, found := value.(*katarproW.Device); found {
 				if dev.Connected {
 					dev.StopInternal()
 				}
 			}
-		case 7096:
-			if dev, found := value.(*nightsabreW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
-			}
-			break
-		case 7083:
-			if dev, found := value.(*k100airW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
-			}
-			break
-		case 6988:
-			if dev, found := value.(*ironclawW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
-			}
-			break
-		case 7131:
-			if dev, found := value.(*scimitarW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
-			}
-			break
 		}
 	}
 
@@ -187,40 +152,22 @@ func (d *Device) GetDevice() *hid.Device {
 // getDevices will get a list of paired devices
 func (d *Device) getDevices() {
 	var devices = make(map[int]*Devices, 0)
-	buff := d.read(cmdGetDevices)
-	if d.Debug {
-		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
-	}
-	channels := buff[5]
-	data := buff[6:]
-	position := 0
-	var base byte = 8
-	if channels > 0 {
-		for i := 0; i < int(channels); i++ {
-			vendorId := uint16(data[position+1])<<8 | uint16(data[position])
-			productId := uint16(data[position+5])<<8 | uint16(data[position+4])
-			deviceType := data[position+6]
-			deviceIdLen := data[position+7]
-			deviceId := data[position+8 : position+8+int(deviceIdLen)]
-			endpoint := base + deviceType
-			if channels == 1 {
-				endpoint = base + 1
-			}
-			device := &Devices{
-				Type:      deviceType,
-				Endpoint:  endpoint,
-				Serial:    string(deviceId),
-				VendorId:  vendorId,
-				ProductId: productId,
-			}
-			devices[i] = device
-			position += 8 + int(deviceIdLen)
-		}
-	}
 
-	if len(devices) == 1 {
-		d.SingleDevice = true
+	data, err := d.transfer(cmdCommand, []byte{0x02, 0x011}, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get device")
 	}
+	productId := uint16(data[3])<<8 | uint16(data[4])
+
+	device := &Devices{
+		Type:      3,
+		Endpoint:  byte(0x09),
+		Serial:    d.Serial,
+		VendorId:  d.VendorId,
+		ProductId: productId,
+	}
+	devices[0] = device
+	d.SingleDevice = true
 	d.Devices = devices
 }
 
@@ -329,9 +276,9 @@ func (d *Device) read(endpoint []byte) []byte {
 func (d *Device) processDevice(productId uint16, packet []byte) {
 	if dev, ok := d.PairedDevices[productId]; ok {
 		switch productId {
-		case 7163:
+		case 7195:
 			{
-				if value, found := dev.(*m55W.Device); found {
+				if value, found := dev.(*katarproW.Device); found {
 					switch packet[1] {
 					case 0x01:
 						{
@@ -366,143 +313,6 @@ func (d *Device) processDevice(productId uint16, packet []byte) {
 					}
 				}
 			}
-		case 7131:
-			{
-				if value, found := dev.(*scimitarW.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
-					}
-				}
-			}
-		case 7096:
-			{
-				if value, found := dev.(*nightsabreW.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
-					}
-				}
-			}
-		case 7083:
-			{
-				if value, found := dev.(*k100airW.Device); found {
-					switch packet[1] {
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x03 {
-									value.Connect()
-								}
-							}
-						}
-						break
-					}
-				}
-			}
-		case 6988:
-			{
-				if value, found := dev.(*ironclawW.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
-					}
-				}
-			}
-			break
 		}
 	}
 }
@@ -547,49 +357,20 @@ func (d *Device) sleepMonitor() {
 						if err != nil {
 							logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 						}
-
 						if (msg[0] == 0x02 || msg[0] == 0x01) && msg[1] == 0x02 { // Mouse // Connected
 							inactive := int(binary.LittleEndian.Uint16(msg[3:5]))
 							if inactive > 0 {
 								if dev, ok := d.PairedDevices[value.ProductId]; ok {
 									switch value.ProductId {
-									case 7163:
+									case 7195:
 										{
-											if device, found := dev.(*m55W.Device); found {
+											if device, found := dev.(*katarproW.Device); found {
 												sleepMode := device.GetSleepMode() * 60
 												if inactive >= sleepMode {
 													device.SetSleepMode()
 												}
 											}
 										}
-									case 7131:
-										{
-											if device, found := dev.(*scimitarW.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
-											}
-										}
-									case 7096:
-										{
-											if device, found := dev.(*nightsabreW.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
-											}
-										}
-									case 6988:
-										{
-											if device, found := dev.(*ironclawW.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
-											}
-										}
-										break
 									}
 								}
 							}
@@ -640,89 +421,20 @@ func (d *Device) controlListener() {
 				{
 					for key, value := range d.PairedDevices {
 						switch key {
-						case 7163:
+						case 7195:
 							{
-								if dev, found := value.(*m55W.Device); found {
+								if dev, found := value.(*katarproW.Device); found {
 									if data[1] == 0x02 {
 										if data[2] == 0x20 {
 											dev.ModifyDpi()
+										} else if data[2] == 0x08 {
+											// Upper side button
+										} else if data[2] == 0x10 {
+											// Bottom side button
 										}
 									}
 								}
 							}
-						case 7131:
-							if dev, found := value.(*scimitarW.Device); found {
-								if data[1] == 0x02 {
-									if data[2] == 0x08 {
-										dev.ModifyDpi()
-									} else if data[2] == 0x20 {
-										inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
-									} else if data[2] == 0x40 {
-										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
-									} else if data[2] == 0x80 {
-										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
-									} else if data[3] == 0x01 {
-										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
-									} else if data[3] == 0x02 {
-										inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
-									} else if data[3] == 0x04 {
-										inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
-									} else if data[3] == 0x08 {
-										inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
-									} else if data[3] == 0x10 {
-										inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
-									} else if data[3] == 0x20 {
-										inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
-									} else if data[3] == 0x40 {
-										inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
-									} else if data[3] == 0x80 {
-										inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
-									} else if data[4] == 0x01 {
-										inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
-									}
-								}
-							}
-						case 7096:
-							if dev, found := value.(*nightsabreW.Device); found {
-								if data[2] == 0x80 {
-									dev.ModifyDpi(true)
-								} else if data[2] == 0x00 && data[3] == 0x01 {
-									dev.ModifyDpi(false)
-								}
-							}
-							break
-						case 6988:
-							if dev, found := value.(*ironclawW.Device); found {
-								switch data[2] {
-								case 32: // DPI Button Up
-									dev.ModifyDpi(true)
-									break
-								case 64: // DPI Button Down
-									dev.ModifyDpi(false)
-									break
-								case 8: // Forward button
-									// TO-DO
-									break
-								case 16: // Back button
-									// TO-DO
-									break
-								}
-							}
-							break
-						}
-					}
-				}
-			case 3: // Keyboard
-				{
-					for key, value := range d.PairedDevices {
-						switch key {
-						case 7083:
-							if dev, found := value.(*k100airW.Device); found {
-								if data[16] == 2 {
-									dev.ModifyBrightness()
-								}
-							}
-							break
 						}
 					}
 				}

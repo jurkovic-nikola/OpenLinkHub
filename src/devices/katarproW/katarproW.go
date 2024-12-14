@@ -493,6 +493,9 @@ func (d *Device) saveDeviceProfile() {
 // UpdateSleepTimer will update device sleep timer
 func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 	if d.DeviceProfile != nil {
+		if minutes > 15 {
+			return 0
+		}
 		d.DeviceProfile.SleepMode = minutes
 		d.saveDeviceProfile()
 		d.setSleepTimer()

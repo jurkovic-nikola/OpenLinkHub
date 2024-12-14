@@ -21,9 +21,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
-	"unsafe"
 )
 
 // DeviceInfo represents a USB device
@@ -97,7 +95,6 @@ var (
 	cmdProtocol             = byte(0x3b)
 	cmdBrightness           = byte(0x39)
 	cmdRefreshPorts         = []byte{0x3c, 0x3d}
-	cmdGetDevices           = []byte{0x00, 0x02}
 	dataFlush               = []byte{0xff}
 	dataBrightness          = byte(0x64)
 	mutex                   sync.Mutex
@@ -115,15 +112,9 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial, path string) *Device {
+func Init(vendorId, productId uint16, serial, _ string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
-
-	// Set idle
-	err := setIdle(path)
-	if err != nil {
-		return nil
-	}
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
@@ -150,7 +141,6 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 	d.getSerial()          // Serial
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
-	d.wakeUpDevice()       // Wake up
 	d.getDeviceFirmware()  // Firmware
 	d.resetLeds()          // Reset all LEDs
 	if d.getDevices() > 0 {
@@ -189,34 +179,6 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
-}
-
-// setIdle will set HID device to idle state
-func setIdle(devicePath string) error {
-	// Open the HID device
-	file, err := os.OpenFile(devicePath, os.O_RDWR, 0644)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to open HID device")
-		return err
-	}
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}(file)
-
-	report := []byte{0x0a, 0}
-	_, _, errno := syscall.Syscall(
-		syscall.SYS_IOCTL,
-		file.Fd(),
-		uintptr(0xC0094806),
-		uintptr(unsafe.Pointer(&report[0])),
-	)
-	if errno != 0 {
-		return errno
-	}
-	return nil
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -334,7 +296,6 @@ func (d *Device) keepAlive() {
 func (d *Device) resetLeds() {
 	buf := make([]byte, 8)
 	buf[0] = 0x00
-	d.write(0x06, buf)
 	d.write(cmdLedReset, buf) // Reset
 	d.write(cmdStart, buf)    // Start
 
@@ -342,11 +303,11 @@ func (d *Device) resetLeds() {
 	buf[1] = dataBrightness
 	d.write(cmdBrightness, buf)
 
-	// Set protocol
 	buf[1] = 0x01
 	d.write(cmdProtocol, buf)
 
 	// Set port state
+	buf[1] = 0x01
 	d.write(cmdPortState, buf)
 
 	// Write configuration
@@ -360,6 +321,11 @@ func (d *Device) resetLeds() {
 
 	// Flush it
 	d.write(cmdSave, dataFlush)
+
+	// Set port state
+	buf[1] = 0x02
+	d.write(cmdPortState, buf)
+	time.Sleep(50 * time.Millisecond)
 }
 
 // startColors will initiate interface for receiving colors
@@ -615,53 +581,38 @@ func (d *Device) saveDeviceProfile() {
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	m := 0
 	towers := 0
-	for _, cmdRefreshPort := range cmdRefreshPorts {
-		d.write(cmdRefreshPort, nil)
-	}
-
-	result, err := d.transfer(cmdPortState, cmdGetDevices)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
-	}
-
-	d.write(cmdSave, dataFlush)
-	if result[1] == 0 {
-		// This device will randomly return 0 LEDs on towers, so we need to enumerate multiple times.
-		// I'm unable to verify if this is a proper way to enumerate available towers or not, but no
-		// other method worked. Only another option is to user define the number of connected towers
-		// and this function is completely removed, but this isn't user-friendly.
-		for {
-			result, err = d.transfer(cmdPortState, cmdGetDevices)
+	m := 0
+	for {
+		for _, cmdRefreshPort := range cmdRefreshPorts {
+			res, err := d.transfer(cmdRefreshPort, nil)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
-				continue
 			}
-			if result[1] != 0 || m >= 100 {
-				break
+			if res[1] != 0 {
+				switch res[1] {
+				case 27:
+					towers = 1
+				case 54:
+					towers = 2
+				case 81:
+					towers = 3
+				case 108:
+					towers = 4
+				}
 			}
-			m++
 		}
-	}
-
-	leds := result[1]
-	switch leds {
-	case 27:
-		towers = 1
-	case 54:
-		towers = 2
-	case 81:
-		towers = 3
-	case 108:
-		towers = 4
+		m++
+		if towers != 0 || m > 100 {
+			break
+		}
 	}
 
 	if towers == 0 {
 		return 0
 	}
 
-	logger.Log(logger.Fields{"towers": towers, "ledChannels": leds}).Info("Towers detected")
+	logger.Log(logger.Fields{"towers": towers, "iterations": m}).Info("Towers detected")
 
 	var devices = make(map[int]*Devices, 2)
 	for i := 0; i < 2; i++ {
@@ -1217,7 +1168,7 @@ func (d *Device) setDeviceColor() {
 				}
 				// Send it
 				d.writeColor(buff)
-				time.Sleep(20 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				hue++
 				wavePosition += 0.2
 			}

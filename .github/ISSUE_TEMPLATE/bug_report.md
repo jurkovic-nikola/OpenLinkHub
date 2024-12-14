@@ -14,7 +14,7 @@ A clear and concise description of what the bug is.
 Steps to reproduce the behavior:
 1. Your configuration values
 2. Number of devices
-3. Error from stdout.log
+3. Content of `/opt/OpenLinkHub/stdout.log`
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -23,10 +23,9 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
- - OS: [e.g. iOS]
--  Device Firmware
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+ - OS: [e.g. Fedora]
+ - Device Firmware
+ - Program Version [e.g. 0.3.9]
 
 **Additional context**
 Add any other context about the problem here.

@@ -35,8 +35,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const toast = CreateToastr();
 
     $(function() {
-        for (let i = 0; i <= 2; i++) {
+        for (let i = 0; i <= 4; i++) {
             const stage = document.getElementById("stage" + i);
+            if (stage == null) {
+                continue
+            }
+
             const stageValue = document.getElementById("stageValue" + i);
             stage.oninput = function() {
                 stageValue.value = this.value;
@@ -45,8 +49,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('#defaultDPI').on('click', function () {
-        for (let i = 0; i <= 2; i++) {
+        for (let i = 0; i <= 4; i++) {
             const stage = document.getElementById("stage" + i);
+            if (stage == null) {
+                continue
+            }
+
             const stageValue = document.getElementById("stageValue" + i);
             switch (i) {
                 case 0:
@@ -66,6 +74,10 @@ document.addEventListener("DOMContentLoaded", function () {
     $('#default5DPI').on('click', function () {
         for (let i = 0; i <= 4; i++) {
             const stage = document.getElementById("stage" + i);
+            if (stage == null) {
+                continue
+            }
+
             const stageValue = document.getElementById("stageValue" + i);
             switch (i) {
                 case 0:
@@ -95,10 +107,15 @@ document.addEventListener("DOMContentLoaded", function () {
         let stages = {};
 
         pf["deviceId"] = deviceId;
-        for (let i = 0; i <= 2; i++) {
+        for (let i = 0; i <= 4; i++) {
             const stage = $("#stageValue" + i).val();
+            if (stage == null) {
+                continue
+            }
+
             stages[i] =  parseInt(stage);
         }
+
         pf["stages"] = stages;
         const json = JSON.stringify(pf, null, 2);
 

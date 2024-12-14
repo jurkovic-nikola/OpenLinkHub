@@ -23,6 +23,9 @@ import (
 	"OpenLinkHub/src/devices/lnpro"
 	"OpenLinkHub/src/devices/lsh"
 	"OpenLinkHub/src/devices/lt100"
+	"OpenLinkHub/src/devices/m55"
+	"OpenLinkHub/src/devices/m55W"
+	"OpenLinkHub/src/devices/m55rgbpro"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/nightsabreW"
@@ -73,6 +76,9 @@ const (
 	productTypeScimitarRgbElite   = 207
 	productTypeScimitarRgbEliteW  = 208
 	productTypeScimitarRgbEliteWU = 209
+	productTypeM55                = 210
+	productTypeM55W               = 211
+	productTypeM55RgbPro          = 212
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -107,9 +113,9 @@ var (
 	devices                   = make(map[string]*Device, 0)
 	products                  = make(map[string]Product, 0)
 	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091}
-	mouses                    = []uint16{7059, 7005, 6988, 7096, 7139, 7131}
+	mouses                    = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024}
 	pads                      = []uint16{7067}
-	dongles                   = []uint16{7132, 7078}
+	dongles                   = []uint16{7132, 7078, 11008}
 )
 
 // Stop will stop all active devices
@@ -1265,7 +1271,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7132, 7078: // Corsair SLIPSTREAM WIRELESS USB Receiver
+		case 7132, 7078, 11008: // Corsair SLIPSTREAM WIRELESS USB Receiver
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := slipstream.Init(vendorId, productId, key)
@@ -1279,6 +1285,26 @@ func Init() {
 					}
 					for _, value := range dev.Devices {
 						switch value.ProductId {
+						case 7163:
+							{
+								d := m55W.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeM55W,
+									Product:     "M55 WIRELESS",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						case 7131:
 							{
 								d := scimitarW.Init(
@@ -1537,6 +1563,40 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeScimitarRgbEliteWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 11011: // CORSAIR M55 Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := m55.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeM55,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7024: // CORSAIR M55 RGB PRO Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := m55rgbpro.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeM55RgbPro,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

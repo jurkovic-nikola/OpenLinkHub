@@ -207,6 +207,18 @@
         {
           "productId": "1bdb",
           "kernel": ""
+        },
+        {
+          "productId": "2b03",
+          "kernel": "hidraw*"
+        },
+        {
+          "productId": "2b00",
+          "kernel": ""
+        },
+        {
+          "productId": "1b70",
+          "kernel": "hidraw*"
         }
       ]
     }

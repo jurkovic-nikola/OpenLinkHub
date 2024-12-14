@@ -1286,6 +1286,8 @@ func (d *Device) controlDialListener() {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
 				break
 			}
+
+			fmt.Println(time.Now(), data)
 			value := data[4]
 			switch d.DeviceProfile.ControlDial {
 			case 1:
@@ -1349,7 +1351,6 @@ func (d *Device) controlDialListener() {
 					}
 				}
 			}
-			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 }

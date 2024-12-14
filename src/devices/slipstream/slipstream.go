@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
+	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/inputmanager"
@@ -112,6 +113,12 @@ func (d *Device) Stop() {
 
 	for key, value := range d.PairedDevices {
 		switch key {
+		case 7163:
+			if dev, found := value.(*m55W.Device); found {
+				if dev.Connected {
+					dev.StopInternal()
+				}
+			}
 		case 7096:
 			if dev, found := value.(*nightsabreW.Device); found {
 				if dev.Connected {
@@ -186,7 +193,6 @@ func (d *Device) getDevices() {
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
 	}
-
 	channels := buff[5]
 	data := buff[6:]
 	position := 0
@@ -284,34 +290,29 @@ func (d *Device) readNext() []byte {
 
 // read will read data from a device and return data as a byte array
 func (d *Device) read(endpoint []byte) []byte {
-	// Endpoint data
 	var buffer []byte
 
-	// Close specified endpoint
 	_, err := d.transfer(cmdCommand, cmdCloseEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
-	// Open endpoint
 	_, err = d.transfer(cmdCommand, cmdOpenEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
-	// Open endpoint
 	_, err = d.transfer(cmdCommand, cmdWrite, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
-	// Read data from endpoint
 	buffer, err = d.transfer(cmdCommand, cmdRead, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
-	if responseMatch(buffer, dataTypeGetDevices) {
+	for i := 0; i < int(buffer[5]); i++ {
 		next, err := d.transfer(cmdCommand, cmdRead, endpoint)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
@@ -319,7 +320,6 @@ func (d *Device) read(endpoint []byte) []byte {
 		buffer = append(buffer, next[3:]...)
 	}
 
-	// Close specified endpoint
 	_, err = d.transfer(cmdCommand, cmdCloseEndpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
@@ -331,6 +331,43 @@ func (d *Device) read(endpoint []byte) []byte {
 func (d *Device) processDevice(productId uint16, packet []byte) {
 	if dev, ok := d.PairedDevices[productId]; ok {
 		switch productId {
+		case 7163:
+			{
+				if value, found := dev.(*m55W.Device); found {
+					switch packet[1] {
+					case 0x01:
+						{
+							if d.SingleDevice {
+								if packet[0] == 0x01 {
+									value.SetConnected(false)
+								}
+							} else {
+								if packet[0] == 0x02 {
+									value.SetConnected(false)
+								}
+							}
+						}
+					case 0x00:
+						{
+							value.SetConnected(false)
+						}
+						break
+					case 0x12:
+						{
+							if d.SingleDevice {
+								if packet[0] == 0x01 {
+									value.Connect()
+								}
+							} else {
+								if packet[0] == 0x02 {
+									value.Connect()
+								}
+							}
+						}
+						break
+					}
+				}
+			}
 		case 7131:
 			{
 				if value, found := dev.(*scimitarW.Device); found {
@@ -489,6 +526,7 @@ func (d *Device) monitorDevice() {
 						if err != nil {
 							logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 						}
+						fmt.Println(msg)
 						d.processDevice(value.ProductId, msg)
 					}
 				}
@@ -518,6 +556,15 @@ func (d *Device) sleepMonitor() {
 							if inactive > 0 {
 								if dev, ok := d.PairedDevices[value.ProductId]; ok {
 									switch value.ProductId {
+									case 7163:
+										{
+											if device, found := dev.(*m55W.Device); found {
+												sleepMode := device.GetSleepMode() * 60
+												if inactive >= sleepMode {
+													device.SetSleepMode()
+												}
+											}
+										}
 									case 7131:
 										{
 											if device, found := dev.(*scimitarW.Device); found {
@@ -596,6 +643,16 @@ func (d *Device) controlListener() {
 				{
 					for key, value := range d.PairedDevices {
 						switch key {
+						case 7163:
+							{
+								if dev, found := value.(*m55W.Device); found {
+									if data[1] == 0x02 {
+										if data[2] == 0x20 {
+											dev.ModifyDpi()
+										}
+									}
+								}
+							}
 						case 7131:
 							if dev, found := value.(*scimitarW.Device); found {
 								if data[1] == 0x02 {
@@ -691,6 +748,31 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+	}
+
+	reports := make([]byte, 1)
+	err := d.dev.SetNonblock(true)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+	}
+
+	for {
+		n, err := d.dev.Read(reports)
+		if err != nil {
+			if n < 0 {
+				//
+			}
+			if err == hid.ErrTimeout || n == 0 {
+				break
+			}
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	err = d.dev.SetNonblock(false)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
 	}
 
 	// Create read buffer

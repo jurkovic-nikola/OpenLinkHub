@@ -21,10 +21,13 @@ import (
 	"golang.org/x/image/font/opentype"
 	"image"
 	"image/color"
+	"image/gif"
 	"image/jpeg"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -42,22 +45,30 @@ const (
 )
 
 var (
-	pwd, _       = os.Getwd()
-	location     = pwd + "/static/img/lcd/background.jpg"
-	fontLocation = pwd + "/static/fonts/teko.ttf"
-	mutex        sync.Mutex
-	imgWidth            = 480
-	imgHeight           = 480
-	lcdDevices          = map[string]uint16{}
-	vendorId     uint16 = 6940 // Corsair
+	pwd, _         = os.Getwd()
+	location       = pwd + "/static/img/lcd/background.jpg"
+	animationsPath = pwd + "/static/img/lcd/animations/"
+	fontLocation   = pwd + "/static/fonts/teko.ttf"
+	mutex          sync.Mutex
+	imgWidth              = 480
+	imgHeight             = 480
+	lcdDevices            = map[string]uint16{}
+	vendorId       uint16 = 6940 // Corsair
 )
 
+type Animations struct {
+	Name   string
+	Frames int
+	Buffer [][]byte
+}
+
 type LCD struct {
-	image     image.Image
-	font      *truetype.Font
-	fontBytes []byte
-	sfntFont  *opentype.Font
-	Devices   []Device
+	image      image.Image
+	font       *truetype.Font
+	fontBytes  []byte
+	sfntFont   *opentype.Font
+	Devices    []Device
+	Animations []Animations
 }
 
 type Device struct {
@@ -115,7 +126,106 @@ func Init() {
 		sfntFont:  sfntFont,
 	}
 	lcd = *lcdData
+	loadAnimations()
 	loadLcdDevices()
+}
+
+func loadAnimations() {
+	m := 0
+	logger.Log(logger.Fields{}).Info("Loading LCD animation images")
+	files, err := os.ReadDir(animationsPath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": animationsPath}).Error("Unable to read content of a folder")
+		return
+	}
+	for _, fi := range files {
+		// Define a full path of filename
+		imagePath := animationsPath + fi.Name()
+
+		// Check if filename has .json extension
+		if !common.IsValidExtension(imagePath, ".gif") {
+			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Image needs to have .gif extension")
+			continue
+		}
+
+		// Process filename
+		fileName := strings.Split(fi.Name(), ".")[0]
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", fileName); !m {
+			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Image name can only have letters and numbers. Please rename your image")
+			continue
+		}
+
+		// Open image
+		file, err := os.Open(imagePath)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Unable to open gif animation")
+			continue
+		}
+
+		// Decode image
+		g, err := gif.DecodeAll(file)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Error decoding gif animation")
+			return
+		}
+
+		frames := len(g.Image)
+		imageBuffer := make([][]byte, frames) // Slice to store each frame's byte slice
+
+		resizedGIF := &gif.GIF{
+			LoopCount: g.LoopCount,
+		}
+		for i, frame := range g.Image {
+			// Convert frame to RGBA to support resizing
+			bounds := frame.Bounds()
+			palettedImage := image.NewPaletted(image.Rect(0, 0, imgWidth, imgHeight), frame.Palette)
+			draw.Draw(palettedImage, palettedImage.Rect, resizeImage(frame, imgWidth, imgHeight), bounds.Min, draw.Src)
+
+			// Append the resized frame to the new GIF
+			resizedGIF.Image = append(resizedGIF.Image, palettedImage)
+			resizedGIF.Delay = append(resizedGIF.Delay, g.Delay[0])
+
+			// Create a buffer to encode the frame
+			var buffer bytes.Buffer
+			// Encode the frame back into a GIF
+			err = jpeg.Encode(&buffer, palettedImage, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
+				continue
+			}
+
+			// Store the byte slice for the frame
+			imageBuffer[i] = buffer.Bytes()
+		}
+		animation := &Animations{
+			Name:   fileName,
+			Frames: frames,
+			Buffer: imageBuffer,
+		}
+		lcd.Animations = append(lcd.Animations, *animation)
+		m++
+	}
+	imgText := "image"
+	if m > 1 {
+		imgText = "images"
+	}
+	logger.Log(logger.Fields{"amount": m}).Info(fmt.Sprintf("Loaded %v LCD animation %s", m, imgText))
+}
+
+// resizeImage will resize image with given width and height
+func resizeImage(src image.Image, width, height int) image.Image {
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	srcBounds := src.Bounds()
+
+	// Simple nearest-neighbor resizing
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			srcX := srcBounds.Min.X + x*srcBounds.Dx()/width
+			srcY := srcBounds.Min.Y + y*srcBounds.Dy()/height
+			dst.Set(x, y, src.At(srcX, srcY))
+		}
+	}
+	return dst
 }
 
 func loadLcdDevices() {

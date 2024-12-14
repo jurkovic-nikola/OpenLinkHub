@@ -1188,7 +1188,6 @@ func (d *Device) controlDialListener() {
 					}
 				}
 			}
-			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 }

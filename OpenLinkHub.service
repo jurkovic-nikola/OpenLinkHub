@@ -3,7 +3,7 @@ Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hub
 After=sleep.target
 
 [Service]
-User=nikola
+User=openlinkhub
 WorkingDirectory=/opt/OpenLinkHub
 ExecStart=/opt/OpenLinkHub/OpenLinkHub
 ExecReload=/bin/kill -s HUP $MAINPID

@@ -1,6 +1,8 @@
 package common
 
 import (
+	"golang.org/x/image/draw"
+	"image"
 	"math"
 	"os"
 	"path/filepath"
@@ -147,4 +149,11 @@ func GetDate() string {
 func itoaTwoDigits(i int) string {
 	b := "0" + strconv.Itoa(i)
 	return b[len(b)-2:]
+}
+
+// ResizeImage will resize image with given width and height
+func ResizeImage(src image.Image, width, height int) image.Image {
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
+	return dst
 }

@@ -55,6 +55,7 @@ type Payload struct {
 	Stages              map[int]uint16    `json:"stages"`
 	ColorDpi            rgb.Color         `json:"colorDpi"`
 	ColorZones          map[int]rgb.Color `json:"colorZones"`
+	Image               string            `json:"image"`
 	Status              int
 	Code                int
 	Message             string
@@ -242,7 +243,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 func ProcessChangeSpeed(r *http.Request) *Payload {
 	req := &Payload{}
 	if config.GetConfig().Manual {
-		return &Payload{Message: "Manual flag in config.json is set to true.", Code: http.StatusOK, Status: 0}
+		return &Payload{Message: "Manual flag in config.json is set to true", Code: http.StatusOK, Status: 0}
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -432,6 +433,54 @@ func ProcessLcdRotationChange(r *http.Request) *Payload {
 	return &Payload{Message: "Unable to change lcd rotation", Code: http.StatusOK, Status: 0}
 }
 
+// ProcessLcdImageChange will process POST request from a client for LCD image change
+func ProcessLcdImageChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.Image) == 0 {
+		return &Payload{Message: "Invalid LCD image", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.Image); !m {
+		return &Payload{Message: "Invalid LCD image", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < -1 {
+		return &Payload{Message: "Non-existing channelId", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDeviceLcdImage(req.DeviceId, req.ChannelId, req.Image)
+	switch status {
+	case 1:
+		return &Payload{Message: "LCD image successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change LCD image", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change lcd rotation", Code: http.StatusOK, Status: 0}
+}
+
 // ProcessSaveUserProfile will process PUT request from a client for device profile save
 func ProcessSaveUserProfile(r *http.Request) *Payload {
 	req := &Payload{}
@@ -473,7 +522,7 @@ func ProcessSaveUserProfile(r *http.Request) *Payload {
 	case 2:
 		return &Payload{Message: "Unable to save user profile. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to save user profile.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to save user profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessSaveDeviceProfile will process PUT request from a client for device profile save
@@ -513,11 +562,11 @@ func ProcessSaveDeviceProfile(r *http.Request) *Payload {
 	status := devices.SaveDeviceProfile(req.DeviceId, req.KeyboardProfileName, req.New)
 	switch status {
 	case 1:
-		return &Payload{Message: "Keyboard profile successfully saved.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Keyboard profile successfully saved", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to save keyboard profile. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to save keyboard profile.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to save keyboard profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeKeyboardLayout will process POST request from a client for device layout change
@@ -557,11 +606,11 @@ func ProcessChangeKeyboardLayout(r *http.Request) *Payload {
 	status := devices.ChangeKeyboardLayout(req.DeviceId, req.KeyboardLayout)
 	switch status {
 	case 1:
-		return &Payload{Message: "Keyboard layout successfully changed.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Keyboard layout successfully changed", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to change keyboard layout. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change keyboard layout.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change keyboard layout", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeControlDial will process POST request from a client for device control dial change
@@ -597,11 +646,11 @@ func ProcessChangeControlDial(r *http.Request) *Payload {
 	status := devices.ChangeKeyboardControlDial(req.DeviceId, req.KeyboardControlDial)
 	switch status {
 	case 1:
-		return &Payload{Message: "Keyboard control dial successfully changed.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Keyboard control dial successfully changed", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to change keyboard control dial. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change keyboard control dial.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change keyboard control dial", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeSleepMode will process POST request from a client for device sleep change
@@ -637,11 +686,11 @@ func ProcessChangeSleepMode(r *http.Request) *Payload {
 	status := devices.ChangeDeviceSleepMode(req.DeviceId, req.SleepMode)
 	switch status {
 	case 1:
-		return &Payload{Message: "Device sleep mode successfully changed.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Device sleep mode successfully changed", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to change device sleep mode. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change device sleep mode.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change device sleep mode", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDeleteKeyboardProfile will process DELETE request from a client for device profile deletion
@@ -681,13 +730,13 @@ func ProcessDeleteKeyboardProfile(r *http.Request) *Payload {
 	status := devices.DeleteKeyboardProfile(req.DeviceId, req.KeyboardProfileName)
 	switch status {
 	case 1:
-		return &Payload{Message: "Keyboard profile successfully deleted.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Keyboard profile successfully deleted", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to delete keyboard profile. Please try again", Code: http.StatusOK, Status: 0}
 	case 3:
 		return &Payload{Message: "Default keyboard profile can not be deleted", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to save keyboard profile.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to save keyboard profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeKeyboardProfile will process POST request from a client for keyboard profile change
@@ -727,11 +776,11 @@ func ProcessChangeKeyboardProfile(r *http.Request) *Payload {
 	status := devices.ChangeKeyboardProfile(req.DeviceId, req.KeyboardProfileName)
 	switch status {
 	case 1:
-		return &Payload{Message: "Keyboard profile successfully changed.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "Keyboard profile successfully changed", Code: http.StatusOK, Status: 1}
 	case 2:
 		return &Payload{Message: "Unable to change keyboard profile. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change keyboard profile.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change keyboard profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeUserProfile will process POST request from a client for device profile change
@@ -775,7 +824,7 @@ func ProcessChangeUserProfile(r *http.Request) *Payload {
 	case 2:
 		return &Payload{Message: "Unable to change user profile. Please try again", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change user profile.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change user profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessBrightnessChange will process POST request from a client for device brightness change
@@ -815,7 +864,7 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 	case 2:
 		return &Payload{Message: "Unable to change device brightness. You have exceeded maximum amount of LED channels per physical port", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change device brightness", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessBrightnessChangeGradual will process POST request from a client for device brightness change via defined number from 0-100
@@ -855,7 +904,7 @@ func ProcessBrightnessChangeGradual(r *http.Request) *Payload {
 	case 2:
 		return &Payload{Message: "Unable to change device brightness. You have exceeded maximum amount of LED channels per physical port", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change device brightness", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessPositionChange will process POST request from a client for device position change
@@ -897,7 +946,7 @@ func ProcessPositionChange(r *http.Request) *Payload {
 	case 2:
 		return &Payload{Message: "Unable to change device position. Invalid position selected", Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: "Unable to change device brightness.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change device brightness", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessLabelChange will process POST request from a client for label change
@@ -956,7 +1005,7 @@ func ProcessLabelChange(r *http.Request) *Payload {
 func ProcessManualChangeSpeed(r *http.Request) *Payload {
 	req := &Payload{}
 	if !config.GetConfig().Manual {
-		return &Payload{Message: "Manual flag in config.json is not set to true.", Code: http.StatusMethodNotAllowed, Status: 0}
+		return &Payload{Message: "Manual flag in config.json is not set to true", Code: http.StatusMethodNotAllowed, Status: 0}
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -994,7 +1043,7 @@ func ProcessManualChangeSpeed(r *http.Request) *Payload {
 		return &Payload{Message: "Device speed profile is successfully changed", Code: http.StatusOK, Status: 1}
 	}
 
-	return &Payload{Message: "Unable to update device speed. Device is either unavailable or device does not have speed control.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to update device speed. Device is either unavailable or device does not have speed control", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeColor will process POST request from a client for RGB profile change
@@ -1257,7 +1306,7 @@ func ProcessExternalHubDeviceAmount(r *http.Request) *Payload {
 	case 1:
 		return &Payload{Message: "External LED hub device amount is successfully updated", Code: http.StatusOK, Status: 1}
 	case 2:
-		return &Payload{Message: "You have exceeded maximum amount of supported LED channels.", Code: http.StatusOK, Status: 0}
+		return &Payload{Message: "You have exceeded maximum amount of supported LED channels", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change external LED hub device amount", Code: http.StatusOK, Status: 0}
 }
@@ -1281,7 +1330,7 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to save dashboard settings", Code: http.StatusOK, Status: 0}
 	case 1:
 		{
-			return &Payload{Message: "Dashboard settings updated.", Code: http.StatusOK, Status: 1}
+			return &Payload{Message: "Dashboard settings updated", Code: http.StatusOK, Status: 1}
 		}
 	}
 	return &Payload{Message: "Unable to save dashboard settings", Code: http.StatusOK, Status: 0}
@@ -1304,9 +1353,9 @@ func ProcessChangeRgbScheduler(r *http.Request) *Payload {
 	status := scheduler.UpdateRgbSettings(req.RgbControl, req.RgbOff, req.RgbOn)
 	switch status {
 	case 1:
-		return &Payload{Message: "RGB scheduler successfully updated.", Code: http.StatusOK, Status: 1}
+		return &Payload{Message: "RGB scheduler successfully updated", Code: http.StatusOK, Status: 1}
 	}
-	return &Payload{Message: "Unable to change keyboard sleep mode.", Code: http.StatusOK, Status: 0}
+	return &Payload{Message: "Unable to change keyboard sleep mode", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessPsuFanModeChange will process a POST request from a client for PSU fan mode change

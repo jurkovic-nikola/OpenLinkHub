@@ -92,6 +92,7 @@ var (
 	authRefreshChan            = make(chan bool)
 	speedRefreshChan           = make(chan bool)
 	lcdRefreshChan             = make(chan bool)
+	lcdImageChan               = make(chan struct{})
 	deviceRefreshInterval      = 1000
 	lcdRefreshInterval         = 1000
 	defaultSpeedValue          = 50
@@ -213,6 +214,7 @@ type DeviceProfile struct {
 	Product          string
 	Serial           string
 	LCDMode          uint8
+	LCDImage         string
 	LCDRotation      uint8
 	Brightness       uint8
 	BrightnessSlider *uint8
@@ -284,6 +286,8 @@ type Device struct {
 	FreeLedPorts      map[int]string
 	FreeLedPortLEDs   map[int]string
 	Rgb               *rgb.RGB
+	LCDImage          *lcd.ImageData
+	Exit              bool
 }
 
 /*
@@ -325,15 +329,16 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		VendorId:          vendorId,
 		ExternalLedDevice: externalLedDevices,
 		LCDModes: map[int]string{
-			0: "Liquid Temperature",
-			1: "Pump Speed",
-			2: "CPU Temperature",
-			3: "GPU Temperature",
-			4: "Combined",
-			6: "CPU / GPU Temp",
-			7: "CPU / GPU Load",
-			8: "CPU / GPU Load/Temp",
-			9: "Time",
+			0:  "Liquid Temperature",
+			1:  "Pump Speed",
+			2:  "CPU Temperature",
+			3:  "GPU Temperature",
+			4:  "Combined",
+			6:  "CPU / GPU Temp",
+			7:  "CPU / GPU Load",
+			8:  "CPU / GPU Load/Temp",
+			9:  "Time",
+			10: "Image / GIF",
 		},
 		LCDRotations: map[int]string{
 			0: "default",
@@ -400,8 +405,15 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setDeviceColor()   // Device color
 	d.newDeviceMonitor() // Device monitor
 	if d.HasLCD {
-		d.setLcdRotation() // LCD rotation
-		d.setupLCD()       // LCD
+		if d.DeviceProfile.LCDMode == lcd.DisplayImage {
+			if d.loadLcdImage() != 1 {
+				logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to load LCD image from profile")
+			} else {
+				d.setupLCDImage()
+			}
+		} else {
+			d.setupLCD(false)
+		}
 	}
 	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	return d
@@ -409,6 +421,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
@@ -580,6 +593,7 @@ func (d *Device) getDeviceLcd() {
 		d.HasLCD = false
 		return
 	}
+	d.HasLCD = true
 	d.lcd = lcdPanel
 }
 
@@ -1808,6 +1822,37 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 	defer mutex.Unlock()
 
 	if d.HasLCD {
+		value := d.DeviceProfile.LCDMode
+		if mode == lcd.DisplayImage {
+			if len(lcd.GetLcdImages()) == 0 {
+				return 0
+			}
+
+			if len(d.DeviceProfile.LCDImage) == 0 {
+				lcdImage := lcd.GetLcdImages()[0]
+				d.DeviceProfile.LCDImage = lcdImage.Name
+				d.LCDImage = &lcdImage
+			}
+
+			if lcd.GetLcdImage(d.DeviceProfile.LCDImage) == nil {
+				lcdImage := lcd.GetLcdImages()[0]
+				d.DeviceProfile.LCDImage = lcdImage.Name
+				d.LCDImage = &lcdImage
+			}
+
+			// Stop lcd timer and switch to animation loop
+			if lcdRefreshChan != nil {
+				close(lcdRefreshChan)
+			}
+			lcdTimer.Stop()
+			d.setupLCDImage()
+		} else {
+			// Reset if old value was Animation and new mode is not
+			if value == lcd.DisplayImage && value != mode {
+				d.setupLCD(true)
+			}
+		}
+
 		d.DeviceProfile.LCDMode = mode
 		d.saveDeviceProfile()
 		return 1
@@ -2275,6 +2320,7 @@ func (d *Device) saveDeviceProfile() {
 
 		deviceProfile.CustomLEDs = customLEDs
 		deviceProfile.Active = true
+		deviceProfile.LCDImage = ""
 		d.DeviceProfile = deviceProfile
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
@@ -2303,6 +2349,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
+		deviceProfile.LCDImage = d.DeviceProfile.LCDImage
 	}
 
 	// Convert to JSON
@@ -2491,7 +2538,10 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool) []byte {
 }
 
 // setupLCD will activate and configure LCD
-func (d *Device) setupLCD() {
+func (d *Device) setupLCD(reload bool) {
+	if reload {
+		close(lcdImageChan)
+	}
 	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
 	lcdRefreshChan = make(chan bool)
 	go func() {
@@ -2634,12 +2684,86 @@ func (d *Device) setupLCD() {
 	}()
 }
 
+// loadLcdImage will load current LCD image
+func (d *Device) loadLcdImage() uint8 {
+	if len(d.DeviceProfile.LCDImage) == 0 {
+		return 0
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", d.DeviceProfile.LCDImage); !m {
+		return 0
+	}
+
+	lcdImage := lcd.GetLcdImage(d.DeviceProfile.LCDImage)
+	if lcdImage == nil {
+		d.DeviceProfile.LCDMode = 0
+		d.saveDeviceProfile()
+		d.setupLCD(false)
+		return 0
+	}
+	d.LCDImage = lcdImage
+	return 1
+}
+
+// setupLCDImage will set up lcd image
+func (d *Device) setupLCDImage() {
+	lcdImageChan = make(chan struct{})
+	lcdImage := d.DeviceProfile.LCDImage
+	if len(lcdImage) == 0 {
+		logger.Log(logger.Fields{"serial": d.Serial}).Warn("Invalid LCD image")
+		return
+	}
+
+	if d.LCDImage == nil {
+		d.loadLcdImage()
+	}
+
+	go func() {
+		for {
+			select {
+			default:
+				if d.LCDImage.Frames > 1 {
+					for i := 0; i < d.LCDImage.Frames; i++ {
+						data := d.LCDImage.Buffer[i]
+						buffer := data.Buffer
+						delay := data.Delay
+
+						d.transferToLcd(buffer)
+						if delay > 0 {
+							time.Sleep(time.Duration(delay) * time.Millisecond)
+						} else {
+							// Single frame, static image, generate 100ms of delay
+							time.Sleep(100 * time.Millisecond)
+						}
+					}
+				} else {
+					data := d.LCDImage.Buffer[0]
+					buffer := data.Buffer
+					delay := data.Delay
+					d.transferToLcd(buffer)
+					if delay > 0 {
+						time.Sleep(time.Duration(delay) * time.Millisecond)
+					} else {
+						// Single frame, static image, generate 100ms of delay
+						time.Sleep(100 * time.Millisecond)
+					}
+				}
+			case <-lcdImageChan:
+				return
+			}
+		}
+	}()
+}
+
 // transferToLcd will transfer data to LCD panel
 func (d *Device) transferToLcd(buffer []byte) {
 	mutexLcd.Lock()
 	defer mutexLcd.Unlock()
 	chunks := common.ProcessMultiChunkPacket(buffer, maxLCDBufferSizePerRequest)
 	for i, chunk := range chunks {
+		if d.Exit {
+			break
+		}
 		bufferW := make([]byte, lcdBufferSize)
 		bufferW[0] = 0x02
 		bufferW[1] = 0x05

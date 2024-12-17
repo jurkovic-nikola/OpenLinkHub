@@ -23,6 +23,7 @@ type Web struct {
 	Configuration     config.Configuration
 	Device            interface{}
 	Lcd               interface{}
+	LCDImages         interface{}
 	TemperatureProbes interface{}
 	Temperatures      map[string]temperatures.TemperatureProfileData
 	Scheduler         *scheduler.Scheduler

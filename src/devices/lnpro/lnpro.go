@@ -93,8 +93,9 @@ var (
 	cmdPortState            = byte(0x38)
 	cmdWriteLedConfig       = byte(0x35)
 	cmdWriteColor           = byte(0x32)
-	cmdRefresh              = byte(0x33)
+	cmdSave                 = byte(0x33)
 	cmdRefresh2             = byte(0x34)
+	dataFlush               = []byte{0xff}
 	mutex                   sync.Mutex
 	deviceRefreshInterval   = 1000
 	bufferSize              = 64
@@ -215,7 +216,7 @@ func (d *Device) ShutdownLed() {
 		if err != nil {
 			return
 		}
-		_, err = d.transfer(cmdRefresh, []byte{0xff})
+		_, err = d.transfer(cmdSave, []byte{0xff})
 		if err != nil {
 			return
 		}
@@ -1279,22 +1280,18 @@ func (d *Device) setAutoRefresh() {
 }
 
 // writeColor will write data to the device with a specific endpoint.
-func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
-	r := make([]byte, lightChannels)
-	g := make([]byte, lightChannels)
-	b := make([]byte, lightChannels)
+func (d *Device) writeColor(data []byte, _ int, portId byte) {
+	packetLen := len(data) / 3
+	r := make([]byte, packetLen)
+	g := make([]byte, packetLen)
+	b := make([]byte, packetLen)
 	m := 0
 
-	for i := 0; i < lightChannels; i++ {
-		// Red
+	for i := 0; i < packetLen; i++ {
 		r[i] = data[m]
 		m++
-
-		// Green
 		g[i] = data[m]
 		m++
-
-		// Blue
 		b[i] = data[m]
 		m++
 	}
@@ -1303,67 +1300,54 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 	chunksG := common.ProcessMultiChunkPacket(g, maxBufferSizePerRequest)
 	chunksB := common.ProcessMultiChunkPacket(b, maxBufferSizePerRequest)
 
-	packetsR := make(map[int][]byte, len(chunksR))
-	for i, chunk := range chunksR {
-		chunkLen := len(chunk)
-		chunkPacket := make([]byte, chunkLen+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(i * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(chunkLen)
-		chunkPacket[3] = 0x00 // R
-		copy(chunkPacket[4:], chunk)
-		packetsR[i] = chunkPacket
+	// Prepare for packets
+	_, err := d.transfer(cmdPortState, []byte{0x00, 0x02})
+	if err != nil {
+		return
 	}
 
-	packetsG := make(map[int][]byte, len(chunksG))
-	for i, chunk := range chunksG {
-		chunkLen := len(chunk)
-		chunkPacket := make([]byte, chunkLen+4)
+	for p := 0; p < len(chunksR); p++ {
+		chunkPacket := make([]byte, len(chunksR[p])+4)
 		chunkPacket[0] = portId
-		chunkPacket[1] = byte(i * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(chunkLen)
-		chunkPacket[3] = 0x01 // G
-		copy(chunkPacket[4:], chunk)
-		packetsG[i] = chunkPacket
-	}
-
-	packetsB := make(map[int][]byte, len(chunksB))
-	for i, chunk := range chunksB {
-		chunkLen := len(chunk)
-		chunkPacket := make([]byte, chunkLen+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(i * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(chunkLen)
-		chunkPacket[3] = 0x02 // B
-		copy(chunkPacket[4:], chunk)
-		packetsB[i] = chunkPacket
-	}
-
-	for z := 0; z < len(chunksR); z++ {
-		_, err := d.transfer(cmdWriteColor, packetsR[z])
+		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
+		chunkPacket[2] = byte(maxBufferSizePerRequest)
+		chunkPacket[3] = 0x00
+		copy(chunkPacket[4:], chunksR[p])
+		_, err = d.transfer(cmdWriteColor, chunkPacket)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
 		}
+	}
 
-		_, err = d.transfer(cmdWriteColor, packetsG[z])
+	for p := 0; p < len(chunksG); p++ {
+		chunkPacket := make([]byte, len(chunksG[p])+4)
+		chunkPacket[0] = portId
+		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
+		chunkPacket[2] = byte(maxBufferSizePerRequest)
+		chunkPacket[3] = 0x01
+		copy(chunkPacket[4:], chunksG[p])
+		_, err = d.transfer(cmdWriteColor, chunkPacket)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to write green color to device")
 		}
+	}
 
-		_, err = d.transfer(cmdWriteColor, packetsB[z])
+	for p := 0; p < len(chunksB); p++ {
+		chunkPacket := make([]byte, len(chunksB[p])+4)
+		chunkPacket[0] = portId
+		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
+		chunkPacket[2] = byte(maxBufferSizePerRequest)
+		chunkPacket[3] = 0x02
+		copy(chunkPacket[4:], chunksB[p])
+		_, err = d.transfer(cmdWriteColor, chunkPacket)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
 		}
 	}
 
-	_, err := d.transfer(cmdRefresh, []byte{0xff})
+	_, err = d.transfer(cmdSave, dataFlush)
 	if err != nil {
-		return
-	}
-
-	_, err = d.transfer(cmdPortState, []byte{portId, 0x02})
-	if err != nil {
-		return
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
 	}
 }
 
@@ -1399,13 +1383,13 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[0] = endpoint
+	bufferW[1] = endpoint
 
 	if buffer != nil && len(buffer) > 0 {
 		if len(buffer) > bufferSize-1 {
 			buffer = buffer[:bufferSize-1]
 		}
-		copy(bufferW[1:], buffer)
+		copy(bufferW[2:], buffer)
 	}
 
 	// Create read buffer

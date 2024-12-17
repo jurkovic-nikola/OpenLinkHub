@@ -724,6 +724,29 @@ func UpdateDeviceLcdRotation(deviceId string, channelId int, rotation uint8) uin
 	return 0
 }
 
+// UpdateDeviceLcdImage will update device LCD image
+func UpdateDeviceLcdImage(deviceId string, channelId int, image string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateDeviceLcdImage"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(image))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateDeviceLabel will set / update device label
 func UpdateDeviceLabel(deviceId string, channelId int, label string, deviceType int) uint8 {
 	if device, ok := devices[deviceId]; ok {

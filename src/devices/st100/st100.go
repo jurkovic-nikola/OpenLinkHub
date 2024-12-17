@@ -40,6 +40,7 @@ type Device struct {
 	CpuTemp       float32
 	GpuTemp       float32
 	Rgb           *rgb.RGB
+	Exit          bool
 }
 
 type ZoneColor struct {
@@ -97,24 +98,6 @@ var (
 	colorPacketLength     = 28
 )
 
-// Stop will stop all device operations and switch a device back to hardware mode
-func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-	timer.Stop()
-	authRefreshChan <- true
-
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-}
-
 func Init(vendorId, productId uint16, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
@@ -153,6 +136,25 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setAutoRefresh()     // Set auto device refresh
 	d.setDeviceColor()     // Device color
 	return d
+}
+
+// Stop will stop all device operations and switch a device back to hardware mode
+func (d *Device) Stop() {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+	timer.Stop()
+	authRefreshChan <- true
+
+	d.setHardwareMode()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
 }
 
 // loadRgb will load RGB file if found, or create the default.

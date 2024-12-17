@@ -12,11 +12,12 @@
       {{ $rgb := .Rgb }}
       {{ $lcd := .Device.HasLCD }}
       {{ $lcdModes := .Device.LCDModes }}
+      {{ $lcdImages := .LCDImages }}
       {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
       {{ $lcdRotations := .Device.LCDRotations }}
       {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
+      {{ $lcdImage := .Device.DeviceProfile.LCDImage }}
       {{ $deviceProfile := .Device.DeviceProfile }}
-
       <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
       <div class="bg-dash-dark-2 py-4">
         <div class="container-fluid">
@@ -97,17 +98,6 @@
                             </div>
                             <div class="custom-float-80-right">
                               <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
-                              <!--
-                              <select class="form-select brightness" style="line-height: 1;margin-top: 10px;">
-                                {{ range $key, $brightness := $device.Brightness }}
-                                {{ if eq $device.DeviceProfile.Brightness $key }}
-                                <option value="{{ $key }}" selected>{{ $brightness }}</option>
-                                {{ else }}
-                                <option value="{{ $key }}">{{ $brightness }}</option>
-                                {{ end }}
-                                {{ end }}
-                              </select>
-                              -->
                             </div>
                           </div>
                           <div class="custom-device-block">
@@ -285,6 +275,27 @@
                                 {{ end }}
                                 {{ end }}
                               </select>
+                              {{ if eq $lcdMode 10 }}
+                              <select class="form-select lcdImages" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;">
+                                {{ range $key, $value := $lcdImages }}
+                                {{ if eq $value.Name $lcdImage }}
+                                <option value="{{ $device.ChannelId }};{{ $value.Name }}" selected>{{ $value.Name }}</option>
+                                {{ else }}
+                                <option value="{{ $device.ChannelId }};{{ $value.Name }}">{{ $value.Name }}</option>
+                                {{ end }}
+                                {{ end }}
+                              </select>
+                              {{ else }}
+                              <select class="form-select lcdImages" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top:10px;display:none;">
+                                {{ range $key, $value := $lcdImages }}
+                                {{ if eq $value.Name $lcdImage }}
+                                <option value="0;{{ $value.Name }}" selected>{{ $value.Name }}</option>
+                                {{ else }}
+                                <option value="0;{{ $value.Name }}">{{ $value.Name }}</option>
+                                {{ end }}
+                                {{ end }}
+                              </select>
+                              {{ end }}
                             </div>
                           </div>
                           <div class="custom-device-block">

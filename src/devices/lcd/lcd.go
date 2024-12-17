@@ -14,16 +14,20 @@ import (
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/sstallion/go-hid"
+	"golang.org/x/image/bmp"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	_ "golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/webp"
+	_ "golang.org/x/image/webp"
 	"image"
 	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -42,33 +46,45 @@ const (
 	DisplayCpuGpuLoad     uint8 = 7
 	DisplayCpuGpuLoadTemp uint8 = 8
 	DisplayTime           uint8 = 9
+	DisplayImage          uint8 = 10
+)
+
+const (
+	ImageFormatJpg  = 0
+	ImageFormatBmp  = 1
+	ImageFormatWebp = 2
+	ImageFormatGif  = 3
 )
 
 var (
-	pwd, _         = os.Getwd()
-	location       = pwd + "/static/img/lcd/background.jpg"
-	animationsPath = pwd + "/static/img/lcd/animations/"
-	fontLocation   = pwd + "/static/fonts/teko.ttf"
-	mutex          sync.Mutex
-	imgWidth              = 480
-	imgHeight             = 480
-	lcdDevices            = map[string]uint16{}
-	vendorId       uint16 = 6940 // Corsair
+	pwd, _       = os.Getwd()
+	location     = pwd + "/database/lcd/background.jpg"
+	images       = pwd + "/database/lcd/images/"
+	fontLocation = pwd + "/static/fonts/teko.ttf"
+	mutex        sync.Mutex
+	imgWidth            = 480
+	imgHeight           = 480
+	lcdDevices          = map[string]uint16{}
+	vendorId     uint16 = 6940 // Corsair
 )
 
-type Animations struct {
+type ImageData struct {
 	Name   string
 	Frames int
-	Buffer [][]byte
+	Buffer []Frames
 }
 
+type Frames struct {
+	Buffer []byte
+	Delay  float64
+}
 type LCD struct {
-	image      image.Image
-	font       *truetype.Font
-	fontBytes  []byte
-	sfntFont   *opentype.Font
-	Devices    []Device
-	Animations []Animations
+	image     image.Image
+	font      *truetype.Font
+	fontBytes []byte
+	sfntFont  *opentype.Font
+	Devices   []Device
+	ImageData []ImageData
 }
 
 type Device struct {
@@ -126,151 +142,23 @@ func Init() {
 		sfntFont:  sfntFont,
 	}
 	lcd = *lcdData
-	loadAnimations()
+	loadLcdImages()
 	loadLcdDevices()
 }
 
-func loadAnimations() {
-	m := 0
-	logger.Log(logger.Fields{}).Info("Loading LCD animation images")
-	files, err := os.ReadDir(animationsPath)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": animationsPath}).Error("Unable to read content of a folder")
-		return
-	}
-	for _, fi := range files {
-		// Define a full path of filename
-		imagePath := animationsPath + fi.Name()
-
-		// Check if filename has .json extension
-		if !common.IsValidExtension(imagePath, ".gif") {
-			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Image needs to have .gif extension")
-			continue
-		}
-
-		// Process filename
-		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", fileName); !m {
-			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Image name can only have letters and numbers. Please rename your image")
-			continue
-		}
-
-		// Open image
-		file, err := os.Open(imagePath)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Unable to open gif animation")
-			continue
-		}
-
-		// Decode image
-		g, err := gif.DecodeAll(file)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath}).Warn("Error decoding gif animation")
-			return
-		}
-
-		frames := len(g.Image)
-		imageBuffer := make([][]byte, frames) // Slice to store each frame's byte slice
-
-		resizedGIF := &gif.GIF{
-			LoopCount: g.LoopCount,
-		}
-		for i, frame := range g.Image {
-			// Convert frame to RGBA to support resizing
-			bounds := frame.Bounds()
-			palettedImage := image.NewPaletted(image.Rect(0, 0, imgWidth, imgHeight), frame.Palette)
-			draw.Draw(palettedImage, palettedImage.Rect, resizeImage(frame, imgWidth, imgHeight), bounds.Min, draw.Src)
-
-			// Append the resized frame to the new GIF
-			resizedGIF.Image = append(resizedGIF.Image, palettedImage)
-			resizedGIF.Delay = append(resizedGIF.Delay, g.Delay[0])
-
-			// Create a buffer to encode the frame
-			var buffer bytes.Buffer
-			// Encode the frame back into a GIF
-			err = jpeg.Encode(&buffer, palettedImage, nil)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": animationsPath, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
-				continue
-			}
-
-			// Store the byte slice for the frame
-			imageBuffer[i] = buffer.Bytes()
-		}
-		animation := &Animations{
-			Name:   fileName,
-			Frames: frames,
-			Buffer: imageBuffer,
-		}
-		lcd.Animations = append(lcd.Animations, *animation)
-		m++
-	}
-	imgText := "image"
-	if m > 1 {
-		imgText = "images"
-	}
-	logger.Log(logger.Fields{"amount": m}).Info(fmt.Sprintf("Loaded %v LCD animation %s", m, imgText))
+// GetLcdImages will return all lcd images
+func GetLcdImages() []ImageData {
+	return lcd.ImageData
 }
 
-// resizeImage will resize image with given width and height
-func resizeImage(src image.Image, width, height int) image.Image {
-	dst := image.NewRGBA(image.Rect(0, 0, width, height))
-	srcBounds := src.Bounds()
-
-	// Simple nearest-neighbor resizing
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			srcX := srcBounds.Min.X + x*srcBounds.Dx()/width
-			srcY := srcBounds.Min.Y + y*srcBounds.Dy()/height
-			dst.Set(x, y, src.At(srcX, srcY))
+// GetLcdImage will return image data based on image name
+func GetLcdImage(image string) *ImageData {
+	for _, value := range lcd.ImageData {
+		if value.Name == image {
+			return &value
 		}
 	}
-	return dst
-}
-
-func loadLcdDevices() {
-	lcdProductIds := []uint16{3150, 3139, 3129}
-
-	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		if info.InterfaceNbr == 0 {
-			if slices.Contains(lcdProductIds, info.ProductID) {
-				lcdDevices[info.SerialNbr] = info.ProductID
-			}
-		}
-		return nil
-	})
-
-	// Enumerate all Corsair devices
-	err := hid.Enumerate(vendorId, hid.ProductIDAny, enum)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate LCD devices")
-		return
-	}
-
-	i := 0
-	for serial, productId := range lcdDevices {
-		lcdPanel, e := hid.Open(vendorId, productId, serial)
-		if e != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open LCD HID device")
-			continue
-		}
-		product := ""
-		switch productId {
-		case 3150:
-			product = "iCUE LINK AIO LCD"
-		case 3139:
-			product = "iCUE LINK XD5 LCD"
-		}
-		device := &Device{
-			Lcd:       lcdPanel,
-			ProductId: productId,
-			Product:   product,
-			Serial:    serial,
-			AIO:       productId == 3150,
-		}
-		lcd.Devices = append(lcd.Devices, *device)
-		i++
-	}
+	return nil
 }
 
 // GetLcdBySerial will return HID device by serial number
@@ -340,18 +228,6 @@ func Stop() {
 			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
 		}
 	}
-}
-
-// drawString will create a new string for image
-func drawString(x, y int, fontSite float64, c *freetype.Context, text string) *freetype.Context {
-	c.SetFontSize(fontSite)
-	pt := freetype.Pt(x, y)
-	_, err := c.DrawString(text, pt)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
-		return nil
-	}
-	return c
 }
 
 // GenerateScreenImage will generate LCD screen image with given value
@@ -550,4 +426,236 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []b
 		return nil
 	}
 	return buffer.Bytes()
+}
+
+// drawString will create a new string for image
+func drawString(x, y int, fontSite float64, c *freetype.Context, text string) *freetype.Context {
+	c.SetFontSize(fontSite)
+	pt := freetype.Pt(x, y)
+	_, err := c.DrawString(text, pt)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to generate LCD image")
+		return nil
+	}
+	return c
+}
+
+func loadImage(imagePath string, format uint8) {
+	file, err := os.Open(imagePath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to open image")
+		return
+	}
+
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to close image")
+		}
+	}(file)
+
+	filename := filepath.Base(imagePath)
+	fileName := strings.TrimSuffix(filename, filepath.Ext(filename))
+	imageBuffer := make([]Frames, 1)
+
+	switch format {
+	case ImageFormatJpg: // JPG, JPEG
+		{
+			var src image.Image
+			var buffer bytes.Buffer
+
+			src, err = jpeg.Decode(file)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to decode image")
+				return
+			}
+
+			resized := common.ResizeImage(src, imgWidth, imgHeight)
+			err = jpeg.Encode(&buffer, resized, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Failed to encode image frame")
+				return
+			}
+			imageBuffer[0] = Frames{
+				Buffer: buffer.Bytes(),
+				Delay:  0,
+			}
+		}
+		break
+	case ImageFormatBmp: // BMP
+		{
+			var src image.Image
+			var buffer bytes.Buffer
+
+			src, err = bmp.Decode(file)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to decode image")
+				return
+			}
+
+			resized := common.ResizeImage(src, imgWidth, imgHeight)
+			err = jpeg.Encode(&buffer, resized, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Failed to encode image frame")
+				return
+			}
+			imageBuffer[0] = Frames{
+				Buffer: buffer.Bytes(),
+				Delay:  0,
+			}
+		}
+		break
+	case ImageFormatWebp: // WEBP static
+		{
+			var src image.Image
+			var buffer bytes.Buffer
+
+			src, err = webp.Decode(file)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to decode image")
+				return
+			}
+
+			resized := common.ResizeImage(src, imgWidth, imgHeight)
+			err = jpeg.Encode(&buffer, resized, nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Failed to encode image frame")
+				return
+			}
+			imageBuffer[0] = Frames{
+				Buffer: buffer.Bytes(),
+				Delay:  0,
+			}
+		}
+		break
+	case ImageFormatGif: // Gif
+		{
+			var src *gif.GIF
+			src, err = gif.DecodeAll(file)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Error decoding gif animation")
+				return
+			}
+			imageBuffer = make([]Frames, len(src.Image))
+
+			for i, frame := range src.Image {
+				var buffer bytes.Buffer
+				resized := common.ResizeImage(frame, imgWidth, imgHeight)
+				err = jpeg.Encode(&buffer, resized, nil)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
+					continue
+				}
+				imageBuffer[i] = Frames{
+					Buffer: buffer.Bytes(),
+					Delay:  float64(src.Delay[i]) * 10, // Multiply by 10 to get frame delay in milliseconds
+				}
+			}
+		}
+		break
+	}
+
+	imageList := &ImageData{
+		Name:   fileName,
+		Frames: len(imageBuffer),
+		Buffer: imageBuffer,
+	}
+	lcd.ImageData = append(lcd.ImageData, *imageList)
+}
+
+// loadLcdImages will load all LCD images
+func loadLcdImages() {
+	files, err := os.ReadDir(images)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": images}).Error("Unable to read content of a folder")
+		return
+	}
+	for _, fi := range files {
+		imagePath := images + fi.Name()
+
+		// Process filename
+		filename := filepath.Base(imagePath)
+		fileName := strings.TrimSuffix(filename, filepath.Ext(filename))
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", fileName); !m {
+			logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Image name can only have letters, numbers, - and _. Please rename your image")
+			continue
+		}
+
+		switch strings.ToLower(filepath.Ext(imagePath)) {
+		case ".jpg":
+			{
+				loadImage(imagePath, ImageFormatJpg)
+			}
+			break
+		case ".jpeg":
+			{
+				loadImage(imagePath, ImageFormatJpg)
+			}
+			break
+		case ".bmp":
+			{
+				loadImage(imagePath, ImageFormatBmp)
+			}
+			break
+		case ".webp":
+			{
+				loadImage(imagePath, ImageFormatWebp)
+			}
+			break
+		case ".gif":
+			{
+				loadImage(imagePath, ImageFormatGif)
+			}
+			break
+		default:
+			logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Invalid image extension")
+			continue
+		}
+	}
+}
+
+// loadLcdDevices will load all available LCD devices
+func loadLcdDevices() {
+	lcdProductIds := []uint16{3150, 3139, 3129}
+
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == 0 {
+			if slices.Contains(lcdProductIds, info.ProductID) {
+				lcdDevices[info.SerialNbr] = info.ProductID
+			}
+		}
+		return nil
+	})
+
+	// Enumerate all Corsair devices
+	err := hid.Enumerate(vendorId, hid.ProductIDAny, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate LCD devices")
+		return
+	}
+
+	i := 0
+	for serial, productId := range lcdDevices {
+		lcdPanel, e := hid.Open(vendorId, productId, serial)
+		if e != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open LCD HID device")
+			continue
+		}
+		product := ""
+		switch productId {
+		case 3150:
+			product = "iCUE LINK AIO LCD"
+		case 3139:
+			product = "iCUE LINK XD5 LCD"
+		}
+		device := &Device{
+			Lcd:       lcdPanel,
+			ProductId: productId,
+			Product:   product,
+			Serial:    serial,
+			AIO:       productId == 3150,
+		}
+		lcd.Devices = append(lcd.Devices, *device)
+		i++
+	}
 }

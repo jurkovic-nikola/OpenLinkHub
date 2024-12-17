@@ -9,9 +9,9 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 - This project was created out of own necessity to control fans and pumps on workstations after switching everything to Linux.
 - I take no responsibility for this code at all. Use this at your own risk. 
 - Most of the devices are actually tested on live hardware.
-- OpenLinkHub supports multiple devices.
 - Take care and have fun!
 - This project does not accept any donations.
+- This project is not an official Corsair product.
 
 ## Supported devices
 | Device                        | VID    | PID                            | Sub Devices                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -86,13 +86,16 @@ $ sudo rpm -ivh OpenLinkHub-X.X.X-1.x86_64.rpm
 ## Installation (manual)
 ### 1. Requirements
 - libudev-dev
+- usbutils
 - go 1.22.2 - https://go.dev/dl/
 ```bash
 # Required packages (deb)
 $ sudo apt-get install libudev-dev
+$ sudo apt-get install usbutils
 
 # Required packages (rpm)
 $ sudo dnf install libudev-devel
+$ sudo dnf install usbutils
 ```
 ### 2. Build & install
 ```bash

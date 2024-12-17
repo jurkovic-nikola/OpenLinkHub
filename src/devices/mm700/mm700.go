@@ -40,6 +40,7 @@ type Device struct {
 	CpuTemp       float32
 	GpuTemp       float32
 	Rgb           *rgb.RGB
+	Exit          bool
 }
 
 type ZoneColor struct {
@@ -145,6 +146,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
@@ -322,6 +324,9 @@ func (d *Device) setKeepAlive() {
 		for {
 			select {
 			case <-timerKeepAlive.C:
+				if d.Exit {
+					return
+				}
 				d.keepAlive()
 			case <-keepAliveChan:
 				timerKeepAlive.Stop()

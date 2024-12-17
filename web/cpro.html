@@ -69,17 +69,6 @@
                                             </div>
                                             <div class="custom-float-80-right">
                                                 <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
-                                                <!--
-                                                <select class="form-select brightness" style="line-height: 1;margin-top: 10px;">
-                                                    {{ range $key, $brightness := $device.Brightness }}
-                                                    {{ if eq $device.DeviceProfile.Brightness $key }}
-                                                    <option value="{{ $key }}" selected>{{ $brightness }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $key }}">{{ $brightness }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                                -->
                                             </div>
                                         </div>
                                         <div style="overflow: hidden; margin-top: 10px;">

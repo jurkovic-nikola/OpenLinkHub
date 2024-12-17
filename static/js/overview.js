@@ -695,6 +695,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     if (response.status === 1) {
                         toast.success(response.message);
+                        if (parseInt(mode[1]) === 10) { // Animation
+                            $(".lcdImages").show();
+                        } else {
+                            $(".lcdImages").hide();
+                        }
                     } else {
                         toast.warning(response.message);
                     }
@@ -748,6 +753,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
         $.ajax({
             url: '/api/lcd/rotation',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.lcdImages').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const image = $(this).val().split(";");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(image[0]);
+        pf["image"] = image[1];
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/image',
             type: 'POST',
             data: json,
             cache: false,

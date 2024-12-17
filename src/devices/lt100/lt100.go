@@ -80,11 +80,14 @@ type Device struct {
 	GpuTemp                 float32
 	Keepalive               bool
 	Rgb                     *rgb.RGB
+	VendorId                uint16
+	ProductId               uint16
+	Path                    string
+	Exit                    bool
 }
 
 var (
 	pwd                     = ""
-	cmdWakeUp               = byte(0x03)
 	cmdGetFirmware          = byte(0x02)
 	cmdLedReset             = byte(0x37)
 	cmdPortState            = byte(0x38)
@@ -100,7 +103,7 @@ var (
 	mutex                   sync.Mutex
 	deviceRefreshInterval   = 1000
 	bufferSize              = 64
-	readBufferSize          = 16
+	readBufferSize          = 17
 	bufferSizeWrite         = bufferSize + 1
 	maxBufferSizePerRequest = 50
 	authRefreshChan         = make(chan bool)
@@ -108,11 +111,11 @@ var (
 	timer                   = &time.Ticker{}
 	timerKeepAlive          = &time.Ticker{}
 	ledsPerTower            = 27
-	deviceKeepAlive         = 1000
+	deviceKeepAlive         = 40
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial, _ string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -133,7 +136,10 @@ func Init(vendorId, productId uint16, serial, _ string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "LT100 RGB",
+		Product:   "LT100 RGB",
+		Path:      path,
+		VendorId:  vendorId,
+		ProductId: productId,
 	}
 
 	// Bootstrap
@@ -146,7 +152,6 @@ func Init(vendorId, productId uint16, serial, _ string) *Device {
 	if d.getDevices() > 0 {
 		d.setAutoRefresh()    // Set auto device refresh
 		d.saveDeviceProfile() // Create device profile
-		d.startColors()       // Start color processing
 		d.setDeviceColor()    // Device color
 		logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
 	} else {
@@ -159,6 +164,8 @@ func Init(vendorId, productId uint16, serial, _ string) *Device {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	d.Exit = true
+
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
@@ -296,6 +303,7 @@ func (d *Device) keepAlive() {
 func (d *Device) resetLeds() {
 	buf := make([]byte, 8)
 	buf[0] = 0x00
+	d.write(byte(0x06), buf)  // Reset
 	d.write(cmdLedReset, buf) // Reset
 	d.write(cmdStart, buf)    // Start
 
@@ -325,19 +333,6 @@ func (d *Device) resetLeds() {
 	// Set port state
 	buf[1] = 0x02
 	d.write(cmdPortState, buf)
-	time.Sleep(50 * time.Millisecond)
-}
-
-// startColors will initiate interface for receiving colors
-func (d *Device) startColors() {
-	buf := make([]byte, 2)
-	buf[0] = 0x00
-	buf[1] = 0x02
-	d.write(cmdPortState, buf)
-
-	buf[0] = 0x00
-	buf[1] = 0x00
-	d.write(cmdStart, buf)
 }
 
 // shutdownLed will reset LED ports and set device in 'hardware' mode
@@ -465,22 +460,12 @@ func (d *Device) getSerial() {
 }
 
 // getDeviceFirmware will return a device firmware version out as string
-func (d *Device) wakeUpDevice() {
-	_, err := d.transfer(cmdWakeUp, nil)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
-		return
-	}
-}
-
-// getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(cmdGetFirmware, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get device firmware")
 		return
 	}
-
 	v1, v2, v3 := int(fw[1]), int(fw[2]), int(fw[3])
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
@@ -885,12 +870,6 @@ func (d *Device) setDeviceColor() {
 			return
 		}
 
-		/*
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-			}
-		*/
-
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		m := 0
@@ -981,14 +960,6 @@ func (d *Device) setDeviceColor() {
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
-
-					/*
-						if d.DeviceProfile.Brightness > 0 {
-							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-							r.RGBStartColor.Brightness = r.RGBBrightness
-							r.RGBEndColor.Brightness = r.RGBBrightness
-						}
-					*/
 
 					switch d.Devices[k].RGB {
 					case "off":
@@ -1246,7 +1217,7 @@ func (d *Device) writeColor(data []byte) {
 		copy(chunkPacket[4:], chunksG[p])
 		_, err = d.transfer(cmdWriteColor, chunkPacket)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write green color to device")
 		}
 	}
 
@@ -1258,7 +1229,7 @@ func (d *Device) writeColor(data []byte) {
 		copy(chunkPacket[4:], chunksB[p])
 		_, err = d.transfer(cmdWriteColor, chunkPacket)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
 		}
 	}
 
@@ -1292,10 +1263,12 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[0] = endpoint
+	if endpoint > 0 {
+		bufferW[1] = endpoint
+	}
 
 	if buffer != nil && len(buffer) > 0 {
-		copy(bufferW[1:], buffer)
+		copy(bufferW[2:], buffer)
 	}
 	// Create read buffer
 	bufferR := make([]byte, readBufferSize)
@@ -1303,13 +1276,12 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
-	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 
 	return bufferR, nil

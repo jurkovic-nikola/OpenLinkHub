@@ -60,6 +60,7 @@ var (
 	cmdGetFirmware   = []byte{0x02, 0x13}
 	cmdRead          = []byte{0x08, 0x00}
 	cmdWrite         = []byte{0x09, 0x00}
+	cmdGetDevices    = []byte{0x02, 0x11}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 50
 )
@@ -153,7 +154,7 @@ func (d *Device) GetDevice() *hid.Device {
 func (d *Device) getDevices() {
 	var devices = make(map[int]*Devices, 0)
 
-	data, err := d.transfer(cmdCommand, []byte{0x02, 0x011}, nil)
+	data, err := d.transfer(cmdCommand, cmdGetDevices, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get device")
 	}

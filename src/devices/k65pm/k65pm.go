@@ -27,20 +27,21 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	LCDMode          uint8
-	LCDRotation      uint8
-	Brightness       uint8
-	RGBProfile       string
-	BrightnessSlider *uint8
-	Label            string
-	Layout           string
-	Keyboards        map[string]*keyboards.Keyboard
-	Profile          string
-	Profiles         []string
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	LCDMode            uint8
+	LCDRotation        uint8
+	Brightness         uint8
+	RGBProfile         string
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	Label              string
+	Layout             string
+	Keyboards          map[string]*keyboards.Keyboard
+	Profile            string
+	Profiles           []string
 }
 
 type Device struct {
@@ -63,6 +64,10 @@ type Device struct {
 	GpuTemp         float32
 	Layouts         []string
 	Rgb             *rgb.RGB
+	timer           *time.Ticker
+	autoRefreshChan chan struct{}
+	mutex           sync.Mutex
+	Exit            bool
 }
 
 var (
@@ -75,9 +80,6 @@ var (
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x00}
 	deviceRefreshInterval   = 1000
-	timer                   = &time.Ticker{}
-	authRefreshChan         = make(chan bool)
-	mutex                   sync.Mutex
 	transferTimeout         = 500
 	bufferSize              = 128
 	bufferSizeWrite         = bufferSize + 1
@@ -110,9 +112,10 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     "K65 Pro Mini",
-		LEDChannels: 130,
-		Layouts:     keyboards.GetLayouts(keyboardKey),
+		Product:         "K65 Pro Mini",
+		LEDChannels:     130,
+		Layouts:         keyboards.GetLayouts(keyboardKey),
+		autoRefreshChan: make(chan struct{}),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -131,12 +134,21 @@ func Init(vendorId, productId uint16, key string) *Device {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	timer.Stop()
-	authRefreshChan <- true
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
 
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -145,6 +157,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -302,10 +315,11 @@ func (d *Device) saveDeviceProfile() {
 	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -334,6 +348,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 
 		deviceProfile.Active = d.DeviceProfile.Active
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
@@ -463,15 +478,17 @@ func (d *Device) getDeviceProfile() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
 				d.setTemperatures()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -486,8 +503,8 @@ func (d *Device) setTemperatures() {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -538,6 +555,24 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	}
 	d.setDeviceColor() // Restart RGB
 
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
 	return 1
 }
 
@@ -873,11 +908,6 @@ func (d *Device) setDeviceColor() {
 			return
 		}
 
-		/*
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-			}
-		*/
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for i := 0; i < d.LEDChannels; i++ {
@@ -961,13 +991,6 @@ func (d *Device) setDeviceColor() {
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
 
-				/*
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
-				*/
 				switch d.DeviceProfile.RGBProfile {
 				case "off":
 					{
@@ -1184,8 +1207,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)

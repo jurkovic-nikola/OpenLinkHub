@@ -72,6 +72,8 @@ type Device struct {
 	Endpoint              byte
 	SleepModes            map[int]string
 	Connected             bool
+	mutex                 sync.Mutex
+	Exit                  bool
 }
 
 var (
@@ -85,7 +87,6 @@ var (
 	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
 	cmdSetDpi            = map[int][]byte{0: {0x01, 0x20, 0x00}}
 	cmdSleep             = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	mutex                sync.Mutex
 	bufferSize           = 64
 	bufferSizeWrite      = bufferSize + 1
 	headerSize           = 2
@@ -114,7 +115,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "M55",
+		Product: "M55 WIRELESS",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -130,6 +131,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	d.getDebugMode()       // Debug mode
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
@@ -140,11 +142,13 @@ func (d *Device) Stop() {
 
 // StopInternal will stop all device operations and switch a device back to hardware mode
 func (d *Device) StopInternal() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
 	d.setHardwareMode()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // SetConnected will change connected status
@@ -351,7 +355,7 @@ func (d *Device) SetSleepMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
-	d.Connected = false
+	//d.Connected = false
 }
 
 // GetSleepMode will return current sleep mode
@@ -536,6 +540,9 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
+	if d.Exit {
+		return 0
+	}
 	if d.DeviceProfile != nil {
 		changed := 0
 		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
@@ -699,6 +706,10 @@ func (d *Device) ModifyDpi() {
 
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI() {
+	if d.Exit {
+		return
+	}
+
 	if d.DeviceProfile != nil {
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
@@ -730,6 +741,10 @@ func (d *Device) toggleDPI() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
+
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -743,8 +758,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -772,36 +787,15 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	return bufferR, nil
 }
 
-// transfer will send data to a device and retrieve device output
-func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// Create write buffer
-	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = d.Endpoint
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
-	copy(endpointHeaderPosition, endpoint)
-	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
 	}
-
-	// Create read buffer
-	bufferR := make([]byte, bufferSize)
-
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
-	}
-
-	// Get data from a device
-	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
-	}
-	return bufferR, nil
+	return data
 }
 
 // controlListener will listen for events from the control buttons
@@ -823,25 +817,31 @@ func (d *Device) controlListener() {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
 		}
 
-		// Listen loop
-		data := make([]byte, bufferSize)
 		for {
-			if d.listener == nil {
-				break
-			}
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
 
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
-			if data[1] == 0x02 {
-				if data[2] == 0x20 {
-					d.ModifyDpi()
-				} else if data[2] == 0x10 {
-					// Bottom side button
-				} else if data[2] == 0x08 {
-					// Upper side button
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
+
+				if data[1] == 0x02 {
+					if data[2] == 0x20 {
+						d.ModifyDpi()
+					} else if data[2] == 0x10 {
+						// Bottom side button
+					} else if data[2] == 0x08 {
+						// Upper side button
+					}
 				}
 			}
 		}

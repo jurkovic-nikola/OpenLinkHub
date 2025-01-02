@@ -5,7 +5,6 @@ import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
-	"OpenLinkHub/src/devices/dongle"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
@@ -111,15 +110,15 @@ type Product struct {
 }
 
 var (
-	expectedPermission        = 0600
-	vendorId           uint16 = 6940 // Corsair
-	interfaceId               = 0
-	devices                   = make(map[string]*Device, 0)
-	products                  = make(map[string]Product, 0)
-	keyboards                 = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091}
-	mouses                    = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024}
-	pads                      = []uint16{7067}
-	dongles                   = []uint16{7132, 7078, 11008, 7060}
+	expectedPermissions        = []int{0600, 0660}
+	vendorId            uint16 = 6940 // Corsair
+	interfaceId                = 0
+	devices                    = make(map[string]*Device, 0)
+	products                   = make(map[string]Product, 0)
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024}
+	pads                       = []uint16{7067}
+	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
 
 // Stop will stop all active devices
@@ -133,8 +132,8 @@ func Stop() {
 		} else {
 			method.Call(nil)
 		}
+		delete(devices, device.Serial)
 	}
-
 	err := hid.Exit()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
@@ -576,7 +575,7 @@ func UpdateDevicePosition(deviceId string, position, direction int) uint8 {
 // ScheduleDeviceBrightness will change device brightness level based on scheduler
 func ScheduleDeviceBrightness(mode uint8) {
 	for _, device := range GetDevices() {
-		methodName := "ChangeDeviceBrightnessValue"
+		methodName := "SchedulerBrightness"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 		if !method.IsValid() {
 			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
@@ -934,19 +933,7 @@ func Init() {
 	}
 
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		devPath := info.Path
-		dev, err := os.Stat(devPath)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to get device info")
-			return nil
-		}
-
-		filePerm := dev.Mode().Perm()
-		if filePerm != os.FileMode(expectedPermission) {
-			logger.Log(logger.Fields{"error": err, "productId": info.ProductID}).Warn("Invalid permissions")
-			return nil
-		}
-
+		match := 0
 		if slices.Contains(keyboards, info.ProductID) {
 			interfaceId = 1 // Keyboard
 		} else if slices.Contains(mouses, info.ProductID) {
@@ -959,6 +946,26 @@ func Init() {
 			interfaceId = 0
 		}
 		if info.InterfaceNbr == interfaceId {
+			devPath := info.Path
+			dev, err := os.Stat(devPath)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to get device stat info")
+				return nil
+			}
+			filePerm := dev.Mode().Perm()
+			for _, expectedPermission := range expectedPermissions {
+				if filePerm != os.FileMode(expectedPermission) {
+					continue
+				} else {
+					match++
+				}
+			}
+			
+			if match == 0 {
+				logger.Log(logger.Fields{"productId": info.ProductID, "path": info.Path, "device": info.ProductStr}).Warn("Invalid permissions")
+				return nil
+			}
+
 			if interfaceId == 1 {
 				products[info.Path] = Product{
 					ProductId: info.ProductID,
@@ -1247,7 +1254,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 11015: // K65 PLUS USB
+		case 11015: // K65 PLUS WIRELESS
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := k65plusW.Init(vendorId, productId, key)
@@ -1281,7 +1288,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7109: // K100 RGB
+		case 7109, 7036, 7037: // K100 RGB
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := k100.Init(vendorId, productId, key)
@@ -1309,6 +1316,7 @@ func Init() {
 						Firmware:    dev.Firmware,
 						Image:       "icon-dongle.svg",
 						Instance:    dev,
+						Hidden:      true,
 					}
 					for _, value := range dev.Devices {
 						switch value.ProductId {
@@ -1416,6 +1424,7 @@ func Init() {
 							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 						}
 					}
+					dev.InitAvailableDevices()
 				}(vendorId, productId, key)
 			}
 		case 2612: // Corsair ST100 LED Driver
@@ -1464,7 +1473,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
-						Image:       "icon-rgb.svg",
+						Image:       "icon-towers.svg",
 						Instance:    dev,
 					}
 				}(vendorId, productId, key, productPath)
@@ -1635,41 +1644,14 @@ func Init() {
 		case 7060: // CORSAIR KATAR PRO Wireless Gaming Dongle
 			{
 				go func(vendorId, productId uint16, key string) {
-					dev := dongle.Init(vendorId, productId, key)
+					dev := katarproW.Init(vendorId, productId, key)
 					devices[dev.Serial] = &Device{
-						ProductType: productTypeIronClawRgbW,
-						Product:     "SLIPSTREAM",
+						ProductType: productTypeKatarProW,
+						Product:     "KATAR PRO WIRELESS",
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
-						Image:       "icon-dongle.svg",
+						Image:       "icon-mouse.svg",
 						Instance:    dev,
-						Hidden:      true,
-					}
-
-					for _, value := range dev.Devices {
-						switch value.ProductId {
-						case 7195:
-							{
-								d := katarproW.Init(
-									value.VendorId,
-									productId,
-									value.ProductId,
-									dev.GetDevice(),
-									value.Endpoint,
-									value.Serial,
-								)
-								devices[d.Serial] = &Device{
-									ProductType: productTypeKatarProW,
-									Product:     "KATAR PRO WIRELESS",
-									Serial:      d.Serial,
-									Firmware:    d.Firmware,
-									Image:       "icon-mouse.svg",
-									Instance:    d,
-								}
-								dev.AddPairedDevice(value.ProductId, d)
-							}
-							break
-						}
 					}
 				}(vendorId, productId, key)
 			}

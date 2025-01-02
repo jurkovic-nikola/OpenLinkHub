@@ -38,15 +38,16 @@ type ExternalHubData struct {
 }
 
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	Brightness       uint8
-	BrightnessSlider *uint8
-	RGBProfiles      map[int]string
-	Labels           map[int]string
-	ExternalHubs     map[int]*ExternalHubData
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfiles        map[int]string
+	Labels             map[int]string
+	ExternalHubs       map[int]*ExternalHubData
 }
 
 type Devices struct {
@@ -84,6 +85,10 @@ type Device struct {
 	CpuTemp                 float32
 	GpuTemp                 float32
 	Rgb                     *rgb.RGB
+	Exit                    bool
+	mutex                   sync.Mutex
+	autoRefreshChan         chan struct{}
+	timer                   *time.Ticker
 }
 
 var (
@@ -96,13 +101,10 @@ var (
 	cmdSave                 = byte(0x33)
 	cmdRefresh2             = byte(0x34)
 	dataFlush               = []byte{0xff}
-	mutex                   sync.Mutex
 	deviceRefreshInterval   = 1000
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
 	maxBufferSizePerRequest = 50
-	authRefreshChan         = make(chan bool)
-	timer                   = &time.Ticker{}
 	maximumLedAmount        = 204
 	externalLedDevices      = []ExternalLedDevice{
 		{
@@ -170,7 +172,9 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		activeRgb: make(map[int]*rgb.ActiveRGB, 2),
+		activeRgb:       make(map[int]*rgb.ActiveRGB, 2),
+		timer:           &time.Ticker{},
+		autoRefreshChan: make(chan struct{}),
 	}
 
 	// Bootstrap
@@ -185,7 +189,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.saveDeviceProfile()  // Create device profile
 	d.setColorEndpoint()   // Setup lightning
 	d.setDeviceColor(true) // Device color
-	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
@@ -225,17 +229,25 @@ func (d *Device) ShutdownLed() {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
 		if d.activeRgb[i] != nil {
 			d.activeRgb[i].Exit <- true // Exit current RGB mode
 			d.activeRgb[i] = nil
 		}
 	}
-
 	d.ShutdownLed()
-	timer.Stop()
-	authRefreshChan <- true
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
 
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -243,6 +255,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -460,13 +473,14 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		RGBProfiles:      rgbProfiles,
-		ExternalHubs:     make(map[int]*ExternalHubData, 0),
-		Labels:           labels,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		RGBProfiles:        rgbProfiles,
+		ExternalHubs:       make(map[int]*ExternalHubData, 0),
+		Labels:             labels,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -498,6 +512,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.ExternalHubs = d.DeviceProfile.ExternalHubs
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -682,8 +697,8 @@ func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
@@ -719,6 +734,26 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
 
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		if d.activeRgb[i] != nil {
+			d.activeRgb[i].Exit <- true // Exit current RGB mode
+			d.activeRgb[i] = nil
+		}
+	}
+	d.setDeviceColor(false) // Restart RGB
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
 	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
 		if d.activeRgb[i] != nil {
 			d.activeRgb[i].Exit <- true // Exit current RGB mode
@@ -1260,19 +1295,21 @@ func (d *Device) setTemperatures() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
 				d.setTemperatures()
 				_, err := d.transfer(byte(0x33), []byte{0xff})
 				if err != nil {
 					return
 				}
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -1281,6 +1318,9 @@ func (d *Device) setAutoRefresh() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte, _ int, portId byte) {
+	if d.Exit {
+		return
+	}
 	packetLen := len(data) / 3
 	r := make([]byte, packetLen)
 	g := make([]byte, packetLen)
@@ -1378,8 +1418,8 @@ func (d *Device) setColorEndpoint() {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)

@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -30,19 +31,20 @@ type ZoneColors struct {
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	Brightness       uint8
-	BrightnessSlider *uint8
-	RGBProfile       string
-	Label            string
-	Profile          int
-	DPIColor         *rgb.Color
-	ZoneColors       map[int]ZoneColors
-	Profiles         map[int]DPIProfile
-	SleepMode        int
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfile         string
+	Label              string
+	Profile            int
+	DPIColor           *rgb.Color
+	ZoneColors         map[int]ZoneColors
+	Profiles           map[int]DPIProfile
+	SleepMode          int
 }
 
 type DPIProfile struct {
@@ -79,26 +81,30 @@ type Device struct {
 	Endpoint              byte
 	SleepModes            map[int]string
 	Connected             bool
+	Exit                  bool
+	mutex                 sync.Mutex
+	timer                 *time.Ticker
+	autoRefreshChan       chan struct{}
 }
 
 var (
-	pwd                  = ""
-	cmdSoftwareMode      = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode      = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdSleepMode         = []byte{0x01, 0x03, 0x00, 0x04}
-	cmdGetFirmware       = []byte{0x02, 0x13}
-	cmdWriteColor        = []byte{0x06, 0x00}
-	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
-	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi            = []byte{0x01, 0x20, 0x00}
-	cmdSleep             = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	mutex                sync.Mutex
-	bufferSize           = 64
-	bufferSizeWrite      = bufferSize + 1
-	headerSize           = 2
-	headerWriteSize      = 4
-	minDpiValue          = 100
-	maxDpiValue          = 26000
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdSleepMode          = []byte{0x01, 0x03, 0x00, 0x04}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
+	cmdOpenWriteEndpoint  = []byte{0x01, 0x0d, 0x00, 0x01}
+	cmdSetDpi             = []byte{0x01, 0x20, 0x00}
+	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	bufferSize            = 64
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	minDpiValue           = 100
+	maxDpiValue           = 26000
+	deviceRefreshInterval = 1000
 )
 
 func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
@@ -132,12 +138,15 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		},
 		LEDChannels:           15,
 		ChangeableLedChannels: 12,
+		autoRefreshChan:       make(chan struct{}),
+		timer:                 &time.Ticker{},
 	}
 
 	d.getDebugMode()       // Debug mode
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
+	d.setAutoRefresh()     // Set auto device refresh
 	return d
 }
 
@@ -148,11 +157,26 @@ func (d *Device) Stop() {
 
 // StopInternal will stop all device operations and switch a device back to hardware mode
 func (d *Device) StopInternal() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	d.setHardwareMode()
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+
+	if d.Connected {
+		d.setHardwareMode()
+	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // SetConnected will change connected status
@@ -164,13 +188,20 @@ func (d *Device) SetConnected(value bool) {
 func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
-		d.getDeviceFirmware() // Firmware
+		d.clearBuffer()       // Clear previous buffers
+		d.setHardwareMode()   // Activate hardware mode
 		d.setSoftwareMode()   // Activate software mode
+		d.getDeviceFirmware() // Firmware
 		d.initLeds()          // Init LED ports
 		d.setDeviceColor()    // Device color
 		d.toggleDPI()         // DPI
-		//d.setSleepTimer()     // Sleep
+		d.setSleepTimer()     // Sleep
 	}
+}
+
+// clearBuffer will flush any buffer remaining in the device
+func (d *Device) clearBuffer() {
+
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -309,6 +340,26 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
 
+	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
 	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
@@ -476,7 +527,7 @@ func (d *Device) SetSleepMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
-	d.Connected = false
+	//d.Connected = false
 }
 
 // GetSleepMode will return current sleep mode
@@ -494,9 +545,18 @@ func (d *Device) getDeviceFirmware() {
 		nil,
 	)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get device firmware")
 	}
 
+	if fw[1] != 0x02 {
+		fw, err = d.transfer(
+			cmdGetFirmware,
+			nil,
+		)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get device firmware")
+		}
+	}
 	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
@@ -507,10 +567,11 @@ func (d *Device) saveDeviceProfile() {
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -715,6 +776,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
@@ -774,6 +836,10 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
+	if d.Exit {
+		return 0
+	}
+
 	if d.DeviceProfile != nil {
 		changed := 0
 		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
@@ -783,11 +849,18 @@ func (d *Device) setSleepTimer() uint8 {
 		}
 
 		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-
 		for i := 0; i < 2; i++ {
 			command := cmdSleep[i]
+			if i == 0 {
+				buf[0] = 0x10
+				buf[1] = 0x27
+				buf[2] = 0x00
+				buf[3] = 0x00
+			} else {
+				sleep := d.DeviceProfile.SleepMode * (60 * 1000)
+				binary.LittleEndian.PutUint32(buf, uint32(sleep))
+			}
+
 			_, err = d.transfer(command, buf)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
@@ -893,16 +966,34 @@ func (d *Device) initLeds() {
 	}
 }
 
+// setCpuTemperature will store current CPU temperature
+func (d *Device) setTemperatures() {
+	d.CpuTemp = temperatures.GetCpuTemperature()
+	d.GpuTemp = temperatures.GetGpuTemperature()
+}
+
+// setAutoRefresh will refresh device data
+func (d *Device) setAutoRefresh() {
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
+	go func() {
+		for {
+			select {
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
+				d.setTemperatures()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
+				return
+			}
+		}
+	}()
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, d.LEDChannels*3)
-
-	// Reset
-	for i := 0; i < d.LEDChannels*3; i++ {
-		buf[i] = 0x00
-	}
-	d.writeColor(buf)
-
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
@@ -910,11 +1001,6 @@ func (d *Device) setDeviceColor() {
 
 	// DPI
 	dpiColor := d.DeviceProfile.DPIColor
-	/*
-		if d.DeviceProfile.Brightness != 0 {
-			dpiColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-		}
-	*/
 	dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 	dpiColor = rgb.ModifyBrightness(*dpiColor)
 
@@ -935,11 +1021,6 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "mouse" {
 		for _, zoneColor := range d.DeviceProfile.ZoneColors {
-			/*
-				if d.DeviceProfile.Brightness != 0 {
-					zoneColor.Color.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-				}
-			*/
 			zoneColor.Color.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			zoneColor.Color = rgb.ModifyBrightness(*zoneColor.Color)
 
@@ -966,11 +1047,6 @@ func (d *Device) setDeviceColor() {
 		}
 
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-		/*
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-			}
-		*/
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 
 		for _, zoneColor := range d.DeviceProfile.ZoneColors {
@@ -1057,14 +1133,6 @@ func (d *Device) setDeviceColor() {
 				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
-
-				/*
-					if d.DeviceProfile.Brightness > 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
-				*/
 
 				switch d.DeviceProfile.RGBProfile {
 				case "off":
@@ -1306,6 +1374,9 @@ func (d *Device) toggleDPI() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -1319,8 +1390,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -1342,38 +1413,6 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
-	}
-	return bufferR, nil
-}
-
-// transfer will send data to a device and retrieve device output
-func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// Create write buffer
-	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = d.Endpoint
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
-	copy(endpointHeaderPosition, endpoint)
-	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
-	}
-
-	// Create read buffer
-	bufferR := make([]byte, bufferSize)
-
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
-	}
-
-	// Get data from a device
-	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return nil, err
 	}

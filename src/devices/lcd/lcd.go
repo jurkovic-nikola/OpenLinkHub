@@ -90,6 +90,7 @@ type LCD struct {
 type Device struct {
 	Lcd       *hid.Device
 	ProductId uint16
+	VendorId  uint16
 	Product   string
 	Serial    string
 	AIO       bool
@@ -144,6 +145,18 @@ func Init() {
 	lcd = *lcdData
 	loadLcdImages()
 	loadLcdDevices()
+}
+
+// Reconnect will reconnect to all available LCD devices
+func Reconnect() {
+	for key, device := range lcd.Devices {
+		lcdPanel, e := hid.Open(vendorId, device.ProductId, device.Serial)
+		if e != nil {
+			logger.Log(logger.Fields{"error": e, "vendorId": vendorId, "productId": device.ProductId}).Error("Unable to reconnect LCD HID device")
+			continue
+		}
+		lcd.Devices[key].Lcd = lcdPanel
+	}
 }
 
 // GetLcdImages will return all lcd images
@@ -203,6 +216,27 @@ func GetAioLCDSerial() string {
 	return ""
 }
 
+// GetAioLCDData will return data of AIO LCD pumps
+func GetAioLCDData() *Device {
+	for _, device := range lcd.Devices {
+		if device.AIO {
+			return &device
+		}
+	}
+	return nil
+}
+
+// GetNonAioLCDData will return data of XD5 LCD pumps
+func GetNonAioLCDData() []Device {
+	var devices []Device
+	for _, device := range lcd.Devices {
+		if !device.AIO {
+			devices = append(devices, device)
+		}
+	}
+	return devices
+}
+
 // GetLcdAmount will return amount of available LCDs
 func GetLcdAmount() int {
 	return len(lcd.Devices)
@@ -213,21 +247,36 @@ func GetLcdDevices() []Device {
 	return lcd.Devices
 }
 
-// Stop will stop all LCD devices
-func Stop() {
-	for _, device := range lcd.Devices {
-		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
-		for i := 0; i <= 1; i++ {
-			_, e := device.Lcd.SendFeatureReport(lcdReports[i])
-			if e != nil {
-				logger.Log(logger.Fields{"error": e}).Fatal("Unable to send report to LCD HID device")
-			}
-		}
-		err := device.Lcd.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to close LCD HID device")
-		}
+func calculateIntXY(fontSize float64, value int) (int, int) {
+	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
+	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
 	}
+
+	bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
+	textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+	textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+	x := (imgWidth - textWidth) / 2
+	y := (imgHeight+textHeight)/2 - 10
+	return x, y
+}
+
+func calculateStringXY(fontSize float64, value string) (int, int) {
+	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
+	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+	}
+
+	bounds, _ := font.BoundString(fontFace, value)
+	textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+	textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+	x := (imgWidth - textWidth) / 2
+	y := (imgHeight+textHeight)/2 - 10
+	return x, y
 }
 
 // GenerateScreenImage will generate LCD screen image with given value
@@ -248,92 +297,67 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []b
 	switch imageType {
 	case DisplayLiquid:
 		{
-			c = drawString(150+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "LIQUID TEMP")
-			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			x, y := calculateStringXY(40, "LIQUID TEMP")
+			c = drawString(x, y-120, 40, c, "LIQUID TEMP")
 
-			opts := opentype.FaceOptions{Size: 220, DPI: 72, Hinting: 0}
-			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-			}
+			x, y = calculateStringXY(40, "[ °C ]")
+			c = drawString(x, y+120, 40, c, "[ °C ]")
 
-			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
-			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-			x := (imgWidth - textWidth) / 2
-			y := (imgHeight+textHeight)/2 - 10
-
-			c = drawString(x, y, 220, c, strconv.Itoa(value))
+			x, y = calculateStringXY(240, strconv.Itoa(value))
+			c = drawString(x, y, 240, c, strconv.Itoa(value))
 		}
 	case DisplayGPU:
 		{
-			c = drawString(170+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "GPU TEMP")
-			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			x, y := calculateStringXY(40, "GPU TEMP")
+			c = drawString(x, y-120, 40, c, "GPU TEMP")
 
-			opts := opentype.FaceOptions{Size: 220, DPI: 72, Hinting: 0}
-			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-			}
+			x, y = calculateStringXY(40, "[ °C ]")
+			c = drawString(x, y+120, 40, c, "[ °C ]")
 
-			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
-			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-			x := (imgWidth - textWidth) / 2
-			y := (imgHeight+textHeight)/2 - 10
-
-			c = drawString(x, y, 220, c, strconv.Itoa(value))
+			x, y = calculateStringXY(240, strconv.Itoa(value))
+			c = drawString(x, y, 240, c, strconv.Itoa(value))
 		}
 	case DisplayCPU:
 		{
-			c = drawString(170+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "CPU TEMP")
-			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]")
+			x, y := calculateStringXY(40, "CPU TEMP")
+			c = drawString(x, y-120, 40, c, "CPU TEMP")
 
-			opts := opentype.FaceOptions{Size: 220, DPI: 72, Hinting: 0}
-			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-			}
+			x, y = calculateStringXY(40, "[ °C ]")
+			c = drawString(x, y+120, 40, c, "[ °C ]")
 
-			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
-			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-			x := (imgWidth - textWidth) / 2
-			y := (imgHeight+textHeight)/2 - 10
-
-			c = drawString(x, y, 220, c, strconv.Itoa(value))
+			x, y = calculateStringXY(240, strconv.Itoa(value))
+			c = drawString(x, y, 240, c, strconv.Itoa(value))
 		}
 	case DisplayPump:
 		{
-			c = drawString(150+int(c.PointToFixed(24)>>6), 100+int(c.PointToFixed(24)>>6), 40, c, "PUMP SPEED")
-			c = drawString(180+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ RPM ]")
+			x, y := calculateStringXY(40, "PUMP TEMP")
+			c = drawString(x, y-120, 40, c, "PUMP TEMP")
 
-			opts := opentype.FaceOptions{Size: 200, DPI: 72, Hinting: 0}
-			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-			}
+			x, y = calculateStringXY(40, "[ °C ]")
+			c = drawString(x, y+120, 40, c, "[ RPM ]")
 
-			bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
-			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-			x := (imgWidth - textWidth) / 2
-			y := (imgHeight+textHeight)/2 - 10
-
+			x, y = calculateStringXY(200, strconv.Itoa(value))
 			c = drawString(x, y, 200, c, strconv.Itoa(value))
 		}
 	case DisplayAllInOne:
 		{
-			c = drawString(120+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "LIQUID")
-			c = drawString(280+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "CPU")
-			c = drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "PUMP")
-			c = drawString(120+int(c.PointToFixed(24)>>6), 200+int(c.PointToFixed(24)>>6), 100, c, strconv.Itoa(value))
-			c = drawString(270+int(c.PointToFixed(24)>>6), 200+int(c.PointToFixed(24)>>6), 100, c, strconv.Itoa(value1))
-			c = drawString(160+int(c.PointToFixed(24)>>6), 300+int(c.PointToFixed(24)>>6), 100, c, strconv.Itoa(value2))
+			x, y := calculateStringXY(40, "LIQUID")
+			c = drawString(x-80, y-110, 40, c, "LIQUID")
+
+			x, y = calculateStringXY(40, "CPU")
+			c = drawString(x+80, y-110, 40, c, "CPU")
+
+			x, y = calculateStringXY(40, "PUMP")
+			c = drawString(x, y+130, 40, c, "PUMP")
+
+			x, y = calculateStringXY(100, strconv.Itoa(value))
+			c = drawString(x-80, y-40, 100, c, strconv.Itoa(value))
+
+			x, y = calculateStringXY(100, strconv.Itoa(value1))
+			c = drawString(x+80, y-40, 100, c, strconv.Itoa(value1))
+
+			x, y = calculateStringXY(100, strconv.Itoa(value2))
+			c = drawString(x, y+60, 100, c, strconv.Itoa(value2))
 		}
 	case DisplayLiquidCPU:
 		{
@@ -387,33 +411,10 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []b
 		}
 	case DisplayTime:
 		{
-			opts := opentype.FaceOptions{Size: 70, DPI: 72, Hinting: 0}
-			fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-			}
-
-			bounds, _ := font.BoundString(fontFace, common.GetDate())
-			textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-			textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-			x := (imgWidth - textWidth) / 2
-			y := (imgHeight+textHeight)/2 - 10
+			x, y := calculateStringXY(70, common.GetDate())
 			c = drawString(x, y-50, 70, c, common.GetDate())
 
-			opts = opentype.FaceOptions{Size: 130, DPI: 72, Hinting: 0}
-			fontFace, err = opentype.NewFace(lcd.sfntFont, &opts)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-			}
-
-			bounds, _ = font.BoundString(fontFace, common.GetTime())
-			textWidth = (bounds.Max.X - bounds.Min.X).Ceil()
-			textHeight = (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-			x = (imgWidth - textWidth) / 2
-			y = (imgHeight+textHeight)/2 - 10
-
+			x, y = calculateStringXY(130, common.GetTime())
 			c = drawString(x, y+50, 130, c, common.GetTime())
 		}
 	}
@@ -616,7 +617,7 @@ func loadLcdImages() {
 
 // loadLcdDevices will load all available LCD devices
 func loadLcdDevices() {
-	lcdProductIds := []uint16{3150, 3139, 3129}
+	lcdProductIds := []uint16{3150, 3139}
 
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 		if info.InterfaceNbr == 0 {
@@ -634,13 +635,13 @@ func loadLcdDevices() {
 		return
 	}
 
-	i := 0
 	for serial, productId := range lcdDevices {
 		lcdPanel, e := hid.Open(vendorId, productId, serial)
 		if e != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open LCD HID device")
+			logger.Log(logger.Fields{"error": e, "vendorId": vendorId, "productId": productId}).Error("Unable to open LCD HID device")
 			continue
 		}
+
 		product := ""
 		switch productId {
 		case 3150:
@@ -654,8 +655,8 @@ func loadLcdDevices() {
 			Product:   product,
 			Serial:    serial,
 			AIO:       productId == 3150,
+			VendorId:  vendorId,
 		}
 		lcd.Devices = append(lcd.Devices, *device)
-		i++
 	}
 }

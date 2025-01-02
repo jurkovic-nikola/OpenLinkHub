@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,7 @@ import (
 type ZoneColors struct {
 	Color      *rgb.Color
 	ColorIndex []int
+	Name       string
 }
 
 // DeviceProfile struct contains all device profile
@@ -77,27 +79,31 @@ type Device struct {
 	Endpoint              byte
 	SleepModes            map[int]string
 	Connected             bool
+	Exit                  bool
+	mutex                 sync.Mutex
+	timer                 *time.Ticker
+	autoRefreshChan       chan struct{}
 }
 
 var (
-	pwd                  = ""
-	cmdSoftwareMode      = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode      = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdSleepMode         = []byte{0x01, 0x03, 0x00, 0x04}
-	cmdGetFirmware       = []byte{0x02, 0x13}
-	cmdWriteColor        = []byte{0x06, 0x00}
-	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
-	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi            = []byte{0x01}
-	modeDpi              = []byte{0x21, 0x22}
-	cmdSleep             = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	mutex                sync.Mutex
-	bufferSize           = 64
-	bufferSizeWrite      = bufferSize + 1
-	headerSize           = 2
-	headerWriteSize      = 4
-	minDpiValue          = 200
-	maxDpiValue          = 18000
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdSleepMode          = []byte{0x01, 0x03, 0x00, 0x04}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
+	cmdOpenWriteEndpoint  = []byte{0x01, 0x0d, 0x00, 0x01}
+	cmdSetDpi             = []byte{0x01}
+	modeDpi               = []byte{0x21, 0x22}
+	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	bufferSize            = 64
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	minDpiValue           = 200
+	maxDpiValue           = 18000
+	deviceRefreshInterval = 1000
 )
 
 func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
@@ -131,12 +137,16 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		},
 		LEDChannels:           6,
 		ChangeableLedChannels: 3,
+		autoRefreshChan:       make(chan struct{}),
+		timer:                 &time.Ticker{},
 	}
 
 	d.getDebugMode()       // Debug mode
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
+	d.setAutoRefresh()     // Auto refresh
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
@@ -147,11 +157,26 @@ func (d *Device) Stop() {
 
 // StopInternal will stop all device operations and switch a device back to hardware mode
 func (d *Device) StopInternal() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	d.setHardwareMode()
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+
+	if d.Connected {
+		d.setHardwareMode()
+	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // SetConnected will change connected status
@@ -456,7 +481,7 @@ func (d *Device) SetSleepMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
-	d.Connected = false
+	//d.Connected = false
 }
 
 // GetSleepMode will return current sleep mode
@@ -507,6 +532,7 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
 				},
+				Name: "Logo",
 			},
 			1: { // Scroll
 				ColorIndex: []int{1, 7, 13},
@@ -517,6 +543,7 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 0),
 				},
+				Name: "Scroll",
 			},
 			2: { // Front
 				ColorIndex: []int{2, 8, 14},
@@ -527,6 +554,7 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
+				Name: "Front",
 			},
 		}
 		deviceProfile.DPIColor = &rgb.Color{
@@ -629,6 +657,10 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
+	if d.Exit {
+		return 0
+	}
+
 	if d.DeviceProfile != nil {
 		changed := 0
 		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
@@ -751,13 +783,6 @@ func (d *Device) initLeds() {
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, d.LEDChannels*3)
-
-	// Reset
-	for i := 0; i < d.LEDChannels*3; i++ {
-		buf[i] = 0x00
-	}
-	d.writeColor(buf)
-
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
@@ -1115,6 +1140,31 @@ func (d *Device) ModifyDpi(increment bool) {
 	d.toggleDPI()
 }
 
+// setCpuTemperature will store current CPU temperature
+func (d *Device) setTemperatures() {
+	d.CpuTemp = temperatures.GetCpuTemperature()
+	d.GpuTemp = temperatures.GetGpuTemperature()
+}
+
+// setAutoRefresh will refresh device data
+func (d *Device) setAutoRefresh() {
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
+	go func() {
+		for {
+			select {
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
+				d.setTemperatures()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
+				return
+			}
+		}
+	}()
+}
+
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI() {
 	if d.DeviceProfile != nil {
@@ -1149,6 +1199,9 @@ func (d *Device) toggleDPI() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -1162,8 +1215,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -1185,38 +1238,6 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
-	}
-	return bufferR, nil
-}
-
-// transfer will send data to a device and retrieve device output
-func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// Create write buffer
-	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = d.Endpoint
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
-	copy(endpointHeaderPosition, endpoint)
-	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
-	}
-
-	// Create read buffer
-	bufferR := make([]byte, bufferSize)
-
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
-	}
-
-	// Get data from a device
-	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return nil, err
 	}

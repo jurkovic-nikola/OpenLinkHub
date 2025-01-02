@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 )
 
 const (
@@ -166,7 +165,6 @@ func InputControl(controlType uint8, serial string) {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
 			return
 		}
-		time.Sleep(10 * time.Millisecond) // Small delay for realism
 	}
 
 	// Close device

@@ -73,6 +73,8 @@ type Device struct {
 	Connected          bool
 	Rgb                *rgb.RGB
 	Endpoint           byte
+	mutex              sync.Mutex
+	Exit               bool
 }
 
 var (
@@ -92,7 +94,6 @@ var (
 	dataTypeSubColor        = []byte{0x07, 0x01}
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
-	mutex                   sync.Mutex
 	transferTimeout         = 500
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
@@ -163,6 +164,7 @@ func (d *Device) Stop() {
 
 // StopInternal will stop all device operations and switch a device back to hardware mode
 func (d *Device) StopInternal() {
+	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
@@ -531,6 +533,10 @@ func (d *Device) getDeviceProfile() {
 
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
+	if d.Exit {
+		return 0
+	}
+
 	if d.DeviceProfile != nil {
 		buf := make([]byte, 4)
 		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
@@ -558,8 +564,8 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -1117,6 +1123,9 @@ func (d *Device) setDeviceColor() {
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
@@ -1168,8 +1177,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -1197,55 +1206,15 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	return bufferR, nil
 }
 
-// transfer will send data to a device and retrieve device output
-func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// Create write buffer
-	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = d.Endpoint
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
-	copy(endpointHeaderPosition, endpoint)
-	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
-	}
-
-	// Create read buffer
-	bufferR := make([]byte, bufferSize)
-
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
-	}
-
-	// Get data from a device
-	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
-	}
-	return bufferR, nil
-}
-
 // ModifyBrightness will modify brightness via control button
 func (d *Device) ModifyBrightness() {
-	buf := make([]byte, 2)
 	if d.DeviceProfile != nil {
 		if d.DeviceProfile.BrightnessLevel >= 1000 {
 			d.DeviceProfile.BrightnessLevel = 0
 		} else {
-			d.DeviceProfile.BrightnessLevel += 100
+			d.DeviceProfile.BrightnessLevel += 200
 		}
 		d.saveDeviceProfile()
-
-		// Send it
-		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
-
-		_, err := d.transfer(cmdBrightness, buf)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
-		}
+		d.setBrightnessLevel()
 	}
 }

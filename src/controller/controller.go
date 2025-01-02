@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/monitor"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server"
@@ -32,11 +33,11 @@ func Start() {
 	keyboards.Init()    // Keyboards
 	inputmanager.Init() // Input Manager
 	devices.Init()      // Devices
+	monitor.Init()      // Monitor
 	server.Init()       // REST & WebUI
 }
 
 // Stop will stop device control
 func Stop() {
 	devices.Stop() // Devices
-	lcd.Stop()     // LCDs
 }

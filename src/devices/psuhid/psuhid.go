@@ -98,7 +98,7 @@ var (
 	dataInputVoltage      = byte(0x88)
 	mutex                 sync.Mutex
 	timer                 = &time.Ticker{}
-	authRefreshChan       = make(chan bool)
+	autoRefreshChan       = make(chan bool)
 	deviceRefreshInterval = 1000
 	bufferSize            = 64
 	readBufferSize        = 64
@@ -149,7 +149,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	timer.Stop()
-	authRefreshChan <- true
+	autoRefreshChan <- true
 	d.setFanToDefault()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -570,13 +570,13 @@ func (d *Device) init() {
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
 	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	autoRefreshChan = make(chan bool)
 	go func() {
 		for {
 			select {
 			case <-timer.C:
 				d.getDeviceData()
-			case <-authRefreshChan:
+			case <-autoRefreshChan:
 				timer.Stop()
 				return
 			}

@@ -21,6 +21,25 @@
             <div class="container-fluid">
                 <div class="row gy-4" style="margin-top: 10px;">
                     <div class="row">
+                        {{ if eq .Device.Connected false }}
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
+                                    <span>Device is not connected!</span><br />
+                                </div>
+                            </div>
+                        </div>
+                        {{ else }}
+
                         <div class="card mb-4">
                             <div class="card-header border-bottom border-dash-dark-1">
                                 <div class="ds-svg-placeholder-left">
@@ -159,6 +178,7 @@
                             </div>
                             {{ end }}
                         </div>
+                        {{ end }}
                     </div>
                 </div>
             </div>

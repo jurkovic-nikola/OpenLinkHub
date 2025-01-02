@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,7 @@ import (
 type ZoneColors struct {
 	Color      *rgb.Color
 	ColorIndex []int
+	Name       string
 }
 
 // DeviceProfile struct contains all device profile
@@ -74,26 +76,30 @@ type Device struct {
 	Layouts               []string
 	Rgb                   *rgb.RGB
 	SleepModes            map[int]string
+	timer                 *time.Ticker
+	autoRefreshChan       chan struct{}
+	mutex                 sync.Mutex
+	Exit                  bool
 }
 
 var (
-	pwd                  = ""
-	cmdSoftwareMode      = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode      = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware       = []byte{0x02, 0x13}
-	cmdWriteColor        = []byte{0x06, 0x00}
-	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
-	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi            = []byte{0x01}
-	modeDpi              = []byte{0x21, 0x22}
-	cmdSleep             = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	mutex                sync.Mutex
-	bufferSize           = 64
-	bufferSizeWrite      = bufferSize + 1
-	headerSize           = 2
-	headerWriteSize      = 4
-	minDpiValue          = 200
-	maxDpiValue          = 18000
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
+	cmdOpenWriteEndpoint  = []byte{0x01, 0x0d, 0x00, 0x01}
+	cmdSetDpi             = []byte{0x01}
+	modeDpi               = []byte{0x21, 0x22}
+	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	bufferSize            = 64
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	minDpiValue           = 200
+	maxDpiValue           = 18000
+	deviceRefreshInterval = 1000
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -139,20 +145,33 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	d.setSoftwareMode()    // Activate software mode
+	d.setAutoRefresh()     // Set auto device refresh
 	d.getDeviceFirmware()  // Firmware
 	d.initLeds()           // Init LED ports
 	d.setDeviceColor()     // Device color
 	d.controlListener()    // Control listener
 	d.toggleDPI()          // DPI
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
 
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -161,13 +180,7 @@ func (d *Device) Stop() {
 			return
 		}
 	}
-
-	if d.listener != nil {
-		err := d.listener.Close()
-		if err != nil {
-			return
-		}
-	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // getSerial will return device serial number
@@ -442,6 +455,31 @@ func (d *Device) SaveMouseZoneColors(dpi rgb.Color, zoneColors map[int]rgb.Color
 	return 0
 }
 
+// setCpuTemperature will store current CPU temperature
+func (d *Device) setTemperatures() {
+	d.CpuTemp = temperatures.GetCpuTemperature()
+	d.GpuTemp = temperatures.GetGpuTemperature()
+}
+
+// setAutoRefresh will refresh device data
+func (d *Device) setAutoRefresh() {
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
+	go func() {
+		for {
+			select {
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
+				d.setTemperatures()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
+				return
+			}
+		}
+	}()
+}
+
 // getManufacturer will return device manufacturer
 func (d *Device) getDebugMode() {
 	d.Debug = config.GetConfig().Debug
@@ -511,6 +549,7 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
 				},
+				Name: "Logo",
 			},
 			1: { // Scroll
 				ColorIndex: []int{1, 7, 13},
@@ -521,6 +560,7 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 0),
 				},
+				Name: "Scroll",
 			},
 			2: { // Front
 				ColorIndex: []int{2, 8, 14},
@@ -531,6 +571,7 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
+				Name: "Front",
 			},
 		}
 		deviceProfile.DPIColor = &rgb.Color{
@@ -755,13 +796,6 @@ func (d *Device) initLeds() {
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, d.LEDChannels*3)
-
-	// Reset
-	for i := 0; i < d.LEDChannels*3; i++ {
-		buf[i] = 0x00
-	}
-	d.writeColor(buf)
-
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
@@ -1121,6 +1155,9 @@ func (d *Device) ModifyDpi(increment bool) {
 
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI() {
+	if d.Exit {
+		return
+	}
 	if d.DeviceProfile != nil {
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
@@ -1153,6 +1190,9 @@ func (d *Device) toggleDPI() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -1161,6 +1201,17 @@ func (d *Device) writeColor(data []byte) {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 	}
+}
+
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
 }
 
 // controlListener will listen for events from the control buttons
@@ -1183,35 +1234,40 @@ func (d *Device) controlListener() {
 		}
 
 		// Listen loop
-		data := make([]byte, bufferSize)
 		for {
-			if d.listener == nil {
-				break
-			}
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
 
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
 
-			if data[1] == 2 {
-				switch data[2] {
-				case 32: // DPI Button Up
-					d.ModifyDpi(true)
-					break
-				case 64: // DPI Button Down
-					d.ModifyDpi(false)
-					break
-				case 8: // Forward button
-					// TO-DO
-					break
-				case 16: // Back button
-					// TO-DO
-					break
+				if data[1] == 2 {
+					switch data[2] {
+					case 32: // DPI Button Up
+						d.ModifyDpi(true)
+						break
+					case 64: // DPI Button Down
+						d.ModifyDpi(false)
+						break
+					case 8: // Forward button
+						// TO-DO
+						break
+					case 16: // Back button
+						// TO-DO
+						break
+					}
 				}
 			}
-			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 }
@@ -1219,8 +1275,8 @@ func (d *Device) controlListener() {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)

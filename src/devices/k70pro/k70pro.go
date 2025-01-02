@@ -65,6 +65,10 @@ type Device struct {
 	GpuTemp         float32
 	Layouts         []string
 	Rgb             *rgb.RGB
+	Exit            bool
+	timer           *time.Ticker
+	autoRefreshChan chan struct{}
+	mutex           sync.Mutex
 }
 
 var (
@@ -78,9 +82,6 @@ var (
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdBrightness           = []byte{0x01, 0x02, 0x00}
 	deviceRefreshInterval   = 1000
-	timer                   = &time.Ticker{}
-	authRefreshChan         = make(chan bool)
-	mutex                   sync.Mutex
 	transferTimeout         = 500
 	bufferSize              = 1024
 	bufferSizeWrite         = bufferSize + 1
@@ -114,9 +115,11 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     "K70 Pro RGB",
-		LEDChannels: 142,
-		Layouts:     keyboards.GetLayouts(keyboardKey),
+		Product:         "K70 Pro RGB",
+		LEDChannels:     142,
+		Layouts:         keyboards.GetLayouts(keyboardKey),
+		autoRefreshChan: make(chan struct{}),
+		listener:        nil,
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -132,17 +135,27 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setDeviceColor()     // Device color
 	d.setBrightnessLevel() // Brightness
 	d.controlListener()    // Control listener
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	timer.Stop()
-	authRefreshChan <- true
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
 
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -151,6 +164,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -461,15 +475,17 @@ func (d *Device) getDeviceProfile() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
 				d.setTemperatures()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -484,8 +500,8 @@ func (d *Device) setTemperatures() {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -827,7 +843,12 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 
 // setBrightnessLevel will set global brightness level
 func (d *Device) setBrightnessLevel() {
+	if d.Exit {
+		return
+	}
 	if d.DeviceProfile != nil {
+		fmt.Println("brightness")
+
 		buf := make([]byte, 2)
 		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
 		_, err := d.transfer(cmdBrightness, buf)
@@ -1166,6 +1187,9 @@ func (d *Device) setDeviceColor() {
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
@@ -1193,8 +1217,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -1223,6 +1247,17 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	return bufferR, nil
 }
 
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
+}
+
 // controlListener will listen for events from the control buttons
 func (d *Device) controlListener() {
 	var brightness uint16 = 0
@@ -1234,7 +1269,6 @@ func (d *Device) controlListener() {
 	}
 
 	go func() {
-		buf := make([]byte, 2)
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 2 {
 				listener, err := hid.OpenPath(info.Path)
@@ -1251,37 +1285,39 @@ func (d *Device) controlListener() {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
 		}
 
-		// Listen loop
-		data := make([]byte, bufferSize)
 		for {
-			// Read data from the HID device
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
-
-			value := data[4]
-			if value == 0 && data[16] == 2 {
-				if brightness >= 1000 {
-					brightness = 0
-				} else {
-					brightness += 100
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
 				}
 
-				if d.DeviceProfile != nil {
-					d.DeviceProfile.BrightnessLevel = brightness
-					d.saveDeviceProfile()
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
 
-					// Send it
-					binary.LittleEndian.PutUint16(buf[0:2], brightness)
-					_, err := d.transfer(cmdBrightness, buf)
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+				fmt.Println(data[:20])
+				value := data[4]
+				if value == 0 && data[16] == 2 {
+					if brightness >= 1000 {
+						brightness = 0
+					} else {
+						brightness += 200
+					}
+
+					if d.DeviceProfile != nil {
+						d.DeviceProfile.BrightnessLevel = brightness
+						d.saveDeviceProfile()
+						d.setBrightnessLevel()
 					}
 				}
 			}
-			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 }

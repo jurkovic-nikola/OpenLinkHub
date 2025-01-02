@@ -17,13 +17,15 @@ type Dashboard struct {
 	ShowDevices bool `json:"showDevices"`
 	VerticalUi  bool `json:"verticalUi"`
 	Celsius     bool `json:"celsius"`
+	ShowLabels  bool `json:"showLabels"`
 }
 
 var (
 	location  = ""
 	dashboard Dashboard
 	upgrade   = map[string]any{
-		"celsius": true,
+		"celsius":    true,
+		"showLabels": true,
 	}
 )
 
@@ -60,6 +62,7 @@ func upgradeFile() {
 			ShowDevices: false,
 			VerticalUi:  false,
 			Celsius:     true,
+			ShowLabels:  true,
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")

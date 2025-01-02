@@ -50,7 +50,7 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 | K70 PRO RGB                   | `1b1c` | `1bc6`<br />`1bb3`             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | K65 PLUS                      | `1b1c` | `2b10`<br />`2b07`             | USB<br />Wireless                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | K100 AIR RGB                  | `1b1c` | `1bab`                         | USB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| K100                          | `1b1c` | `1bc5`                         | USB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| K100                          | `1b1c` | `1bc5`<br />`1b7c`<br />`1b7d` | USB                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | KATAR PRO                     | `1b1c` | `1b93`                         | DPI Control<br />RGB Control                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | KATAR PRO WIRELESS            | `1b1c` | `1b94`                         | DPI Control                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | IRONCLAW RGB                  | `1b1c` | `1b5d`                         | DPI Control<br />RGB Control                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -80,7 +80,7 @@ Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 $ sudo apt install ./OpenLinkHub_X.X.X_amd64.deb 
 
 # RPM based (rpm)
-$ sudo rpm -ivh OpenLinkHub-X.X.X-1.x86_64.rpm
+$ sudo dnf install ./OpenLinkHub-X.X.X-1.x86_64.rpm
 ```
 
 ## Installation (manual)
@@ -126,7 +126,7 @@ $ sudo ./install.sh
   "manual": false,
   "frontend": true,
   "metrics": true,
-  "dbusMonitor": false,
+  "resumeDelay": 15000,
   "memory": false,
   "memorySmBus": "i2c-0",
   "memoryType": 4,
@@ -141,7 +141,7 @@ $ sudo ./install.sh
 - manual: set to true if you want to use your own UI for device control. Setting this to true will disable temperature monitoring and automatic device speed adjustments. 
 - frontend: set to false if you do not need WebUI console, and you are making your own UI app. 
 - metrics: enable or disable Prometheus metrics
-- dbusMonitor: enable or disable iCUE Link System Hub suspend / resume via DBus. Set this to true of your hub is not recovering after sleep via normal method
+- resumeDelay: amount of time in milliseconds for program to reinitialize all devices after sleep / resume
 - memory: Enable overview / control over the memory
 - memorySmBus: i2c smbus sensor id
 - memoryType: 4 for DDR4. 5 for DDR5
@@ -150,6 +150,30 @@ $ sudo ./install.sh
 - memorySku: Memory part number, e.g. (CMT64GX5M2B5600Z40)
 - You can find memory part number by running the following command: `sudo dmidecode -t memory | grep 'Part Number'`
 
+## Uninstall
+```bash
+# Stop service
+sudo systemctl stop OpenLinkHub.service
+
+# Remove application directory
+sudo rm -rf /opt/OpenLinkHub/
+
+# Remove systemd file (file location can be found by running sudo systemctl status OpenLinkHub.service)
+sudo rm /etc/systemd/system/OpenLinkHub.service
+# or
+sudo rm /usr/lib/systemd/system/OpenLinkHub.service
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Remove udev rules
+sudo rm -f /etc/udev/rules.d/99-corsair*.rules
+sudo rm -f /etc/udev/rules.d/98-corsair-memory.rules
+
+# Reload udev
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
 ## Running in Docker
 As an alternative, OpenLinkHub can be run in Docker, using the Dockerfile in this repository to build it locally. A configuration file has to be mounted to /opt/OpenLinkHub/config.json
 ```bash
@@ -163,6 +187,8 @@ $ docker run --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlink
 $ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
 ```
 
+## LCD
+- LCD images / animations are located in `/opt/OpenLinkHub/database/lcd/images/`
 ## Device Dashboard
 - Device Dashboard is accessible by browser via link `http://127.0.0.1:27003/`
 - Device Dashboard allows you to control your devices. 
@@ -271,7 +297,7 @@ $ sudo i2cdetect -y 2 # this is i2c-0 from i2cdetect -l command
 # If your result looks similar to this, you are on the right i2c sensor. If not, try different SMBus device ID.
 
 # Set I2C permission
-$ echo 'KERNEL=="i2c-0", MODE="0666"' | sudo tee /etc/udev/rules.d/99-corsair-memory.rules
+$ echo 'KERNEL=="i2c-0", MODE="0600", OWNER="openlinkhub"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
 # Reload udev rules
 $ sudo udevadm control --reload-rules
 $ sudo udevadm trigger

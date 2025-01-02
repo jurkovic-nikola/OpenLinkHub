@@ -72,6 +72,13 @@ type Device struct {
 	RGBModes           map[string]string
 	SleepModes         map[int]string
 	Rgb                *rgb.RGB
+	Exit               bool
+	timer              *time.Ticker
+	timerKeepAlive     *time.Ticker
+	autoRefreshChan    chan struct{}
+	keepAliveChan      chan struct{}
+	mutex              sync.Mutex
+	Connected          bool
 }
 
 var (
@@ -89,11 +96,6 @@ var (
 	cmdKeyboard             = 0x09
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
-	timer                   = &time.Ticker{}
-	timerKeepAlive          = &time.Ticker{}
-	authRefreshChan         = make(chan bool)
-	keepAliveChan           = make(chan bool)
-	mutex                   sync.Mutex
 	transferTimeout         = 500
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
@@ -153,6 +155,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
+		autoRefreshChan: make(chan struct{}),
+		keepAliveChan:   make(chan struct{}),
 	}
 
 	d.getDebugMode()        // Debug mode
@@ -171,20 +175,30 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.controlDialListener() // Control Dial
 	d.setBrightnessLevel()  // Brightness
 	d.setSleepTimer()       // Sleep
+	d.checkIfAlive()        // Check if alive
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	timer.Stop()
-	authRefreshChan <- true
 
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
+	d.timer.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			close(d.keepAliveChan)
+		})
+	}()
 
 	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 		var buf = make([]byte, 93)
@@ -204,6 +218,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -546,6 +561,9 @@ func (d *Device) getDeviceProfile() {
 
 // keepAlive will keep a device alive
 func (d *Device) keepAlive() {
+	if d.Exit {
+		return
+	}
 	_, err := d.transfer([]byte{0x12}, nil, byte(cmdDongle))
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
@@ -559,15 +577,17 @@ func (d *Device) keepAlive() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setKeepAlive() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	keepAliveChan = make(chan bool)
+	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timerKeepAlive.C:
+			case <-d.timerKeepAlive.C:
+				if d.Exit {
+					return
+				}
 				d.keepAlive()
-			case <-keepAliveChan:
-				timerKeepAlive.Stop()
+			case <-d.keepAliveChan:
+				d.timerKeepAlive.Stop()
 				return
 			}
 		}
@@ -576,19 +596,34 @@ func (d *Device) setKeepAlive() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
 				d.setTemperatures()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
 	}()
+}
+
+// checkIfAlive will check initial keyboard status on initialization
+func (d *Device) checkIfAlive() {
+	msg, err := d.transfer([]byte{0x12}, nil, byte(cmdKeyboard))
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+	}
+	if msg != nil && len(msg) > 3 {
+		if msg[2] == 0x00 {
+			d.Connected = true
+		}
+	}
 }
 
 // setCpuTemperature will store current CPU temperature
@@ -626,8 +661,8 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -875,7 +910,7 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 }
 
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(keyOption int, color rgb.Color) uint8 {
+func (d *Device) UpdateDeviceColor(_ int, keyOption int, color rgb.Color) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}
@@ -1023,6 +1058,10 @@ func (d *Device) setDeviceColor() {
 
 // setBrightnessLevel will set global brightness level
 func (d *Device) setBrightnessLevel() {
+	if d.Exit {
+		return
+	}
+
 	if d.DeviceProfile != nil {
 		buf := make([]byte, 2)
 		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
@@ -1064,8 +1103,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte, command byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -1079,6 +1118,31 @@ func (d *Device) transfer(endpoint, buffer []byte, command byte) ([]byte, error)
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
+	reports := make([]byte, 1)
+	err := d.dev.SetNonblock(true)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+	}
+
+	for {
+		n, err := d.dev.Read(reports)
+		if err != nil {
+			if n < 0 {
+				//
+			}
+			if err == hid.ErrTimeout || n == 0 {
+				break
+			}
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	err = d.dev.SetNonblock(false)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+	}
+
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
@@ -1091,6 +1155,28 @@ func (d *Device) transfer(endpoint, buffer []byte, command byte) ([]byte, error)
 		return nil, err
 	}
 	return bufferR, nil
+}
+
+// resumeFromSleep will trigger keyboard init once resumed from sleep
+func (d *Device) resumeFromSleep() {
+	_, err := d.transfer(cmdSoftwareMode, nil, byte(cmdKeyboard))
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+	}
+	d.getDeviceFirmware()
+	d.initLeds()
+	d.setDeviceColor()
+}
+
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
 }
 
 // controlDialListener will listen for events from the control dial
@@ -1122,68 +1208,97 @@ func (d *Device) controlDialListener() {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to enumerate devices")
 		}
 
-		// Listen loop
-		data := make([]byte, bufferSize)
 		for {
-			// Read data from the HID device
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
-			value := data[4]
-			switch d.DeviceProfile.ControlDial {
-			case 1:
-				{
-					if value == 0 && data[19] == 2 {
-						inputmanager.InputControl(inputmanager.VolumeMute, d.Serial)
-					} else {
-						if data[1] == 5 {
-							switch value {
-							case 1:
-								inputmanager.InputControl(inputmanager.VolumeUp, d.Serial)
-								break
-							case 255:
-								inputmanager.InputControl(inputmanager.VolumeDown, d.Serial)
-								break
-							}
-						}
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
 					}
+					return
 				}
-			case 2:
-				{
-					if value == 0 && data[19] == 2 {
-						pv = pv != true
-						if pv {
-							brightness = 0
-						} else {
-							brightness = 1000
-						}
-					} else {
-						if value == 1 {
-							if brightness >= 1000 {
-								brightness = 1000
-							} else {
-								brightness += 100
+
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
+
+				value := data[4]
+				if data[1] == 0x01 && data[2] == 0x36 {
+					switch value {
+					case 0x02:
+						{
+							if d.Connected == false {
+								d.Connected = true
+								d.resumeFromSleep()
 							}
-						} else if value == 255 {
-							if brightness <= 0 {
-								brightness = 0
-							} else {
-								brightness -= 100
+						}
+					case 0x00:
+						{
+							d.Connected = false
+							if d.activeRgb != nil {
+								d.activeRgb.Exit <- true // Exit current RGB mode
+								d.activeRgb = nil
 							}
 						}
 					}
+				} else {
+					switch d.DeviceProfile.ControlDial {
+					case 1:
+						{
+							if value == 0 && data[19] == 2 {
+								inputmanager.InputControl(inputmanager.VolumeMute, d.Serial)
+							} else {
+								if data[1] == 5 {
+									switch value {
+									case 1:
+										inputmanager.InputControl(inputmanager.VolumeUp, d.Serial)
+										break
+									case 255:
+										inputmanager.InputControl(inputmanager.VolumeDown, d.Serial)
+										break
+									}
+								}
+							}
+						}
+					case 2:
+						{
+							if value == 0 && data[19] == 2 {
+								pv = pv != true
+								if pv {
+									brightness = 0
+								} else {
+									brightness = 1000
+								}
+							} else {
+								if value == 1 {
+									if brightness >= 1000 {
+										brightness = 1000
+									} else {
+										brightness += 100
+									}
+								} else if value == 255 {
+									if brightness <= 0 {
+										brightness = 0
+									} else {
+										brightness -= 100
+									}
+								}
+							}
 
-					if d.DeviceProfile != nil {
-						d.DeviceProfile.BrightnessLevel = brightness
-						d.saveDeviceProfile()
+							if d.DeviceProfile != nil {
+								d.DeviceProfile.BrightnessLevel = brightness
+								d.saveDeviceProfile()
 
-						// Send it
-						binary.LittleEndian.PutUint16(buf[0:2], brightness)
-						_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
-						if err != nil {
-							logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+								// Send it
+								binary.LittleEndian.PutUint16(buf[0:2], brightness)
+								_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
+								if err != nil {
+									logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+								}
+							}
 						}
 					}
 				}

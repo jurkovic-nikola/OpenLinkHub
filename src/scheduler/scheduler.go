@@ -140,7 +140,7 @@ func startTasks() {
 			Action: func() {
 				if scheduler.LightsOut {
 					scheduler.LightsOut = false
-					devices.ScheduleDeviceBrightness(50)
+					devices.ScheduleDeviceBrightness(1)
 					SaveSchedulerSettings(scheduler)
 				}
 			},

@@ -116,28 +116,30 @@
                                         {{ end }}
 
                                         {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
-                                        <div style="margin-top: 10px;">
-                                            <div class="dpi-left" style="margin-top: 15px;">
-                                                DPI Color
-                                            </div>
-                                            <div class="dpi-middle">
-                                                <input type="color" id="dpiColor" value="{{ $device.DeviceProfile.DPIColor.Hex }}" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
-                                            </div>
-                                        </div>
-
                                         <div class="row" style="margin: 10px auto 0;">
-                                        {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
                                             <div class="col-md-3 col-sm-6">
                                                 <div class="card mb-4">
                                                     <div style="margin-top: 10px;">
-                                                        <p>{{ $zone.Name }}</p>
+                                                        <span style="margin-bottom: 10px;">DPI</span>
                                                         <div>
-                                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="padding: 0;">
+                                                            <input type="color" id="dpiColor" value="{{ $device.DeviceProfile.DPIColor.Hex }}" style="padding: 0;margin-bottom: 15px;">
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        {{ end }}
+
+                                            {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                            <div class="col-md-3 col-sm-6">
+                                                <div class="card mb-4">
+                                                    <div style="margin-top: 10px;">
+                                                        <span style="margin-bottom: 10px;">{{ $zone.Name }}</span>
+                                                        <div>
+                                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{ end }}
                                         </div>
                                         {{ end }}
                                     </div>

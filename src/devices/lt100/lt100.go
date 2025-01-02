@@ -35,14 +35,15 @@ type DeviceInfo struct {
 }
 
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	Brightness       uint8
-	BrightnessSlider *uint8
-	RGBProfiles      map[int]string
-	Labels           map[int]string
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfiles        map[int]string
+	Labels             map[int]string
 }
 
 type Devices struct {
@@ -84,6 +85,11 @@ type Device struct {
 	ProductId               uint16
 	Path                    string
 	Exit                    bool
+	mutex                   sync.Mutex
+	autoRefreshChan         chan struct{}
+	keepAliveChan           chan struct{}
+	timer                   *time.Ticker
+	timerKeepAlive          *time.Ticker
 }
 
 var (
@@ -100,18 +106,13 @@ var (
 	cmdRefreshPorts         = []byte{0x3c, 0x3d}
 	dataFlush               = []byte{0xff}
 	dataBrightness          = byte(0x64)
-	mutex                   sync.Mutex
 	deviceRefreshInterval   = 1000
 	bufferSize              = 64
 	readBufferSize          = 17
 	bufferSizeWrite         = bufferSize + 1
 	maxBufferSizePerRequest = 50
-	authRefreshChan         = make(chan bool)
-	keepAliveChan           = make(chan bool)
-	timer                   = &time.Ticker{}
-	timerKeepAlive          = &time.Ticker{}
 	ledsPerTower            = 27
-	deviceKeepAlive         = 40
+	deviceKeepAlive         = 2000
 )
 
 // Init will initialize a new device
@@ -136,10 +137,12 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:   "LT100 RGB",
-		Path:      path,
-		VendorId:  vendorId,
-		ProductId: productId,
+		Product:         "LT100 RGB",
+		Path:            path,
+		VendorId:        vendorId,
+		ProductId:       productId,
+		keepAliveChan:   make(chan struct{}),
+		autoRefreshChan: make(chan struct{}),
 	}
 
 	// Bootstrap
@@ -153,9 +156,9 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 		d.setAutoRefresh()    // Set auto device refresh
 		d.saveDeviceProfile() // Create device profile
 		d.setDeviceColor()    // Device color
-		logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	} else {
-		logger.Log(logger.Fields{"device": d}).Warn("Unable to get amount of connected towers. Closing device...")
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Warn("Unable to get amount of connected towers. Closing device...\"")
 		d.Stop()
 		return nil
 	}
@@ -165,19 +168,24 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true
-
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
 
-	if d.Keepalive {
-		keepAliveChan <- true
-		timerKeepAlive.Stop()
-	}
-
-	timer.Stop()
-	authRefreshChan <- true
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			if d.Keepalive {
+				close(d.keepAliveChan)
+				d.timerKeepAlive.Stop()
+			}
+		})
+	}()
 
 	d.shutdownLed()
 	if d.dev != nil {
@@ -186,6 +194,8 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -265,25 +275,26 @@ func (d *Device) GetDeviceTemplate() string {
 
 // unsetKeepAlive will stop keepalive timer
 func (d *Device) unsetKeepAlive() {
-	if timerKeepAlive != nil && d.Keepalive {
+	if d.timerKeepAlive != nil && d.Keepalive {
 		d.Keepalive = false
-		keepAliveChan <- true
-		timerKeepAlive.Stop()
+		d.timerKeepAlive.Stop()
 	}
 }
 
 // setAutoRefresh will keep a device alive
 func (d *Device) setKeepAlive() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	keepAliveChan = make(chan bool)
+	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	d.Keepalive = true
 	go func() {
 		for {
 			select {
-			case <-timerKeepAlive.C:
+			case <-d.timerKeepAlive.C:
+				if d.Exit {
+					return
+				}
 				d.keepAlive()
-			case <-keepAliveChan:
-				timerKeepAlive.Stop()
+			case <-d.keepAliveChan:
+				d.timerKeepAlive.Stop()
 				return
 			}
 		}
@@ -499,12 +510,13 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		RGBProfiles:      rgbProfiles,
-		Labels:           labels,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		RGBProfiles:        rgbProfiles,
+		Labels:             labels,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -526,6 +538,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 
 		deviceProfile.Active = d.DeviceProfile.Active
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -691,8 +704,8 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
@@ -724,6 +737,26 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
 
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
 	if d.isRgbStatic() {
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1155,15 +1188,14 @@ func (d *Device) setTemperatures() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
 				d.setTemperatures()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -1172,6 +1204,9 @@ func (d *Device) setAutoRefresh() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	packetLen := len(data) / 3
 	r := make([]byte, packetLen)
 	g := make([]byte, packetLen)
@@ -1258,8 +1293,8 @@ func (d *Device) write(endpoint byte, buffer []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)

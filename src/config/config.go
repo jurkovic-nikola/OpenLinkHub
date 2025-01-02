@@ -13,9 +13,7 @@ type Configuration struct {
 	CPUSensorChip   string   `json:"cpuSensorChip"`
 	Manual          bool     `json:"manual"`
 	Frontend        bool     `json:"frontend"`
-	RefreshOnStart  bool     `json:"refreshOnStart"`
 	Metrics         bool     `json:"metrics"`
-	DbusMonitor     bool     `json:"dbusMonitor"`
 	Memory          bool     `json:"memory"`
 	MemorySmBus     string   `json:"memorySmBus"`
 	MemoryType      int      `json:"memoryType"`
@@ -23,6 +21,7 @@ type Configuration struct {
 	DecodeMemorySku bool     `json:"decodeMemorySku"`
 	MemorySku       string   `json:"memorySku"`
 	ConfigPath      string   `json:",omitempty"`
+	ResumeDelay     int      `json:"resumeDelay"`
 }
 
 var (
@@ -31,6 +30,7 @@ var (
 	upgrade       = map[string]any{
 		"decodeMemorySku": true,
 		"memorySku":       "",
+		"resumeDelay":     15000,
 	}
 )
 
@@ -71,15 +71,14 @@ func upgradeFile(cfg string) {
 			CPUSensorChip:   "",
 			Manual:          false,
 			Frontend:        true,
-			RefreshOnStart:  false,
 			Metrics:         false,
-			DbusMonitor:     false,
 			Memory:          false,
 			MemorySmBus:     "i2c-0",
 			MemoryType:      4,
 			Exclude:         make([]uint16, 0),
 			DecodeMemorySku: true,
 			MemorySku:       "",
+			ResumeDelay:     15000,
 		}
 		saveConfigSettings(value)
 	} else {

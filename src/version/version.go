@@ -6,11 +6,14 @@ import (
 )
 
 type BuildInfo struct {
-	Revision string    `json:"revision"`
-	Time     time.Time `json:"time"`
-	Modified bool      `json:"modified"`
+	Revision     string    `json:"revision"`
+	Time         time.Time `json:"time"`
+	Modified     bool      `json:"modified"`
+	BuildVersion string    `json:"buildVersion"`
 }
 
+// Version is set via -ldflags automatically upon a build process, no need to modify this manually.
+var Version = "0.0.0"
 var buildInfo *BuildInfo
 
 // GetBuildInfo will return BuildInfo struct
@@ -26,10 +29,12 @@ func Init() {
 // getBuildInfo will fetch the latest build info
 func getBuildInfo() *BuildInfo {
 	build := &BuildInfo{
-		Revision: "",
-		Time:     time.Time{},
-		Modified: false,
+		Revision:     "",
+		Time:         time.Time{},
+		Modified:     false,
+		BuildVersion: Version,
 	}
+
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, kv := range info.Settings {
 			switch kv.Key {

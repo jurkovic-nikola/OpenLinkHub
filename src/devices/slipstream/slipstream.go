@@ -12,6 +12,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -31,31 +32,32 @@ type Devices struct {
 }
 
 type Device struct {
-	dev           *hid.Device
-	listener      *hid.Device
-	Manufacturer  string `json:"manufacturer"`
-	Product       string `json:"product"`
-	Serial        string `json:"serial"`
-	Firmware      string `json:"firmware"`
-	ProductId     uint16
-	VendorId      uint16
-	Devices       map[int]*Devices `json:"devices"`
-	PairedDevices map[uint16]any
-	SingleDevice  bool
-	Template      string
-	Debug         bool
+	dev            *hid.Device
+	listener       *hid.Device
+	Manufacturer   string `json:"manufacturer"`
+	Product        string `json:"product"`
+	Serial         string `json:"serial"`
+	Firmware       string `json:"firmware"`
+	ProductId      uint16
+	VendorId       uint16
+	Devices        map[int]*Devices `json:"devices"`
+	PairedDevices  map[uint16]any
+	SingleDevice   bool
+	Template       string
+	Debug          bool
+	Exit           bool
+	timerKeepAlive *time.Ticker
+	timerSleep     *time.Ticker
+	keepAliveChan  chan struct{}
+	sleepChan      chan struct{}
+	mutex          sync.Mutex
 }
 
 var (
-	mutex            sync.Mutex
 	bufferSize       = 64
 	bufferSizeWrite  = bufferSize + 1
 	headerSize       = 2
 	deviceKeepAlive  = 5000
-	timerKeepAlive   = &time.Ticker{}
-	timerSleep       = &time.Ticker{}
-	keepAliveChan    = make(chan bool)
-	sleepChan        = make(chan bool)
 	cmdSoftwareMode  = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode  = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdGetDevices    = []byte{0x24}
@@ -67,7 +69,7 @@ var (
 	cmdRead          = []byte{0x08, 0x00}
 	cmdWrite         = []byte{0x09, 0x00}
 	cmdCommand       = byte(0x08)
-	transferTimeout  = 50
+	transferTimeout  = 100
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -80,11 +82,15 @@ func Init(vendorId, productId uint16, key string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:           dev,
-		VendorId:      vendorId,
-		ProductId:     productId,
-		PairedDevices: make(map[uint16]any, 0),
-		Template:      "slipstream.html",
+		dev:            dev,
+		VendorId:       vendorId,
+		ProductId:      productId,
+		PairedDevices:  make(map[uint16]any, 0),
+		Template:       "slipstream.html",
+		sleepChan:      make(chan struct{}),
+		keepAliveChan:  make(chan struct{}),
+		timerSleep:     &time.Ticker{},
+		timerKeepAlive: &time.Ticker{},
 	}
 
 	d.getDebugMode()      // Debug
@@ -97,17 +103,28 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.monitorDevice()     // Monitor device
 	d.sleepMonitor()      // Sleep
 	d.controlListener()   // Control listener
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	keepAliveChan <- true
-	timerKeepAlive.Stop()
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 
-	sleepChan <- true
-	timerSleep.Stop()
+	d.timerSleep.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+			if d.sleepChan != nil {
+				close(d.sleepChan)
+			}
+		})
+	}()
 
 	for key, value := range d.PairedDevices {
 		switch key {
@@ -117,6 +134,7 @@ func (d *Device) Stop() {
 					dev.StopInternal()
 				}
 			}
+			break
 		case 7096:
 			if dev, found := value.(*nightsabreW.Device); found {
 				if dev.Connected {
@@ -155,13 +173,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
-
-	if d.listener != nil {
-		err := d.listener.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // getManufacturer will return device manufacturer
@@ -194,7 +206,8 @@ func (d *Device) getDevices() {
 	channels := buff[5]
 	data := buff[6:]
 	position := 0
-	var base byte = 8
+
+	var base byte = 0x08
 	if channels > 0 {
 		for i := 0; i < int(channels); i++ {
 			vendorId := uint16(data[position+1])<<8 | uint16(data[position])
@@ -310,7 +323,7 @@ func (d *Device) read(endpoint []byte) []byte {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
-	for i := 0; i < int(buffer[5]); i++ {
+	for i := 1; i < int(buffer[5]); i++ {
 		next, err := d.transfer(cmdCommand, cmdRead, endpoint)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
@@ -325,180 +338,115 @@ func (d *Device) read(endpoint []byte) []byte {
 	return buffer
 }
 
-// processDevice will process device status
-func (d *Device) processDevice(productId uint16, packet []byte) {
+// InitAvailableDevices will run on initial start
+func (d *Device) InitAvailableDevices() {
+	for _, value := range d.Devices {
+		_, err := d.transferToDevice(value.Endpoint, cmdHeartbeat, nil, "InitAvailableDevices")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "endpoint": value.Endpoint, "productId": value.ProductId}).Warn("Unable to read endpoint. Device is probably offline")
+			continue
+		}
+		d.setDeviceOnlineByProductId(value.ProductId)
+	}
+}
+
+// setDeviceOnlineByProductId will online device by given productId
+func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 	if dev, ok := d.PairedDevices[productId]; ok {
-		switch productId {
-		case 7163:
+		if device, found := dev.(*m55W.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
+		if device, found := dev.(*scimitarW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
+		if device, found := dev.(*nightsabreW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
+		if device, found := dev.(*k100airW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
+		if device, found := dev.(*ironclawW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
+	}
+}
+
+// setDevicesOffline will set all device offline
+func (d *Device) setDevicesOffline() {
+	for _, pairedDevice := range d.PairedDevices {
+		if device, found := pairedDevice.(*m55W.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*scimitarW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*nightsabreW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*k100airW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*ironclawW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+	}
+}
+
+// setDeviceTypeOffline will set specific device type offline
+func (d *Device) setDeviceTypeOffline(deviceType int) {
+	for _, pairedDevice := range d.PairedDevices {
+		switch deviceType {
+		case 0:
 			{
-				if value, found := dev.(*m55W.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
+				// Keyboards
+				if device, found := pairedDevice.(*k100airW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
 					}
 				}
 			}
-		case 7131:
+			break
+		case 1:
 			{
-				if value, found := dev.(*scimitarW.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
+				// Mouses
+				if device, found := pairedDevice.(*m55W.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
 					}
 				}
-			}
-		case 7096:
-			{
-				if value, found := dev.(*nightsabreW.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
+				if device, found := pairedDevice.(*scimitarW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
 					}
 				}
-			}
-		case 7083:
-			{
-				if value, found := dev.(*k100airW.Device); found {
-					switch packet[1] {
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x03 {
-									value.Connect()
-								}
-							}
-						}
-						break
+				if device, found := pairedDevice.(*nightsabreW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
 					}
 				}
-			}
-		case 6988:
-			{
-				if value, found := dev.(*ironclawW.Device); found {
-					switch packet[1] {
-					case 0x01:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.SetConnected(false)
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.SetConnected(false)
-								}
-							}
-						}
-					case 0x00:
-						{
-							value.SetConnected(false)
-						}
-						break
-					case 0x12:
-						{
-							if d.SingleDevice {
-								if packet[0] == 0x01 {
-									value.Connect()
-								}
-							} else {
-								if packet[0] == 0x02 {
-									value.Connect()
-								}
-							}
-						}
-						break
+				if device, found := pairedDevice.(*ironclawW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
 					}
 				}
 			}
@@ -507,100 +455,209 @@ func (d *Device) processDevice(productId uint16, packet []byte) {
 	}
 }
 
+// setDeviceOffline will set device offline
+func (d *Device) setDeviceOnline(deviceType int) {
+	for _, pairedDevice := range d.PairedDevices {
+		switch deviceType {
+		case 0:
+			{
+				// Keyboards
+				if device, found := pairedDevice.(*k100airW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+			}
+			break
+		case 1:
+			{
+				// Mouses
+				if device, found := pairedDevice.(*m55W.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*scimitarW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*nightsabreW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*ironclawW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+			}
+			break
+		case 2:
+			{
+				// All
+				if device, found := pairedDevice.(*k100airW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*m55W.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*scimitarW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*nightsabreW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*ironclawW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+			}
+			break
+		}
+	}
+}
+
+// setDeviceOffline will set device offline
+func (d *Device) setDeviceStatus(status byte) {
+	switch status {
+	case 0x00: // ALl offline
+		d.setDevicesOffline()
+		break
+	case 0x02: // Single device, online
+		d.setDeviceOnline(2)
+		break
+	case 0x04: // Multiple paired devices, mouse
+		d.setDeviceTypeOffline(0)
+		d.setDeviceOnline(1)
+		break
+	case 0x08: // Multiple paired devices, keyboard
+		d.setDeviceTypeOffline(1)
+		d.setDeviceOnline(0)
+		break
+	case 0x0c:
+		d.setDeviceOnline(2)
+		break
+	}
+}
+
 // monitorDevice will refresh device data
 func (d *Device) monitorDevice() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
+	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timerKeepAlive.C:
+			case <-d.timerKeepAlive.C:
 				{
+					if d.Exit {
+						return
+					}
 					_, err := d.transfer(cmdCommand, cmdHeartbeat, nil)
 					if err != nil {
-						logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
+						logger.Log(logger.Fields{"error": err}).Error("Unable to read slipstream endpoint")
 					}
 					for _, value := range d.Devices {
-						msg, err := d.transfer(value.Endpoint, cmdHeartbeat, nil)
-						if err != nil {
-							logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
+						_, e := d.transfer(value.Endpoint, cmdHeartbeat, nil)
+						if e != nil {
+							if d.Debug {
+								logger.Log(logger.Fields{"error": err}).Error("Unable to read paired device endpoint")
+							}
+							continue
 						}
-						d.processDevice(value.ProductId, msg)
 					}
 				}
-			case <-keepAliveChan:
+			case <-d.keepAliveChan:
 				return
 			}
 		}
 	}()
 }
 
+// getSleepMode will return device sleep mode
+func (d *Device) getSleepMode(dev any) int {
+	sleepMode := 0
+	methodName := "GetSleepMode"
+	method := reflect.ValueOf(dev).MethodByName(methodName)
+	if !method.IsValid() {
+		logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+		return 0
+	} else {
+		results := method.Call(nil)
+		if len(results) > 0 {
+			val := results[0]
+			sleepMode = int(val.Int())
+		}
+	}
+	return sleepMode
+}
+
 // sleepMonitor will monitor for device inactivity
 func (d *Device) sleepMonitor() {
-	timerSleep = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
+	d.timerSleep = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timerSleep.C:
+			case <-d.timerSleep.C:
 				{
+					if d.Exit {
+						return
+					}
 					for _, value := range d.Devices {
 						msg, err := d.transfer(value.Endpoint, cmdInactivity, nil)
 						if err != nil {
-							logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
+							if d.Debug {
+								logger.Log(logger.Fields{"error": err}).Error("Unable to read device endpoint")
+							}
+							continue
 						}
-
 						if (msg[0] == 0x02 || msg[0] == 0x01) && msg[1] == 0x02 { // Mouse // Connected
 							inactive := int(binary.LittleEndian.Uint16(msg[3:5]))
 							if inactive > 0 {
 								if dev, ok := d.PairedDevices[value.ProductId]; ok {
-									switch value.ProductId {
-									case 7163:
-										{
-											if device, found := dev.(*m55W.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
+									sleepMode := d.getSleepMode(dev) * 60
+									if sleepMode > 0 {
+										methodName := "SetSleepMode"
+										method := reflect.ValueOf(dev).MethodByName(methodName)
+										if !method.IsValid() {
+											logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+											continue
+										} else {
+											if inactive >= sleepMode {
+												method.Call(nil)
 											}
 										}
-									case 7131:
-										{
-											if device, found := dev.(*scimitarW.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
-											}
-										}
-									case 7096:
-										{
-											if device, found := dev.(*nightsabreW.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
-											}
-										}
-									case 6988:
-										{
-											if device, found := dev.(*ironclawW.Device); found {
-												sleepMode := device.GetSleepMode() * 60
-												if inactive >= sleepMode {
-													device.SetSleepMode()
-												}
-											}
-										}
-										break
 									}
 								}
 							}
 						}
 					}
 				}
-			case <-sleepChan:
+			case <-d.sleepChan:
 				return
 			}
 		}
 	}()
+}
+
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
 }
 
 // controlListener will listen for events from the control buttons
@@ -623,25 +680,36 @@ func (d *Device) controlListener() {
 		}
 
 		// Listen loop
-		data := make([]byte, bufferSize)
 		for {
-			if d.listener == nil {
-				break
-			}
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
 
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
 
-			switch data[0] {
-			case 1, 2: // Mouse
-				{
-					for key, value := range d.PairedDevices {
-						switch key {
-						case 7163:
-							{
+				if data[1] == 0x01 && data[2] == 0x36 {
+					value := data[4]
+					d.setDeviceStatus(value)
+				} else {
+					switch data[0] {
+					case 1, 2, 3:
+						{
+							for _, value := range d.PairedDevices {
+								if dev, found := value.(*k100airW.Device); found {
+									if data[16] == 2 {
+										dev.ModifyBrightness()
+									}
+								}
 								if dev, found := value.(*m55W.Device); found {
 									if data[1] == 0x02 {
 										if data[2] == 0x20 {
@@ -649,85 +717,65 @@ func (d *Device) controlListener() {
 										}
 									}
 								}
-							}
-						case 7131:
-							if dev, found := value.(*scimitarW.Device); found {
-								if data[1] == 0x02 {
-									if data[2] == 0x08 {
-										dev.ModifyDpi()
-									} else if data[2] == 0x20 {
-										inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
-									} else if data[2] == 0x40 {
-										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
-									} else if data[2] == 0x80 {
-										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
-									} else if data[3] == 0x01 {
-										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
-									} else if data[3] == 0x02 {
-										inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
-									} else if data[3] == 0x04 {
-										inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
-									} else if data[3] == 0x08 {
-										inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
-									} else if data[3] == 0x10 {
-										inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
-									} else if data[3] == 0x20 {
-										inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
-									} else if data[3] == 0x40 {
-										inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
-									} else if data[3] == 0x80 {
-										inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
-									} else if data[4] == 0x01 {
-										inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+								if dev, found := value.(*scimitarW.Device); found {
+									if data[1] == 0x02 {
+										if data[2] == 0x08 {
+											dev.ModifyDpi()
+										} else if data[2] == 0x20 {
+											inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
+										} else if data[2] == 0x40 {
+											inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
+										} else if data[2] == 0x80 {
+											inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
+										} else if data[3] == 0x01 {
+											inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
+										} else if data[3] == 0x02 {
+											inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
+										} else if data[3] == 0x04 {
+											inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
+										} else if data[3] == 0x08 {
+											inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
+										} else if data[3] == 0x10 {
+											inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
+										} else if data[3] == 0x20 {
+											inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
+										} else if data[3] == 0x40 {
+											inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
+										} else if data[3] == 0x80 {
+											inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
+										} else if data[4] == 0x01 {
+											inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+										}
+									}
+								}
+								if dev, found := value.(*nightsabreW.Device); found {
+									if data[2] == 0x80 {
+										dev.ModifyDpi(true)
+									} else if data[2] == 0x00 && data[3] == 0x01 {
+										dev.ModifyDpi(false)
+									}
+								}
+								if dev, found := value.(*ironclawW.Device); found {
+									switch data[2] {
+									case 32: // DPI Button Up
+										dev.ModifyDpi(true)
+										break
+									case 64: // DPI Button Down
+										dev.ModifyDpi(false)
+										break
+									case 8: // Forward button
+										// TO-DO
+										break
+									case 16: // Back button
+										// TO-DO
+										break
 									}
 								}
 							}
-						case 7096:
-							if dev, found := value.(*nightsabreW.Device); found {
-								if data[2] == 0x80 {
-									dev.ModifyDpi(true)
-								} else if data[2] == 0x00 && data[3] == 0x01 {
-									dev.ModifyDpi(false)
-								}
-							}
-							break
-						case 6988:
-							if dev, found := value.(*ironclawW.Device); found {
-								switch data[2] {
-								case 32: // DPI Button Up
-									dev.ModifyDpi(true)
-									break
-								case 64: // DPI Button Down
-									dev.ModifyDpi(false)
-									break
-								case 8: // Forward button
-									// TO-DO
-									break
-								case 16: // Back button
-									// TO-DO
-									break
-								}
-							}
-							break
-						}
-					}
-				}
-			case 3: // Keyboard
-				{
-					for key, value := range d.PairedDevices {
-						switch key {
-						case 7083:
-							if dev, found := value.(*k100airW.Device); found {
-								if data[16] == 2 {
-									dev.ModifyBrightness()
-								}
-							}
-							break
 						}
 					}
 				}
 			}
-			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 }
@@ -735,8 +783,8 @@ func (d *Device) controlListener() {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -777,13 +825,49 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
+		if d.Debug {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		}
+		return bufferR, err
+	}
+
+	// Get data from a device
+	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
+		if d.Debug {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		}
+		return bufferR, err
+	}
+	return bufferR, nil
+}
+
+// transfer will send data to a device and retrieve device output
+func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller string) ([]byte, error) {
+	// Packet control, mandatory for this device
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// Create write buffer
+	bufferW := make([]byte, bufferSizeWrite)
+	bufferW[1] = command
+	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+	copy(endpointHeaderPosition, endpoint)
+	if len(buffer) > 0 {
+		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+	}
+
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
+
+	// Send command to a device
+	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 		return bufferR, err
 	}
 	return bufferR, nil

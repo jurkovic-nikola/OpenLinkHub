@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/godbus/dbus/v5"
 	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
@@ -29,17 +28,18 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	LCDMode          uint8
-	LCDRotation      uint8
-	LCDImage         string
-	Brightness       uint8
-	BrightnessSlider *uint8
-	RGBProfile       string
-	Label            string
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	LCDMode            uint8
+	LCDRotation        uint8
+	LCDImage           string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfile         string
+	Label              string
 }
 
 type TemperatureProbe struct {
@@ -81,6 +81,12 @@ type Device struct {
 	Rgb               *rgb.RGB
 	LCDImage          *lcd.ImageData
 	Exit              bool
+	mutex             sync.Mutex
+	autoRefreshChan   chan struct{}
+	lcdRefreshChan    chan struct{}
+	lcdImageChan      chan struct{}
+	timer             *time.Ticker
+	lcdTimer          *time.Ticker
 }
 
 var (
@@ -88,20 +94,13 @@ var (
 	transferTypeLcd            = 1
 	pwd                        = ""
 	lcdRefreshInterval         = 1000
-	mutex                      sync.Mutex
-	authRefreshChan            = make(chan struct{})
-	lcdRefreshChan             = make(chan struct{})
-	lcdImageChan               = make(chan struct{})
 	deviceRefreshInterval      = 1000
-	timer                      = &time.Ticker{}
-	lcdTimer                   = &time.Ticker{}
 	lcdHeaderSize              = 8
 	lcdBufferSize              = 1024
 	temperatureReportId        = byte(24)
 	firmwareReportId           = byte(5)
 	featureReportSize          = 32
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
-	deviceWakeupDelay          = 5000
 )
 
 // Init will initialize a new device
@@ -145,6 +144,11 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		autoRefreshChan: make(chan struct{}),
+		lcdRefreshChan:  make(chan struct{}),
+		lcdImageChan:    make(chan struct{}),
+		timer:           &time.Ticker{},
+		lcdTimer:        &time.Ticker{},
 	}
 
 	if productId == 3138 {
@@ -165,7 +169,6 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getTemperatureProbe() // Devices with temperature probes
 	d.setDeviceColor()      // Device color
 	d.setLcdRotation()      // LCD rotation
-
 	if d.DeviceProfile.LCDMode == lcd.DisplayImage {
 		if d.loadLcdImage() != 1 {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to load LCD image from profile")
@@ -175,38 +178,40 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	} else {
 		d.setupLCD(false)
 	}
-	if config.GetConfig().DbusMonitor {
-		d.dbusDeviceMonitor()
-	}
-	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
 
-	if authRefreshChan != nil {
-		close(authRefreshChan)
-	}
+	d.timer.Stop()
+	d.lcdTimer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			if d.DeviceProfile.LCDMode == lcd.DisplayImage {
+				if d.lcdImageChan != nil {
+					close(d.lcdImageChan)
+				}
+			} else {
+				if d.lcdRefreshChan != nil {
+					close(d.lcdRefreshChan)
+				}
+			}
+		})
+	}()
 
 	if d.dev != nil {
-		// Stop active animation
-		if d.DeviceProfile.LCDMode == lcd.DisplayImage {
-			if lcdImageChan != nil {
-				close(lcdImageChan)
-			}
-		} else {
-			if lcdRefreshChan != nil {
-				close(lcdRefreshChan)
-			}
-			lcdTimer.Stop()
-		}
-
 		// Switch LCD back to hardware mode
 		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
 		for i := 0; i <= 1; i++ {
@@ -222,6 +227,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
 		}
 	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -454,10 +460,11 @@ func (d *Device) saveDeviceProfile() {
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -484,6 +491,7 @@ func (d *Device) saveDeviceProfile() {
 
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.LCDImage = d.DeviceProfile.LCDImage
@@ -574,16 +582,15 @@ func (d *Device) getLiquidTemperature() float32 {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan struct{})
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
 				d.setTemperatures()
 				d.getTemperatureProbeData()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -947,6 +954,27 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	return 1
 }
 
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
+
+	if d.DeviceProfile.RGBProfile == "static" {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
 // ChangeDeviceProfile will change device profile
 func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	if profile, ok := d.UserProfiles[profileName]; ok {
@@ -973,8 +1001,8 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 
 // UpdateDeviceLcd will update device LCD
 func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if d.HasLCD {
 		value := d.DeviceProfile.LCDMode
@@ -996,10 +1024,10 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 			}
 
 			// Stop lcd timer and switch to animation loop
-			if lcdRefreshChan != nil {
-				close(lcdRefreshChan)
+			if d.lcdRefreshChan != nil {
+				close(d.lcdRefreshChan)
 			}
-			lcdTimer.Stop()
+			d.lcdTimer.Stop()
 			d.setupLCDImage()
 		} else {
 			// Reset if old value was Animation and new mode is not
@@ -1018,8 +1046,8 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 
 // UpdateDeviceLcdRotation will update device LCD rotation
 func (d *Device) UpdateDeviceLcdRotation(_ int, rotation uint8) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if d.HasLCD {
 		d.DeviceProfile.LCDRotation = rotation
@@ -1033,8 +1061,8 @@ func (d *Device) UpdateDeviceLcdRotation(_ int, rotation uint8) uint8 {
 
 // UpdateDeviceLcdImage will update device LCD image
 func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if d.HasLCD {
 		if d.DeviceProfile.LCDMode != lcd.DisplayImage {
@@ -1066,8 +1094,8 @@ func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -1117,14 +1145,14 @@ func (d *Device) setLcdRotation() {
 // setupLCD will activate and configure LCD
 func (d *Device) setupLCD(reload bool) {
 	if reload {
-		close(lcdImageChan)
+		close(d.lcdImageChan)
 	}
-	lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
-	lcdRefreshChan = make(chan struct{})
+	d.lcdTimer = time.NewTicker(time.Duration(lcdRefreshInterval) * time.Millisecond)
+	d.lcdRefreshChan = make(chan struct{})
 	go func() {
 		for {
 			select {
-			case <-lcdTimer.C:
+			case <-d.lcdTimer.C:
 				switch d.DeviceProfile.LCDMode {
 				case lcd.DisplayCPU:
 					{
@@ -1228,8 +1256,8 @@ func (d *Device) setupLCD(reload bool) {
 						d.transfer(buffer, transferTypeLcd)
 					}
 				}
-			case <-lcdRefreshChan:
-				lcdTimer.Stop()
+			case <-d.lcdRefreshChan:
+				d.lcdTimer.Stop()
 				return
 			}
 		}
@@ -1259,7 +1287,7 @@ func (d *Device) loadLcdImage() uint8 {
 
 // setupLCDImage will set up lcd image
 func (d *Device) setupLCDImage() {
-	lcdImageChan = make(chan struct{})
+	d.lcdImageChan = make(chan struct{})
 	lcdImage := d.DeviceProfile.LCDImage
 	if len(lcdImage) == 0 {
 		logger.Log(logger.Fields{"serial": d.Serial}).Warn("Invalid LCD image")
@@ -1276,6 +1304,9 @@ func (d *Device) setupLCDImage() {
 			default:
 				if d.LCDImage.Frames > 1 {
 					for i := 0; i < d.LCDImage.Frames; i++ {
+						if d.Exit {
+							return
+						}
 						data := d.LCDImage.Buffer[i]
 						buffer := data.Buffer
 						delay := data.Delay
@@ -1300,56 +1331,8 @@ func (d *Device) setupLCDImage() {
 						time.Sleep(100 * time.Millisecond)
 					}
 				}
-			case <-lcdImageChan:
+			case <-d.lcdImageChan:
 				return
-			}
-		}
-	}()
-}
-
-// dbusDeviceMonitor will monitor dbus events for suspend and resume
-func (d *Device) dbusDeviceMonitor() {
-	go func() {
-		// Connect to the session bus
-		conn, err := dbus.ConnectSystemBus()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Failed to connect to system bus")
-		}
-		defer func(conn *dbus.Conn) {
-			err = conn.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error closing dbus")
-			}
-		}(conn)
-
-		// Listen for the PrepareForSleep signal
-		_ = conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
-		ch := make(chan *dbus.Signal, 10)
-		conn.Signal(ch)
-
-		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
-		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Failed to add D-Bus match")
-		}
-
-		for signal := range ch {
-			if len(signal.Body) > 0 {
-				if isSleeping, ok := signal.Body[0].(bool); ok {
-					if isSleeping {
-						//
-					} else {
-						// Wait for 5 seconds until the hub wakes up
-						time.Sleep(time.Duration(deviceWakeupDelay) * time.Millisecond)
-
-						// Device woke up after machine was sleeping
-						if d.activeRgb != nil {
-							d.activeRgb.Exit <- true
-							d.activeRgb = nil
-						}
-						d.setDeviceColor() // Set RGB
-					}
-				}
 			}
 		}
 	}()
@@ -1357,8 +1340,8 @@ func (d *Device) dbusDeviceMonitor() {
 
 // transferToLcd will transfer data to LCD panel
 func (d *Device) transfer(buffer []byte, transferType int) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if transferType == transferTypeColor {
 		if d.Exit {

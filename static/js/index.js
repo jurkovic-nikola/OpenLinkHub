@@ -144,16 +144,15 @@ document.addEventListener("DOMContentLoaded", function () {
         modalElement+='</div>';
         modalElement+='</div>';
 
-        /*
         modalElement+='<div class="form-check" style="overflow: hidden;padding-left: 1em;">';
         modalElement+='<div style="float:left;">';
-        modalElement+='<label class="form-check-label" for="checkbox-verticalUi">Show Vertical Device View</label>';
+        modalElement+='<label class="form-check-label" for="checkbox-deviceLabels">Show Device Labels</label>';
         modalElement+='</div>';
         modalElement+='<div style="float:right;">';
-        modalElement+='<input class="form-check-input" id="checkbox-verticalUi" type="checkbox">';
+        modalElement+='<input class="form-check-input" id="checkbox-deviceLabels" type="checkbox">';
         modalElement+='</div>';
         modalElement+='</div>';
-        */
+
         modalElement+='</div>';
 
         modalElement+='</form>';
@@ -179,7 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const checkboxGpu = modal.find('#checkbox-gpu');
             const checkboxStorage = modal.find('#checkbox-storage');
             const checkboxDevices = modal.find('#checkbox-devices');
-            //const checkboxVerticalUi = modal.find('#checkbox-verticalUi');
+            const checkboxDeviceLabels = modal.find('#checkbox-deviceLabels');
             const checkboxCelsius = modal.find('#checkbox-celsius');
 
             // Load current settings
@@ -201,9 +200,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (response.dashboard.showDevices === true) {
                             checkboxDevices.attr('Checked','Checked');
                         }
-                        //if (response.dashboard.verticalUi === true) {
-                        //    checkboxVerticalUi.attr('Checked','Checked');
-                        //}
+                        if (response.dashboard.showLabels === true) {
+                            checkboxDeviceLabels.attr('Checked','Checked');
+                        }
                         if (response.dashboard.celsius === true) {
                             checkboxCelsius.attr('Checked','Checked');
                         }
@@ -216,7 +215,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const v_checkboxGpu = checkboxGpu.is(':checked');
                 const v_checkboxStorage = checkboxStorage.is(':checked');
                 const v_checkboxDevices = checkboxDevices.is(':checked');
-                //const v_checkboxVerticalUi = checkboxVerticalUi.is(':checked');
+                const v_checkboxDeviceLabels = checkboxDeviceLabels.is(':checked');
                 const v_checkboxCelsius = checkboxCelsius.is(':checked');
 
                 const pf = {};
@@ -224,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 pf["showGpu"] = v_checkboxGpu;
                 pf["showDisk"] = v_checkboxStorage;
                 pf["showDevices"] = v_checkboxDevices;
-                //pf["verticalUi"] = v_checkboxVerticalUi;
+                pf["showLabels"] = v_checkboxDeviceLabels;
                 pf["celsius"] = v_checkboxCelsius;
 
                 const json = JSON.stringify(pf, null, 2);

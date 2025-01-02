@@ -343,6 +343,11 @@ footer {
     font-size: 13px;
 }
 
+.custom-device-name-no-label {
+    font-size: 13px;
+    margin-top: 16px;
+}
+
 .size-46-46 {
     width: 46px;
     height: 46px;
@@ -526,4 +531,23 @@ footer {
     background: #898989;
     cursor: pointer;
     border-radius: 5px;
+}
+
+.selected {
+    outline:1px solid #37cfdc;
+}
+
+.dropdown-menu-dark {
+    background-color: #181818;
+    min-width: 10rem;
+}
+
+.dropdown-item {
+    padding: .40rem .75rem;
+}
+
+.ds-svg-placeholder-right2 {
+    float: left;
+    width: auto;
+    margin-left: 20px;
 }

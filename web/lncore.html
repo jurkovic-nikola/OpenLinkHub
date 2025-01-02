@@ -64,7 +64,7 @@
                                         </div>
                                         <div class="custom-device-block">
                                             <div class="custom-float-20-left">
-                                                <i class="bi bi-lightning-charge svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                <img src="/static/img/icons/icon-brightness2.svg" width="20" height="20" alt="Brightness" style="vertical-align: top;"/>
                                             </div>
                                             <div class="custom-float-80-right">
                                                 <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
@@ -170,12 +170,12 @@
                                 </div>
                                 <div class="card-body" style="padding: 1rem 1rem;">
                                     {{ if gt $device.LedChannels 0 }}
-                                    <div class="custom-device-block">
-                                        <div class="custom-float-20-left" style="margin-top: 2px;">
-                                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                        </div>
-                                        <div class="custom-float-80-right">
-                                            <select class="form-select rgbProfile" style="line-height: 1;">
+                                    <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
+                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select rgbProfile">
                                                 {{ range $key, $_ := $rgb }}
                                                 {{ if eq $key "stand" }}
                                                 {{ continue }}
@@ -195,8 +195,8 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </div>
-                                    </div>
+                                        </li>
+                                    </ul>
                                     {{ end }}
                                 </div>
                             </div>

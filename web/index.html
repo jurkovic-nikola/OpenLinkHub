@@ -37,9 +37,11 @@
 
                                     <div class="ds-svg-placeholder-left left-20-auto">
                                         <span style="font-size: 13px;">{{ $dev.Product }}</span><br />
+                                        {{ if $dash.ShowLabels }}
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
                                             <span>{{ $dev.DeviceProfile.Label }}</span>
                                         </p>
+                                        {{ end }}
                                     </div>
 
                                     <div class="ds-svg-placeholder-right left-20-auto-text-right">
@@ -73,10 +75,14 @@
                                     </div>
 
                                     <div class="ds-svg-placeholder-left left-20-auto">
+                                        {{ if $dash.ShowLabels }}
                                         <span class="custom-device-name">{{ $device.Name }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
                                             <span>{{ $device.Label }}</span>
                                         </p>
+                                        {{ else }}
+                                        <span class="custom-device-name-no-label" style="margin-top: 16px;">{{ $device.Name }}</span><br />
+                                        {{ end }}
                                     </div>
 
                                     <div class="ds-svg-placeholder-right left-20-auto-text-right">
@@ -220,12 +226,8 @@
             </div>
         </section>
         <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
-            <div class="container-fluid fa-pull-left" style="padding-left:20px;">
-                <p class="mb-0 text-dash-gray fa-pull-left">OS: {{ .SystemInfo.Kernel.OsType }}</p><br />
-                <p class="mb-0 text-dash-gray fa-pull-left">Architecture: {{ .SystemInfo.Kernel.Architecture }}</p>
-            </div>
             <div class="container-fluid fa-pull-left" style="padding-left:15px;">
-                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }}</p><br />
+                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }} / {{ .BuildInfo.BuildVersion }}</p><br />
                 <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
             </div>
 

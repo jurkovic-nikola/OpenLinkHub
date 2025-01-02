@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/godbus/dbus/v5"
 	"github.com/sstallion/go-hid"
 	"math"
 	"math/rand"
@@ -34,39 +33,30 @@ import (
 	"time"
 )
 
-// DeviceMonitor struct contains the shared variable and synchronization primitives
-type DeviceMonitor struct {
-	Status byte
-	Lock   sync.Mutex
-	Cond   *sync.Cond
-}
-
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	LCDMode          uint8
-	LCDRotation      uint8
-	Brightness       uint8
-	BrightnessSlider *uint8
-	SpeedProfiles    map[int]string
-	RGBProfiles      map[int]string
-	Labels           map[int]string
-	DevicePosition   map[int]string
-	ExternalAdapter  map[int]int
-	LCDModes         map[int]uint8
-	LCDImages        map[int]string
-	LCDRotations     map[int]uint8
-	LCDDevices       map[int]string
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	LCDMode            uint8
+	LCDRotation        uint8
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	SpeedProfiles      map[int]string
+	RGBProfiles        map[int]string
+	Labels             map[int]string
+	DevicePosition     map[int]string
+	ExternalAdapter    map[int]int
+	LCDModes           map[int]uint8
+	LCDImages          map[int]string
+	LCDRotations       map[int]uint8
+	LCDDevices         map[int]string
 }
 
 type LCD struct {
 	Lcd       *hid.Device
 	ProductId uint16
-	Product   string
-	Serial    string
-	AIO       bool
 }
 
 type TemperatureProbe struct {
@@ -134,7 +124,6 @@ type Device struct {
 	Devices           map[int]*Devices          `json:"devices"`
 	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
 	DeviceProfile     *DeviceProfile
-	deviceMonitor     *DeviceMonitor
 	OriginalProfile   *DeviceProfile
 	TemperatureProbes *[]TemperatureProbe
 	activeRgb         *rgb.ActiveRGB
@@ -158,13 +147,14 @@ type Device struct {
 	LCDImage          map[int]*lcd.ImageData
 	lcdRefreshChan    chan struct{}
 	lcdImageChan      chan struct{}
-	authRefreshChan   chan struct{}
+	autoRefreshChan   chan struct{}
 	speedRefreshChan  chan struct{}
 	timer             *time.Ticker
 	timerSpeed        *time.Ticker
 	lcdTimer          *time.Ticker
 	mutex             sync.Mutex
 	mutexLcd          sync.Mutex
+	lcdDevices        map[string]*LCD
 }
 
 var (
@@ -178,9 +168,6 @@ var (
 	cmdWrite                    = []byte{0x06, 0x01}
 	cmdWriteColor               = []byte{0x06, 0x00}
 	cmdRead                     = []byte{0x08, 0x01}
-	cmdGetDeviceMode            = []byte{0x01, 0x12, 0x00}
-	cmdRefreshDevices           = []byte{0x1a, 0x01}
-	cmdWaitForDevice            = []byte{0x12, 0x00}
 	modeGetDevices              = []byte{0x36}
 	modeGetTemperatures         = []byte{0x21}
 	modeGetSpeeds               = []byte{0x17}
@@ -202,7 +189,6 @@ var (
 	temperaturePullingInterval  = 3000
 	lcdRefreshInterval          = 1000
 	deviceRefreshInterval       = 1000
-	deviceWakeupDelay           = 5000
 	lcdLedChannels              = 24
 	lcdHeaderSize               = 8
 	lcdBufferSize               = 1024
@@ -293,11 +279,12 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		PortProtection:   make(map[uint8]int, 2),
 		lcdRefreshChan:   make(chan struct{}),
 		lcdImageChan:     make(chan struct{}),
-		authRefreshChan:  make(chan struct{}),
+		autoRefreshChan:  make(chan struct{}),
 		speedRefreshChan: make(chan struct{}),
 		timer:            &time.Ticker{},
 		timerSpeed:       &time.Ticker{},
 		lcdTimer:         &time.Ticker{},
+		lcdDevices:       make(map[string]*LCD, lcd.GetLcdAmount()),
 	}
 
 	// Bootstrap
@@ -325,13 +312,6 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		d.updateDeviceSpeed() // Update device speed
 	}
 	d.setDeviceColor() // Device color
-	if config.GetConfig().DbusMonitor {
-		// DBus Device monitor, use this flag if your device is not re-initialized after sleep / resume
-		d.dbusDeviceMonitor()
-	} else {
-		// Normal device monitor via software
-		d.newDeviceMonitor()
-	}
 
 	if d.HasLCD {
 		d.getLcdImages()
@@ -339,7 +319,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		d.setupLCD()       // LCD
 		d.setupLCDImage()  // LCD images
 	}
-	logger.Log(logger.Fields{}).Info("Device successfully initialized")
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
@@ -371,12 +351,12 @@ func (d *Device) setDeviceProtection() {
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
 	d.timer.Stop()
-	close(d.authRefreshChan)
+	close(d.autoRefreshChan)
 
 	if d.HasLCD {
 		close(d.lcdRefreshChan)
@@ -389,6 +369,22 @@ func (d *Device) Stop() {
 		close(d.speedRefreshChan)
 	}
 
+	for _, lcdHidDevice := range d.lcdDevices {
+		if lcdHidDevice.Lcd != nil {
+			lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
+			for i := 0; i <= 1; i++ {
+				_, e := lcdHidDevice.Lcd.SendFeatureReport(lcdReports[i])
+				if e != nil {
+					logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
+				}
+			}
+			err := lcdHidDevice.Lcd.Close()
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
+			}
+		}
+	}
+
 	d.setHardwareMode()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -396,6 +392,8 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // getLcdImages will preload lcd images for LCD devices
@@ -639,13 +637,14 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		SpeedProfiles:    speedProfiles,
-		RGBProfiles:      rgbProfiles,
-		Labels:           labels,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		SpeedProfiles:      speedProfiles,
+		RGBProfiles:        rgbProfiles,
+		Labels:             labels,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -765,6 +764,7 @@ func (d *Device) saveDeviceProfile() {
 
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -958,10 +958,14 @@ func (d *Device) ChangeDeviceLcd(channelId int, lcdSerial string) uint8 {
 
 	if d.HasLCD {
 		if _, ok := d.DeviceProfile.LCDDevices[channelId]; ok {
-			if device, ok := d.Devices[channelId]; ok {
+			if device, found := d.Devices[channelId]; found {
 				if device.ContainsPump {
 					d.DeviceProfile.LCDDevices[channelId] = lcdSerial
 					d.Devices[channelId].LCDSerial = lcdSerial
+					d.lcdDevices[lcdSerial] = &LCD{
+						Lcd:       lcd.GetLcdBySerial(lcdSerial),
+						ProductId: 0,
+					}
 				} else {
 					return 2
 				}
@@ -1030,13 +1034,14 @@ func (d *Device) UpdateDeviceLcdImage(channelId int, image string) uint8 {
 func (d *Device) setLcdRotation() {
 	for _, device := range d.Devices {
 		if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
-			lcdDevice := lcd.GetLcdBySerial(device.LCDSerial)
-			if lcdDevice != nil {
-				if rotation, ok := d.DeviceProfile.LCDRotations[device.ChannelId]; ok {
-					lcdReport := []byte{0x03, 0x0c, rotation, 0x01}
-					_, err := lcdDevice.SendFeatureReport(lcdReport)
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD rotation")
+			if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
+				if lcdDevice.Lcd != nil {
+					if rotation, ok := d.DeviceProfile.LCDRotations[device.ChannelId]; ok {
+						lcdReport := []byte{0x03, 0x0c, rotation, 0x01}
+						_, err := lcdDevice.Lcd.SendFeatureReport(lcdReport)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD rotation")
+						}
 					}
 				}
 			}
@@ -1072,6 +1077,26 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
 
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
 	if d.isRgbStatic() {
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1531,6 +1556,10 @@ func (d *Device) setDefaults() {
 
 // setSpeed will generate a speed buffer and send it to a device
 func (d *Device) setSpeed(data map[int]byte, mode uint8) {
+	if d.Exit {
+		return
+	}
+
 	buffer := make([]byte, len(data)*4+1)
 	buffer[0] = byte(len(data))
 	i := 1
@@ -1574,7 +1603,6 @@ func (d *Device) setTemperatures() {
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
 	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	d.authRefreshChan = make(chan struct{})
 	go func() {
 		for {
 			select {
@@ -1583,11 +1611,8 @@ func (d *Device) setAutoRefresh() {
 					return
 				}
 				d.setTemperatures()
-				if !config.GetConfig().DbusMonitor {
-					d.setDeviceStatus()
-				}
 				d.getDeviceData()
-			case <-d.authRefreshChan:
+			case <-d.autoRefreshChan:
 				d.timer.Stop()
 				return
 			}
@@ -1595,120 +1620,17 @@ func (d *Device) setAutoRefresh() {
 	}()
 }
 
-// dbusDeviceMonitor will monitor dbus events for suspend and resume
-func (d *Device) dbusDeviceMonitor() {
-	go func() {
-		// Connect to the session bus
-		conn, err := dbus.ConnectSystemBus()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Failed to connect to system bus")
-			return
-		}
-		defer func(conn *dbus.Conn) {
-			err = conn.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error closing dbus")
-			}
-		}(conn)
-
-		// Listen for the PrepareForSleep signal
-		_ = conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
-		ch := make(chan *dbus.Signal, 10)
-		conn.Signal(ch)
-
-		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
-		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Failed to add D-Bus match")
-		}
-
-		for signal := range ch {
-			if len(signal.Body) > 0 {
-				if isSleeping, ok := signal.Body[0].(bool); ok {
-					if isSleeping {
-						d.setHardwareMode()
-					} else {
-						// Wait for 5 seconds until the hub wakes up
-						time.Sleep(time.Duration(deviceWakeupDelay) * time.Millisecond)
-
-						// Device woke up after machine was sleeping
-						if d.activeRgb != nil {
-							d.activeRgb.Exit <- true
-							d.activeRgb = nil
-						}
-						d.setSoftwareMode()  // Activate software mode
-						d.setColorEndpoint() // Set device color endpoint
-						d.setDeviceColor()   // Set RGB
-						if !config.GetConfig().Manual {
-							d.updateDeviceSpeed() // Update device speed
-						}
-					}
-				}
-			}
-		}
-	}()
-}
-
-// newDeviceMonitor initializes and returns a new Monitor
-func (d *Device) newDeviceMonitor() {
-	m := &DeviceMonitor{}
-	m.Cond = sync.NewCond(&m.Lock)
-	go d.waitForDevice(func() {
-		// Device woke up after machine was sleeping
-		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true
-			d.activeRgb = nil
-		}
-		d.setSoftwareMode()  // Activate software mode
-		d.setColorEndpoint() // Set device color endpoint
-		d.setDeviceColor()   // Set RGB
-		if !config.GetConfig().Manual {
-			d.updateDeviceSpeed() // Update device speed
-		}
-	})
-	d.deviceMonitor = m
-}
-
-// setDeviceStatus sets the status and notifies a waiting goroutine if necessary
-func (d *Device) setDeviceStatus() {
-	mode, err := d.transfer(cmdGetDeviceMode, nil, nil)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+// setDefaults will set default mode for all devices
+func (d *Device) getDeviceData() {
+	if d.Exit {
+		return
 	}
-	if len(mode) == 0 {
+	// Speed
+	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
+	if response == nil {
 		return
 	}
 
-	if d.Debug {
-		logger.Log(logger.Fields{"serial": d.Serial, "mode": fmt.Sprintf("% 2x", mode)}).Info("setDeviceStatus()")
-	}
-
-	d.deviceMonitor.Lock.Lock()
-	defer d.deviceMonitor.Lock.Unlock()
-	d.deviceMonitor.Status = mode[1]
-	d.deviceMonitor.Cond.Broadcast()
-}
-
-// waitForDevice waits for the status to change from zero to one and back to zero before running the action
-func (d *Device) waitForDevice(action func()) {
-	d.deviceMonitor.Lock.Lock()
-	for d.deviceMonitor.Status != 1 {
-		d.deviceMonitor.Cond.Wait()
-	}
-	d.deviceMonitor.Lock.Unlock()
-
-	d.deviceMonitor.Lock.Lock()
-	for d.deviceMonitor.Status != 0 {
-		d.deviceMonitor.Cond.Wait()
-	}
-	d.deviceMonitor.Lock.Unlock()
-	action()
-}
-
-// setDefaults will set default mode for all devices
-func (d *Device) getDeviceData() {
-	// Speed
-	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response), "type": "speed"}).Info("getDeviceData()")
 	}
@@ -1731,6 +1653,9 @@ func (d *Device) getDeviceData() {
 	}
 
 	// Temperature
+	if d.Exit {
+		return
+	}
 	response = d.read(modeGetTemperatures, dataTypeGetTemperatures)
 	if response[3] == 0x00 {
 		amount = response[6]
@@ -1815,7 +1740,7 @@ func (d *Device) getSupportedDevice(deviceId byte, deviceModel byte) *SupportedD
 func (d *Device) getDevices() int {
 	lcdAvailable := false
 	var devices = make(map[int]*Devices, 0)
-	var xd5Serials = lcd.GetNonAIOLCDSerials()
+	var nonAIOLcdData = lcd.GetNonAioLCDData()
 
 	response := d.read(modeGetDevices, dataTypeGetDevices)
 	if d.Debug {
@@ -1896,21 +1821,21 @@ func (d *Device) getDevices() int {
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 		}
-
-		lcdSerial := ""
-		if d.DeviceProfile != nil {
-			// Profile is set
-			if ls, ok := d.DeviceProfile.LCDDevices[i]; ok {
-				if len(ls) > 0 {
-					lcdSerial = ls
+		/*
+			lcdSerial := ""
+			if d.DeviceProfile != nil {
+				// Profile is set
+				if ls, ok := d.DeviceProfile.LCDDevices[i]; ok {
+					if len(ls) > 0 {
+						lcdSerial = ls
+					}
+				} else {
+					logger.Log(logger.Fields{"serial": d.Serial, "lcdSerial": ls}).Warn("Tried to apply rgb profile to the non-existing channel")
 				}
 			} else {
-				logger.Log(logger.Fields{"serial": d.Serial, "lcdSerial": ls}).Warn("Tried to apply rgb profile to the non-existing channel")
+				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 			}
-		} else {
-			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-		}
-
+		*/
 		var ledChannels uint8 = 0
 		var adapterLedData uint8 = 0
 		var adapterData = 0
@@ -1955,12 +1880,27 @@ func (d *Device) getDevices() int {
 			ExternalAdapter:    adapterData,
 		}
 
-		if len(lcdSerial) > 0 {
-			device.LCDSerial = lcdSerial
-		} else {
-			// Single XD5 pump installed, default to single serial
-			if device.Type == 12 && len(xd5Serials) == 1 {
-				device.LCDSerial = xd5Serials[0]
+		if device.ContainsPump && device.AIO && len(lcd.GetAioLCDSerial()) > 0 {
+			lcdData := lcd.GetAioLCDData()
+			if lcdData.Lcd != nil {
+				device.LCDSerial = lcdData.Serial
+				lcdHidData := &LCD{
+					ProductId: 0,
+					Lcd:       lcdData.Lcd,
+				}
+				d.lcdDevices[lcdData.Serial] = lcdHidData
+			}
+		} else if device.ContainsPump && !device.AIO && len(nonAIOLcdData) == 1 {
+			if nonAIOLcdData != nil {
+				lcdData := nonAIOLcdData[0]
+				if lcdData.Lcd != nil {
+					device.LCDSerial = lcdData.Serial
+					lcdHidData := &LCD{
+						ProductId: 0,
+						Lcd:       lcdData.Lcd,
+					}
+					d.lcdDevices[lcdData.Serial] = lcdHidData
+				}
 			}
 		}
 
@@ -2081,12 +2021,6 @@ func (d *Device) setDeviceColor() {
 		if profile == nil {
 			return
 		}
-		/*
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-			}
-		*/
-
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 
 		// Global override
@@ -2193,15 +2127,6 @@ func (d *Device) setDeviceColor() {
 						r.RGBStartColor = d.activeRgb.RGBStartColor
 						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
-
-					// Brightness
-					/*
-						if d.DeviceProfile.Brightness > 0 {
-							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-							r.RGBStartColor.Brightness = r.RGBBrightness
-							r.RGBEndColor.Brightness = r.RGBBrightness
-						}
-					*/
 
 					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
@@ -2450,29 +2375,6 @@ func (d *Device) setSoftwareMode() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
-
-	if config.GetConfig().RefreshOnStart {
-		// If set to true in config.json, this will re-initialize the hub before device enumeration.
-		// Experimental for now.
-		// This is handy if you need to reconnect cables on HUB without power-cycle.
-		_, err = d.transfer(cmdRefreshDevices, nil, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-		}
-
-		for {
-			time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
-			res, err := d.transfer(cmdWaitForDevice, nil, nil)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to wait for device status")
-			}
-			if res[1] == 0 {
-				// Device is initialized
-				time.Sleep(time.Duration(transferTimeout*2) * time.Millisecond)
-				break
-			}
-		}
-	}
 }
 
 // getManufacturer will return device manufacturer
@@ -2561,52 +2463,67 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 
 // setupLCDImage will set up lcd image. This function runs continuously through the program lifetime.
 func (d *Device) setupLCDImage() {
-	d.lcdImageChan = make(chan struct{})
 	go func() {
 		for {
 			select {
 			default:
 				{
+					if d.Exit {
+						return
+					}
 					for _, device := range d.Devices {
 						if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
 							if lcdMode, ok := d.DeviceProfile.LCDModes[device.ChannelId]; ok {
 								if lcdMode != lcd.DisplayImage {
 									continue // Don't process images here
 								}
-								lcdDevice := lcd.GetLcdBySerial(device.LCDSerial)
-								if lcdDevice == nil {
-									d.DeviceProfile.LCDModes[device.ChannelId] = 0
-									d.saveDeviceProfile()
-									continue
-								}
-								if image, ok := d.DeviceProfile.LCDImages[device.ChannelId]; ok {
-									if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", image); !m {
+								if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
+									if lcdDevice.Lcd == nil {
 										d.DeviceProfile.LCDModes[device.ChannelId] = 0
 										d.saveDeviceProfile()
 										continue
 									}
 
-									lcdImage := d.LCDImage[device.ChannelId]
-									if lcdImage == nil {
-										if len(lcd.GetLcdImages()) > 0 {
-											lcdImage = lcd.GetLcdImage(lcd.GetLcdImages()[0].Name)
-										}
-										if lcdImage == nil {
+									if image, ok := d.DeviceProfile.LCDImages[device.ChannelId]; ok {
+										if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", image); !m {
 											d.DeviceProfile.LCDModes[device.ChannelId] = 0
 											d.saveDeviceProfile()
 											continue
 										}
-									}
 
-									if lcdImage.Frames > 1 {
-										for i := 0; i < d.LCDImage[device.ChannelId].Frames; i++ {
-											if d.DeviceProfile.LCDModes[device.ChannelId] != lcd.DisplayImage {
-												break
+										lcdImage := d.LCDImage[device.ChannelId]
+										if lcdImage == nil {
+											if len(lcd.GetLcdImages()) > 0 {
+												lcdImage = lcd.GetLcdImage(lcd.GetLcdImages()[0].Name)
 											}
-											data := d.LCDImage[device.ChannelId].Buffer[i]
+											if lcdImage == nil {
+												d.DeviceProfile.LCDModes[device.ChannelId] = 0
+												d.saveDeviceProfile()
+												continue
+											}
+										}
+
+										if lcdImage.Frames > 1 {
+											for i := 0; i < d.LCDImage[device.ChannelId].Frames; i++ {
+												if d.DeviceProfile.LCDModes[device.ChannelId] != lcd.DisplayImage {
+													break
+												}
+												data := d.LCDImage[device.ChannelId].Buffer[i]
+												buffer := data.Buffer
+												delay := data.Delay
+												d.transferToLcd(buffer, lcdDevice.Lcd)
+												if delay > 0 {
+													time.Sleep(time.Duration(delay) * time.Millisecond)
+												} else {
+													// Single frame, static image, generate 100ms of delay
+													time.Sleep(10 * time.Millisecond)
+												}
+											}
+										} else {
+											data := lcdImage.Buffer[0]
 											buffer := data.Buffer
 											delay := data.Delay
-											d.transferToLcd(buffer, lcdDevice)
+											d.transferToLcd(buffer, lcdDevice.Lcd)
 											if delay > 0 {
 												time.Sleep(time.Duration(delay) * time.Millisecond)
 											} else {
@@ -2615,19 +2532,8 @@ func (d *Device) setupLCDImage() {
 											}
 										}
 									} else {
-										data := lcdImage.Buffer[0]
-										buffer := data.Buffer
-										delay := data.Delay
-										d.transferToLcd(buffer, lcdDevice)
-										if delay > 0 {
-											time.Sleep(time.Duration(delay) * time.Millisecond)
-										} else {
-											// Single frame, static image, generate 100ms of delay
-											time.Sleep(10 * time.Millisecond)
-										}
+										continue
 									}
-								} else {
-									continue
 								}
 							}
 						}
@@ -2651,128 +2557,130 @@ func (d *Device) setupLCD() {
 			case <-lcdTimer.C:
 				for _, device := range d.Devices {
 					if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
-						lcdDevice := lcd.GetLcdBySerial(device.LCDSerial)
-						if lcdDevice == nil {
-							continue
-						}
-						if lcdMode, ok := d.DeviceProfile.LCDModes[device.ChannelId]; ok {
-							if lcdMode == lcd.DisplayImage {
-								continue // Don't process images here
+						if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
+							if lcdDevice.Lcd == nil {
+								continue
 							}
-							switch lcdMode {
-							case lcd.DisplayCPU:
-								{
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayCPU,
-										int(temperatures.GetCpuTemperature()),
-										0,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayGPU:
-								{
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayGPU,
-										int(temperatures.GetGpuTemperature()),
-										0,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayLiquid:
-								{
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayLiquid,
-										int(device.Temperature),
-										0,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayPump:
-								{
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayPump,
-										int(device.Rpm),
-										0,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayAllInOne:
-								{
-									liquidTemp := 0
-									cpuTemp := 0
-									pumpSpeed := 0
-									liquidTemp = int(device.Temperature)
-									pumpSpeed = int(device.Rpm)
 
-									cpuTemp = int(temperatures.GetCpuTemperature())
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayAllInOne,
-										liquidTemp,
-										cpuTemp,
-										pumpSpeed,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
+							if lcdMode, ok := d.DeviceProfile.LCDModes[device.ChannelId]; ok {
+								if lcdMode == lcd.DisplayImage {
+									continue // Don't process images here
 								}
-							case lcd.DisplayCpuGpuTemp:
-								{
-									cpuTemp := int(temperatures.GetCpuTemperature())
-									gpuTemp := int(temperatures.GetGpuTemperature())
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayCpuGpuTemp,
-										cpuTemp,
-										gpuTemp,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayCpuGpuLoad:
-								{
-									cpuUtil := int(systeminfo.GetCpuUtilization())
-									gpuUtil := systeminfo.GetGPUUtilization()
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayCpuGpuLoad,
-										cpuUtil,
-										gpuUtil,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayCpuGpuLoadTemp:
-								{
-									cpuTemp := int(temperatures.GetCpuTemperature())
-									gpuTemp := int(temperatures.GetGpuTemperature())
-									cpuUtil := int(systeminfo.GetCpuUtilization())
-									gpuUtil := systeminfo.GetGPUUtilization()
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayCpuGpuLoadTemp,
-										cpuTemp,
-										gpuTemp,
-										cpuUtil,
-										gpuUtil,
-									)
-									d.transferToLcd(buffer, lcdDevice)
-								}
-							case lcd.DisplayTime:
-								{
-									buffer := lcd.GenerateScreenImage(
-										lcd.DisplayTime,
-										0,
-										0,
-										0,
-										0,
-									)
-									d.transferToLcd(buffer, lcdDevice)
+								switch lcdMode {
+								case lcd.DisplayCPU:
+									{
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayCPU,
+											int(temperatures.GetCpuTemperature()),
+											0,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayGPU:
+									{
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayGPU,
+											int(temperatures.GetGpuTemperature()),
+											0,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayLiquid:
+									{
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayLiquid,
+											int(device.Temperature),
+											0,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayPump:
+									{
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayPump,
+											int(device.Rpm),
+											0,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayAllInOne:
+									{
+										liquidTemp := 0
+										cpuTemp := 0
+										pumpSpeed := 0
+										liquidTemp = int(device.Temperature)
+										pumpSpeed = int(device.Rpm)
+
+										cpuTemp = int(temperatures.GetCpuTemperature())
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayAllInOne,
+											liquidTemp,
+											cpuTemp,
+											pumpSpeed,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayCpuGpuTemp:
+									{
+										cpuTemp := int(temperatures.GetCpuTemperature())
+										gpuTemp := int(temperatures.GetGpuTemperature())
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayCpuGpuTemp,
+											cpuTemp,
+											gpuTemp,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayCpuGpuLoad:
+									{
+										cpuUtil := int(systeminfo.GetCpuUtilization())
+										gpuUtil := systeminfo.GetGPUUtilization()
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayCpuGpuLoad,
+											cpuUtil,
+											gpuUtil,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayCpuGpuLoadTemp:
+									{
+										cpuTemp := int(temperatures.GetCpuTemperature())
+										gpuTemp := int(temperatures.GetGpuTemperature())
+										cpuUtil := int(systeminfo.GetCpuUtilization())
+										gpuUtil := systeminfo.GetGPUUtilization()
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayCpuGpuLoadTemp,
+											cpuTemp,
+											gpuTemp,
+											cpuUtil,
+											gpuUtil,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayTime:
+									{
+										buffer := lcd.GenerateScreenImage(
+											lcd.DisplayTime,
+											0,
+											0,
+											0,
+											0,
+										)
+										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
 								}
 							}
 						}
@@ -2796,6 +2704,10 @@ func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
+
+	if d.Exit {
+		return bufferR
+	}
 
 	// Close endpoint
 	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
@@ -2831,6 +2743,10 @@ func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
+
 	// Buffer
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
@@ -2844,6 +2760,9 @@ func (d *Device) writeColor(data []byte) {
 
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
+		if d.Exit {
+			break
+		}
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
 			_, err := d.transfer(cmdWriteColor, chunk, nil)
@@ -2903,44 +2822,57 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
-
-	// Create write buffer
-	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[2] = 0x01
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
-	copy(endpointHeaderPosition, endpoint)
-	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
-	}
-
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-	}
-
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-	}
-
-	// Read remaining data from a device
-	if len(bufferType) == 2 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(transferTimeout)*time.Millisecond)
-		defer cancel()
-
-		for ctx.Err() != nil && !responseMatch(bufferR, bufferType) {
-			if _, err := d.dev.Read(bufferR); err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-			}
+	if d.Exit {
+		// Create write buffer
+		bufferW := make([]byte, bufferSizeWrite)
+		bufferW[2] = 0x01
+		endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+		copy(endpointHeaderPosition, endpoint)
+		if len(buffer) > 0 {
+			copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 		}
-		if ctx.Err() != nil {
-			logger.Log(logger.Fields{"error": ctx.Err(), "serial": d.Serial}).Error("Unable to read data from device")
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		}
+	} else {
+		// Packet control, mandatory for this device
+		d.mutex.Lock()
+		defer d.mutex.Unlock()
+
+		// Create write buffer
+		bufferW := make([]byte, bufferSizeWrite)
+		bufferW[2] = 0x01
+		endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+		copy(endpointHeaderPosition, endpoint)
+		if len(buffer) > 0 {
+			copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+		}
+
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		}
+
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		}
+
+		// Read remaining data from a device
+		if len(bufferType) == 2 {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(transferTimeout)*time.Millisecond)
+			defer cancel()
+
+			for ctx.Err() != nil && !responseMatch(bufferR, bufferType) {
+				if _, err := d.dev.Read(bufferR); err != nil {
+					logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+				}
+			}
+			if ctx.Err() != nil {
+				logger.Log(logger.Fields{"error": ctx.Err(), "serial": d.Serial}).Error("Unable to read data from device")
+			}
 		}
 	}
 	return bufferR, nil

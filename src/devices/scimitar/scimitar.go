@@ -31,18 +31,19 @@ type ZoneColors struct {
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	Brightness       uint8
-	RGBProfile       string
-	BrightnessSlider *uint8
-	Label            string
-	Profile          int
-	ZoneColors       map[int]ZoneColors
-	Profiles         map[int]DPIProfile
-	SleepMode        int
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	RGBProfile         string
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	Label              string
+	Profile            int
+	ZoneColors         map[int]ZoneColors
+	Profiles           map[int]DPIProfile
+	SleepMode          int
 }
 
 type DPIProfile struct {
@@ -77,24 +78,26 @@ type Device struct {
 	Layouts               []string
 	Rgb                   *rgb.RGB
 	SleepModes            map[int]string
+	Exit                  bool
+	mutex                 sync.Mutex
+	timerKeepAlive        *time.Ticker
+	keepAliveChan         chan struct{}
+	timer                 *time.Ticker
+	autoRefreshChan       chan struct{}
 }
 
 var (
-	pwd                  = ""
-	cmdSoftwareMode      = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode      = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware       = []byte{0x02, 0x13}
-	cmdWriteColor        = []byte{0x06, 0x00}
-	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
-	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi            = map[int][]byte{
+	pwd             = ""
+	cmdSoftwareMode = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware  = []byte{0x02, 0x13}
+	cmdWriteColor   = []byte{0x06, 0x00}
+	cmdOpenEndpoint = []byte{0x0d, 0x00, 0x01}
+	cmdHeartbeat    = []byte{0x12}
+	cmdSetDpi       = map[int][]byte{
 		0: {0x01, 0x21, 0x00},
 		1: {0x01, 0x22, 0x00},
 	}
-	cmdSleep        = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	mutex           sync.Mutex
-	timerKeepAlive  = &time.Ticker{}
-	keepAliveChan   = make(chan bool)
 	bufferSize      = 128
 	bufferSizeWrite = bufferSize + 1
 	headerSize      = 2
@@ -138,6 +141,10 @@ func Init(vendorId, productId uint16, key string) *Device {
 		},
 		LEDChannels:           5,
 		ChangeableLedChannels: 4,
+		keepAliveChan:         make(chan struct{}),
+		timerKeepAlive:        &time.Ticker{},
+		autoRefreshChan:       make(chan struct{}),
+		timer:                 &time.Ticker{},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -153,18 +160,27 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.toggleDPI()          // DPI
 	d.controlListener()    // Control listener
 	d.setKeepAlive()       // Keepalive
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
 
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+		})
+	}()
 
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -174,12 +190,7 @@ func (d *Device) Stop() {
 		}
 	}
 
-	if d.listener != nil {
-		err := d.listener.Close()
-		if err != nil {
-			return
-		}
-	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // getManufacturer will return device manufacturer
@@ -336,6 +347,26 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
 
+	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
 	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
@@ -518,7 +549,7 @@ func (d *Device) getDebugMode() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil)
+	_, err := d.transfer(cmdHardwareMode, nil, "setHardwareMode")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -526,7 +557,7 @@ func (d *Device) setHardwareMode() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil)
+	_, err := d.transfer(cmdSoftwareMode, nil, "setSoftwareMode")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -545,6 +576,7 @@ func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(
 		cmdGetFirmware,
 		nil,
+		"getDeviceFirmware",
 	)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
@@ -560,10 +592,11 @@ func (d *Device) saveDeviceProfile() {
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -587,11 +620,11 @@ func (d *Device) saveDeviceProfile() {
 			1: { // Scroll
 				ColorIndex: []int{1, 6, 11},
 				Color: &rgb.Color{
-					Red:        255,
+					Red:        0,
 					Green:      255,
-					Blue:       0,
+					Blue:       255,
 					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
 				Name: "Scroll",
 			},
@@ -609,11 +642,11 @@ func (d *Device) saveDeviceProfile() {
 			3: { // Logo
 				ColorIndex: []int{0, 5, 10},
 				Color: &rgb.Color{
-					Red:        0,
+					Red:        255,
 					Green:      255,
-					Blue:       255,
+					Blue:       0,
 					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
 				},
 				Name: "Logo",
 			},
@@ -706,6 +739,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
@@ -749,48 +783,6 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles() // Reload
-}
-
-// UpdateSleepTimer will update device sleep timer
-func (d *Device) UpdateSleepTimer(minutes int) uint8 {
-	if d.DeviceProfile != nil {
-		d.DeviceProfile.SleepMode = minutes
-		d.saveDeviceProfile()
-		d.setSleepTimer()
-		return 1
-	}
-	return 0
-}
-
-// setSleepTimer will set device sleep timer
-func (d *Device) setSleepTimer() uint8 {
-	if d.DeviceProfile != nil {
-		changed := 0
-		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
-		}
-
-		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-
-		for i := 0; i < 2; i++ {
-			command := cmdSleep[i]
-			_, err = d.transfer(command, buf)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-				continue
-			}
-			changed++
-		}
-
-		if changed > 0 {
-			return 1
-		}
-	}
-	return 0
 }
 
 // loadDeviceProfiles will load custom user profiles
@@ -877,7 +869,7 @@ func (d *Device) getDeviceProfile() {
 
 // initLeds will initialize LED endpoint
 func (d *Device) initLeds() {
-	_, err := d.transfer(cmdOpenEndpoint, nil)
+	_, err := d.transfer(cmdOpenEndpoint, nil, "initLeds")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -1236,6 +1228,9 @@ func (d *Device) ModifyDpi() {
 
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI() {
+	if d.Exit {
+		return
+	}
 	if d.DeviceProfile != nil {
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
@@ -1251,7 +1246,7 @@ func (d *Device) toggleDPI() {
 		buf := make([]byte, 2)
 		binary.LittleEndian.PutUint16(buf[0:2], value)
 		for i := 0; i <= 1; i++ {
-			_, err := d.transfer(cmdSetDpi[i], buf)
+			_, err := d.transfer(cmdSetDpi[i], buf, "toggleDPI")
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 			}
@@ -1267,23 +1262,28 @@ func (d *Device) toggleDPI() {
 
 // keepAlive will keep a device alive
 func (d *Device) keepAlive() {
-	_, err := d.transferDevice([]byte{0x12}, nil)
+	if d.Exit {
+		return
+	}
+	_, err := d.transfer(cmdHeartbeat, nil, "keepAlive")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
 }
 
-// setAutoRefresh will refresh device data
+// setKeepAlive will keep device alive
 func (d *Device) setKeepAlive() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	keepAliveChan = make(chan bool)
+	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timerKeepAlive.C:
+			case <-d.timerKeepAlive.C:
+				if d.Exit {
+					return
+				}
 				d.keepAlive()
-			case <-keepAliveChan:
-				timerKeepAlive.Stop()
+			case <-d.keepAliveChan:
+				d.timerKeepAlive.Stop()
 				return
 			}
 		}
@@ -1292,21 +1292,24 @@ func (d *Device) setKeepAlive() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
 
-	_, err := d.transfer(cmdWriteColor, buffer)
+	_, err := d.transfer(cmdWriteColor, buffer, "writeColor")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 	}
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte, caller string) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
@@ -1322,48 +1325,27 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to write to a device")
 		return nil, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 		return nil, err
 	}
 	return bufferR, nil
 }
 
-// transfer will send data to a device and retrieve device output
-func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	// Create write buffer
-	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = 0x08
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
-	copy(endpointHeaderPosition, endpoint)
-	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
 	}
-
-	// Create read buffer
-	bufferR := make([]byte, bufferSize)
-
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
-	}
-
-	// Get data from a device
-	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
-	}
-	return bufferR, nil
+	return data
 }
 
 // controlListener will listen for events from the control buttons
@@ -1385,46 +1367,51 @@ func (d *Device) controlListener() {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
 		}
 
-		// Listen loop
-		data := make([]byte, bufferSize)
 		for {
-			if d.listener == nil {
-				break
-			}
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
 
-			_, err = d.listener.Read(data)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Error reading data")
-				break
-			}
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
 
-			if data[1] == 0x02 {
-				if data[2] == 0x08 {
-					d.ModifyDpi()
-				} else if data[2] == 0x20 {
-					inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
-				} else if data[2] == 0x40 {
-					inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
-				} else if data[2] == 0x80 {
-					inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
-				} else if data[3] == 0x01 {
-					inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
-				} else if data[3] == 0x02 {
-					inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
-				} else if data[3] == 0x04 {
-					inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
-				} else if data[3] == 0x08 {
-					inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
-				} else if data[3] == 0x10 {
-					inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
-				} else if data[3] == 0x20 {
-					inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
-				} else if data[3] == 0x40 {
-					inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
-				} else if data[3] == 0x80 {
-					inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
-				} else if data[4] == 0x01 {
-					inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+				if data[1] == 0x02 {
+					if data[2] == 0x08 {
+						d.ModifyDpi()
+					} else if data[2] == 0x20 {
+						inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
+					} else if data[2] == 0x40 {
+						inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
+					} else if data[2] == 0x80 {
+						inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
+					} else if data[3] == 0x01 {
+						inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
+					} else if data[3] == 0x02 {
+						inputmanager.InputControl(inputmanager.Number5, d.Serial) // 5
+					} else if data[3] == 0x04 {
+						inputmanager.InputControl(inputmanager.Number6, d.Serial) // 6
+					} else if data[3] == 0x08 {
+						inputmanager.InputControl(inputmanager.Number7, d.Serial) // 7
+					} else if data[3] == 0x10 {
+						inputmanager.InputControl(inputmanager.Number8, d.Serial) // 8
+					} else if data[3] == 0x20 {
+						inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
+					} else if data[3] == 0x40 {
+						inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
+					} else if data[3] == 0x80 {
+						inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
+					} else if data[4] == 0x01 {
+						inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+					}
 				}
 			}
 		}

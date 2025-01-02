@@ -49,15 +49,16 @@ type SpeedMode struct {
 }
 
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	Brightness       uint8
-	BrightnessSlider *uint8
-	RGBProfiles      map[int]string
-	SpeedProfiles    map[int]string
-	Labels           map[int]string
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfiles        map[int]string
+	SpeedProfiles      map[int]string
+	Labels             map[int]string
 }
 
 type DeviceList struct {
@@ -127,6 +128,13 @@ type Device struct {
 	GpuTemp           float32
 	Rgb               *rgb.RGB
 	InvertRgb         bool
+	mutex             sync.Mutex
+	sequenceMutex     sync.Mutex
+	autoRefreshChan   chan struct{}
+	speedRefreshChan  chan struct{}
+	timer             *time.Ticker
+	timerSpeed        *time.Ticker
+	Exit              bool
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -203,17 +211,11 @@ var (
 	cmdWriteColor              = byte(0x04)
 	cmdControlLighting         = byte(0x01)
 	cmdActivateChannels        = byte(0x02)
-	mutex                      sync.Mutex
-	sequence                   sync.Mutex
 	BufferSize                 = 64
 	HidBufferSize              = BufferSize + 1
 	BufferLength               = BufferSize - 1
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
-	authRefreshChan            = make(chan bool)
-	speedRefreshChan           = make(chan bool)
-	timer                      = &time.Ticker{}
-	timerSpeed                 = &time.Ticker{}
 	manualSpeedModes           = map[int]*SpeedMode{}
 	supportedDevices           = []SupportedDevice{
 		{ProductId: 3095, Product: "H115i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
@@ -299,7 +301,11 @@ func Init(vendorId, productId uint16) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		InvertRgb: true,
+		InvertRgb:        true,
+		autoRefreshChan:  make(chan struct{}),
+		speedRefreshChan: make(chan struct{}),
+		timer:            &time.Ticker{},
+		timerSpeed:       &time.Ticker{},
 	}
 
 	d.ProductId = productId
@@ -324,22 +330,35 @@ func Init(vendorId, productId uint16) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
-	logger.Log(logger.Fields{"device": d}).Info("Device successfully initialized")
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	timer.Stop()
-	if !config.GetConfig().Manual {
-		timerSpeed.Stop()
-		speedRefreshChan <- true
-	}
-	authRefreshChan <- true
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+				}
+			}
+
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+
 	d.setHardwareMode() // Hardware mode
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -347,6 +366,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -596,11 +616,6 @@ func (d *Device) setDeviceColor() {
 	if s > 0 || l > 0 { // We have some values
 		if s == l { // number of devices matches number of devices with static profile
 			profile := d.GetRgbProfile("static")
-			/*
-				if d.DeviceProfile.Brightness != 0 {
-					profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-				}
-			*/
 			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
 			for i := 0; i < lightChannels; i++ {
@@ -689,14 +704,6 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
 
-					/*
-						// Brightness
-						if d.DeviceProfile.Brightness > 0 {
-							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-							r.RGBStartColor.Brightness = r.RGBBrightness
-							r.RGBEndColor.Brightness = r.RGBBrightness
-						}
-					*/
 					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
@@ -939,13 +946,14 @@ func (d *Device) saveDeviceProfile() {
 		}
 	}
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		SpeedProfiles:    speedProfiles,
-		RGBProfiles:      rgbProfiles,
-		Labels:           labels,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		SpeedProfiles:      speedProfiles,
+		RGBProfiles:        rgbProfiles,
+		Labels:             labels,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -968,6 +976,7 @@ func (d *Device) saveDeviceProfile() {
 
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -1049,6 +1058,25 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	return 1
 }
 
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+		fmt.Println(d.DeviceProfile.OriginalBrightness, d.DeviceProfile.BrightnessSlider)
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
 // ChangeDeviceProfile will change device profile
 func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	if profile, ok := d.UserProfiles[profileName]; ok {
@@ -1078,9 +1106,9 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
-		// Speed reset
+
 		if !config.GetConfig().Manual {
-			timerSpeed.Stop()
+			d.timerSpeed.Stop()
 			d.updateDeviceSpeed() // Update device speed
 		}
 		return 1
@@ -1129,8 +1157,8 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 
 // UpdateSpeedProfile will update device channel speed.
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Check if the profile exists
 	profiles := temperatures.GetTemperatureProfile(profile)
@@ -1212,6 +1240,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 
 // UpdateDeviceMetrics will update device metrics
 func (d *Device) UpdateDeviceMetrics() {
+	if d.Exit {
+		return
+	}
+
 	for _, device := range d.Devices {
 		header := &metrics.Header{
 			Product:          d.Product,
@@ -1349,7 +1381,15 @@ func (d *Device) getDevices() int {
 
 // setDefaults will set default mode for all devices
 func (d *Device) getDeviceData() {
+	if d.Exit {
+		return
+	}
+
 	response := d.read(cmdState, cmdGetState)
+	if response == nil {
+		return
+	}
+
 	for device := range deviceList {
 		// Temp
 		var temperature float64 = 0
@@ -1384,16 +1424,18 @@ func (d *Device) setTemperatures() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
 				d.setTemperatures()
 				d.getDeviceData()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -1470,8 +1512,8 @@ func (d *Device) getSupportedDevice(productId uint16) *SupportedDevice {
 
 // nextSequence will increment next sequence for packet
 func (d *Device) nextSequence() byte {
-	sequence.Lock()
-	sequence.Unlock()
+	d.sequenceMutex.Lock()
+	defer d.sequenceMutex.Unlock()
 	for {
 		d.sequence += 0x08
 		if d.sequence != 0x00 {
@@ -1482,8 +1524,8 @@ func (d *Device) nextSequence() byte {
 
 // setSequence will set sequence with given value from packet response
 func (d *Device) setSequence(value byte) {
-	sequence.Lock()
-	defer sequence.Unlock()
+	d.sequenceMutex.Lock()
+	defer d.sequenceMutex.Unlock()
 	d.sequence = value
 }
 
@@ -1562,6 +1604,10 @@ func (d *Device) deviceSpeedPacket(values map[int]*SpeedMode) []byte {
 
 // setSpeed will modify device speed
 func (d *Device) setSpeed(data map[int]*SpeedMode) {
+	if d.Exit {
+		return
+	}
+
 	buffer := make(map[int]*SpeedMode, 1)
 
 	if len(d.Devices) == 4 {
@@ -1591,7 +1637,7 @@ func (d *Device) getLiquidTemperature() float32 {
 
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
-	timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
+	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	tmp := make(map[int]string, 0)
 	channelSpeeds := make(map[int]*SpeedMode, len(d.Devices))
 	var change = false
@@ -1599,7 +1645,7 @@ func (d *Device) updateDeviceSpeed() {
 	go func() {
 		for {
 			select {
-			case <-timerSpeed.C:
+			case <-d.timerSpeed.C:
 				var temp float32 = 0
 				for _, device := range d.Devices {
 					profiles := temperatures.GetTemperatureProfile(device.Profile)
@@ -1692,8 +1738,8 @@ func (d *Device) updateDeviceSpeed() {
 					change = false
 					d.setSpeed(channelSpeeds)
 				}
-			case <-speedRefreshChan:
-				timerSpeed.Stop()
+			case <-d.speedRefreshChan:
+				d.timerSpeed.Stop()
 				return
 			}
 		}
@@ -1719,8 +1765,8 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
@@ -1746,6 +1792,10 @@ func (d *Device) read(command byte, data []byte) []byte {
 }
 
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
+
 	chunks := common.ProcessMultiChunkPacket(data, 60)
 	for i, chunk := range chunks {
 		command := cmdWriteColor + byte(i)
@@ -1755,8 +1805,8 @@ func (d *Device) writeColor(data []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(command byte, data []byte) []byte {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	buffer := make([]byte, BufferSize)
 

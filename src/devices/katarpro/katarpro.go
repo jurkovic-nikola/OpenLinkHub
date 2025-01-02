@@ -64,27 +64,28 @@ type Device struct {
 	GpuTemp         float32
 	Layouts         []string
 	Rgb             *rgb.RGB
+	Exit            bool
+	mutex           sync.Mutex
+	timer           *time.Ticker
+	timerKeepAlive  *time.Ticker
+	autoRefreshChan chan struct{}
+	keepAliveChan   chan struct{}
 }
 
 var (
-	pwd                   = ""
-	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware        = []byte{0x02, 0x13}
-	cmdWriteColor         = []byte{0x06, 0x00}
-	cmdHeartbeat          = []byte{0x12}
-	cmdOpenWriteEndpoint  = []byte{0x0d, 0x01, 0x02}
-	cmdOpenColorEndpoint  = []byte{0x0d, 0x00, 0x01}
-	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x01}
-	cmdWrite              = []byte{0x06, 0x01}
-	cmdSetDpi             = []byte{0x01}
-	deviceRefreshInterval = 1000
-	timer                 = &time.Ticker{}
-	authRefreshChan       = make(chan bool)
-	keepAliveChan         = make(chan bool)
-	deviceKeepAlive       = 20000
-	timerKeepAlive        = &time.Ticker{}
-	mutex                 sync.Mutex
+	pwd                          = ""
+	cmdSoftwareMode              = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode              = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware               = []byte{0x02, 0x13}
+	cmdWriteColor                = []byte{0x06, 0x00}
+	cmdHeartbeat                 = []byte{0x12}
+	cmdOpenWriteEndpoint         = []byte{0x0d, 0x01, 0x02}
+	cmdOpenColorEndpoint         = []byte{0x0d, 0x00, 0x01}
+	cmdCloseEndpoint             = []byte{0x05, 0x01, 0x01}
+	cmdWrite                     = []byte{0x06, 0x01}
+	cmdSetDpi                    = []byte{0x01}
+	deviceRefreshInterval        = 1000
+	deviceKeepAlive              = 20000
 	bufferSize                   = 64
 	bufferSizeWrite              = bufferSize + 1
 	headerSize                   = 2
@@ -115,8 +116,12 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     "KATAR PRO",
-		LEDChannels: 1,
+		Product:         "KATAR PRO",
+		LEDChannels:     1,
+		autoRefreshChan: make(chan struct{}),
+		keepAliveChan:   make(chan struct{}),
+		timer:           &time.Ticker{},
+		timerKeepAlive:  &time.Ticker{},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -134,21 +139,31 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setDeviceColor()     // Device color
 	d.controlListener()    // Control listener
 	d.toggleDPI(false)     // Set current DPI
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
 
-	timer.Stop()
-	authRefreshChan <- true
-
-	timerKeepAlive.Stop()
-	keepAliveChan <- true
+	d.timer.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
 
 	d.setHardwareMode()
 	if d.dev != nil {
@@ -157,13 +172,7 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
-
-	if d.listener != nil {
-		err := d.listener.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close listener HID device")
-		}
-	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -357,14 +366,14 @@ func (d *Device) keepAlive() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setKeepAlive() {
-	timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
+	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timerKeepAlive.C:
+			case <-d.timerKeepAlive.C:
 				d.keepAlive()
-			case <-keepAliveChan:
-				timerKeepAlive.Stop()
+			case <-d.keepAliveChan:
+				d.timerKeepAlive.Stop()
 				return
 			}
 		}
@@ -379,15 +388,14 @@ func (d *Device) setTemperatures() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
 				d.setTemperatures()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -992,6 +1000,9 @@ func (d *Device) setDeviceColor() {
 
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI(set bool) {
+	if d.Exit {
+		return
+	}
 	if d.DeviceProfile != nil {
 		if d.DeviceProfile.Profile >= 2 {
 			if set {
@@ -1049,6 +1060,17 @@ func (d *Device) toggleDPI(set bool) {
 	}
 }
 
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
+}
+
 // controlListener will listen for events from the control buttons
 func (d *Device) controlListener() {
 	go func() {
@@ -1069,37 +1091,48 @@ func (d *Device) controlListener() {
 		}
 
 		// Listen loop
-		data := make([]byte, 9)
 		for {
-			// Read data from the HID device
-			_, err = d.listener.Read(data)
-			if err != nil {
-				break
-			}
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
 
-			if len(data) > 0 {
-				if data[1] == 2 {
-					switch data[2] {
-					case 32: // DPI Button
-						d.toggleDPI(true)
-						break
-					case 8: // Forward button
-						// TO-DO
-						break
-					case 16: // Back button
-						// TO-DO
-						break
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
+
+				if len(data) > 0 {
+					if data[1] == 2 {
+						switch data[2] {
+						case 32: // DPI Button
+							d.toggleDPI(true)
+							break
+						case 8: // Forward button
+							// TO-DO
+							break
+						case 16: // Back button
+							// TO-DO
+							break
+						}
 					}
 				}
 			}
-
-			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 }
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -1113,8 +1146,8 @@ func (d *Device) writeColor(data []byte) {
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)

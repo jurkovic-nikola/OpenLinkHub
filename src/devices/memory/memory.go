@@ -16,7 +16,6 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/godbus/dbus/v5"
 	"math"
 	"os"
 	"path/filepath"
@@ -52,14 +51,15 @@ type Devices struct {
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active           bool
-	Path             string
-	Product          string
-	Serial           string
-	Brightness       uint8
-	BrightnessSlider *uint8
-	RGBProfiles      map[int]string
-	Labels           map[int]string
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfiles        map[int]string
+	Labels             map[int]string
 }
 
 type Device struct {
@@ -81,6 +81,10 @@ type Device struct {
 	GpuTemp          float32
 	dev              *smbus.Connection
 	Rgb              *rgb.RGB
+	Exit             bool
+	timer            *time.Ticker
+	mutex            sync.Mutex
+	autoRefreshChan  chan struct{}
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -110,10 +114,6 @@ const (
 
 var (
 	pwd                   = ""
-	deviceWakeupDelay     = 5000
-	timer                 = &time.Ticker{}
-	mutex                 sync.Mutex
-	authRefreshChan       = make(chan bool)
 	deviceRefreshInterval = 1000
 	cmdActivations        = []byte{0x36, 0x37} // SPA0 and SPA1
 	maximumRegisters      = 8
@@ -151,9 +151,11 @@ func Init(device, product string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     product,
-		Serial:      serial,
-		LEDChannels: 0,
+		Product:         product,
+		Serial:          serial,
+		LEDChannels:     0,
+		timer:           &time.Ticker{},
+		autoRefreshChan: make(chan struct{}),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -167,24 +169,54 @@ func Init(device, product string) *Device {
 	d.setAutoRefresh()    // Set auto device refresh
 	d.saveDeviceProfile() // Save profile
 	d.setDeviceColor()    // Device color
-	if config.GetConfig().DbusMonitor {
-		d.dbusDeviceMonitor()
-	}
 	return d
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
-	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-	authRefreshChan <- true
-	d.disableLighting()
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+
+	lightChannels := 0
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		if d.Devices[k].LedChannels > 0 {
+			keys = append(keys, k)
+		}
+	}
+	sort.Ints(keys)
+	if lightChannels > 0 {
+		for _, k := range keys {
+			static := map[int][]byte{}
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				static[i] = []byte{0, 0, 0}
+			}
+			buffer := rgb.SetColor(static)
+			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
+		}
+	}
+
 	err := d.dev.File.Close()
 	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to close SMBUS interface")
 		return
 	}
+
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -311,17 +343,19 @@ func (d *Device) getDevices() int {
 				}
 			}
 		} else {
-			// We send 0x00 to 0x00 to SPA addresses
-			for _, cmdActivation := range cmdActivations {
-				err = smbus.WriteRegister(d.dev.File, cmdActivation, 0x00, 0x00)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Error("Failed to activate DIMM info")
+			if config.GetConfig().DecodeMemorySku {
+				// We send 0x00 to 0x00 to SPA addresses
+				for _, cmdActivation := range cmdActivations {
+					err = smbus.WriteRegister(d.dev.File, cmdActivation, 0x00, 0x00)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err}).Error("Failed to activate DIMM info")
+						continue
+					}
+					activated++
+				}
+				if activated == 0 {
 					continue
 				}
-				activated++
-			}
-			if activated == 0 {
-				continue
 			}
 		}
 		var buf []byte
@@ -632,12 +666,13 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	deviceProfile := &DeviceProfile{
-		Product:          d.Product,
-		Serial:           d.Serial,
-		RGBProfiles:      rgbProfiles,
-		Labels:           labels,
-		Path:             profilePath,
-		BrightnessSlider: &defaultBrightness,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		RGBProfiles:        rgbProfiles,
+		Labels:             labels,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -658,6 +693,7 @@ func (d *Device) saveDeviceProfile() {
 
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -705,83 +741,6 @@ func (d *Device) getDeviceProfile() {
 				d.DeviceProfile = pf
 			}
 		}
-	}
-}
-
-// dbusDeviceMonitor will monitor dbus events for suspend and resume
-func (d *Device) dbusDeviceMonitor() {
-	go func() {
-		// Connect to the session bus
-		conn, err := dbus.ConnectSystemBus()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to connect to system bus")
-		}
-		defer func(conn *dbus.Conn) {
-			err = conn.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Error closing dbus")
-			}
-		}(conn)
-
-		// Listen for the PrepareForSleep signal
-		_ = conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
-		ch := make(chan *dbus.Signal, 10)
-		conn.Signal(ch)
-
-		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
-		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Fatal("Failed to add D-Bus match")
-		}
-
-		for signal := range ch {
-			if len(signal.Body) > 0 {
-				if isSleeping, ok := signal.Body[0].(bool); ok {
-					if isSleeping {
-						if d.activeRgb != nil {
-							d.activeRgb.Exit <- true
-							d.activeRgb = nil
-						}
-						d.disableLighting()
-					} else {
-						// Wait for 5 seconds until the hub wakes up
-						time.Sleep(time.Duration(deviceWakeupDelay) * time.Millisecond)
-
-						// Device woke up after machine was sleeping
-						if d.activeRgb != nil {
-							d.activeRgb.Exit <- true
-							d.activeRgb = nil
-						}
-						d.setDeviceColor() // Set RGB
-					}
-				}
-			}
-		}
-	}()
-}
-
-// disableLighting will be called upon sleep. This is turn off lighting when sleeping
-func (d *Device) disableLighting() {
-	lightChannels := 0
-	keys := make([]int, 0)
-	for k := range d.Devices {
-		lightChannels += int(d.Devices[k].LedChannels)
-		if d.Devices[k].LedChannels > 0 {
-			keys = append(keys, k)
-		}
-	}
-	sort.Ints(keys)
-
-	if lightChannels > 0 {
-		for _, k := range keys {
-			static := map[int][]byte{}
-			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-				static[i] = []byte{0, 0, 0}
-			}
-			buffer := rgb.SetColor(static)
-			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
-		}
-		return
 	}
 }
 
@@ -835,11 +794,6 @@ func (d *Device) setDeviceColor() {
 
 	if d.isRgbStatic() {
 		profile := d.GetRgbProfile("static")
-		/*
-			if d.DeviceProfile.Brightness != 0 {
-				profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-			}
-		*/
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 
 		// Global override
@@ -932,13 +886,6 @@ func (d *Device) setDeviceColor() {
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
-					/*
-						if d.DeviceProfile.Brightness > 0 {
-							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-							r.RGBStartColor.Brightness = r.RGBBrightness
-							r.RGBEndColor.Brightness = r.RGBBrightness
-						}
-					*/
 
 					// Global override
 					if d.GlobalBrightness != 0 {
@@ -1170,6 +1117,26 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	return 1
 }
 
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
+	if d.isRgbStatic() {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
 // ChangeDeviceProfile will change device profile
 func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	if profile, ok := d.UserProfiles[profileName]; ok {
@@ -1235,8 +1202,8 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
@@ -1316,6 +1283,9 @@ func (d *Device) setTemperatures() {
 	d.GpuTemp = temperatures.GetGpuTemperature()
 	for _, device := range d.Devices {
 		if device.HasTemps {
+			if d.Exit {
+				return
+			}
 			// Temperature
 			temp := d.transfer(
 				nil,
@@ -1337,15 +1307,17 @@ func (d *Device) setTemperatures() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	authRefreshChan = make(chan bool)
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	go func() {
 		for {
 			select {
-			case <-timer.C:
+			case <-d.timer.C:
+				if d.Exit {
+					return
+				}
 				d.setTemperatures()
-			case <-authRefreshChan:
-				timer.Stop()
+			case <-d.autoRefreshChan:
+				d.timer.Stop()
 				return
 			}
 		}
@@ -1363,8 +1335,8 @@ func (d *Device) calculateChecksum(data []byte) byte {
 
 // transfer will transfer data to a i2c device
 func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister uint8, transferType int) uint16 {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	switch transferType {
 	case transferTypeColor:

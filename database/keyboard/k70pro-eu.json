@@ -1378,10 +1378,23 @@
           }
         },
         "104": {
-          "keyName": "----------",
-          "width": 455,
+          "keyName": "",
+          "width": 150,
           "height": 70,
           "left": 15,
+          "top": 15,
+          "packetIndex": [420],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "105": {
+          "keyName": "----------",
+          "width": 150,
+          "height": 70,
+          "left": 2,
           "top": 15,
           "packetIndex": [132],
           "color": {
@@ -1390,7 +1403,20 @@
             "blue": 255
           }
         },
-        "105": {
+        "106": {
+          "keyName": "",
+          "width": 151,
+          "height": 70,
+          "left": 2,
+          "top": 15,
+          "packetIndex": [423],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "107": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1403,7 +1429,7 @@
             "blue": 255
           }
         },
-        "106": {
+        "108": {
           "keyName": "Fn",
           "width": 90,
           "height": 70,
@@ -1416,7 +1442,7 @@
             "blue": 255
           }
         },
-        "107": {
+        "109": {
           "keyName": "RC",
           "width": 90,
           "height": 70,
@@ -1429,7 +1455,7 @@
             "blue": 255
           }
         },
-        "108": {
+        "110": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1442,7 +1468,7 @@
             "blue": 255
           }
         },
-        "109": {
+        "111": {
           "keyName": "←",
           "width": 65,
           "height": 70,
@@ -1455,7 +1481,7 @@
             "blue": 255
           }
         },
-        "110": {
+        "112": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
@@ -1468,7 +1494,7 @@
             "blue": 255
           }
         },
-        "111": {
+        "113": {
           "keyName": "→",
           "width": 65,
           "height": 70,
@@ -1481,7 +1507,7 @@
             "blue": 255
           }
         },
-        "112": {
+        "114": {
           "keyName": "0",
           "width": 145,
           "height": 70,
@@ -1494,7 +1520,7 @@
             "blue": 255
           }
         },
-        "113": {
+        "115": {
           "keyName": ".",
           "width": 65,
           "height": 70,

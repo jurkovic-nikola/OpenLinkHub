@@ -847,8 +847,6 @@ func (d *Device) setBrightnessLevel() {
 		return
 	}
 	if d.DeviceProfile != nil {
-		fmt.Println("brightness")
-
 		buf := make([]byte, 2)
 		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
 		_, err := d.transfer(cmdBrightness, buf)
@@ -879,7 +877,6 @@ func (d *Device) setDeviceColor() {
 			byte(color.Blue),
 		}
 	}
-
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
 
@@ -1173,8 +1170,20 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				}
+
+				var buf = make([]byte, colorPacketLength)
+				for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+					for _, keys := range rows.Keys {
+						for _, packetIndex := range keys.PacketIndex {
+							buf[packetIndex] = buff[packetIndex]
+							buf[packetIndex+1] = buff[packetIndex+1]
+							buf[packetIndex+2] = buff[packetIndex+2]
+						}
+					}
+				}
+
 				// Send it
-				d.writeColor(buff)
+				d.writeColor(buf)
 				time.Sleep(20 * time.Millisecond)
 				hue++
 				wavePosition += 0.2
@@ -1301,8 +1310,6 @@ func (d *Device) controlListener() {
 				if len(data) == 0 || data == nil {
 					continue
 				}
-
-				fmt.Println(data[:20])
 				value := data[4]
 				if value == 0 && data[16] == 2 {
 					if brightness >= 1000 {

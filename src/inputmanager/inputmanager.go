@@ -188,14 +188,14 @@ func emitEvent(file *os.File, event inputEvent) error {
 
 // createInputEvent will create a list of input events
 func createInputEvent(code uint16) []inputEvent {
-	// Create an input event for F11 key press
+	// Create an input event for key press
 	keyPress := inputEvent{
 		Type:  evKey,
 		Code:  code,
 		Value: 1, // Key press
 	}
 
-	// Create an input event for F11 key release
+	// Create an input event for key release
 	keyRelease := inputEvent{
 		Type:  evKey,
 		Code:  code,

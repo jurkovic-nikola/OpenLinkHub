@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math/rand"
 	"os"
 	"regexp"
 	"sort"
@@ -78,7 +79,7 @@ type Device struct {
 	DeviceProfile           *DeviceProfile
 	ExternalLedDeviceAmount map[int]string
 	ExternalLedDevice       []ExternalLedDevice
-	activeRgb               map[int]*rgb.ActiveRGB
+	activeRgb               *rgb.ActiveRGB
 	Template                string
 	Brightness              map[int]string
 	HasLCD                  bool
@@ -89,6 +90,7 @@ type Device struct {
 	mutex                   sync.Mutex
 	autoRefreshChan         chan struct{}
 	timer                   *time.Ticker
+	State                   map[byte]bool
 }
 
 var (
@@ -104,8 +106,10 @@ var (
 	deviceRefreshInterval   = 1000
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
+	readBufferSize          = 17
 	maxBufferSizePerRequest = 50
 	maximumLedAmount        = 204
+	deviceUpdateDelay       = 5
 	externalLedDevices      = []ExternalLedDevice{
 		{
 			Index: 1,
@@ -172,9 +176,9 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		activeRgb:       make(map[int]*rgb.ActiveRGB, 2),
 		timer:           &time.Ticker{},
 		autoRefreshChan: make(chan struct{}),
+		State:           make(map[byte]bool, 2),
 	}
 
 	// Bootstrap
@@ -204,23 +208,23 @@ func (d *Device) ShutdownLed() {
 			}
 		}
 		cfg := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
-		_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId})
+		_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId}, false)
 		if err != nil {
 			return
 		}
-		_, err = d.transfer(cmdRefresh2, []byte{externalHub.PortId})
+		_, err = d.transfer(cmdRefresh2, []byte{externalHub.PortId}, false)
 		if err != nil {
 			return
 		}
-		_, err = d.transfer(cmdPortState, []byte{externalHub.PortId, 0x01})
+		_, err = d.transfer(cmdPortState, []byte{externalHub.PortId, 0x01}, false)
 		if err != nil {
 			return
 		}
-		_, err = d.transfer(cmdWriteLedConfig, cfg)
+		_, err = d.transfer(cmdWriteLedConfig, cfg, false)
 		if err != nil {
 			return
 		}
-		_, err = d.transfer(cmdSave, []byte{0xff})
+		_, err = d.transfer(cmdSave, []byte{0xff}, false)
 		if err != nil {
 			return
 		}
@@ -231,11 +235,9 @@ func (d *Device) ShutdownLed() {
 func (d *Device) Stop() {
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		if d.activeRgb[i] != nil {
-			d.activeRgb[i].Exit <- true // Exit current RGB mode
-			d.activeRgb[i] = nil
-		}
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
 	}
 	d.ShutdownLed()
 
@@ -433,6 +435,7 @@ func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(
 		cmdGetFirmware,
 		nil,
+		true,
 	)
 
 	if err != nil {
@@ -653,26 +656,26 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 
 	d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
 	d.saveDeviceProfile()                            // Save profile
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		if d.activeRgb[i] != nil {
-			d.activeRgb[i].Exit <- true // Exit current RGB mode
-			d.activeRgb[i] = nil
-		}
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
 	}
+
 	d.setDeviceColor(true) // Restart RGB
 	return 1
 }
 
 // ResetRgb will reset the current rgb mode
 func (d *Device) ResetRgb() {
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		if d.activeRgb[i] != nil {
-			d.activeRgb[i].Exit <- true // Exit current RGB mode
-			d.activeRgb[i] = nil
-		}
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
 	}
-	d.getDevices()         // Reload devices
-	d.saveDeviceProfile()  // Save profile
+
+	d.getDevices()        // Reload devices
+	d.saveDeviceProfile() // Save profile
+	d.ShutdownLed()
+	d.setColorEndpoint()
 	d.setDeviceColor(true) // Restart RGB
 }
 
@@ -714,11 +717,9 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.DeviceProfile.Brightness = mode
 	d.saveDeviceProfile()
 
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		if d.activeRgb[i] != nil {
-			d.activeRgb[i].Exit <- true // Exit current RGB mode
-			d.activeRgb[i] = nil
-		}
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
 	}
 
 	d.setDeviceColor(true) // Restart RGB
@@ -734,12 +735,11 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
 
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		if d.activeRgb[i] != nil {
-			d.activeRgb[i].Exit <- true // Exit current RGB mode
-			d.activeRgb[i] = nil
-		}
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
 	}
+
 	d.setDeviceColor(false) // Restart RGB
 	return 1
 }
@@ -754,12 +754,11 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 	}
 
 	d.saveDeviceProfile()
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		if d.activeRgb[i] != nil {
-			d.activeRgb[i].Exit <- true // Exit current RGB mode
-			d.activeRgb[i] = nil
-		}
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
 	}
+
 	d.setDeviceColor(false) // Restart RGB
 	return 1
 }
@@ -774,11 +773,9 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.saveDeviceProfile()
 
 		// RGB reset
-		for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-			if d.activeRgb[i] != nil {
-				d.activeRgb[i].Exit <- true // Exit current RGB mode
-				d.activeRgb[i] = nil
-			}
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
 		}
 
 		for _, device := range d.Devices {
@@ -864,15 +861,12 @@ func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint
 			}
 
 			d.DeviceProfile.ExternalHubs[portId].ExternalHubDeviceAmount = externalDevices
-			for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-				if d.activeRgb[i] != nil {
-					d.activeRgb[i].Exit <- true // Exit current RGB mode
-					d.activeRgb[i] = nil
-				}
+			if d.activeRgb != nil {
+				d.activeRgb.Exit <- true // Exit current RGB mode
+				d.activeRgb = nil
 			}
-			d.getDevices()         // Reload devices
-			d.saveDeviceProfile()  // Save profile
-			d.setDeviceColor(true) // Restart RGB
+
+			d.ResetRgb()
 			return 1
 		}
 	}
@@ -908,52 +902,32 @@ func (d *Device) isRgbStatic() bool {
 
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor(resetColor bool) {
-	// Reset
-	reset := map[int][]byte{}
-	var buffer []byte
-
-	// Get the number of LED channels we have
 	lightChannels := 0
-	for _, device := range d.Devices {
-		if device.LedChannels > 0 {
-			lightChannels += int(device.LedChannels)
-		}
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		keys = append(keys, k)
 	}
+	sort.Ints(keys)
 
-	// Do we have any RGB component in the system?
 	if lightChannels == 0 {
 		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
 		return
 	}
 
-	// Reset all channels
-	color := &rgb.Color{
-		Red:        0,
-		Green:      0,
-		Blue:       0,
-		Brightness: 0,
-	}
-
 	if resetColor {
-		for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-			externalHub := d.DeviceProfile.ExternalHubs[i]
-			lightChannels = 0
-			for _, device := range d.Devices {
-				if device.PortId == externalHub.PortId {
-					lightChannels += int(device.LedChannels)
-				}
-			}
-			for i := 0; i < lightChannels; i++ {
-				reset[i] = []byte{
+		color := &rgb.Color{Red: 0, Green: 0, Blue: 0, Brightness: 0}
+		buff := make(map[byte][]byte, 0)
+		for _, k := range keys {
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], []byte{
 					byte(color.Red),
 					byte(color.Green),
 					byte(color.Blue),
-				}
+				}...)
 			}
-
-			buffer = rgb.SetColor(reset)
-			d.writeColor(buffer, lightChannels, externalHub.PortId)
 		}
+		d.writeColor(buff)
 	}
 
 	// Are all devices under static mode?
@@ -975,75 +949,58 @@ func (d *Device) setDeviceColor(resetColor bool) {
 			if profile == nil {
 				return
 			}
-			/*
-				if d.DeviceProfile.Brightness != 0 {
-					profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-				}
-			*/
 			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-				externalHub := d.DeviceProfile.ExternalHubs[i]
-				lightChannels = 0
-				for _, device := range d.Devices {
-					if device.PortId == externalHub.PortId {
-						lightChannels += int(device.LedChannels)
-					}
-				}
-
-				for i := 0; i < lightChannels; i++ {
-					reset[i] = []byte{
+			buff := make(map[byte][]byte, 0)
+			for _, k := range keys {
+				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+					buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], []byte{
 						byte(profileColor.Red),
 						byte(profileColor.Green),
 						byte(profileColor.Blue),
-					}
+					}...)
 				}
-
-				buffer = rgb.SetColor(reset)
-				d.writeColor(buffer, lightChannels, externalHub.PortId)
 			}
+			d.writeColor(buff)
 			return
 		}
 	}
+	go func() {
+		lock := sync.Mutex{}
+		startTime := time.Now()
+		reverse := map[int]bool{}
+		counterColorpulse := map[int]int{}
+		counterFlickering := map[int]int{}
+		counterColorshift := map[int]int{}
+		counterCircleshift := map[int]int{}
+		counterCircle := map[int]int{}
+		counterColorwarp := map[int]int{}
+		counterSpinner := map[int]int{}
+		counterCpuTemp := map[int]int{}
+		counterGpuTemp := map[int]int{}
+		temperatureKeys := map[int]*rgb.Color{}
+		colorwarpGeneratedReverse := false
+		d.activeRgb = rgb.Exit()
 
-	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
-		externalHub := d.DeviceProfile.ExternalHubs[i]
-		if externalHub.ExternalHubDeviceAmount < 1 {
-			continue
-		}
-
-		go func(externalHub ExternalHubData, i int) {
-			lock := sync.Mutex{}
-			startTime := time.Now()
-			reverse := map[int]bool{}
-			counterColorpulse := map[int]int{}
-			counterFlickering := map[int]int{}
-			counterColorshift := map[int]int{}
-			counterCircleshift := map[int]int{}
-			counterCircle := map[int]int{}
-			counterColorwarp := map[int]int{}
-			counterSpinner := map[int]int{}
-			counterCpuTemp := map[int]int{}
-			counterGpuTemp := map[int]int{}
-			temperatureKeys := map[int]*rgb.Color{}
-			colorwarpGeneratedReverse := false
-			d.activeRgb[i] = rgb.Exit()
-
-			// Generate random colors
-			d.activeRgb[i].RGBStartColor = rgb.GenerateRandomColor(1)
-			d.activeRgb[i].RGBEndColor = rgb.GenerateRandomColor(1)
-
-			lc := 0
-			keys := make([]int, 0)
-			rgbSettings := make(map[int]*rgb.ActiveRGB)
-
-			for k := range d.Devices {
-				if d.Devices[k].PortId == externalHub.PortId {
+		// Generate random colors
+		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
+		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
+		hue := 1
+		wavePosition := 0.0
+		rand.New(rand.NewSource(time.Now().UnixNano()))
+		for {
+			select {
+			case <-d.activeRgb.Exit:
+				return
+			default:
+				buff := make(map[byte][]byte, 0)
+				for _, k := range keys {
 					rgbCustomColor := true
-					lc += int(d.Devices[k].LedChannels)
-					keys = append(keys, k)
 					profile := d.GetRgbProfile(d.Devices[k].RGB)
 					if profile == nil {
+						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], []byte{0, 0, 0}...)
+						}
 						logger.Log(logger.Fields{"profile": d.Devices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
 						continue
 					}
@@ -1065,226 +1022,203 @@ func (d *Device) setDeviceColor(resetColor bool) {
 						rgbCustomColor,
 					)
 
-					r.MinTemp = profile.MinTemp
-					r.MaxTemp = profile.MaxTemp
-
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor
 						r.RGBEndColor = &profile.EndColor
 					} else {
-						r.RGBStartColor = d.activeRgb[i].RGBStartColor
-						r.RGBEndColor = d.activeRgb[i].RGBEndColor
+						r.RGBStartColor = d.activeRgb.RGBStartColor
+						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
 
-					/*
-						// Brightness
-						if d.DeviceProfile.Brightness > 0 {
-							r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-							r.RGBStartColor.Brightness = r.RGBBrightness
-							r.RGBEndColor.Brightness = r.RGBBrightness
-						}
-					*/
+					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
 
-					rgbSettings[k] = r
-				} else {
-					continue
-				}
-			}
-			sort.Ints(keys)
+					switch d.Devices[k].RGB {
+					case "off":
+						{
+							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
+								buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], []byte{0, 0, 0}...)
+							}
+						}
+					case "rainbow":
+						{
+							r.Rainbow(startTime)
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "watercolor":
+						{
+							r.Watercolor(startTime)
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "cpu-temperature":
+						{
+							lock.Lock()
+							counterCpuTemp[k]++
+							if counterCpuTemp[k] >= r.Smoothness {
+								counterCpuTemp[k] = 0
+							}
 
-			hue := 1
-			wavePosition := 0.0
-			for {
-				buff := make([]byte, 0)
-				select {
-				case <-d.activeRgb[i].Exit:
-					return
-				default:
-					for _, k := range keys {
-						r := rgbSettings[k]
-						switch d.Devices[k].RGB {
-						case "off":
-							{
-								for n := 0; n < int(d.Devices[k].LedChannels); n++ {
-									buff = append(buff, []byte{0, 0, 0}...)
-								}
+							if _, ok := temperatureKeys[k]; !ok {
+								temperatureKeys[k] = r.RGBStartColor
 							}
-						case "rainbow":
-							{
-								r.Rainbow(startTime)
-								buff = append(buff, r.Output...)
-							}
-						case "watercolor":
-							{
-								r.Watercolor(startTime)
-								buff = append(buff, r.Output...)
-							}
-						case "cpu-temperature":
-							{
-								lock.Lock()
-								counterCpuTemp[k]++
-								if counterCpuTemp[k] >= r.Smoothness {
-									counterCpuTemp[k] = 0
-								}
 
-								if _, ok := temperatureKeys[k]; !ok {
-									temperatureKeys[k] = r.RGBStartColor
-								}
+							r.MinTemp = profile.MinTemp
+							r.MaxTemp = profile.MaxTemp
+							res := r.Temperature(float64(d.CpuTemp), counterCpuTemp[k], temperatureKeys[k])
+							temperatureKeys[k] = res
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "gpu-temperature":
+						{
+							lock.Lock()
+							counterGpuTemp[k]++
+							if counterGpuTemp[k] >= r.Smoothness {
+								counterGpuTemp[k] = 0
+							}
 
-								res := r.Temperature(float64(d.CpuTemp), counterCpuTemp[k], temperatureKeys[k])
-								temperatureKeys[k] = res
-								lock.Unlock()
-								buff = append(buff, r.Output...)
+							if _, ok := temperatureKeys[k]; !ok {
+								temperatureKeys[k] = r.RGBStartColor
 							}
-						case "gpu-temperature":
-							{
-								lock.Lock()
-								counterGpuTemp[k]++
-								if counterGpuTemp[k] >= r.Smoothness {
-									counterGpuTemp[k] = 0
-								}
 
-								if _, ok := temperatureKeys[k]; !ok {
-									temperatureKeys[k] = r.RGBStartColor
-								}
+							r.MinTemp = profile.MinTemp
+							r.MaxTemp = profile.MaxTemp
+							res := r.Temperature(float64(d.GpuTemp), counterGpuTemp[k], temperatureKeys[k])
+							temperatureKeys[k] = res
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "colorpulse":
+						{
+							lock.Lock()
+							counterColorpulse[k]++
+							if counterColorpulse[k] >= r.Smoothness {
+								counterColorpulse[k] = 0
+							}
 
-								res := r.Temperature(float64(d.GpuTemp), counterGpuTemp[k], temperatureKeys[k])
-								temperatureKeys[k] = res
-								lock.Unlock()
-								buff = append(buff, r.Output...)
+							r.Colorpulse(counterColorpulse[k])
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "static":
+						{
+							r.Static()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "rotator":
+						{
+							r.Rotator(hue)
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "wave":
+						{
+							r.Wave(wavePosition)
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "storm":
+						{
+							r.Storm()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "flickering":
+						{
+							lock.Lock()
+							if counterFlickering[k] >= r.Smoothness {
+								counterFlickering[k] = 0
+							} else {
+								counterFlickering[k]++
 							}
-						case "colorpulse":
-							{
-								lock.Lock()
-								counterColorpulse[k]++
-								if counterColorpulse[k] >= r.Smoothness {
-									counterColorpulse[k] = 0
-								}
 
-								r.Colorpulse(counterColorpulse[k])
-								lock.Unlock()
-								buff = append(buff, r.Output...)
+							r.Flickering(counterFlickering[k])
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "colorshift":
+						{
+							lock.Lock()
+							if counterColorshift[k] >= r.Smoothness && !reverse[k] {
+								counterColorshift[k] = 0
+								reverse[k] = true
+							} else if counterColorshift[k] >= r.Smoothness && reverse[k] {
+								counterColorshift[k] = 0
+								reverse[k] = false
 							}
-						case "static":
-							{
-								r.Static()
-								buff = append(buff, r.Output...)
-							}
-						case "rotator":
-							{
-								r.Rotator(hue)
-								buff = append(buff, r.Output...)
-							}
-						case "wave":
-							{
-								r.Wave(wavePosition)
-								buff = append(buff, r.Output...)
-							}
-						case "storm":
-							{
-								r.Storm()
-								buff = append(buff, r.Output...)
-							}
-						case "flickering":
-							{
-								lock.Lock()
-								if counterFlickering[k] >= r.Smoothness {
-									counterFlickering[k] = 0
-								} else {
-									counterFlickering[k]++
-								}
 
-								r.Flickering(counterFlickering[k])
-								lock.Unlock()
-								buff = append(buff, r.Output...)
+							r.Colorshift(counterColorshift[k], reverse[k])
+							counterColorshift[k]++
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "circleshift":
+						{
+							lock.Lock()
+							if counterCircleshift[k] >= int(d.Devices[k].LedChannels) {
+								counterCircleshift[k] = 0
+							} else {
+								counterCircleshift[k]++
 							}
-						case "colorshift":
-							{
-								lock.Lock()
-								if counterColorshift[k] >= r.Smoothness && !reverse[k] {
-									counterColorshift[k] = 0
-									reverse[k] = true
-								} else if counterColorshift[k] >= r.Smoothness && reverse[k] {
-									counterColorshift[k] = 0
-									reverse[k] = false
-								}
 
-								r.Colorshift(counterColorshift[k], reverse[k])
-								counterColorshift[k]++
-								lock.Unlock()
-								buff = append(buff, r.Output...)
+							r.Circle(counterCircleshift[k])
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "circle":
+						{
+							lock.Lock()
+							if counterCircle[k] >= int(d.Devices[k].LedChannels) {
+								counterCircle[k] = 0
+							} else {
+								counterCircle[k]++
 							}
-						case "circleshift":
-							{
-								lock.Lock()
-								if counterCircleshift[k] >= int(d.Devices[k].LedChannels) {
-									counterCircleshift[k] = 0
-								} else {
-									counterCircleshift[k]++
-								}
 
-								r.Circle(counterCircleshift[k])
-								lock.Unlock()
-								buff = append(buff, r.Output...)
+							r.Circle(counterCircle[k])
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "spinner":
+						{
+							lock.Lock()
+							if counterSpinner[k] >= int(d.Devices[k].LedChannels) {
+								counterSpinner[k] = 0
+							} else {
+								counterSpinner[k]++
 							}
-						case "circle":
-							{
-								lock.Lock()
-								if counterCircle[k] >= int(d.Devices[k].LedChannels) {
-									counterCircle[k] = 0
-								} else {
-									counterCircle[k]++
+							r.Spinner(counterSpinner[k])
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
+						}
+					case "colorwarp":
+						{
+							lock.Lock()
+							if counterColorwarp[k] >= r.Smoothness {
+								if !colorwarpGeneratedReverse {
+									colorwarpGeneratedReverse = true
+									d.activeRgb.RGBStartColor = d.activeRgb.RGBEndColor
+									d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(r.RGBBrightness)
 								}
+								counterColorwarp[k] = 0
+							} else if counterColorwarp[k] == 0 && colorwarpGeneratedReverse == true {
+								colorwarpGeneratedReverse = false
+							} else {
+								counterColorwarp[k]++
+							}
 
-								r.Circle(counterCircle[k])
-								lock.Unlock()
-								buff = append(buff, r.Output...)
-							}
-						case "spinner":
-							{
-								lock.Lock()
-								if counterSpinner[k] >= int(d.Devices[k].LedChannels) {
-									counterSpinner[k] = 0
-								} else {
-									counterSpinner[k]++
-								}
-								r.Spinner(counterSpinner[k])
-								lock.Unlock()
-								buff = append(buff, r.Output...)
-							}
-						case "colorwarp":
-							{
-								lock.Lock()
-								if counterColorwarp[k] >= r.Smoothness {
-									if !colorwarpGeneratedReverse {
-										colorwarpGeneratedReverse = true
-										d.activeRgb[i].RGBStartColor = d.activeRgb[i].RGBEndColor
-										d.activeRgb[i].RGBEndColor = rgb.GenerateRandomColor(r.RGBBrightness)
-									}
-									counterColorwarp[k] = 0
-								} else if counterColorwarp[k] == 0 && colorwarpGeneratedReverse == true {
-									colorwarpGeneratedReverse = false
-								} else {
-									counterColorwarp[k]++
-								}
-
-								r.Colorwarp(counterColorwarp[k], d.activeRgb[i].RGBStartColor, d.activeRgb[i].RGBEndColor)
-								lock.Unlock()
-								buff = append(buff, r.Output...)
-							}
+							r.Colorwarp(counterColorwarp[k], d.activeRgb.RGBStartColor, d.activeRgb.RGBEndColor)
+							lock.Unlock()
+							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
 						}
 					}
 				}
-				d.writeColor(buff, lc, externalHub.PortId)
-				time.Sleep(10 * time.Millisecond)
+				// Send it
+				d.writeColor(buff)
+				time.Sleep(time.Duration(deviceUpdateDelay) * time.Millisecond)
 				hue++
 				wavePosition += 0.2
 			}
-		}(*externalHub, i)
-	}
+		}
+	}()
 }
 
 // setCpuTemperature will store current CPU temperature
@@ -1304,7 +1238,7 @@ func (d *Device) setAutoRefresh() {
 					return
 				}
 				d.setTemperatures()
-				_, err := d.transfer(byte(0x33), []byte{0xff})
+				_, err := d.transfer(cmdSave, dataFlush, false)
 				if err != nil {
 					return
 				}
@@ -1317,77 +1251,84 @@ func (d *Device) setAutoRefresh() {
 }
 
 // writeColor will write data to the device with a specific endpoint.
-func (d *Device) writeColor(data []byte, _ int, portId byte) {
+func (d *Device) writeColor(buffer map[byte][]byte) {
 	if d.Exit {
 		return
 	}
-	packetLen := len(data) / 3
-	r := make([]byte, packetLen)
-	g := make([]byte, packetLen)
-	b := make([]byte, packetLen)
-	m := 0
 
-	for i := 0; i < packetLen; i++ {
-		r[i] = data[m]
-		m++
-		g[i] = data[m]
-		m++
-		b[i] = data[m]
-		m++
-	}
+	for portId, data := range buffer {
+		packetLen := len(data) / 3
+		r := make([]byte, packetLen)
+		g := make([]byte, packetLen)
+		b := make([]byte, packetLen)
+		m := 0
 
-	chunksR := common.ProcessMultiChunkPacket(r, maxBufferSizePerRequest)
-	chunksG := common.ProcessMultiChunkPacket(g, maxBufferSizePerRequest)
-	chunksB := common.ProcessMultiChunkPacket(b, maxBufferSizePerRequest)
-
-	// Prepare for packets
-	_, err := d.transfer(cmdPortState, []byte{0x00, 0x02})
-	if err != nil {
-		return
-	}
-
-	for p := 0; p < len(chunksR); p++ {
-		chunkPacket := make([]byte, len(chunksR[p])+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(maxBufferSizePerRequest)
-		chunkPacket[3] = 0x00
-		copy(chunkPacket[4:], chunksR[p])
-		_, err = d.transfer(cmdWriteColor, chunkPacket)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
+		for i := 0; i < packetLen; i++ {
+			r[i] = data[m]
+			m++
+			g[i] = data[m]
+			m++
+			b[i] = data[m]
+			m++
 		}
-	}
 
-	for p := 0; p < len(chunksG); p++ {
-		chunkPacket := make([]byte, len(chunksG[p])+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(maxBufferSizePerRequest)
-		chunkPacket[3] = 0x01
-		copy(chunkPacket[4:], chunksG[p])
-		_, err = d.transfer(cmdWriteColor, chunkPacket)
+		chunksR := common.ProcessMultiChunkPacket(r, maxBufferSizePerRequest)
+		chunksG := common.ProcessMultiChunkPacket(g, maxBufferSizePerRequest)
+		chunksB := common.ProcessMultiChunkPacket(b, maxBufferSizePerRequest)
+
+		_, err := d.transfer(cmdPortState, []byte{portId, 0x02}, false)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write green color to device")
+			return
 		}
-	}
 
-	for p := 0; p < len(chunksB); p++ {
-		chunkPacket := make([]byte, len(chunksB[p])+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(maxBufferSizePerRequest)
-		chunkPacket[3] = 0x02
-		copy(chunkPacket[4:], chunksB[p])
-		_, err = d.transfer(cmdWriteColor, chunkPacket)
+		if !d.State[portId] {
+			d.State[portId] = true
+			_, err = d.transfer(cmdPortState, []byte{portId}, false)
+			if err != nil {
+				return
+			}
+		}
+
+		for z := 0; z < len(chunksR); z++ {
+			if d.Exit {
+				return
+			}
+			chunkPacket := make([]byte, len(chunksR[z])+4)
+			chunkPacket[0] = portId
+			chunkPacket[1] = byte(z * maxBufferSizePerRequest)
+			chunkPacket[2] = byte(len(chunksR[z]))
+			chunkPacket[3] = 0x00
+			copy(chunkPacket[4:], chunksR[z])
+			_, err = d.transfer(cmdWriteColor, chunkPacket, false)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write color to device")
+			}
+
+			chunkPacket[0] = portId
+			chunkPacket[1] = byte(z * maxBufferSizePerRequest)
+			chunkPacket[2] = byte(len(chunksG[z]))
+			chunkPacket[3] = 0x01
+			copy(chunkPacket[4:], chunksG[z])
+			_, err = d.transfer(cmdWriteColor, chunkPacket, false)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write color to device")
+			}
+
+			chunkPacket[0] = portId
+			chunkPacket[1] = byte(z * maxBufferSizePerRequest)
+			chunkPacket[2] = byte(len(chunksB[z]))
+			chunkPacket[3] = 0x02
+			copy(chunkPacket[4:], chunksB[z])
+			_, err = d.transfer(cmdWriteColor, chunkPacket, false)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write color to device")
+			}
+		}
+
+		_, err = d.transfer(cmdSave, dataFlush, false)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
 		}
-	}
-
-	_, err = d.transfer(cmdSave, dataFlush)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
 	}
 }
 
@@ -1402,12 +1343,12 @@ func (d *Device) setColorEndpoint() {
 				}
 			}
 			cfg := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
-			_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId})
+			_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId}, false)
 			if err != nil {
 				return
 			}
 
-			_, err = d.transfer(cmdWriteLedConfig, cfg)
+			_, err = d.transfer(cmdWriteLedConfig, cfg, false)
 			if err != nil {
 				return
 			}
@@ -1416,7 +1357,7 @@ func (d *Device) setColorEndpoint() {
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
+func (d *Device) transfer(endpoint byte, buffer []byte, read bool) ([]byte, error) {
 	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -1426,14 +1367,11 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 	bufferW[1] = endpoint
 
 	if buffer != nil && len(buffer) > 0 {
-		if len(buffer) > bufferSize-1 {
-			buffer = buffer[:bufferSize-1]
-		}
 		copy(bufferW[2:], buffer)
 	}
 
 	// Create read buffer
-	bufferR := make([]byte, bufferSize)
+	bufferR := make([]byte, readBufferSize)
 
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
@@ -1441,11 +1379,12 @@ func (d *Device) transfer(endpoint byte, buffer []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+	if read {
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return nil, err
+		}
 	}
-
 	return bufferR, nil
 }

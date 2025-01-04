@@ -2361,6 +2361,10 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra int, caller stri
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([]byte, error) {
+	// Packet control, mandatory for this device
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	bufferR := make([]byte, bufferSize)
 	if d.Exit {
 		// Create write buffer
@@ -2378,10 +2382,6 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([
 			return nil, err
 		}
 	} else {
-		// Packet control, mandatory for this device
-		d.mutex.Lock()
-		defer d.mutex.Unlock()
-
 		// Create write buffer
 		bufferW := make([]byte, bufferSizeWrite)
 		bufferW[1] = 0x08

@@ -385,6 +385,17 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceHardwareColor handles device hardware color changes
+func setDeviceHardwareColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessHardwareChangeColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceStrip handles device RGB strip changes
 func setDeviceStrip(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeStrip(r)
@@ -821,6 +832,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setManualDeviceSpeed)
 	r.Methods(http.MethodPost).Path("/api/color").
 		HandlerFunc(setDeviceColor)
+	r.Methods(http.MethodPost).Path("/api/color/hardware").
+		HandlerFunc(setDeviceHardwareColor)
 	r.Methods(http.MethodPost).Path("/api/hub/strip").
 		HandlerFunc(setDeviceStrip)
 	r.Methods(http.MethodPost).Path("/api/hub/type").

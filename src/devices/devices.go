@@ -866,6 +866,28 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 	return 0
 }
 
+// UpdateHardwareRgbProfile will update device hardware RGB profile
+func UpdateHardwareRgbProfile(deviceId string, hardwareLight int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateHardwareRgbProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(hardwareLight))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // ResetSpeedProfiles will reset the speed profile on each available device
 func ResetSpeedProfiles(profile string) {
 	for _, device := range devices {
@@ -960,7 +982,7 @@ func Init() {
 					match++
 				}
 			}
-			
+
 			if match == 0 {
 				logger.Log(logger.Fields{"productId": info.ProductID, "path": info.Path, "device": info.ProductStr}).Warn("Invalid permissions")
 				return nil

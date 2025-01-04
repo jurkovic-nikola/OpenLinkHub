@@ -26,6 +26,7 @@ type Payload struct {
 	Label               string            `json:"label"`
 	Static              bool              `json:"static"`
 	Sensor              uint8             `json:"sensor"`
+	HardwareLight       int               `json:"hardwareLight"`
 	ZeroRpm             bool              `json:"zeroRpm"`
 	HwmonDeviceId       string            `json:"hwmonDeviceId"`
 	Enabled             bool              `json:"enabled"`
@@ -1081,6 +1082,39 @@ func ProcessChangeColor(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change device RGB profile. This profile requires a pump or AIO", Code: http.StatusOK, Status: 0}
 	case 3:
 		return &Payload{Message: "Unable to change device RGB profile. This profile requires a keyboard device", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to change device RGB profile", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessHardwareChangeColor will process POST request from a client for hardware color change
+func ProcessHardwareChangeColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.HardwareLight < 0 || req.HardwareLight > 8 {
+		return &Payload{Message: "Non-existing hardware profile", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateHardwareRgbProfile(req.DeviceId, req.HardwareLight)
+
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to change device RGB profile", Code: http.StatusOK, Status: 0}
 	case 1:
 		return &Payload{Message: "Device RGB profile is successfully changed", Code: http.StatusOK, Status: 1}
 	}

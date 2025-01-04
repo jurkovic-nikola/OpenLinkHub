@@ -2822,6 +2822,10 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
+	// Packet control, mandatory for this device
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 	if d.Exit {
@@ -2837,10 +2841,6 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		}
 	} else {
-		// Packet control, mandatory for this device
-		d.mutex.Lock()
-		defer d.mutex.Unlock()
-
 		// Create write buffer
 		bufferW := make([]byte, bufferSizeWrite)
 		bufferW[2] = 0x01

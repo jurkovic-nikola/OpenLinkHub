@@ -49,6 +49,7 @@ type DeviceProfile struct {
 	RGBProfiles        map[int]string
 	Labels             map[int]string
 	ExternalHubs       map[int]*ExternalHubData
+	HardwareMode       int
 }
 
 type Devices struct {
@@ -91,6 +92,7 @@ type Device struct {
 	autoRefreshChan         chan struct{}
 	timer                   *time.Ticker
 	State                   map[byte]bool
+	HardwareModes           map[int]string
 }
 
 var (
@@ -142,6 +144,17 @@ var (
 			Total: 1,
 		},
 	}
+	hardwareLights = map[int][]byte{
+		0: {0x02, 0x01, 0x00, 0x01, 0x00, 0x00},
+		1: {0x01, 0x01, 0x00, 0x01, 0x00, 0x00},
+		2: {0x03, 0x01, 0x01, 0x01, 0x00, 0x00},
+		3: {0x07, 0x01, 0x00, 0x00, 0x00, 0xff},
+		4: {0x0a, 0x01, 0x00, 0x01, 0x00, 0x00},
+		5: {0x00, 0x01, 0x01, 0x01, 0x00, 0x00},
+		6: {0x09, 0x01, 0x01, 0x01, 0x00, 0x00},
+		7: {0x08, 0x01, 0x00, 0x01, 0x00, 0x00},
+		8: {0x06, 0x01, 0x01, 0x01, 0x00, 0x00},
+	}
 )
 
 // Init will initialize a new device
@@ -179,6 +192,17 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		timer:           &time.Ticker{},
 		autoRefreshChan: make(chan struct{}),
 		State:           make(map[byte]bool, 2),
+		HardwareModes: map[int]string{
+			0: "Color Pulse",
+			1: "Color Shift",
+			2: "Color Wave",
+			3: "Marquee",
+			4: "Rainbow",
+			5: "Rainbow Wave",
+			6: "Sequential",
+			7: "Strobing",
+			8: "Visor",
+		},
 	}
 
 	// Bootstrap
@@ -199,6 +223,13 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 // ShutdownLed will reset LED ports and set device in 'hardware' mode
 func (d *Device) ShutdownLed() {
+	var hardwareLight []byte
+	if hardwareMode, ok := hardwareLights[d.DeviceProfile.HardwareMode]; ok {
+		hardwareLight = hardwareMode
+	} else {
+		hardwareLight = []byte{0x00, 0x01, 0x01, 0x01, 0x00, 0x00}
+	}
+
 	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
 		externalHub := d.DeviceProfile.ExternalHubs[i]
 		lightChannels := 0
@@ -207,27 +238,34 @@ func (d *Device) ShutdownLed() {
 				lightChannels += int(device.LedChannels)
 			}
 		}
-		cfg := []byte{externalHub.PortId, 0x00, byte(lightChannels), 0x04, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff}
-		_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId}, false)
-		if err != nil {
-			return
+		if lightChannels > 0 {
+			buff := make([]byte, 9)
+			buff[0] = externalHub.PortId
+			buff[1] = 0x00
+			buff[2] = byte(lightChannels)
+			copy(buff[3:], hardwareLight)
+
+			_, err := d.transfer(cmdLedReset, []byte{externalHub.PortId}, false)
+			if err != nil {
+				return
+			}
+			_, err = d.transfer(cmdRefresh2, []byte{externalHub.PortId}, false)
+			if err != nil {
+				return
+			}
+			_, err = d.transfer(cmdPortState, []byte{externalHub.PortId, 0x01}, false)
+			if err != nil {
+				return
+			}
+			_, err = d.transfer(cmdWriteLedConfig, buff, false)
+			if err != nil {
+				return
+			}
 		}
-		_, err = d.transfer(cmdRefresh2, []byte{externalHub.PortId}, false)
-		if err != nil {
-			return
-		}
-		_, err = d.transfer(cmdPortState, []byte{externalHub.PortId, 0x01}, false)
-		if err != nil {
-			return
-		}
-		_, err = d.transfer(cmdWriteLedConfig, cfg, false)
-		if err != nil {
-			return
-		}
-		_, err = d.transfer(cmdSave, []byte{0xff}, false)
-		if err != nil {
-			return
-		}
+	}
+	_, err := d.transfer(cmdSave, dataFlush, false)
+	if err != nil {
+		return
 	}
 }
 
@@ -484,6 +522,7 @@ func (d *Device) saveDeviceProfile() {
 		Path:               profilePath,
 		BrightnessSlider:   &defaultBrightness,
 		OriginalBrightness: 100,
+		HardwareMode:       0,
 	}
 
 	// First save, assign saved profile to a device
@@ -516,6 +555,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
+		deviceProfile.HardwareMode = d.DeviceProfile.HardwareMode
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -693,6 +733,20 @@ func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) uint8 {
 			return 1
 		} else {
 			return 2
+		}
+	}
+	return 0
+}
+
+// UpdateHardwareRgbProfile will update a device type connected to the external-LED hub
+func (d *Device) UpdateHardwareRgbProfile(hardwareLight int) uint8 {
+	if d.DeviceProfile != nil {
+		if _, ok := hardwareLights[hardwareLight]; ok {
+			if d.DeviceProfile.HardwareMode != hardwareLight {
+				d.DeviceProfile.HardwareMode = hardwareLight
+				d.saveDeviceProfile()
+				return 1
+			}
 		}
 	}
 	return 0

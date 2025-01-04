@@ -663,19 +663,9 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
-	hasPump := false
-	for _, device := range d.Devices {
-		if device.ContainsPump {
-			hasPump = true
-			break
-		}
-	}
-
 	if profile == "liquid-temperature" {
-		if !hasPump {
-			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
-			return 2
-		}
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+		return 2
 	}
 
 	if channelId < 0 {

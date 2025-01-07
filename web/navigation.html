@@ -107,4 +107,21 @@
 </div>
 {{ end }}
 
+<!-- Scheduler -->
+{{ if eq .Page "rgb" }}
+<div class="row btn btn-secondary active-nav-link navigation-right-small">
+    <a href="/rgb" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">RGB Editor</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="/rgb" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">RGB Editor</span>
+    </a>
+</div>
+{{ end }}
+
 {{ end }}

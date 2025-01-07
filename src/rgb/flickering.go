@@ -2,55 +2,46 @@ package rgb
 
 import (
 	"math/rand"
+	"time"
 )
 
-// generateFlickeringColors will generate color based on start and end color
-func generateFlickeringColors(
-	lightChannels int,
-	c1,
-	c2 *Color,
-	factor,
-	bts float64,
-) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lightChannels)
-	for i := 0; i < lightChannels; i++ {
-		color := interpolateColor(c1, c2, factor)
-		color.Brightness = bts
-		modify := ModifyBrightness(*color)
-		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
-	}
-	return colors
-}
-
 // Flickering will run RGB function
-func (r *ActiveRGB) Flickering(i int) {
+func (r *ActiveRGB) Flickering(startTime *time.Time) {
+	elapsed := time.Since(*startTime).Milliseconds()
+
+	// Calculate progress and reset when it exceeds 1.0
+	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
+	if progress >= 1.0 {
+		*startTime = time.Now() // Reset startTime to the current time
+		elapsed = 0             // Reset elapsed time
+		progress = 0            // Reset progress
+	}
+
 	buf := map[int][]byte{}
-	t := float64(i) / float64(r.LightChannels) // Calculate interpolation factor
-	colors := generateFlickeringColors(r.LightChannels, r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
-	for j, color := range colors {
-		if rand.Intn(2) == 1 {
+	for j := 0; j < r.LightChannels; j++ {
+		t := float64(j) / float64(r.LightChannels) // Calculate interpolation factor
+		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
+		if rand.Intn(r.LightChannels*int(r.RgbModeSpeed)) == 1 {
 			buf[j] = []byte{0, 0, 0}
-			if r.IsAIO && r.HasLCD {
-				if j > 15 && j < 20 {
-					buf[j] = []byte{0, 0, 0}
-				}
-			}
 		} else {
 			buf[j] = []byte{
-				byte(color.R),
-				byte(color.G),
-				byte(color.B),
+				byte(colors.Red),
+				byte(colors.Green),
+				byte(colors.Blue),
 			}
-			if r.IsAIO && r.HasLCD {
-				if j > 15 && j < 20 {
-					buf[j] = []byte{0, 0, 0}
-				}
+		}
+
+		if r.IsAIO && r.HasLCD {
+			if j > 15 && j < 20 {
+				buf[j] = []byte{0, 0, 0}
 			}
 		}
 	}
+
 	if r.Inverted {
 		r.Output = SetColorInverted(buf)
 	} else {
 		r.Output = SetColor(buf)
 	}
+
 }

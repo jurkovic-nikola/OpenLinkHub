@@ -108,12 +108,43 @@ func GetRgbProfiles() map[string]Profile {
 }
 
 // interpolateColor performs linear interpolation between two colors
-func interpolateColor(c1, c2 *Color, t float64) *Color {
-	return &Color{
+func interpolateColor(c1, c2 *Color, t, bts float64) *Color {
+	color := Color{
 		Red:   common.Lerp(c1.Red, c2.Red, t),
 		Green: common.Lerp(c1.Green, c2.Green, t),
 		Blue:  common.Lerp(c1.Blue, c2.Blue, t),
 	}
+	color.Brightness = bts
+	modify := ModifyBrightness(color)
+	return modify
+}
+
+// interpolateColor blends two colors based on a weight factor `t` (0.0 to 1.0)
+func interpolateColors(c1, c2 *Color, t, bts float64) Color {
+	r := uint8(c1.Red*(1-t) + c2.Red*t)
+	g := uint8(c1.Green*(1-t) + c2.Green*t)
+	b := uint8(c1.Blue*(1-t) + c2.Blue*t)
+
+	color := Color{Red: float64(r), Green: float64(g), Blue: float64(b)}
+	color.Brightness = bts
+	modify := ModifyBrightness(color)
+	return *modify
+}
+
+// Interpolate function to calculate the intermediate color
+func interpolate(
+	r1,
+	g1,
+	b1,
+	r2,
+	g2,
+	b2 float64,
+	fraction float64,
+) (int, int, int) {
+	r := r1 + fraction*(r2-r1)
+	g := g1 + fraction*(g2-g1)
+	b := b1 + fraction*(b2-b1)
+	return int(r * 255), int(g * 255), int(b * 255)
 }
 
 // New will create new ActiveRGB struct for RGB control

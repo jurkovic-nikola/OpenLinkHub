@@ -32,18 +32,18 @@ func MapTemperatureToPercent(temp, minTemp, maxTemp float64) float64 {
 }
 
 // Temperature will return color based from min/max and current temperature factor
-func (r *ActiveRGB) Temperature(currentTemp float64, i int, current *Color) *Color {
-	s := float64(i) / float64(r.Smoothness)
+func (r *ActiveRGB) Temperature(currentTemp float64) {
+	startColor := r.RGBStartColor
 	buf := map[int][]byte{}
 	t := MapTemperatureToPercent(currentTemp, r.MinTemp, r.MaxTemp)
 	result := GenerateTemperatureColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBStartColor.Brightness)
-	color := interpolateColor(current, result, s)
+	startColor = interpolateColor(startColor, result, t, r.RGBBrightness)
 
 	for j := 0; j < r.LightChannels; j++ {
 		buf[j] = []byte{
-			byte(color.Red),
-			byte(color.Green),
-			byte(color.Blue),
+			byte(startColor.Red),
+			byte(startColor.Green),
+			byte(startColor.Blue),
 		}
 		if r.IsAIO && r.HasLCD {
 			if j > 15 && j < 20 {
@@ -56,5 +56,4 @@ func (r *ActiveRGB) Temperature(currentTemp float64, i int, current *Color) *Col
 	} else {
 		r.Output = SetColor(buf)
 	}
-	return color
 }

@@ -29,22 +29,6 @@ func rainbowColor(position float64) (int, int, int) {
 	}
 }
 
-// Interpolate function to calculate the intermediate color
-func interpolate(
-	r1,
-	g1,
-	b1,
-	r2,
-	g2,
-	b2 float64,
-	fraction float64,
-) (int, int, int) {
-	r := r1 + fraction*(r2-r1)
-	g := g1 + fraction*(g2-g1)
-	b := b1 + fraction*(b2-b1)
-	return int(r * 255), int(g * 255), int(b * 255)
-}
-
 // generateColors will generate color based on start and end color
 func generateRainbowColors(lightChannels int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, lightChannels)

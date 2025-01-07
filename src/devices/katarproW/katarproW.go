@@ -154,6 +154,11 @@ func Init(vendorId, productId uint16, key string) *Device {
 	return d
 }
 
+// GetRgbProfiles will return RGB profiles for a target device
+func (d *Device) GetRgbProfiles() interface{} {
+	return d.Rgb
+}
+
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true
@@ -720,7 +725,6 @@ func (d *Device) setSleepTimer() uint8 {
 
 		_, err := d.transfer(cmdMouse, cmdOpenWriteEndpoint, nil, "setSleepTimer")
 		if err != nil {
-			fmt.Println(err)
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
 			return 0
 		}

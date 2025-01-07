@@ -5,6 +5,8 @@ import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
+	"OpenLinkHub/src/devices/darkcorergbproseW"
+	"OpenLinkHub/src/devices/darkcorergbproseWU"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
@@ -81,6 +83,8 @@ const (
 	productTypeM55W               = 211
 	productTypeM55RgbPro          = 212
 	productTypeKatarProW          = 213
+	productTypeDarkCoreRgbProSEW  = 214
+	productTypeDarkCoreRgbProSEWU = 215
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -116,7 +120,7 @@ var (
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038}
 	pads                       = []uint16{7067}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
@@ -138,6 +142,45 @@ func Stop() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to exit HID interface")
 	}
+}
+
+// GetRgbProfiles will return a list of all RGB profiles for every device
+func GetRgbProfiles() map[string]interface{} {
+	profiles := make(map[string]interface{}, len(devices))
+	for _, device := range devices {
+		methodName := "GetRgbProfiles"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName, "device": device.Product}).Warn("Method not found or method is not supported for this device type")
+			continue
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				profiles[device.Serial] = val.Interface()
+			}
+		}
+	}
+	return profiles
+}
+
+// GetRgbProfile will return a list of RGB profiles for a target device
+func GetRgbProfile(deviceId string) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "GetRgbProfiles"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName, "device": device.Product}).Warn("Method not found or method is not supported for this device type")
+			return nil
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
 }
 
 // GetDeviceTemplate will return device template
@@ -866,6 +909,29 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 	return 0
 }
 
+// UpdateRgbProfileData will update device RGB profile data
+func UpdateRgbProfileData(deviceId, profileName string, profile rgb.Profile) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateRgbProfileData"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profileName))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateHardwareRgbProfile will update device hardware RGB profile
 func UpdateHardwareRgbProfile(deviceId string, hardwareLight int) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -1442,6 +1508,26 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
+						case 7038:
+							{
+								d := darkcorergbproseW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeDarkCoreRgbProSEW,
+									Product:     "DARK CORE RGB PRO SE",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						default:
 							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 						}
@@ -1667,9 +1753,29 @@ func Init() {
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := katarproW.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeKatarProW,
 						Product:     "KATAR PRO WIRELESS",
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7038: // CORSAIR DARK CORE RGB PRO SE Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := darkcorergbproseWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeDarkCoreRgbProSEWU,
+						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-mouse.svg",

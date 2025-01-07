@@ -1,34 +1,31 @@
 package rgb
 
-// generateColorwarpColors will generate color based on start and end color
-func generateColorwarpColors(
-	lightChannels int,
-	c1,
-	c2 *Color,
-	factor,
-	bts float64,
-) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lightChannels)
-	for i := 0; i < lightChannels; i++ {
-		color := interpolateColor(c1, c2, factor)
-		color.Brightness = bts
-		modify := ModifyBrightness(*color)
-		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
-	}
-	return colors
-}
+import (
+	"time"
+)
 
 // Colorwarp will run RGB function
-func (r *ActiveRGB) Colorwarp(i int, RGBStartColor *Color, RGBEndColor *Color) {
+func (r *ActiveRGB) Colorwarp(startTime *time.Time, activeRgb *ActiveRGB) {
 	buf := map[int][]byte{}
+	elapsed := time.Since(*startTime).Milliseconds()
 
-	t := float64(i) / float64(r.Smoothness) // Calculate interpolation factor
+	// Calculate progress and reset when it exceeds 1.0
+	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
+	if progress >= 1.0 {
+		*startTime = time.Now() // Reset startTime to the current time
+		elapsed = 0             // Reset elapsed time
+		progress = 0            // Reset progress
+		activeRgb.RGBStartColor = activeRgb.RGBEndColor
+		activeRgb.RGBEndColor = GenerateRandomColor(r.RGBBrightness)
+	}
+	color := interpolateColor(activeRgb.RGBStartColor, activeRgb.RGBEndColor, progress, r.RGBBrightness)
+
+	// Update LED channels
 	for j := 0; j < r.LightChannels; j++ {
-		colors := generateColorwarpColors(r.LightChannels, RGBStartColor, RGBEndColor, t, r.RGBBrightness)
 		buf[j] = []byte{
-			byte(colors[j].R),
-			byte(colors[j].G),
-			byte(colors[j].B),
+			byte(color.Red),
+			byte(color.Green),
+			byte(color.Blue),
 		}
 		if r.IsAIO && r.HasLCD {
 			if j > 15 && j < 20 {

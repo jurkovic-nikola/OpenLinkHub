@@ -67,7 +67,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         const json = JSON.stringify(pf, null, 2);
 
-        console.log(json)
         $.ajax({
             url: '/api/temperatures',
             type: 'POST',

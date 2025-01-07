@@ -135,6 +135,11 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	return d
 }
 
+// GetRgbProfiles will return RGB profiles for a target device
+func (d *Device) GetRgbProfiles() interface{} {
+	return d.Rgb
+}
+
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	// Placeholder

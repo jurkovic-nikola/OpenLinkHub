@@ -1,15 +1,19 @@
 package rgb
 
+import "time"
+
 // Rotator will run RGB function
-func (r *ActiveRGB) Rotator(hue int) {
-	hue = hue * int(r.RgbModeSpeed)
+func (r *ActiveRGB) Rotator(startTime *time.Time) {
 	buf := map[int][]byte{}
+
+	elapsed := time.Since(*startTime).Milliseconds()
+	hue := float64(elapsed) / (r.RgbModeSpeed) / 2
 
 	for j := 0; j < r.LightChannels; j++ {
 		color := &Color{
-			Red:        float64(byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Red)))),
-			Green:      float64(byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Green)))),
-			Blue:       float64(byte(HsvToRgb(hue+j*5, 255, int(r.RGBStartColor.Blue)))),
+			Red:        float64(byte(HsvToRgb(int(hue)+j*5, 255, int(r.RGBStartColor.Red)))),
+			Green:      float64(byte(HsvToRgb(int(hue)+j*5, 255, int(r.RGBStartColor.Green)))),
+			Blue:       float64(byte(HsvToRgb(int(hue)+j*5, 255, int(r.RGBStartColor.Blue)))),
 			Brightness: r.RGBBrightness,
 		}
 

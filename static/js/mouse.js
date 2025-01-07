@@ -118,8 +118,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         pf["stages"] = stages;
         const json = JSON.stringify(pf, null, 2);
-
-        console.log(json)
         $.ajax({
             url: '/api/mouse/dpi',
             type: 'POST',

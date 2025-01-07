@@ -1,15 +1,20 @@
 package rgb
 
-import "math"
+import (
+	"math"
+	"time"
+)
 
 // Wave will run RGB function
-func (r *ActiveRGB) Wave(wavePosition float64) {
+func (r *ActiveRGB) Wave(startTime *time.Time) {
 	buf := map[int][]byte{}
 	color := r.RGBStartColor
 	modify := ModifyBrightness(*color)
+	elapsed := time.Since(*startTime).Milliseconds()
+	progress := float64(elapsed) / (r.RgbModeSpeed * 100)
 
 	for i := 0; i < r.LightChannels; i++ {
-		wavePos := (wavePosition + float64(i)) / r.RgbModeSpeed
+		wavePos := (progress + float64(i)) / r.RgbModeSpeed
 		intensity := 0.5 * (1 + math.Sin(2*math.Pi*wavePos))
 		red := modify.Red * intensity
 		green := modify.Green * intensity

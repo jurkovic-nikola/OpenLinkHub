@@ -22,6 +22,10 @@ type Payload struct {
 	Rotation            uint8             `json:"rotation"`
 	Value               uint16            `json:"value"`
 	Color               rgb.Color         `json:"color"`
+	StartColor          rgb.Color         `json:"startColor"`
+	EndColor            rgb.Color         `json:"endColor"`
+	Speed               float64           `json:"speed"`
+	Smoothness          int               `json:"smoothness"`
 	Profile             string            `json:"profile"`
 	Label               string            `json:"label"`
 	Static              bool              `json:"static"`
@@ -300,6 +304,90 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 		return &Payload{Message: "Non-existing device specified in the profile. Please re-create profile", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessUpdateRgbProfile will process POST request from a client for RGB profile update
+func ProcessUpdateRgbProfile(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	// Device Id
+	deviceId := req.DeviceId
+	if len(deviceId) < 1 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Profile name
+	profile := req.Profile
+	if len(profile) < 1 {
+		return &Payload{Message: "Non-existing profile", Code: http.StatusOK, Status: 0}
+	}
+	if rgb.GetRgbProfile(profile) == nil {
+		return &Payload{Message: "Non-existing profile", Code: http.StatusOK, Status: 0}
+	}
+
+	// Start color
+	if req.StartColor.Red > 255 || req.StartColor.Green > 255 || req.StartColor.Blue > 255 {
+		return &Payload{Message: "Invalid color selected", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.StartColor.Red < 0 || req.StartColor.Green < 0 || req.StartColor.Blue < 0 {
+		return &Payload{Message: "Invalid color selected", Code: http.StatusOK, Status: 0}
+	}
+
+	// End color
+	if req.EndColor.Red > 255 || req.EndColor.Green > 255 || req.EndColor.Blue > 255 {
+		return &Payload{Message: "Invalid color selected", Code: http.StatusOK, Status: 0}
+	}
+
+	if req.EndColor.Red < 0 || req.EndColor.Green < 0 || req.EndColor.Blue < 0 {
+		return &Payload{Message: "Invalid color selected", Code: http.StatusOK, Status: 0}
+	}
+
+	// Speed
+	if req.Speed < 1 || req.Speed > 10 {
+		return &Payload{Message: "Invalid speed", Code: http.StatusOK, Status: 0}
+	}
+
+	startColor := req.StartColor
+	startColor.Brightness = 1
+
+	endColor := req.EndColor
+	endColor.Brightness = 1
+
+	rgbProfile := rgb.Profile{
+		Speed:       req.Speed,
+		Brightness:  1,
+		StartColor:  startColor,
+		MiddleColor: rgb.Color{},
+		EndColor:    endColor,
+		MinTemp:     0,
+		MaxTemp:     0,
+	}
+
+	// Run it
+	status := devices.UpdateRgbProfileData(deviceId, profile, rgbProfile)
+	switch status {
+	case 0:
+		return &Payload{Message: "Unable to update RGB profile", Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: "RGB profile is successfully updated", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to update RGB profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessLcdChange will process POST request from a client for LCD mode change

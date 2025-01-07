@@ -60,6 +60,10 @@ nav#sidebar {
     box-sizing: border-box;         /* Opera/IE 8+ */
 }
 
+.rgbList {
+    margin-top: 10px;
+}
+
 .newTemp {
     cursor: pointer;
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */

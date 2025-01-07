@@ -149,6 +149,11 @@ func Init(vendorId, productId uint16, key string) *Device {
 	return d
 }
 
+// GetRgbProfiles will return RGB profiles for a target device
+func (d *Device) GetRgbProfiles() interface{} {
+	return d.Rgb
+}
+
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true
@@ -234,6 +239,64 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// saveRgbProfile will save rgb profile data
+func (d *Device) saveRgbProfile() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+	if common.FileExists(rgbFilename) {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+}
+
+// UpdateRgbProfileData will update RGB profile data
+func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	if d.GetRgbProfile(profileName) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+
+	pf := d.GetRgbProfile(profileName)
+	profile.StartColor.Brightness = pf.StartColor.Brightness
+	profile.EndColor.Brightness = pf.EndColor.Brightness
+	pf.StartColor = profile.StartColor
+	pf.EndColor = profile.EndColor
+	pf.Speed = profile.Speed
+
+	d.Rgb.Profiles[profileName] = *pf
+	d.saveRgbProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // UpdateRgbProfile will update device RGB profile

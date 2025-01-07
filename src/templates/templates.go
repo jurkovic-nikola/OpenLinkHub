@@ -25,6 +25,7 @@ type Web struct {
 	Lcd               interface{}
 	LCDImages         interface{}
 	TemperatureProbes interface{}
+	RGBProfiles       map[string]interface{}
 	Temperatures      map[string]temperatures.TemperatureProfileData
 	Scheduler         *scheduler.Scheduler
 	Rgb               map[string]rgb.Profile
@@ -78,6 +79,8 @@ func Init() {
 		"web/m55W.html",
 		"web/m55rgbpro.html",
 		"web/katarproW.html",
+		"web/darkcorergbproseW.html",
+		"web/darkcorergbproseWU.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",

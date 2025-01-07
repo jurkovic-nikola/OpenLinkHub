@@ -1002,7 +1002,6 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["color"] = color;
 
             const json = JSON.stringify(pf, null, 2);
-            console.log(json)
             $.ajax({
                 url: '/api/keyboard/color',
                 type: 'POST',

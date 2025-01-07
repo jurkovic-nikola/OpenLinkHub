@@ -258,6 +258,11 @@ func (d *Device) ShutdownLed() {
 	}
 }
 
+// GetRgbProfiles will return RGB profiles for a target device
+func (d *Device) GetRgbProfiles() interface{} {
+	return d.Rgb
+}
+
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
@@ -670,6 +675,64 @@ func (d *Device) UpdateHardwareRgbProfile(hardwareLight int) uint8 {
 	return 0
 }
 
+// saveRgbProfile will save rgb profile data
+func (d *Device) saveRgbProfile() {
+	rgbDirectory := pwd + "/database/rgb/"
+	rgbFilename := rgbDirectory + d.Serial + ".json"
+	if common.FileExists(rgbFilename) {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
+			return
+		}
+
+		// Create profile filename
+		file, err := os.Create(rgbFilename)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
+			return
+		}
+
+		// Write JSON buffer to file
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
+			return
+		}
+
+		// Close file
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+			return
+		}
+	}
+}
+
+// UpdateRgbProfileData will update RGB profile data
+func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	if d.GetRgbProfile(profileName) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+
+	pf := d.GetRgbProfile(profileName)
+	profile.StartColor.Brightness = pf.StartColor.Brightness
+	profile.EndColor.Brightness = pf.EndColor.Brightness
+	pf.StartColor = profile.StartColor
+	pf.EndColor = profile.EndColor
+	pf.Speed = profile.Speed
+
+	d.Rgb.Profiles[profileName] = *pf
+	d.saveRgbProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.ResetRgb()
+	return 1
+}
+
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	if d.GetRgbProfile(profile) == nil {
@@ -1001,28 +1064,13 @@ func (d *Device) setDeviceColor(resetColor bool) {
 	}
 
 	go func(lightChannels int) {
-		lock := sync.Mutex{}
 		startTime := time.Now()
-		reverse := map[int]bool{}
-		counterColorpulse := map[int]int{}
-		counterFlickering := map[int]int{}
-		counterColorshift := map[int]int{}
-		counterCircleshift := map[int]int{}
-		counterCircle := map[int]int{}
-		counterColorwarp := map[int]int{}
-		counterSpinner := map[int]int{}
-		counterCpuTemp := map[int]int{}
-		counterGpuTemp := map[int]int{}
-		temperatureKeys := map[int]*rgb.Color{}
-		colorwarpGeneratedReverse := false
 		d.activeRgb = rgb.Exit()
 
 		// Generate random colors
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
-		hue := 1
-		wavePosition := 0.0
 		for {
 			select {
 			case <-d.activeRgb.Exit:
@@ -1111,52 +1159,21 @@ func (d *Device) setDeviceColor(resetColor bool) {
 						}
 					case "cpu-temperature":
 						{
-							lock.Lock()
-							counterCpuTemp[k]++
-							if counterCpuTemp[k] >= r.Smoothness {
-								counterCpuTemp[k] = 0
-							}
-
-							if _, ok := temperatureKeys[k]; !ok {
-								temperatureKeys[k] = r.RGBStartColor
-							}
-
 							r.MinTemp = profile.MinTemp
 							r.MaxTemp = profile.MaxTemp
-							res := r.Temperature(float64(d.CpuTemp), counterCpuTemp[k], temperatureKeys[k])
-							temperatureKeys[k] = res
-							lock.Unlock()
+							r.Temperature(float64(d.CpuTemp))
 							buff = append(buff, r.Output...)
 						}
 					case "gpu-temperature":
 						{
-							lock.Lock()
-							counterGpuTemp[k]++
-							if counterGpuTemp[k] >= r.Smoothness {
-								counterGpuTemp[k] = 0
-							}
-
-							if _, ok := temperatureKeys[k]; !ok {
-								temperatureKeys[k] = r.RGBStartColor
-							}
-
 							r.MinTemp = profile.MinTemp
 							r.MaxTemp = profile.MaxTemp
-							res := r.Temperature(float64(d.GpuTemp), counterGpuTemp[k], temperatureKeys[k])
-							temperatureKeys[k] = res
-							lock.Unlock()
+							r.Temperature(float64(d.GpuTemp))
 							buff = append(buff, r.Output...)
 						}
 					case "colorpulse":
 						{
-							lock.Lock()
-							counterColorpulse[k]++
-							if counterColorpulse[k] >= r.Smoothness {
-								counterColorpulse[k] = 0
-							}
-
-							r.Colorpulse(counterColorpulse[k])
-							lock.Unlock()
+							r.Colorpulse(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "static":
@@ -1166,12 +1183,12 @@ func (d *Device) setDeviceColor(resetColor bool) {
 						}
 					case "rotator":
 						{
-							r.Rotator(hue)
+							r.Rotator(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "wave":
 						{
-							r.Wave(wavePosition)
+							r.Wave(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "storm":
@@ -1181,89 +1198,32 @@ func (d *Device) setDeviceColor(resetColor bool) {
 						}
 					case "flickering":
 						{
-							lock.Lock()
-							if counterFlickering[k] >= r.Smoothness {
-								counterFlickering[k] = 0
-							} else {
-								counterFlickering[k]++
-							}
-
-							r.Flickering(counterFlickering[k])
-							lock.Unlock()
+							r.Flickering(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "colorshift":
 						{
-							lock.Lock()
-							if counterColorshift[k] >= r.Smoothness && !reverse[k] {
-								counterColorshift[k] = 0
-								reverse[k] = true
-							} else if counterColorshift[k] >= r.Smoothness && reverse[k] {
-								counterColorshift[k] = 0
-								reverse[k] = false
-							}
-
-							r.Colorshift(counterColorshift[k], reverse[k])
-							counterColorshift[k]++
-							lock.Unlock()
+							r.Colorshift(&startTime, d.activeRgb)
 							buff = append(buff, r.Output...)
 						}
 					case "circleshift":
 						{
-							lock.Lock()
-							if counterCircleshift[k] >= int(d.Devices[k].LedChannels) {
-								counterCircleshift[k] = 0
-							} else {
-								counterCircleshift[k]++
-							}
-
-							r.Circle(counterCircleshift[k])
-							lock.Unlock()
+							r.CircleShift(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "circle":
 						{
-							lock.Lock()
-							if counterCircle[k] >= int(d.Devices[k].LedChannels) {
-								counterCircle[k] = 0
-							} else {
-								counterCircle[k]++
-							}
-
-							r.Circle(counterCircle[k])
-							lock.Unlock()
+							r.Circle(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "spinner":
 						{
-							lock.Lock()
-							if counterSpinner[k] >= int(d.Devices[k].LedChannels) {
-								counterSpinner[k] = 0
-							} else {
-								counterSpinner[k]++
-							}
-							r.Spinner(counterSpinner[k])
-							lock.Unlock()
+							r.Spinner(&startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "colorwarp":
 						{
-							lock.Lock()
-							if counterColorwarp[k] >= r.Smoothness {
-								if !colorwarpGeneratedReverse {
-									colorwarpGeneratedReverse = true
-									d.activeRgb.RGBStartColor = d.activeRgb.RGBEndColor
-									d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(r.RGBBrightness)
-								}
-								counterColorwarp[k] = 0
-							} else if counterColorwarp[k] == 0 && colorwarpGeneratedReverse == true {
-								colorwarpGeneratedReverse = false
-							} else {
-								counterColorwarp[k]++
-							}
-
-							r.Colorwarp(counterColorwarp[k], d.activeRgb.RGBStartColor, d.activeRgb.RGBEndColor)
-							lock.Unlock()
+							r.Colorwarp(&startTime, d.activeRgb)
 							buff = append(buff, r.Output...)
 						}
 					}
@@ -1272,8 +1232,6 @@ func (d *Device) setDeviceColor(resetColor bool) {
 				// Send it
 				d.writeColor(buff, lightChannels)
 				time.Sleep(time.Duration(deviceUpdateDelay) * time.Millisecond)
-				hue++
-				wavePosition += 0.2
 			}
 		}
 	}(lightChannels)

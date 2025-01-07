@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", function () {
         pf["rgbOn"] = rgbOn;
 
         const json = JSON.stringify(pf, null, 2);
-        console.log(json)
         $.ajax({
             url: '/api/scheduler/rgb',
             type: 'POST',

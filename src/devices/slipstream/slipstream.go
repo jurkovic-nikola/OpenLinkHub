@@ -2,6 +2,7 @@ package slipstream
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/m55W"
@@ -126,43 +127,36 @@ func (d *Device) Stop() {
 		})
 	}()
 
-	for key, value := range d.PairedDevices {
-		switch key {
-		case 7163:
-			if dev, found := value.(*m55W.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
+	for _, value := range d.PairedDevices {
+		if dev, found := value.(*m55W.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
 			}
-			break
-		case 7096:
-			if dev, found := value.(*nightsabreW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
+		}
+		if dev, found := value.(*nightsabreW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
 			}
-			break
-		case 7083:
-			if dev, found := value.(*k100airW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
+		}
+		if dev, found := value.(*k100airW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
 			}
-			break
-		case 6988:
-			if dev, found := value.(*ironclawW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
+		}
+		if dev, found := value.(*ironclawW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
 			}
-			break
-		case 7131:
-			if dev, found := value.(*scimitarW.Device); found {
-				if dev.Connected {
-					dev.StopInternal()
-				}
+		}
+		if dev, found := value.(*scimitarW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
 			}
-			break
+		}
+		if dev, found := value.(*darkcorergbproseW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
 		}
 	}
 
@@ -324,8 +318,8 @@ func (d *Device) read(endpoint []byte) []byte {
 	}
 
 	for i := 1; i < int(buffer[5]); i++ {
-		next, err := d.transfer(cmdCommand, cmdRead, endpoint)
-		if err != nil {
+		next, e := d.transfer(cmdCommand, cmdRead, endpoint)
+		if e != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 		}
 		buffer = append(buffer, next[3:]...)
@@ -378,6 +372,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*darkcorergbproseW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -405,6 +404,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*ironclawW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -445,6 +449,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*ironclawW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -492,6 +501,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						device.Connect()
 					}
 				}
+				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
 			}
 			break
 		case 2:
@@ -518,6 +532,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*ironclawW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}
@@ -753,6 +772,19 @@ func (d *Device) controlListener() {
 										dev.ModifyDpi(true)
 									} else if data[2] == 0x00 && data[3] == 0x01 {
 										dev.ModifyDpi(false)
+									}
+								}
+								if dev, found := value.(*darkcorergbproseW.Device); found {
+									if data[2] == 0x20 {
+										dev.ModifyDpi(true)
+									} else if data[2] == 0x40 {
+										dev.ModifyDpi(false)
+									} else if data[2] == 0x08 {
+										// TO-DO, side button upper
+									} else if data[2] == 0x10 {
+										// TO-DO, side button lower
+									} else if data[2] == 0x80 {
+										// TO-DO, profile button
 									}
 								}
 								if dev, found := value.(*ironclawW.Device); found {

@@ -184,15 +184,15 @@ func getColor(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
 
 	vars := mux.Vars(r)
-	profile, valid := vars["profile"]
+	deviceId, valid := vars["deviceId"]
 	if !valid {
 		resp = &Response{
 			Code:   http.StatusOK,
 			Status: 0,
-			Data:   rgb.GetRgbProfiles(),
+			Data:   devices.GetRgbProfiles(),
 		}
 	} else {
-		if rgbProfile := rgb.GetRgbProfile(profile); rgbProfile != nil {
+		if rgbProfile := devices.GetRgbProfile(deviceId); rgbProfile != nil {
 			resp = &Response{
 				Code:   http.StatusOK,
 				Status: 1,
@@ -202,9 +202,20 @@ func getColor(w http.ResponseWriter, r *http.Request) {
 			resp = &Response{
 				Code:    http.StatusOK,
 				Status:  0,
-				Message: "No such temperature profile",
+				Message: "No such RGB profile",
 			}
 		}
+	}
+	resp.Send(w)
+}
+
+// updateRgbProfile handles device rgb profile update
+func updateRgbProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateRgbProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
 	}
 	resp.Send(w)
 }
@@ -738,6 +749,32 @@ func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// uiRgbEditor handles overview of RGB profiles
+func uiRgbEditor(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.RGBProfiles = devices.GetRgbProfiles()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "rgb"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "rgb.html", web)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		resp.Send(w)
+	}
+}
+
 // uiColorOverview handles overview or RGB profiles
 func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
@@ -814,8 +851,10 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getDevice)
 	r.Methods(http.MethodGet).Path("/api/color").
 		HandlerFunc(getColor)
-	r.Methods(http.MethodGet).Path("/api/color/{profile}").
+	r.Methods(http.MethodGet).Path("/api/color/{deviceId}").
 		HandlerFunc(getColor)
+	r.Methods(http.MethodPut).Path("/api/color").
+		HandlerFunc(updateRgbProfile)
 	r.Methods(http.MethodGet).Path("/api/temperatures").
 		HandlerFunc(getTemperature)
 	r.Methods(http.MethodGet).Path("/api/temperatures/{profile}").
@@ -917,6 +956,8 @@ func setRoutes() *mux.Router {
 			HandlerFunc(uiColorOverview)
 		r.Methods(http.MethodGet).Path("/scheduler").
 			HandlerFunc(uiSchedulerOverview)
+		r.Methods(http.MethodGet).Path("/rgb").
+			HandlerFunc(uiRgbEditor)
 	}
 	return r
 }

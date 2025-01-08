@@ -31,6 +31,9 @@ import (
 	"OpenLinkHub/src/devices/m55"
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m55rgbpro"
+	"OpenLinkHub/src/devices/m75"
+	"OpenLinkHub/src/devices/m75W"
+	"OpenLinkHub/src/devices/m75WU"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/nightsabreW"
@@ -89,6 +92,9 @@ const (
 	productTypeDarkCoreRgbProSEWU = 215
 	productTypeDarkCoreRgbProW    = 216
 	productTypeDarkCoreRgbProWU   = 217
+	productTypeM75                = 218
+	productTypeM75W               = 219
+	productTypeM75WU              = 220
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -124,7 +130,7 @@ var (
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154}
 	pads                       = []uint16{7067}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
@@ -1512,7 +1518,7 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
-						case 7038:
+						case 7038: // DARK CORE RGB PRO SE WIRELESS
 							{
 								d := darkcorergbproseW.Init(
 									value.VendorId,
@@ -1532,7 +1538,7 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
-						case 7040:
+						case 7040: // DARK CORE RGB PRO WIRELESS
 							{
 								d := darkcorergbproW.Init(
 									value.VendorId,
@@ -1545,6 +1551,26 @@ func Init() {
 								devices[d.Serial] = &Device{
 									ProductType: productTypeDarkCoreRgbProW,
 									Product:     "DARK CORE RGB PRO",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						case 7154: // M75 AIR WIRELESS
+							{
+								d := m75W.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeM75W,
+									Product:     "M75 AIR WIRELESS",
 									Serial:      d.Serial,
 									Firmware:    d.Firmware,
 									Image:       "icon-mouse.svg",
@@ -1816,6 +1842,40 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeDarkCoreRgbProWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7152: // CORSAIR M75 Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := m75.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeM75,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7154: // CORSAIR M75 AIR WIRELESS Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := m75WU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeM75WU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

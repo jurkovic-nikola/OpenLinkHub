@@ -1,6 +1,6 @@
 package darkcorergbproW
 
-// Package: CORSAIR IRONCLAW RGB Wireless
+// Package: CORSAIR DARK CORE PRO RGB Wireless
 // This is the primary package for CORSAIR IRONCLAW RGB Wireless.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic

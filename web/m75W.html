@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        {{ $rgb := .Rgb }}
+        {{ $profile := $device.DeviceProfile.Profile }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="zones" name="zones" value="2">
+        <input type="hidden" id="dpis" name="dpis" value="5">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        {{ if eq .Device.Connected false }}
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
+                                    <span>Device is not connected!</span><br />
+                                </div>
+                            </div>
+                        </div>
+                        {{ else }}
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <table>
+                                    <tr>
+                                        <th style="width:8%;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">User Profile</p></th>
+                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Sleep</p></th>
+                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
+                                        <th style="width:60%;padding-left: 15px;"></th>
+                                    </tr>
+                                    <tr>
+                                        <td >
+                                            <select class="form-select userProfile" style="margin-top: 10px;" name="userProfile">
+                                                {{ range $key, $profile := $device.UserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </td>
+                                        <td style="padding-left: 15px;">
+                                            <select class="form-select mouseSleepModes" style="margin-top: 10px;" name="sleepModes">
+                                                {{ range $key, $sleepMode := $device.SleepModes }}
+                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
+                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </td>
+                                        <td style="padding-left: 15px;">
+                                            <button class="btn btn-secondary saveUserProfile" style="margin-top: 10px;">
+                                                <span>Save As</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
+                                <div class="mouse">
+                                    <div class="row">
+                                        {{ range $key, $pf := $device.DeviceProfile.Profiles }}
+                                        <div style="margin-top: 10px;">
+                                            <div class="dpi-left">
+                                                <p style="color: rgba({{ $pf.Color.Red }}, {{ $pf.Color.Green }}, {{ $pf.Color.Blue }}, 1);">
+                                                    {{ if eq $key $device.DeviceProfile.Profile }}
+                                                    {{ $pf.Name }} *
+                                                    {{ else }}
+                                                    {{ $pf.Name }}
+                                                    {{ end }}
+                                                </p>
+                                            </div>
+                                            <div class="dpi-middle">
+                                                <input type="range" min="200" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
+                                            </div>
+                                            <div class="dpi-right">
+                                                <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">
+                                            </div>
+                                        </div>
+                                        {{ end }}
+                                    </div>
+                                </div>
+                                <div style="margin: 0 auto;">
+                                    <div style="float: left;width: 530px;">
+                                        <button class="btn btn-secondary" id="default5DPI" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Default</span>
+                                        </button>
+                                        <button class="btn btn-secondary" id="saveDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Save DPI</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/mouse.js"></script>
+</body>
+</html>

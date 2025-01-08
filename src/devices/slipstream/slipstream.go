@@ -7,6 +7,7 @@ import (
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/m55W"
+	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/inputmanager"
@@ -160,6 +161,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*darkcorergbproW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*m75W.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -388,6 +394,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*m75W.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -425,6 +436,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*darkcorergbproW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*m75W.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -475,6 +491,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*m75W.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -532,6 +553,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						device.Connect()
 					}
 				}
+				if device, found := pairedDevice.(*m75W.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
 			}
 			break
 		case 2:
@@ -568,6 +594,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*m75W.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}

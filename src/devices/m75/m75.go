@@ -1,6 +1,6 @@
-package darkcorergbproWU
+package m75
 
-// Package: CORSAIR DARK CORE PRO RGB Wireless
+// Package: CORSAIR M75 Gaming Mouse
 // This is the primary package for CORSAIR IRONCLAW RGB Wireless.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
@@ -52,6 +52,7 @@ type DPIProfile struct {
 	Value       uint16
 	PackerIndex int
 	ColorIndex  map[int][]int
+	Color       *rgb.Color
 }
 
 type Device struct {
@@ -102,7 +103,7 @@ var (
 	headerSize            = 2
 	headerWriteSize       = 4
 	minDpiValue           = 100
-	maxDpiValue           = 18000
+	maxDpiValue           = 26000
 	deviceKeepAlive       = 20000
 	deviceRefreshInterval = 1000
 )
@@ -120,7 +121,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
-		Template:  "darkcorergbproWU.html",
+		Template:  "m75.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Firmware:  "n/a",
@@ -130,7 +131,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "DARK CORE RGB PRO",
+		Product: "M75",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -139,28 +140,28 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		LEDChannels:           12,
-		ChangeableLedChannels: 12,
+		LEDChannels:           2,
+		ChangeableLedChannels: 2,
 		keepAliveChan:         make(chan struct{}),
 		timerKeepAlive:        &time.Ticker{},
 		autoRefreshChan:       make(chan struct{}),
 		timer:                 &time.Ticker{},
 	}
 
-	d.getDebugMode()       // Debug mode
-	d.getManufacturer()    // Manufacturer
-	d.getSerial()          // Serial
-	d.loadRgb()            // Load RGB
-	d.loadDeviceProfiles() // Load all device profiles
-	d.saveDeviceProfile()  // Save profile
-	d.getDeviceFirmware()  // Firmware
-	d.setSoftwareMode()    // Activate software mode
-	d.initLeds()           // Init LED ports
-	d.setDeviceColor()     // Device color
-	d.toggleDPI()          // DPI
-	d.controlListener()    // Control listener
-	d.setKeepAlive()       // Keepalive
-	d.setAutoRefresh()     // Set auto device refresh
+	d.getDebugMode()        // Debug mode
+	d.getManufacturer()     // Manufacturer
+	d.getSerial()           // Serial
+	d.loadRgb()             // Load RGB
+	d.loadDeviceProfiles()  // Load all device profiles
+	d.saveDeviceProfile()   // Save profile
+	d.getDeviceFirmware()   // Firmware
+	d.setSoftwareMode()     // Activate software mode
+	d.initLeds()            // Init LED ports
+	d.setDeviceColor(false) // Device color
+	d.toggleDPI(false)      // DPI
+	d.controlListener()     // Control listener
+	d.setKeepAlive()        // Keepalive
+	d.setAutoRefresh()      // Set auto device refresh
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -313,7 +314,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		newProfile.Active = true
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
-		d.setDeviceColor()
+		d.setDeviceColor(false)
 		return 1
 	}
 	return 0
@@ -373,7 +374,7 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor(false) // Restart RGB
 	return 1
 }
 
@@ -389,7 +390,7 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor(false) // Restart RGB
 	return 1
 }
 
@@ -401,7 +402,7 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor(false) // Restart RGB
 	return 1
 }
 
@@ -419,7 +420,7 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 			d.activeRgb.Exit <- true // Exit current RGB mode
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor(false) // Restart RGB
 	}
 	return 1
 }
@@ -439,7 +440,7 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 			d.activeRgb.Exit <- true // Exit current RGB mode
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor(false) // Restart RGB
 	}
 	return 1
 }
@@ -511,7 +512,53 @@ func (d *Device) SaveMouseDPI(stages map[int]uint16) uint8 {
 
 	if i > 0 {
 		d.saveDeviceProfile()
-		d.toggleDPI()
+		d.toggleDPI(false)
+		return 1
+	}
+	return 0
+}
+
+// SaveMouseDpiColors will save mouse dpi colors
+func (d *Device) SaveMouseDpiColors(dpi rgb.Color, dpiColors map[int]rgb.Color) uint8 {
+	i := 0
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if dpi.Red > 255 ||
+		dpi.Green > 255 ||
+		dpi.Blue > 255 ||
+		dpi.Red < 0 ||
+		dpi.Green < 0 ||
+		dpi.Blue < 0 {
+		return 0
+	}
+
+	// Zone Colors
+	for key, zone := range dpiColors {
+		if zone.Red > 255 ||
+			zone.Green > 255 ||
+			zone.Blue > 255 ||
+			zone.Red < 0 ||
+			zone.Green < 0 ||
+			zone.Blue < 0 {
+			continue
+		}
+		if profileColor, ok := d.DeviceProfile.Profiles[key]; ok {
+			profileColor.Color.Red = zone.Red
+			profileColor.Color.Green = zone.Green
+			profileColor.Color.Blue = zone.Blue
+			profileColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(zone.Red), int(zone.Green), int(zone.Blue))
+		}
+		i++
+	}
+
+	if i > 0 {
+		d.saveDeviceProfile()
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor(true) // Restart RGB
 		return 1
 	}
 	return 0
@@ -565,7 +612,7 @@ func (d *Device) SaveMouseZoneColors(dpi rgb.Color, zoneColors map[int]rgb.Color
 			d.activeRgb.Exit <- true // Exit current RGB mode
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor(false) // Restart RGB
 		return 1
 	}
 	return 0
@@ -634,8 +681,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = "Mouse"
 		deviceProfile.Active = true
 		deviceProfile.ZoneColors = map[int]ZoneColors{
-			0: { // Scroll
-				ColorIndex: []int{0, 12, 24},
+			0: { // Bottom
+				ColorIndex: []int{1, 3, 5},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      0,
@@ -643,10 +690,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
-				Name: "Scroll",
+				Name: "Bottom",
 			},
 			1: { // Logo
-				ColorIndex: []int{6, 18, 30},
+				ColorIndex: []int{0, 2, 4},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      255,
@@ -656,106 +703,86 @@ func (d *Device) saveDeviceProfile() {
 				},
 				Name: "Logo",
 			},
-			2: { // Side Accent 1
-				ColorIndex: []int{1, 13, 25},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Side Accent 1",
-			},
-			3: { // Side Accent 2
-				ColorIndex: []int{2, 14, 26},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Side Accent 2",
-			},
-			4: { // Side Accent 3
-				ColorIndex: []int{3, 15, 27},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Side Accent 3",
-			},
-			5: { // Side Accent 4
-				ColorIndex: []int{4, 16, 28},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Side Accent 4",
-			},
-			6: { // Side Accent 5
-				ColorIndex: []int{5, 17, 29},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Side Accent 5",
-			},
-			7: { // Side Accent 6
-				ColorIndex: []int{7, 19, 31},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Side Accent 6",
-			},
-		}
-		deviceProfile.DPIColor = &rgb.Color{
-			Red:        0,
-			Green:      255,
-			Blue:       255,
-			Brightness: 1,
-			Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 		}
 		deviceProfile.Profiles = map[int]DPIProfile{
 			0: {
 				Name:        "Stage 1",
-				Value:       800,
+				Value:       400,
 				PackerIndex: 1,
 				ColorIndex: map[int][]int{
-					0: {8, 20, 32},
+					0: {1, 3, 5},
+					1: {0, 2, 4},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
 			},
 			1: {
 				Name:        "Stage 2",
-				Value:       1500,
+				Value:       800,
 				PackerIndex: 2,
 				ColorIndex: map[int][]int{
-					0: {8, 20, 32},
-					1: {9, 21, 33},
+					0: {1, 3, 5},
+					1: {0, 2, 4},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      165,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 165, 0),
 				},
 			},
 			2: {
 				Name:        "Stage 3",
-				Value:       3000,
+				Value:       1200,
 				PackerIndex: 3,
 				ColorIndex: map[int][]int{
-					0: {8, 20, 32},
-					1: {9, 21, 33},
-					2: {10, 22, 34},
+					0: {1, 3, 5},
+					1: {0, 2, 4},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      255,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
+				},
+			},
+			3: {
+				Name:        "Stage 4",
+				Value:       1600,
+				PackerIndex: 3,
+				ColorIndex: map[int][]int{
+					0: {1, 3, 5},
+					1: {0, 2, 4},
+				},
+				Color: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 0),
+				},
+			},
+			4: {
+				Name:        "Stage 5",
+				Value:       3200,
+				PackerIndex: 3,
+				ColorIndex: map[int][]int{
+					0: {1, 3, 5},
+					1: {0, 2, 4},
+				},
+				Color: &rgb.Color{
+					Red:        0,
+					Green:      0,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 0, 255),
 				},
 			},
 		}
@@ -975,31 +1002,36 @@ func (d *Device) initLeds() {
 }
 
 // setDeviceColor will activate and set device RGB
-func (d *Device) setDeviceColor() {
+func (d *Device) setDeviceColor(dpi bool) {
 	buf := make([]byte, d.LEDChannels*3)
+
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
 	}
 
-	// DPI
-	dpiColor := d.DeviceProfile.DPIColor
-	dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-	dpiColor = rgb.ModifyBrightness(*dpiColor)
+	if dpi {
+		// DPI
+		dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
+		dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		dpiColor = rgb.ModifyBrightness(*dpiColor)
 
-	dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
-	for i := 0; i < len(dpiLeds.ColorIndex); i++ {
-		dpiColorIndexRange := dpiLeds.ColorIndex[i]
-		for key, dpiColorIndex := range dpiColorIndexRange {
-			switch key {
-			case 0: // Red
-				buf[dpiColorIndex] = byte(dpiColor.Red)
-			case 1: // Green
-				buf[dpiColorIndex] = byte(dpiColor.Green)
-			case 2: // Blue
-				buf[dpiColorIndex] = byte(dpiColor.Blue)
+		dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
+		for i := 0; i < len(dpiLeds.ColorIndex); i++ {
+			dpiColorIndexRange := dpiLeds.ColorIndex[i]
+			for key, dpiColorIndex := range dpiColorIndexRange {
+				switch key {
+				case 0: // Red
+					buf[dpiColorIndex] = byte(dpiColor.Red)
+				case 1: // Green
+					buf[dpiColorIndex] = byte(dpiColor.Green)
+				case 2: // Blue
+					buf[dpiColorIndex] = byte(dpiColor.Blue)
+				}
 			}
 		}
+		d.writeColor(buf)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	if d.DeviceProfile.RGBProfile == "mouse" {
@@ -1205,24 +1237,18 @@ func (d *Device) setDeviceColor() {
 	}(d.ChangeableLedChannels)
 }
 
-func (d *Device) ModifyDpi(increment bool) {
-	if increment {
-		if d.DeviceProfile.Profile >= 2 {
-			return
-		}
-		d.DeviceProfile.Profile++
+func (d *Device) ModifyDpi(color bool) {
+	if d.DeviceProfile.Profile >= 4 {
+		d.DeviceProfile.Profile = 0
 	} else {
-		if d.DeviceProfile.Profile <= 0 {
-			return
-		}
-		d.DeviceProfile.Profile--
+		d.DeviceProfile.Profile++
 	}
 	d.saveDeviceProfile()
-	d.toggleDPI()
+	d.toggleDPI(color)
 }
 
 // toggleDPI will change DPI mode
-func (d *Device) toggleDPI() {
+func (d *Device) toggleDPI(color bool) {
 	if d.Exit {
 		return
 	}
@@ -1252,7 +1278,7 @@ func (d *Device) toggleDPI() {
 			d.activeRgb.Exit <- true // Exit current RGB mode
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor(color) // Restart RGB
 	}
 }
 
@@ -1380,10 +1406,8 @@ func (d *Device) controlListener() {
 					continue
 				}
 
-				if data[2] == 0x20 {
+				if data[2] == 0x80 {
 					d.ModifyDpi(true)
-				} else if data[2] == 0x40 {
-					d.ModifyDpi(false)
 				}
 			}
 		}

@@ -5,6 +5,8 @@ import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
+	"OpenLinkHub/src/devices/darkcorergbproW"
+	"OpenLinkHub/src/devices/darkcorergbproWU"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
 	"OpenLinkHub/src/devices/elite"
@@ -85,6 +87,8 @@ const (
 	productTypeKatarProW          = 213
 	productTypeDarkCoreRgbProSEW  = 214
 	productTypeDarkCoreRgbProSEWU = 215
+	productTypeDarkCoreRgbProW    = 216
+	productTypeDarkCoreRgbProWU   = 217
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -120,7 +124,7 @@ var (
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040}
 	pads                       = []uint16{7067}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
@@ -1528,6 +1532,26 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
+						case 7040:
+							{
+								d := darkcorergbproW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeDarkCoreRgbProW,
+									Product:     "DARK CORE RGB PRO",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						default:
 							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 						}
@@ -1775,6 +1799,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeDarkCoreRgbProSEWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7040: // CORSAIR DARK CORE RGB PRO Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := darkcorergbproWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeDarkCoreRgbProWU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

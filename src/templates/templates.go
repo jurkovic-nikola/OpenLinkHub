@@ -81,6 +81,8 @@ func Init() {
 		"web/katarproW.html",
 		"web/darkcorergbproseW.html",
 		"web/darkcorergbproseWU.html",
+		"web/darkcorergbproW.html",
+		"web/darkcorergbproWU.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",

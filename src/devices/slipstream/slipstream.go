@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/darkcorergbproW"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
+	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/m55W"
@@ -166,6 +167,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*m75W.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*harpoonW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -399,6 +405,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*harpoonW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -441,6 +452,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*m75W.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*harpoonW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -496,6 +512,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*m75W.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*harpoonW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -558,6 +579,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						device.Connect()
 					}
 				}
+				if device, found := pairedDevice.(*harpoonW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
 			}
 			break
 		case 2:
@@ -599,6 +625,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*m75W.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*harpoonW.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}
@@ -860,6 +891,11 @@ func (d *Device) controlListener() {
 										// TO-DO, side button lower
 									} else if data[2] == 0x80 {
 										// TO-DO, profile button
+									}
+								}
+								if dev, found := value.(*harpoonW.Device); found {
+									if data[2] == 0x08 {
+										dev.ModifyDpi()
 									}
 								}
 								if dev, found := value.(*ironclawW.Device); found {

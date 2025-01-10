@@ -94,6 +94,8 @@
                                                 {{ continue }}
                                                 {{ else if eq $key "spinner" }}
                                                 {{ continue }}
+                                                {{ else if eq $key "headset" }}
+                                                {{ continue }}
                                                 {{ end }}
                                                 {{ if eq $key $device.DeviceProfile.RGBProfile }}
                                                 <option value="0;{{ $key }}" selected>{{ $key }}</option>

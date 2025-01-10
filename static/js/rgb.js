@@ -75,6 +75,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             index === "mouse" ||
                             index === "stand" ||
                             index === "mousepad" ||
+                            index === "headset" ||
                             index === "off") {
                             return true
                         }

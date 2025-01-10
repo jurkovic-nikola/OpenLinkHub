@@ -527,7 +527,7 @@ func changeControlDial(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// changeSleepMode handles keyboard sleep mode change
+// changeSleepMode handles device sleep mode change
 func changeSleepMode(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeSleepMode(r)
 	resp := &Response{
@@ -607,6 +607,17 @@ func saveMouseZoneColors(w http.ResponseWriter, r *http.Request) {
 // saveMouseDpiColors handles mouse DPI colors save
 func saveMouseDpiColors(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessMouseDpiColorsSave(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// saveHeadsetZoneColors handles mouse zone colors save
+func saveHeadsetZoneColors(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessHeadsetZoneColorsSave(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -934,6 +945,10 @@ func setRoutes() *mux.Router {
 	r.Methods(http.MethodPost).Path("/api/mouse/dpiColors").
 		HandlerFunc(saveMouseDpiColors)
 	r.Methods(http.MethodPost).Path("/api/mouse/sleep").
+		HandlerFunc(changeSleepMode)
+	r.Methods(http.MethodPost).Path("/api/headset/zoneColors").
+		HandlerFunc(saveHeadsetZoneColors)
+	r.Methods(http.MethodPost).Path("/api/headset/sleep").
 		HandlerFunc(changeSleepMode)
 
 	// Prometheus metrics

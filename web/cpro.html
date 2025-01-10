@@ -249,6 +249,8 @@
                                                     {{ continue }}
                                                     {{ else if eq $key "liquid-temperature" }}
                                                     {{ continue }}
+                                                    {{ else if eq $key "headset" }}
+                                                    {{ continue }}
                                                     {{ end }}
                                                     {{ if eq $key $device.RGB }}
                                                     <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>

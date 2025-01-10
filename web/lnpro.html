@@ -88,6 +88,8 @@
                                                     {{ continue }}
                                                     {{ else if eq $key "liquid-temperature" }}
                                                     {{ continue }}
+                                                    {{ else if eq $key "headset" }}
+                                                    {{ continue }}
                                                     {{ end }}
                                                     <option value="{{ $key }}">{{ $key }}</option>
                                                     {{ end }}
@@ -215,6 +217,8 @@
                                                 {{ else if eq $key "mouse" }}
                                                 {{ continue }}
                                                 {{ else if eq $key "liquid-temperature" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "headset" }}
                                                 {{ continue }}
                                                 {{ end }}
                                                 {{ if eq $key $device.RGB }}

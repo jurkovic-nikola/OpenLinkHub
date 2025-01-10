@@ -10,6 +10,10 @@ import (
 	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
 	"OpenLinkHub/src/devices/elite"
+	"OpenLinkHub/src/devices/harpoonW"
+	"OpenLinkHub/src/devices/harpoonWU"
+	"OpenLinkHub/src/devices/harpoonrgbpro"
+	"OpenLinkHub/src/devices/headsetdongle"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/ironclawWU"
@@ -31,6 +35,7 @@ import (
 	"OpenLinkHub/src/devices/m55"
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m55rgbpro"
+	"OpenLinkHub/src/devices/m65rgbultra"
 	"OpenLinkHub/src/devices/m75"
 	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/m75WU"
@@ -44,6 +49,8 @@ import (
 	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
+	"OpenLinkHub/src/devices/virtuosorgbXTW"
+	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
@@ -95,6 +102,12 @@ const (
 	productTypeM75                = 218
 	productTypeM75W               = 219
 	productTypeM75WU              = 220
+	productTypeM65RgbUltra        = 221
+	productTypeHarpoonRgbPro      = 222
+	productTypeHarpoonRgbW        = 223
+	productTypeHarpoonRgbWU       = 224
+	productTypeVirtuosoXTW        = 300
+	productTypeVirtuosoXTWU       = 301
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -130,8 +143,9 @@ var (
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006}
 	pads                       = []uint16{7067}
+	headsets                   = []uint16{2658, 2660}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
 
@@ -385,6 +399,28 @@ func SaveMouseDpiColors(deviceId string, dpi rgb.Color, zones map[int]rgb.Color)
 		} else {
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(dpi))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(zones))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// SaveHeadsetZoneColors will save headset zone colors
+func SaveHeadsetZoneColors(deviceId string, zones map[int]rgb.Color) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "SaveHeadsetZoneColors"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(zones))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
@@ -1040,9 +1076,12 @@ func Init() {
 			interfaceId = 1 // Mousepad
 		} else if slices.Contains(dongles, info.ProductID) {
 			interfaceId = 1 // USB Dongle
+		} else if slices.Contains(headsets, info.ProductID) {
+			interfaceId = 3 // USB Headset
 		} else {
 			interfaceId = 0
 		}
+
 		if info.InterfaceNbr == interfaceId {
 			devPath := info.Path
 			dev, err := os.Stat(devPath)
@@ -1064,7 +1103,7 @@ func Init() {
 				return nil
 			}
 
-			if interfaceId == 1 {
+			if interfaceId == 1 || interfaceId == 3 {
 				products[info.Path] = Product{
 					ProductId: info.ProductID,
 					Path:      info.Path,
@@ -1403,6 +1442,48 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
+		case 2660:
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := headsetdongle.Init(vendorId, productId, key)
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeIronClawRgbW,
+						Product:     "HEADSET DONGLE",
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-dongle.svg",
+						Instance:    dev,
+						Hidden:      true,
+					}
+					for _, value := range dev.Devices {
+						switch value.ProductId {
+						case 2658:
+							{
+								d := virtuosorgbXTW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeVirtuosoXTW,
+									Product:     "VIRTUOSO RGB WIRELESS XT",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-headphone.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						default:
+							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
+						}
+					}
+					dev.InitAvailableDevices()
+				}(vendorId, productId, key)
+			}
 		case 7132, 7078, 11008: // Corsair SLIPSTREAM WIRELESS USB Receiver
 			{
 				go func(vendorId, productId uint16, key string) {
@@ -1571,6 +1652,26 @@ func Init() {
 								devices[d.Serial] = &Device{
 									ProductType: productTypeM75W,
 									Product:     "M75 AIR WIRELESS",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						case 7006: // HARPOON RGB WIRELESS
+							{
+								d := harpoonW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeHarpoonRgbW,
+									Product:     "HARPOON RGB WIRELESS",
 									Serial:      d.Serial,
 									Firmware:    d.Firmware,
 									Image:       "icon-mouse.svg",
@@ -1880,6 +1981,74 @@ func Init() {
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
 						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7070: // CORSAIR M65 RGB ULTRA Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := m65rgbultra.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeM65RgbUltra,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7029: // CORSAIR HARPOON RGB PRO Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := harpoonrgbpro.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeHarpoonRgbPro,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7006: // CORSAIR HARPOON RGB PRO Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := harpoonWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeHarpoonRgbWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 2658:
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := virtuosorgbXTWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeVirtuosoXTWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-headphone.svg",
 						Instance:    dev,
 					}
 				}(vendorId, productId, key)

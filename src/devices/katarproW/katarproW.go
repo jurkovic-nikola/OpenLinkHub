@@ -794,7 +794,7 @@ func (d *Device) keepAlive() {
 	}
 }
 
-// setAutoRefresh will refresh device data
+// setKeepAlive will refresh device data
 func (d *Device) setKeepAlive() {
 	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
 	go func() {

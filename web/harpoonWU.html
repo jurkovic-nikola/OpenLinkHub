@@ -11,7 +11,8 @@
         {{ $profile := $device.DeviceProfile.Profile }}
         {{ $deviceProfile := .Device.DeviceProfile }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <input type="hidden" id="zones" name="zones" value="8">
+        <input type="hidden" id="zones" name="zones" value="1">
+        <input type="hidden" id="dpis" name="dpis" value="5">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -22,24 +23,6 @@
             <div class="container-fluid">
                 <div class="row gy-4" style="margin-top: 10px;">
                     <div class="row">
-                        {{ if eq .Device.Connected false }}
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
-                                </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
-                                    <span>Device is not connected!</span><br />
-                                </div>
-                            </div>
-                        </div>
-                        {{ else }}
                         <div class="card mb-4">
                             <div class="card-header border-bottom border-dash-dark-1">
                                 <div class="ds-svg-placeholder-left">
@@ -58,7 +41,6 @@
                                         <th style="width:8%;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">User Profile</p></th>
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Brightness</p></th>
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">RGB Profile</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Sleep</p></th>
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
                                         <th style="width:60%;padding-left: 15px;"></th>
                                     </tr>
@@ -106,17 +88,6 @@
                                             </select>
                                         </td>
                                         <td style="padding-left: 15px;">
-                                            <select class="form-select mouseSleepModes" style="margin-top: 10px;" name="sleepModes">
-                                                {{ range $key, $sleepMode := $device.SleepModes }}
-                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
-                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
                                             <button class="btn btn-secondary saveUserProfile" style="margin-top: 10px;">
                                                 <span>Save As</span>
                                             </button>
@@ -130,7 +101,7 @@
                                         {{ range $key, $pf := $device.DeviceProfile.Profiles }}
                                         <div style="margin-top: 10px;">
                                             <div class="dpi-left">
-                                                <p style="color: rgba({{ $device.DeviceProfile.DPIColor.Red }}, {{ $device.DeviceProfile.DPIColor.Green }}, {{ $device.DeviceProfile.DPIColor.Blue }}, 1);">
+                                                <p style="color: rgba({{ $pf.Color.Red }}, {{ $pf.Color.Green }}, {{ $pf.Color.Blue }}, 1);">
                                                     {{ if eq $key $device.DeviceProfile.Profile }}
                                                     {{ $pf.Name }} *
                                                     {{ else }}
@@ -139,7 +110,7 @@
                                                 </p>
                                             </div>
                                             <div class="dpi-middle">
-                                                <input type="range" min="100" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
+                                                <input type="range" min="200" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
                                             </div>
                                             <div class="dpi-right">
                                                 <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">
@@ -149,18 +120,22 @@
 
                                         {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
                                         <div class="row" style="margin: 10px auto 0;">
+                                            {{ range $key, $dpiZone := $device.DeviceProfile.Profiles }}
                                             <div class="col-md-3 col-sm-6">
                                                 <div class="card mb-4">
                                                     <div style="margin-top: 10px;">
-                                                        <span style="margin-bottom: 10px;">DPI</span>
+                                                        <span style="margin-bottom: 10px;">DPI: {{ $dpiZone.Name }}</span>
                                                         <div>
-                                                            <input type="color" id="dpiColor" value="{{ $device.DeviceProfile.DPIColor.Hex }}" style="padding: 0;margin-bottom: 15px;">
+                                                            <input type="color" id="dpiColor{{ $key }}" value="{{ $dpiZone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
+                                            {{ end }}
+                                        </div>
 
-                                            {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                        <div class="row" style="margin: 10px auto 0;">
+                                        {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
                                             <div class="col-md-3 col-sm-6">
                                                 <div class="card mb-4">
                                                     <div style="margin-top: 10px;">
@@ -171,7 +146,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            {{ end }}
+                                        {{ end }}
                                         </div>
                                         {{ end }}
                                     </div>
@@ -188,12 +163,14 @@
                                         <button class="btn btn-secondary" id="saveZoneColors" style="margin-top: 10px;float: left;margin-left: 10px;">
                                             <span>Save Zone Colors</span>
                                         </button>
+                                        <button class="btn btn-secondary" id="saveDpiColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Save DPI Colors</span>
+                                        </button>
                                         {{ end }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {{ end }}
                     </div>
                 </div>
             </div>

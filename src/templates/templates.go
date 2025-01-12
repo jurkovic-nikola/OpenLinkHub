@@ -66,6 +66,7 @@ func Init() {
 		"web/lt100.html",
 		"web/psuhid.html",
 		"web/katarpro.html",
+		"web/katarproxt.html",
 		"web/ironclaw.html",
 		"web/ironclawW.html",
 		"web/ironclawWU.html",

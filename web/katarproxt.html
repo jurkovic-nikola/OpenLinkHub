@@ -10,7 +10,6 @@
         {{ $rgb := .Rgb }}
         {{ $profile := $device.DeviceProfile.Profile }}
         {{ $deviceProfile := .Device.DeviceProfile }}
-
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <input type="hidden" id="zones" name="zones" value="1">
         <input type="hidden" id="dpis" name="dpis" value="3">
@@ -111,7 +110,7 @@
                                                 </p>
                                             </div>
                                             <div class="dpi-middle">
-                                                <input type="range" min="200" max="12400" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
+                                                <input type="range" min="200" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
                                             </div>
                                             <div class="dpi-right">
                                                 <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">

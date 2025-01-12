@@ -1,7 +1,7 @@
-package katarpro
+package katarproxt
 
-// Package: CORSAIR KATAR PRO
-// This is the primary package for CORSAIR KATAR PRO.
+// Package: CORSAIR KATAR PRO XT
+// This is the primary package for CORSAIR KATAR PRO XT.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -102,7 +102,7 @@ var (
 	headerSize                   = 2
 	headerWriteSize              = 4
 	minDpiValue           uint16 = 200
-	maxDpiValue           uint16 = 12400
+	maxDpiValue           uint16 = 18000
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -118,7 +118,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
-		Template:  "katarpro.html",
+		Template:  "katarproxt.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Brightness: map[int]string{
@@ -127,7 +127,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:               "KATAR PRO",
+		Product:               "KATAR PRO XT",
 		LEDChannels:           1,
 		ChangeableLedChannels: 1,
 		autoRefreshChan:       make(chan struct{}),

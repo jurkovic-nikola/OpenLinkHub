@@ -123,8 +123,31 @@ $ cd OpenLinkHub/
 $ chmod +x install.sh
 $ sudo ./install.sh
 ```
+### 4. Immutable distributions (Bazzite OS, SteamOS, etc...)
+```bash
+# Do not install RPM or DEB packages on immutable distributions, they will not work. 
+# Download latest tar.gz from Release page. URL will be different when new version is released. 
+# To copy download link, go to https://github.com/jurkovic-nikola/OpenLinkHub/releases and right click on tar.gz file and Copy link address. 
+# Open your terminal application and type wget and paste copied link to download package. 
+$ wget https://github.com/jurkovic-nikola/OpenLinkHub/releases/download/0.4.7/OpenLinkHub_0.4.7_amd64.tar.gz
 
-### 4. Configuration
+# Extract package to your home directory
+$ tar xf OpenLinkHub_X.X.X_amd64.tar.gz -C /home/$USER/
+
+# Go to extract folder
+$ cd /home/$USER/OpenLinkHub
+
+# Make install-immutable.sh executable
+$ chmod +x install-immutable.sh
+
+# Run install-immutable.sh. Enter your password for sudo when asked to copy 99-openlinkhub.rules file
+$ ./install-immutable.sh
+
+# Restart 
+$ systemctl reboot
+```
+
+### 5. Configuration
 ```json
 {
   "debug": false,

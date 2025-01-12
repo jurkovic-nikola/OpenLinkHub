@@ -43,6 +43,7 @@ type DeviceProfile struct {
 	ZoneColors         map[int]ZoneColors
 	Profiles           map[int]DPIProfile
 	SleepMode          int
+	MuteIndicator      int
 }
 
 type DPIProfile struct {
@@ -82,6 +83,8 @@ type Device struct {
 	Connected             bool
 	mutex                 sync.Mutex
 	Exit                  bool
+	MuteStatus            byte
+	MuteIndicators        map[int]string
 }
 
 var (
@@ -131,6 +134,10 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		},
 		LEDChannels:           3,
 		ChangeableLedChannels: 3,
+		MuteIndicators: map[int]string{
+			0: "Disabled",
+			1: "Enabled",
+		},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -590,6 +597,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 
 		deviceProfile.SleepMode = 15
+		deviceProfile.MuteIndicator = 0
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
@@ -604,6 +612,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
+		deviceProfile.MuteIndicator = d.DeviceProfile.MuteIndicator
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -641,6 +650,16 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles() // Reload
+}
+
+// UpdateMuteIndicator will update device mute indicator
+func (d *Device) UpdateMuteIndicator(minutes int) uint8 {
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.MuteIndicator = minutes
+		d.saveDeviceProfile()
+		return 1
+	}
+	return 0
 }
 
 // UpdateSleepTimer will update device sleep timer
@@ -986,6 +1005,14 @@ func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
 	}
+
+	// When mic is muted and MuteIndicator is set
+	if d.DeviceProfile.MuteIndicator == 1 && d.MuteStatus == 1 {
+		data[2] = 0xff
+		data[5] = 0x00
+		data[8] = 0x00
+	}
+
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -1056,6 +1083,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 // NotifyMuteChanged will change microphone LED based on microphone status
 func (d *Device) NotifyMuteChanged(status byte) {
+	d.MuteStatus = status
 	// RGB reset
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1071,6 +1099,7 @@ func (d *Device) NotifyMuteChanged(status byte) {
 		buf[5] = 0xff
 		buf[8] = 0x00
 	}
+
 	d.writeColor(buf)
 	time.Sleep(1500 * time.Millisecond)
 	d.setDeviceColor()

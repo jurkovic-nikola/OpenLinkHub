@@ -149,6 +149,16 @@ var (
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
 
+// isUSBConnected will check if a USB device is connected
+func isUSBConnected(productId uint16) bool {
+	for _, value := range products {
+		if value.ProductId == productId {
+			return true
+		}
+	}
+	return false
+}
+
 // Stop will stop all active devices
 func Stop() {
 	for _, device := range devices {
@@ -561,6 +571,28 @@ func ChangeDeviceSleepMode(deviceId string, sleepMode int) uint8 {
 		} else {
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(sleepMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeDeviceMuteIndicator will change device mute indicator
+func ChangeDeviceMuteIndicator(deviceId string, muteIndicator int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateMuteIndicator"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(muteIndicator))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
 				val := results[0]
@@ -1456,6 +1488,10 @@ func Init() {
 						Hidden:      true,
 					}
 					for _, value := range dev.Devices {
+						if isUSBConnected(value.ProductId) {
+							continue
+						}
+
 						switch value.ProductId {
 						case 2658:
 							{
@@ -1498,6 +1534,9 @@ func Init() {
 						Hidden:      true,
 					}
 					for _, value := range dev.Devices {
+						if isUSBConnected(value.ProductId) {
+							continue
+						}
 						switch value.ProductId {
 						case 7163:
 							{

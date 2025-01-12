@@ -538,6 +538,17 @@ func changeSleepMode(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeMuteIndicator handles device mute indicator change
+func changeMuteIndicator(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeMuteIndicator(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeRgbScheduler handles RGB scheduler change
 func changeRgbScheduler(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeRgbScheduler(r)
@@ -950,6 +961,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(saveHeadsetZoneColors)
 	r.Methods(http.MethodPost).Path("/api/headset/sleep").
 		HandlerFunc(changeSleepMode)
+	r.Methods(http.MethodPost).Path("/api/headset/muteIndicator").
+		HandlerFunc(changeMuteIndicator)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

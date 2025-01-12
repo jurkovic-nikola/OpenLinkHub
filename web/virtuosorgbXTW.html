@@ -11,8 +11,7 @@
         {{ $profile := $device.DeviceProfile.Profile }}
         {{ $deviceProfile := .Device.DeviceProfile }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <input type="hidden" id="zones" name="zones" value="2">
-        <input type="hidden" id="dpis" name="dpis" value="5">
+        <input type="hidden" id="zones" name="zones" value="3">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -60,6 +59,7 @@
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Brightness</p></th>
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">RGB Profile</p></th>
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Sleep</p></th>
+                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Mute LED</p></th>
                                         <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
                                         <th style="width:60%;padding-left: 15px;"></th>
                                     </tr>
@@ -113,6 +113,17 @@
                                                 <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
                                                 {{ else }}
                                                 <option value="{{ $key }}">{{ $sleepMode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </td>
+                                        <td style="padding-left: 15px;">
+                                            <select class="form-select muteIndicator" style="margin-top: 10px;" name="muteIndicator">
+                                                {{ range $key, $value := $device.MuteIndicators }}
+                                                {{ if eq $device.DeviceProfile.MuteIndicator $key }}
+                                                <option value="{{ $key }}" selected>{{ $value }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $value }}</option>
                                                 {{ end }}
                                                 {{ end }}
                                             </select>

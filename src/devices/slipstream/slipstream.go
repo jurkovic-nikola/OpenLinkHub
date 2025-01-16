@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/darkcorergbproW"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
+	"OpenLinkHub/src/devices/darkstarW"
 	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
@@ -172,6 +173,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*harpoonW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*darkstarW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -410,6 +416,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*darkstarW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -457,6 +468,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*harpoonW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*darkstarW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -517,6 +533,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*harpoonW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*darkstarW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -584,6 +605,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						device.Connect()
 					}
 				}
+				if device, found := pairedDevice.(*darkstarW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
 			}
 			break
 		case 2:
@@ -630,6 +656,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*harpoonW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*darkstarW.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}
@@ -912,6 +943,21 @@ func (d *Device) controlListener() {
 									case 16: // Back button
 										// TO-DO
 										break
+									}
+								}
+								if dev, found := value.(*darkstarW.Device); found {
+									if data[1] == 0x02 && data[3] == 0x08 {
+										dev.ModifyDpi(true)
+									} else if data[1] == 0x02 && data[3] == 0x10 {
+										dev.ModifyDpi(false)
+									} else if data[1] == 0x02 && data[2] == 0x20 {
+										inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
+									} else if data[1] == 0x02 && data[2] == 0x40 {
+										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 1
+									} else if data[1] == 0x02 && data[2] == 0x80 {
+										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 1
+									} else if data[1] == 0x02 && data[3] == 0x01 {
+										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 1
 									}
 								}
 							}

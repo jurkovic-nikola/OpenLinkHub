@@ -9,6 +9,8 @@ import (
 	"OpenLinkHub/src/devices/darkcorergbproWU"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
+	"OpenLinkHub/src/devices/darkstarW"
+	"OpenLinkHub/src/devices/darkstarWU"
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/harpoonWU"
@@ -25,6 +27,7 @@ import (
 	"OpenLinkHub/src/devices/k65plusW"
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
+	"OpenLinkHub/src/devices/k70mk2"
 	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/katarpro"
 	"OpenLinkHub/src/devices/katarproW"
@@ -83,6 +86,7 @@ const (
 	productTypeK100Air            = 107
 	productTypeK100AirW           = 108
 	productTypeK100               = 109
+	productTypeK70MK2             = 110
 	productTypeKatarPro           = 201
 	productTypeIronClawRgb        = 202
 	productTypeIronClawRgbW       = 203
@@ -108,6 +112,8 @@ const (
 	productTypeHarpoonRgbW        = 223
 	productTypeHarpoonRgbWU       = 224
 	productTypeKatarProXT         = 225
+	productTypeDarkstarWU         = 226
+	productTypeDarkstarW          = 227
 	productTypeVirtuosoXTW        = 300
 	productTypeVirtuosoXTWU       = 301
 	productTypeST100              = 401
@@ -144,8 +150,8 @@ var (
 	interfaceId                = 0
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084}
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037, 6985, 6997}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090}
 	pads                       = []uint16{7067}
 	headsets                   = []uint16{2658, 2660}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
@@ -1408,6 +1414,23 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
+		case 6985, 6997, 7019: // K70 RGB MK2
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70mk2.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeK70MK2,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
 		case 11024: // K65 PLUS USB
 			{
 				go func(vendorId, productId uint16, key string) {
@@ -1713,6 +1736,26 @@ func Init() {
 								devices[d.Serial] = &Device{
 									ProductType: productTypeHarpoonRgbW,
 									Product:     "HARPOON RGB WIRELESS",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						case 7090: // CORSAIR DARKSTAR RGB WIRELESS Gaming Mouse
+							{
+								d := darkstarW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeDarkstarW,
+									Product:     "DARKSTAR",
 									Serial:      d.Serial,
 									Firmware:    d.Firmware,
 									Image:       "icon-mouse.svg",
@@ -2094,7 +2137,24 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 2658:
+		case 7090: // CORSAIR DARKSTAR RGB WIRELESS Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := darkstarWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeDarkstarWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 2658: // VIRTUOSO RGB WIRELESS XT
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := virtuosorgbXTWU.Init(vendorId, productId, key)

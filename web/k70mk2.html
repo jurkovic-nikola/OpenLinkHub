@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        {{ $rgb := .Rgb }}
+        {{ $profile := $device.DeviceProfile.Profile }}
+        {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <table>
+                                    <tr>
+                                        <th style="width:8%"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Layout</p></th>
+                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">User Profile</p></th>
+                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">RGB Profile</p></th>
+                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
+                                        <th style="width:60%;padding-left: 15px;"></th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <select class="form-select keyLayout" style="margin-top: 10px;" name="keyLayout">
+                                                {{ range $layout := $device.Layouts }}
+                                                {{ if eq $device.DeviceProfile.Layout $layout }}
+                                                <option value="{{ $layout }}" selected>{{ $layout }}</option>
+                                                {{ else }}
+                                                <option value="{{ $layout }}">{{ $layout }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </td>
+                                        <td style="padding-left: 15px;">
+                                            <select class="form-select userProfile" style="margin-top: 10px;" name="userProfile">
+                                                {{ range $key, $profile := $device.UserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </td>
+                                        <td style="padding-left: 15px;">
+                                            <select class="form-select keyboardRgbProfile" name="keyboardRgbProfile" style="margin-top:10px;">
+                                                {{ range $key, $_ := $rgb }}
+                                                {{ if eq $key "stand" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "liquid-temperature" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mousepad" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mouse" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "headset" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "circle" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "circleshift" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "spinner" }}
+                                                {{ continue }}
+                                                {{ end }}
+                                                {{ if eq $key $device.DeviceProfile.RGBProfile }}
+                                                <option value="0;{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="0;{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </td>
+                                        <td style="padding-left: 15px;">
+                                            <button class="btn btn-secondary saveUserProfile" style="margin-top: 10px;">
+                                                <span>Save As</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            {{ if eq "keyboard" $device.DeviceProfile.RGBProfile }}
+                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
+                                {{ range $index, $keys := $keyboard.Row }}
+                                {{ if eq $index 4 }}
+                                <div class="row" style="margin-top:-85px">
+                                    {{ else if eq $index 6 }}
+                                    <div class="row" style="margin-top:-85px">
+                                        {{ else }}
+                                        <div class="row">
+                                            {{ end }}
+                                            {{ range $index, $keys := .Keys }}
+                                            <div class="keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}" style="cursor: pointer;border: 1px solid rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);;width: {{ $keys.Width }}px;height: {{ $keys.Height }}px;text-align: center;vertical-align: middle;margin-left:{{ $keys.Left }}px;margin-top:{{ $keys.Top }}px;">
+                                                <p style="margin-top:5px;font-size: 12px;" class="key-uppercase">
+                                                    {{ if $keys.Svg }}
+                                                    <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>
+                                                    {{ else }}
+                                                    {{ $keys.KeyName }}
+                                                    {{ end }}
+                                                </p>
+                                            </div>
+                                            {{ end }}
+                                        </div>
+                                        {{ end }}
+                                        <div class="row">
+                                            <div class="progress" style="height: 2px;margin-top:10px;">
+                                            </div>
+                                        </div>
+                                        <div style="float: left;width: 400px;">
+                                            <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
+
+
+                                            <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
+                                                <option value="0">Current Key</option>
+                                                <option value="1">Current Row</option>
+                                                <option value="2">All Keys</option>
+                                            </select>
+
+                                            <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                                <span>Apply</span>
+                                            </button>
+
+                                        </div>
+                                        <div style="float: right;width: 450px;">
+                                            <select class="form-select keyboardProfile" name="keyboardProfile" style="margin-top:10px;width: 150px;float: right;margin-left: 10px;">
+                                                {{ range $key := $device.DeviceProfile.Profiles }}
+                                                {{ if eq $key $device.DeviceProfile.Profile }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                            <button class="btn btn-secondary" id="saveAsProfile" style="margin-top: 10px;margin-left: 10px;float: right;">
+                                                <span>Save As</span>
+                                            </button>
+                                            <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;margin-left: 10px;float: right">
+                                                <span>Save</span>
+                                            </button>
+                                            <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
+                                                <span>Delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {{ end }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+</body>
+</html>

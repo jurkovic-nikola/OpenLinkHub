@@ -11,3 +11,7 @@ database/temperatures/*.json
 database/profiles/*.json
 database/rgb/*.json
 database/scheduler.json
+org.openlinkhub.OpenLinkHub.json
+.flatpak-builder/
+flatpak/
+flatpak-build/

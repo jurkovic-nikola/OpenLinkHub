@@ -1,6 +1,6 @@
-package nightsabreW
+package darkstarW
 
-// Package: CORSAIR NIGHTSABRE RGB Wireless
+// Package: CORSAIR DARKSTAR RGB Wireless
 // This is the primary package for CORSAIR IRONCLAW RGB Wireless.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
@@ -114,7 +114,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	// Init new struct with HID device
 	d := &Device{
 		dev:          dev,
-		Template:     "nightsabreW.html",
+		Template:     "darkstarW.html",
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
@@ -127,7 +127,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "NIGHTSABRE",
+		Product: "DARKSTAR",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -136,8 +136,8 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		LEDChannels:           15,
-		ChangeableLedChannels: 12,
+		LEDChannels:           13,
+		ChangeableLedChannels: 10,
 		autoRefreshChan:       make(chan struct{}),
 		timer:                 &time.Ticker{},
 	}
@@ -645,7 +645,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = true
 		deviceProfile.ZoneColors = map[int]ZoneColors{
 			0: { // Front left
-				ColorIndex: []int{0, 15, 30},
+				ColorIndex: []int{0, 13, 26},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      0,
@@ -656,7 +656,7 @@ func (d *Device) saveDeviceProfile() {
 				Name: "Front Left",
 			},
 			1: { // Front right
-				ColorIndex: []int{1, 16, 31},
+				ColorIndex: []int{1, 14, 27},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      0,
@@ -666,8 +666,8 @@ func (d *Device) saveDeviceProfile() {
 				},
 				Name: "Front Right",
 			},
-			2: { // Left Palm 1
-				ColorIndex: []int{2, 17, 32},
+			2: { // Side Accent 1
+				ColorIndex: []int{3, 16, 29},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -675,10 +675,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Left Palm 1",
+				Name: "Side Accent 1",
 			},
-			3: { // Left Palm 2
-				ColorIndex: []int{3, 18, 33},
+			3: { // Side Accent 2
+				ColorIndex: []int{4, 17, 30},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -686,10 +686,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Left Palm 2",
+				Name: "Side Accent 2",
 			},
-			4: { // Left Palm 3
-				ColorIndex: []int{4, 19, 34},
+			4: { // Side Accent 3
+				ColorIndex: []int{5, 18, 31},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -697,10 +697,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Left Palm 3",
+				Name: "Side Accent 3",
 			},
-			5: { // Right Palm 1
-				ColorIndex: []int{5, 20, 35},
+			5: { // Side Accent 4
+				ColorIndex: []int{6, 19, 32},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -708,10 +708,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Right Palm 1",
+				Name: "Side Accent 4",
 			},
-			6: { // Right Palm 2
-				ColorIndex: []int{6, 21, 36},
+			6: { // Side Accent 5
+				ColorIndex: []int{7, 20, 33},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -719,10 +719,10 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Right Palm 2",
+				Name: "Side Accent 5",
 			},
-			7: { // Right Palm 3
-				ColorIndex: []int{7, 22, 37},
+			7: { // Side Accent 6
+				ColorIndex: []int{8, 21, 34},
 				Color: &rgb.Color{
 					Red:        0,
 					Green:      255,
@@ -730,51 +730,18 @@ func (d *Device) saveDeviceProfile() {
 					Brightness: 1,
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
 				},
-				Name: "Right Palm 3",
+				Name: "Side Accent 6",
 			},
 			8: { // Logo
-				ColorIndex: []int{8, 23, 38},
+				ColorIndex: []int{9, 22, 35},
 				Color: &rgb.Color{
-					Red:        0,
+					Red:        255,
 					Green:      255,
-					Blue:       255,
+					Blue:       0,
 					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
 				},
 				Name: "Logo",
-			},
-			9: { // Rear Bottom 1
-				ColorIndex: []int{9, 24, 39},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Rear Bottom 1",
-			},
-			10: { // Rear Bottom 2
-				ColorIndex: []int{10, 25, 40},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Rear Bottom 2",
-			},
-			11: { // Rear Bottom 3
-				ColorIndex: []int{11, 26, 41},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Rear Bottom 3",
 			},
 		}
 		deviceProfile.DPIColor = &rgb.Color{
@@ -786,49 +753,44 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.Profiles = map[int]DPIProfile{
 			0: {
-				Name:        "Stage 1",
-				Value:       400,
-				PackerIndex: 1,
+				Name:  "Stage 1",
+				Value: 400,
 				ColorIndex: map[int][]int{
-					0: {12, 27, 42},
+					0: {10, 23, 36},
 				},
 			},
 			1: {
-				Name:        "Stage 2",
-				Value:       800,
-				PackerIndex: 2,
+				Name:  "Stage 2",
+				Value: 800,
 				ColorIndex: map[int][]int{
-					0: {12, 27, 42},
-					1: {13, 28, 43},
+					0: {10, 23, 36},
+					1: {11, 24, 37},
 				},
 			},
 			2: {
-				Name:        "Stage 3",
-				Value:       1200,
-				PackerIndex: 3,
+				Name:  "Stage 3",
+				Value: 1200,
 				ColorIndex: map[int][]int{
-					0: {13, 28, 43},
+					0: {11, 24, 37},
 				},
 			},
 			3: {
-				Name:        "Stage 4",
-				Value:       1600,
-				PackerIndex: 3,
+				Name:  "Stage 4",
+				Value: 1600,
 				ColorIndex: map[int][]int{
-					0: {13, 28, 43},
-					1: {14, 29, 44},
+					0: {11, 24, 37},
+					1: {12, 25, 38},
 				},
 			},
 			4: {
-				Name:        "Stage 5",
-				Value:       3200,
-				PackerIndex: 3,
+				Name:  "Stage 5",
+				Value: 3200,
 				ColorIndex: map[int][]int{
-					0: {14, 29, 44},
+					0: {12, 25, 38},
 				},
 			},
 		}
-		deviceProfile.Profile = 1
+		deviceProfile.Profile = 2
 		deviceProfile.SleepMode = 15
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
@@ -923,7 +885,6 @@ func (d *Device) setSleepTimer() uint8 {
 				sleep := d.DeviceProfile.SleepMode * (60 * 1000)
 				binary.LittleEndian.PutUint32(buf, uint32(sleep))
 			}
-
 			_, err = d.transfer(command, buf)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")

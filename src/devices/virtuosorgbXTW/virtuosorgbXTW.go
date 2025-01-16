@@ -557,7 +557,7 @@ func (d *Device) saveDeviceProfile() {
 	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
 		// RGB, Label
-		deviceProfile.RGBProfile = "static"
+		deviceProfile.RGBProfile = "headset"
 		deviceProfile.Label = "Headset"
 		deviceProfile.Active = true
 		deviceProfile.ZoneColors = map[int]ZoneColors{

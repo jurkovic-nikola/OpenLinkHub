@@ -25,17 +25,20 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active     bool
-	Path       string
-	Product    string
-	Serial     string
-	Brightness uint8
-	RGBProfile string
-	Label      string
-	Profile    int
-	DPIColor   *rgb.Color
-	ZoneColors map[int]ZoneColors
-	Profiles   map[int]DPIProfile
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	Brightness         uint8
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
+	RGBProfile         string
+	Label              string
+	Profile            int
+	PollingRate        int
+	DPIColor           *rgb.Color
+	ZoneColors         map[int]ZoneColors
+	Profiles           map[int]DPIProfile
 }
 
 type ZoneColors struct {
@@ -67,6 +70,7 @@ type Device struct {
 	VendorId        uint16
 	ProductId       uint16
 	Brightness      map[int]string
+	PollingRates    map[int]string
 	LEDChannels     int
 	CpuTemp         float32
 	GpuTemp         float32
@@ -86,6 +90,7 @@ var (
 	cmdRead               = byte(0x0e)
 	cmdWrite              = byte(0x13)
 	cmdGetFirmware        = byte(0x01)
+	cmdSetPollingRate     = []byte{0x0a, 0x00, 0x00}
 	deviceRefreshInterval = 1000
 	bufferSize            = 64
 	bufferSizeWrite       = bufferSize + 1
@@ -122,6 +127,13 @@ func Init(vendorId, productId uint16, key string) *Device {
 		LEDChannels:     2,
 		autoRefreshChan: make(chan struct{}),
 		timer:           &time.Ticker{},
+		PollingRates: map[int]string{
+			0: "Not Set",
+			8: "125 Hz / 8 msec",
+			4: "250 Hu / 4 msec",
+			2: "500 Hz / 2 msec",
+			1: "1000 Hz / 1 msec",
+		},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -348,12 +360,14 @@ func (d *Device) setAutoRefresh() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	deviceProfile := &DeviceProfile{
-		Product: d.Product,
-		Serial:  d.Serial,
-		Path:    profilePath,
+		Product:          d.Product,
+		Serial:           d.Serial,
+		Path:             profilePath,
+		BrightnessSlider: &defaultBrightness,
 	}
 
 	// First save, assign saved profile to a device
@@ -389,7 +403,7 @@ func (d *Device) saveDeviceProfile() {
 			Green:      255,
 			Blue:       0,
 			Brightness: 1,
-			Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+			Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 0),
 		}
 		deviceProfile.Profiles = map[int]DPIProfile{
 			0: {
@@ -409,7 +423,14 @@ func (d *Device) saveDeviceProfile() {
 			},
 		}
 		deviceProfile.Profile = 1
+		deviceProfile.PollingRate = 1
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
@@ -418,6 +439,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.DPIColor = d.DeviceProfile.DPIColor
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
+		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -694,6 +716,87 @@ func (d *Device) saveRgbProfile() {
 	}
 }
 
+// Close will close all timers and channels before restart
+func (d *Device) Close() {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	time.Sleep(500 * time.Millisecond)
+}
+
+// toggleExit will change Exit value
+func (d *Device) toggleExit() {
+	if d.Exit {
+		d.Exit = false
+	}
+}
+
+// Restart will re-init device
+func (d *Device) Restart() {
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+	d.dev = nil
+
+	interfaceId := 1
+	path := ""
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == interfaceId {
+			path = info.Path
+		}
+		return nil
+	})
+	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+	}
+
+	dev, err := hid.OpenPath(path)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "caller": "Restart()"}).Error("Unable to open HID device")
+		return
+	}
+
+	d.dev = dev
+	d.setSoftwareMode()   // Activate software mode
+	d.getDeviceFirmware() // Firmware
+	d.toggleExit()        // Remove Exit flag
+	d.setDeviceColor()    // Device color
+	d.controlListener()   // Control listener
+	d.toggleDPI(false)    // Set current DPI
+}
+
+// UpdatePollingRate will set device polling rate
+func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	if _, ok := d.PollingRates[pullingRate]; ok {
+		if d.DeviceProfile == nil {
+			return 0
+		}
+
+		d.DeviceProfile.PollingRate = pullingRate
+		d.saveDeviceProfile()
+
+		d.Close()
+		buf := make([]byte, 1)
+		buf[0] = byte(pullingRate)
+		err := d.transfer(cmdSetPollingRate, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to set mouse polling rate")
+			return 0
+		}
+		time.Sleep(5000 * time.Millisecond)
+		d.Restart()
+		return 1
+	}
+	return 0
+}
+
 // UpdateRgbProfileData will update RGB profile data
 func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
 	if d.GetRgbProfile(profileName) == nil {
@@ -743,6 +846,45 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+
+	d.saveDeviceProfile()
+	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
+	}
 	return 1
 }
 
@@ -830,12 +972,12 @@ func (d *Device) setDeviceColor() {
 			if d.DeviceProfile.Brightness != 0 {
 				zoneColor.Color.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 			}
-
-			zoneColors := rgb.ModifyBrightness(*zoneColor.Color)
+			zoneColor.Color.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+			zoneColor.Color = rgb.ModifyBrightness(*zoneColor.Color)
 			static[key] = []byte{
-				byte(zoneColors.Red),
-				byte(zoneColors.Green),
-				byte(zoneColors.Blue),
+				byte(zoneColor.Color.Red),
+				byte(zoneColor.Color.Green),
+				byte(zoneColor.Color.Blue),
 			}
 		}
 		buffer = rgb.SetColor(static)
@@ -851,11 +993,9 @@ func (d *Device) setDeviceColor() {
 			return
 		}
 
-		if d.DeviceProfile.Brightness != 0 {
-			profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-		}
-
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
+
 		for i := 0; i < d.LEDChannels; i++ {
 			static[i] = []byte{
 				byte(profileColor.Red),
@@ -918,11 +1058,9 @@ func (d *Device) setDeviceColor() {
 				}
 
 				// Brightness
-				if d.DeviceProfile.Brightness > 0 {
-					r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
-					r.RGBStartColor.Brightness = r.RGBBrightness
-					r.RGBEndColor.Brightness = r.RGBBrightness
-				}
+				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+				r.RGBStartColor.Brightness = r.RGBBrightness
+				r.RGBEndColor.Brightness = r.RGBBrightness
 
 				switch d.DeviceProfile.RGBProfile {
 				case "off":

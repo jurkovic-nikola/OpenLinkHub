@@ -71,6 +71,8 @@ type Device struct {
 	autoRefreshChan chan struct{}
 	keepAliveChan   chan struct{}
 	mutex           sync.Mutex
+	UIKeyboard      string
+	UIKeyboardRow   string
 }
 
 var (
@@ -83,6 +85,7 @@ var (
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x01}
+	cmdKeepAlive            = []byte{0x12}
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
 	transferTimeout         = 500
@@ -123,6 +126,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 		Layouts:         keyboards.GetLayouts(keyboardKey),
 		autoRefreshChan: make(chan struct{}),
 		keepAliveChan:   make(chan struct{}),
+		UIKeyboard:      "keyboard-7",
+		UIKeyboardRow:   "keyboard-row-25",
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -489,7 +494,7 @@ func (d *Device) keepAlive() {
 	if d.Exit {
 		return
 	}
-	_, err := d.transfer([]byte{0x12}, nil)
+	_, err := d.transfer(cmdKeepAlive, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
@@ -502,9 +507,6 @@ func (d *Device) setKeepAlive() {
 		for {
 			select {
 			case <-d.timerKeepAlive.C:
-				if d.Exit {
-					return
-				}
 				d.keepAlive()
 			case <-d.keepAliveChan:
 				d.timerKeepAlive.Stop()

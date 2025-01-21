@@ -40,6 +40,7 @@ type DeviceProfile struct {
 	Layout          string
 	Keyboards       map[string]*keyboards.Keyboard
 	Profile         string
+	PollingRate     int
 	BrightnessLevel uint16
 	Profiles        []string
 	ControlDial     int
@@ -62,6 +63,7 @@ type Device struct {
 	VendorId           uint16
 	ProductId          uint16
 	Brightness         map[int]string
+	PollingRates       map[int]string
 	LEDChannels        int
 	CpuTemp            float32
 	GpuTemp            float32
@@ -89,6 +91,7 @@ var (
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x01}
+	cmdSetPollingRate       = []byte{0x01, 0x01, 0x00}
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
 	transferTimeout         = 500
@@ -133,6 +136,16 @@ func Init(vendorId, productId uint16, key string) *Device {
 		keepAliveChan:   make(chan struct{}),
 		autoRefreshChan: make(chan struct{}),
 		listener:        nil,
+		PollingRates: map[int]string{
+			0: "Not Set",
+			1: "125 Hz / 8 msec",
+			2: "250 Hu / 4 msec",
+			3: "500 Hz / 2 msec",
+			4: "1000 Hz / 1 msec",
+			5: "2000 Hz / 0.5 msec",
+			6: "4000 Hz / 0.25 msec",
+			7: "8000 Hz / 0.125 msec",
+		},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -364,6 +377,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Brightness = 0
 		deviceProfile.Layout = "US"
 		deviceProfile.ControlDial = 1
+		deviceProfile.PollingRate = 4
 	} else {
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
@@ -379,6 +393,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
 		deviceProfile.ControlDial = d.DeviceProfile.ControlDial
 		deviceProfile.BrightnessLevel = d.DeviceProfile.BrightnessLevel
+		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -518,9 +533,6 @@ func (d *Device) setKeepAlive() {
 		for {
 			select {
 			case <-d.timerKeepAlive.C:
-				if d.Exit {
-					return
-				}
 				d.keepAlive()
 			case <-d.keepAliveChan:
 				d.timerKeepAlive.Stop()
@@ -597,6 +609,87 @@ func (d *Device) saveRgbProfile() {
 			return
 		}
 	}
+}
+
+// Close will close all timers and channels before restart
+func (d *Device) Close() {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	time.Sleep(500 * time.Millisecond)
+}
+
+// toggleExit will change Exit value
+func (d *Device) toggleExit() {
+	if d.Exit {
+		d.Exit = false
+	}
+}
+
+// Restart will re-init device
+func (d *Device) Restart() {
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+	d.dev = nil
+
+	interfaceId := 1
+	path := ""
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == interfaceId {
+			path = info.Path
+		}
+		return nil
+	})
+	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+	}
+
+	dev, err := hid.OpenPath(path)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "caller": "Restart()"}).Error("Unable to open HID device")
+		return
+	}
+	d.dev = dev
+	d.setSoftwareMode()    // Activate software mode
+	d.initLeds()           // Init LED ports
+	d.getDeviceFirmware()  // Firmware
+	d.toggleExit()         // Toggle exit mode
+	d.setDeviceColor()     // Device color
+	d.setBrightnessLevel() // Brightness
+	d.controlListener()    // Control listener
+}
+
+// UpdatePollingRate will set device polling rate
+func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	if _, ok := d.PollingRates[pullingRate]; ok {
+		if d.DeviceProfile == nil {
+			return 0
+		}
+
+		d.DeviceProfile.PollingRate = pullingRate
+		d.saveDeviceProfile()
+
+		d.Close()
+		buf := make([]byte, 1)
+		buf[0] = byte(pullingRate)
+		_, err := d.transfer(cmdSetPollingRate, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
+			return 0
+		}
+		time.Sleep(8000 * time.Millisecond)
+		d.Restart()
+		return 1
+	}
+	return 0
 }
 
 // UpdateRgbProfileData will update RGB profile data
@@ -953,10 +1046,6 @@ func (d *Device) setDeviceColor() {
 	// Reset
 	var buf = make([]byte, colorPacketLength)
 
-	for i := 0; i < colorPacketLength; i++ {
-		buf[i] = 0xff
-	}
-	d.writeColor(buf)
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
@@ -991,7 +1080,6 @@ func (d *Device) setDeviceColor() {
 		if d.DeviceProfile.Brightness != 0 {
 			profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 		}
-
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 			for _, keys := range rows.Keys {
@@ -1222,7 +1310,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return nil, err
 	}
-
+	
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")

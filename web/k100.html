@@ -32,20 +32,13 @@
                                         <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
-                            </div>
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <table>
-                                    <tr>
-                                        <th style="width:8%"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Layout</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">User Profile</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">RGB Profile</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Control Dial</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
-                                        <th style="width:60%;padding-left: 15px;"></th>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <select class="form-select keyLayout" style="margin-top: 10px;" name="keyLayout">
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="Keyboard Layout" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select keyLayout" name="keyLayout">
                                                 {{ range $layout := $device.Layouts }}
                                                 {{ if eq $device.DeviceProfile.Layout $layout }}
                                                 <option value="{{ $layout }}" selected>{{ $layout }}</option>
@@ -54,9 +47,14 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <select class="form-select userProfile" style="margin-top: 10px;" name="userProfile">
+                                        </li>
+                                    </ul>
+                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select userProfile" name="userProfile">
                                                 {{ range $key, $profile := $device.UserProfiles }}
                                                 {{ if $profile.Active }}
                                                 <option value="{{ $key }}" selected>{{ $key }}</option>
@@ -65,9 +63,14 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <select class="form-select keyboardRgbProfile" name="keyboardRgbProfile" style="margin-top:10px;">
+                                        </li>
+                                    </ul>
+                                    <button title="RGB Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select keyboardRgbProfile" name="keyboardRgbProfile">
                                                 {{ range $key, $_ := $rgb }}
                                                 {{ if eq $key "stand" }}
                                                 {{ continue }}
@@ -87,9 +90,14 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <select class="form-select controlDial" style="margin-top: 10px;" name="controlDial">
+                                        </li>
+                                    </ul>
+                                    <button title="Control Dial" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select controlDial" name="controlDial">
                                                 {{ range $key, $dialOptions := $device.ControlDialOptions }}
                                                 {{ if eq $device.DeviceProfile.ControlDial $key }}
                                                 <option value="{{ $key }}" selected>{{ $dialOptions }}</option>
@@ -98,14 +106,28 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <button class="btn btn-secondary saveUserProfile" style="margin-top: 10px;">
-                                                <span>Save As</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </table>
+                                        </li>
+                                    </ul>
+                                    <button title="Pulling Rate" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select keyboardPollingRate" name="keyboardPollingRate">
+                                                {{ range $key, $pr := $device.PollingRates }}
+                                                {{ if eq $key $device.DeviceProfile.PollingRate }}
+                                                <option value="{{ $key }}" selected>{{ $pr }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $pr }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                </div>
                             </div>
                             {{ if eq "keyboard" $device.DeviceProfile.RGBProfile }}
                             <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;width: auto;">

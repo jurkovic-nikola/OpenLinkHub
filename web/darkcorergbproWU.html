@@ -33,19 +33,13 @@
                                         <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
-                            </div>
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <table>
-                                    <tr>
-                                        <th style="width:8%;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">User Profile</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Brightness</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">RGB Profile</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
-                                        <th style="width:60%;padding-left: 15px;"></th>
-                                    </tr>
-                                    <tr>
-                                        <td >
-                                            <select class="form-select userProfile" style="margin-top: 10px;" name="userProfile">
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select userProfile" name="userProfile">
                                                 {{ range $key, $profile := $device.UserProfiles }}
                                                 {{ if $profile.Active }}
                                                 <option value="{{ $key }}" selected>{{ $key }}</option>
@@ -54,12 +48,23 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <select class="form-select mouseRgbProfile" name="mouseRgbProfile" style="margin-top:10px;">
+                                        </li>
+                                    </ul>
+                                    <button title="Brightness" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
+                                        <li>
+                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
+                                        </li>
+                                    </ul>
+
+                                    <button title="RGB Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select mouseRgbProfile" name="mouseRgbProfile">
                                                 {{ range $key, $_ := $rgb }}
                                                 {{ if eq $key "stand" }}
                                                 {{ continue }}
@@ -85,14 +90,12 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <button class="btn btn-secondary saveUserProfile" style="margin-top: 10px;">
-                                                <span>Save As</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </table>
+                                        </li>
+                                    </ul>
+                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
                                 <div class="mouse">

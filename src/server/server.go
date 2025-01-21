@@ -538,6 +538,17 @@ func changeSleepMode(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changePollingRate handles device USB polling rate
+func changePollingRate(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangePollingRate(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeMuteIndicator handles device mute indicator change
 func changeMuteIndicator(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeMuteIndicator(r)
@@ -945,6 +956,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeControlDial)
 	r.Methods(http.MethodPost).Path("/api/keyboard/sleep").
 		HandlerFunc(changeSleepMode)
+	r.Methods(http.MethodPost).Path("/api/keyboard/pollingRate").
+		HandlerFunc(changePollingRate)
 	r.Methods(http.MethodPost).Path("/api/scheduler/rgb").
 		HandlerFunc(changeRgbScheduler)
 	r.Methods(http.MethodPost).Path("/api/psu/speed").
@@ -957,6 +970,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(saveMouseDpiColors)
 	r.Methods(http.MethodPost).Path("/api/mouse/sleep").
 		HandlerFunc(changeSleepMode)
+	r.Methods(http.MethodPost).Path("/api/mouse/pollingRate").
+		HandlerFunc(changePollingRate)
 	r.Methods(http.MethodPost).Path("/api/headset/zoneColors").
 		HandlerFunc(saveHeadsetZoneColors)
 	r.Methods(http.MethodPost).Path("/api/headset/sleep").

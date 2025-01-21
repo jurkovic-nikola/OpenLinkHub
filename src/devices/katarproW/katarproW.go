@@ -33,6 +33,7 @@ type DeviceProfile struct {
 	BrightnessSlider *uint8
 	Label            string
 	Profile          int
+	PollingRate      int
 	Profiles         map[int]DPIProfile
 	SleepMode        int
 }
@@ -63,6 +64,7 @@ type Device struct {
 	ProductId             uint16
 	SlipstreamId          uint16
 	Brightness            map[int]string
+	PollingRates          map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
 	CpuTemp               float32
@@ -93,6 +95,7 @@ var (
 	cmdMouse             = byte(0x09)
 	cmdSetDpi            = map[int][]byte{0: {0x01, 0x20, 0x00}}
 	cmdSleep             = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	cmdSetPollingRate    = []byte{0x01, 0x01, 0x00}
 	bufferSize           = 64
 	bufferSizeWrite      = bufferSize + 1
 	headerSize           = 2
@@ -130,6 +133,14 @@ func Init(vendorId, productId uint16, key string) *Device {
 			1: "33 %",
 			2: "66 %",
 			3: "100 %",
+		},
+		PollingRates: map[int]string{
+			0: "Not Set",
+			1: "125 Hz / 8 msec",
+			2: "250 Hu / 4 msec",
+			3: "500 Hz / 2 msec",
+			4: "1000 Hz / 1 msec",
+			5: "2000 Hz / 0.5 msec",
 		},
 		Product: "KATAR PRO WIRELESS",
 		SleepModes: map[int]string{
@@ -286,6 +297,121 @@ func (d *Device) initLeds() {
 	}
 }
 
+// toggleExit will change Exit value
+func (d *Device) toggleExit() {
+	if d.Exit {
+		d.Exit = false
+	}
+}
+
+// Close will close all timers and channels before restart
+func (d *Device) Close() {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.Connected = false
+	time.Sleep(500 * time.Millisecond)
+}
+
+// Restart will re-init device
+func (d *Device) Restart() {
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+	d.dev = nil
+
+	interfaceId := 1
+	path := ""
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == interfaceId {
+			path = info.Path
+		}
+		return nil
+	})
+	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+	}
+
+	dev, err := hid.OpenPath(path)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "caller": "Restart()"}).Error("Unable to open HID device")
+		return
+	}
+
+	d.dev = dev
+	d.setDongleSoftwareMode() // Switch to software mode
+
+	msg, err := d.transferToDevice(cmdMouse, cmdHeartbeat, nil, "checkIfAlive")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Warn("Unable to perform initial mouse init. Device is either offline or in sleep mode")
+		return
+	}
+
+	if len(msg) > 0 && msg[1] == 0x12 {
+		d.Connected = true       // Mark as connected
+		d.setMouseHardwareMode() // Hardware mode
+		d.setSoftwareMode()      // Switch to software mode
+		d.getDeviceFirmware()    // Firmware
+		d.initLeds()             // Init LED ports
+		d.toggleExit()           // Remove Exit flag
+		d.toggleDPI()            // DPI
+		d.setSleepTimer()        // Sleep timer
+		d.controlListener()      // Control listener
+	}
+}
+
+// UpdatePollingRate will set device polling rate
+func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	if !d.Connected {
+		return 0
+	}
+
+	if _, ok := d.PollingRates[pullingRate]; ok {
+		// Check if the mouse is alive and connected. If mouse is not alive, block any change.
+		msg, err := d.transferToDevice(cmdMouse, cmdHeartbeat, nil, "checkIfAlive")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Warn("Unable to perform initial mouse check. Device is either offline or in sleep mode")
+			return 0
+		}
+		if len(msg) > 0 && msg[1] == 0x12 {
+			// Mouse has to be connected, since polling change is done on dongle and mouse.
+			// Changing the polling rate either on dongle or mouse only will break the connection.
+			if d.DeviceProfile == nil {
+				return 0
+			}
+
+			d.DeviceProfile.PollingRate = pullingRate
+			d.saveDeviceProfile()
+
+			d.Close()
+			buf := make([]byte, 1)
+			buf[0] = byte(pullingRate)
+			_, err = d.transfer(cmdMouse, cmdSetPollingRate, buf, "UpdatePollingRate")
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
+				return 0
+			}
+			_, err = d.transfer(cmdDongle, cmdSetPollingRate, buf, "UpdatePollingRate")
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse dongle polling rate")
+				return 0
+			}
+
+			time.Sleep(5000 * time.Millisecond)
+			d.Restart()
+			return 1
+		}
+	}
+	return 0
+}
+
 // ChangeDeviceProfile will change device profile
 func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	if !d.Connected {
@@ -339,6 +465,22 @@ func (d *Device) setDeviceColor() {
 				buf[dpiColorIndex] = byte(dpiColor.Green)
 			case 2: // Blue
 				buf[dpiColorIndex] = byte(dpiColor.Blue)
+			}
+		}
+	}
+	d.writeColor(buf)
+
+	time.Sleep(1000 * time.Millisecond)
+	for i := 0; i < len(dpiLeds.ColorIndex); i++ {
+		dpiColorIndexRange := dpiLeds.ColorIndex[i]
+		for key, dpiColorIndex := range dpiColorIndexRange {
+			switch key {
+			case 0: // Red
+				buf[dpiColorIndex] = byte(0)
+			case 1: // Green
+				buf[dpiColorIndex] = byte(0)
+			case 2: // Blue
+				buf[dpiColorIndex] = byte(0)
 			}
 		}
 	}
@@ -476,6 +618,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.Profile = 1
 		deviceProfile.SleepMode = 5
+		deviceProfile.PollingRate = 4
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
@@ -490,6 +633,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
+		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -768,7 +912,6 @@ func (d *Device) setupMouse(init bool) {
 		d.setSoftwareMode()      // Switch to software mode
 		d.getDeviceFirmware()    // Firmware
 		d.initLeds()             // Init LED ports
-		d.setDeviceColor()       // Device color
 		d.toggleDPI()            // DPI
 		d.setSleepTimer()        // Sleep timer
 	} else {

@@ -1390,7 +1390,7 @@
           }
         },
         "105": {
-          "keyName": "⊞",
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1455,7 +1455,7 @@
           }
         },
         "110": {
-          "keyName": "RC",
+          "keyName": "Menu",
           "width": 90,
           "height": 70,
           "left": 15,

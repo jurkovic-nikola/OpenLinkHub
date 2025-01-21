@@ -1223,7 +1223,7 @@
           }
         },
         "93": {
-          "keyName": "⊞",
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1288,7 +1288,7 @@
           }
         },
         "98": {
-          "keyName": "RC",
+          "keyName": "Menu",
           "width": 90,
           "height": 70,
           "left": 15,

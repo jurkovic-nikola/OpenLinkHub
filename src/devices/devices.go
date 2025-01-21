@@ -27,8 +27,12 @@ import (
 	"OpenLinkHub/src/devices/k65plusW"
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
+	"OpenLinkHub/src/devices/k70coretkl"
+	"OpenLinkHub/src/devices/k70coretklW"
+	"OpenLinkHub/src/devices/k70coretklWU"
 	"OpenLinkHub/src/devices/k70mk2"
 	"OpenLinkHub/src/devices/k70pro"
+	"OpenLinkHub/src/devices/k70protkl"
 	"OpenLinkHub/src/devices/katarpro"
 	"OpenLinkHub/src/devices/katarproW"
 	"OpenLinkHub/src/devices/katarproxt"
@@ -87,6 +91,10 @@ const (
 	productTypeK100AirW           = 108
 	productTypeK100               = 109
 	productTypeK70MK2             = 110
+	productTypeK70CoreTkl         = 111
+	productTypeK70CoreTklWU       = 112
+	productTypeK70CoreTklW        = 113
+	productTypeK70ProTkl          = 114
 	productTypeKatarPro           = 201
 	productTypeIronClawRgb        = 202
 	productTypeIronClawRgbW       = 203
@@ -150,7 +158,7 @@ var (
 	interfaceId                = 0
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037, 6985, 6997}
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028}
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090}
 	pads                       = []uint16{7067}
 	headsets                   = []uint16{2658, 2660}
@@ -579,6 +587,28 @@ func ChangeDeviceSleepMode(deviceId string, sleepMode int) uint8 {
 		} else {
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(sleepMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeDevicePollingRate will change device polling rate
+func ChangeDevicePollingRate(deviceId string, pullingRate int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdatePollingRate"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(pullingRate))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
 				val := results[0]
@@ -1380,6 +1410,57 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
+		case 11009: // K70 CORE TKL
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70coretkl.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeK70CoreTkl,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 11010: // K70 CORE TKL WIRELESS
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70coretklWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeK70CoreTklWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 11028: // K70 CORE TKL WIRELESS
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70protkl.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeK70ProTkl,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
 		case 7166: // K55 CORE RGB
 			{
 				go func(vendorId, productId uint16, key string) {
@@ -1482,7 +1563,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7109, 7036, 7037: // K100 RGB
+		case 7036, 7109, 7037: // K100 RGB
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := k100.Init(vendorId, productId, key)
@@ -1583,7 +1664,7 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
-						case 7131:
+						case 7131: // SCIMITAR
 							{
 								d := scimitarW.Init(
 									value.VendorId,
@@ -1763,6 +1844,27 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
+						case 11010: // K70 CORE TKL WIRELESS
+							{
+								d := k70coretklW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+									dev.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeK70CoreTklW,
+									Product:     "K70 CORE TKL WIRELESS",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-keyboard.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						default:
 							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 						}
@@ -1782,7 +1884,7 @@ func Init() {
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,
-						Image:       "icon-headphone.svg",
+						Image:       "icon-headphone-stand.svg",
 						Instance:    dev,
 					}
 				}(vendorId, productId, key)

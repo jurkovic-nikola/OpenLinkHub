@@ -74,6 +74,8 @@ type Device struct {
 	autoRefreshChan    chan struct{}
 	keepAliveChan      chan struct{}
 	mutex              sync.Mutex
+	UIKeyboard         string
+	UIKeyboardRow      string
 }
 
 var (
@@ -131,6 +133,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 		},
 		autoRefreshChan: make(chan struct{}),
 		keepAliveChan:   make(chan struct{}),
+		UIKeyboard:      "keyboard-6",
+		UIKeyboardRow:   "keyboard-row-17",
 	}
 
 	d.getDebugMode()        // Debug mode

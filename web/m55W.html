@@ -52,18 +52,13 @@
                                         <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
-                            </div>
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <table>
-                                    <tr>
-                                        <th style="width:8%;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">User Profile</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Sleep</p></th>
-                                        <th style="width:8%;padding-left: 15px;"><p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Save Profile</p></th>
-                                        <th style="width:60%;padding-left: 15px;"></th>
-                                    </tr>
-                                    <tr>
-                                        <td >
-                                            <select class="form-select userProfile" style="margin-top: 10px;" name="userProfile">
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select userProfile" name="userProfile">
                                                 {{ range $key, $profile := $device.UserProfiles }}
                                                 {{ if $profile.Active }}
                                                 <option value="{{ $key }}" selected>{{ $key }}</option>
@@ -72,9 +67,14 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <select class="form-select mouseSleepModes" style="margin-top: 10px;" name="sleepModes">
+                                        </li>
+                                    </ul>
+                                    <button title="Sleep Timer" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-clock-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select mouseSleepModes" name="sleepModes">
                                                 {{ range $key, $sleepMode := $device.SleepModes }}
                                                 {{ if eq $device.DeviceProfile.SleepMode $key }}
                                                 <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
@@ -83,14 +83,13 @@
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
-                                        </td>
-                                        <td style="padding-left: 15px;">
-                                            <button class="btn btn-secondary saveUserProfile" style="margin-top: 10px;">
-                                                <span>Save As</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </table>
+                                        </li>
+                                    </ul>
+
+                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
                                 <div class="mouse">

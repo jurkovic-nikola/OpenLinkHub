@@ -835,7 +835,7 @@
           "zone": 1
         },
         "93": {
-          "keyName": "⊞",
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -891,7 +891,7 @@
           "zone": 6
         },
         "100": {
-          "keyName": "RC",
+          "keyName": "Menu",
           "width": 90,
           "height": 70,
           "left": 15,

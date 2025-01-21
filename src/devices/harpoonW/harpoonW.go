@@ -936,9 +936,6 @@ func (d *Device) setDeviceColor() {
 
 	// DPI
 	dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
-	dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-	dpiColor = rgb.ModifyBrightness(*dpiColor)
-
 	dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 	for i := 0; i < len(dpiLeds.ColorIndex); i++ {
 		dpiColorIndexRange := dpiLeds.ColorIndex[i]

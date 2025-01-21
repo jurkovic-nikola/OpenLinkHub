@@ -1378,7 +1378,7 @@
           }
         },
         "104": {
-          "keyName": "icon-windows.svg",
+          "keyName": "Win",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1388,8 +1388,7 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          },
-          "svg": true
+          }
         },
         "105": {
           "keyName": "Alt",
@@ -1431,7 +1430,7 @@
           }
         },
         "108": {
-          "keyName": "icon-windows.svg",
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1441,8 +1440,7 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          },
-          "svg": true
+          }
         },
         "109": {
           "keyName": "RC",

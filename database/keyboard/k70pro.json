@@ -49,7 +49,7 @@
           "svg": true
         },
         "4": {
-          "keyName": "",
+          "keyName": "Logo",
           "width": 404,
           "height": 40,
           "left": 400,
@@ -1352,7 +1352,7 @@
           }
         },
         "102": {
-          "keyName": "⊞",
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1443,7 +1443,7 @@
           }
         },
         "109": {
-          "keyName": "RC",
+          "keyName": "Menu",
           "width": 90,
           "height": 70,
           "left": 15,

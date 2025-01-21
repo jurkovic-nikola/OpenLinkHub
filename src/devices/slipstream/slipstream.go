@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
+	"OpenLinkHub/src/devices/k70coretklW"
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/nightsabreW"
@@ -182,6 +183,11 @@ func (d *Device) Stop() {
 				dev.StopInternal()
 			}
 		}
+		if dev, found := value.(*k70coretklW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
 	}
 
 	d.setHardwareMode()
@@ -221,6 +227,7 @@ func (d *Device) getDevices() {
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
 	}
+
 	channels := buff[5]
 	data := buff[6:]
 	position := 0
@@ -244,6 +251,7 @@ func (d *Device) getDevices() {
 				VendorId:  vendorId,
 				ProductId: productId,
 			}
+
 			devices[i] = device
 			position += 8 + int(deviceIdLen)
 		}
@@ -421,6 +429,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*k70coretklW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -477,6 +490,11 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
+		if device, found := pairedDevice.(*k70coretklW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
 	}
 }
 
@@ -488,6 +506,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 			{
 				// Keyboards
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -556,6 +579,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 			{
 				// Keyboards
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}
@@ -661,6 +689,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*darkstarW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}
@@ -953,11 +986,19 @@ func (d *Device) controlListener() {
 									} else if data[1] == 0x02 && data[2] == 0x20 {
 										inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
 									} else if data[1] == 0x02 && data[2] == 0x40 {
-										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 1
+										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
 									} else if data[1] == 0x02 && data[2] == 0x80 {
-										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 1
+										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
 									} else if data[1] == 0x02 && data[3] == 0x01 {
-										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 1
+										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
+									}
+								}
+
+								if dev, found := value.(*k70coretklW.Device); found {
+									if data[1] == 0x02 && data[2] == 0x04 {
+										dev.ControlDial(data)
+									} else if data[1] == 0x05 && (data[4] == 0x01 || data[4] == 0xff) {
+										dev.ControlDial(data)
 									}
 								}
 							}

@@ -189,16 +189,16 @@
           }
         },
         "15": {
-          "keyName": "G1",
+          "keyName": "Logo",
           "width": 70,
           "height": 70,
           "left": 15,
           "top": 0,
           "packetIndex": [387],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         }
       }
@@ -790,7 +790,7 @@
           }
         },
         "60": {
-          "keyName": "⊞",
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,

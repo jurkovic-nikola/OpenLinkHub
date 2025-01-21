@@ -75,6 +75,8 @@ type Device struct {
 	Endpoint           byte
 	mutex              sync.Mutex
 	Exit               bool
+	UIKeyboard         string
+	UIKeyboardRow      string
 }
 
 var (
@@ -148,6 +150,8 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			30: "30 minutes",
 			60: "1 hour",
 		},
+		UIKeyboard:    "keyboard-7",
+		UIKeyboardRow: "keyboard-row-25",
 	}
 
 	d.getDebugMode()       // Debug mode

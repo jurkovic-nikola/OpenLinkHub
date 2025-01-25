@@ -16,26 +16,102 @@ import (
 	"syscall"
 )
 
+type InputAction struct {
+	Name        string
+	CommandCode uint16
+}
+
 const (
-	VolumeUp       uint8 = 0
-	VolumeDown     uint8 = 1
-	VolumeMute     uint8 = 2
-	MediaStop      uint8 = 3
-	MediaPrev      uint8 = 4
-	MediaPlayPause uint8 = 5
-	MediaNext      uint8 = 6
-	Number1        uint8 = 7
-	Number2        uint8 = 8
-	Number3        uint8 = 9
-	Number4        uint8 = 10
-	Number5        uint8 = 11
-	Number6        uint8 = 12
-	Number7        uint8 = 13
-	Number8        uint8 = 14
-	Number9        uint8 = 15
-	Number10       uint8 = 16
-	Number11       uint8 = 17
-	Number12       uint8 = 18
+	VolumeUp       uint8 = 1
+	VolumeDown     uint8 = 2
+	VolumeMute     uint8 = 3
+	MediaStop      uint8 = 4
+	MediaPrev      uint8 = 5
+	MediaPlayPause uint8 = 6
+	MediaNext      uint8 = 7
+	Number1        uint8 = 8
+	Number2        uint8 = 9
+	Number3        uint8 = 10
+	Number4        uint8 = 11
+	Number5        uint8 = 12
+	Number6        uint8 = 13
+	Number7        uint8 = 14
+	Number8        uint8 = 15
+	Number9        uint8 = 16
+	Number0        uint8 = 17
+	KeyMinus       uint8 = 18
+	KeyEqual       uint8 = 19
+	KeyQ           uint8 = 20
+	KeyW           uint8 = 21
+	KeyE           uint8 = 22
+	KeyR           uint8 = 23
+	KeyT           uint8 = 24
+	KeyY           uint8 = 25
+	KeyU           uint8 = 26
+	KeyI           uint8 = 27
+	KeyO           uint8 = 28
+	KeyP           uint8 = 29
+	KeyA           uint8 = 30
+	KeyS           uint8 = 31
+	KeyD           uint8 = 32
+	KeyF           uint8 = 33
+	KeyG           uint8 = 34
+	KeyH           uint8 = 35
+	KeyJ           uint8 = 36
+	KeyK           uint8 = 37
+	KeyL           uint8 = 38
+	KeyZ           uint8 = 39
+	KeyX           uint8 = 40
+	KeyC           uint8 = 41
+	KeyV           uint8 = 42
+	KeyB           uint8 = 43
+	KeyN           uint8 = 44
+	KeyM           uint8 = 45
+	KeyF1          uint8 = 46
+	KeyF2          uint8 = 47
+	KeyF3          uint8 = 48
+	KeyF4          uint8 = 49
+	KeyF5          uint8 = 50
+	KeyF6          uint8 = 51
+	KeyF7          uint8 = 52
+	KeyF8          uint8 = 53
+	KeyF9          uint8 = 54
+	KeyF10         uint8 = 55
+	KeyF11         uint8 = 56
+	KeyF12         uint8 = 57
+	KeyBack        uint8 = 58
+	KeyTab         uint8 = 59
+	KeyEsc         uint8 = 60
+	KeyTilde       uint8 = 61
+	KeyLeftSquare  uint8 = 62
+	KeyRightSquare uint8 = 63
+	KeyBackslash   uint8 = 64
+	KeyCapslock    uint8 = 65
+	KeySemicolon   uint8 = 66
+	KeySingleQuote uint8 = 67
+	KeyEnter       uint8 = 68
+	KeyLeftShift   uint8 = 69
+	KeyComma       uint8 = 70
+	KeyDot         uint8 = 71
+	KeySlash       uint8 = 72
+	KeyRightShift  uint8 = 73
+	KeyUp          uint8 = 74
+	KeyLeftCtrl    uint8 = 75
+	KeyWindowsKey  uint8 = 76
+	KeyLeftAlt     uint8 = 77
+	KeySpace       uint8 = 78
+	KeyRightAlt    uint8 = 79
+	KeyMenu        uint8 = 80
+	KeyRightCtrl   uint8 = 81
+	KeyLeft        uint8 = 82
+	KeyDown        uint8 = 83
+	KeyRight       uint8 = 84
+	KeyIns         uint8 = 85
+	KeyHome        uint8 = 86
+	KeyPgUp        uint8 = 87
+	KeyDel         uint8 = 88
+	KeyEnd         uint8 = 89
+	KeyPgDn        uint8 = 90
 )
 
 var (
@@ -48,7 +124,6 @@ var (
 	keyMediaPrev   uint16 = 0xA5
 	keyMediaPlay   uint16 = 0xA4
 	keyMediaNext   uint16 = 0xA3
-	keyNumber0     uint16 = 0xB
 	keyNumber1     uint16 = 0x2
 	keyNumber2     uint16 = 0x3
 	keyNumber3     uint16 = 0x4
@@ -58,9 +133,7 @@ var (
 	keyNumber7     uint16 = 0x8
 	keyNumber8     uint16 = 0x9
 	keyNumber9     uint16 = 0xA
-	keyNumber10    uint16 = 0xB
-	keyNumber11    uint16 = 0xC
-	keyNumber12    uint16 = 0xD
+	keyNumber0     uint16 = 0xB
 	keyEsc         uint16 = 0x1
 	keyF1          uint16 = 0x3B
 	keyF2          uint16 = 0x3C
@@ -76,7 +149,7 @@ var (
 	keyF12         uint16 = 0x58
 	keyTilde       uint16 = 0x29
 	keyMinus       uint16 = 0xC
-	keyEquals      uint16 = 0xD
+	keyEqual       uint16 = 0xD
 	keyBack        uint16 = 0xE
 	keyTab         uint16 = 0xF
 	keyQ           uint16 = 0x10
@@ -134,7 +207,9 @@ var (
 	keyDel         uint16 = 0x6F
 	keyEnd         uint16 = 0x6B
 	keyPgDn        uint16 = 0x6D
-	devicePath     []string
+
+	devicePath   []string
+	inputActions map[uint8]InputAction
 )
 
 type inputEvent struct {
@@ -144,21 +219,116 @@ type inputEvent struct {
 	Value int32
 }
 
+// buildInputActions will fill inputActions map with InputAction data
+func buildInputActions() {
+	inputActions = make(map[uint8]InputAction, 0)
+
+	// Media
+	inputActions[VolumeUp] = InputAction{Name: "Volume Up", CommandCode: keyVolumeUp}
+	inputActions[VolumeDown] = InputAction{Name: "Volume Down", CommandCode: keyVolumeDown}
+	inputActions[VolumeMute] = InputAction{Name: "Mute", CommandCode: keyVolumeMute}
+	inputActions[MediaStop] = InputAction{Name: "Stop", CommandCode: keyMediaStop}
+	inputActions[MediaPrev] = InputAction{Name: "Previous", CommandCode: keyMediaPrev}
+	inputActions[MediaPlayPause] = InputAction{Name: "Play", CommandCode: keyMediaPlay}
+	inputActions[MediaNext] = InputAction{Name: "Next", CommandCode: keyMediaNext}
+
+	// Numbers
+	inputActions[Number0] = InputAction{Name: "Number 0", CommandCode: keyNumber0}
+	inputActions[Number1] = InputAction{Name: "Number 1", CommandCode: keyNumber1}
+	inputActions[Number2] = InputAction{Name: "Number 2", CommandCode: keyNumber2}
+	inputActions[Number3] = InputAction{Name: "Number 3", CommandCode: keyNumber3}
+	inputActions[Number4] = InputAction{Name: "Number 4", CommandCode: keyNumber4}
+	inputActions[Number5] = InputAction{Name: "Number 5", CommandCode: keyNumber5}
+	inputActions[Number6] = InputAction{Name: "Number 6", CommandCode: keyNumber6}
+	inputActions[Number7] = InputAction{Name: "Number 7", CommandCode: keyNumber7}
+	inputActions[Number8] = InputAction{Name: "Number 8", CommandCode: keyNumber8}
+	inputActions[Number9] = InputAction{Name: "Number 9", CommandCode: keyNumber9}
+
+	// Keys
+	inputActions[KeyMinus] = InputAction{Name: "Minus (-)", CommandCode: keyMinus}
+	inputActions[KeyEqual] = InputAction{Name: "Equals (=)", CommandCode: keyEqual}
+	inputActions[KeyQ] = InputAction{Name: "Q", CommandCode: keyQ}
+	inputActions[KeyW] = InputAction{Name: "W", CommandCode: keyW}
+	inputActions[KeyE] = InputAction{Name: "E", CommandCode: keyE}
+	inputActions[KeyR] = InputAction{Name: "R", CommandCode: keyR}
+	inputActions[KeyT] = InputAction{Name: "T", CommandCode: keyT}
+	inputActions[KeyY] = InputAction{Name: "Y", CommandCode: keyY}
+	inputActions[KeyU] = InputAction{Name: "U", CommandCode: keyU}
+	inputActions[KeyI] = InputAction{Name: "I", CommandCode: keyI}
+	inputActions[KeyO] = InputAction{Name: "O", CommandCode: keyO}
+	inputActions[KeyP] = InputAction{Name: "P", CommandCode: keyP}
+	inputActions[KeyA] = InputAction{Name: "A", CommandCode: keyA}
+	inputActions[KeyS] = InputAction{Name: "S", CommandCode: keyS}
+	inputActions[KeyD] = InputAction{Name: "D", CommandCode: keyD}
+	inputActions[KeyF] = InputAction{Name: "F", CommandCode: keyF}
+	inputActions[KeyG] = InputAction{Name: "G", CommandCode: keyG}
+	inputActions[KeyH] = InputAction{Name: "H", CommandCode: keyH}
+	inputActions[KeyJ] = InputAction{Name: "J", CommandCode: keyJ}
+	inputActions[KeyK] = InputAction{Name: "K", CommandCode: keyK}
+	inputActions[KeyL] = InputAction{Name: "L", CommandCode: keyL}
+	inputActions[KeyZ] = InputAction{Name: "Z", CommandCode: keyZ}
+	inputActions[KeyX] = InputAction{Name: "X", CommandCode: keyX}
+	inputActions[KeyC] = InputAction{Name: "C", CommandCode: keyC}
+	inputActions[KeyV] = InputAction{Name: "V", CommandCode: keyV}
+	inputActions[KeyB] = InputAction{Name: "B", CommandCode: keyB}
+	inputActions[KeyN] = InputAction{Name: "N", CommandCode: keyN}
+	inputActions[KeyM] = InputAction{Name: "M", CommandCode: keyM}
+	inputActions[KeyF1] = InputAction{Name: "F1", CommandCode: keyF1}
+	inputActions[KeyF2] = InputAction{Name: "F2", CommandCode: keyF2}
+	inputActions[KeyF3] = InputAction{Name: "F3", CommandCode: keyF3}
+	inputActions[KeyF4] = InputAction{Name: "F4", CommandCode: keyF4}
+	inputActions[KeyF5] = InputAction{Name: "F5", CommandCode: keyF5}
+	inputActions[KeyF6] = InputAction{Name: "F6", CommandCode: keyF6}
+	inputActions[KeyF7] = InputAction{Name: "F7", CommandCode: keyF7}
+	inputActions[KeyF8] = InputAction{Name: "F8", CommandCode: keyF8}
+	inputActions[KeyF9] = InputAction{Name: "F9", CommandCode: keyF9}
+	inputActions[KeyF10] = InputAction{Name: "F10", CommandCode: keyF10}
+	inputActions[KeyF11] = InputAction{Name: "F11", CommandCode: keyF11}
+	inputActions[KeyF12] = InputAction{Name: "F12", CommandCode: keyF12}
+	inputActions[KeyBack] = InputAction{Name: "Back", CommandCode: keyBack}
+	inputActions[KeyTab] = InputAction{Name: "Tab", CommandCode: keyTab}
+	inputActions[KeyEsc] = InputAction{Name: "Esc", CommandCode: keyEsc}
+	inputActions[KeyTilde] = InputAction{Name: "Tilde (`)", CommandCode: keyTilde}
+	inputActions[KeyLeftSquare] = InputAction{Name: "Left Square [{", CommandCode: keyLeftSquare}
+	inputActions[KeyRightSquare] = InputAction{Name: "Right Square }]", CommandCode: keyRightSquare}
+	inputActions[KeyBackslash] = InputAction{Name: "Backslash (\\)", CommandCode: keyBackslash}
+	inputActions[KeyCapslock] = InputAction{Name: "Capslock", CommandCode: keyCapslock}
+	inputActions[KeySemicolon] = InputAction{Name: "Semicolon (;)", CommandCode: keySemicolon}
+	inputActions[KeySingleQuote] = InputAction{Name: "Single Quote (')", CommandCode: keySingleQuote}
+	inputActions[KeyEnter] = InputAction{Name: "Enter", CommandCode: keyEnter}
+	inputActions[KeyLeftShift] = InputAction{Name: "Left Shift", CommandCode: keyLeftShift}
+	inputActions[KeyComma] = InputAction{Name: "Comma (,)", CommandCode: keyComma}
+	inputActions[KeyDot] = InputAction{Name: "Dot (.)", CommandCode: keyDot}
+	inputActions[KeySlash] = InputAction{Name: "Slash (/)", CommandCode: keySlash}
+	inputActions[KeyRightShift] = InputAction{Name: "Right Shift", CommandCode: keyRightShift}
+	inputActions[KeyUp] = InputAction{Name: "Up", CommandCode: keyUp}
+	inputActions[KeyLeftCtrl] = InputAction{Name: "Left Ctrl", CommandCode: keyLeftCtrl}
+	inputActions[KeyWindowsKey] = InputAction{Name: "Windows Key", CommandCode: keyWindowsKey}
+	inputActions[KeyLeftAlt] = InputAction{Name: "Left Alt", CommandCode: keyLeftAlt}
+	inputActions[KeySpace] = InputAction{Name: "Space", CommandCode: keySpace}
+	inputActions[KeyRightAlt] = InputAction{Name: "Right Alt", CommandCode: keyRightAlt}
+	inputActions[KeyMenu] = InputAction{Name: "Menu", CommandCode: keyMenu}
+	inputActions[KeyRightCtrl] = InputAction{Name: "Right Ctrl", CommandCode: keyRightCtrl}
+	inputActions[KeyLeft] = InputAction{Name: "Left", CommandCode: keyLeft}
+	inputActions[KeyDown] = InputAction{Name: "Down", CommandCode: keyDown}
+	inputActions[KeyRight] = InputAction{Name: "Right", CommandCode: keyRight}
+	inputActions[KeyIns] = InputAction{Name: "Insert", CommandCode: keyIns}
+	inputActions[KeyHome] = InputAction{Name: "Home", CommandCode: keyHome}
+	inputActions[KeyPgUp] = InputAction{Name: "Pg Up", CommandCode: keyPgUp}
+	inputActions[KeyDel] = InputAction{Name: "Delete", CommandCode: keyDel}
+	inputActions[KeyEnd] = InputAction{Name: "End", CommandCode: keyEnd}
+	inputActions[KeyPgDn] = InputAction{Name: "Pg Dn", CommandCode: keyPgDn}
+}
+
 // Init will fetch an input device
 func Init() {
 	devicePath = findDevice()
+	buildInputActions()
 }
 
-// getDevicePathBySerial will return a device path by serial number
-func getDevicePathBySerial(serial string) string {
-	if devicePath != nil {
-		for _, value := range devicePath {
-			if strings.Contains(value, serial) {
-				return value
-			}
-		}
-	}
-	return ""
+// GetInputActions will return a map of InputAction
+func GetInputActions() map[uint8]InputAction {
+	return inputActions
 }
 
 // InputControl will emulate volume control keys
@@ -173,65 +343,13 @@ func InputControl(controlType uint8, serial string) {
 	}
 
 	var events []inputEvent
-	switch controlType {
-	case 0:
-		events = createInputEvent(keyVolumeUp)
-		break
-	case 1:
-		events = createInputEvent(keyVolumeDown)
-		break
-	case 2:
-		events = createInputEvent(keyVolumeMute)
-		break
-	case 3:
-		events = createInputEvent(keyMediaStop)
-		break
-	case 4:
-		events = createInputEvent(keyMediaPrev)
-		break
-	case 5:
-		events = createInputEvent(keyMediaPlay)
-		break
-	case 6:
-		events = createInputEvent(keyMediaNext)
-		break
-	case 7:
-		events = createInputEvent(keyNumber1)
-		break
-	case 8:
-		events = createInputEvent(keyNumber2)
-		break
-	case 9:
-		events = createInputEvent(keyNumber3)
-		break
-	case 10:
-		events = createInputEvent(keyNumber4)
-		break
-	case 11:
-		events = createInputEvent(keyNumber5)
-		break
-	case 12:
-		events = createInputEvent(keyNumber6)
-		break
-	case 13:
-		events = createInputEvent(keyNumber7)
-		break
-	case 14:
-		events = createInputEvent(keyNumber8)
-		break
-	case 15:
-		events = createInputEvent(keyNumber9)
-		break
-	case 16:
-		events = createInputEvent(keyNumber10)
-		break
-	case 17:
-		events = createInputEvent(keyNumber11)
-		break
-	case 18:
-		events = createInputEvent(keyNumber12)
-		break
+
+	actionType := getInputAction(controlType)
+	if actionType == nil {
+		return
 	}
+
+	events = createInputEvent(actionType.CommandCode)
 
 	// Send events
 	for _, event := range events {
@@ -243,6 +361,26 @@ func InputControl(controlType uint8, serial string) {
 
 	// Close device
 	closeDevice(device)
+}
+
+// getInputAction will return InputAction based on actionType
+func getInputAction(actionType uint8) *InputAction {
+	if action, ok := inputActions[actionType]; ok {
+		return &action
+	}
+	return nil
+}
+
+// getDevicePathBySerial will return a device path by serial number
+func getDevicePathBySerial(serial string) string {
+	if devicePath != nil {
+		for _, value := range devicePath {
+			if strings.Contains(value, serial) {
+				return value
+			}
+		}
+	}
+	return ""
 }
 
 // emitEvent will send an event toward the device

@@ -35,6 +35,7 @@ var (
 		"memorySku":       "",
 		"resumeDelay":     15000,
 		"logLevel":        log.InfoLevel,
+		"logFile":         "",
 	}
 )
 

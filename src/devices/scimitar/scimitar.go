@@ -1458,11 +1458,11 @@ func (d *Device) controlListener() {
 					} else if data[3] == 0x20 {
 						inputmanager.InputControl(inputmanager.Number9, d.Serial) // 8
 					} else if data[3] == 0x40 {
-						inputmanager.InputControl(inputmanager.Number10, d.Serial) // 10
+						inputmanager.InputControl(inputmanager.Number0, d.Serial) // 0
 					} else if data[3] == 0x80 {
-						inputmanager.InputControl(inputmanager.Number11, d.Serial) // 11
+						inputmanager.InputControl(inputmanager.KeyMinus, d.Serial) // -
 					} else if data[4] == 0x01 {
-						inputmanager.InputControl(inputmanager.Number12, d.Serial) // 12
+						inputmanager.InputControl(inputmanager.KeyEqual, d.Serial) // =
 					}
 				}
 			}

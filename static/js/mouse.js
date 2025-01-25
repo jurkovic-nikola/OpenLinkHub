@@ -298,4 +298,60 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    $('.mouseAngleSnapping').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["angleSnapping"] = parseInt($(this).val());
+        const json = JSON.stringify(pf, null, 2);
+
+        $('.mouseAngleSnapping').prop('disabled', true);
+        $.ajax({
+            url: '/api/mouse/angleSnapping',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+                $('.mouseAngleSnapping').prop('disabled', false);
+            }
+        });
+    });
+
+    $('.mouseButtonOptimization').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["buttonOptimization"] = parseInt($(this).val());
+        const json = JSON.stringify(pf, null, 2);
+
+        $('.mouseButtonOptimization').prop('disabled', true);
+        $.ajax({
+            url: '/api/mouse/buttonOptimization',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+                $('.mouseButtonOptimization').prop('disabled', false);
+            }
+        });
+    });
 });

@@ -37,8 +37,16 @@ type DeviceProfile struct {
 	PollingRate        int
 	Profiles           map[int]DPIProfile
 	SleepMode          int
+	AngleSnapping      int
+	ButtonOptimization int
 }
 
+type KeyAssignments struct {
+	Name          string
+	PacketIndex   byte
+	ActionType    int
+	ActionCommand int
+}
 type DPIProfile struct {
 	Name        string `json:"name"`
 	Value       uint16
@@ -65,6 +73,7 @@ type Device struct {
 	ProductId             uint16
 	Brightness            map[int]string
 	PollingRates          map[int]string
+	SwitchModes           map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
 	CpuTemp               float32
@@ -79,22 +88,28 @@ type Device struct {
 }
 
 var (
-	pwd               = ""
-	cmdSoftwareMode   = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode   = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware    = []byte{0x02, 0x13}
-	cmdWriteColor     = []byte{0x06, 0x00}
-	cmdOpenEndpoint   = []byte{0x0d, 0x00, 0x01}
-	cmdSetDpi         = map[int][]byte{0: {0x01, 0x20, 0x00}}
-	dataTypeSetColor  = []byte{0x12, 0x00}
-	cmdSetPollingRate = []byte{0x01, 0x01, 0x00}
-	bufferSize        = 128
-	bufferSizeWrite   = bufferSize + 1
-	headerSize        = 2
-	headerWriteSize   = 4
-	minDpiValue       = 100
-	maxDpiValue       = 16000
-	deviceKeepAlive   = 20000
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdWrite              = []byte{0x06, 0x01}
+	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
+	cmdOpenWriteEndpoint  = []byte{0x0d, 0x01, 0x02}
+	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x01}
+	dataDefaultButtons    = []byte{0x01, 0x01, 0x01, 0x00, 0x00, 0x01}
+	cmdSetDpi             = map[int][]byte{0: {0x01, 0x20, 0x00}}
+	cmdAngleSnapping      = []byte{0x01, 0x07, 0x00}
+	cmdButtonOptimization = []byte{0x01, 0xb0, 0x00}
+	dataTypeSetColor      = []byte{0x12, 0x00}
+	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
+	bufferSize            = 128
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	minDpiValue           = 100
+	maxDpiValue           = 16000
+	deviceKeepAlive       = 20000
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -140,20 +155,26 @@ func Init(vendorId, productId uint16, key string) *Device {
 			3: "500 Hz / 2 msec",
 			4: "1000 Hz / 1 msec",
 		},
+		SwitchModes: map[int]string{
+			0: "Disabled",
+			1: "Enabled",
+		},
 	}
 
-	d.getDebugMode()       // Debug mode
-	d.getManufacturer()    // Manufacturer
-	d.getSerial()          // Serial
-	d.loadDeviceProfiles() // Load all device profiles
-	d.saveDeviceProfile()  // Save profile
-	d.getDeviceFirmware()  // Firmware
-	d.setSoftwareMode()    // Activate software mode
-	d.initLeds()           // Init LED ports
-	d.setDeviceColor()     // Device color
-	d.toggleDPI()          // DPI
-	d.controlListener()    // Control listener
-	d.setKeepAlive()       // Keepalive
+	d.getDebugMode()          // Debug mode
+	d.getManufacturer()       // Manufacturer
+	d.getSerial()             // Serial
+	d.loadDeviceProfiles()    // Load all device profiles
+	d.saveDeviceProfile()     // Save profile
+	d.getDeviceFirmware()     // Firmware
+	d.setSoftwareMode()       // Activate software mode
+	d.setAngleSnapping()      // Angle snapping
+	d.setButtonOptimization() // Button optimization
+	d.initLeds()              // Init LED ports
+	d.setDeviceColor()        // Device color
+	d.toggleDPI()             // DPI
+	d.controlListener()       // Control listener
+	d.setKeepAlive()          // Keepalive
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d
@@ -534,8 +555,41 @@ func (d *Device) getDeviceFirmware() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
 
+	if len(fw) < 1 {
+		return
+	}
 	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
+}
+
+// setAngleSnapping will change Angle Snapping mode
+func (d *Device) setAngleSnapping() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.AngleSnapping < 0 || d.DeviceProfile.AngleSnapping > 1 {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.AngleSnapping)
+	_, _ = d.transfer(cmdAngleSnapping, buf)
+}
+
+// setButtonOptimization will change Button Response Optimization mode
+func (d *Device) setButtonOptimization() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.ButtonOptimization < 0 || d.DeviceProfile.ButtonOptimization > 1 {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.ButtonOptimization)
+	_, _ = d.transfer(cmdButtonOptimization, buf)
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -653,6 +707,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
+		deviceProfile.AngleSnapping = d.DeviceProfile.AngleSnapping
+		deviceProfile.ButtonOptimization = d.DeviceProfile.ButtonOptimization
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -899,6 +955,39 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 	return 0
 }
 
+// UpdateAngleSnapping will update angle snapping mode
+func (d *Device) UpdateAngleSnapping(angleSnappingMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.AngleSnapping == angleSnappingMode {
+		return 0
+	}
+
+	d.DeviceProfile.AngleSnapping = angleSnappingMode
+	d.saveDeviceProfile()
+	d.setAngleSnapping()
+	return 1
+}
+
+// UpdateButtonOptimization will update button response optimization mode
+func (d *Device) UpdateButtonOptimization(buttonOptimizationMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.ButtonOptimization == buttonOptimizationMode {
+		return 0
+	}
+
+	d.DeviceProfile.ButtonOptimization = buttonOptimizationMode
+	d.saveDeviceProfile()
+	d.setButtonOptimization()
+	return 1
+}
+
+// ModifyDpi will modify mouse DPI
 func (d *Device) ModifyDpi() {
 	if d.DeviceProfile.Profile >= 4 {
 		d.DeviceProfile.Profile = 0
@@ -1102,11 +1191,16 @@ func (d *Device) controlListener() {
 
 				if data[1] == 0x02 {
 					if data[2] == 0x20 {
+						// DPI Button
 						d.ModifyDpi()
 					} else if data[2] == 0x10 {
-						// Bottom side button
+						// Back button
 					} else if data[2] == 0x08 {
-						// Upper side button
+						// Forward button
+					} else if data[2] == 0x10 {
+						// Middle button
+					} else if data[2] == 0x02 {
+						// Right click
 					}
 				}
 			}

@@ -168,7 +168,9 @@ $ systemctl reboot
   "memoryType": 4,
   "exclude": [],
   "decodeMemorySku": true,
-  "memorySku": ""
+  "memorySku": "",
+  "logFile": "",
+  "logLevel": "info"
 }
 ```
 - listenPort: HTTP server port.
@@ -185,6 +187,10 @@ $ systemctl reboot
 - decodeMemorySku: set to false to manually define `memorySku` value.
 - memorySku: Memory part number, e.g. (CMT64GX5M2B5600Z40)
 - You can find memory part number by running the following command: `sudo dmidecode -t memory | grep 'Part Number'`
+- logFile: custom location for logging. Default is empty.
+  - Defining `-` for logFile will send all logs to standard console output.
+  - If you change the location of logging, make sure the application username has permission to write to that folder.
+- logLevel: log level to log in console or file.
 
 ## Uninstall
 ```bash

@@ -549,6 +549,28 @@ func changePollingRate(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeAngleSnapping handles device angle snapping mode
+func changeAngleSnapping(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeAngleSnapping(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeButtonOptimization handles device button optimization mode
+func changeButtonOptimization(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeButtonOptimization(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeMuteIndicator handles device mute indicator change
 func changeMuteIndicator(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeMuteIndicator(r)
@@ -972,6 +994,10 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeSleepMode)
 	r.Methods(http.MethodPost).Path("/api/mouse/pollingRate").
 		HandlerFunc(changePollingRate)
+	r.Methods(http.MethodPost).Path("/api/mouse/angleSnapping").
+		HandlerFunc(changeAngleSnapping)
+	r.Methods(http.MethodPost).Path("/api/mouse/buttonOptimization").
+		HandlerFunc(changeButtonOptimization)
 	r.Methods(http.MethodPost).Path("/api/headset/zoneColors").
 		HandlerFunc(saveHeadsetZoneColors)
 	r.Methods(http.MethodPost).Path("/api/headset/sleep").

@@ -69,6 +69,40 @@
                                         </li>
                                     </ul>
 
+                                    <button title="Angle Snapping" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi fa-angle-down svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select mouseAngleSnapping" name="mouseAngleSnapping">
+                                                {{ range $key, $sm := $device.SwitchModes }}
+                                                {{ if eq $key $device.DeviceProfile.AngleSnapping }}
+                                                <option value="{{ $key }}" selected>{{ $sm }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sm }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="Button Response Optimization" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-menu-button-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select mouseButtonOptimization" name="mouseButtonOptimization">
+                                                {{ range $key, $sm := $device.SwitchModes }}
+                                                {{ if eq $key $device.DeviceProfile.ButtonOptimization }}
+                                                <option value="{{ $key }}" selected>{{ $sm }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sm }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
                                     <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

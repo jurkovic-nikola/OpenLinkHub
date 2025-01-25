@@ -48,6 +48,8 @@ type Payload struct {
 	KeyboardControlDial int               `json:"keyboardControlDial"`
 	SleepMode           int               `json:"sleepMode"`
 	PollingRate         int               `json:"pollingRate"`
+	ButtonOptimization  int               `json:"buttonOptimization"`
+	AngleSnapping       int               `json:"angleSnapping"`
 	MuteIndicator       int               `json:"muteIndicator"`
 	RgbControl          bool              `json:"rgbControl"`
 	RgbOff              string            `json:"rgbOff"`
@@ -68,6 +70,7 @@ type Payload struct {
 	Message             string
 }
 
+// ProcessDeleteTemperatureProfile will process deletion of temperature profile
 func ProcessDeleteTemperatureProfile(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -114,6 +117,7 @@ func ProcessDeleteTemperatureProfile(r *http.Request) *Payload {
 	}
 }
 
+// ProcessUpdateTemperatureProfile will process update of temperature profile
 func ProcessUpdateTemperatureProfile(r *http.Request) *Payload {
 	err := r.ParseForm()
 	if err != nil {
@@ -165,6 +169,7 @@ func ProcessUpdateTemperatureProfile(r *http.Request) *Payload {
 	}
 }
 
+// ProcessNewTemperatureProfile will process the creation of temperature profile
 func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -822,6 +827,86 @@ func ProcessChangePollingRate(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change device polling rate. Please try again", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change device polling rate", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeAngleSnapping will process POST request from a client for angle-snapping mode change
+func ProcessChangeAngleSnapping(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.AngleSnapping < 0 || req.AngleSnapping > 1 {
+		return &Payload{Message: "Invalid angle snapping option", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeDeviceAngleSnapping(req.DeviceId, req.AngleSnapping)
+	switch status {
+	case 1:
+		return &Payload{Message: "Device angle snapping mode successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change angle snapping mode. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change angle snapping mode", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeButtonOptimization will process POST request from a client for button optimization mode change
+func ProcessChangeButtonOptimization(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.ButtonOptimization < 0 || req.ButtonOptimization > 1 {
+		return &Payload{Message: "Invalid angle snapping option", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.ChangeDeviceButtonOptimization(req.DeviceId, req.ButtonOptimization)
+	switch status {
+	case 1:
+		return &Payload{Message: "Device button optimization mode successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to change button optimization mode. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change button optimization mode", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeMuteIndicator will process POST request from a client for device mute indicator change

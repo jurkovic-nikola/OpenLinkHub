@@ -620,6 +620,50 @@ func ChangeDevicePollingRate(deviceId string, pullingRate int) uint8 {
 	return 0
 }
 
+// ChangeDeviceAngleSnapping will change device angle snapping mode
+func ChangeDeviceAngleSnapping(deviceId string, angleSnappingMode int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateAngleSnapping"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(angleSnappingMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeDeviceButtonOptimization will change device button optimization mode
+func ChangeDeviceButtonOptimization(deviceId string, buttonOptimizationMode int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateButtonOptimization"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(buttonOptimizationMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // ChangeDeviceMuteIndicator will change device mute indicator
 func ChangeDeviceMuteIndicator(deviceId string, muteIndicator int) uint8 {
 	if device, ok := devices[deviceId]; ok {

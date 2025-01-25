@@ -10,13 +10,20 @@ type Fields = log.Fields
 
 // Init will initialize new instance of logger
 func Init() {
-	logFilename := config.GetConfig().ConfigPath + "/stdout.log"
 	log.SetFormatter(&log.JSONFormatter{})
-	file, err := os.OpenFile(logFilename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
-	} else {
-		log.Info("Failed to log to file, using default stderr")
+	log.SetLevel(config.GetConfig().LogLevel)
+
+	logFilename := config.GetConfig().LogFile
+	if logFilename == "" {
+		logFilename = config.GetConfig().ConfigPath + "/stdout.log"
+	}
+	if logFilename != "-" {
+		file, err := os.OpenFile(logFilename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			log.SetOutput(file)
+		} else {
+			log.WithFields(log.Fields{"error": err}).Warn("Failed to log to file, using default stderr")
+		}
 	}
 }
 

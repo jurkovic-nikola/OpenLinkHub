@@ -3,25 +3,28 @@ package config
 import (
 	"OpenLinkHub/src/common"
 	"encoding/json"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
 type Configuration struct {
-	Debug           bool     `json:"debug"`
-	ListenPort      int      `json:"listenPort"`
-	ListenAddress   string   `json:"listenAddress"`
-	CPUSensorChip   string   `json:"cpuSensorChip"`
-	Manual          bool     `json:"manual"`
-	Frontend        bool     `json:"frontend"`
-	Metrics         bool     `json:"metrics"`
-	Memory          bool     `json:"memory"`
-	MemorySmBus     string   `json:"memorySmBus"`
-	MemoryType      int      `json:"memoryType"`
-	Exclude         []uint16 `json:"exclude"`
-	DecodeMemorySku bool     `json:"decodeMemorySku"`
-	MemorySku       string   `json:"memorySku"`
-	ConfigPath      string   `json:",omitempty"`
-	ResumeDelay     int      `json:"resumeDelay"`
+	Debug           bool      `json:"debug"`
+	ListenPort      int       `json:"listenPort"`
+	ListenAddress   string    `json:"listenAddress"`
+	CPUSensorChip   string    `json:"cpuSensorChip"`
+	Manual          bool      `json:"manual"`
+	Frontend        bool      `json:"frontend"`
+	Metrics         bool      `json:"metrics"`
+	Memory          bool      `json:"memory"`
+	MemorySmBus     string    `json:"memorySmBus"`
+	MemoryType      int       `json:"memoryType"`
+	Exclude         []uint16  `json:"exclude"`
+	DecodeMemorySku bool      `json:"decodeMemorySku"`
+	MemorySku       string    `json:"memorySku"`
+	ConfigPath      string    `json:",omitempty"`
+	ResumeDelay     int       `json:"resumeDelay"`
+	LogFile         string    `json:"logFile,omitempty"`
+	LogLevel        log.Level `json:"logLevel"`
 }
 
 var (
@@ -31,6 +34,7 @@ var (
 		"decodeMemorySku": true,
 		"memorySku":       "",
 		"resumeDelay":     15000,
+		"logLevel":        log.InfoLevel,
 	}
 )
 

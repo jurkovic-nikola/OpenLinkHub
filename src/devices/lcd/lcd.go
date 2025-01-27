@@ -264,7 +264,7 @@ func calculateIntXY(fontSize float64, value int) (int, int) {
 }
 
 func calculateStringXY(fontSize float64, value string) (int, int) {
-	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 2}
+	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
 	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
@@ -298,99 +298,99 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []b
 	case DisplayLiquid:
 		{
 			x, y := calculateStringXY(40, "LIQUID TEMP")
-			drawString(x, y-120, 40, c, "LIQUID TEMP", rgba)
+			drawString(x, y-120, 40, "LIQUID TEMP", rgba)
 
 			x, y = calculateStringXY(40, "[ °C ]")
-			drawString(x, y+120, 40, c, "[ °C ]", rgba)
+			drawString(x, y+120, 40, "[ °C ]", rgba)
 
 			x, y = calculateStringXY(240, strconv.Itoa(value))
-			drawString(x, y, 240, c, strconv.Itoa(value), rgba)
+			drawString(x, y, 240, strconv.Itoa(value), rgba)
 		}
 	case DisplayGPU:
 		{
 			x, y := calculateStringXY(40, "GPU TEMP")
-			drawString(x, y-120, 40, c, "GPU TEMP", rgba)
+			drawString(x, y-120, 40, "GPU TEMP", rgba)
 
 			x, y = calculateStringXY(40, "[ °C ]")
-			drawString(x, y+120, 40, c, "[ °C ]", rgba)
+			drawString(x, y+120, 40, "[ °C ]", rgba)
 
 			x, y = calculateStringXY(240, strconv.Itoa(value))
-			drawString(x, y, 240, c, strconv.Itoa(value), rgba)
+			drawString(x, y, 240, strconv.Itoa(value), rgba)
 		}
 	case DisplayCPU:
 		{
 			x, y := calculateStringXY(40, "CPU TEMP")
-			drawString(x, y-120, 40, c, "CPU TEMP", rgba)
+			drawString(x, y-120, 40, "CPU TEMP", rgba)
 
 			x, y = calculateStringXY(40, "[ °C ]")
-			drawString(x, y+120, 40, c, "[ °C ]", rgba)
+			drawString(x, y+120, 40, "[ °C ]", rgba)
 
 			x, y = calculateStringXY(240, strconv.Itoa(value))
-			drawString(x, y, 240, c, strconv.Itoa(value), rgba)
+			drawString(x, y, 240, strconv.Itoa(value), rgba)
 		}
 	case DisplayPump:
 		{
 			x, y := calculateStringXY(40, "PUMP SPEED")
-			drawString(x, y-120, 40, c, "PUMP SPEED", rgba)
+			drawString(x, y-120, 40, "PUMP SPEED", rgba)
 
 			x, y = calculateStringXY(40, "[ RPM ]")
-			drawString(x, y+120, 40, c, "[ RPM ]", rgba)
+			drawString(x, y+120, 40, "[ RPM ]", rgba)
 
 			x, y = calculateStringXY(200, strconv.Itoa(value))
-			drawString(x, y, 200, c, strconv.Itoa(value), rgba)
+			drawString(x, y, 200, strconv.Itoa(value), rgba)
 		}
 	case DisplayAllInOne:
 		{
 			x, y := calculateStringXY(40, "LIQUID")
-			drawString(x-80, y-110, 40, c, "LIQUID", rgba)
+			drawString(x-80, y-110, 40, "LIQUID", rgba)
 
 			x, y = calculateStringXY(40, "CPU")
-			drawString(x+80, y-110, 40, c, "CPU", rgba)
+			drawString(x+80, y-110, 40, "CPU", rgba)
 
 			x, y = calculateStringXY(40, "PUMP")
-			drawString(x, y+130, 40, c, "PUMP", rgba)
+			drawString(x, y+130, 40, "PUMP", rgba)
 
 			x, y = calculateStringXY(100, strconv.Itoa(value))
-			drawString(x-80, y-40, 100, c, strconv.Itoa(value), rgba)
+			drawString(x-80, y-40, 100, strconv.Itoa(value), rgba)
 
 			x, y = calculateStringXY(100, strconv.Itoa(value1))
-			drawString(x+80, y-40, 100, c, strconv.Itoa(value1), rgba)
+			drawString(x+80, y-40, 100, strconv.Itoa(value1), rgba)
 
 			x, y = calculateStringXY(100, strconv.Itoa(value2))
-			drawString(x, y+60, 100, c, strconv.Itoa(value2), rgba)
+			drawString(x, y+60, 100, strconv.Itoa(value2), rgba)
 		}
 	case DisplayLiquidCPU:
 		{
-			drawString(120+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "LIQUID", rgba)
-			drawString(280+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, c, "CPU", rgba)
-			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]", rgba)
-			drawString(95+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value), rgba)
-			drawString(250+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value1), rgba)
+			drawString(120+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, "LIQUID", rgba)
+			drawString(280+int(c.PointToFixed(24)>>6), 110+int(c.PointToFixed(24)>>6), 40, "CPU", rgba)
+			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, "[ °C ]", rgba)
+			drawString(95+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, strconv.Itoa(value), rgba)
+			drawString(250+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, strconv.Itoa(value1), rgba)
 		}
 	case DisplayCpuGpuTemp:
 		{
-			drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "CPU", rgba)
-			drawString(270+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "GPU", rgba)
-			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]", rgba)
-			drawString(90+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value), rgba)
-			drawString(240+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, c, strconv.Itoa(value1), rgba)
+			drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, "CPU", rgba)
+			drawString(270+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, "GPU", rgba)
+			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, "[ °C ]", rgba)
+			drawString(90+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, strconv.Itoa(value), rgba)
+			drawString(240+int(c.PointToFixed(24)>>6), 270+int(c.PointToFixed(24)>>6), 160, strconv.Itoa(value1), rgba)
 		}
 	case DisplayCpuGpuLoadTemp:
 		{
-			drawString(130+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, c, "CPU", rgba)
-			drawString(270+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, c, "GPU", rgba)
-			drawString(190+int(c.PointToFixed(24)>>6), 90+int(c.PointToFixed(24)>>6), 40, c, "[ °C ]", rgba)
-			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ % ]", rgba)
-			drawString(120+int(c.PointToFixed(24)>>6), 220+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value), rgba)
-			drawString(260+int(c.PointToFixed(24)>>6), 220+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value1), rgba)
-			drawString(120+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value2), rgba)
-			drawString(260+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, c, fmt.Sprintf("%02d", value3), rgba)
+			drawString(130+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, "CPU", rgba)
+			drawString(270+int(c.PointToFixed(24)>>6), 140+int(c.PointToFixed(24)>>6), 40, "GPU", rgba)
+			drawString(190+int(c.PointToFixed(24)>>6), 90+int(c.PointToFixed(24)>>6), 40, "[ °C ]", rgba)
+			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, "[ % ]", rgba)
+			drawString(120+int(c.PointToFixed(24)>>6), 220+int(c.PointToFixed(24)>>6), 80, fmt.Sprintf("%02d", value), rgba)
+			drawString(260+int(c.PointToFixed(24)>>6), 220+int(c.PointToFixed(24)>>6), 80, fmt.Sprintf("%02d", value1), rgba)
+			drawString(120+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, fmt.Sprintf("%02d", value2), rgba)
+			drawString(260+int(c.PointToFixed(24)>>6), 290+int(c.PointToFixed(24)>>6), 80, fmt.Sprintf("%02d", value3), rgba)
 		}
 	case DisplayCpuGpuLoad:
 		{
-			drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "CPU", rgba)
-			drawString(270+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, c, "GPU", rgba)
-			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, c, "[ % ]", rgba)
+			drawString(120+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, "CPU", rgba)
+			drawString(270+int(c.PointToFixed(24)>>6), 120+int(c.PointToFixed(24)>>6), 40, "GPU", rgba)
+			drawString(190+int(c.PointToFixed(24)>>6), 350+int(c.PointToFixed(24)>>6), 40, "[ % ]", rgba)
 
 			reduce := 0
 			bounds, _ := font.BoundString(basicfont.Face7x13, strconv.Itoa(value))
@@ -399,7 +399,7 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []b
 				reduce = 30
 			}
 			x := 100 + textWidth - reduce
-			drawString(x, 270+int(c.PointToFixed(24)>>6), 160, c, fmt.Sprintf("%02d", value), rgba)
+			drawString(x, 270+int(c.PointToFixed(24)>>6), 160, fmt.Sprintf("%02d", value), rgba)
 
 			bounds, _ = font.BoundString(basicfont.Face7x13, strconv.Itoa(value1))
 			textWidth = (bounds.Max.X - bounds.Min.X).Floor()
@@ -407,15 +407,15 @@ func GenerateScreenImage(imageType uint8, value, value1, value2, value3 int) []b
 				reduce = 30
 			}
 			x = 240 + textWidth + 15 - reduce
-			drawString(x, 270+int(c.PointToFixed(24)>>6), 160, c, fmt.Sprintf("%02d", value1), rgba)
+			drawString(x, 270+int(c.PointToFixed(24)>>6), 160, fmt.Sprintf("%02d", value1), rgba)
 		}
 	case DisplayTime:
 		{
 			x, y := calculateStringXY(70, common.GetDate())
-			drawString(x, y-50, 70, c, common.GetDate(), rgba)
+			drawString(x, y-50, 70, common.GetDate(), rgba)
 
 			x, y = calculateStringXY(130, common.GetTime())
-			drawString(x, y+50, 130, c, common.GetTime(), rgba)
+			drawString(x, y+50, 130, common.GetTime(), rgba)
 		}
 	}
 
@@ -444,14 +444,13 @@ func drawString(x, y int, fontSite float64, c *freetype.Context, text string) *f
 */
 
 // drawString will create a new string for image
-func drawString(x, y int, fontSite float64, c *freetype.Context, text string, rgba *image.RGBA) {
-	c.SetFontSize(fontSite)
+func drawString(x, y int, fontSite float64, text string, rgba *image.RGBA) {
 	pt := freetype.Pt(x, y)
-
 	opts := opentype.FaceOptions{Size: fontSite, DPI: 72, Hinting: 0}
 	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+		return
 	}
 	d := &font.Drawer{
 		Dst:  rgba,

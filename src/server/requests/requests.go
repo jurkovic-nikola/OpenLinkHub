@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
@@ -50,6 +51,10 @@ type Payload struct {
 	PollingRate         int               `json:"pollingRate"`
 	ButtonOptimization  int               `json:"buttonOptimization"`
 	AngleSnapping       int               `json:"angleSnapping"`
+	PressAndHold        bool              `json:"pressAndHold"`
+	KeyIndex            int               `json:"keyIndex"`
+	KeyAssignmentType   uint8             `json:"keyAssignmentType"`
+	KeyAssignmentValue  uint8             `json:"keyAssignmentValue"`
 	MuteIndicator       int               `json:"muteIndicator"`
 	RgbControl          bool              `json:"rgbControl"`
 	RgbOff              string            `json:"rgbOff"`
@@ -907,6 +912,48 @@ func ProcessChangeButtonOptimization(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change button optimization mode. Please try again", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change button optimization mode", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeKeyAssignment will process POST request from a client for key assignment change
+func ProcessChangeKeyAssignment(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	var keyAssignment = inputmanager.KeyAssignment{
+		Name:          "",
+		Default:       req.Enabled,
+		ActionType:    req.KeyAssignmentType,
+		ActionCommand: req.KeyAssignmentValue,
+		ActionHold:    req.PressAndHold,
+	}
+
+	// Run it
+	status := devices.ChangeDeviceKeyAssignment(req.DeviceId, req.KeyIndex, keyAssignment)
+	switch status {
+	case 1:
+		return &Payload{Message: "Device key assignment successfully updated", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "Unable to update key assignment. Please try again", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to update key assignment", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeMuteIndicator will process POST request from a client for device mute indicator change

@@ -60,6 +60,7 @@ import (
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
@@ -653,6 +654,29 @@ func ChangeDeviceButtonOptimization(deviceId string, buttonOptimizationMode int)
 		} else {
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(buttonOptimizationMode))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// ChangeDeviceKeyAssignment will change device key assignment
+func ChangeDeviceKeyAssignment(deviceId string, keyIndex int, keyAssignment inputmanager.KeyAssignment) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateDeviceKeyAssignment"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyIndex))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyAssignment))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
 				val := results[0]

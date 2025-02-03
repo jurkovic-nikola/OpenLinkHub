@@ -17,6 +17,9 @@
                 <div class="row gy-4">
                     <div class="col-lg-2">
                         {{ range $key, $value := .RGBProfiles }}
+                        {{ if eq $value nil }}
+                        {{ continue }}
+                        {{ end }}
                         <div class="card rgbList" id="{{ $key }}" style="margin-bottom: 20px;">
                             <div class="card-body">
                                 <div class="row gx-12">

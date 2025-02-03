@@ -354,4 +354,138 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    $('.defaultInfoToggle').on('click', function () {
+        const modalElement = `
+        <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="infoToggleLabel">Mouse Default Action</h5>
+                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <span>When enabled, the mouse performs its default key action. This checkbox ignores all user custom assignments.</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const modal = $(modalElement).modal('toggle');
+        modal.on('hidden.bs.modal', function () {
+            modal.data('bs.modal', null);
+        })
+    });
+
+    $('.pressAndHoldInfoToggle').on('click', function () {
+        const modalElement = `
+        <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <span>When enabled, the mouse continuously sends action until the button is released.</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const modal = $(modalElement).modal('toggle');
+        modal.on('hidden.bs.modal', function () {
+            modal.data('bs.modal', null);
+        })
+    });
+
+    $('.keyAssignmentType').on('change', function () {
+        const selectedValue = parseInt($(this).val());
+        const indexElements = $(this).attr("id").split('_')
+        const keyAssignmentValue = $("#keyAssignmentValue_" + indexElements[1]);
+
+        switch (selectedValue) {
+            case 0: {
+                $(keyAssignmentValue).empty();
+                $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
+            }
+            break;
+
+            case 1: {
+                $.ajax({
+                    url:'/api/input/media',
+                    type:'get',
+                    success:function(result){
+                        $(keyAssignmentValue).empty();
+                        $.each(result.data, function( index, value ) {
+                            $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                        });
+                    }
+                });
+            }
+            break;
+
+            case 2: {
+                $(keyAssignmentValue).empty();
+                $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
+            }
+            break;
+
+            case 3: {
+                $.ajax({
+                    url:'/api/input/keyboard',
+                    type:'get',
+                    success:function(result){
+                        $(keyAssignmentValue).empty();
+                        $.each(result.data, function( index, value ) {
+                            $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                        });
+                    }
+                });
+            }
+            break;
+        }
+    });
+
+    $('.saveKeyAssignment').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const keyIndex = $(this).attr("data-info");
+        const enabled = $("#default_" + keyIndex).is(':checked');
+        const pressAndHold = $("#pressAndHold_" + keyIndex).is(':checked');
+        const keyAssignmentType = $("#keyAssignmentType_" + keyIndex).val();
+        const keyAssignmentValue = $("#keyAssignmentValue_" + keyIndex).val();
+
+        console.log(deviceId, keyIndex, enabled, pressAndHold, keyAssignmentType, keyAssignmentValue);
+
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyIndex"] = parseInt(keyIndex);
+        pf["enabled"] = enabled;
+        pf["pressAndHold"] = pressAndHold;
+        pf["keyAssignmentType"] = parseInt(keyAssignmentType);
+        pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/mouse/updateKeyAssignment',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

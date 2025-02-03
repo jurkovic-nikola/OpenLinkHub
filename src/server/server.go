@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
@@ -205,6 +206,26 @@ func getColor(w http.ResponseWriter, r *http.Request) {
 				Message: "No such RGB profile",
 			}
 		}
+	}
+	resp.Send(w)
+}
+
+// getMediaKeys will return a map of media keys
+func getMediaKeys(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   inputmanager.GetMediaKeys(),
+	}
+	resp.Send(w)
+}
+
+// getMediaKeys will return a map of non-media keys
+func getInputKeys(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   inputmanager.GetInputKeys(),
 	}
 	resp.Send(w)
 }
@@ -571,6 +592,17 @@ func changeButtonOptimization(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeKeyAssignment handles device key assignment update
+func changeKeyAssignment(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeKeyAssignment(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeMuteIndicator handles device mute indicator change
 func changeMuteIndicator(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeMuteIndicator(r)
@@ -914,6 +946,10 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getTemperature)
 	r.Methods(http.MethodGet).Path("/api/temperatures/{profile}").
 		HandlerFunc(getTemperature)
+	r.Methods(http.MethodGet).Path("/api/input/media").
+		HandlerFunc(getMediaKeys)
+	r.Methods(http.MethodGet).Path("/api/input/keyboard").
+		HandlerFunc(getInputKeys)
 	r.Methods(http.MethodPost).Path("/api/temperatures").
 		HandlerFunc(newTemperatureProfile)
 	r.Methods(http.MethodPut).Path("/api/temperatures").
@@ -998,6 +1034,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeAngleSnapping)
 	r.Methods(http.MethodPost).Path("/api/mouse/buttonOptimization").
 		HandlerFunc(changeButtonOptimization)
+	r.Methods(http.MethodPost).Path("/api/mouse/updateKeyAssignment").
+		HandlerFunc(changeKeyAssignment)
 	r.Methods(http.MethodPost).Path("/api/headset/zoneColors").
 		HandlerFunc(saveHeadsetZoneColors)
 	r.Methods(http.MethodPost).Path("/api/headset/sleep").

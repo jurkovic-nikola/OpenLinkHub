@@ -10,6 +10,8 @@ dashboard.json
 database/temperatures/*.json
 database/profiles/*.json
 database/rgb/*.json
+database/key-assignments/*.json
+database/macros/*.json
 database/scheduler.json
 org.openlinkhub.OpenLinkHub.json
 .flatpak-builder/

@@ -16,12 +16,22 @@ import (
 	"syscall"
 )
 
+type KeyAssignment struct {
+	Name          string `json:"name"`
+	Default       bool   `json:"default"`
+	ActionType    uint8  `json:"actionType"`
+	ActionCommand uint8  `json:"actionCommand"`
+	ActionHold    bool   `json:"actionHold"`
+}
+
 type InputAction struct {
-	Name        string
-	CommandCode uint16
+	Name        string // Key name
+	CommandCode uint16 // Key code
+	Media       bool   // Key can control media playback
 }
 
 const (
+	None           uint8 = 0
 	VolumeUp       uint8 = 1
 	VolumeDown     uint8 = 2
 	VolumeMute     uint8 = 3
@@ -223,14 +233,17 @@ type inputEvent struct {
 func buildInputActions() {
 	inputActions = make(map[uint8]InputAction, 0)
 
+	// Placeholder
+	inputActions[None] = InputAction{Name: "None"}
+
 	// Media
-	inputActions[VolumeUp] = InputAction{Name: "Volume Up", CommandCode: keyVolumeUp}
-	inputActions[VolumeDown] = InputAction{Name: "Volume Down", CommandCode: keyVolumeDown}
-	inputActions[VolumeMute] = InputAction{Name: "Mute", CommandCode: keyVolumeMute}
-	inputActions[MediaStop] = InputAction{Name: "Stop", CommandCode: keyMediaStop}
-	inputActions[MediaPrev] = InputAction{Name: "Previous", CommandCode: keyMediaPrev}
-	inputActions[MediaPlayPause] = InputAction{Name: "Play", CommandCode: keyMediaPlay}
-	inputActions[MediaNext] = InputAction{Name: "Next", CommandCode: keyMediaNext}
+	inputActions[VolumeUp] = InputAction{Name: "Volume Up", CommandCode: keyVolumeUp, Media: true}
+	inputActions[VolumeDown] = InputAction{Name: "Volume Down", CommandCode: keyVolumeDown, Media: true}
+	inputActions[VolumeMute] = InputAction{Name: "Mute", CommandCode: keyVolumeMute, Media: true}
+	inputActions[MediaStop] = InputAction{Name: "Stop", CommandCode: keyMediaStop, Media: true}
+	inputActions[MediaPrev] = InputAction{Name: "Previous", CommandCode: keyMediaPrev, Media: true}
+	inputActions[MediaPlayPause] = InputAction{Name: "Play", CommandCode: keyMediaPlay, Media: true}
+	inputActions[MediaNext] = InputAction{Name: "Next", CommandCode: keyMediaNext, Media: true}
 
 	// Numbers
 	inputActions[Number0] = InputAction{Name: "Number 0", CommandCode: keyNumber0}
@@ -326,6 +339,29 @@ func Init() {
 	buildInputActions()
 }
 
+// GetMediaKeys will return a map of InputAction for Media keys
+func GetMediaKeys() map[uint8]InputAction {
+	keys := make(map[uint8]InputAction, 0)
+	for key, value := range inputActions {
+		if value.Media {
+			keys[key] = value
+		}
+	}
+	return keys
+}
+
+// GetInputKeys will return a map of InputAction for non-media keys
+func GetInputKeys() map[uint8]InputAction {
+	keys := make(map[uint8]InputAction, 0)
+	for key, value := range inputActions {
+		if value.Media {
+			continue
+		}
+		keys[key] = value
+	}
+	return keys
+}
+
 // GetInputActions will return a map of InputAction
 func GetInputActions() map[uint8]InputAction {
 	return inputActions
@@ -344,11 +380,13 @@ func InputControl(controlType uint8, serial string) {
 
 	var events []inputEvent
 
+	// Get event key code
 	actionType := getInputAction(controlType)
 	if actionType == nil {
 		return
 	}
 
+	// Create events
 	events = createInputEvent(actionType.CommandCode)
 
 	// Send events

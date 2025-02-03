@@ -84,6 +84,8 @@ func upgradeFile(cfg string) {
 			DecodeMemorySku: true,
 			MemorySku:       "",
 			ResumeDelay:     15000,
+			LogLevel:        log.InfoLevel,
+			LogFile:         "",
 		}
 		saveConfigSettings(value)
 	} else {

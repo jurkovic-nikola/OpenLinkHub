@@ -85,6 +85,7 @@ type Device struct {
 	KeyAssignment         map[int]inputmanager.KeyAssignment
 	InputActions          map[uint8]inputmanager.InputAction
 	PressLoop             bool
+	keyAssignmentFile     string
 }
 
 var (
@@ -165,7 +166,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "DPI",
 			3: "Keyboard",
 		},
-		InputActions: inputmanager.GetInputActions(),
+		InputActions:      inputmanager.GetInputActions(),
+		keyAssignmentFile: "/database/key-assignments/m55.json",
 	}
 
 	d.getDebugMode()          // Debug mode
@@ -773,7 +775,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 
 // saveKeyAssignments will save new key assignments
 func (d *Device) saveKeyAssignments() {
-	keyAssignmentsFile := pwd + "/database/key-assignments/m55.json"
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
 	if common.FileExists(keyAssignmentsFile) {
 
 	}
@@ -810,7 +812,7 @@ func (d *Device) loadKeyAssignments() {
 	if d.DeviceProfile == nil {
 		return
 	}
-	keyAssignmentsFile := pwd + "/database/key-assignments/m55.json"
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
 	if common.FileExists(keyAssignmentsFile) {
 		file, err := os.Open(keyAssignmentsFile)
 		if err != nil {

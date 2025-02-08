@@ -732,42 +732,42 @@ func (d *Device) loadKeyAssignments() {
 	} else {
 		var keyAssignment = map[int]inputmanager.KeyAssignment{
 			32: {
-				Name:          "DPI button",
+				Name:          "DPI Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			16: {
-				Name:          "Back button",
+				Name:          "Back Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			8: {
-				Name:          "Forward button",
+				Name:          "Forward Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			4: {
-				Name:          "Middle button",
+				Name:          "Middle Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			2: {
-				Name:          "Right button",
+				Name:          "Right Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			1: {
-				Name:          "Left button",
+				Name:          "Left Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,

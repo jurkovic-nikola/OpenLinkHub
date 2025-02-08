@@ -22,6 +22,7 @@ type KeyAssignment struct {
 	ActionType    uint8  `json:"actionType"`
 	ActionCommand uint8  `json:"actionCommand"`
 	ActionHold    bool   `json:"actionHold"`
+	ButtonIndex   int    `json:"buttonIndex"`
 }
 
 type InputAction struct {

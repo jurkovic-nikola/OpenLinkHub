@@ -17,6 +17,9 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 	}
 
 	activeLEDs := int(progress * float64(r.LightChannels))
+	if r.LightChannels == 1 {
+		activeLEDs = 1
+	}
 	buf := map[int][]byte{}
 	for j := 0; j < activeLEDs; j++ {
 		t := float64(j) / float64(40) // Calculate interpolation factor
@@ -59,6 +62,9 @@ func (r *ActiveRGB) CircleShift(startTime *time.Time) {
 	}
 
 	activeLEDs := int(progress * float64(r.LightChannels))
+	if r.LightChannels == 1 {
+		activeLEDs = 1
+	}
 	buf := map[int][]byte{}
 	for j := 0; j < activeLEDs; j++ {
 		t := float64(j) / float64(r.LightChannels) // Calculate interpolation factor

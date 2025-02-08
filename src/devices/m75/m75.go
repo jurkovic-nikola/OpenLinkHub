@@ -9,6 +9,7 @@ package m75
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
@@ -18,6 +19,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +48,8 @@ type DeviceProfile struct {
 	ZoneColors         map[int]ZoneColors
 	Profiles           map[int]DPIProfile
 	SleepMode          int
+	AngleSnapping      int
+	ButtonOptimization int
 }
 
 type DPIProfile struct {
@@ -74,6 +78,8 @@ type Device struct {
 	ProductId             uint16
 	Brightness            map[int]string
 	PollingRates          map[int]string
+	SwitchModes           map[int]string
+	KeyAssignmentTypes    map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
 	CpuTemp               float32
@@ -87,28 +93,38 @@ type Device struct {
 	timer                 *time.Ticker
 	autoRefreshChan       chan struct{}
 	Exit                  bool
+	KeyAssignment         map[int]inputmanager.KeyAssignment
+	InputActions          map[uint8]inputmanager.InputAction
+	PressLoop             bool
+	keyAssignmentFile     string
 }
 
 var (
-	pwd                   = ""
-	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware        = []byte{0x02, 0x13}
-	cmdWriteColor         = []byte{0x06, 0x00}
-	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
-	cmdOpenWriteEndpoint  = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi             = map[int][]byte{0: {0x01, 0x21, 0x00}, 1: {0x01, 0x22, 0x00}}
-	cmdHeartbeat          = []byte{0x12}
-	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
-	bufferSize            = 64
-	bufferSizeWrite       = bufferSize + 1
-	headerSize            = 2
-	headerWriteSize       = 4
-	minDpiValue           = 100
-	maxDpiValue           = 26000
-	deviceKeepAlive       = 20000
-	deviceRefreshInterval = 1000
+	pwd                       = ""
+	cmdSoftwareMode           = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode           = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware            = []byte{0x02, 0x13}
+	cmdWriteColor             = []byte{0x06, 0x00}
+	cmdOpenEndpoint           = []byte{0x0d, 0x00, 0x01}
+	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
+	cmdSetDpi                 = map[int][]byte{0: {0x01, 0x21, 0x00}, 1: {0x01, 0x22, 0x00}}
+	cmdHeartbeat              = []byte{0x12}
+	cmdSleep                  = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	cmdSetPollingRate         = []byte{0x01, 0x01, 0x00}
+	cmdWrite                  = []byte{0x06, 0x01}
+	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
+	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
+	cmdAngleSnapping          = []byte{0x01, 0x07, 0x00}
+	cmdButtonOptimization     = []byte{0x01, 0xb0, 0x00}
+	bufferSize                = 64
+	bufferSizeWrite           = bufferSize + 1
+	headerSize                = 2
+	headerWriteSize           = 4
+	keyAmount                 = 8
+	minDpiValue               = 100
+	maxDpiValue               = 26000
+	deviceKeepAlive           = 20000
+	deviceRefreshInterval     = 1000
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -159,22 +175,38 @@ func Init(vendorId, productId uint16, key string) *Device {
 			6: "4000 Hz / 0.25 msec",
 			7: "8000 Hz / 0.125 msec",
 		},
+		SwitchModes: map[int]string{
+			0: "Disabled",
+			1: "Enabled",
+		},
+		KeyAssignmentTypes: map[int]string{
+			0: "None",
+			1: "Media Keys",
+			2: "DPI",
+			3: "Keyboard",
+		},
+		InputActions:      inputmanager.GetInputActions(),
+		keyAssignmentFile: "/database/key-assignments/m75.json",
 	}
 
-	d.getDebugMode()        // Debug mode
-	d.getManufacturer()     // Manufacturer
-	d.getSerial()           // Serial
-	d.loadRgb()             // Load RGB
-	d.loadDeviceProfiles()  // Load all device profiles
-	d.saveDeviceProfile()   // Save profile
-	d.getDeviceFirmware()   // Firmware
-	d.setSoftwareMode()     // Activate software mode
-	d.initLeds()            // Init LED ports
-	d.setDeviceColor(false) // Device color
-	d.toggleDPI(false)      // DPI
-	d.controlListener()     // Control listener
-	d.setKeepAlive()        // Keepalive
-	d.setAutoRefresh()      // Set auto device refresh
+	d.getDebugMode()          // Debug mode
+	d.getManufacturer()       // Manufacturer
+	d.getSerial()             // Serial
+	d.loadRgb()               // Load RGB
+	d.loadDeviceProfiles()    // Load all device profiles
+	d.saveDeviceProfile()     // Save profile
+	d.getDeviceFirmware()     // Firmware
+	d.setSoftwareMode()       // Activate software mode
+	d.setAngleSnapping()      // Angle snapping
+	d.setButtonOptimization() // Button optimization
+	d.initLeds()              // Init LED ports
+	d.setDeviceColor(false)   // Device color
+	d.toggleDPI(false)        // DPI
+	d.controlListener()       // Control listener
+	d.setKeepAlive()          // Keepalive
+	d.setAutoRefresh()        // Set auto device refresh
+	d.loadKeyAssignments()    // Key Assignments
+	d.setupKeyAssignment()    // Setup key assignments
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -414,13 +446,16 @@ func (d *Device) Restart() {
 		return
 	}
 	d.dev = dev
-	d.setSoftwareMode()     // Activate software mode
-	d.initLeds()            // Init LED ports
-	d.getDeviceFirmware()   // Firmware
-	d.toggleExit()          // Remove Exit flag
-	d.setDeviceColor(false) // Device color
-	d.controlListener()     // Control listener
-	d.toggleDPI(false)      // Set current DPI
+	d.setSoftwareMode()       // Activate software mode
+	d.setAngleSnapping()      // Angle snapping
+	d.setButtonOptimization() // Button optimization
+	d.initLeds()              // Init LED ports
+	d.getDeviceFirmware()     // Firmware
+	d.toggleExit()            // Remove Exit flag
+	d.setDeviceColor(false)   // Device color
+	d.controlListener()       // Control listener
+	d.toggleDPI(false)        // Set current DPI
+	d.setupKeyAssignment()    // Setup key assignments
 }
 
 // UpdatePollingRate will set device polling rate
@@ -446,6 +481,38 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// UpdateAngleSnapping will update angle snapping mode
+func (d *Device) UpdateAngleSnapping(angleSnappingMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.AngleSnapping == angleSnappingMode {
+		return 0
+	}
+
+	d.DeviceProfile.AngleSnapping = angleSnappingMode
+	d.saveDeviceProfile()
+	d.setAngleSnapping()
+	return 1
+}
+
+// UpdateButtonOptimization will update button response optimization mode
+func (d *Device) UpdateButtonOptimization(buttonOptimizationMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.ButtonOptimization == buttonOptimizationMode {
+		return 0
+	}
+
+	d.DeviceProfile.ButtonOptimization = buttonOptimizationMode
+	d.saveDeviceProfile()
+	d.setButtonOptimization()
+	return 1
 }
 
 // UpdateRgbProfileData will update RGB profile data
@@ -755,6 +822,36 @@ func (d *Device) getDeviceFirmware() {
 	d.Firmware = fmt.Sprintf("%d.%d.%d", v1, v2, v3)
 }
 
+// setAngleSnapping will change Angle Snapping mode
+func (d *Device) setAngleSnapping() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.AngleSnapping < 0 || d.DeviceProfile.AngleSnapping > 1 {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.AngleSnapping)
+	_, _ = d.transfer(cmdAngleSnapping, buf)
+}
+
+// setButtonOptimization will change Button Response Optimization mode
+func (d *Device) setButtonOptimization() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.ButtonOptimization < 0 || d.DeviceProfile.ButtonOptimization > 1 {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.ButtonOptimization)
+	_, _ = d.transfer(cmdButtonOptimization, buf)
+}
+
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	var defaultBrightness = uint8(100)
@@ -901,6 +998,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
+		deviceProfile.AngleSnapping = d.DeviceProfile.AngleSnapping
+		deviceProfile.ButtonOptimization = d.DeviceProfile.ButtonOptimization
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -938,6 +1037,172 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles() // Reload
+}
+
+// UpdateDeviceKeyAssignment will update device key assignments
+func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmanager.KeyAssignment) uint8 {
+	if val, ok := d.KeyAssignment[keyIndex]; ok {
+		val.Default = keyAssignment.Default
+		val.ActionHold = keyAssignment.ActionHold
+		val.ActionType = keyAssignment.ActionType
+		val.ActionCommand = keyAssignment.ActionCommand
+		d.KeyAssignment[keyIndex] = val
+		d.saveKeyAssignments()
+		d.setupKeyAssignment()
+		return 1
+	}
+	return 0
+}
+
+// saveKeyAssignments will save new key assignments
+func (d *Device) saveKeyAssignments() {
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if common.FileExists(keyAssignmentsFile) {
+
+	}
+	// Convert to JSON
+	buffer, err := json.MarshalIndent(d.KeyAssignment, "", "    ")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		return
+	}
+
+	// Create profile filename
+	file, err := os.Create(keyAssignmentsFile)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to create new device profile")
+		return
+	}
+
+	// Write JSON buffer to file
+	_, err = file.Write(buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write data")
+		return
+	}
+
+	// Close file
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to close file handle")
+	}
+}
+
+// loadKeyAssignments will load custom key assignments
+func (d *Device) loadKeyAssignments() {
+	if d.DeviceProfile == nil {
+		return
+	}
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if common.FileExists(keyAssignmentsFile) {
+		file, err := os.Open(keyAssignmentsFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to load JSON file")
+			return
+		}
+
+		if err = json.NewDecoder(file).Decode(&d.KeyAssignment); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to decode key assignments JSON")
+			return
+		}
+
+		// Prevent left click modifications
+		if !d.KeyAssignment[1].Default {
+			logger.Log(logger.Fields{"serial": d.Serial, "value": d.KeyAssignment[1].Default, "expectedValue": 1}).Warn("Restoring left button to original value")
+			var val = d.KeyAssignment[1]
+			val.Default = true
+			d.KeyAssignment[1] = val
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": keyAssignmentsFile, "serial": d.Serial}).Warn("Failed to close file handle")
+		}
+	} else {
+		var keyAssignment = map[int]inputmanager.KeyAssignment{
+			128: {
+				Name:          "DPI Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			64: {
+				Name:          "Right Forward",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			32: {
+				Name:          "Right Back",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			16: {
+				Name:          "Left Forward",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			8: {
+				Name:          "Left Back",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			4: {
+				Name:          "Middle Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			2: {
+				Name:          "Right Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			1: {
+				Name:          "Left Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+		}
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(keyAssignment, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		file, err := os.Create(keyAssignmentsFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to create new key assignment file")
+			return
+		}
+
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write data tp key assignment file")
+			return
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to close key assignment file")
+		}
+		d.KeyAssignment = keyAssignment
+	}
 }
 
 // setCpuTemperature will store current CPU temperature
@@ -980,7 +1245,7 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 func (d *Device) setSleepTimer() uint8 {
 	if d.DeviceProfile != nil {
 		changed := 0
-		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+		_, err := d.transfer(cmdOpenSleepWriteEndpoint, nil)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
 			return 0
@@ -1343,6 +1608,82 @@ func (d *Device) ModifyDpi(color bool) {
 	d.toggleDPI(color)
 }
 
+// setupKeyAssignment will setup mouse keys
+func (d *Device) setupKeyAssignment() {
+	// Prevent modifications if key amount does not match the expected key amount
+	definedKeyAmount := len(d.KeyAssignment)
+	if definedKeyAmount < keyAmount || definedKeyAmount > keyAmount {
+		logger.Log(logger.Fields{"vendorId": d.VendorId, "keys": definedKeyAmount, "expected": keyAmount}).Warn("Expected key amount does not match the expected key amount.")
+		return
+	}
+
+	keys := make([]int, 0)
+	for k := range d.KeyAssignment {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	buf := make([]byte, keyAmount)
+	i := 0
+	for _, k := range keys {
+		value := d.KeyAssignment[k]
+		if value.Default {
+			buf[i] = byte(1)
+		} else {
+			buf[i] = byte(0)
+		}
+		i++
+	}
+	d.writeKeyAssignmentData(buf)
+}
+
+// triggerKeyAssignment will trigger key assignment if defined
+func (d *Device) triggerKeyAssignment(value byte) {
+	if value == 0 {
+		d.PressLoop = false
+	}
+
+	if val, ok := d.KeyAssignment[int(value)]; ok {
+		if value == 0x80 && val.Default {
+			d.ModifyDpi(true)
+			return
+		}
+
+		if val.Default {
+			return
+		}
+
+		if val.ActionHold {
+			d.PressLoop = val.ActionHold
+			go func() {
+				for {
+					if !d.PressLoop {
+						return
+					}
+					switch val.ActionType {
+					case 1, 3:
+						inputmanager.InputControl(val.ActionCommand, d.Serial)
+						break
+					case 2:
+						d.ModifyDpi(true)
+						break
+					}
+					time.Sleep(20 * time.Millisecond)
+				}
+			}()
+		} else {
+			switch val.ActionType {
+			case 1, 3:
+				inputmanager.InputControl(val.ActionCommand, d.Serial)
+				break
+			case 2:
+				d.ModifyDpi(true)
+				break
+			}
+		}
+	}
+}
+
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI(color bool) {
 	if d.Exit {
@@ -1420,6 +1761,36 @@ func (d *Device) writeColor(data []byte) {
 	_, err := d.transfer(cmdWriteColor, buffer)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+	}
+}
+
+// writeKeyAssignmentData will write key assignment to the device.
+func (d *Device) writeKeyAssignmentData(data []byte) {
+	if d.Exit {
+		return
+	}
+
+	// Open endpoint
+	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
+		return
+	}
+
+	// Send data
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+	_, err = d.transfer(cmdWrite, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to data endpoint")
+	}
+
+	// Close endpoint
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to close endpoint")
+		return
 	}
 }
 
@@ -1502,8 +1873,8 @@ func (d *Device) controlListener() {
 					continue
 				}
 
-				if data[2] == 0x80 {
-					d.ModifyDpi(true)
+				if data[1] == 0x02 {
+					d.triggerKeyAssignment(data[2])
 				}
 			}
 		}

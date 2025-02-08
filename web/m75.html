@@ -109,81 +109,196 @@
                                         </li>
                                     </ul>
 
+                                    <button title="Angle Snapping" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi fa-angle-down svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select mouseAngleSnapping" name="mouseAngleSnapping">
+                                                {{ range $key, $sm := $device.SwitchModes }}
+                                                {{ if eq $key $device.DeviceProfile.AngleSnapping }}
+                                                <option value="{{ $key }}" selected>{{ $sm }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sm }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="Button Response Optimization" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-menu-button-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select mouseButtonOptimization" name="mouseButtonOptimization">
+                                                {{ range $key, $sm := $device.SwitchModes }}
+                                                {{ if eq $key $device.DeviceProfile.ButtonOptimization }}
+                                                <option value="{{ $key }}" selected>{{ $sm }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sm }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
                                     <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
-                                <div class="mouse">
-                                    <div class="row">
-                                        {{ range $key, $pf := $device.DeviceProfile.Profiles }}
-                                        <div style="margin-top: 10px;">
-                                            <div class="dpi-left">
-                                                <p style="color: rgba({{ $pf.Color.Red }}, {{ $pf.Color.Green }}, {{ $pf.Color.Blue }}, 1);">
-                                                    {{ if eq $key $device.DeviceProfile.Profile }}
-                                                    {{ $pf.Name }} *
-                                                    {{ else }}
-                                                    {{ $pf.Name }}
+                                <div class="row gy-12">
+                                    <div class="col-md-6 col-sm-6">
+                                        <div class="mouse" style="width: auto">
+                                            <div class="row">
+                                                {{ range $key, $pf := $device.DeviceProfile.Profiles }}
+                                                <div style="margin-top: 10px;">
+                                                    <div class="dpi-left">
+                                                        <p style="color: rgba({{ $pf.Color.Red }}, {{ $pf.Color.Green }}, {{ $pf.Color.Blue }}, 1);">
+                                                            {{ if eq $key $device.DeviceProfile.Profile }}
+                                                            {{ $pf.Name }} *
+                                                            {{ else }}
+                                                            {{ $pf.Name }}
+                                                            {{ end }}
+                                                        </p>
+                                                    </div>
+                                                    <div class="dpi-middle">
+                                                        <input type="range" min="200" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
+                                                    </div>
+                                                    <div class="dpi-right">
+                                                        <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">
+                                                    </div>
+                                                </div>
+                                                {{ end }}
+
+                                                {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
+                                                <div class="row" style="margin: 10px auto 0;">
+                                                    {{ range $key, $dpiZone := $device.DeviceProfile.Profiles }}
+                                                    <div class="col-md-3 col-sm-6">
+                                                        <div class="card mb-4">
+                                                            <div style="margin-top: 10px;">
+                                                                <span style="margin-bottom: 10px;">DPI: {{ $dpiZone.Name }}</span>
+                                                                <div>
+                                                                    <input type="color" id="dpiColor{{ $key }}" value="{{ $dpiZone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     {{ end }}
-                                                </p>
-                                            </div>
-                                            <div class="dpi-middle">
-                                                <input type="range" min="200" max="18000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
-                                            </div>
-                                            <div class="dpi-right">
-                                                <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">
-                                            </div>
-                                        </div>
-                                        {{ end }}
 
-                                        {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
-                                        <div class="row" style="margin: 10px auto 0;">
-                                            {{ range $key, $dpiZone := $device.DeviceProfile.Profiles }}
-                                            <div class="col-md-3 col-sm-6">
-                                                <div class="card mb-4">
-                                                    <div style="margin-top: 10px;">
-                                                        <span style="margin-bottom: 10px;">DPI: {{ $dpiZone.Name }}</span>
-                                                        <div>
-                                                            <input type="color" id="dpiColor{{ $key }}" value="{{ $dpiZone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
+                                                    {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                                    <div class="col-md-3 col-sm-6">
+                                                        <div class="card mb-4">
+                                                            <div style="margin-top: 10px;">
+                                                                <span style="margin-bottom: 10px;">{{ $zone.Name }}</span>
+                                                                <div>
+                                                                    <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                    {{ end }}
                                                 </div>
+                                                {{ end }}
                                             </div>
-                                            {{ end }}
-
-                                            {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
-                                            <div class="col-md-3 col-sm-6">
-                                                <div class="card mb-4">
-                                                    <div style="margin-top: 10px;">
-                                                        <span style="margin-bottom: 10px;">{{ $zone.Name }}</span>
-                                                        <div>
-                                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {{ end }}
                                         </div>
-                                        {{ end }}
+                                        <div style="margin: 0 auto;">
+                                            <div style="float: left;width: 530px;">
+                                                <button class="btn btn-secondary" id="default5DPI" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                                    <span>Default</span>
+                                                </button>
+                                                <button class="btn btn-secondary" id="saveDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                                    <span>Save DPI</span>
+                                                </button>
+                                                {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
+                                                <button class="btn btn-secondary" id="saveDpiColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                                    <span>Save DPI Colors</span>
+                                                </button>
+                                                <button class="btn btn-secondary" id="saveZoneColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                                    <span>Save Zone Colors</span>
+                                                </button>
+                                                {{ end }}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div style="margin: 0 auto;">
-                                    <div style="float: left;width: 530px;">
-                                        <button class="btn btn-secondary" id="default5DPI" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Default</span>
-                                        </button>
-                                        <button class="btn btn-secondary" id="saveDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Save DPI</span>
-                                        </button>
-                                        {{ if eq "mouse" $device.DeviceProfile.RGBProfile }}
-                                        <button class="btn btn-secondary" id="saveDpiColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Save DPI Colors</span>
-                                        </button>
-                                        <button class="btn btn-secondary" id="saveZoneColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Save Zone Colors</span>
-                                        </button>
-                                        {{ end }}
+                                    <div class="col-md-6 col-sm-6">
+                                        <div class="mouse" style="width: auto">
+                                            <div class="row">
+                                                <table class="table mb-0">
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="text-align: left;">Key Assignment</th>
+                                                        <th>
+                                                            Default
+                                                            <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
+                                                        </th>
+                                                        <th>
+                                                            Press and Hold
+                                                            <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                                        </th>
+                                                        <th>Assignment Type</th>
+                                                        <th>Assignment Key</th>
+                                                        <th></th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{ range $key, $value := $device.KeyAssignment }}
+                                                    {{ if eq $key 1 }}
+                                                    {{ continue }}
+                                                    {{ else if eq $key 128 }}
+                                                    {{ continue }}
+                                                    {{ end }}
+                                                    <tr>
+                                                        <th scope="row" style="text-align: left;">{{ $value.Name }}</th>
+                                                        <td>
+                                                            {{ if $value.Default }}
+                                                            <input id="default_{{ $key }}" type="checkbox" checked/>
+                                                            {{ else }}
+                                                            <input id="default_{{ $key }}" type="checkbox" />
+                                                            {{ end }}
+                                                        </td>
+                                                        <td>
+                                                            {{ if $value.ActionHold }}
+                                                            <input id="pressAndHold_{{ $key }}" type="checkbox" checked/>
+                                                            {{ else }}
+                                                            <input id="pressAndHold_{{ $key }}" type="checkbox" />
+                                                            {{ end }}
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select keyAssignmentType" id="keyAssignmentType_{{ $key }}">
+                                                                {{ range $k, $v := $device.KeyAssignmentTypes }}
+                                                                {{ if eq $value.ActionType $k }}
+                                                                <option value="{{ $k }}" selected>{{ $v }}</option>
+                                                                {{ else }}
+                                                                <option value="{{ $k }}">{{ $v }}</option>
+                                                                {{ end }}
+                                                                {{ end }}
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select" id="keyAssignmentValue_{{ $key }}">
+                                                                {{ range $k, $v := $device.InputActions }}
+                                                                {{ if eq $value.ActionCommand $k }}
+                                                                <option value="{{ $k }}" selected>{{ $v.Name }}</option>
+                                                                {{ else }}
+                                                                <option value="{{ $k }}">{{ $v.Name }}</option>
+                                                                {{ end }}
+                                                                {{ end }}
+                                                            </select>
+                                                        </td>
+                                                        <td style="text-align: right;">
+                                                            <button class="btn btn-secondary saveKeyAssignment" data-info="{{ $key }}">
+                                                                <span>Save</span>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    {{ end }}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

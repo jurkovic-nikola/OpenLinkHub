@@ -888,9 +888,12 @@ func (d *Device) controlListener() {
 								}
 								if dev, found := value.(*m55W.Device); found {
 									if data[1] == 0x02 {
-										if data[1] == 0x02 {
-											dev.TriggerKeyAssignment(data[2], d.Serial)
-										}
+										dev.TriggerKeyAssignment(data[2], d.Serial)
+									}
+								}
+								if dev, found := value.(*m75W.Device); found {
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(data[2], d.Serial)
 									}
 								}
 								if dev, found := value.(*scimitarW.Device); found {

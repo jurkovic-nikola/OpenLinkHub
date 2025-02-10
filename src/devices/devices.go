@@ -1308,7 +1308,6 @@ func Init() {
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
 			}
-
 		case 3122, 3100: // CORSAIR iCUE COMMANDER Core
 			{
 				go func(vendorId, productId uint16, serialId string) {

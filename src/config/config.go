@@ -23,7 +23,7 @@ type Configuration struct {
 	MemorySku       string    `json:"memorySku"`
 	ConfigPath      string    `json:",omitempty"`
 	ResumeDelay     int       `json:"resumeDelay"`
-	LogFile         string    `json:"logFile,omitempty"`
+	LogFile         string    `json:"logFile"`
 	LogLevel        log.Level `json:"logLevel"`
 }
 

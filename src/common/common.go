@@ -1,14 +1,53 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
 	"golang.org/x/image/draw"
 	"image"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
+
+// runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.
+func runUdevadmInfo(devicePath string) (string, error) {
+	// Construct the udevadm command to get device properties
+	cmd := exec.Command("udevadm", "info", "--query=property", "--name="+devicePath)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to run udevadm: %v", err)
+	}
+
+	return out.String(), nil
+}
+
+// GetDeviceUSBPath retrieves the ID_PATH_WITH_USB_REVISION properties from udevadm info output
+func GetDeviceUSBPath(devicePath string) (string, error) {
+	output, err := runUdevadmInfo(devicePath)
+	if err != nil {
+		return "", err
+	}
+
+	var idPath string
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "ID_PATH_WITH_USB_REVISION=") {
+			idPath = strings.TrimPrefix(line, "ID_PATH_WITH_USB_REVISION=")
+		}
+	}
+
+	return idPath, nil
+}
 
 // FileExists will check if given filename exists
 func FileExists(filename string) bool {

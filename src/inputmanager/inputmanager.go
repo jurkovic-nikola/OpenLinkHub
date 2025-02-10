@@ -368,14 +368,57 @@ func GetInputActions() map[uint8]InputAction {
 	return inputActions
 }
 
-// InputControl will emulate volume control keys
+// InputControl will emulate input events based on device serial number
 func InputControl(controlType uint8, serial string) {
 	// Get a device path
 	path := getDevicePathBySerial(serial)
 
+	if len(path) < 1 {
+		logger.Log(logger.Fields{"path": path}).Error("No such input device")
+		return
+	}
+
 	// Open device
 	device := openDevice(path)
 	if device == nil {
+		logger.Log(logger.Fields{"path": path}).Error("Failed to open device")
+		return
+	}
+
+	var events []inputEvent
+
+	// Get event key code
+	actionType := getInputAction(controlType)
+	if actionType == nil {
+		return
+	}
+
+	// Create events
+	events = createInputEvent(actionType.CommandCode)
+
+	// Send events
+	for _, event := range events {
+		if err := emitEvent(device, event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
+			return
+		}
+	}
+
+	// Close device
+	closeDevice(device)
+}
+
+// InputControlManual will emulate input events based on device path
+func InputControlManual(controlType uint8, path string) {
+	if len(path) < 1 {
+		logger.Log(logger.Fields{"path": path}).Error("No such input device")
+		return
+	}
+
+	// Open device
+	device := openDevice(path)
+	if device == nil {
+		logger.Log(logger.Fields{"path": path}).Error("Failed to open device")
 		return
 	}
 

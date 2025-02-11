@@ -13,7 +13,6 @@ import (
 	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/scimitarW"
-	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
@@ -954,18 +953,8 @@ func (d *Device) controlListener() {
 									}
 								}
 								if dev, found := value.(*darkstarW.Device); found {
-									if data[1] == 0x02 && data[3] == 0x08 {
-										dev.ModifyDpi(true)
-									} else if data[1] == 0x02 && data[3] == 0x10 {
-										dev.ModifyDpi(false)
-									} else if data[1] == 0x02 && data[2] == 0x20 {
-										inputmanager.InputControl(inputmanager.Number1, d.Serial) // 1
-									} else if data[1] == 0x02 && data[2] == 0x40 {
-										inputmanager.InputControl(inputmanager.Number2, d.Serial) // 2
-									} else if data[1] == 0x02 && data[2] == 0x80 {
-										inputmanager.InputControl(inputmanager.Number3, d.Serial) // 3
-									} else if data[1] == 0x02 && data[3] == 0x01 {
-										inputmanager.InputControl(inputmanager.Number4, d.Serial) // 4
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
 									}
 								}
 

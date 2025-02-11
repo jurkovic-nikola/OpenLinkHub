@@ -902,10 +902,8 @@ func (d *Device) controlListener() {
 									}
 								}
 								if dev, found := value.(*nightsabreW.Device); found {
-									if data[2] == 0x80 {
-										dev.ModifyDpi(true)
-									} else if data[2] == 0x00 && data[3] == 0x01 {
-										dev.ModifyDpi(false)
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
 									}
 								}
 								if dev, found := value.(*darkcorergbproseW.Device); found {

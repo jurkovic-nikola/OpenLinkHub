@@ -1583,9 +1583,6 @@ func (d *Device) setKeepAlive() {
 		for {
 			select {
 			case <-d.timerKeepAlive.C:
-				if d.Exit {
-					return
-				}
 				d.keepAlive()
 			case <-d.keepAliveChan:
 				d.timerKeepAlive.Stop()

@@ -937,19 +937,8 @@ func (d *Device) controlListener() {
 									}
 								}
 								if dev, found := value.(*ironclawW.Device); found {
-									switch data[2] {
-									case 32: // DPI Button Up
-										dev.ModifyDpi(true)
-										break
-									case 64: // DPI Button Down
-										dev.ModifyDpi(false)
-										break
-									case 8: // Forward button
-										// TO-DO
-										break
-									case 16: // Back button
-										// TO-DO
-										break
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
 									}
 								}
 								if dev, found := value.(*darkstarW.Device); found {

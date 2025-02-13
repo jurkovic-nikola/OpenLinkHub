@@ -223,7 +223,6 @@ func (d *Device) SetConnected(value bool) {
 func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
-		d.clearBuffer()           // Clear previous buffers
 		d.setHardwareMode()       // Activate hardware mode
 		d.setSoftwareMode()       // Activate software mode
 		d.getDeviceFirmware()     // Firmware
@@ -235,11 +234,6 @@ func (d *Device) Connect() {
 		d.setSleepTimer()         // Sleep
 		d.setupKeyAssignment()    // Setup key assignments
 	}
-}
-
-// clearBuffer will flush any buffer remaining in the device
-func (d *Device) clearBuffer() {
-
 }
 
 // loadRgb will load RGB file if found, or create the default.

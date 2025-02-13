@@ -100,32 +100,30 @@ type Device struct {
 }
 
 var (
-	pwd                       = ""
-	cmdSoftwareMode           = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode           = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware            = []byte{0x02, 0x13}
-	cmdWriteColor             = []byte{0x06, 0x00}
-	cmdOpenEndpoint           = []byte{0x0d, 0x00, 0x01}
-	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSetDpi                 = map[int][]byte{0: {0x01, 0x21, 0x00}, 1: {0x01, 0x22, 0x00}}
-	cmdHeartbeat              = []byte{0x12}
-	cmdSleep                  = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	cmdAngleSnapping          = []byte{0x01, 0x07, 0x00}
-	cmdButtonOptimization     = []byte{0x01, 0xb0, 0x00}
-	cmdSetPollingRate         = []byte{0x01, 0x01, 0x00}
-	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
-	cmdWrite                  = []byte{0x06, 0x01}
-	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
-	bufferSize                = 64
-	bufferSizeWrite           = bufferSize + 1
-	headerSize                = 2
-	headerWriteSize           = 4
-	keyAmount                 = 8
-	minDpiValue               = 100
-	maxDpiValue               = 18000
-	deviceKeepAlive           = 20000
-	deviceRefreshInterval     = 1000
-	mediaKeysInterfaceId      = 5
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
+	cmdSetDpi             = map[int][]byte{0: {0x01, 0x21, 0x00}, 1: {0x01, 0x22, 0x00}}
+	cmdHeartbeat          = []byte{0x12}
+	cmdAngleSnapping      = []byte{0x01, 0x07, 0x00}
+	cmdButtonOptimization = []byte{0x01, 0xb0, 0x00}
+	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
+	cmdOpenWriteEndpoint  = []byte{0x0d, 0x01, 0x02}
+	cmdWrite              = []byte{0x06, 0x01}
+	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x01}
+	bufferSize            = 64
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	keyAmount             = 8
+	minDpiValue           = 100
+	maxDpiValue           = 18000
+	deviceKeepAlive       = 20000
+	deviceRefreshInterval = 1000
+	mediaKeysInterfaceId  = 5
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -1103,48 +1101,6 @@ func (d *Device) setAutoRefresh() {
 			}
 		}
 	}()
-}
-
-// UpdateSleepTimer will update device sleep timer
-func (d *Device) UpdateSleepTimer(minutes int) uint8 {
-	if d.DeviceProfile != nil {
-		d.DeviceProfile.SleepMode = minutes
-		d.saveDeviceProfile()
-		d.setSleepTimer()
-		return 1
-	}
-	return 0
-}
-
-// setSleepTimer will set device sleep timer
-func (d *Device) setSleepTimer() uint8 {
-	if d.DeviceProfile != nil {
-		changed := 0
-		_, err := d.transfer(cmdOpenSleepWriteEndpoint, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
-		}
-
-		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-
-		for i := 0; i < 2; i++ {
-			command := cmdSleep[i]
-			_, err = d.transfer(command, buf)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-				continue
-			}
-			changed++
-		}
-
-		if changed > 0 {
-			return 1
-		}
-	}
-	return 0
 }
 
 // loadDeviceProfiles will load custom user profiles

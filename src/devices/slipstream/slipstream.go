@@ -906,16 +906,8 @@ func (d *Device) controlListener() {
 									}
 								}
 								if dev, found := value.(*darkcorergbproseW.Device); found {
-									if data[2] == 0x20 {
-										dev.ModifyDpi(true)
-									} else if data[2] == 0x40 {
-										dev.ModifyDpi(false)
-									} else if data[2] == 0x08 {
-										// TO-DO, side button upper
-									} else if data[2] == 0x10 {
-										// TO-DO, side button lower
-									} else if data[2] == 0x80 {
-										// TO-DO, profile button
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
 									}
 								}
 								if dev, found := value.(*darkcorergbproW.Device); found {

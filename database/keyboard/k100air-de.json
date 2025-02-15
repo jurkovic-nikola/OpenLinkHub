@@ -300,7 +300,7 @@
           }
         },
         "22": {
-          "keyName": "PrtSc",
+          "keyName": "Druck",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -314,7 +314,7 @@
           "spacing": [1]
         },
         "23": {
-          "keyName": "ScrLk",
+          "keyName": "Rollen",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -327,7 +327,7 @@
           }
         },
         "24": {
-          "keyName": "Pause",
+          "keyName": "Pause Untbr",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -397,7 +397,7 @@
     "2": {
       "keys": {
         "29": {
-          "keyName": "` ~",
+          "keyName": "^",
           "width": 65,
           "height": 70,
           "left": 0,
@@ -540,7 +540,7 @@
           }
         },
         "40": {
-          "keyName": "-",
+          "keyName": "Sz",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -550,10 +550,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "41": {
-          "keyName": "=",
+          "keyName": "'",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -569,7 +570,7 @@
           "keyName": "<---",
           "width": 150,
           "height": 70,
-          "left": 15,
+          "left": 60,
           "top": 15,
           "packetIndex": [126],
           "color": {
@@ -577,10 +578,10 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide3"
+          "css": "keyboard-key wide"
         },
         "43": {
-          "keyName": "Ins",
+          "keyName": "Einfg",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -594,7 +595,7 @@
           "spacing": [1]
         },
         "44": {
-          "keyName": "Home",
+          "keyName": "Pos1",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -607,7 +608,7 @@
           }
         },
         "45": {
-          "keyName": "PgUp",
+          "keyName": "Bild↑",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -821,7 +822,7 @@
           }
         },
         "61": {
-          "keyName": "[ {",
+          "keyName": "Ü",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -834,7 +835,7 @@
           }
         },
         "62": {
-          "keyName": "] }",
+          "keyName": "+",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -846,25 +847,11 @@
             "blue": 255
           }
         },
-        "63": {
-          "keyName": "\\ |",
-          "width": 107,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [147],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          },
-          "css": "keyboard-key wide"
-        },
         "64": {
-          "keyName": "Del",
+          "keyName": "Entf",
           "width": 65,
           "height": 70,
-          "left": 25,
+          "left": 175,
           "top": 15,
           "packetIndex": [228],
           "color": {
@@ -872,10 +859,10 @@
             "green": 255,
             "blue": 255
           },
-          "spacing": [1]
+          "spacing": [1,1,1]
         },
         "65": {
-          "keyName": "End",
+          "keyName": "Ende",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -888,7 +875,7 @@
           }
         },
         "66": {
-          "keyName": "PgDn",
+          "keyName": "Bild↓",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -959,7 +946,7 @@
     "4": {
       "keys": {
         "71": {
-          "keyName": "CAPS",
+          "keyName": "Feststell",
           "width": 131,
           "height": 70,
           "left": 0,
@@ -1090,7 +1077,7 @@
           }
         },
         "81": {
-          "keyName": "; :",
+          "keyName": "Ö",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1103,7 +1090,7 @@
           }
         },
         "82": {
-          "keyName": "' ''",
+          "keyName": "Ä",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1131,7 +1118,7 @@
         "84": {
           "keyName": "Enter",
           "width": 164,
-          "height": 70,
+          "height": 155,
           "left": 15,
           "top": 15,
           "packetIndex": [120],
@@ -1187,7 +1174,7 @@
     "5": {
       "keys": {
         "88": {
-          "keyName": "Shift",
+          "keyName": "Umschalt",
           "width": 170,
           "height": 70,
           "left": 0,
@@ -1201,7 +1188,7 @@
           "css": "keyboard-key wide"
         },
         "89": {
-          "keyName": "< | >",
+          "keyName": "<",
           "width": 205,
           "height": 70,
           "left": 15,
@@ -1306,7 +1293,7 @@
           }
         },
         "97": {
-          "keyName": ", <",
+          "keyName": ",",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1319,7 +1306,7 @@
           }
         },
         "98": {
-          "keyName": ". >",
+          "keyName": ".",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1332,7 +1319,7 @@
           }
         },
         "99": {
-          "keyName": "/ ?",
+          "keyName": "-",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1345,7 +1332,7 @@
           }
         },
         "100": {
-          "keyName": "Shift",
+          "keyName": "Umschalt",
           "width": 205,
           "height": 70,
           "left": 15,
@@ -1431,7 +1418,7 @@
     "6": {
       "keys": {
         "106": {
-          "keyName": "Ctrl",
+          "keyName": "Strg",
           "width": 90,
           "height": 70,
           "left": 0,
@@ -1486,7 +1473,7 @@
           "css": "keyboard-key wide7"
         },
         "110": {
-          "keyName": "Alt",
+          "keyName": "Alt Gr",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1512,7 +1499,7 @@
           }
         },
         "112": {
-          "keyName": "Menu",
+          "keyName": "Menü",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1525,7 +1512,7 @@
           }
         },
         "113": {
-          "keyName": "Ctrl",
+          "keyName": "Strg",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1593,7 +1580,7 @@
           "css": "keyboard-key wide"
         },
         "118": {
-          "keyName": ".",
+          "keyName": ",",
           "width": 65,
           "height": 70,
           "left": 15,

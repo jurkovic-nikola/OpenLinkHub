@@ -10,10 +10,12 @@ import (
 	"OpenLinkHub/src/logger"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"unsafe"
 )
 
 type KeyAssignment struct {
@@ -30,6 +32,32 @@ type InputAction struct {
 	CommandCode uint16 // Key code
 	Media       bool   // Key can control media playback
 }
+
+type uInputUserDev struct {
+	Name      [80]byte
+	ID        inputID
+	FFEffects uint32
+	AbsMax    [64]int32
+	AbsMin    [64]int32
+	AbsFuzz   [64]int32
+	AbsFlat   [64]int32
+}
+
+type inputID struct {
+	BusType uint16
+	Vendor  uint16
+	Product uint16
+	Version uint16
+}
+
+const (
+	UiDevCreate         = 0x5501
+	UiDevDestroy        = 0x5502
+	UiSetEvbit          = 0x40045564
+	UiSetKeybit         = 0x40045565
+	EvKey        uint16 = 1
+	EvSyn        uint16 = 0
+)
 
 const (
 	None           uint8 = 0
@@ -126,101 +154,102 @@ const (
 )
 
 var (
-	evKey          uint16 = 0x01
-	evSyn          uint16 = 0x00
-	keyVolumeUp    uint16 = 0x73
-	keyVolumeDown  uint16 = 0x72
-	keyVolumeMute  uint16 = 0x71
-	keyMediaStop   uint16 = 0xA6
-	keyMediaPrev   uint16 = 0xA5
-	keyMediaPlay   uint16 = 0xA4
-	keyMediaNext   uint16 = 0xA3
-	keyNumber1     uint16 = 0x2
-	keyNumber2     uint16 = 0x3
-	keyNumber3     uint16 = 0x4
-	keyNumber4     uint16 = 0x5
-	keyNumber5     uint16 = 0x6
-	keyNumber6     uint16 = 0x7
-	keyNumber7     uint16 = 0x8
-	keyNumber8     uint16 = 0x9
-	keyNumber9     uint16 = 0xA
-	keyNumber0     uint16 = 0xB
-	keyEsc         uint16 = 0x1
-	keyF1          uint16 = 0x3B
-	keyF2          uint16 = 0x3C
-	keyF3          uint16 = 0x3D
-	keyF4          uint16 = 0x3E
-	keyF5          uint16 = 0x3F
-	keyF6          uint16 = 0x40
-	keyF7          uint16 = 0x41
-	keyF8          uint16 = 0x42
-	keyF9          uint16 = 0x43
-	keyF10         uint16 = 0x44
-	keyF11         uint16 = 0x57
-	keyF12         uint16 = 0x58
-	keyTilde       uint16 = 0x29
-	keyMinus       uint16 = 0xC
-	keyEqual       uint16 = 0xD
-	keyBack        uint16 = 0xE
-	keyTab         uint16 = 0xF
-	keyQ           uint16 = 0x10
-	keyW           uint16 = 0x11
-	keyE           uint16 = 0x12
-	keyR           uint16 = 0x13
-	keyT           uint16 = 0x14
-	keyY           uint16 = 0x15
-	keyU           uint16 = 0x16
-	keyI           uint16 = 0x17
-	keyO           uint16 = 0x18
-	keyP           uint16 = 0x19
-	keyLeftSquare  uint16 = 0x1A
-	keyRightSquare uint16 = 0x1B
-	keyBackslash   uint16 = 0x2B
-	keyCapslock    uint16 = 0x3A
-	keyA           uint16 = 0x1E
-	keyS           uint16 = 0x1F
-	keyD           uint16 = 0x20
-	keyF           uint16 = 0x21
-	keyG           uint16 = 0x22
-	keyH           uint16 = 0x23
-	keyJ           uint16 = 0x24
-	keyK           uint16 = 0x25
-	keyL           uint16 = 0x26
-	keySemicolon   uint16 = 0x27
-	keySingleQuote uint16 = 0x28
-	keyEnter       uint16 = 0x1C
-	keyLeftShift   uint16 = 0x2A
-	keyZ           uint16 = 0x2C
-	keyX           uint16 = 0x2D
-	keyC           uint16 = 0x2E
-	keyV           uint16 = 0x2F
-	keyB           uint16 = 0x30
-	keyN           uint16 = 0x31
-	keyM           uint16 = 0x32
-	keyComma       uint16 = 0x33
-	keyDot         uint16 = 0x34
-	keySlash       uint16 = 0x35
-	keyRightShift  uint16 = 0x36
-	keyUp          uint16 = 0x67
-	keyLeftCtrl    uint16 = 0x1D
-	keyWindowsKey  uint16 = 0x7D
-	keyLeftAlt     uint16 = 0x38
-	keySpace       uint16 = 0x39
-	keyRightAlt    uint16 = 0x64
-	keyMenu        uint16 = 0x7F
-	keyRightCtrl   uint16 = 0x61
-	keyLeft        uint16 = 0x69
-	keyDown        uint16 = 0x6C
-	keyRight       uint16 = 0x6A
-	keyIns         uint16 = 0x6E
-	keyHome        uint16 = 0x66
-	keyPgUp        uint16 = 0x68
-	keyDel         uint16 = 0x6F
-	keyEnd         uint16 = 0x6B
-	keyPgDn        uint16 = 0x6D
-
-	devicePath   []string
-	inputActions map[uint8]InputAction
+	evKey                  uint16 = 0x01
+	evSyn                  uint16 = 0x00
+	keyVolumeUp            uint16 = 0x73
+	keyVolumeDown          uint16 = 0x72
+	keyVolumeMute          uint16 = 0x71
+	keyMediaStop           uint16 = 0xA6
+	keyMediaPrev           uint16 = 0xA5
+	keyMediaPlay           uint16 = 0xA4
+	keyMediaNext           uint16 = 0xA3
+	keyNumber1             uint16 = 0x2
+	keyNumber2             uint16 = 0x3
+	keyNumber3             uint16 = 0x4
+	keyNumber4             uint16 = 0x5
+	keyNumber5             uint16 = 0x6
+	keyNumber6             uint16 = 0x7
+	keyNumber7             uint16 = 0x8
+	keyNumber8             uint16 = 0x9
+	keyNumber9             uint16 = 0xA
+	keyNumber0             uint16 = 0xB
+	keyEsc                 uint16 = 0x1
+	keyF1                  uint16 = 0x3B
+	keyF2                  uint16 = 0x3C
+	keyF3                  uint16 = 0x3D
+	keyF4                  uint16 = 0x3E
+	keyF5                  uint16 = 0x3F
+	keyF6                  uint16 = 0x40
+	keyF7                  uint16 = 0x41
+	keyF8                  uint16 = 0x42
+	keyF9                  uint16 = 0x43
+	keyF10                 uint16 = 0x44
+	keyF11                 uint16 = 0x57
+	keyF12                 uint16 = 0x58
+	keyTilde               uint16 = 0x29
+	keyMinus               uint16 = 0xC
+	keyEqual               uint16 = 0xD
+	keyBack                uint16 = 0xE
+	keyTab                 uint16 = 0xF
+	keyQ                   uint16 = 0x10
+	keyW                   uint16 = 0x11
+	keyE                   uint16 = 0x12
+	keyR                   uint16 = 0x13
+	keyT                   uint16 = 0x14
+	keyY                   uint16 = 0x15
+	keyU                   uint16 = 0x16
+	keyI                   uint16 = 0x17
+	keyO                   uint16 = 0x18
+	keyP                   uint16 = 0x19
+	keyLeftSquare          uint16 = 0x1A
+	keyRightSquare         uint16 = 0x1B
+	keyBackslash           uint16 = 0x2B
+	keyCapslock            uint16 = 0x3A
+	keyA                   uint16 = 0x1E
+	keyS                   uint16 = 0x1F
+	keyD                   uint16 = 0x20
+	keyF                   uint16 = 0x21
+	keyG                   uint16 = 0x22
+	keyH                   uint16 = 0x23
+	keyJ                   uint16 = 0x24
+	keyK                   uint16 = 0x25
+	keyL                   uint16 = 0x26
+	keySemicolon           uint16 = 0x27
+	keySingleQuote         uint16 = 0x28
+	keyEnter               uint16 = 0x1C
+	keyLeftShift           uint16 = 0x2A
+	keyZ                   uint16 = 0x2C
+	keyX                   uint16 = 0x2D
+	keyC                   uint16 = 0x2E
+	keyV                   uint16 = 0x2F
+	keyB                   uint16 = 0x30
+	keyN                   uint16 = 0x31
+	keyM                   uint16 = 0x32
+	keyComma               uint16 = 0x33
+	keyDot                 uint16 = 0x34
+	keySlash               uint16 = 0x35
+	keyRightShift          uint16 = 0x36
+	keyUp                  uint16 = 0x67
+	keyLeftCtrl            uint16 = 0x1D
+	keyWindowsKey          uint16 = 0x7D
+	keyLeftAlt             uint16 = 0x38
+	keySpace               uint16 = 0x39
+	keyRightAlt            uint16 = 0x64
+	keyMenu                uint16 = 0x7F
+	keyRightCtrl           uint16 = 0x61
+	keyLeft                uint16 = 0x69
+	keyDown                uint16 = 0x6C
+	keyRight               uint16 = 0x6A
+	keyIns                 uint16 = 0x6E
+	keyHome                uint16 = 0x66
+	keyPgUp                uint16 = 0x68
+	keyDel                 uint16 = 0x6F
+	keyEnd                 uint16 = 0x6B
+	keyPgDn                uint16 = 0x6D
+	devicePath             []string
+	inputActions           map[uint8]InputAction
+	virtualKeyboardPointer uintptr
+	virtualKeyboardFile    = &os.File{}
 )
 
 type inputEvent struct {
@@ -443,6 +472,132 @@ func InputControlManual(controlType uint8, path string) {
 
 	// Close device
 	closeDevice(device)
+}
+
+// InputControlVirtual will emulate input events based on virtual keyboard
+func InputControlVirtual(controlType uint8) {
+	if virtualKeyboardFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
+		return
+	}
+
+	var events []inputEvent
+
+	// Get event key code
+	actionType := getInputAction(controlType)
+	if actionType == nil {
+		return
+	}
+
+	// Create events
+	events = createInputEvent(actionType.CommandCode)
+
+	// Send events
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualKeyboardFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
+			return
+		}
+	}
+}
+
+// DestroyVirtualKeyboard will destroy virtual keyboard and close uinput device
+func DestroyVirtualKeyboard() {
+	if virtualKeyboardPointer != 0 {
+		// Step 8: Destroy the device
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiDevDestroy, 0); errno != 0 {
+			logger.Log(logger.Fields{"error": errno}).Error("Failed to destroy virtual keyboard")
+		}
+
+		err := virtualKeyboardFile.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to close /dev/uinput")
+			return
+		}
+	}
+}
+
+// CreateVirtualKeyboard will create new virtual keyboard for devices without built-in -kbd event
+func CreateVirtualKeyboard(vendorId, productId uint16) error {
+	// Open device
+	f, err := os.OpenFile("/dev/uinput", os.O_WRONLY, 0660)
+	if err != nil {
+		virtualKeyboardFile = nil
+		logger.Log(logger.Fields{"error": err}).Error("Failed to open /dev/uinput")
+		return err
+	}
+	virtualKeyboardFile = f
+
+	// Set non-blocking mode
+	virtualKeyboardPointer = virtualKeyboardFile.Fd()
+	_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, virtualKeyboardPointer, syscall.F_SETFL, syscall.O_NONBLOCK)
+	if errno != 0 {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to set non-blocking mode")
+	}
+
+	// Define virtual device
+	uInputDevice := uInputUserDev{
+		ID: inputID{
+			BusType: 0x06, // BUS_VIRTUAL
+			Vendor:  vendorId,
+			Product: productId,
+			Version: 1,
+		},
+		FFEffects: 0,
+	}
+
+	// Set keyboard name
+	copy(uInputDevice.Name[:], "OpenLinkHub Virtual Keyboard")
+
+	// Ensure all required key event properties are enabled
+	if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiSetEvbit, uintptr(EvKey)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable key events")
+		return err
+	}
+
+	// Enable sync events
+	if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiSetEvbit, uintptr(EvSyn)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable sync events")
+		return errno
+	}
+
+	// Enable standard keyboard keys (letters, numbers, function keys)
+	for i := 0; i < 255; i++ {
+		if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), UiSetKeybit, uintptr(i)); errno != 0 {
+			logger.Log(logger.Fields{"error": errno, "key": i}).Error("Failed to enable key")
+			continue
+		}
+	}
+
+	// Ensure we correctly write the struct before creating the device
+	if _, e := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); err != nil {
+		logger.Log(logger.Fields{"error": e}).Error("Failed to write virtual keyboard data struct")
+		return e
+	}
+
+	// Ensure device is created
+	if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiDevCreate, 0); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to create new virtual keyboard")
+		return errno
+	}
+
+	return nil
+}
+
+// writeVirtualEvent will send event to virtual keyboard device
+func writeVirtualEvent(f *os.File, event *inputEvent) error {
+	if f == nil {
+		logger.Log(logger.Fields{}).Error("No valid virtual keyboard")
+		return errors.New("no valid virtual keyboard")
+	}
+
+	buf := (*(*[unsafe.Sizeof(*event)]byte)(unsafe.Pointer(event)))[:]
+	_, err := f.Write(buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to send keyboard event")
+		return err
+	}
+	return nil
 }
 
 // getInputAction will return InputAction based on actionType

@@ -2,7 +2,7 @@
   "version": 1,
   "key": "k100air-default",
   "device": "K100 AIR RGB",
-  "layout": "EU",
+  "layout": "DE",
   "rows": 6,
   "row": {
     "0": {
@@ -1116,6 +1116,19 @@
           }
         },
         "83": {
+          "keyName": "#",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [150],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "84": {
           "keyName": "Enter",
           "width": 164,
           "height": 70,
@@ -1127,9 +1140,9 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide3"
+          "css": "keyboard-key wide"
         },
-        "84": {
+        "85": {
           "keyName": "4",
           "width": 65,
           "height": 70,
@@ -1143,7 +1156,7 @@
           },
           "spacing": [1,1,1,1,1]
         },
-        "85": {
+        "86": {
           "keyName": "5",
           "width": 65,
           "height": 70,
@@ -1156,7 +1169,7 @@
             "blue": 255
           }
         },
-        "86": {
+        "87": {
           "keyName": "6",
           "width": 65,
           "height": 70,
@@ -1173,7 +1186,7 @@
     },
     "5": {
       "keys": {
-        "87": {
+        "88": {
           "keyName": "Shift",
           "width": 170,
           "height": 70,
@@ -1185,9 +1198,23 @@
             "green": 255,
             "blue": 0
           },
-          "css": "keyboard-key wide3"
+          "css": "keyboard-key wide"
         },
-        "88": {
+        "89": {
+          "keyName": "< | >",
+          "width": 205,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [300],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key"
+        },
+        "90": {
           "keyName": "Y",
           "width": 65,
           "height": 70,
@@ -1200,7 +1227,7 @@
             "blue": 255
           }
         },
-        "89": {
+        "91": {
           "keyName": "X",
           "width": 65,
           "height": 70,
@@ -1213,7 +1240,7 @@
             "blue": 255
           }
         },
-        "90": {
+        "92": {
           "keyName": "C",
           "width": 65,
           "height": 70,
@@ -1226,7 +1253,7 @@
             "blue": 255
           }
         },
-        "91": {
+        "93": {
           "keyName": "V",
           "width": 65,
           "height": 70,
@@ -1239,7 +1266,7 @@
             "blue": 255
           }
         },
-        "92": {
+        "94": {
           "keyName": "B",
           "width": 65,
           "height": 70,
@@ -1252,7 +1279,7 @@
             "blue": 255
           }
         },
-        "93": {
+        "95": {
           "keyName": "N",
           "width": 65,
           "height": 70,
@@ -1265,7 +1292,7 @@
             "blue": 255
           }
         },
-        "94": {
+        "96": {
           "keyName": "M",
           "width": 65,
           "height": 70,
@@ -1278,7 +1305,7 @@
             "blue": 255
           }
         },
-        "95": {
+        "97": {
           "keyName": ", <",
           "width": 65,
           "height": 70,
@@ -1291,7 +1318,7 @@
             "blue": 255
           }
         },
-        "96": {
+        "98": {
           "keyName": ". >",
           "width": 65,
           "height": 70,
@@ -1304,7 +1331,7 @@
             "blue": 255
           }
         },
-        "97": {
+        "99": {
           "keyName": "/ ?",
           "width": 65,
           "height": 70,
@@ -1317,7 +1344,7 @@
             "blue": 255
           }
         },
-        "98": {
+        "100": {
           "keyName": "Shift",
           "width": 205,
           "height": 70,
@@ -1331,7 +1358,7 @@
           },
           "css": "keyboard-key wide3"
         },
-        "99": {
+        "101": {
           "keyName": "↑",
           "width": 65,
           "height": 70,
@@ -1345,7 +1372,7 @@
           },
           "spacing": [1,1]
         },
-        "100": {
+        "102": {
           "keyName": "1",
           "width": 65,
           "height": 70,
@@ -1359,7 +1386,7 @@
           },
           "spacing": [1,1]
         },
-        "101": {
+        "103": {
           "keyName": "2",
           "width": 65,
           "height": 70,
@@ -1372,7 +1399,7 @@
             "blue": 255
           }
         },
-        "102": {
+        "104": {
           "keyName": "3",
           "width": 65,
           "height": 70,
@@ -1385,7 +1412,7 @@
             "blue": 255
           }
         },
-        "103": {
+        "105": {
           "keyName": "Enter",
           "width": 65,
           "height": 155,
@@ -1403,7 +1430,7 @@
     },
     "6": {
       "keys": {
-        "104": {
+        "106": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1417,7 +1444,7 @@
           },
           "css": "keyboard-key wide"
         },
-        "105": {
+        "107": {
           "keyName": "Win",
           "width": 90,
           "height": 70,
@@ -1430,7 +1457,7 @@
             "blue": 255
           }
         },
-        "106": {
+        "108": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1444,7 +1471,7 @@
           },
           "css": "keyboard-key wide"
         },
-        "107": {
+        "109": {
           "keyName": "----------",
           "width": 455,
           "height": 70,
@@ -1458,7 +1485,7 @@
           },
           "css": "keyboard-key wide7"
         },
-        "108": {
+        "110": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1471,7 +1498,7 @@
             "blue": 255
           }
         },
-        "109": {
+        "111": {
           "keyName": "Fn",
           "width": 90,
           "height": 70,
@@ -1484,7 +1511,7 @@
             "blue": 255
           }
         },
-        "110": {
+        "112": {
           "keyName": "Menu",
           "width": 90,
           "height": 70,
@@ -1497,7 +1524,7 @@
             "blue": 255
           }
         },
-        "111": {
+        "113": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1510,7 +1537,7 @@
             "blue": 255
           }
         },
-        "112": {
+        "114": {
           "keyName": "←",
           "width": 65,
           "height": 70,
@@ -1524,7 +1551,7 @@
           },
           "spacing": [1]
         },
-        "113": {
+        "115": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
@@ -1537,7 +1564,7 @@
             "blue": 255
           }
         },
-        "114": {
+        "116": {
           "keyName": "→",
           "width": 65,
           "height": 70,
@@ -1550,7 +1577,7 @@
             "blue": 255
           }
         },
-        "115": {
+        "117": {
           "keyName": "0",
           "width": 145,
           "height": 70,
@@ -1565,7 +1592,7 @@
           "spacing": [1],
           "css": "keyboard-key wide"
         },
-        "116": {
+        "118": {
           "keyName": ".",
           "width": 65,
           "height": 70,

@@ -916,8 +916,8 @@ func (d *Device) controlListener() {
 									}
 								}
 								if dev, found := value.(*harpoonW.Device); found {
-									if data[2] == 0x08 {
-										dev.ModifyDpi()
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(data[2], d.Serial)
 									}
 								}
 								if dev, found := value.(*ironclawW.Device); found {

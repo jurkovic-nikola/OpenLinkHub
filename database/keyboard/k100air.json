@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "key": "k100air-default",
   "device": "K100 AIR RGB",
   "layout": "US",
@@ -18,7 +19,8 @@
             "green": 255,
             "blue": 255
           },
-          "svg": true
+          "svg": true,
+          "spacing": [1,1]
         },
         "2": {
           "keyName": "icon-brightness.svg",
@@ -59,7 +61,9 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1,1,1],
+          "css": "keyboard-key wide8"
         },
         "5": {
           "keyName": "icon-backward.svg",
@@ -73,7 +77,8 @@
             "green": 255,
             "blue": 255
           },
-          "svg": true
+          "svg": true,
+          "spacing": [1]
         },
         "6": {
           "keyName": "icon-pause.svg",
@@ -115,7 +120,8 @@
             "green": 255,
             "blue": 255
           },
-          "svg": true
+          "svg": true,
+          "spacing": [1]
         }
       }
     },
@@ -145,7 +151,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "11": {
           "keyName": "F2",
@@ -197,7 +204,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "15": {
           "keyName": "F6",
@@ -249,7 +257,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "19": {
           "keyName": "F10",
@@ -301,7 +310,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "23": {
           "keyName": "ScrLk",
@@ -340,7 +350,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "26": {
           "keyName": "G2",
@@ -565,7 +576,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "43": {
           "keyName": "Ins",
@@ -578,7 +590,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "44": {
           "keyName": "Home",
@@ -617,7 +630,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "47": {
           "keyName": "/",
@@ -673,7 +687,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "51": {
           "keyName": "Q",
@@ -842,7 +857,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "64": {
           "keyName": "Del",
@@ -855,7 +871,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "65": {
           "keyName": "End",
@@ -894,7 +911,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "68": {
           "keyName": "8",
@@ -933,7 +951,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key-125"
         }
       }
     },
@@ -950,7 +969,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "72": {
           "keyName": "A",
@@ -1106,7 +1126,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "84": {
           "keyName": "4",
@@ -1119,7 +1140,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1,1,1,1,1]
         },
         "85": {
           "keyName": "5",
@@ -1162,7 +1184,8 @@
             "red": 255,
             "green": 255,
             "blue": 0
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "88": {
           "keyName": "Z",
@@ -1305,7 +1328,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "99": {
           "keyName": "↑",
@@ -1318,7 +1342,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1,1]
         },
         "100": {
           "keyName": "1",
@@ -1331,7 +1356,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1,1]
         },
         "101": {
           "keyName": "2",
@@ -1370,7 +1396,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key-125"
         }
       }
     },
@@ -1387,7 +1414,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "105": {
           "keyName": "Win",
@@ -1413,7 +1441,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "107": {
           "keyName": "----------",
@@ -1426,7 +1455,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide7"
         },
         "108": {
           "keyName": "Alt",
@@ -1491,7 +1521,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "113": {
           "keyName": "↓",
@@ -1530,7 +1561,9 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1],
+          "css": "keyboard-key wide"
         },
         "116": {
           "keyName": ".",

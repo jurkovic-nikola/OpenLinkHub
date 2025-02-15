@@ -132,86 +132,16 @@
                                 {{ else }}
                                 <div class="{{ $device.UIKeyboardRow }}">
                                 {{ end }}
-
                                     {{ range $index, $keys := .Keys }}
-                                    {{ if eq $index 1 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 10 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 14 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 18 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 22 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 25 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 4 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 5 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 8 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 43 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 46 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 64 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 67 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 84 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 99 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 100 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 112 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 115 }}
+                                    {{ range $amount := $keys.Spacing }}
                                     <div class="keyboard-key-empty"></div>
                                     {{ end }}
 
-                                    {{ if eq $index 4 }}
-                                    <div class="keyboard-key wide8 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 70 }}
-                                    <div class="keyboard-key-125 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 42 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 50 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 63 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 71 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 83 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 87 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 98 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 103 }}
-                                    <div class="keyboard-key-125 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 104 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 106 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 107 }}
-                                    <div class="keyboard-key wide7 keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else if eq $index 115 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ else }}
-                                    <div class="keyboard-key keyboardColor" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
-                                    {{ end }}
+                                    {{ if gt (len $keys.Css) 0 }}
+                                    <div class="{{ $keys.Css }} keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                        {{ else }}
+                                        <div class="keyboard-key keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                            {{ end }}
 
                                     {{ if $keys.Svg }}
                                         <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>

@@ -1,4 +1,7 @@
 {
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k100-default",
   "device": "K100 RGB",
   "layout": "US",

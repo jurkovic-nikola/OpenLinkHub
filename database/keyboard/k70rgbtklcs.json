@@ -1,22 +1,153 @@
 {
-  "key": "k70coretklW-default",
-  "device": "K70 CORE TKL WL",
-  "layout": "EU",
-  "rows": 6,
-  "color": {
-    "red": 0,
-    "green": 255,
-    "blue": 255
-  },
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
+  "key": "k70rgbtklcs-default",
+  "device": "K70 RGB TKL",
+  "layout": "US",
+  "rows": 7,
   "row": {
     "0": {
       "keys": {
         "1": {
+          "keyName": "icon-stop.svg",
+          "width": 65,
+          "height": 40,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [369],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true
+        },
+        "2": {
+          "keyName": "icon-backward.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [378],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true
+        },
+        "3": {
+          "keyName": "icon-pause.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [372],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true
+        },
+        "4": {
+          "keyName": "icon-forward.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [375],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true
+        },
+        "5": {
+          "keyName": "LOGO",
+          "width": 404,
+          "height": 40,
+          "left": 400,
+          "top": 0,
+          "packetIndex": [3,9],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "spacing": [1,1,1],
+          "css": "keyboard-key wide4"
+        },
+        "6": {
+          "keyName": "icon-user.svg",
+          "width": 65,
+          "height": 40,
+          "left": 185,
+          "top": 0,
+          "packetIndex": [384],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true,
+          "spacing": [1]
+        },
+        "7": {
+          "keyName": "icon-brightness.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [339],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true
+        },
+        "8": {
+          "keyName": "icon-lock.svg",
+          "width": 65,
+          "height": 40,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [342],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true
+        },
+        "9": {
+          "keyName": "icon-mute.svg",
+          "width": 65,
+          "height": 40,
+          "left": 25,
+          "top": 0,
+          "packetIndex": [306],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "svg": true,
+          "spacing": [1,1]
+        }
+      }
+    },
+    "1": {
+      "keys": {
+        "10": {
           "keyName": "ESC",
           "width": 65,
           "height": 70,
           "left": 0,
-          "top": 0,
+          "top": 50,
           "packetIndex": [123],
           "color": {
             "red": 0,
@@ -24,25 +155,26 @@
             "blue": 0
           }
         },
-        "2": {
+        "11": {
           "keyName": "F1",
           "width": 65,
           "height": 70,
           "left": 95,
-          "top": 0,
+          "top": 50,
           "packetIndex": [174],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
-        "3": {
+        "12": {
           "keyName": "F2",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [177],
           "color": {
             "red": 0,
@@ -50,12 +182,12 @@
             "blue": 255
           }
         },
-        "4": {
+        "13": {
           "keyName": "F3",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [180],
           "color": {
             "red": 0,
@@ -63,12 +195,12 @@
             "blue": 255
           }
         },
-        "5": {
+        "14": {
           "keyName": "F4",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [183],
           "color": {
             "red": 0,
@@ -76,25 +208,26 @@
             "blue": 255
           }
         },
-        "6": {
+        "15": {
           "keyName": "F5",
           "width": 65,
           "height": 70,
           "left": 55,
-          "top": 0,
+          "top": 50,
           "packetIndex": [186],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
-        "7": {
+        "16": {
           "keyName": "F6",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [189],
           "color": {
             "red": 0,
@@ -102,12 +235,12 @@
             "blue": 255
           }
         },
-        "8": {
+        "17": {
           "keyName": "F7",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [192],
           "color": {
             "red": 0,
@@ -115,12 +248,12 @@
             "blue": 255
           }
         },
-        "9": {
+        "18": {
           "keyName": "F8",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [195],
           "color": {
             "red": 0,
@@ -128,25 +261,26 @@
             "blue": 255
           }
         },
-        "10": {
+        "19": {
           "keyName": "F9",
           "width": 65,
           "height": 70,
           "left": 60,
-          "top": 0,
+          "top": 50,
           "packetIndex": [198],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
-        "11": {
+        "20": {
           "keyName": "F10",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [201],
           "color": {
             "red": 0,
@@ -154,12 +288,12 @@
             "blue": 255
           }
         },
-        "12": {
+        "21": {
           "keyName": "F11",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [204],
           "color": {
             "red": 0,
@@ -167,12 +301,12 @@
             "blue": 255
           }
         },
-        "13": {
+        "22": {
           "keyName": "F12",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
+          "top": 50,
           "packetIndex": [207],
           "color": {
             "red": 0,
@@ -180,38 +314,51 @@
             "blue": 255
           }
         },
-        "14": {
-          "keyName": "icon-speed.svg",
+        "23": {
+          "keyName": "PrtSc",
           "width": 65,
           "height": 70,
           "left": 25,
-          "top": 0,
-          "packetIndex": [3],
+          "top": 50,
+          "packetIndex": [210],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
-          "svg": true
+          "spacing": [1]
         },
-        "15": {
-          "keyName": "Profile",
+        "24": {
+          "keyName": "ScrLk",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 0,
-          "packetIndex": [6],
+          "top": 50,
+          "packetIndex": [213],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
+          }
+        },
+        "25": {
+          "keyName": "Pause",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 50,
+          "packetIndex": [216],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
           }
         }
       }
     },
-    "1": {
+    "2": {
       "keys": {
-        "16": {
+        "26": {
           "keyName": "` ~",
           "width": 65,
           "height": 70,
@@ -224,7 +371,7 @@
             "blue": 255
           }
         },
-        "17": {
+        "27": {
           "keyName": "1",
           "width": 65,
           "height": 70,
@@ -237,7 +384,7 @@
             "blue": 255
           }
         },
-        "18": {
+        "28": {
           "keyName": "2",
           "width": 65,
           "height": 70,
@@ -250,7 +397,7 @@
             "blue": 255
           }
         },
-        "19": {
+        "29": {
           "keyName": "3",
           "width": 65,
           "height": 70,
@@ -263,7 +410,7 @@
             "blue": 255
           }
         },
-        "20": {
+        "30": {
           "keyName": "4",
           "width": 65,
           "height": 70,
@@ -276,7 +423,7 @@
             "blue": 255
           }
         },
-        "21": {
+        "31": {
           "keyName": "5",
           "width": 65,
           "height": 70,
@@ -289,7 +436,7 @@
             "blue": 255
           }
         },
-        "22": {
+        "32": {
           "keyName": "6",
           "width": 65,
           "height": 70,
@@ -302,7 +449,7 @@
             "blue": 255
           }
         },
-        "23": {
+        "33": {
           "keyName": "7",
           "width": 65,
           "height": 70,
@@ -315,7 +462,7 @@
             "blue": 255
           }
         },
-        "24": {
+        "34": {
           "keyName": "8",
           "width": 65,
           "height": 70,
@@ -328,7 +475,7 @@
             "blue": 255
           }
         },
-        "25": {
+        "35": {
           "keyName": "9",
           "width": 65,
           "height": 70,
@@ -341,7 +488,7 @@
             "blue": 255
           }
         },
-        "26": {
+        "36": {
           "keyName": "0",
           "width": 65,
           "height": 70,
@@ -354,7 +501,7 @@
             "blue": 255
           }
         },
-        "27": {
+        "37": {
           "keyName": "-",
           "width": 65,
           "height": 70,
@@ -367,7 +514,7 @@
             "blue": 255
           }
         },
-        "28": {
+        "38": {
           "keyName": "=",
           "width": 65,
           "height": 70,
@@ -380,7 +527,7 @@
             "blue": 255
           }
         },
-        "29": {
+        "39": {
           "keyName": "<---",
           "width": 150,
           "height": 70,
@@ -391,9 +538,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
-        "30": {
+        "40": {
           "keyName": "Ins",
           "width": 65,
           "height": 70,
@@ -404,9 +552,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
-        "31": {
+        "41": {
           "keyName": "Home",
           "width": 65,
           "height": 70,
@@ -419,7 +568,7 @@
             "blue": 255
           }
         },
-        "32": {
+        "42": {
           "keyName": "PgUp",
           "width": 65,
           "height": 70,
@@ -434,9 +583,9 @@
         }
       }
     },
-    "2": {
+    "3": {
       "keys": {
-        "33": {
+        "43": {
           "keyName": "Tab",
           "width": 108,
           "height": 70,
@@ -447,9 +596,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
-        "34": {
+        "44": {
           "keyName": "Q",
           "width": 65,
           "height": 70,
@@ -462,7 +612,7 @@
             "blue": 0
           }
         },
-        "35": {
+        "45": {
           "keyName": "W",
           "width": 65,
           "height": 70,
@@ -475,7 +625,7 @@
             "blue": 0
           }
         },
-        "36": {
+        "46": {
           "keyName": "E",
           "width": 65,
           "height": 70,
@@ -488,7 +638,7 @@
             "blue": 0
           }
         },
-        "37": {
+        "47": {
           "keyName": "R",
           "width": 65,
           "height": 70,
@@ -501,7 +651,7 @@
             "blue": 255
           }
         },
-        "38": {
+        "48": {
           "keyName": "T",
           "width": 65,
           "height": 70,
@@ -514,8 +664,8 @@
             "blue": 255
           }
         },
-        "39": {
-          "keyName": "Z",
+        "49": {
+          "keyName": "Y",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -527,7 +677,7 @@
             "blue": 255
           }
         },
-        "40": {
+        "50": {
           "keyName": "U",
           "width": 65,
           "height": 70,
@@ -540,7 +690,7 @@
             "blue": 255
           }
         },
-        "41": {
+        "51": {
           "keyName": "I",
           "width": 65,
           "height": 70,
@@ -553,7 +703,7 @@
             "blue": 255
           }
         },
-        "42": {
+        "52": {
           "keyName": "O",
           "width": 65,
           "height": 70,
@@ -566,7 +716,7 @@
             "blue": 255
           }
         },
-        "43": {
+        "53": {
           "keyName": "P",
           "width": 65,
           "height": 70,
@@ -579,7 +729,7 @@
             "blue": 255
           }
         },
-        "44": {
+        "54": {
           "keyName": "[ {",
           "width": 65,
           "height": 70,
@@ -592,7 +742,7 @@
             "blue": 255
           }
         },
-        "45": {
+        "55": {
           "keyName": "] }",
           "width": 65,
           "height": 70,
@@ -605,7 +755,7 @@
             "blue": 255
           }
         },
-        "46": {
+        "56": {
           "keyName": "\\ |",
           "width": 107,
           "height": 70,
@@ -616,9 +766,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
-        "47": {
+        "57": {
           "keyName": "Del",
           "width": 65,
           "height": 70,
@@ -629,9 +780,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
-        "48": {
+        "58": {
           "keyName": "End",
           "width": 65,
           "height": 70,
@@ -644,7 +796,7 @@
             "blue": 255
           }
         },
-        "49": {
+        "59": {
           "keyName": "PgDn",
           "width": 65,
           "height": 70,
@@ -659,9 +811,9 @@
         }
       }
     },
-    "3": {
+    "4": {
       "keys": {
-        "50": {
+        "60": {
           "keyName": "CAPS",
           "width": 131,
           "height": 70,
@@ -672,9 +824,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
-        "51": {
+        "61": {
           "keyName": "A",
           "width": 65,
           "height": 70,
@@ -687,7 +840,7 @@
             "blue": 0
           }
         },
-        "52": {
+        "62": {
           "keyName": "S",
           "width": 65,
           "height": 70,
@@ -700,7 +853,7 @@
             "blue": 0
           }
         },
-        "53": {
+        "63": {
           "keyName": "D",
           "width": 65,
           "height": 70,
@@ -713,7 +866,7 @@
             "blue": 0
           }
         },
-        "54": {
+        "64": {
           "keyName": "F",
           "width": 65,
           "height": 70,
@@ -726,7 +879,7 @@
             "blue": 255
           }
         },
-        "55": {
+        "65": {
           "keyName": "G",
           "width": 65,
           "height": 70,
@@ -739,7 +892,7 @@
             "blue": 255
           }
         },
-        "56": {
+        "66": {
           "keyName": "H",
           "width": 65,
           "height": 70,
@@ -752,7 +905,7 @@
             "blue": 255
           }
         },
-        "57": {
+        "67": {
           "keyName": "J",
           "width": 65,
           "height": 70,
@@ -765,7 +918,7 @@
             "blue": 255
           }
         },
-        "58": {
+        "68": {
           "keyName": "K",
           "width": 65,
           "height": 70,
@@ -778,7 +931,7 @@
             "blue": 255
           }
         },
-        "59": {
+        "69": {
           "keyName": "L",
           "width": 65,
           "height": 70,
@@ -791,7 +944,7 @@
             "blue": 255
           }
         },
-        "60": {
+        "70": {
           "keyName": "; :",
           "width": 65,
           "height": 70,
@@ -804,7 +957,7 @@
             "blue": 255
           }
         },
-        "61": {
+        "71": {
           "keyName": "' ''",
           "width": 65,
           "height": 70,
@@ -817,7 +970,7 @@
             "blue": 255
           }
         },
-        "62": {
+        "72": {
           "keyName": "Enter",
           "width": 164,
           "height": 70,
@@ -828,13 +981,14 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         }
       }
     },
-    "4": {
+    "5": {
       "keys": {
-        "63": {
+        "73": {
           "keyName": "Shift",
           "width": 170,
           "height": 70,
@@ -845,10 +999,11 @@
             "red": 255,
             "green": 255,
             "blue": 0
-          }
+          },
+          "css": "keyboard-key wide3"
         },
-        "64": {
-          "keyName": "Y",
+        "74": {
+          "keyName": "Z",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -860,7 +1015,7 @@
             "blue": 255
           }
         },
-        "65": {
+        "75": {
           "keyName": "X",
           "width": 65,
           "height": 70,
@@ -873,7 +1028,7 @@
             "blue": 255
           }
         },
-        "66": {
+        "76": {
           "keyName": "C",
           "width": 65,
           "height": 70,
@@ -886,7 +1041,7 @@
             "blue": 255
           }
         },
-        "67": {
+        "77": {
           "keyName": "V",
           "width": 65,
           "height": 70,
@@ -899,7 +1054,7 @@
             "blue": 255
           }
         },
-        "68": {
+        "78": {
           "keyName": "B",
           "width": 65,
           "height": 70,
@@ -912,7 +1067,7 @@
             "blue": 255
           }
         },
-        "69": {
+        "79": {
           "keyName": "N",
           "width": 65,
           "height": 70,
@@ -925,7 +1080,7 @@
             "blue": 255
           }
         },
-        "70": {
+        "80": {
           "keyName": "M",
           "width": 65,
           "height": 70,
@@ -938,7 +1093,7 @@
             "blue": 255
           }
         },
-        "71": {
+        "81": {
           "keyName": ", <",
           "width": 65,
           "height": 70,
@@ -951,7 +1106,7 @@
             "blue": 255
           }
         },
-        "72": {
+        "82": {
           "keyName": ". >",
           "width": 65,
           "height": 70,
@@ -964,7 +1119,7 @@
             "blue": 255
           }
         },
-        "73": {
+        "83": {
           "keyName": "/ ?",
           "width": 65,
           "height": 70,
@@ -977,7 +1132,7 @@
             "blue": 255
           }
         },
-        "74": {
+        "84": {
           "keyName": "Shift",
           "width": 205,
           "height": 70,
@@ -988,9 +1143,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
-        "75": {
+        "85": {
           "keyName": "↑",
           "width": 65,
           "height": 70,
@@ -1001,13 +1157,14 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1,1]
         }
       }
     },
-    "5": {
+    "6": {
       "keys": {
-        "76": {
+        "86": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1018,9 +1175,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
-        "77": {
+        "87": {
           "keyName": "Win",
           "width": 90,
           "height": 70,
@@ -1033,7 +1191,7 @@
             "blue": 255
           }
         },
-        "78": {
+        "88": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1044,9 +1202,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
-        "79": {
+        "89": {
           "keyName": "----------",
           "width": 455,
           "height": 70,
@@ -1057,9 +1216,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide7"
         },
-        "80": {
+        "90": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1072,7 +1232,7 @@
             "blue": 255
           }
         },
-        "81": {
+        "91": {
           "keyName": "Fn",
           "width": 90,
           "height": 70,
@@ -1085,7 +1245,7 @@
             "blue": 255
           }
         },
-        "82": {
+        "92": {
           "keyName": "Menu",
           "width": 90,
           "height": 70,
@@ -1098,7 +1258,7 @@
             "blue": 255
           }
         },
-        "83": {
+        "93": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1111,7 +1271,7 @@
             "blue": 255
           }
         },
-        "84": {
+        "94": {
           "keyName": "←",
           "width": 65,
           "height": 70,
@@ -1122,9 +1282,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
-        "85": {
+        "95": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
@@ -1137,7 +1298,7 @@
             "blue": 255
           }
         },
-        "86": {
+        "96": {
           "keyName": "→",
           "width": 65,
           "height": 70,

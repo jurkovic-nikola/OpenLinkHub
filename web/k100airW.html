@@ -138,15 +138,15 @@
                                     {{ end }}
 
                                     {{ if gt (len $keys.Css) 0 }}
-                                    <div class="{{ $keys.Css }} keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="{{ $keys.Css }} keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                         {{ else }}
-                                        <div class="keyboard-key keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                        <div class="keyboard-key keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                             {{ end }}
 
                                     {{ if $keys.Svg }}
                                         <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>
                                         {{ else }}
-                                        <span class="key-uppercase" style="color: rgba({{ $keyboard.Color.Red }}, {{ $keyboard.Color.Green }}, {{ $keyboard.Color.Blue }}, 1);">
+                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $keyboard.Color.Red }}, {{ $keyboard.Color.Green }}, {{ $keyboard.Color.Blue }}, 1);">
                                            {{ $keys.KeyName }}
                                         </span>
                                         {{ end }}

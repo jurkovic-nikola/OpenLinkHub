@@ -1,4 +1,7 @@
 {
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k70protkl-default",
   "device": "K70 PRO TKL",
   "layout": "US",

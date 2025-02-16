@@ -1,4 +1,7 @@
 {
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k65plusW-default",
   "device": "K65 Plus Wireless",
   "layout": "US",

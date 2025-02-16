@@ -1,4 +1,7 @@
 {
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k70mk2-default",
   "device": "K70 MK2",
   "layout": "US",

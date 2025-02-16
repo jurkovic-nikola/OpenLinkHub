@@ -100,6 +100,7 @@ func Init() {
 		"web/virtuosorgbXTW.html",
 		"web/darkstarWU.html",
 		"web/darkstarW.html",
+		"web/k70rgbtklcs.html",
 		"web/rgb.html",
 		"web/temperature.html",
 		"web/scheduler.html",

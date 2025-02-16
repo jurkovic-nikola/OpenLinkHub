@@ -1,5 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k100airW-default",
   "device": "K100 AIR RGB",
   "layout": "DE",

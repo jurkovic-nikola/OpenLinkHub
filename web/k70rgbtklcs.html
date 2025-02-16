@@ -9,7 +9,6 @@
         {{ $device := .Device }}
         {{ $rgb := .Rgb }}
         {{ $profile := $device.DeviceProfile.Profile }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
         {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <div class="bg-dash-dark-2 py-4">
@@ -27,14 +26,12 @@
                                 <div class="ds-svg-placeholder-left">
                                     <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device" />
                                 </div>
-
                                 <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
                                     <span>{{ .Device.Product }}</span><br />
                                     <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
                                         <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
-
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
                                     <button title="Keyboard Layout" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
@@ -52,7 +49,6 @@
                                             </select>
                                         </li>
                                     </ul>
-
                                     <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -69,16 +65,6 @@
                                             </select>
                                         </li>
                                     </ul>
-
-                                    <button title="Brightness" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
-                                        <li>
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
-                                        </li>
-                                    </ul>
-
                                     <button title="RGB Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -106,24 +92,6 @@
                                             </select>
                                         </li>
                                     </ul>
-
-                                    <button title="Pulling Rate" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select keyboardPollingRate" name="keyboardPollingRate">
-                                                {{ range $key, $pr := $device.PollingRates }}
-                                                {{ if eq $key $device.DeviceProfile.PollingRate }}
-                                                <option value="{{ $key }}" selected>{{ $pr }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $pr }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-
                                     <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -134,6 +102,7 @@
                                 {{ range $index, $keys := $keyboard.Row }}
                                 <div class="{{ $device.UIKeyboardRow }}">
                                     {{ range $index, $keys := .Keys }}
+
                                     {{ range $amount := $keys.Spacing }}
                                     <div class="keyboard-key-empty"></div>
                                     {{ end }}
@@ -146,11 +115,11 @@
 
                                     {{ if $keys.Svg }}
                                         <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>
-                                    {{ else }}
+                                        {{ else }}
                                         <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);">
                                            {{ $keys.KeyName }}
                                         </span>
-                                    {{ end }}
+                                        {{ end }}
                                     </div>
                                     {{ end }}
                                 </div>

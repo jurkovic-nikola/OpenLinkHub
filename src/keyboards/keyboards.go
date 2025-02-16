@@ -17,14 +17,16 @@ var (
 )
 
 type Keyboard struct {
-	Version int           `json:"version"`
-	Key     string        `json:"key"`
-	Device  string        `json:"device"`
-	Layout  string        `json:"layout"`
-	Rows    int           `json:"rows"`
-	Row     map[int]Row   `json:"row"`
-	Zones   map[int]Zones `json:"zones"`
-	Color   rgb.Color     `json:"color"`
+	Version        int           `json:"version"`
+	Key            string        `json:"key"`
+	Device         string        `json:"device"`
+	Layout         string        `json:"layout"`
+	Rows           int           `json:"rows"`
+	Row            map[int]Row   `json:"row"`
+	Zones          map[int]Zones `json:"zones"`
+	Color          rgb.Color     `json:"color"`
+	UppercaseClass string        `json:"uppercaseClass"`
+	FontSize       int           `json:"fontSize"`
 }
 
 type Zones struct {

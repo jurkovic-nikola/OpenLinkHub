@@ -616,6 +616,18 @@ footer {
     grid-gap: 5px;
 }
 
+.keyboard-row-18 {
+    display: grid;
+    grid-template-columns: repeat(18, 60px);
+    grid-gap: 5px;
+}
+
+.keyboard-row-19 {
+    display: grid;
+    grid-template-columns: repeat(19, 60px);
+    grid-gap: 5px;
+}
+
 .keyboard-row-20 {
     display: grid;
     grid-template-columns: repeat(20, 60px);

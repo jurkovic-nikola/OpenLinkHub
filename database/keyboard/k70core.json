@@ -1,4 +1,7 @@
 {
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k70core-default",
   "device": "K70 Core RGB",
   "layout": "US",

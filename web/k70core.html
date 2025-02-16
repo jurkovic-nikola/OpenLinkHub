@@ -141,6 +141,7 @@
                                 {{ else }}
                                 <div class="{{ $device.UIKeyboardRow }}">
                                 {{ end }}
+
                                     {{ range $index, $keys := .Keys }}
                                     {{ if eq $index 2 }}
                                     <div class="keyboard-key-empty"></div>

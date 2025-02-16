@@ -33,6 +33,7 @@ import (
 	"OpenLinkHub/src/devices/k70mk2"
 	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/k70protkl"
+	"OpenLinkHub/src/devices/k70rgbtklcs"
 	"OpenLinkHub/src/devices/katarpro"
 	"OpenLinkHub/src/devices/katarproW"
 	"OpenLinkHub/src/devices/katarproxt"
@@ -96,6 +97,7 @@ const (
 	productTypeK70CoreTklWU       = 112
 	productTypeK70CoreTklW        = 113
 	productTypeK70ProTkl          = 114
+	productTypeK70RgbTkl          = 115
 	productTypeKatarPro           = 201
 	productTypeIronClawRgb        = 202
 	productTypeIronClawRgbW       = 203
@@ -159,7 +161,7 @@ var (
 	interfaceId                = 0
 	devices                    = make(map[string]*Device, 0)
 	products                   = make(map[string]Product, 0)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028}
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027}
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090}
 	pads                       = []uint16{7067}
 	headsets                   = []uint16{2658, 2660}
@@ -1520,6 +1522,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeK70ProTkl,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-keyboard.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7097, 7027: // K70 RGB TKL
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := k70rgbtklcs.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeK70RgbTkl,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

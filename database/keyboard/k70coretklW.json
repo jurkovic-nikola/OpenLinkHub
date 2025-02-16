@@ -1,4 +1,7 @@
 {
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
   "key": "k70coretklW-default",
   "device": "K70 CORE TKL WL",
   "layout": "US",

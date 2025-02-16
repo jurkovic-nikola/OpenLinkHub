@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k65plus-default",
@@ -33,7 +33,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "3": {
           "keyName": "F2",
@@ -85,7 +86,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "7": {
           "keyName": "F6",
@@ -137,7 +139,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "spacing": [1]
         },
         "11": {
           "keyName": "F10",
@@ -375,7 +378,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "29": {
           "keyName": "Home",
@@ -405,7 +409,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "31": {
           "keyName": "Q",
@@ -574,7 +579,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "44": {
           "keyName": "PgUp",
@@ -604,7 +610,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "46": {
           "keyName": "A",
@@ -760,7 +767,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "58": {
           "keyName": "PgDn",
@@ -790,7 +798,8 @@
             "red": 255,
             "green": 255,
             "blue": 0
-          }
+          },
+          "css": "keyboard-key wide3"
         },
         "60": {
           "keyName": "Z",
@@ -933,7 +942,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "71": {
           "keyName": "↑",
@@ -963,7 +973,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "73": {
           "keyName": "Win",
@@ -989,7 +1000,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide"
         },
         "75": {
           "keyName": "",
@@ -1002,7 +1014,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "css": "keyboard-key wide6"
         },
         "76": {
           "keyName": "Alt",

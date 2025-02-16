@@ -81,6 +81,7 @@ type Device struct {
 	Connected          bool
 	UIKeyboard         string
 	UIKeyboardRow      string
+	BatteryLevel       uint16
 }
 
 var (
@@ -95,6 +96,7 @@ var (
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
 	cmdKeepAlive            = []byte{0x12}
+	cmdBatteryLevel         = []byte{0x02, 0x0f}
 	cmdDongle               = 0x08
 	cmdKeyboard             = 0x09
 	deviceRefreshInterval   = 1000
@@ -164,23 +166,24 @@ func Init(vendorId, productId uint16, key string) *Device {
 		UIKeyboardRow:   "keyboard-row-17",
 	}
 
-	d.getDebugMode()        // Debug mode
-	d.getManufacturer()     // Manufacturer
-	d.getSerial()           // Serial
-	d.loadRgb()             // Load RGB
-	d.setSoftwareMode()     // Activate software mode
-	d.initLeds()            // Init LED ports
-	d.getDeviceFirmware()   // Firmware
-	d.getDongleFirmware()   // Dongle firmware
-	d.loadDeviceProfiles()  // Load all device profiles
-	d.saveDeviceProfile()   // Save profile
-	d.setAutoRefresh()      // Set auto device refresh
-	d.setKeepAlive()        // Keepalive
-	d.setDeviceColor()      // Device color
-	d.controlDialListener() // Control Dial
-	d.setBrightnessLevel()  // Brightness
-	d.setSleepTimer()       // Sleep
-	d.checkIfAlive()        // Check if alive
+	d.getDebugMode()       // Debug mode
+	d.getManufacturer()    // Manufacturer
+	d.getSerial()          // Serial
+	d.loadRgb()            // Load RGB
+	d.setSoftwareMode()    // Activate software mode
+	d.initLeds()           // Init LED ports
+	d.getDeviceFirmware()  // Firmware
+	d.getDongleFirmware()  // Dongle firmware
+	d.getBatterLevel()     // Battery level
+	d.loadDeviceProfiles() // Load all device profiles
+	d.saveDeviceProfile()  // Save profile
+	d.setAutoRefresh()     // Set auto device refresh
+	d.setKeepAlive()       // Keepalive
+	d.setDeviceColor()     // Device color
+	d.backendListener()    // Backend listener
+	d.setBrightnessLevel() // Brightness
+	d.setSleepTimer()      // Sleep
+	d.checkIfAlive()       // Check if alive
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -349,6 +352,15 @@ func (d *Device) setHardwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil, byte(cmdKeyboard))
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1246,8 +1258,8 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// controlDialListener will listen for events from the control dial
-func (d *Device) controlDialListener() {
+// backendListener will listen for events from device backend
+func (d *Device) backendListener() {
 	pv := false
 	var brightness uint16 = 0
 
@@ -1290,6 +1302,14 @@ func (d *Device) controlDialListener() {
 				data := d.getListenerData()
 				if len(data) == 0 || data == nil {
 					continue
+				}
+
+				// Battery
+				if data[2] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[4:6])
+					if val > 0 {
+						d.BatteryLevel = val / 10
+					}
 				}
 
 				value := data[4]

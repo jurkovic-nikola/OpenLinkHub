@@ -92,6 +92,22 @@
                                             </select>
                                         </li>
                                     </ul>
+                                    <button title="Pulling Rate" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select keyboardPollingRate" name="keyboardPollingRate">
+                                                {{ range $key, $pr := $device.PollingRates }}
+                                                {{ if eq $key $device.DeviceProfile.PollingRate }}
+                                                <option value="{{ $key }}" selected>{{ $pr }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $pr }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
                                     <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

@@ -39,6 +39,7 @@ type DeviceProfile struct {
 	Layout          string
 	Keyboards       map[string]*keyboards.Keyboard
 	Profile         string
+	PollingRate     int
 	BrightnessLevel uint16
 	Profiles        []string
 }
@@ -60,6 +61,7 @@ type Device struct {
 	VendorId        uint16
 	ProductId       uint16
 	Brightness      map[int]string
+	PollingRates    map[int]string
 	LEDChannels     int
 	CpuTemp         float32
 	GpuTemp         float32
@@ -86,6 +88,7 @@ var (
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdKeepAlive            = []byte{0x12}
+	cmdSetPollingRate       = []byte{0x01, 0x01, 0x00}
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
 	transferTimeout         = 500
@@ -128,6 +131,16 @@ func Init(vendorId, productId uint16, key string) *Device {
 		keepAliveChan:   make(chan struct{}),
 		UIKeyboard:      "keyboard-7",
 		UIKeyboardRow:   "keyboard-row-20",
+		PollingRates: map[int]string{
+			0: "Not Set",
+			1: "125 Hz / 8 msec",
+			2: "250 Hu / 4 msec",
+			3: "500 Hz / 2 msec",
+			4: "1000 Hz / 1 msec",
+			5: "2000 Hz / 0.5 msec",
+			6: "4000 Hz / 0.25 msec",
+			7: "8000 Hz / 0.125 msec",
+		},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -354,6 +367,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = []string{"default"}
 		deviceProfile.BrightnessLevel = 1000
 		deviceProfile.Layout = "US"
+		deviceProfile.PollingRate = 4
 	} else {
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
@@ -388,6 +402,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
 		deviceProfile.BrightnessLevel = d.DeviceProfile.BrightnessLevel
+		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
+
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -426,6 +442,88 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles() // Reload
+}
+
+// Close will close all timers and channels before restart
+func (d *Device) Close() {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	time.Sleep(500 * time.Millisecond)
+}
+
+// toggleExit will change Exit value
+func (d *Device) toggleExit() {
+	if d.Exit {
+		d.Exit = false
+	}
+}
+
+// Restart will re-init device
+func (d *Device) Restart() {
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
+	d.dev = nil
+
+	interfaceId := 1
+	path := ""
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == interfaceId {
+			path = info.Path
+		}
+		return nil
+	})
+	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+	}
+
+	dev, err := hid.OpenPath(path)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "caller": "Restart()"}).Error("Unable to open HID device")
+		return
+	}
+
+	d.dev = dev
+	d.setSoftwareMode()    // Activate software mode
+	d.initLeds()           // Init LED ports
+	d.getDeviceFirmware()  // Firmware
+	d.toggleExit()         // Remove Exit flag
+	d.setDeviceColor()     // Device color
+	d.setBrightnessLevel() // Brightness
+	d.controlListener()    // Control listener
+}
+
+// UpdatePollingRate will set device polling rate
+func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	if _, ok := d.PollingRates[pullingRate]; ok {
+		if d.DeviceProfile == nil {
+			return 0
+		}
+
+		d.DeviceProfile.PollingRate = pullingRate
+		d.saveDeviceProfile()
+
+		d.Close()
+		buf := make([]byte, 1)
+		buf[0] = byte(pullingRate)
+		_, err := d.transfer(cmdSetPollingRate, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
+			return 0
+		}
+		time.Sleep(5000 * time.Millisecond)
+		d.Restart()
+		return 1
+	}
+	return 0
 }
 
 // loadDeviceProfiles will load custom user profiles

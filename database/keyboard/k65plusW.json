@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k65plusW-default",
@@ -28,7 +28,8 @@
           "height": 70,
           "left": 15,
           "top": 0,
-          "packetIndex": [174]
+          "packetIndex": [174],
+          "spacing": [1]
         },
         "3": {
           "keyName": "F2",
@@ -60,7 +61,8 @@
           "height": 70,
           "left": 47,
           "top": 0,
-          "packetIndex": [186]
+          "packetIndex": [186],
+          "spacing": [1]
         },
         "7": {
           "keyName": "F6",
@@ -92,7 +94,8 @@
           "height": 70,
           "left": 47,
           "top": 0,
-          "packetIndex": [198]
+          "packetIndex": [198],
+          "spacing": [1]
         },
         "11": {
           "keyName": "F10",
@@ -240,7 +243,8 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [126]
+          "packetIndex": [126],
+          "css": "keyboard-key wide3"
         },
         "29": {
           "keyName": "Home",
@@ -260,7 +264,8 @@
           "height": 70,
           "left": 0,
           "top": 15,
-          "packetIndex": [129]
+          "packetIndex": [129],
+          "css": "keyboard-key wide"
         },
         "31": {
           "keyName": "Q",
@@ -364,7 +369,8 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [147]
+          "packetIndex": [147],
+          "css": "keyboard-key wide"
         },
         "44": {
           "keyName": "PgUp",
@@ -384,7 +390,8 @@
           "height": 70,
           "left": 0,
           "top": 15,
-          "packetIndex": [171]
+          "packetIndex": [171],
+          "css": "keyboard-key wide"
         },
         "46": {
           "keyName": "A",
@@ -480,7 +487,8 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [120]
+          "packetIndex": [120],
+          "css": "keyboard-key wide3"
         },
         "58": {
           "keyName": "PgDn",
@@ -500,7 +508,8 @@
           "height": 70,
           "left": 0,
           "top": 15,
-          "packetIndex": [318]
+          "packetIndex": [318],
+          "css": "keyboard-key wide3"
         },
         "60": {
           "keyName": "Z",
@@ -588,7 +597,8 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [330]
+          "packetIndex": [330],
+          "css": "keyboard-key wide"
         },
         "71": {
           "keyName": "↑",
@@ -608,7 +618,8 @@
           "height": 70,
           "left": 0,
           "top": 15,
-          "packetIndex": [315]
+          "packetIndex": [315],
+          "css": "keyboard-key wide"
         },
         "73": {
           "keyName": "Win",
@@ -624,7 +635,8 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [321]
+          "packetIndex": [321],
+          "css": "keyboard-key wide"
         },
         "75": {
           "keyName": "",
@@ -632,7 +644,8 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [0, 3, 132]
+          "packetIndex": [0, 3, 132],
+          "css": "keyboard-key wide6"
         },
         "76": {
           "keyName": "Alt",

@@ -358,7 +358,7 @@ func (d *Device) setHardwareMode() {
 func (d *Device) getBatterLevel() {
 	batteryLevel, err := d.transfer(cmdBatteryLevel, nil, byte(cmdKeyboard))
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }

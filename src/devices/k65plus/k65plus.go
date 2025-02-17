@@ -312,7 +312,7 @@ func (d *Device) setHardwareMode() {
 func (d *Device) getBatterLevel() {
 	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
@@ -1311,10 +1311,7 @@ func (d *Device) backendListener() {
 
 				// Battery
 				if data[2] == 0x0f {
-					val := binary.LittleEndian.Uint16(data[4:6])
-					if val > 0 {
-						d.BatteryLevel = val / 10
-					}
+					d.BatteryLevel = binary.LittleEndian.Uint16(data[4:6]) / 10
 				}
 
 				value := data[4]

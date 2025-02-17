@@ -93,6 +93,7 @@ type Device struct {
 	InputActions          map[uint8]inputmanager.InputAction
 	PressLoop             bool
 	keyAssignmentFile     string
+	BatteryLevel          uint16
 }
 
 var (
@@ -111,6 +112,7 @@ var (
 	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
 	cmdAngleSnapping          = []byte{0x01, 0x07, 0x00}
 	cmdButtonOptimization     = []byte{0x01, 0xb0, 0x00}
+	cmdBatteryLevel           = []byte{0x02, 0x0f}
 	bufferSize                = 64
 	bufferSizeWrite           = bufferSize + 1
 	headerSize                = 2
@@ -202,9 +204,9 @@ func (d *Device) SetConnected(value bool) {
 func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
-		d.clearBuffer()        // Clear previous buffers
 		d.setHardwareMode()    // Activate hardware mode
 		d.setSoftwareMode()    // Activate software mode
+		d.getBatterLevel()     // Battery level
 		d.getDeviceFirmware()  // Firmware
 		d.initLeds()           // Init LED ports
 		d.setDeviceColor()     // Device color
@@ -212,11 +214,6 @@ func (d *Device) Connect() {
 		d.setSleepTimer()      // Sleep
 		d.setupKeyAssignment() // Setup key assignments
 	}
-}
-
-// clearBuffer will flush any buffer remaining in the device
-func (d *Device) clearBuffer() {
-
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -500,6 +497,15 @@ func (d *Device) setHardwareMode() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 		}
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1166,4 +1172,9 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		return nil, err
 	}
 	return bufferR, nil
+}
+
+// ModifyBatteryLevel will modify battery level
+func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
+	d.BatteryLevel = batteryLevel
 }

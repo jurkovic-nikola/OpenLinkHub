@@ -97,6 +97,7 @@ type Device struct {
 	PressLoop                bool
 	keyAssignmentFile        string
 	deviceMediaInterfacePath string
+	BatteryLevel             uint16
 }
 
 var (
@@ -114,6 +115,7 @@ var (
 	cmdOpenWriteEndpoint  = []byte{0x0d, 0x01, 0x02}
 	cmdWrite              = []byte{0x06, 0x01}
 	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x01}
+	cmdBatteryLevel       = []byte{0x02, 0x0f}
 	bufferSize            = 64
 	bufferSizeWrite       = bufferSize + 1
 	headerSize            = 2
@@ -195,6 +197,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.saveDeviceProfile()     // Save profile
 	d.getDeviceFirmware()     // Firmware
 	d.setSoftwareMode()       // Activate software mode
+	d.getBatterLevel()        // Battery level
 	d.setAngleSnapping()      // Angle snapping
 	d.setButtonOptimization() // Button optimization
 	d.initLeds()              // Init LED ports
@@ -644,6 +647,15 @@ func (d *Device) setHardwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1822,6 +1834,14 @@ func (d *Device) controlListener() {
 				data := d.getListenerData()
 				if len(data) == 0 || data == nil {
 					continue
+				}
+
+				// Battery
+				if data[2] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[4:6])
+					if val > 0 {
+						d.BatteryLevel = val / 10
+					}
 				}
 
 				if data[1] == 0x02 {

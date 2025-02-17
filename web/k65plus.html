@@ -34,13 +34,7 @@
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
                                     <button title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        {{ if gt $device.BatteryLevel 10 }}
                                         <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                        {{ else if gt $device.BatteryLevel 50 }}
-                                        <i class="bi bi-battery-half svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                        {{ else if gt $device.BatteryLevel 90 }}
-                                        <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                        {{ end }}
                                         {{ $device.BatteryLevel }} %
                                     </button>
                                     <button title="Keyboard Layout" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">

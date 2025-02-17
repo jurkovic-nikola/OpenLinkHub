@@ -89,6 +89,7 @@ type Device struct {
 	InputActions          map[uint8]inputmanager.InputAction
 	PressLoop             bool
 	keyAssignmentFile     string
+	BatteryLevel          uint16
 }
 
 var (
@@ -109,6 +110,7 @@ var (
 	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
 	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
 	cmdWrite                  = []byte{0x06, 0x01}
+	cmdBatteryLevel           = []byte{0x02, 0x0f}
 	bufferSize                = 64
 	bufferSizeWrite           = bufferSize + 1
 	headerSize                = 2
@@ -295,6 +297,15 @@ func (d *Device) setDongleSoftwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "caller": "setDongleSoftwareMode"}).Error("Unable to change dongle device mode")
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdMouse, cmdBatteryLevel, nil, "getBatterLevel")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1198,11 +1209,11 @@ func (d *Device) setupMouse(init bool) {
 		d.setMouseHardwareMode() // Hardware mode
 		d.setSoftwareMode()      // Switch to software mode
 		d.getDeviceFirmware()    // Firmware
-
-		d.initLeds()           // Init LED ports
-		d.toggleDPI()          // DPI
-		d.setSleepTimer()      // Sleep timer
-		d.setupKeyAssignment() // Setup key assignments
+		d.getBatterLevel()       // Battery level
+		d.initLeds()             // Init LED ports
+		d.toggleDPI()            // DPI
+		d.setSleepTimer()        // Sleep timer
+		d.setupKeyAssignment()   // Setup key assignments
 	} else {
 		d.Connected = false
 	}
@@ -1290,6 +1301,14 @@ func (d *Device) controlListener() {
 				data := d.getListenerData()
 				if len(data) == 0 || data == nil {
 					continue
+				}
+
+				// Battery
+				if data[2] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[4:6])
+					if val > 0 {
+						d.BatteryLevel = val / 10
+					}
 				}
 
 				if data[1] == 0x01 && data[2] == 0x36 {

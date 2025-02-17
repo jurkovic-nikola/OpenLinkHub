@@ -76,6 +76,7 @@ type Device struct {
 	mutex              sync.Mutex
 	UIKeyboard         string
 	UIKeyboardRow      string
+	BatteryLevel       uint16
 }
 
 var (
@@ -89,6 +90,7 @@ var (
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdBrightness           = []byte{0x01, 0x02, 0x00}
 	cmdKeepAlive            = []byte{0x12}
+	cmdBatteryLevel         = []byte{0x02, 0x0f}
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
 	transferTimeout         = 500
@@ -142,6 +144,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getSerial()           // Serial
 	d.loadRgb()             // Load RGB
 	d.setSoftwareMode()     // Activate software mode
+	d.getBatterLevel()      // Battery level
 	d.initLeds()            // Init LED ports
 	d.getDeviceFirmware()   // Firmware
 	d.loadDeviceProfiles()  // Load all device profiles
@@ -302,6 +305,15 @@ func (d *Device) setHardwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1338,6 +1350,14 @@ func (d *Device) controlDialListener() {
 				data := d.getListenerData()
 				if len(data) == 0 || data == nil {
 					continue
+				}
+
+				// Battery
+				if data[2] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[4:6])
+					if val > 0 {
+						d.BatteryLevel = val / 10
+					}
 				}
 
 				switch data[1] {

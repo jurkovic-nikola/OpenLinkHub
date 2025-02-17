@@ -62,7 +62,7 @@ var (
 	bufferSize       = 64
 	bufferSizeWrite  = bufferSize + 1
 	headerSize       = 2
-	deviceKeepAlive  = 5000
+	deviceKeepAlive  = 10000
 	cmdSoftwareMode  = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode  = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdGetDevices    = []byte{0x24}
@@ -73,6 +73,7 @@ var (
 	cmdGetFirmware   = []byte{0x02, 0x13}
 	cmdRead          = []byte{0x08, 0x00}
 	cmdWrite         = []byte{0x09, 0x00}
+	cmdBatteryLevel  = []byte{0x02, 0x0f}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 100
 )
@@ -372,6 +373,67 @@ func (d *Device) InitAvailableDevices() {
 			continue
 		}
 		d.setDeviceOnlineByProductId(value.ProductId)
+	}
+}
+
+// setDeviceOnlineByProductId will online device by given productId
+func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16) {
+	if dev, ok := d.PairedDevices[productId]; ok {
+		if device, found := dev.(*k100airW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*darkcorergbproW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*darkcorergbproseW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*darkstarW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*nightsabreW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*scimitarW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*m55W.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*m75W.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*ironclawW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*harpoonW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
+		if device, found := dev.(*k70coretklW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
 	}
 }
 
@@ -748,6 +810,19 @@ func (d *Device) monitorDevice() {
 								logger.Log(logger.Fields{"error": err}).Error("Unable to read paired device endpoint")
 							}
 							continue
+						}
+
+						batteryLevel, e := d.transfer(value.Endpoint, cmdBatteryLevel, nil)
+						if e != nil {
+							if d.Debug {
+								logger.Log(logger.Fields{"error": err}).Error("Unable to read paired device endpoint")
+							}
+							continue
+						}
+
+						val := binary.LittleEndian.Uint16(batteryLevel[3:5])
+						if val > 0 {
+							d.setDeviceBatteryLevelByProductId(value.ProductId, val/10)
 						}
 					}
 				}

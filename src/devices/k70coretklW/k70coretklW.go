@@ -79,6 +79,7 @@ type Device struct {
 	Exit               bool
 	UIKeyboard         string
 	UIKeyboardRow      string
+	BatteryLevel       uint16
 }
 
 var (
@@ -100,6 +101,7 @@ var (
 	dataTypeSubColor        = []byte{0x07, 0x01}
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
+	cmdBatteryLevel         = []byte{0x02, 0x0f}
 	transferTimeout         = 500
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
@@ -199,6 +201,7 @@ func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
 		d.setSoftwareMode()    // Activate software mode
+		d.getBatterLevel()     // Battery level
 		d.getDeviceFirmware()  // Firmware
 		d.setKeyAmount()       // Set number of keys
 		d.initLeds()           // Init LED ports
@@ -327,6 +330,15 @@ func (d *Device) setHardwareMode() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 		}
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1385,4 +1397,9 @@ func (d *Device) ControlDial(data []byte) {
 			}
 		}
 	}
+}
+
+// ModifyBatteryLevel will modify battery level
+func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
+	d.BatteryLevel = batteryLevel
 }

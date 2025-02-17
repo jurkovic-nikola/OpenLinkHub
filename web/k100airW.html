@@ -51,6 +51,10 @@
                                     </p>
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        {{ $device.BatteryLevel }} %
+                                    </button>
                                     <button title="Keyboard Layout" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -138,9 +142,9 @@
                                     {{ end }}
 
                                     {{ if gt (len $keys.Css) 0 }}
-                                    <div class="{{ $keys.Css }} keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="{{ $keys.Css }} keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
                                         {{ else }}
-                                        <div class="keyboard-key keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                        <div class="keyboard-key keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
                                             {{ end }}
 
                                     {{ if $keys.Svg }}

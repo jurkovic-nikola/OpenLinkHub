@@ -25,6 +25,7 @@ type Configuration struct {
 	ResumeDelay     int       `json:"resumeDelay"`
 	LogFile         string    `json:"logFile"`
 	LogLevel        log.Level `json:"logLevel"`
+	EnhancementKits []byte    `json:"enhancementKits"`
 }
 
 var (
@@ -36,6 +37,7 @@ var (
 		"resumeDelay":     15000,
 		"logLevel":        log.InfoLevel,
 		"logFile":         "",
+		"enhancementKits": make([]byte, 0),
 	}
 )
 
@@ -86,6 +88,7 @@ func upgradeFile(cfg string) {
 			ResumeDelay:     15000,
 			LogLevel:        log.InfoLevel,
 			LogFile:         "",
+			EnhancementKits: make([]byte, 0),
 		}
 		saveConfigSettings(value)
 	} else {

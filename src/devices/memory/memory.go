@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -85,6 +86,7 @@ type Device struct {
 	timer            *time.Ticker
 	mutex            sync.Mutex
 	autoRefreshChan  chan struct{}
+	enhancementKits  map[byte]bool
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -156,6 +158,7 @@ func Init(device, product string) *Device {
 		LEDChannels:     0,
 		timer:           &time.Ticker{},
 		autoRefreshChan: make(chan struct{}),
+		enhancementKits: make(map[byte]bool, 8),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -304,6 +307,19 @@ func (d *Device) getDebugMode() {
 	d.Debug = config.GetConfig().Debug
 }
 
+// setEnhancementKit will set EnhancementKit for given address
+func (d *Device) setEnhancementKit(address byte) {
+	d.enhancementKits[address] = true
+}
+
+// getEnhancementKit will return true or false if given address is EnhancementKit
+func (d *Device) getEnhancementKit(address byte) bool {
+	if value, ok := d.enhancementKits[address]; ok {
+		return value
+	}
+	return false
+}
+
 // getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices, 0)
@@ -329,8 +345,18 @@ func (d *Device) getDevices() int {
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
 		if err != nil {
-			logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Info("No such register found. Skipping...")
-			continue
+			if !slices.Contains(config.GetConfig().EnhancementKits, dimmInfoAddresses[i]) {
+				logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Info("No such register found. Skipping...")
+				continue
+			} else {
+				if config.GetConfig().DecodeMemorySku {
+					logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Warn("You can not use decodeMemorySku with Light Enhancement Kit in configuration")
+					continue
+				} else {
+					logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Info("Found Light Enhancement Kit in configuration")
+					d.setEnhancementKit(dimmInfoAddresses[i])
+				}
+			}
 		}
 
 		if d.Debug {
@@ -339,6 +365,10 @@ func (d *Device) getDevices() int {
 
 		if config.GetConfig().MemoryType == 5 {
 			if config.GetConfig().DecodeMemorySku {
+				if d.getEnhancementKit(dimmInfoAddresses[i]) {
+					logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Warn("You can not use decodeMemorySku with Light Enhancement Kit in configuration")
+					continue
+				}
 				// DDR5 has no SPA0 and SPA1, it uses actual DIMM info addresses for different info
 				// I2C Legacy Mode Device Configuration
 				err = smbus.WriteRegister(d.dev.File, dimmInfoAddresses[i], 0x0b, 0x04)
@@ -349,6 +379,10 @@ func (d *Device) getDevices() int {
 			}
 		} else {
 			if config.GetConfig().DecodeMemorySku {
+				if d.getEnhancementKit(dimmInfoAddresses[i]) {
+					logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Warn("You can not use decodeMemorySku with Light Enhancement Kit in configuration")
+					continue
+				}
 				// We send 0x00 to 0x00 to SPA addresses
 				for _, cmdActivation := range cmdActivations {
 					err = smbus.WriteRegister(d.dev.File, cmdActivation, 0x00, 0x00)
@@ -575,6 +609,16 @@ func (d *Device) getDevices() int {
 						RGB:               rgbProfile,
 						HasTemps:          hasTemp,
 					}
+
+					if d.getEnhancementKit(dimmInfoAddresses[i]) {
+						device.Size = 0
+						device.Latency = 0
+						device.Speed = 0
+						device.Temperature = 0
+						device.Name = "LIGHT ENHANCEMENT KIT"
+						device.HasTemps = false
+					}
+
 					if d.Debug {
 						logger.Log(logger.Fields{"memoryDevice": device}).Info("Memory DIMM Info - Device")
 					}

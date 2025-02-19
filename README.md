@@ -171,7 +171,8 @@ $ systemctl reboot
   "decodeMemorySku": true,
   "memorySku": "",
   "logFile": "",
-  "logLevel": "info"
+  "logLevel": "info",
+  "enhancementKits": []
 }
 ```
 - listenPort: HTTP server port.
@@ -192,6 +193,9 @@ $ systemctl reboot
   - Defining `-` for logFile will send all logs to standard console output.
   - If you change the location of logging, make sure the application username has permission to write to that folder.
 - logLevel: log level to log in console or file.
+- enhancementKits: DDR4/DDR5 Light Enhancement Kits addresses. 
+- If your kit is installed in first and third slot, value would be: `"enhancementKits": [80,82],`. This value is byte value converted from hexadecimal output in `i2cdetect`
+  - When kits are used, you need to set `decodeMemorySku` to `false` and define `memorySku`
 
 ## Uninstall
 ```bash

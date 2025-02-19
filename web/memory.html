@@ -125,6 +125,7 @@
                                             <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
 
+                                        {{ if gt $device.Size 0 }}
                                         <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
                                             <div class="me-2">
                                                 <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Size</p>
@@ -134,6 +135,7 @@
                                         <div class="progress" style="height: 3px">
                                             <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
+                                        {{ end }}
 
                                         <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
                                             <div class="me-2">
@@ -145,6 +147,7 @@
                                             <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
 
+                                        {{ if gt $device.Speed 0 }}
                                         <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
                                             <div class="me-2">
                                                 <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
@@ -154,7 +157,9 @@
                                         <div class="progress" style="height: 3px">
                                             <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
+                                        {{ end }}
 
+                                        {{ if gt $device.Latency 0 }}
                                         <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
                                             <div class="me-2">
                                                 <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Latency</p>
@@ -164,6 +169,7 @@
                                         <div class="progress" style="height: 3px">
                                             <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
+                                        {{ end }}
 
                                         {{ if gt $device.Temperature 0.00 }}
                                         <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">

@@ -85,6 +85,7 @@ type Device struct {
 	Exit                  bool
 	MuteStatus            byte
 	MuteIndicators        map[int]string
+	BatteryLevel          uint16
 }
 
 var (
@@ -97,6 +98,7 @@ var (
 	cmdOpenEndpoint      = []byte{0x0d, 0x00, 0x01}
 	cmdOpenWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
 	cmdSleep             = []byte{0x01, 0x0e, 0x00}
+	cmdBatteryLevel      = []byte{0x02, 0x0f}
 	bufferSize           = 64
 	bufferSizeWrite      = bufferSize + 1
 	headerSize           = 3
@@ -182,6 +184,7 @@ func (d *Device) Connect() {
 		d.Connected = true
 		d.getDeviceFirmware() // Firmware
 		d.setSoftwareMode()   // Activate software mode
+		d.getBatterLevel()    // Battery level
 		d.initLeds()          // Init LED ports
 		d.setDeviceColor()    // Device color
 	}
@@ -500,6 +503,15 @@ func (d *Device) setHardwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
+}
+
+// getBatterLevel will return initial battery level
+func (d *Device) getBatterLevel() {
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
+	}
+	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[4:6]) / 10
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -1103,4 +1115,9 @@ func (d *Device) NotifyMuteChanged(status byte) {
 	d.writeColor(buf)
 	time.Sleep(1500 * time.Millisecond)
 	d.setDeviceColor()
+}
+
+// ModifyBatteryLevel will modify battery level
+func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
+	d.BatteryLevel = batteryLevel
 }

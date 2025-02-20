@@ -4,7 +4,7 @@
   "fontSize": 14,
   "key": "k100-default",
   "device": "K100 RGB",
-  "layout": "US",
+  "layout": "DE",
   "rows": 6,
   "row": {
     "0": {
@@ -1971,7 +1971,7 @@
         },
         "103": {
           "keyName": "CAPS",
-          "width": 131,
+          "width": 116,
           "height": 70,
           "left": 15,
           "top": 15,
@@ -2198,8 +2198,27 @@
           "svg": false
         },
         "115": {
+          "keyName": "#",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            150
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "116": {
           "keyName": "Enter",
-          "width": 164,
+          "width": 99,
           "height": 70,
           "left": 15,
           "top": 15,
@@ -2216,7 +2235,7 @@
           "zone": 0,
           "svg": false
         },
-        "116": {
+        "117": {
           "keyName": "4",
           "width": 65,
           "height": 70,
@@ -2235,7 +2254,7 @@
           "zone": 0,
           "svg": false
         },
-        "117": {
+        "118": {
           "keyName": "5",
           "width": 65,
           "height": 70,
@@ -2254,7 +2273,7 @@
           "zone": 0,
           "svg": false
         },
-        "118": {
+        "119": {
           "keyName": "6",
           "width": 65,
           "height": 70,
@@ -2273,7 +2292,7 @@
           "zone": 0,
           "svg": false
         },
-        "119": {
+        "120": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -2296,7 +2315,7 @@
     },
     "6": {
       "keys": {
-        "120": {
+        "121": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -2315,7 +2334,7 @@
           "zone": 0,
           "svg": false
         },
-        "121": {
+        "122": {
           "keyName": "G5",
           "width": 65,
           "height": 70,
@@ -2334,9 +2353,9 @@
           "zone": 0,
           "svg": false
         },
-        "122": {
+        "123": {
           "keyName": "Shift",
-          "width": 170,
+          "width": 105,
           "height": 70,
           "left": 15,
           "top": 15,
@@ -2353,7 +2372,26 @@
           "zone": 0,
           "svg": false
         },
-        "123": {
+        "124": {
+          "keyName": "< | >",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            300
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "125": {
           "keyName": "Z",
           "width": 65,
           "height": 70,
@@ -2372,7 +2410,7 @@
           "zone": 0,
           "svg": false
         },
-        "124": {
+        "126": {
           "keyName": "X",
           "width": 65,
           "height": 70,
@@ -2391,7 +2429,7 @@
           "zone": 0,
           "svg": false
         },
-        "125": {
+        "127": {
           "keyName": "C",
           "width": 65,
           "height": 70,
@@ -2410,7 +2448,7 @@
           "zone": 0,
           "svg": false
         },
-        "126": {
+        "128": {
           "keyName": "V",
           "width": 65,
           "height": 70,
@@ -2429,7 +2467,7 @@
           "zone": 0,
           "svg": false
         },
-        "127": {
+        "129": {
           "keyName": "B",
           "width": 65,
           "height": 70,
@@ -2448,7 +2486,7 @@
           "zone": 0,
           "svg": false
         },
-        "128": {
+        "130": {
           "keyName": "N",
           "width": 65,
           "height": 70,
@@ -2467,7 +2505,7 @@
           "zone": 0,
           "svg": false
         },
-        "129": {
+        "131": {
           "keyName": "M",
           "width": 65,
           "height": 70,
@@ -2486,7 +2524,7 @@
           "zone": 0,
           "svg": false
         },
-        "130": {
+        "132": {
           "keyName": ", <",
           "width": 65,
           "height": 70,
@@ -2505,7 +2543,7 @@
           "zone": 0,
           "svg": false
         },
-        "131": {
+        "133": {
           "keyName": ". >",
           "width": 65,
           "height": 70,
@@ -2524,7 +2562,7 @@
           "zone": 0,
           "svg": false
         },
-        "132": {
+        "134": {
           "keyName": "/ ?",
           "width": 65,
           "height": 70,
@@ -2543,9 +2581,9 @@
           "zone": 0,
           "svg": false
         },
-        "133": {
+        "135": {
           "keyName": "Shift",
-          "width": 205,
+          "width": 190,
           "height": 70,
           "left": 15,
           "top": 15,
@@ -2562,7 +2600,7 @@
           "zone": 0,
           "svg": false
         },
-        "134": {
+        "136": {
           "keyName": "↑",
           "width": 65,
           "height": 70,
@@ -2581,7 +2619,7 @@
           "zone": 0,
           "svg": false
         },
-        "135": {
+        "137": {
           "keyName": "1",
           "width": 65,
           "height": 70,
@@ -2600,7 +2638,7 @@
           "zone": 0,
           "svg": false
         },
-        "136": {
+        "138": {
           "keyName": "2",
           "width": 65,
           "height": 70,
@@ -2619,7 +2657,7 @@
           "zone": 0,
           "svg": false
         },
-        "137": {
+        "139": {
           "keyName": "3",
           "width": 65,
           "height": 70,
@@ -2638,7 +2676,7 @@
           "zone": 0,
           "svg": false
         },
-        "138": {
+        "140": {
           "keyName": "Enter",
           "width": 65,
           "height": 155,
@@ -2657,7 +2695,7 @@
           "zone": 0,
           "svg": false
         },
-        "139": {
+        "141": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -2680,7 +2718,7 @@
     },
     "7": {
       "keys": {
-        "140": {
+        "142": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -2699,7 +2737,7 @@
           "zone": 0,
           "svg": false
         },
-        "141": {
+        "143": {
           "keyName": "G6",
           "width": 65,
           "height": 70,
@@ -2718,7 +2756,7 @@
           "zone": 0,
           "svg": false
         },
-        "142": {
+        "144": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -2737,52 +2775,14 @@
           "zone": 0,
           "svg": false
         },
-        "143": {
-          "keyName": "⊞",
+        "145": {
+          "keyName": "Win",
           "width": 90,
           "height": 70,
           "left": 15,
           "top": 15,
           "packetIndex": [
             324
-          ],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255,
-            "brightness": 0,
-            "Hex": ""
-          },
-          "zone": 0,
-          "svg": false
-        },
-        "144": {
-          "keyName": "Alt",
-          "width": 90,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [
-            321
-          ],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255,
-            "brightness": 0,
-            "Hex": ""
-          },
-          "zone": 0,
-          "svg": false
-        },
-        "145": {
-          "keyName": "----------",
-          "width": 455,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [
-            132
           ],
           "color": {
             "red": 0,
@@ -2801,7 +2801,7 @@
           "left": 15,
           "top": 15,
           "packetIndex": [
-            333
+            321
           ],
           "color": {
             "red": 0,
@@ -2814,6 +2814,44 @@
           "svg": false
         },
         "147": {
+          "keyName": "----------",
+          "width": 455,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            132
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "148": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [
+            333
+          ],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255,
+            "brightness": 0,
+            "Hex": ""
+          },
+          "zone": 0,
+          "svg": false
+        },
+        "149": {
           "keyName": "Fn",
           "width": 90,
           "height": 70,
@@ -2832,8 +2870,8 @@
           "zone": 0,
           "svg": false
         },
-        "148": {
-          "keyName": "RC",
+        "150": {
+          "keyName": "Menu",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -2851,7 +2889,7 @@
           "zone": 0,
           "svg": false
         },
-        "149": {
+        "151": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -2870,7 +2908,7 @@
           "zone": 0,
           "svg": false
         },
-        "150": {
+        "152": {
           "keyName": "←",
           "width": 65,
           "height": 70,
@@ -2889,7 +2927,7 @@
           "zone": 0,
           "svg": false
         },
-        "151": {
+        "153": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
@@ -2908,7 +2946,7 @@
           "zone": 0,
           "svg": false
         },
-        "152": {
+        "154": {
           "keyName": "→",
           "width": 65,
           "height": 70,
@@ -2927,7 +2965,7 @@
           "zone": 0,
           "svg": false
         },
-        "153": {
+        "155": {
           "keyName": "0",
           "width": 145,
           "height": 70,
@@ -2946,7 +2984,7 @@
           "zone": 0,
           "svg": false
         },
-        "154": {
+        "156": {
           "keyName": ".",
           "width": 65,
           "height": 70,
@@ -2965,7 +3003,7 @@
           "zone": 0,
           "svg": false
         },
-        "155": {
+        "157": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -2988,7 +3026,7 @@
     },
     "8": {
       "keys": {
-        "156": {
+        "158": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3007,7 +3045,7 @@
           "zone": 0,
           "svg": false
         },
-        "157": {
+        "159": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3030,7 +3068,7 @@
     },
     "9": {
       "keys": {
-        "158": {
+        "160": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3049,7 +3087,7 @@
           "zone": 0,
           "svg": false
         },
-        "159": {
+        "161": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3072,7 +3110,7 @@
     },
     "10": {
       "keys": {
-        "160": {
+        "162": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3091,7 +3129,7 @@
           "zone": 0,
           "svg": false
         },
-        "161": {
+        "163": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3114,7 +3152,7 @@
     },
     "11": {
       "keys": {
-        "162": {
+        "164": {
           "keyName": "",
           "width": 10,
           "height": 40,
@@ -3133,7 +3171,7 @@
           "zone": 0,
           "svg": false
         },
-        "163": {
+        "165": {
           "keyName": "",
           "width": 10,
           "height": 40,

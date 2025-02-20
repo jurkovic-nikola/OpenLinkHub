@@ -384,6 +384,27 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Layout = d.DeviceProfile.Layout
 		}
+
+		// Upgrade process
+		if d.DeviceProfile.Keyboards["default"].Version != keyboards.GetKeyboard(defaultLayout).Version {
+			logger.Log(
+				logger.Fields{
+					"current":  d.DeviceProfile.Keyboards["default"].Version,
+					"expected": keyboards.GetKeyboard(defaultLayout).Version,
+					"serial":   d.Serial,
+				},
+			).Info("Upgrading keyboard profile version")
+			d.DeviceProfile.Keyboards["default"] = keyboards.GetKeyboard(defaultLayout)
+		} else {
+			logger.Log(
+				logger.Fields{
+					"current":  d.DeviceProfile.Keyboards["default"].Version,
+					"expected": keyboards.GetKeyboard(defaultLayout).Version,
+					"serial":   d.Serial,
+				},
+			).Info("Keyboard profile version is OK")
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
@@ -789,6 +810,12 @@ func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
 				d.DeviceProfile.Keyboards["default"] = keyboardLayout
 				d.DeviceProfile.Layout = layout
 				d.saveDeviceProfile()
+				// RGB reset
+				if d.activeRgb != nil {
+					d.activeRgb.Exit <- true // Exit current RGB mode
+					d.activeRgb = nil
+				}
+				d.setDeviceColor()
 				return 1
 			}
 		} else {
@@ -1310,7 +1337,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return nil, err
 	}
-	
+
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")

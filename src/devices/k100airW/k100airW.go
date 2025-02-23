@@ -304,15 +304,6 @@ func (d *Device) getManufacturer() {
 	d.Manufacturer = manufacturer
 }
 
-// getProduct will return device name
-func (d *Device) getProduct() {
-	product, err := d.dev.GetProductStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to get product")
-	}
-	d.Product = product
-}
-
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
 	if d.Connected {

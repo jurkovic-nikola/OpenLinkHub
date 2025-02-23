@@ -149,7 +149,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	d.setDeviceColor()     // Device color
-	d.controlListener()    // Control listener
+	d.backendListener()    // Control listener
 	d.toggleDPI(false)     // Set current DPI
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
@@ -279,15 +279,6 @@ func (d *Device) getManufacturer() {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
 	}
 	d.Manufacturer = manufacturer
-}
-
-// getProduct will return device name
-func (d *Device) getProduct() {
-	product, err := d.dev.GetProductStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
-	}
-	d.Product = product
 }
 
 // getSerial will return device serial number
@@ -1248,8 +1239,8 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// controlListener will listen for events from the control buttons
-func (d *Device) controlListener() {
+// backendListener will listen for events from the device
+func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 2 {

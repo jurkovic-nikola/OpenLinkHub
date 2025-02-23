@@ -172,7 +172,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setAngleSnapping()   // Angle snapping
 	d.updateMouseDPI()     // Update DPI
 	d.setDeviceColor()     // Device color
-	d.controlListener()    // Control listener
+	d.backendListener()    // Control listener
 	d.toggleDPI(false)     // Set current DPI
 	d.loadKeyAssignments() // Key Assignments
 	d.setupKeyAssignment() // Setup key assignments
@@ -303,15 +303,6 @@ func (d *Device) getManufacturer() {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
 	}
 	d.Manufacturer = manufacturer
-}
-
-// getProduct will return device name
-func (d *Device) getProduct() {
-	product, err := d.dev.GetProductStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
-	}
-	d.Product = product
 }
 
 // getSerial will return device serial number
@@ -985,7 +976,7 @@ func (d *Device) Restart() {
 	d.setAngleSnapping()  // Angle snapping
 	d.toggleExit()        // Remove Exit flag
 	d.setDeviceColor()    // Device color
-	d.controlListener()   // Control listener
+	d.backendListener()   // Control listener
 	d.toggleDPI(false)    // Set current DPI
 }
 
@@ -1518,8 +1509,8 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// controlListener will listen for events from the control buttons
-func (d *Device) controlListener() {
+// backendListener will listen for events from the device
+func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 0 {

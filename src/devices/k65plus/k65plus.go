@@ -282,15 +282,6 @@ func (d *Device) getManufacturer() {
 	d.Manufacturer = manufacturer
 }
 
-// getProduct will return device name
-func (d *Device) getProduct() {
-	product, err := d.dev.GetProductStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
-	}
-	d.Product = product
-}
-
 // getSerial will return device serial number
 func (d *Device) getSerial() {
 	serial, err := d.dev.GetSerialNbr()
@@ -1259,7 +1250,7 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// backendListener will listen for events from the control dial
+// backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	pv := false
 	var brightness uint16 = 0

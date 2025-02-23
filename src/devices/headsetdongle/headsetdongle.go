@@ -90,7 +90,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setSoftwareMode()   // Switch to software mode
 	d.getDevices()        // Get devices
 	d.monitorDevice()     // Monitor device
-	d.controlListener()   // Control listener
+	d.backendListener()   // Control listener
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -393,8 +393,8 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// controlListener will listen for events from the control buttons
-func (d *Device) controlListener() {
+// backendListener will listen for events from the device
+func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 3 {

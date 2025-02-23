@@ -184,7 +184,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setSoftwareMode()      // Activate software mode
 	d.setDeviceColor(false)  // Device color
 	d.toggleDPI(false)       // DPI
-	d.controlListener()      // Control listener
+	d.backendListener()      // Control listener
 	d.setAutoRefresh()       // Set auto device refresh
 	d.setupVirtualKeyboard() // Virtual keyboard
 	d.loadKeyAssignments()   // Key Assignments
@@ -444,7 +444,7 @@ func (d *Device) Restart() {
 	d.getDeviceFirmware()   // Firmware
 	d.toggleExit()          // Remove Exit flag
 	d.setDeviceColor(false) // Device color
-	d.controlListener()     // Control listener
+	d.backendListener()     // Control listener
 	d.toggleDPI(false)      // Set current DPI
 }
 
@@ -1654,8 +1654,8 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// controlListener will listen for events from the control buttons
-func (d *Device) controlListener() {
+// backendListener will listen for events from the device
+func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 0 {

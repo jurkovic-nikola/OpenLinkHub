@@ -204,7 +204,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.initLeds()              // Init LED ports
 	d.setDeviceColor()        // Device color
 	d.toggleDPI()             // DPI
-	d.controlListener()       // Control listener
+	d.backendListener()       // Control listener
 	d.setKeepAlive()          // Keepalive
 	d.setAutoRefresh()        // Set auto device refresh
 	d.loadKeyAssignments()    // Key Assignments
@@ -474,7 +474,7 @@ func (d *Device) Restart() {
 	d.initLeds()              // Init LED ports
 	d.setDeviceColor()        // Device color
 	d.toggleDPI()             // DPI
-	d.controlListener()       // Control listener
+	d.backendListener()       // Control listener
 	d.setAutoRefresh()        // Set auto device refresh
 	d.setupKeyAssignment()    // Setup key assignments
 }
@@ -1925,8 +1925,8 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-// controlListener will listen for events from the control buttons
-func (d *Device) controlListener() {
+// backendListener will listen for events from the device
+func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 2 {

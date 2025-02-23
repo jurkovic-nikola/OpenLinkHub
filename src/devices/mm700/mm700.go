@@ -275,15 +275,6 @@ func (d *Device) getManufacturer() {
 	d.Manufacturer = manufacturer
 }
 
-// getProduct will return device name
-func (d *Device) getProduct() {
-	product, err := d.dev.GetProductStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
-	}
-	d.Product = product
-}
-
 // getSerial will return device serial number
 func (d *Device) getSerial() {
 	serial, err := d.dev.GetSerialNbr()

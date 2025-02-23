@@ -5,15 +5,6 @@ package elite
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
-// Supported devices:
-// - iCUE H100i Elite RGB
-// - iCUE H115i Elite RGB
-// - iCUE H150i Elite RGB
-// - iCUE H100i ELITE RGB White
-// - iCUE H150i ELITE RGB White
-// - iCUE H100i RGB PRO XT
-// - iCUE H115i RGB PRO XT
-// - iCUE H150i RGB PRO XT
 
 import (
 	"OpenLinkHub/src/common"

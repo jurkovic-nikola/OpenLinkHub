@@ -5,10 +5,6 @@ package ccxt
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
-// Supported devices:
-// - iCUE COMMANDER CORE XT
-// - 2x Temperature Probes
-// - External LED Hub
 
 import (
 	"OpenLinkHub/src/common"

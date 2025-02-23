@@ -5,28 +5,6 @@ package cc
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
-// Supported devices:
-// - iCUE COMMANDER CORE - 0c32
-// - iCUE COMMANDER CORE - 0c1c
-// - iCUE H100i ELITE CAPELLIX
-// - iCUE H115i ELITE CAPELLIX
-// - iCUE H150i ELITE CAPELLIX
-// - iCUE H170i ELITE CAPELLIX
-// - H100i ELITE LCD
-// - H150i ELITE LCD
-// - H170i ELITE LCD
-// - H100i ELITE CAPELLIX
-// - H150i ELITE CAPELLIX
-// - H170i ELITE CAPELLIX
-// - iCUE H100i ELITE LCD XT
-// - iCUE H115i ELITE LCD XT
-// - iCUE H150i ELITE LCD XT
-// - iCUE H170i ELITE LCD XT
-// - iCUE H100i ELITE CAPELLIX XT
-// - iCUE H115i ELITE CAPELLIX XT
-// - iCUE H150i ELITE CAPELLIX XT
-// - iCUE H170i ELITE CAPELLIX XT
-// - 1x Temperature Probe
 
 import (
 	"OpenLinkHub/src/common"

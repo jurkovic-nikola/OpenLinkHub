@@ -1,5 +1,11 @@
 package slipstream
 
+// Package: Corsair Slipstream
+// This is the primary package for Corsair Slipstream.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/darkcorergbproW"
@@ -21,12 +27,6 @@ import (
 	"sync"
 	"time"
 )
-
-// Package: Corsair Slipstream
-// This is the primary package for Corsair Slipstream.
-// All device actions are controlled from this package.
-// Author: Nikola Jurkovic
-// License: GPL-3.0 or later
 
 type Devices struct {
 	Type      byte   `json:"type"`

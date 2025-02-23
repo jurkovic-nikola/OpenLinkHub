@@ -1,5 +1,11 @@
 package headsetdongle
 
+// Package: Headset Dongle
+// This is the primary package for Corsair Headset Dongle.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
@@ -10,12 +16,6 @@ import (
 	"sync"
 	"time"
 )
-
-// Package: Headset Dongle
-// This is the primary package for Corsair Headset Dongle.
-// All device actions are controlled from this package.
-// Author: Nikola Jurkovic
-// License: GPL-3.0 or later
 
 type Devices struct {
 	Type      byte   `json:"type"`

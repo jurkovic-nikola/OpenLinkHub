@@ -386,20 +386,22 @@ func (d *Device) saveDeviceProfile() {
 		}
 
 		// Upgrade process
-		if d.DeviceProfile.Keyboards["default"].Version != keyboards.GetKeyboard(defaultLayout).Version {
+		currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
+		layout := keyboards.GetKeyboard(currentLayout)
+		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
 					"current":  d.DeviceProfile.Keyboards["default"].Version,
-					"expected": keyboards.GetKeyboard(defaultLayout).Version,
+					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
 			).Info("Upgrading keyboard profile version")
-			d.DeviceProfile.Keyboards["default"] = keyboards.GetKeyboard(defaultLayout)
+			d.DeviceProfile.Keyboards["default"] = layout
 		} else {
 			logger.Log(
 				logger.Fields{
 					"current":  d.DeviceProfile.Keyboards["default"].Version,
-					"expected": keyboards.GetKeyboard(defaultLayout).Version,
+					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
 			).Info("Keyboard profile version is OK")

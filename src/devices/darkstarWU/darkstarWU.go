@@ -754,7 +754,7 @@ func (d *Device) SaveMouseZoneColors(dpi rgb.Color, zoneColors map[int]rgb.Color
 	return 0
 }
 
-// getManufacturer will return device manufacturer
+// getDebugMode will set debug mode
 func (d *Device) getDebugMode() {
 	d.Debug = config.GetConfig().Debug
 }

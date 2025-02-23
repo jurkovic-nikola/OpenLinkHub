@@ -19,9 +19,9 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
-	"time"
 )
 
 // DeviceProfile struct contains all device profile
@@ -98,14 +98,13 @@ var (
 	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
-	transferTimeout         = 500
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 2
 	headerWriteSize         = 4
 	maxBufferSizePerRequest = 61
-	keyboardKey             = "k100airW-default"
-	defaultLayout           = "k100airW-default-US"
+	keyboardKey             = "k100air-default"
+	defaultLayout           = "k100air-default-US"
 )
 
 func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
@@ -119,7 +118,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
-		Serial:       serial + "W",
+		Serial:       serial,
 		Endpoint:     endpoint,
 		Firmware:     "n/a",
 		Brightness: map[int]string{
@@ -357,35 +356,35 @@ func (d *Device) getDeviceFirmware() {
 func (d *Device) initLeds() {
 	_, err := d.transfer(cmdOpenColorEndpoint, cmdSetLeds)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
-	buf := make([]byte, 12)
-	buf[0] = 0x08
-	buf[4] = 0x69
-	buf[5] = 0x6c
-	buf[6] = 0x01
-	buf[8] = 0x08
-	buf[10] = 0x65
-	buf[11] = 0x6d
-	_, err = d.transfer(cmdWriteColor, buf)
+	_, err = d.transfer(cmdRead, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
 	}
+
+	buf := make([]byte, 8)
+	buf[0] = 0x69
+	buf[1] = 0x6c
+	buf[2] = 0x01
+	buf[4] = 0x08
+	buf[6] = 0x65
+	buf[7] = 0x6d
+
+	dataTypeSetColor = []byte{}
+	d.writeColor(buf)
 
 	_, err = d.transfer(cmdCloseEndpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	_, err = d.transfer(cmdInitProtocol, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to init color protocol")
 	}
-
-	// We need to wait around 500 ms for physical ports to re-initialize
-	// After that we can grab any new connected / disconnected device values
-	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -421,20 +420,22 @@ func (d *Device) saveDeviceProfile() {
 		}
 
 		// Upgrade process
-		if d.DeviceProfile.Keyboards["default"].Version != keyboards.GetKeyboard(defaultLayout).Version {
+		currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
+		layout := keyboards.GetKeyboard(currentLayout)
+		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
 					"current":  d.DeviceProfile.Keyboards["default"].Version,
-					"expected": keyboards.GetKeyboard(defaultLayout).Version,
+					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
 			).Info("Upgrading keyboard profile version")
-			d.DeviceProfile.Keyboards["default"] = keyboards.GetKeyboard(defaultLayout)
+			d.DeviceProfile.Keyboards["default"] = layout
 		} else {
 			logger.Log(
 				logger.Fields{
 					"current":  d.DeviceProfile.Keyboards["default"].Version,
-					"expected": keyboards.GetKeyboard(defaultLayout).Version,
+					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
 			).Info("Keyboard profile version is OK")
@@ -764,6 +765,8 @@ func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
 				d.DeviceProfile.Keyboards["default"] = keyboardLayout
 				d.DeviceProfile.Layout = layout
 				d.saveDeviceProfile()
+				d.setKeyAmount()
+
 				// RGB reset
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true // Exit current RGB mode
@@ -994,6 +997,7 @@ func (d *Device) setDeviceColor() {
 	case "keyboard":
 		{
 			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+				var colorIndex = make([]byte, 0)
 				var buf = make([]byte, 129)
 				buf[3] = 0x01
 				buf[4] = 0xff
@@ -1001,16 +1005,20 @@ func (d *Device) setDeviceColor() {
 				buf[6] = byte(keyboard.Color.Green)
 				buf[7] = byte(keyboard.Color.Red)
 				buf[8] = byte(d.KeyAmount)
-				start := 9
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
 							value := key.PacketIndex[packet] / 3
-							buf[start] = byte(value)
-							start++
+							colorIndex = append(colorIndex, byte(value))
 						}
 					}
 				}
+				// Sort in descending order
+				sort.Slice(colorIndex, func(i, j int) bool {
+					return colorIndex[i] > colorIndex[j] // Reverse order
+				})
+				copy(buf[9:], colorIndex)
+
 				dataTypeSetColor = []byte{0x7e, 0x20, 0x01}
 				d.writeColor(buf)
 				return

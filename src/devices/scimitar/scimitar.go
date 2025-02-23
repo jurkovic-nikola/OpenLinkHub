@@ -177,6 +177,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/scimitar.json",
+		Exit:              false,
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -422,7 +423,8 @@ func (d *Device) Restart() {
 	})
 	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+		return
 	}
 
 	dev, err := hid.OpenPath(path)
@@ -778,6 +780,7 @@ func (d *Device) getDeviceFirmware() {
 	)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
+		return
 	}
 
 	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))

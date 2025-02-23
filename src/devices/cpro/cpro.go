@@ -170,7 +170,7 @@ var (
 		},
 		{
 			Index: 6,
-			Name:  "SP RGB Series Fan",
+			Name:  "SP RGB Series Fan (1 LED)",
 			Total: 1,
 		},
 	}

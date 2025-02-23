@@ -1,11 +1,16 @@
 {
-  "version": 2,
+  "version": 3,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k100air-default",
   "device": "K100 AIR RGB",
   "layout": "US",
   "rows": 6,
+  "color": {
+    "red": 0,
+    "green": 255,
+    "blue": 255
+  },
   "row": {
     "0": {
       "keys": {

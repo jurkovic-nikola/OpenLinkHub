@@ -1206,9 +1206,15 @@ func (d *Device) backendListener() {
 					continue
 				}
 
-				// Battery
 				if data[2] == 0x12 {
-					val := binary.LittleEndian.Uint16(data[4:6])
+					var val uint16 = 0
+					if data[4] == 0 {
+						if data[5] > 0 {
+							val = binary.LittleEndian.Uint16(data[5:7])
+						}
+					} else {
+						val = binary.LittleEndian.Uint16(data[4:6])
+					}
 					if val > 0 {
 						d.BatteryLevel = val / 10
 					}

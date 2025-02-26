@@ -17,7 +17,6 @@ import (
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
-	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -327,6 +326,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 // Reduction is applied globally, not per physical port
 func (d *Device) setDeviceProtection() {
 	for _, portLedChannels := range d.PortProtection {
+
 		// > 7 QX fans
 		if portLedChannels > portProtectionMaximumStage1 {
 			d.GlobalBrightness = 0.66
@@ -2182,7 +2182,7 @@ func (d *Device) setDeviceColor() {
 
 					// Global override
 					if d.GlobalBrightness != 0 {
-						r.RGBBrightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
+						r.RGBBrightness = d.GlobalBrightness
 						r.RGBStartColor.Brightness = r.RGBBrightness
 						r.RGBEndColor.Brightness = r.RGBBrightness
 					}
@@ -2396,6 +2396,15 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	buffer, err = d.transfer(cmdRead, endpoint, bufferType)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
+	}
+
+	if responseMatch(buffer, bufferType) {
+		// More data than it can fit into single 512 byte buffer
+		next, e := d.transfer(cmdRead, endpoint, bufferType)
+		if e != nil {
+			logger.Log(logger.Fields{"error": e}).Error("Unable to read endpoint")
+		}
+		buffer = append(buffer, next[4:]...)
 	}
 
 	// Close specified endpoint
@@ -2804,27 +2813,12 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
 		if _, err := d.dev.Read(bufferR); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		}
-
-		// Read remaining data from a device
-		if len(bufferType) == 2 {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(transferTimeout)*time.Millisecond)
-			defer cancel()
-
-			for ctx.Err() != nil && !responseMatch(bufferR, bufferType) {
-				if _, err := d.dev.Read(bufferR); err != nil {
-					logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-				}
-			}
-			if ctx.Err() != nil {
-				logger.Log(logger.Fields{"error": ctx.Err(), "serial": d.Serial}).Error("Unable to read data from device")
-			}
-		}
 	}
 	return bufferR, nil
 }
 
 // responseMatch will check if two byte arrays match
 func responseMatch(response, expected []byte) bool {
-	responseBuffer := response[5:7]
+	responseBuffer := response[4:6]
 	return bytes.Equal(responseBuffer, expected)
 }

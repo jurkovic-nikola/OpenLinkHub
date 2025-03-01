@@ -255,7 +255,7 @@ $ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/confi
   - If you are using any other RGB software that can control your RAM, do not set `"memory":true`. 
   - Two programs cannot write to the same I2C address at the same time. 
   - If you do not know what `acpi_enforce_resources=lax` means, do not enable this.
-  - If you see your DDR5 memory addresses as `UU`, this means they are locked by `spd5118` kernel module, and you will need to unload this module.
+  - If you see your DDR5 memory addresses as `UU`, this means they are locked by `spd5118` or `ee1004` kernel module, and you will need to unload this module.
   - If you're still eager to use this...continue reading
 ```bash
 # Install tools

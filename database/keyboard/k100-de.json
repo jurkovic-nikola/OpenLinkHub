@@ -856,7 +856,7 @@
           "svg": false
         },
         "45": {
-          "keyName": "PrtSc",
+          "keyName": "Dru",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -875,7 +875,7 @@
           "svg": false
         },
         "46": {
-          "keyName": "ScrLk",
+          "keyName": "Rol",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -894,7 +894,7 @@
           "svg": false
         },
         "47": {
-          "keyName": "Pause",
+          "keyName": "Pau",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1050,7 +1050,7 @@
           "svg": false
         },
         "55": {
-          "keyName": "` ~",
+          "keyName": "^ °",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1259,7 +1259,7 @@
           "svg": false
         },
         "66": {
-          "keyName": "-",
+          "keyName": "ß\\?",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1278,7 +1278,7 @@
           "svg": false
         },
         "67": {
-          "keyName": "=",
+          "keyName": "'`",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1316,7 +1316,7 @@
           "svg": false
         },
         "69": {
-          "keyName": "Ins",
+          "keyName": "Einfg",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1335,7 +1335,7 @@
           "svg": false
         },
         "70": {
-          "keyName": "Home",
+          "keyName": "Pos 1",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1354,7 +1354,7 @@
           "svg": false
         },
         "71": {
-          "keyName": "PgUp",
+          "keyName": "Bild↑",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1719,7 +1719,7 @@
           "svg": false
         },
         "90": {
-          "keyName": "[ {",
+          "keyName": "Ü",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1738,7 +1738,7 @@
           "svg": false
         },
         "91": {
-          "keyName": "] }",
+          "keyName": "+",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1757,13 +1757,13 @@
           "svg": false
         },
         "92": {
-          "keyName": "\\ |",
-          "width": 107,
-          "height": 70,
-          "left": 15,
+          "keyName": "Enter",
+          "width": 103,
+          "height": 155,
+          "left": 20,
           "top": 15,
           "packetIndex": [
-            147
+            120
           ],
           "color": {
             "red": 0,
@@ -1776,7 +1776,7 @@
           "svg": false
         },
         "93": {
-          "keyName": "Del",
+          "keyName": "Entf",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1795,7 +1795,7 @@
           "svg": false
         },
         "94": {
-          "keyName": "End",
+          "keyName": "Ende",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1814,7 +1814,7 @@
           "svg": false
         },
         "95": {
-          "keyName": "PgDn",
+          "keyName": "Bild↓",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -2160,7 +2160,7 @@
           "svg": false
         },
         "113": {
-          "keyName": "; :",
+          "keyName": "Ö",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -2179,7 +2179,7 @@
           "svg": false
         },
         "114": {
-          "keyName": "' ''",
+          "keyName": "Ä",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -2216,30 +2216,11 @@
           "zone": 0,
           "svg": false
         },
-        "116": {
-          "keyName": "Enter",
-          "width": 99,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [
-            120
-          ],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255,
-            "brightness": 0,
-            "Hex": ""
-          },
-          "zone": 0,
-          "svg": false
-        },
         "117": {
           "keyName": "4",
           "width": 65,
           "height": 70,
-          "left": 275,
+          "left": 390,
           "top": 15,
           "packetIndex": [
             276
@@ -2525,7 +2506,7 @@
           "svg": false
         },
         "132": {
-          "keyName": ", <",
+          "keyName": ", ;",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -2544,7 +2525,7 @@
           "svg": false
         },
         "133": {
-          "keyName": ". >",
+          "keyName": ". :",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -2563,7 +2544,7 @@
           "svg": false
         },
         "134": {
-          "keyName": "/ ?",
+          "keyName": "- _",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -2757,7 +2738,7 @@
           "svg": false
         },
         "144": {
-          "keyName": "Ctrl",
+          "keyName": "Strg",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -2890,7 +2871,7 @@
           "svg": false
         },
         "151": {
-          "keyName": "Ctrl",
+          "keyName": "Strg",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -2985,7 +2966,7 @@
           "svg": false
         },
         "156": {
-          "keyName": ".",
+          "keyName": ",",
           "width": 65,
           "height": 70,
           "left": 15,

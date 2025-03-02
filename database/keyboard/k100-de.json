@@ -1758,7 +1758,7 @@
         },
         "92": {
           "keyName": "Enter",
-          "width": 107,
+          "width": 103,
           "height": 155,
           "left": 20,
           "top": 15,
@@ -2220,7 +2220,7 @@
           "keyName": "4",
           "width": 65,
           "height": 70,
-          "left": 275,
+          "left": 390,
           "top": 15,
           "packetIndex": [
             276

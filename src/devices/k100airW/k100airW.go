@@ -1425,6 +1425,13 @@ func (d *Device) TriggerKeyAssignment(data []byte) {
 	if data[16] == 0x02 {
 		d.modifyBrightness()
 	} else if data[17] == 0x04 && data[18] == 0x10 {
+		cmdBluetoothMode[3] = 0x02 // Profile 1
+		d.setBluetoothMode()
+	} else if data[17] == 0x04 && data[18] == 0x20 {
+		cmdBluetoothMode[3] = 0x03 // Profile 2
+		d.setBluetoothMode()
+	} else if data[17] == 0x04 && data[18] == 0x40 {
+		cmdBluetoothMode[3] = 0x08 // Profile 3
 		d.setBluetoothMode()
 	}
 }

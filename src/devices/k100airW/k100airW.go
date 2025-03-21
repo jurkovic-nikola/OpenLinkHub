@@ -1349,7 +1349,7 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 
 	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err, "endpoint": cmdOpenWriteEndpoint, "serial": d.Serial}).Error("Unable to open endpoint")
 		return
 	}
 
@@ -1371,8 +1371,7 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 
 	_, err = d.transfer(cmdCloseEndpoint, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-		return
+		logger.Log(logger.Fields{"error": err, "endpoint": cmdCloseEndpoint, "serial": d.Serial}).Error("Unable to close endpoint")
 	}
 }
 

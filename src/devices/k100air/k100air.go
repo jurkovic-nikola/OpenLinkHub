@@ -86,6 +86,9 @@ var (
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x01}
+	cmdWrite                = []byte{0x06, 0x02}
+	cmdOpenWriteEndpoint    = []byte{0x0d, 0x02, 0x02}
+	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x02}
 	cmdKeepAlive            = []byte{0x12}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
 	deviceRefreshInterval   = 1000
@@ -99,6 +102,7 @@ var (
 	colorPacketLength       = 413
 	keyboardKey             = "k100air-default"
 	defaultLayout           = "k100air-default-US"
+	keyAssignmentLength     = 135
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -146,6 +150,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setKeepAlive()       // Keepalive
 	d.setDeviceColor()     // Device color
 	d.setBrightnessLevel() // Brightness
+	d.initKeys()           // Init default key action
 	d.backendListener()    // Control listener
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
@@ -332,6 +337,48 @@ func (d *Device) initLeds() {
 	// We need to wait around 500 ms for physical ports to re-initialize
 	// After that we can grab any new connected / disconnected device values
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+}
+
+// initKeys will init default key action for all keys
+func (d *Device) initKeys() {
+	var val byte = 0
+	buf := make([]byte, keyAssignmentLength)
+	for i := range buf {
+		buf[i] = 0x01 // 0x01 complete slice
+	}
+
+	// Keys
+	for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+		for keyIndex, key := range row.Keys {
+			switch keyIndex {
+			case 4:
+				continue
+			case 87:
+				val = 0x3f
+			case 98:
+				val = 0x3f
+			case 104:
+				val = 0x3f
+			case 106:
+				val = 0x3f
+			case 108:
+				val = 0x3f
+			case 109:
+				val = 0x3f
+			case 111:
+				val = 0x3f
+			default:
+				val = 0x39
+			}
+			bufPosition := key.PacketIndex[0] / 3
+			buf[bufPosition] = val
+		}
+	}
+
+	// Wheel
+	buf[103] = 0x39
+	buf[104] = 0x39
+	d.writeKeyAssignmentData(buf)
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -1219,6 +1266,32 @@ func (d *Device) writeColor(data []byte) {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
 		}
+	}
+}
+
+// writeKeyAssignmentData will write key assignment to the device.
+func (d *Device) writeKeyAssignmentData(data []byte) {
+	if d.Exit {
+		return
+	}
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+
+	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "endpoint": cmdOpenWriteEndpoint, "serial": d.Serial}).Error("Unable to open endpoint")
+		return
+	}
+
+	_, err = d.transfer(cmdWrite, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to the device")
+	}
+
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "endpoint": cmdCloseEndpoint, "serial": d.Serial}).Error("Unable to close endpoint")
 	}
 }
 

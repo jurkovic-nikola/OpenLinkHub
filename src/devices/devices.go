@@ -1564,7 +1564,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7110, 7091: // K70 RGB PRO
+		case 7110, 7091, 7124: // K70 RGB PRO
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := k70pro.Init(vendorId, productId, key)

@@ -54,17 +54,23 @@ func GetSmBus() (*SmBus, error) {
 		}
 	}
 
+	if len(devices) == 0 {
+		logger.Log(logger.Fields{}).Warn("Found 0 i2c devices. Memory will not work.")
+		return nil, errors.New("no devices")
+	}
+
 	for _, device := range devices {
 		if device == config.GetConfig().MemorySmBus {
 			dev := fmt.Sprintf("%s%s", dir, device)
 			f, err := Open(dev)
 			if err != nil {
+				logger.Log(logger.Fields{"device": dev, "error": err}).Error("Unable to open i2c device")
 				continue
 			}
 
 			err = f.File.Close()
 			if err != nil {
-				//
+				logger.Log(logger.Fields{"device": dev, "error": err}).Error("Unable to close i2c device")
 			}
 			return &SmBus{Path: dev}, nil
 		}

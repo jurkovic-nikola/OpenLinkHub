@@ -59,12 +59,13 @@ type StorageTemperatures struct {
 }
 
 var (
-	pwd          = ""
-	location     = ""
-	profiles     = map[string]TemperatureProfileData{}
-	mutex        sync.Mutex
-	temperatures *Temperatures
-	cpuPackages  = []string{"k10temp", "zenpower", "coretemp"}
+	temperatureOffset = 0
+	pwd               = ""
+	location          = ""
+	profiles          = map[string]TemperatureProfileData{}
+	mutex             sync.Mutex
+	temperatures      *Temperatures
+	cpuPackages       = []string{"k10temp", "zenpower", "coretemp"}
 	// Defaults
 	profileQuiet = TemperatureProfileData{
 		Sensor: 0,
@@ -200,6 +201,10 @@ func Init() {
 
 	temperatures = &Temperatures{
 		Profiles: profiles,
+	}
+
+	if config.GetConfig().TemperatureOffset != 0 {
+		temperatureOffset = config.GetConfig().TemperatureOffset
 	}
 }
 
@@ -490,7 +495,11 @@ func getHwMonTemperature(hwmonDir string, entry os.DirEntry) float32 {
 		return 0
 	}
 	tempCelsius := float32(tempValue) / 1000.0
-	return float32(math.Floor(float64(tempCelsius*100)) / 100)
+	temperature := float32(math.Floor(float64(tempCelsius*100)) / 100)
+	if temperatureOffset != 0 {
+		temperature = temperature + float32(temperatureOffset)
+	}
+	return temperature
 }
 
 // GetCpuTemperature will return CPU temperature

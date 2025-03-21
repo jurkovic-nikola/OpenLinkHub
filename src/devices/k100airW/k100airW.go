@@ -9,6 +9,7 @@ package k100airW
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -78,6 +79,10 @@ type Device struct {
 	UIKeyboard         string
 	UIKeyboardRow      string
 	BatteryLevel       uint16
+	KeyAssignment      map[int]inputmanager.KeyAssignment
+	InputActions       map[uint8]inputmanager.InputAction
+	PressLoop          bool
+	keyAssignmentFile  string
 }
 
 var (
@@ -94,10 +99,12 @@ var (
 	cmdBrightness           = []byte{0x01, 0x02, 0x00}
 	cmdGetFirmware          = []byte{0x02, 0x13}
 	dataTypeSetColor        = []byte{0x7e, 0x20, 0x01}
-	dataTypeSubColor        = []byte{0x07, 0x01}
-	cmdWriteColor           = []byte{0x06, 0x01}
 	cmdSleep                = []byte{0x01, 0x0e, 0x00}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
+	cmdOpenWriteEndpoint    = []byte{0x0d, 0x01, 0x02}
+	cmdWrite                = []byte{0x06, 0x01}
+	cmdWriteExtra           = []byte{0x07, 0x01}
+	cmdBluetoothMode        = []byte{0x01, 0x3a, 0x00, 0x02}
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 2
@@ -105,6 +112,7 @@ var (
 	maxBufferSizePerRequest = 61
 	keyboardKey             = "k100air-default"
 	defaultLayout           = "k100air-default-US"
+	keyAssignmentLength     = 135
 )
 
 func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
@@ -199,6 +207,7 @@ func (d *Device) Connect() {
 		d.setDeviceColor()     // Device color
 		d.setBrightnessLevel() // Brightness
 		d.setSleepTimer()      // Sleep
+		d.initKeys()           // Init default key action
 	}
 }
 
@@ -332,6 +341,17 @@ func (d *Device) setSoftwareMode() {
 	d.Connected = true
 }
 
+// setSoftwareMode will switch a device to software mode
+func (d *Device) setBluetoothMode() {
+	if d.Connected {
+		_, err := d.transfer(cmdBluetoothMode, nil)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		}
+		d.Connected = false
+	}
+}
+
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(cmdGetFirmware, nil)
@@ -376,6 +396,48 @@ func (d *Device) initLeds() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to init color protocol")
 	}
+}
+
+// initKeys will init default key action for all keys
+func (d *Device) initKeys() {
+	var val byte = 0
+	buf := make([]byte, keyAssignmentLength)
+	for i := range buf {
+		buf[i] = 0x01 // 0x01 complete slice
+	}
+
+	// Keys
+	for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+		for keyIndex, key := range row.Keys {
+			switch keyIndex {
+			case 4:
+				continue
+			case 87:
+				val = 0x3f
+			case 98:
+				val = 0x3f
+			case 104:
+				val = 0x3f
+			case 106:
+				val = 0x3f
+			case 108:
+				val = 0x3f
+			case 109:
+				val = 0x3f
+			case 111:
+				val = 0x3f
+			default:
+				val = 0x39
+			}
+			bufPosition := key.PacketIndex[0] / 3
+			buf[bufPosition] = val
+		}
+	}
+
+	// Wheel
+	buf[103] = 0x39
+	buf[104] = 0x39
+	d.writeKeyAssignmentData(buf)
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -1224,8 +1286,6 @@ func (d *Device) setDeviceColor() {
 }
 
 // writeColor will write data to the device with a specific endpoint.
-// writeColor does not require endpoint closing and opening like normal Write requires.
-// Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
@@ -1252,13 +1312,13 @@ func (d *Device) writeColor(data []byte) {
 	for i, chunk := range chunks {
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk)
+			_, err := d.transfer(cmdWrite, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
 			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk)
+			_, err := d.transfer(cmdWriteExtra, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
@@ -1275,6 +1335,44 @@ func (d *Device) writeColor(data []byte) {
 	_, err = d.transfer(cmdFlush, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
+	}
+}
+
+// writeKeyAssignmentData will write key assignment to the device.
+func (d *Device) writeKeyAssignmentData(data []byte) {
+	if d.Exit {
+		return
+	}
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+
+	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
+	}
+
+	// Split packet into chunks
+	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if i == 0 {
+			_, err := d.transfer(cmdWrite, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to the device")
+			}
+		} else {
+			_, err := d.transfer(cmdWriteExtra, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to the device")
+			}
+		}
+	}
+
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
 	}
 }
 
@@ -1295,7 +1393,6 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
-
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
@@ -1310,8 +1407,8 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	return bufferR, nil
 }
 
-// ModifyBrightness will modify brightness via control button
-func (d *Device) ModifyBrightness() {
+// modifyBrightness will modify brightness via control button
+func (d *Device) modifyBrightness() {
 	if d.DeviceProfile != nil {
 		if d.DeviceProfile.BrightnessLevel >= 1000 {
 			d.DeviceProfile.BrightnessLevel = 0
@@ -1320,6 +1417,15 @@ func (d *Device) ModifyBrightness() {
 		}
 		d.saveDeviceProfile()
 		d.setBrightnessLevel()
+	}
+}
+
+// TriggerKeyAssignment will trigger key assignment
+func (d *Device) TriggerKeyAssignment(data []byte) {
+	if data[16] == 0x02 {
+		d.modifyBrightness()
+	} else if data[17] == 0x04 && data[18] == 0x10 {
+		d.setBluetoothMode()
 	}
 }
 

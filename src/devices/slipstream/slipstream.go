@@ -956,9 +956,7 @@ func (d *Device) backendListener() {
 						{
 							for _, value := range d.PairedDevices {
 								if dev, found := value.(*k100airW.Device); found {
-									if data[16] == 2 {
-										dev.ModifyBrightness()
-									}
+									dev.TriggerKeyAssignment(data)
 								}
 								if dev, found := value.(*m55W.Device); found {
 									if data[1] == 0x02 {
@@ -1005,7 +1003,6 @@ func (d *Device) backendListener() {
 										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
 									}
 								}
-
 								if dev, found := value.(*k70coretklW.Device); found {
 									if data[1] == 0x02 && data[2] == 0x04 {
 										dev.ControlDial(data)

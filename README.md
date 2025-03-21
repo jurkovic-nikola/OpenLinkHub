@@ -172,7 +172,9 @@ $ systemctl reboot
   "memorySku": "",
   "logFile": "",
   "logLevel": "info",
-  "enhancementKits": []
+  "enhancementKits": [],
+  "temperatureOffset": 0,
+  "amdGpuIndex": 0
 }
 ```
 - listenPort: HTTP server port.
@@ -196,6 +198,8 @@ $ systemctl reboot
 - enhancementKits: DDR4/DDR5 Light Enhancement Kits addresses. 
 - If your kit is installed in first and third slot, value would be: `"enhancementKits": [80,82],`. This value is byte value converted from hexadecimal output in `i2cdetect`
   - When kits are used, you need to set `decodeMemorySku` to `false` and define `memorySku`
+- temperatureOffset: Temperature offset for AMD Threadripper CPUs
+- amdGpuIndex: GPU device index. You can find your GPU index via `amd-smi static --asic --json`
 
 ## Uninstall
 ```bash

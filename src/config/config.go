@@ -27,6 +27,7 @@ type Configuration struct {
 	LogLevel          log.Level `json:"logLevel"`
 	EnhancementKits   []byte    `json:"enhancementKits"`
 	TemperatureOffset int       `json:"temperatureOffset"`
+	AMDGpuIndex       int       `json:"amdGpuIndex"`
 }
 
 var (
@@ -40,6 +41,7 @@ var (
 		"logFile":           "",
 		"enhancementKits":   make([]byte, 0),
 		"temperatureOffset": 0,
+		"amdGpuIndex":       0,
 	}
 )
 
@@ -92,6 +94,7 @@ func upgradeFile(cfg string) {
 			LogFile:           "",
 			EnhancementKits:   make([]byte, 0),
 			TemperatureOffset: 0,
+			AMDGpuIndex:       0,
 		}
 		saveConfigSettings(value)
 	} else {

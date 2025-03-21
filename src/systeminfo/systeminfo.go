@@ -2,6 +2,7 @@ package systeminfo
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"bufio"
@@ -11,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -52,14 +52,27 @@ type SystemInfo struct {
 	Motherboard *MotherboardData
 }
 
+type Asic struct {
+	MarketName string `json:"market_name"`
+	VendorID   string `json:"vendor_id"`
+	VendorName string `json:"vendor_name"`
+}
+
+type AMDGPUInfo struct {
+	GPU  int  `json:"gpu"`
+	Asic Asic `json:"asic"`
+}
+
 var (
 	info      *SystemInfo
 	prevTotal = 0
 	prevIdle  = 0
+	gpuIndex  = 0
 )
 
 // Init will initialize and store system info
 func Init() {
+	gpuIndex = config.GetConfig().AMDGpuIndex
 	info = &SystemInfo{}
 	info.getCpuData()
 	info.getKernelData()
@@ -117,10 +130,9 @@ func (si *SystemInfo) getGpuData() {
 			si.GPU = &GpuData{Model: GetNVIDIAGpuModel()}
 			return
 		} else if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "Advanced Micro Devices") {
-			// AMD Models for now just use first one
-			models, err := GetAMDGpuModels()
-			if err == nil && len(models) > 0 {
-				si.GPU = &GpuData{Model: models[0]}
+			model := GetAMDGpuModel()
+			if len(model) > 0 {
+				si.GPU = &GpuData{Model: model}
 			}
 			return
 		} else {
@@ -204,29 +216,21 @@ func GetNVIDIAGpuModel() string {
 	return model
 }
 
-func GetAMDGpuModels() ([]string, error) {
-	var data map[string]map[string]interface{}
-	cmd := exec.Command("rocm-smi", "--showallinfo", "--json")
+func GetAMDGpuModel() string {
+	cmd := exec.Command("amd-smi", "static", "-g", strconv.Itoa(gpuIndex), "--asic", "--json")
 	jsonOutput, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("error executing rocm-smi: %v", err)
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process amd-smi")
+		return ""
 	}
 
-	err = json.Unmarshal(jsonOutput, &data)
+	var gpuInfo []AMDGPUInfo
+	err = json.Unmarshal(jsonOutput, &gpuInfo)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
+		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
+		return ""
 	}
-
-	var models []string
-	for key, value := range data {
-		if strings.HasPrefix(key, "card") {
-			if deviceName, ok := value["Device Name"].(string); ok {
-				models = append(models, deviceName)
-			}
-		}
-	}
-
-	return models, nil
+	return gpuInfo[0].Asic.MarketName
 }
 
 // GetNVIDIAUtilization will return NVIDIA gpu utilization
@@ -334,33 +338,6 @@ func (si *SystemInfo) GetBoardData() {
 	si.Motherboard = board
 }
 
-// getCpuUtilizationData will return cpu utilization data
-func getCpuUtilizationData() (idle, total uint64) {
-	contents, err := os.ReadFile("/proc/stat")
-	if err != nil {
-		return
-	}
-	lines := strings.Split(string(contents), "\n")
-	for _, line := range lines {
-		fields := strings.Fields(line)
-		if fields[0] == "cpu" {
-			numFields := len(fields)
-			for i := 1; i < numFields; i++ {
-				val, err := strconv.ParseUint(fields[i], 10, 64)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err, "line": i}).Error("Unable to parse cpu stats line")
-				}
-				total += val // tally up all the numbers to get total ticks
-				if i == 4 {  // idle is the 5th field in the cpu line
-					idle = val
-				}
-			}
-			return
-		}
-	}
-	return
-}
-
 // GetCpuUtilization will return CPU utilization
 func GetCpuUtilization() float64 {
 	file, err := os.Open("/proc/stat")
@@ -406,61 +383,43 @@ func GetCpuUtilization() float64 {
 	return 0
 }
 
-// getAMDUtilization fetches the GPU utilization using rocm-smi
-func getAMDUtilization() (float64, error) {
-	// Execute the rocm-smi command to get utilization
-	cmd := exec.Command("rocm-smi", "--showuse")
-
-	// Run the command and capture the output
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
+// getAMDUtilization fetches the GPU utilization using amd-smi
+func getAMDUtilization() float64 {
+	cmd := exec.Command("amd-smi", "metric", "-g", strconv.Itoa(gpuIndex), "-u", "--json")
+	jsonOutput, err := cmd.Output()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Failed to get AMD GPU utilization")
-		return 0, err
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process amd-smi")
+		return 0
 	}
 
-	// Parse the output to find GPU utilization
-	output := out.String()
-	utilization, err := parseAMDUtilization(output)
+	var result []map[string]interface{}
+	err = json.Unmarshal(jsonOutput, &result)
 	if err != nil {
-		return 0, err
+		fmt.Println(err)
+		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
+		return 0
 	}
 
-	return utilization, nil
-}
-
-func parseAMDUtilization(output string) (float64, error) {
-	// Example line: "GPU[0] : 35.0%"
-	// Find lines that contain the utilization information
-	re := regexp.MustCompile(`GPU\[(\d+)\]\s*:\s*GPU use \(%\):\s*(\d+)`)
-	matches := re.FindStringSubmatch(output)
-	if len(matches) < 3 {
-		return 0, fmt.Errorf("failed to parse GPU utilization from output")
+	if len(result) > 0 {
+		usage := result[0]["usage"].(map[string]interface{})
+		gfxActivity := usage["gfx_activity"].(map[string]interface{})
+		value := gfxActivity["value"].(float64) // JSON numbers are parsed as float64
+		return value
 	}
-
-	// Convert utilization to float
-	utilizationStr := strings.TrimSpace(matches[2])
-	utilization, err := strconv.ParseFloat(utilizationStr, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse utilization value: %v", err)
-	}
-
-	return utilization, nil
+	return 0
 }
 
 func GetGPUUtilization() int {
 	utilization := 0
-	if strings.Contains(strings.ToLower(info.GPU.Model), "nvidia") {
-		// NVIDIA
-		utilization = getNVIDIAUtilization()
-	} else {
-		// AMD
-		util, err := getAMDUtilization()
-		if err == nil {
+	if info.GPU != nil {
+		if strings.Contains(strings.ToLower(info.GPU.Model), "nvidia") {
+			// NVIDIA
+			utilization = getNVIDIAUtilization()
+		} else {
+			// AMD
+			util := getAMDUtilization()
 			utilization = int(util)
 		}
 	}
-
 	return utilization
 }

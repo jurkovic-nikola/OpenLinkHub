@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        {{ $rgb := .Rgb }}
+        {{ $profile := $device.DeviceProfile.Profile }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="zones" name="zones" value="6">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        {{ if eq .Device.Connected false }}
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-headphone.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
+                                    <span>Device is not connected!</span><br />
+                                </div>
+                            </div>
+                        </div>
+                        {{ else }}
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-headphone.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        {{ $device.BatteryLevel }} %
+                                    </button>
+                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select userProfile" name="userProfile">
+                                                {{ range $key, $profile := $device.UserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="Brightness" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
+                                        <li>
+                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
+                                        </li>
+                                    </ul>
+
+                                    <button title="RGB Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select headsetRgbProfile" name="headsetRgbProfile">
+                                                {{ range $key, $_ := $rgb }}
+                                                {{ if eq $key "stand" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "liquid-temperature" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mousepad" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "keyboard" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "circle" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "circleshift" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "spinner" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mouse" }}
+                                                {{ continue }}
+                                                {{ end }}
+                                                {{ if eq $key $device.DeviceProfile.RGBProfile }}
+                                                <option value="0;{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="0;{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="Sleep Timer" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-clock-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select headsetSleepModes" name="sleepModes">
+                                                {{ range $key, $sleepMode := $device.SleepModes }}
+                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
+                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="Disable LED When Mic is Active" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-mic svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select muteIndicator" name="muteIndicator">
+                                                {{ range $key, $value := $device.MuteIndicators }}
+                                                {{ if eq $device.DeviceProfile.DisableMicIndicator $key }}
+                                                <option value="{{ $key }}" selected>{{ $value }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $value }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
+                                {{ if eq "headset" $device.DeviceProfile.RGBProfile }}
+                                <div class="mouse">
+                                    <div class="row">
+                                        <div class="row" style="margin: 10px auto 0;">
+                                            {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                            <div class="col-md-3 col-sm-6">
+                                                <div class="card mb-4">
+                                                    <div style="margin-top: 10px;">
+                                                        <span style="margin-bottom: 10px;">{{ $zone.Name }}</span>
+                                                        <div>
+                                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{ end }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin: 0 auto;">
+                                    <div style="float: left;width: 530px;">
+                                        <button class="btn btn-secondary" id="saveZoneColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                            <span>Save Zone Colors</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/headset.js"></script>
+</body>
+</html>

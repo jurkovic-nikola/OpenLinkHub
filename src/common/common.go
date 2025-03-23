@@ -196,3 +196,16 @@ func ResizeImage(src image.Image, width, height int) image.Image {
 	draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
 	return dst
 }
+
+// MuteWithPulseAudio will mute / unmute mic via pulse audio
+func MuteWithPulseAudio() error {
+	cmd := exec.Command("pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle")
+	return cmd.Run()
+}
+
+// MuteWithALSA will mute / unmute mic via alsa
+func MuteWithALSA() error {
+	// Try muting with ALSA (assuming 'Capture' as the control name)
+	cmd := exec.Command("amixer", "set", "Capture", "toggle")
+	return cmd.Run()
+}

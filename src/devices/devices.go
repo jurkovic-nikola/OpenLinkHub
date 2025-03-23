@@ -58,6 +58,8 @@ import (
 	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
+	"OpenLinkHub/src/devices/virtuosomaxW"
+	"OpenLinkHub/src/devices/virtuosomaxdongle"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
@@ -127,6 +129,7 @@ const (
 	productTypeDarkstarW          = 227
 	productTypeVirtuosoXTW        = 300
 	productTypeVirtuosoXTWU       = 301
+	productTypeVirtuosoMAXW       = 302
 	productTypeST100              = 401
 	productTypeMM700              = 402
 	productTypeLT100              = 403
@@ -165,6 +168,7 @@ var (
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090}
 	pads                       = []uint16{7067}
 	headsets                   = []uint16{2658, 2660}
+	headsets2                  = []uint16{10754}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 )
 
@@ -1207,6 +1211,15 @@ func Init() {
 	}
 
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		logger.Log(
+			logger.Fields{
+				"productId": info.ProductID,
+				"interface": info.InterfaceNbr,
+				"serial":    info.SerialNbr,
+				"device":    info.ProductStr,
+			},
+		).Info("Processing device...")
+
 		match := 0
 		if slices.Contains(keyboards, info.ProductID) {
 			interfaceId = 1 // Keyboard
@@ -1218,6 +1231,8 @@ func Init() {
 			interfaceId = 1 // USB Dongle
 		} else if slices.Contains(headsets, info.ProductID) {
 			interfaceId = 3 // USB Headset
+		} else if slices.Contains(headsets2, info.ProductID) {
+			interfaceId = 4 // USB Headset
 		} else {
 			interfaceId = 0
 		}
@@ -1243,7 +1258,7 @@ func Init() {
 				return nil
 			}
 
-			if interfaceId == 1 || interfaceId == 3 {
+			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
 				products[info.Path] = Product{
 					ProductId: info.ProductID,
 					Path:      info.Path,
@@ -1708,6 +1723,47 @@ func Init() {
 						default:
 							logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 						}
+					}
+					dev.InitAvailableDevices()
+				}(vendorId, productId, key)
+			}
+		case 10754:
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := virtuosomaxdongle.Init(vendorId, productId, key)
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeVirtuosoMAXW,
+						Product:     "HEADSET DONGLE",
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-dongle.svg",
+						Instance:    dev,
+						Hidden:      true,
+					}
+
+					switch dev.Devices.ProductId {
+					case 10752:
+						{
+							d := virtuosomaxW.Init(
+								dev.Devices.VendorId,
+								productId,
+								dev.Devices.ProductId,
+								dev.GetDevice(),
+								dev.Devices.Endpoint,
+								dev.Devices.Serial,
+							)
+							devices[d.Serial] = &Device{
+								ProductType: productTypeVirtuosoMAXW,
+								Product:     "VIRTUOSO MAX",
+								Serial:      d.Serial,
+								Firmware:    d.Firmware,
+								Image:       "icon-headphone.svg",
+								Instance:    d,
+							}
+							dev.AddPairedDevice(dev.Devices.ProductId, d)
+						}
+					default:
+						logger.Log(logger.Fields{"productId": dev.Devices.ProductId}).Warn("Unsupported device detected")
 					}
 					dev.InitAvailableDevices()
 				}(vendorId, productId, key)

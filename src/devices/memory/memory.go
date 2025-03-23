@@ -459,25 +459,31 @@ func (d *Device) getDevices() int {
 				logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
 			}
 
+			shift := 0
 			if vendor == "CM" { // Corsair Memory
 				line := dimmInfo[2:3]
-				size, e := strconv.Atoi(dimmInfo[3:5])
+				size, e := strconv.Atoi(dimmInfo[3:6])
+				if e != nil {
+					size, e = strconv.Atoi(dimmInfo[3:5])
+					if e != nil {
+						continue
+					}
+				} else {
+					shift = 1
+				}
+				memoryType, e := strconv.Atoi(dimmInfo[7+shift : 8+shift])
 				if e != nil {
 					continue
 				}
-				memoryType, e := strconv.Atoi(dimmInfo[7:8])
+				amount, e := strconv.Atoi(dimmInfo[9+shift : 10+shift])
 				if e != nil {
 					continue
 				}
-				amount, e := strconv.Atoi(dimmInfo[9:10])
+				speed, e := strconv.Atoi(dimmInfo[11+shift : 15+shift])
 				if e != nil {
 					continue
 				}
-				speed, e := strconv.Atoi(dimmInfo[11:15])
-				if e != nil {
-					continue
-				}
-				latency, e := strconv.Atoi(dimmInfo[16:18])
+				latency, e := strconv.Atoi(dimmInfo[16+shift : 18+shift])
 				if e != nil {
 					continue
 				}

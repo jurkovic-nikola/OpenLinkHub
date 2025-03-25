@@ -10,11 +10,10 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Your configuration values
-2. Number of devices
-3. Content of `/opt/OpenLinkHub/stdout.log`
+**Device / program info**
+1. Content of `/opt/OpenLinkHub/config.json`
+2. Output of `lsusb` command
+3. Attach `/opt/OpenLinkHub/stdout.log` file.
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.

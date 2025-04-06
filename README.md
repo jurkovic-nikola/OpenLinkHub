@@ -2,7 +2,7 @@
 Open source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 
 ![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
-[![](https://dcbadge.limes.pink/api/server/https://discord.gg/WJNuUt9j?style=flat)](https://discord.gg/WJNuUt9j)
+[![](https://dcbadge.limes.pink/api/server/https://discord.gg/mPHcasZRPy?style=flat)](https://discord.gg/mPHcasZRPy)
 
 ![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 

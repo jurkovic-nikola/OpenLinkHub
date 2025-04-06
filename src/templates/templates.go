@@ -33,6 +33,7 @@ type Web struct {
 	Scheduler         *scheduler.Scheduler
 	Rgb               map[string]rgb.Profile
 	SystemInfo        interface{}
+	Stats             interface{}
 	CpuTemp           string
 	GpuTemp           string
 	Page              string

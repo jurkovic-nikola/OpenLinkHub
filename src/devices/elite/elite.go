@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
@@ -1343,10 +1344,20 @@ func (d *Device) getDeviceData() {
 
 			if temperature > 0 {
 				temp := math.Floor(temperature*100) / 100
-
 				d.Devices[deviceList[device].Index].Temperature = temp
 				d.Devices[deviceList[device].Index].TemperatureString = dashboard.GetDashboard().TemperatureToString(float32(temp))
 			}
+
+			rpmString := fmt.Sprintf("%v RPM", d.Devices[deviceList[device].Index].Rpm)
+
+			stats.UpdateAIOStats(
+				d.Serial,
+				d.Devices[deviceList[device].Index].Name,
+				d.Devices[deviceList[device].Index].TemperatureString,
+				rpmString,
+				d.Devices[deviceList[device].Index].Label,
+				deviceList[device].Index,
+			)
 		}
 	}
 }

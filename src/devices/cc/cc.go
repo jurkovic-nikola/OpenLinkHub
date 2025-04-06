@@ -14,6 +14,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
@@ -1468,33 +1469,57 @@ func (d *Device) updateDeviceSpeed() {
 					if temp == 0 {
 						temp = 50
 					}
-					for i := 0; i < len(profiles.Profiles); i++ {
-						profile := profiles.Profiles[i]
-						minimum := profile.Min + 0.1
-						if common.InBetween(temp, minimum, profile.Max) {
-							cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
-							if ok := tmp[device.ChannelId]; ok != cp {
-								tmp[device.ChannelId] = cp
 
-								// Validation
-								if profile.Mode < 0 || profile.Mode > 1 {
-									profile.Mode = 0
-								}
+					if profiles.Linear && profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+						tempMin := float64(profiles.Profiles[0].Min)
+						tempMax := 95.0
 
-								if profile.Pump < 50 {
-									profile.Pump = 50
-								}
+						if device.ContainsPump {
+							tempMax = float64(profiles.Profiles[0].Max)
+							if tempMax == 0 {
+								tempMax = 60
+							}
+						}
 
-								if profile.Pump > 100 {
-									profile.Pump = 100
-								}
+						value := common.LinearInterpolation(tempMin, tempMax, float64(temp)) * 100
+						if value < 50 {
+							value = 50
+						}
 
-								if device.ContainsPump {
-									channelSpeeds[device.ChannelId] = byte(profile.Pump)
-								} else {
-									channelSpeeds[device.ChannelId] = byte(profile.Fans)
+						output := common.RoundFloatToByte(value)
+						if channelSpeeds[device.ChannelId] != output {
+							channelSpeeds[device.ChannelId] = output
+							d.setSpeed(channelSpeeds, 0)
+						}
+					} else {
+						for i := 0; i < len(profiles.Profiles); i++ {
+							profile := profiles.Profiles[i]
+							minimum := profile.Min + 0.1
+							if common.InBetween(temp, minimum, profile.Max) {
+								cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
+								if ok := tmp[device.ChannelId]; ok != cp {
+									tmp[device.ChannelId] = cp
+
+									// Validation
+									if profile.Mode < 0 || profile.Mode > 1 {
+										profile.Mode = 0
+									}
+
+									if profile.Pump < 50 {
+										profile.Pump = 50
+									}
+
+									if profile.Pump > 100 {
+										profile.Pump = 100
+									}
+
+									if device.ContainsPump {
+										channelSpeeds[device.ChannelId] = byte(profile.Pump)
+									} else {
+										channelSpeeds[device.ChannelId] = byte(profile.Fans)
+									}
+									d.setSpeed(channelSpeeds, 0)
 								}
-								d.setSpeed(channelSpeeds, 0)
 							}
 						}
 					}
@@ -1656,6 +1681,22 @@ func (d *Device) getDeviceData() {
 					m++
 				}
 			}
+		}
+	}
+
+	// Update stats
+	for key, value := range d.Devices {
+		temperatureString := ""
+		rpmString := ""
+
+		if value.Rpm > 0 || value.Temperature > 0 {
+			if value.Temperature > 0 {
+				temperatureString = dashboard.GetDashboard().TemperatureToString(value.Temperature)
+			}
+			if value.Rpm > 0 {
+				rpmString = fmt.Sprintf("%v RPM", value.Rpm)
+			}
+			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key)
 		}
 	}
 }

@@ -48,6 +48,7 @@ type TemperatureProfileData struct {
 	Profiles  []TemperatureProfile `json:"profiles"`
 	Device    string               `json:"device"`
 	ChannelId int                  `json:"channelId"`
+	Linear    bool                 `json:"linear"`
 	Hidden    bool
 }
 
@@ -117,6 +118,15 @@ var (
 		Sensor: 0,
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 200, Mode: 0, Fans: 70, Pump: 70},
+		},
+		Hidden: false,
+	}
+
+	// Linear Liquid
+	profileLinearLiquid = TemperatureProfileData{
+		Sensor: 0,
+		Profiles: []TemperatureProfile{
+			{Id: 1, Min: 0, Max: 60, Mode: 0, Fans: 0, Pump: 0},
 		},
 		Hidden: false,
 	}
@@ -209,14 +219,20 @@ func Init() {
 }
 
 // AddTemperatureProfile will save new temperature profile
-func AddTemperatureProfile(profile, deviceId string, static, zeroRpm bool, sensor uint8, channelId int) bool {
+func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear bool, sensor uint8, channelId int) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	if _, ok := temperatures.Profiles[profile]; !ok {
 		pf := TemperatureProfileData{}
-		if static {
+		if static || linear {
 			pf = profileStatic
+
+			if linear {
+				pf = profileLinearLiquid
+				pf.Linear = linear
+				pf.Sensor = sensor
+			}
 			saveProfileToDisk(profile, pf)
 			return true
 		}
@@ -270,6 +286,7 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm bool, senso
 
 		pf.Sensor = sensor
 		pf.ZeroRpm = zeroRpm
+		pf.Linear = linear
 		saveProfileToDisk(profile, pf)
 		return true
 	} else {

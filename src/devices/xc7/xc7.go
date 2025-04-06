@@ -1283,7 +1283,7 @@ func (d *Device) setupLCDImage() {
 	}()
 }
 
-// transferToLcd will transfer data to LCD panel
+// transfer will transfer data to LCD panel
 func (d *Device) transfer(buffer []byte, transferType int) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()

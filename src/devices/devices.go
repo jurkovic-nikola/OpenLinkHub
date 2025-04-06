@@ -50,6 +50,7 @@ import (
 	"OpenLinkHub/src/devices/m75WU"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
+	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/psuhid"
@@ -85,6 +86,7 @@ const (
 	productTypeCPro               = 6
 	productTypeXC7                = 7
 	productTypeMemory             = 8
+	productTypeNexus              = 9
 	productTypeK65PM              = 101
 	productTypeK70Core            = 102
 	productTypeK55Core            = 103
@@ -910,6 +912,28 @@ func UpdateDeviceLcd(deviceId string, channelId int, mode uint8) uint8 {
 	return 0
 }
 
+// UpdateDeviceLcdProfile will update device LCD
+func UpdateDeviceLcdProfile(deviceId string, profile string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateDeviceLcdProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // ChangeDeviceLcd will change device LCD
 func ChangeDeviceLcd(deviceId string, channelId int, lcdSerial string) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -1681,7 +1705,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 2660:
+		case 2660: // Headset dongle
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := headsetdongle.Init(vendorId, productId, key)
@@ -1727,7 +1751,7 @@ func Init() {
 					dev.InitAvailableDevices()
 				}(vendorId, productId, key)
 			}
-		case 10754:
+		case 10754: // CORSAIR VIRTUOSO MAX WIRELESS
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := virtuosomaxdongle.Init(vendorId, productId, key)
@@ -2413,6 +2437,24 @@ func Init() {
 						Image:       "icon-headphone.svg",
 						Instance:    dev,
 					}
+				}(vendorId, productId, key)
+			}
+		case 7054: // CORSAIR iCUE NEXUS
+			{
+				go func(vendorId, productId uint16, serialId string) {
+					dev := nexus.Init(vendorId, productId, serialId)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeNexus,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
+						Instance:    dev,
+					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
 			}
 		case 0: // Memory

@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"bytes"
 	"context"
@@ -987,6 +988,21 @@ func (d *Device) getDeviceData() {
 			}
 		}
 		m++
+	}
+
+	// Update stats
+	for key, value := range d.Devices {
+		temperatureString := ""
+		rpmString := ""
+		if value.Rpm > 0 || value.Temperature > 0 {
+			if value.Temperature > 0 {
+				temperatureString = dashboard.GetDashboard().TemperatureToString(value.Temperature)
+			}
+			if value.Rpm > 0 {
+				rpmString = fmt.Sprintf("%v RPM", value.Rpm)
+			}
+			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key)
+		}
 	}
 }
 

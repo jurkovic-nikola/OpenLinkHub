@@ -1,0 +1,258 @@
+{
+  "profiles": {
+    "default": {
+      "name": "Default Data - Do not remove",
+      "background": "/database/nexus/background.jpg",
+      "fontPath": "/static/fonts/teko.ttf",
+      "textColor": {
+        "red": 255,
+        "green": 255,
+        "blue": 255
+      },
+      "buttons": {},
+      "keyboard": false
+    },
+    "cpu-info": {
+      "name": "CPU Statistics",
+      "background": "/database/nexus/background.jpg",
+      "fontPath": "/static/fonts/teko.ttf",
+      "textColor": {
+        "red": 255,
+        "green": 255,
+        "blue": 255
+      },
+      "buttons": {},
+      "keyboard": false
+    },
+    "gpu-info": {
+      "name": "GPU Statistics",
+      "background": "/database/nexus/background.jpg",
+      "fontPath": "/static/fonts/teko.ttf",
+      "textColor": {
+        "red": 255,
+        "green": 255,
+        "blue": 255
+      },
+      "buttons": {},
+      "keyboard": false
+    },
+    "time-info": {
+      "name": "Date & Time",
+      "background": "/database/nexus/background.jpg",
+      "fontPath": "/static/fonts/teko.ttf",
+      "textColor": {
+        "red": 255,
+        "green": 255,
+        "blue": 255
+      },
+      "buttons": {},
+      "keyboard": false
+    },
+    "media-control": {
+      "name": "Media Control",
+      "background": "/database/nexus/background.jpg",
+      "fontPath": "/static/fonts/teko.ttf",
+      "buttons": {
+        "0": {
+          "actionCode": 2,
+          "text": "VOLUME -",
+          "textSize": 20,
+          "width": 100,
+          "height": 40,
+          "background": {
+            "red": 24,
+            "green": 24,
+            "blue": 24
+          },
+          "border": 1,
+          "borderColor": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "showIcon": false,
+          "icon": "/database/nexus/icon-volume-down.png",
+          "iconWidth": 20,
+          "iconHeight": 20,
+          "iconOffsetX": 10,
+          "iconOffsetY": 10,
+          "offsetX": 6,
+          "offsetY": 4,
+          "touchPositionMin": 0,
+          "TouchPositionMax": 72,
+          "textColor": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "1": {
+          "actionCode": 1,
+          "text": "VOLUME +",
+          "textSize": 20,
+          "width": 100,
+          "height": 40,
+          "background": {
+            "red": 24,
+            "green": 24,
+            "blue": 24
+          },
+          "border": 1,
+          "borderColor": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "showIcon": false,
+          "icon": "/database/nexus/icon-volume-up.png",
+          "iconWidth": 20,
+          "iconHeight": 20,
+          "iconOffsetX": 10,
+          "iconOffsetY": 10,
+          "offsetX": 112,
+          "offsetY": 4,
+          "touchPositionMin": 82,
+          "TouchPositionMax": 175,
+          "textColor": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "2": {
+          "actionCode": 6,
+          "text": "PLAY",
+          "textSize": 20,
+          "width": 100,
+          "height": 40,
+          "background": {
+            "red": 24,
+            "green": 24,
+            "blue": 24
+          },
+          "border": 1,
+          "borderColor": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "showIcon": false,
+          "icon": "/database/nexus/icon-pause.png",
+          "iconWidth": 20,
+          "iconHeight": 15,
+          "iconOffsetX": 10,
+          "iconOffsetY": 12,
+          "offsetX": 217,
+          "offsetY": 4,
+          "touchPositionMin": 185,
+          "TouchPositionMax": 285,
+          "textColor": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "3": {
+          "actionCode": 4,
+          "text": "STOP",
+          "textSize": 20,
+          "width": 100,
+          "height": 40,
+          "background": {
+            "red": 24,
+            "green": 24,
+            "blue": 24
+          },
+          "border": 1,
+          "borderColor": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "showIcon": false,
+          "icon": "/database/nexus/icon-stop.png",
+          "iconWidth": 20,
+          "iconHeight": 20,
+          "iconOffsetX": 10,
+          "iconOffsetY": 10,
+          "offsetX": 322,
+          "offsetY": 4,
+          "touchPositionMin": 295,
+          "TouchPositionMax": 395,
+          "textColor": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "4": {
+          "actionCode": 5,
+          "text": "PREVIOUS",
+          "textSize": 20,
+          "width": 100,
+          "height": 40,
+          "background": {
+            "red": 24,
+            "green": 24,
+            "blue": 24
+          },
+          "border": 1,
+          "borderColor": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "showIcon": false,
+          "icon": "/database/nexus/icon-backward.png",
+          "iconWidth": 20,
+          "iconHeight": 15,
+          "iconOffsetX": 10,
+          "iconOffsetY": 12,
+          "offsetX": 427,
+          "offsetY": 4,
+          "touchPositionMin": 405,
+          "TouchPositionMax": 505,
+          "textColor": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "5": {
+          "actionCode": 7,
+          "text": "NEXT",
+          "textSize": 20,
+          "width": 100,
+          "height": 40,
+          "background": {
+            "red": 24,
+            "green": 24,
+            "blue": 24
+          },
+          "border": 1,
+          "borderColor": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "showIcon": false,
+          "icon": "/database/nexus/icon-forward.png",
+          "iconWidth": 20,
+          "iconHeight": 15,
+          "iconOffsetX": 10,
+          "iconOffsetY": 12,
+          "offsetX": 532,
+          "offsetY": 4,
+          "touchPositionMin": 515,
+          "TouchPositionMax": 640,
+          "textColor": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        }
+      },
+      "keyboard": true
+    }
+  }
+}

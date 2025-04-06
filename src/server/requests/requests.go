@@ -33,6 +33,7 @@ type Payload struct {
 	Sensor              uint8             `json:"sensor"`
 	HardwareLight       int               `json:"hardwareLight"`
 	ZeroRpm             bool              `json:"zeroRpm"`
+	Linear              bool              `json:"linear"`
 	HwmonDeviceId       string            `json:"hwmonDeviceId"`
 	Enabled             bool              `json:"enabled"`
 	DeviceType          int               `json:"deviceType"`
@@ -191,6 +192,16 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	static := req.Static
 	sensor := req.Sensor
 	zeroRpm := req.ZeroRpm
+	linear := req.Linear
+
+	if static && linear {
+		return &Payload{
+			Message: "Unable to validate your request. Choose either Static or Linear option",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
 	if len(profile) < 3 {
 		return &Payload{
 			Message: "Unable to validate your request. Profile name is less then 3 characters",
@@ -241,7 +252,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, sensor, channelId) {
+	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId) {
 		return &Payload{
 			Message: "Speed profile is successfully saved",
 			Code:    http.StatusOK,
@@ -444,6 +455,46 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change LCD mode. Either LCD is offline or you do not have LCD", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change lcd mode", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessLcdProfileChange will process POST request from a client for LCD mode change
+func ProcessLcdProfileChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.Profile) < 0 {
+		return &Payload{Message: "Invalid LCD mode", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDeviceLcdProfile(req.DeviceId, req.Profile)
+	switch status {
+	case 1:
+		return &Payload{Message: "LCD profile successfully changed", Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: "You are already using selected LCD profile", Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: "Unable to change lcd profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessLcdDeviceChange will process POST request from a client for LCD device change

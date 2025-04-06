@@ -401,7 +401,7 @@ func GetInputActions() map[uint8]InputAction {
 func InputControl(controlType uint8, serial string) {
 	// Get a device path
 	path := getDevicePathBySerial(serial)
-
+	
 	if len(path) < 1 {
 		logger.Log(logger.Fields{"path": path}).Error("No such input device")
 		return

@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/version"
@@ -32,6 +33,7 @@ func Start() {
 	temperatures.Init() // Temperatures
 	keyboards.Init()    // Keyboards
 	inputmanager.Init() // Input Manager
+	stats.Init()        // Statistics
 	devices.Init()      // Devices
 	monitor.Init()      // Monitor
 	server.Init()       // REST & WebUI

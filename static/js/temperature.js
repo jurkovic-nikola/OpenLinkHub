@@ -51,11 +51,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const staticMode = $('#staticCheckbox').is(':checked');
         const zeroRpmMode = $('#zeroRpmCheckbox').is(':checked');
+        const linear = $('#linearCheckbox').is(':checked');
 
         const pf = {};
         pf["profile"] = profile;
         pf["static"] = staticMode;
         pf["zeroRpm"] = zeroRpmMode;
+        pf["linear"] = linear;
         pf["sensor"] = parseInt(sensor);
         if (parseInt(sensor) === 3) {
             pf["hwmonDeviceId"] = $("#hwmonDeviceId").val();
@@ -99,19 +101,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     const data = response.data.profiles;
                     dt.clear();
-                    if (profile === 'Quiet' || profile === 'Normal' || profile === 'Performance') {
+                    if (profile === 'Quiet' || profile === 'Normal' || profile === 'Performance' || response.data.linear === true) {
                         // Those profiles are not editable
                         $.each(data, function(i, item) {
-                            dt.row.add([
-                                item.id,
-                                item.min,
-                                item.max,
-                                item.fans,
-                                item.pump
-                            ]).draw();
+                            if (response.data.linear === true) {
+                                dt.row.add([
+                                    item.id,
+                                    item.min,
+                                    item.max,
+                                    'n/a',
+                                    'n/a',
+                                ]).draw();
+                            } else {
+                                dt.row.add([
+                                    item.id,
+                                    item.min,
+                                    item.max,
+                                    item.fans,
+                                    item.pump
+                                ]).draw();
+                            }
                         });
-                        $("#deleteBtn").hide();
-                        $("#updateBtn").hide();
+
+                        if (response.data.linear === true) {
+                            $("#deleteBtn").show();
+                        } else {
+                            $("#deleteBtn").hide();
+                            $("#updateBtn").hide();
+                        }
                     } else {
                         $("#profile").val(profile);
                         $.each(data, function(i, item) {
@@ -202,6 +219,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $('#sensor').on('change', function () {
         const value = $(this).val();
+        if (value === "2") {
+            $("#linear-data").show();
+        } else {
+            $("#linear-data").hide();
+        }
         if (value === "3") {
             $("#storage-data").show();
             $("#temperature-probe-data").hide();

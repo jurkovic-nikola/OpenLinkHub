@@ -10,6 +10,7 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server/requests"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/templates"
@@ -299,6 +300,17 @@ func setDeviceLabel(w http.ResponseWriter, r *http.Request) {
 // setDeviceLcd handles device LCD changes
 func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLcdChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setDeviceLcdProfile handles device LCD changes
+func setDeviceLcdProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdProfileChange(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -736,6 +748,8 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Rgb = rgb.GetRGB().Profiles
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Stats = stats.GetAIOStats()
+
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	t := templates.GetTemplate()
@@ -978,6 +992,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeDeviceLcd)
 	r.Methods(http.MethodPost).Path("/api/lcd/rotation").
 		HandlerFunc(setDeviceLcdRotation)
+	r.Methods(http.MethodPost).Path("/api/lcd/profile").
+		HandlerFunc(setDeviceLcdProfile)
 	r.Methods(http.MethodPost).Path("/api/lcd/image").
 		HandlerFunc(setDeviceLcdImage)
 	r.Methods(http.MethodPut).Path("/api/userProfile").

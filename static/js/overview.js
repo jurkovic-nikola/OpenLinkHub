@@ -710,6 +710,35 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.lcdProfile').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const mode = $(this).val();
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["profile"] = mode;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/profile',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.lcdDevices').on('change', function () {
         const deviceId = $("#deviceId").val();
         const device = $(this).val().split(";");

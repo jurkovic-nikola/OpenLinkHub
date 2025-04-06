@@ -209,3 +209,24 @@ func MuteWithALSA() error {
 	cmd := exec.Command("amixer", "set", "Capture", "toggle")
 	return cmd.Run()
 }
+
+// LinearInterpolation interpolates a given temperature within a min-max range
+func LinearInterpolation(minTemp, maxTemp, givenTemp float64) float64 {
+	if givenTemp < minTemp {
+		return 0 // Below range
+	} else if givenTemp > maxTemp {
+		return 1 // Above range
+	}
+	return (givenTemp - minTemp) / (maxTemp - minTemp)
+}
+
+// RoundFloatToByte will round float and convert to byte
+func RoundFloatToByte(value float64) byte {
+	rounded := math.Round(value) // Round to nearest integer
+	if rounded < 0 {
+		return 0 // Prevent underflow
+	} else if rounded > 255 {
+		return 255 // Prevent overflow
+	}
+	return byte(rounded)
+}

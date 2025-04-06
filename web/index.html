@@ -19,6 +19,9 @@
                 {{ $productType := .ProductType }}
                 {{ if $dev }}
                 {{ $devices := $dev.Devices }}
+                {{ if eq $productType 9 }}
+                {{ continue }}
+                {{ end }}
                 <div class="row gy-4" style="margin-bottom: 20px;">
                     <div class="bg-dash-dark-2 py-4 box-info">
                         <div class="container-fluid">

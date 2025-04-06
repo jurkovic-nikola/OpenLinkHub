@@ -82,6 +82,10 @@
                                                     <input class="form-check-input" id="staticCheckbox" type="checkbox">
                                                     <label class="form-check-label" for="staticCheckbox">Static (no temperature ranges)</label>
                                                 </div>
+                                                <div class="form-check" id="linear-data" style="display: none;">
+                                                    <input class="form-check-input" id="linearCheckbox" type="checkbox">
+                                                    <label class="form-check-label" for="linearCheckbox">Linear (linear temperature / rpm interpolation)</label>
+                                                </div>
                                                 <div class="form-check">
                                                     <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox" disabled>
                                                     <label class="form-check-label" for="zeroRpmCheckbox">Zero RPM (Only for AIOs that support Zero RPM)</label>
@@ -131,9 +135,9 @@
                                                 {{ else if eq $value.Sensor 1 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: GPU</p>
                                                 {{ else if eq $value.Sensor 2 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Liquid Temperature</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Liquid</p>
                                                 {{ else if eq $value.Sensor 3 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Storage Temperature</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Storage</p>
                                                 <p class="text-uppercase text-sm fw-light mb-2">Device ID: {{ $value.Device }}</p>
                                                 {{ else if eq $value.Sensor 4 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: Temperature Probe</p>
@@ -141,11 +145,13 @@
                                                 <p class="text-uppercase text-sm fw-light mb-2">Sensor: CPU + GPU</p>
                                                 {{ end }}
 
+                                                <!--
                                                 {{ if $value.ZeroRpm }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Zero RPM: Enabled</p>
                                                 {{ else }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">Zero RPM: Disabled</p>
                                                 {{ end }}
+                                                -->
                                                 <div class="progress" style="height: 2px">
                                                     <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>

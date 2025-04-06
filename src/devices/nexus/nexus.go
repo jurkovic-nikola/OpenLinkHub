@@ -167,8 +167,14 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		lcdImageChan:    make(chan struct{}),
 		timer:           &time.Ticker{},
 		lcdTimer:        &time.Ticker{},
-		CPUModel:        systeminfo.GetInfo().CPU.Model,
-		GPUModel:        systeminfo.GetInfo().GPU.Model,
+	}
+
+	if systeminfo.GetInfo().CPU != nil {
+		d.CPUModel = systeminfo.GetInfo().CPU.Model
+	}
+
+	if systeminfo.GetInfo().GPU != nil {
+		d.GPUModel = systeminfo.GetInfo().GPU.Model
 	}
 
 	// Bootstrap
@@ -701,6 +707,10 @@ func (d *Device) UpdateDeviceLcdProfile(profileName string) uint8 {
 	}
 
 	if val, ok := d.LCDProfiles.Profiles[profileName]; ok {
+		if profileName == "gpu-info" && systeminfo.GetInfo().GPU == nil {
+			return 0
+		}
+		
 		d.DeviceProfile.LCDMode = profileName
 		d.DeviceProfile.DynamicMode = false
 		d.Keyboard = val.Keyboard

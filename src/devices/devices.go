@@ -53,6 +53,7 @@ import (
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/nightsabreWU"
+	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/scimitar"
 	"OpenLinkHub/src/devices/scimitarW"
@@ -69,6 +70,7 @@ import (
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
+	"OpenLinkHub/src/usb"
 	"github.com/sstallion/go-hid"
 	"os"
 	"reflect"
@@ -87,6 +89,7 @@ const (
 	productTypeXC7                = 7
 	productTypeMemory             = 8
 	productTypeNexus              = 9
+	productTypePlatinum           = 10
 	productTypeK65PM              = 101
 	productTypeK70Core            = 102
 	productTypeK55Core            = 103
@@ -172,6 +175,7 @@ var (
 	headsets                   = []uint16{2658, 2660}
 	headsets2                  = []uint16{10754}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
+	legacyDevices              = []uint16{3090, 3091, 3093}
 )
 
 // isUSBConnected will check if a USB device is connected
@@ -505,6 +509,7 @@ func UpdateDeviceMetrics() {
 			device.ProductType == productTypeCC ||
 			device.ProductType == productTypeElite ||
 			device.ProductType == productTypeCPro ||
+			device.ProductType == productTypePlatinum ||
 			device.ProductType == productTypeCCXT {
 			methodName := "UpdateDeviceMetrics"
 			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
@@ -1308,6 +1313,7 @@ func Init() {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
 
+	// Memory
 	if config.GetConfig().Memory {
 		sm, err := smbus.GetSmBus()
 		if err == nil {
@@ -1319,6 +1325,17 @@ func Init() {
 			}
 		} else {
 			logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
+		}
+	}
+
+	// Legacy devices
+	res := usb.Init(legacyDevices)
+	if res != 0 {
+		for _, device := range usb.GetDevices() {
+			products[device.SerialNbr] = Product{
+				ProductId: device.ProductID,
+				Path:      device.Path,
+			}
 		}
 	}
 
@@ -1384,6 +1401,27 @@ func Init() {
 					}
 					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
 				}(vendorId, productId, key)
+			}
+		case 3090, 3091, 3093:
+			// Corsair H150i Platinum
+			// Corsair H115i Platinum
+			// Corsair H100i Platinum
+			{
+				go func(vendorId, productId uint16, path string) {
+					dev := platinum.Init(vendorId, productId, path)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypePlatinum,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-device.svg",
+						Instance:    dev,
+					}
+					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
+				}(vendorId, productId, productPath)
 			}
 		case 3125, 3126, 3127, 3136, 3137, 3104, 3105, 3106, 3095, 3096, 3097:
 			// iCUE H100i ELITE RGB

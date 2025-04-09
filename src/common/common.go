@@ -230,3 +230,12 @@ func RoundFloatToByte(value float64) byte {
 	}
 	return byte(rounded)
 }
+
+// PidVidToUint16 will convert string based productId or vendorId to uint16 value
+func PidVidToUint16(value string) uint16 {
+	val, err := strconv.ParseUint(value, 16, 16)
+	if err != nil {
+		return 0
+	}
+	return uint16(val)
+}

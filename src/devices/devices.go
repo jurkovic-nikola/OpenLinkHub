@@ -1205,6 +1205,7 @@ func GetTemperatureProbes() interface{} {
 		if device.ProductType == productTypeLinkHub ||
 			device.ProductType == productTypeCC ||
 			device.ProductType == productTypeCCXT ||
+			device.ProductType == productTypeMemory ||
 			device.ProductType == productTypeCPro {
 			methodName := "GetTemperatureProbes"
 			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)

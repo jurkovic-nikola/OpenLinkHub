@@ -28,6 +28,14 @@ import (
 	"time"
 )
 
+type TemperatureProbe struct {
+	ChannelId int
+	Name      string
+	Label     string
+	Serial    string
+	Product   string
+}
+
 type Devices struct {
 	ChannelId          int     `json:"channelId"`
 	DeviceId           int     `json:"deviceId"`
@@ -64,29 +72,30 @@ type DeviceProfile struct {
 }
 
 type Device struct {
-	Debug            bool
-	Product          string                    `json:"product"`
-	Serial           string                    `json:"serial"`
-	AIO              bool                      `json:"aio"`
-	UserProfiles     map[string]*DeviceProfile `json:"userProfiles"`
-	Devices          map[int]*Devices          `json:"devices"`
-	DeviceProfile    *DeviceProfile
-	OriginalProfile  *DeviceProfile
-	activeRgb        *rgb.ActiveRGB
-	Template         string
-	HasLCD           bool
-	Brightness       map[int]string
-	GlobalBrightness float64
-	LEDChannels      int
-	CpuTemp          float32
-	GpuTemp          float32
-	dev              *smbus.Connection
-	Rgb              *rgb.RGB
-	Exit             bool
-	timer            *time.Ticker
-	mutex            sync.Mutex
-	autoRefreshChan  chan struct{}
-	enhancementKits  map[byte]bool
+	Debug             bool
+	Product           string                    `json:"product"`
+	Serial            string                    `json:"serial"`
+	AIO               bool                      `json:"aio"`
+	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
+	Devices           map[int]*Devices          `json:"devices"`
+	DeviceProfile     *DeviceProfile
+	TemperatureProbes *[]TemperatureProbe
+	OriginalProfile   *DeviceProfile
+	activeRgb         *rgb.ActiveRGB
+	Template          string
+	HasLCD            bool
+	Brightness        map[int]string
+	GlobalBrightness  float64
+	LEDChannels       int
+	CpuTemp           float32
+	GpuTemp           float32
+	dev               *smbus.Connection
+	Rgb               *rgb.RGB
+	Exit              bool
+	timer             *time.Ticker
+	mutex             sync.Mutex
+	autoRefreshChan   chan struct{}
+	enhancementKits   map[byte]bool
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -169,9 +178,10 @@ func Init(device, product string) *Device {
 		return nil // Nothing found
 	}
 
-	d.setAutoRefresh()    // Set auto device refresh
-	d.saveDeviceProfile() // Save profile
-	d.setDeviceColor()    // Device color
+	d.setAutoRefresh()      // Set auto device refresh
+	d.saveDeviceProfile()   // Save profile
+	d.setDeviceColor()      // Device color
+	d.getTemperatureProbe() // Devices with temperature value
 	return d
 }
 
@@ -300,6 +310,11 @@ func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
 // GetDeviceTemplate will return device template name
 func (d *Device) GetDeviceTemplate() string {
 	return d.Template
+}
+
+// GetTemperatureProbes will return a list of temperature probes
+func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
+	return d.TemperatureProbes
 }
 
 // getManufacturer will return device manufacturer
@@ -458,7 +473,7 @@ func (d *Device) getDevices() int {
 			if d.Debug {
 				logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
 			}
-
+			singleDigitSize := false
 			shift := 0
 			if vendor == "CM" { // Corsair Memory
 				line := dimmInfo[2:3]
@@ -466,10 +481,20 @@ func (d *Device) getDevices() int {
 				if e != nil {
 					size, e = strconv.Atoi(dimmInfo[3:5])
 					if e != nil {
-						continue
+						size, e = strconv.Atoi(dimmInfo[3:4])
+						if e != nil {
+							continue
+						} else {
+							// Single digit DIMMs
+							singleDigitSize = true
+						}
 					}
 				} else {
 					shift = 1
+				}
+
+				if singleDigitSize {
+					shift = -1
 				}
 				memoryType, e := strconv.Atoi(dimmInfo[7+shift : 8+shift])
 				if e != nil {
@@ -797,6 +822,30 @@ func (d *Device) getDeviceProfile() {
 			}
 		}
 	}
+}
+
+// getTemperatureProbe will return all devices with a temperature probe
+func (d *Device) getTemperatureProbe() {
+	var probes []TemperatureProbe
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].Temperature > 0 {
+			probe := TemperatureProbe{
+				ChannelId: d.Devices[k].ChannelId,
+				Name:      d.Devices[k].Name,
+				Label:     d.Devices[k].Label,
+				Serial:    d.Serial,
+				Product:   d.Product,
+			}
+			probes = append(probes, probe)
+		}
+	}
+	d.TemperatureProbes = &probes
 }
 
 // isRgbStatic will return true or false if all devices are set to static RGB mode
@@ -1209,6 +1258,24 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	return 1
 }
 
+// HasTemperatures will return true if DIMM has temperature value
+func (d *Device) HasTemperatures() bool {
+	for _, device := range d.Devices {
+		if device.Temperature > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// GetTemperature will return temperature for given channel
+func (d *Device) GetTemperature(channelId int) float32 {
+	if _, ok := d.Devices[channelId]; !ok {
+		return 0
+	}
+	return d.Devices[channelId].Temperature
+}
+
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 	d.mutex.Lock()
@@ -1309,6 +1376,9 @@ func (d *Device) setTemperatures() {
 				temperatureString := dashboard.GetDashboard().TemperatureToString(float32(temperature))
 				d.Devices[device.ChannelId].Temperature = float32(temperature)
 				d.Devices[device.ChannelId].TemperatureString = temperatureString
+
+				// Update temperature data
+				temperatures.SetMemoryTemperature(device.ChannelId, float32(temperature))
 			}
 		}
 	}

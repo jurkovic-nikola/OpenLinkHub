@@ -198,6 +198,7 @@ var (
 	portProtectionMaximumStage3 = 442
 	criticalAioCoolantTemp      = 57.0
 	zeroRpmLimit                = 40
+	i2cPrefix                   = "i2c"
 	supportedDevices            = []SupportedDevice{
 		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan", TemperatureProbe: true, HasSpeed: true},
 		{DeviceId: 2, Model: 0, Name: "iCUE LINK LX RGB", LedChannels: 18, ContainsPump: false, Desc: "Fan", HasSpeed: true},
@@ -1223,12 +1224,18 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	}
 
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
-		if profiles.Device != d.Serial {
-			return 3
-		}
+		if strings.HasPrefix(profiles.Device, i2cPrefix) {
+			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
+				return 5
+			}
+		} else {
+			if profiles.Device != d.Serial {
+				return 3
+			}
 
-		if _, ok := d.Devices[profiles.ChannelId]; !ok {
-			return 4
+			if _, ok := d.Devices[profiles.ChannelId]; !ok {
+				return 4
+			}
 		}
 	}
 
@@ -1501,9 +1508,14 @@ func (d *Device) updateDeviceSpeed() {
 						}
 					case temperatures.SensorTypeTemperatureProbe:
 						{
-							if d.Devices[profiles.ChannelId].IsTemperatureProbe {
-								temp = d.Devices[profiles.ChannelId].Temperature
+							if strings.HasPrefix(profiles.Device, i2cPrefix) {
+								temp = temperatures.GetMemoryTemperature(profiles.ChannelId)
+							} else {
+								if d.Devices[profiles.ChannelId].IsTemperatureProbe {
+									temp = d.Devices[profiles.ChannelId].Temperature
+								}
 							}
+
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 							}

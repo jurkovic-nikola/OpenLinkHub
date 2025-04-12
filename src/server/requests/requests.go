@@ -218,7 +218,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 5 || sensor < 0 {
+	if sensor > 6 || sensor < 0 {
 		return &Payload{
 			Message: "Unable to validate your request. Invalid sensor value",
 			Code:    http.StatusOK,
@@ -231,7 +231,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		deviceId = req.HwmonDeviceId
 	}
 
-	if sensor == 4 {
+	if sensor == 4 || sensor == 6 {
 		deviceId = req.DeviceId
 		channelId = req.ChannelId
 
@@ -325,6 +325,8 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 		return &Payload{Message: "Profile and device mismatch. Please try again", Code: http.StatusOK, Status: 0}
 	case 4:
 		return &Payload{Message: "Non-existing device specified in the profile. Please re-create profile", Code: http.StatusOK, Status: 0}
+	case 5:
+		return &Payload{Message: "No temperature data on selected memory module", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to apply speed profile", Code: http.StatusOK, Status: 0}
 }

@@ -59,11 +59,17 @@ type StorageTemperatures struct {
 	TemperatureString string
 }
 
+type MemoryTemperatures struct {
+	Temperature float32
+}
+
 var (
+	i2cPrefix         = "i2c"
 	temperatureOffset = 0
 	pwd               = ""
 	location          = ""
 	profiles          = map[string]TemperatureProfileData{}
+	memoryTemperature = map[int]MemoryTemperatures{}
 	mutex             sync.Mutex
 	temperatures      *Temperatures
 	cpuPackages       = []string{"k10temp", "zenpower", "coretemp"}
@@ -216,6 +222,22 @@ func Init() {
 	if config.GetConfig().TemperatureOffset != 0 {
 		temperatureOffset = config.GetConfig().TemperatureOffset
 	}
+	memoryTemperature = make(map[int]MemoryTemperatures)
+}
+
+// SetMemoryTemperature will update memory temperature
+func SetMemoryTemperature(channelId int, temperature float32) {
+	memoryTemperature[channelId] = MemoryTemperatures{
+		Temperature: temperature,
+	}
+}
+
+// GetMemoryTemperature will return memory temperature
+func GetMemoryTemperature(channelId int) float32 {
+	if val, ok := memoryTemperature[channelId]; ok {
+		return val.Temperature
+	}
+	return 0
 }
 
 // AddTemperatureProfile will save new temperature profile
@@ -269,6 +291,9 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 		case SensorTypeTemperatureProbe:
 			{
 				pf = profileProbeTemperature
+				if strings.HasPrefix(deviceId, i2cPrefix) {
+					pf = profileNormal
+				}
 			}
 		case SensorTypeCpuGpu:
 			{

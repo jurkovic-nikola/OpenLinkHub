@@ -67,6 +67,7 @@ var (
 	temperaturePullingInterval = 3000
 	ledStartIndex              = 10
 	maxBufferSizePerRequest    = 381
+	i2cPrefix                  = "i2c"
 	externalLedDevices         = []ExternalLedDevice{
 		{
 			Index:   0,
@@ -1062,12 +1063,18 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	}
 
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
-		if profiles.Device != d.Serial {
-			return 3
-		}
+		if strings.HasPrefix(profiles.Device, i2cPrefix) {
+			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
+				return 5
+			}
+		} else {
+			if profiles.Device != d.Serial {
+				return 3
+			}
 
-		if _, ok := d.Devices[profiles.ChannelId]; !ok {
-			return 4
+			if _, ok := d.Devices[profiles.ChannelId]; !ok {
+				return 4
+			}
 		}
 	}
 
@@ -1903,9 +1910,14 @@ func (d *Device) updateDeviceSpeed() {
 						}
 					case temperatures.SensorTypeTemperatureProbe:
 						{
-							if d.Devices[profiles.ChannelId].IsTemperatureProbe {
-								temp = d.Devices[profiles.ChannelId].Temperature
+							if strings.HasPrefix(profiles.Device, i2cPrefix) {
+								temp = temperatures.GetMemoryTemperature(profiles.ChannelId)
+							} else {
+								if d.Devices[profiles.ChannelId].IsTemperatureProbe {
+									temp = d.Devices[profiles.ChannelId].Temperature
+								}
 							}
+
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 							}

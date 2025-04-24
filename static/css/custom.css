@@ -52,6 +52,14 @@ nav#sidebar {
     box-sizing: border-box;         /* Opera/IE 8+ */
 }
 
+.macroList:hover {
+    outline:1px solid #37cfdc;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
 .rgbList:hover {
     outline:1px solid #37cfdc;
     cursor: pointer;
@@ -120,6 +128,27 @@ nav#sidebar {
 
 footer {
     border-top: 1px solid #454545;
+}
+
+.footer-build-info {
+    width: auto;
+    vertical-align: middle;
+    padding-left:10px;
+    font-weight: normal;
+}
+
+.footer-images {
+    width: auto;
+    min-width: 80px;
+}
+
+.footer-link-color {
+    color: #a1a1a1;
+}
+
+.footer-link-color-10px {
+    color: #a1a1a1;
+    margin-left: 10px;
 }
 
 .card {
@@ -763,4 +792,21 @@ footer {
 .keyboard-key.wide8 {
     grid-column: span 8;
     width: auto;
+}
+
+input[type="color"] {
+    padding: 0;
+    margin: 0;
+    border: 1px solid #ffffff;
+    outline: none;
+    -webkit-appearance: none; /* for Chrome/Safari */
+    appearance: none;         /* modern standard */
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
 }

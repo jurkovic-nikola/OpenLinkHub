@@ -68,6 +68,7 @@ var (
 	ledStartIndex              = 10
 	maxBufferSizePerRequest    = 381
 	i2cPrefix                  = "i2c"
+	rgbProfileUpgrade          = []string{"custom"}
 	externalLedDevices         = []ExternalLedDevice{
 		{
 			Index:   0,
@@ -388,6 +389,40 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -852,7 +887,6 @@ func (d *Device) resetLEDPorts() {
 	buf = append(buf, 0x07)
 
 	// External-LED ports
-
 	// External hub is enabled
 	if d.DeviceProfile.ExternalHubDeviceType > 0 && d.DeviceProfile.ExternalHubDeviceAmount > 0 {
 		if d.DeviceProfile.ExternalHubDeviceType == 1 {

@@ -1,0 +1,44 @@
+{
+    "id": 100,
+    "name": "Arc",
+    "sensor": 0,
+    "thickness": 50,
+    "margin": 20,
+    "maxValue": 100,
+    "gapRadians": 0.5,
+    "background": {
+        "red": 24,
+        "green": 24,
+        "blue": 24,
+        "brightness": 0,
+        "Hex": "#181818"
+    },
+    "borderColor": {
+        "red": 64,
+        "green": 64,
+        "blue": 64,
+        "brightness": 0,
+        "Hex": "#404040"
+    },
+    "startColor": {
+        "red": 0,
+        "green": 128,
+        "blue": 255,
+        "brightness": 0,
+        "Hex": "#0080ff"
+    },
+    "endColor": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0,
+        "Hex": "#00ffff"
+    },
+    "textColor": {
+        "red": 140,
+        "green": 220,
+        "blue": 255,
+        "brightness": 0,
+        "Hex": "#8cdcff"
+    }
+}

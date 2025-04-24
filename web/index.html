@@ -228,17 +228,7 @@
                 </div>
             </div>
         </section>
-        <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
-            <div class="container-fluid fa-pull-left" style="padding-left:15px;">
-                <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }} / {{ .BuildInfo.BuildVersion }}</p><br />
-                <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
-            </div>
-
-            <div class="container-fluid fa-pull-right">
-                <p class="mb-0 text-dash-gray fa-pull-right">{{ .SystemInfo.CPU.Model }} ({{ .SystemInfo.CPU.Cores }}C - {{ .SystemInfo.CPU.Threads }}T)</p><br />
-                <p class="mb-0 text-dash-gray fa-pull-right">{{ .SystemInfo.Motherboard.Model }} ({{ .SystemInfo.Motherboard.BIOS }} - {{ .SystemInfo.Motherboard.BIOSDate }})</p>
-            </div>
-        </footer>
+        {{ template "footer" . }}
     </div>
 </div>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

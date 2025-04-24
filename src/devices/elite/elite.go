@@ -209,6 +209,7 @@ var (
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
 	manualSpeedModes           = map[int]*SpeedMode{}
+	rgbProfileUpgrade          = []string{"custom"}
 	supportedDevices           = []SupportedDevice{
 		{ProductId: 3095, Product: "H115i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
 		{ProductId: 3096, Product: "H100i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
@@ -421,6 +422,40 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 

@@ -76,6 +76,7 @@ var (
 	lcdBufferSize              = 1024
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 	i2cPrefix                  = "i2c"
+	rgbProfileUpgrade          = []string{"custom"}
 	aioList                    = []AIOList{
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 240},
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 2, RadiatorSize: 240},
@@ -302,16 +303,18 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		VendorId:          vendorId,
 		ExternalLedDevice: externalLedDevices,
 		LCDModes: map[int]string{
-			0:  "Liquid Temperature",
-			1:  "Pump Speed",
-			2:  "CPU Temperature",
-			3:  "GPU Temperature",
-			4:  "Combined",
-			6:  "CPU / GPU Temp",
-			7:  "CPU / GPU Load",
-			8:  "CPU / GPU Load/Temp",
-			9:  "Time",
-			10: "Image / GIF",
+			0:   "Liquid Temperature",
+			1:   "Pump Speed",
+			2:   "CPU Temperature",
+			3:   "GPU Temperature",
+			4:   "Combined",
+			6:   "CPU / GPU Temp",
+			7:   "CPU / GPU Load",
+			8:   "CPU / GPU Load/Temp",
+			9:   "Time",
+			10:  "Image / GIF",
+			100: "Arc",
+			101: "Double Arc",
 		},
 		LCDRotations: map[int]string{
 			0: "default",
@@ -517,6 +520,40 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -1446,7 +1483,6 @@ func (d *Device) updateDeviceSpeed() {
 									temp = d.Devices[profiles.ChannelId].Temperature
 								}
 							}
-							
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId}).Warn("Unable to get probe temperature.")
 							}
@@ -2710,6 +2746,52 @@ func (d *Device) setupLCD(reload bool) {
 							0,
 						)
 						d.transferToLcd(buffer)
+					}
+				case lcd.DisplayArc:
+					{
+						val := 0
+						arcType := 0
+						sensor := 0
+						switch lcd.GetArc().Sensor {
+						case 0: // CPU temperature
+							val = int(temperatures.GetCpuTemperature())
+							break
+						case 1: // GPU temperature
+							val = int(temperatures.GetGpuTemperature())
+							arcType = 1
+							break
+						case 2: // Liquid temperature
+							val = int(d.getLiquidTemperature())
+							arcType = 2
+							sensor = 2
+							break
+						case 3: // CPU utilization
+							val = int(systeminfo.GetCpuUtilization())
+							sensor = 3
+							break
+						case 4: // GPU utilization
+							val = systeminfo.GetGPUUtilization()
+							sensor = 4
+						}
+						image := lcd.GenerateArcScreenImage(arcType, sensor, val)
+						if image == nil {
+							break // Fail
+						}
+						d.transferToLcd(image)
+					}
+				case lcd.DisplayDoubleArc:
+					{
+						values := []int{
+							int(temperatures.GetCpuTemperature()),
+							int(temperatures.GetGpuTemperature()),
+							int(d.getLiquidTemperature()),
+							int(systeminfo.GetCpuUtilization()),
+							systeminfo.GetGPUUtilization(),
+						}
+						image := lcd.GenerateDoubleArcScreenImage(values)
+						if image != nil {
+							d.transferToLcd(image)
+						}
 					}
 				}
 			case <-d.lcdRefreshChan:

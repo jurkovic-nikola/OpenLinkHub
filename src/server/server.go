@@ -7,6 +7,7 @@ import (
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server/requests"
@@ -20,6 +21,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"strconv"
 	"sync"
 )
 
@@ -132,7 +134,7 @@ func getDeviceMetrics(w http.ResponseWriter, r *http.Request) {
 	promhttp.Handler().ServeHTTP(w, r)
 }
 
-// getDevices returns response on /devices
+// getDevice returns response on /devices
 func getDevice(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceOd, valid := vars["deviceOd"]
@@ -148,6 +150,89 @@ func getDevice(w http.ResponseWriter, r *http.Request) {
 			Device: devices.GetDevice(deviceOd),
 		}
 		resp.Send(w)
+	}
+}
+
+// getDeviceLed returns response on /led
+func getDeviceLed(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deviceOd, valid := vars["deviceOd"]
+	if !valid {
+		resp := &Response{
+			Code:   http.StatusOK,
+			Status: 1,
+			Data:   devices.GetDevicesLedData(),
+		}
+		resp.Send(w)
+	} else {
+		resp := &Response{
+			Code:   http.StatusOK,
+			Status: 1,
+			Data:   devices.GetDeviceLedData(deviceOd),
+		}
+		resp.Send(w)
+	}
+}
+
+// getMacro returns response on /macro
+func getMacro(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	macroId, valid := vars["macroId"]
+	if !valid {
+		resp := &Response{
+			Code:   http.StatusOK,
+			Status: 1,
+			Data:   macro.GetProfiles(),
+		}
+		resp.Send(w)
+	} else {
+		val, err := strconv.Atoi(macroId)
+		if err != nil {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: "Unable to parse macroId",
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   macro.GetProfile(val),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
+// getKeyName returns response on /api/macro/keyInfo/
+func getKeyName(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	keyIndex, valid := vars["keyIndex"]
+	if !valid {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Unable to parse keyIndex",
+		}
+		resp.Send(w)
+	} else {
+		val, err := strconv.ParseUint(keyIndex, 10, 8) // base 10, 8-bit size
+		if err != nil {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: "Unable to parse macroId",
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   inputmanager.GetKeyName(uint8(val)),
+			}
+			resp.Send(w)
+		}
 	}
 }
 
@@ -352,6 +437,17 @@ func setDeviceLcdImage(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// updateLcdProfile handles update of LCD profile
+func updateLcdProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdProfileUpdate(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // saveUserProfile handles saving custom user profiles
 func saveUserProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSaveUserProfile(r)
@@ -485,7 +581,7 @@ func setExternalHubDeviceAmount(w http.ResponseWriter, r *http.Request) {
 }
 
 // getDashboardSettings will get dashboard settings
-func getDashboardSettings(w http.ResponseWriter, r *http.Request) {
+func getDashboardSettings(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:      http.StatusOK,
 		Status:    1,
@@ -714,6 +810,50 @@ func saveHeadsetZoneColors(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// deleteMacroValue handles deletion of macro profile value
+func deleteMacroValue(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteMacroValue(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// deleteMacroProfile handles deletion of macro profile
+func deleteMacroProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteMacroProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// newMacroProfile handles creation of new macro profile
+func newMacroProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessNewMacroProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// newMacroProfileValue handles creation of new macro profile value
+func newMacroProfileValue(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessNewMacroProfileValue(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -749,6 +889,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
 	web.Stats = stats.GetAIOStats()
+	web.Macros = macro.GetProfiles()
 
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
@@ -928,6 +1069,63 @@ func uiDocumentationOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// uiMacrosOverview handles overview of macro profiles
+func uiMacrosOverview(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.TemperatureProbes = devices.GetTemperatureProbes()
+	web.Macros = macro.GetProfiles()
+	web.InputActions = inputmanager.GetInputActions()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "macros"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "macros.html", web)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		resp.Send(w)
+	}
+}
+
+// uiLcdOverview handles overview of LCD profiles
+func uiLcdOverview(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.TemperatureProbes = devices.GetTemperatureProbes()
+	web.LCDProfiles = lcd.GetCustomLcdProfiles()
+	web.LCDSensors = lcd.GetLcdSensors()
+	web.InputActions = inputmanager.GetInputActions()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "lcd"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "lcd.html", web)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		resp.Send(w)
+	}
+}
+
 // setRoutes will set up all routes
 func setRoutes() *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
@@ -996,6 +1194,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(setDeviceLcdProfile)
 	r.Methods(http.MethodPost).Path("/api/lcd/image").
 		HandlerFunc(setDeviceLcdImage)
+	r.Methods(http.MethodPut).Path("/api/lcd/modes").
+		HandlerFunc(updateLcdProfile)
 	r.Methods(http.MethodPut).Path("/api/userProfile").
 		HandlerFunc(saveUserProfile)
 	r.Methods(http.MethodPost).Path("/api/userProfile").
@@ -1058,6 +1258,24 @@ func setRoutes() *mux.Router {
 		HandlerFunc(changeSleepMode)
 	r.Methods(http.MethodPost).Path("/api/headset/muteIndicator").
 		HandlerFunc(changeMuteIndicator)
+	r.Methods(http.MethodGet).Path("/api/led/{deviceOd}").
+		HandlerFunc(getDeviceLed)
+	r.Methods(http.MethodGet).Path("/api/led/").
+		HandlerFunc(getDeviceLed)
+	r.Methods(http.MethodGet).Path("/api/macro/{macroId}").
+		HandlerFunc(getMacro)
+	r.Methods(http.MethodGet).Path("/api/macro/").
+		HandlerFunc(getMacro)
+	r.Methods(http.MethodGet).Path("/api/macro/keyInfo/{keyIndex}").
+		HandlerFunc(getKeyName)
+	r.Methods(http.MethodDelete).Path("/api/macro/value").
+		HandlerFunc(deleteMacroValue)
+	r.Methods(http.MethodDelete).Path("/api/macro/").
+		HandlerFunc(deleteMacroProfile)
+	r.Methods(http.MethodPut).Path("/api/macro/").
+		HandlerFunc(newMacroProfile)
+	r.Methods(http.MethodPost).Path("/api/macro/").
+		HandlerFunc(newMacroProfileValue)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {
@@ -1081,6 +1299,10 @@ func setRoutes() *mux.Router {
 			HandlerFunc(uiSchedulerOverview)
 		r.Methods(http.MethodGet).Path("/rgb").
 			HandlerFunc(uiRgbEditor)
+		r.Methods(http.MethodGet).Path("/macros").
+			HandlerFunc(uiMacrosOverview)
+		r.Methods(http.MethodGet).Path("/lcd").
+			HandlerFunc(uiLcdOverview)
 	}
 	return r
 }

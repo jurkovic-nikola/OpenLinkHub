@@ -5,7 +5,9 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/temperatures"
@@ -30,6 +32,10 @@ type Web struct {
 	TemperatureProbes interface{}
 	RGBProfiles       map[string]interface{}
 	Temperatures      map[string]temperatures.TemperatureProfileData
+	Macros            map[int]macro.Macro
+	LCDProfiles       map[uint8]interface{}
+	LCDSensors        map[uint8]string
+	InputActions      map[uint8]inputmanager.InputAction
 	Scheduler         *scheduler.Scheduler
 	Rgb               map[string]rgb.Profile
 	SystemInfo        interface{}

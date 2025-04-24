@@ -25,6 +25,7 @@ type KeyAssignment struct {
 	ActionCommand uint8  `json:"actionCommand"`
 	ActionHold    bool   `json:"actionHold"`
 	ButtonIndex   int    `json:"buttonIndex"`
+	IsMacro       bool   `json:"isMacro"`
 }
 
 type InputAction struct {
@@ -261,7 +262,7 @@ type inputEvent struct {
 
 // buildInputActions will fill inputActions map with InputAction data
 func buildInputActions() {
-	inputActions = make(map[uint8]InputAction, 0)
+	inputActions = make(map[uint8]InputAction)
 
 	// Placeholder
 	inputActions[None] = InputAction{Name: "None"}
@@ -371,7 +372,7 @@ func Init() {
 
 // GetMediaKeys will return a map of InputAction for Media keys
 func GetMediaKeys() map[uint8]InputAction {
-	keys := make(map[uint8]InputAction, 0)
+	keys := make(map[uint8]InputAction)
 	for key, value := range inputActions {
 		if value.Media {
 			keys[key] = value
@@ -382,7 +383,7 @@ func GetMediaKeys() map[uint8]InputAction {
 
 // GetInputKeys will return a map of InputAction for non-media keys
 func GetInputKeys() map[uint8]InputAction {
-	keys := make(map[uint8]InputAction, 0)
+	keys := make(map[uint8]InputAction)
 	for key, value := range inputActions {
 		if value.Media {
 			continue
@@ -390,6 +391,13 @@ func GetInputKeys() map[uint8]InputAction {
 		keys[key] = value
 	}
 	return keys
+}
+
+func GetKeyName(keyIndex uint8) string {
+	if key, ok := inputActions[keyIndex]; ok {
+		return key.Name
+	}
+	return ""
 }
 
 // GetInputActions will return a map of InputAction
@@ -401,7 +409,7 @@ func GetInputActions() map[uint8]InputAction {
 func InputControl(controlType uint8, serial string) {
 	// Get a device path
 	path := getDevicePathBySerial(serial)
-	
+
 	if len(path) < 1 {
 		logger.Log(logger.Fields{"path": path}).Error("No such input device")
 		return
@@ -570,7 +578,7 @@ func CreateVirtualKeyboard(vendorId, productId uint16) error {
 	}
 
 	// Ensure we correctly write the struct before creating the device
-	if _, e := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); err != nil {
+	if _, e := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); e != nil {
 		logger.Log(logger.Fields{"error": e}).Error("Failed to write virtual keyboard data struct")
 		return e
 	}

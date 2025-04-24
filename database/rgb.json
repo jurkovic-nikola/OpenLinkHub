@@ -6,6 +6,7 @@
     "brightness": 1
   },
   "profiles": {
+    "custom": {},
     "keyboard": {},
     "stand": {},
     "mousepad": {},

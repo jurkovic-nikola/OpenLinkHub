@@ -28,6 +28,7 @@ type Configuration struct {
 	EnhancementKits   []byte    `json:"enhancementKits"`
 	TemperatureOffset int       `json:"temperatureOffset"`
 	AMDGpuIndex       int       `json:"amdGpuIndex"`
+	AMDSmiPath        string    `json:"amdsmiPath"`
 }
 
 var (
@@ -42,6 +43,7 @@ var (
 		"enhancementKits":   make([]byte, 0),
 		"temperatureOffset": 0,
 		"amdGpuIndex":       0,
+		"amdsmiPath":        "",
 	}
 )
 
@@ -95,6 +97,7 @@ func upgradeFile(cfg string) {
 			EnhancementKits:   make([]byte, 0),
 			TemperatureOffset: 0,
 			AMDGpuIndex:       0,
+			AMDSmiPath:        "",
 		}
 		saveConfigSettings(value)
 	} else {

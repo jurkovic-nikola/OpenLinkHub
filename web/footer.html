@@ -1,8 +1,24 @@
 {{ define "footer" }}
 <footer class="position-absolute bottom-0 bg-dash-dark-2 text-white text-center py-3 w-100 text-xs" id="footer">
-    <div class="container-fluid fa-pull-left" style="padding-left:15px;">
-        <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }} / {{ .BuildInfo.BuildVersion }}</p><br />
-        <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
+    <div class="container-fluid fa-pull-left" style="padding-left:10px;">
+        <table style="width: auto;">
+            <tbody>
+            <tr>
+                <th class="footer-images">
+                    <a class="footer-link-color" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
+                        <img src="/static/img/icons/icon-github.svg" width="30" height="30" alt="GitHub" />
+                    </a>
+                    <a class="footer-link-color-10px" href="https://github.com/jurkovic-nikola/OpenLinkHub/tree/main/api" target="_blank">
+                        <img src="/static/img/icons/icon-api.svg" width="30" height="30" alt="API" />
+                    </a>
+                </th>
+                <th class="footer-build-info">
+                    <p class="mb-0 text-dash-gray fa-pull-left">Build: {{ .BuildInfo.Revision }} / {{ .BuildInfo.BuildVersion }}</p><br />
+                    <p class="mb-0 text-dash-gray fa-pull-left">{{ .BuildInfo.Time }}</p>
+                </th>
+            </tr>
+            </tbody>
+        </table>
     </div>
 </footer>
 {{ end }}

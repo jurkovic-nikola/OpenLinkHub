@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
@@ -127,6 +128,7 @@ type Device struct {
 	OriginalProfile   *DeviceProfile
 	TemperatureProbes *[]TemperatureProbe
 	activeRgb         *rgb.ActiveRGB
+	ledProfile        *led.Device
 	Template          string
 	HasLCD            bool
 	VendorId          uint16
@@ -199,6 +201,7 @@ var (
 	criticalAioCoolantTemp      = 57.0
 	zeroRpmLimit                = 40
 	i2cPrefix                   = "i2c"
+	rgbProfileUpgrade           = []string{"custom"}
 	supportedDevices            = []SupportedDevice{
 		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan", TemperatureProbe: true, HasSpeed: true},
 		{DeviceId: 2, Model: 0, Name: "iCUE LINK LX RGB", LedChannels: 18, ContainsPump: false, Desc: "Fan", HasSpeed: true},
@@ -247,16 +250,18 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		VendorId:  vendorId,
 		ProductId: productId,
 		LCDModes: map[int]string{
-			0:  "Liquid Temperature",
-			1:  "Pump Speed",
-			2:  "CPU Temperature",
-			3:  "GPU Temperature",
-			4:  "Combined",
-			6:  "CPU / GPU Temp",
-			7:  "CPU / GPU Load",
-			8:  "CPU / GPU Load/Temp",
-			9:  "Time",
-			10: "Image / GIF",
+			0:   "Liquid Temperature",
+			1:   "Pump Speed",
+			2:   "CPU Temperature",
+			3:   "GPU Temperature",
+			4:   "Combined",
+			6:   "CPU / GPU Temp",
+			7:   "CPU / GPU Load",
+			8:   "CPU / GPU Load/Temp",
+			9:   "Time",
+			10:  "Image / GIF",
+			100: "Arc",
+			101: "Double Arc",
 		},
 		LCDRotations: map[int]string{
 			0: "default",
@@ -304,6 +309,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setDefaults()         // Set default speed and color values for fans and pumps
 	d.setAutoRefresh()      // Set auto device refresh
 	d.saveDeviceProfile()   // Save profile
+	d.setupLedProfile()     // LED profile
 	d.getTemperatureProbe() // Devices with temperature probes
 	if config.GetConfig().Manual {
 		fmt.Println(
@@ -320,8 +326,100 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		d.setupLCD()       // LCD
 		d.setupLCDImage()  // LCD images
 	}
+
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
+}
+
+// GetDeviceLedData will return led profiles as interface
+func (d *Device) GetDeviceLedData() interface{} {
+	return d.ledProfile
+}
+
+// getLedProfileColor will get RGB color based on channelId and ledId
+func (d *Device) getLedProfileColor(channelId int, ledId int) *rgb.Color {
+	if channels, ok := d.ledProfile.Devices[channelId]; ok {
+		if color, found := channels.Channels[ledId]; found {
+			return &color
+		}
+	}
+	return nil
+}
+
+// setupLedProfile will init and load LED profile
+func (d *Device) setupLedProfile() {
+	d.ledProfile = led.LoadProfile(d.Serial)
+	if d.ledProfile == nil {
+		d.saveLedProfile()                       // Save profile
+		d.ledProfile = led.LoadProfile(d.Serial) // Reload
+	}
+}
+
+// saveLedProfile will save new LED profile
+func (d *Device) saveLedProfile() {
+	// Default profile
+	profile := d.GetRgbProfile("static")
+	if profile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Error("Unable to load static rgb profile")
+		return
+	}
+
+	// Init
+	lightChannels := 0
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	device := led.Device{
+		Serial:     d.Serial,
+		DeviceName: d.Product,
+	}
+
+	devices := map[int]led.DeviceData{}
+
+	for _, k := range keys {
+		channels := map[int]rgb.Color{}
+		deviceData := led.DeviceData{}
+		deviceData.LedChannels = d.Devices[k].LedChannels
+		deviceData.Pump = d.Devices[k].ContainsPump
+		deviceData.AIO = d.Devices[k].AIO
+		deviceData.Fan = d.Devices[k].HasSpeed && d.Devices[k].ContainsPump == false
+
+		if d.HasLCD && d.Devices[k].AIO {
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				channels[i] = rgb.Color{
+					Red:   0,
+					Green: 255,
+					Blue:  255,
+					Hex:   fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+				}
+				if i > 15 && i < 20 {
+					channels[i] = rgb.Color{
+						Red:   0,
+						Green: 0,
+						Blue:  0,
+						Hex:   fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+					}
+				}
+			}
+		} else {
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				channels[i] = rgb.Color{
+					Red:   0,
+					Green: 255,
+					Blue:  255,
+					Hex:   fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+				}
+			}
+		}
+		deviceData.Channels = channels
+		devices[k] = deviceData
+	}
+	device.Devices = devices
+	led.SaveProfile(d.Serial, device)
 }
 
 // setDeviceProtection will reduce LED brightness if you are running too many devices per hub physical port.
@@ -485,9 +583,44 @@ func (d *Device) loadRgb() {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to decode profile")
 		return
 	}
+
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -2239,6 +2372,18 @@ func (d *Device) setDeviceColor() {
 					}
 
 					switch d.Devices[k].RGB {
+					case "custom":
+						{
+							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
+								value := d.getLedProfileColor(k, n)
+								value.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+								if d.GlobalBrightness != 0 {
+									value.Brightness = d.GlobalBrightness
+								}
+								val := rgb.ModifyBrightness(*value)
+								buff = append(buff, []byte{byte(val.Red), byte(val.Green), byte(val.Blue)}...)
+							}
+						}
 					case "off":
 						{
 							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
@@ -2571,6 +2716,7 @@ func (d *Device) setupLCD() {
 								if lcdMode == lcd.DisplayImage {
 									continue // Don't process images here
 								}
+
 								switch lcdMode {
 								case lcd.DisplayCPU:
 									{
@@ -2685,6 +2831,51 @@ func (d *Device) setupLCD() {
 											0,
 										)
 										d.transferToLcd(buffer, lcdDevice.Lcd)
+									}
+								case lcd.DisplayArc:
+									{
+										val := 0
+										arcType := 0
+										sensor := 0
+										switch lcd.GetArc().Sensor {
+										case 0:
+											val = int(temperatures.GetCpuTemperature())
+											break
+										case 1:
+											val = int(temperatures.GetGpuTemperature())
+											arcType = 1
+											break
+										case 2:
+											val = int(d.getLiquidTemperature())
+											arcType = 2
+											sensor = 2
+											break
+										case 3:
+											val = int(systeminfo.GetCpuUtilization())
+											sensor = 3
+											break
+										case 4:
+											val = systeminfo.GetGPUUtilization()
+											sensor = 4
+										}
+										image := lcd.GenerateArcScreenImage(arcType, sensor, val)
+										if image != nil {
+											d.transferToLcd(image, lcdDevice.Lcd)
+										}
+									}
+								case lcd.DisplayDoubleArc:
+									{
+										values := []int{
+											int(temperatures.GetCpuTemperature()),
+											int(temperatures.GetGpuTemperature()),
+											int(d.getLiquidTemperature()),
+											int(systeminfo.GetCpuUtilization()),
+											systeminfo.GetGPUUtilization(),
+										}
+										image := lcd.GenerateDoubleArcScreenImage(values)
+										if image != nil {
+											d.transferToLcd(image, lcdDevice.Lcd)
+										}
 									}
 								}
 							}

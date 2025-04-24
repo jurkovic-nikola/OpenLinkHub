@@ -415,7 +415,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             break;
 
-            case 1: {
+            case 1: { // Media keys
                 $.ajax({
                     url:'/api/input/media',
                     type:'get',
@@ -429,13 +429,13 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             break;
 
-            case 2: {
+            case 2: { // DPI
                 $(keyAssignmentValue).empty();
                 $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
             }
             break;
 
-            case 3: {
+            case 3: { // Keyboard
                 $.ajax({
                     url:'/api/input/keyboard',
                     type:'get',
@@ -443,6 +443,20 @@ document.addEventListener("DOMContentLoaded", function () {
                         $(keyAssignmentValue).empty();
                         $.each(result.data, function( index, value ) {
                             $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                        });
+                    }
+                });
+            }
+            break;
+
+            case 10: { // Macro
+                $.ajax({
+                    url:'/api/macro/',
+                    type:'get',
+                    success:function(result){
+                        $(keyAssignmentValue).empty();
+                        $.each(result.data, function( index, value ) {
+                            $(keyAssignmentValue).append($('<option>', { value: index, text: value.name }));
                         });
                     }
                 });

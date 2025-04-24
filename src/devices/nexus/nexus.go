@@ -710,7 +710,7 @@ func (d *Device) UpdateDeviceLcdProfile(profileName string) uint8 {
 		if profileName == "gpu-info" && systeminfo.GetInfo().GPU == nil {
 			return 0
 		}
-		
+
 		d.DeviceProfile.LCDMode = profileName
 		d.DeviceProfile.DynamicMode = false
 		d.Keyboard = val.Keyboard

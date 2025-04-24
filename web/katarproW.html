@@ -5,6 +5,7 @@
 <div class="d-flex align-items-stretch">
     <div class="page-content">
         {{ $devs := .Devices }}
+        {{ $macros := .Macros }}
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
         {{ $rgb := .Rgb }}
@@ -236,6 +237,17 @@
                                                             </select>
                                                         </td>
                                                         <td>
+                                                            {{ if $value.IsMacro }}
+                                                            <select class="form-select" id="keyAssignmentValue_{{ $key }}">
+                                                                {{ range $k, $v := $macros }}
+                                                                {{ if eq $value.ActionCommand $k }}
+                                                                <option value="{{ $k }}" selected>{{ $v.Name }}</option>
+                                                                {{ else }}
+                                                                <option value="{{ $k }}">{{ $v.Name }}</option>
+                                                                {{ end }}
+                                                                {{ end }}
+                                                            </select>
+                                                            {{ else }}
                                                             <select class="form-select" id="keyAssignmentValue_{{ $key }}">
                                                                 {{ range $k, $v := $device.InputActions }}
                                                                 {{ if eq $value.ActionCommand $k }}
@@ -245,6 +257,7 @@
                                                                 {{ end }}
                                                                 {{ end }}
                                                             </select>
+                                                            {{ end }}
                                                         </td>
                                                         <td style="text-align: right;">
                                                             <button class="btn btn-secondary saveKeyAssignment" data-info="{{ $key }}">

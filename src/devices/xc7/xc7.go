@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/systeminfo"
@@ -64,6 +65,7 @@ type Device struct {
 	OriginalProfile   *DeviceProfile
 	TemperatureProbes *[]TemperatureProbe
 	activeRgb         *rgb.ActiveRGB
+	ledProfile        *led.Device
 	Template          string
 	HasLCD            bool
 	VendorId          uint16
@@ -101,6 +103,7 @@ var (
 	firmwareReportId           = byte(5)
 	featureReportSize          = 32
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
+	rgbProfileUpgrade          = []string{"custom"}
 )
 
 // Init will initialize a new device
@@ -122,15 +125,17 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		VendorId:  vendorId,
 		ProductId: productId,
 		LCDModes: map[int]string{
-			0:  "Liquid Temperature",
-			2:  "CPU Temperature",
-			3:  "GPU Temperature",
-			5:  "Combined",
-			6:  "CPU / GPU Temp",
-			7:  "CPU / GPU Load",
-			8:  "CPU / GPU Load/Temp",
-			9:  "Time",
-			10: "Image / GIF",
+			0:   "Liquid Temperature",
+			2:   "CPU Temperature",
+			3:   "GPU Temperature",
+			5:   "Combined",
+			6:   "CPU / GPU Temp",
+			7:   "CPU / GPU Load",
+			8:   "CPU / GPU Load/Temp",
+			9:   "Time",
+			10:  "Image / GIF",
+			100: "Arc",
+			101: "Double Arc",
 		},
 		LCDRotations: map[int]string{
 			0: "default",
@@ -166,6 +171,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.loadDeviceProfiles()  // Load all device profiles
 	d.setAutoRefresh()      // Set auto device refresh
 	d.saveDeviceProfile()   // Save profile
+	d.setupLedProfile()     // LED profile
 	d.getTemperatureProbe() // Devices with temperature probes
 	d.setDeviceColor()      // Device color
 	d.setLcdRotation()      // LCD rotation
@@ -180,6 +186,64 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
+}
+
+// GetDeviceLedData will return led profiles as interface
+func (d *Device) GetDeviceLedData() interface{} {
+	return d.ledProfile
+}
+
+// getLedProfileColor will get RGB color based on channelId and ledId
+func (d *Device) getLedProfileColor(channelId int, ledId int) *rgb.Color {
+	if channels, ok := d.ledProfile.Devices[channelId]; ok {
+		if color, found := channels.Channels[ledId]; found {
+			return &color
+		}
+	}
+	return nil
+}
+
+// setupLedProfile will init and load LED profile
+func (d *Device) setupLedProfile() {
+	d.ledProfile = led.LoadProfile(d.Serial)
+	if d.ledProfile == nil {
+		d.saveLedProfile()                       // Save profile
+		d.ledProfile = led.LoadProfile(d.Serial) // Reload
+	}
+}
+
+// saveLedProfile will save new LED profile
+func (d *Device) saveLedProfile() {
+	// Default profile
+	profile := d.GetRgbProfile("static")
+	if profile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Error("Unable to load static rgb profile")
+		return
+	}
+
+	// Init
+	device := led.Device{
+		Serial:     d.Serial,
+		DeviceName: d.Product,
+	}
+
+	devices := map[int]led.DeviceData{}
+
+	for i := 0; i < d.LEDChannels; i++ {
+		channels := map[int]rgb.Color{}
+		deviceData := led.DeviceData{}
+		deviceData.LedChannels = 1
+		channels[0] = rgb.Color{
+			Red:   0,
+			Green: 255,
+			Blue:  255,
+			Hex:   fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+		}
+		deviceData.Channels = channels
+		devices[i] = deviceData
+	}
+	device.Devices = devices
+	led.SaveProfile(d.Serial, device)
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -290,6 +354,40 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -705,6 +803,15 @@ func (d *Device) setDeviceColor() {
 				r.RGBEndColor.Brightness = r.RGBBrightness
 
 				switch d.DeviceProfile.RGBProfile {
+				case "custom":
+					{
+						for n := 0; n < d.LEDChannels; n++ {
+							value := d.getLedProfileColor(n, 0) // This ledId is always 0
+							value.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+							val := rgb.ModifyBrightness(*value)
+							buff = append(buff, []byte{byte(val.Red), byte(val.Green), byte(val.Blue)}...)
+						}
+					}
 				case "off":
 					{
 						for n := 0; n < d.LEDChannels; n++ {
@@ -1199,6 +1306,52 @@ func (d *Device) setupLCD(reload bool) {
 							0,
 						)
 						d.transfer(buffer, transferTypeLcd)
+					}
+				case lcd.DisplayArc:
+					{
+						val := 0
+						arcType := 0
+						sensor := 0
+						switch lcd.GetArc().Sensor {
+						case 0: // CPU temperature
+							val = int(temperatures.GetCpuTemperature())
+							break
+						case 1: // GPU temperature
+							val = int(temperatures.GetGpuTemperature())
+							arcType = 1
+							break
+						case 2: // Liquid temperature
+							val = int(d.getLiquidTemperature())
+							arcType = 2
+							sensor = 2
+							break
+						case 3: // CPU utilization
+							val = int(systeminfo.GetCpuUtilization())
+							sensor = 3
+							break
+						case 4: // GPU utilization
+							val = systeminfo.GetGPUUtilization()
+							sensor = 4
+						}
+						image := lcd.GenerateArcScreenImage(arcType, sensor, val)
+						if image == nil {
+							break // Fail
+						}
+						d.transfer(image, transferTypeLcd)
+					}
+				case lcd.DisplayDoubleArc:
+					{
+						values := []int{
+							int(temperatures.GetCpuTemperature()),
+							int(temperatures.GetGpuTemperature()),
+							int(d.getLiquidTemperature()),
+							int(systeminfo.GetCpuUtilization()),
+							systeminfo.GetGPUUtilization(),
+						}
+						image := lcd.GenerateDoubleArcScreenImage(values)
+						if image != nil {
+							d.transfer(image, transferTypeLcd)
+						}
 					}
 				}
 			case <-d.lcdRefreshChan:

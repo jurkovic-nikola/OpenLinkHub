@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $device := .Device }}
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4">
+                    <div class="ctn">
+                        <div class="row" style="width: 100%;">
+                            <!-- Arc -->
+                            {{ template "lcd-arc" . }}
+
+                            <!-- Double Arc -->
+                            {{ template "lcd-doublearc" . }}
+                        </div>
+                    </div>
+                    <input type="hidden" id="profile" name="profile" value="">
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/dataTables.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/lcd.js"></script>
+</body>
+</html>

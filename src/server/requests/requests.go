@@ -4,8 +4,10 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
+	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/temperatures"
@@ -17,60 +19,75 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId            string            `json:"deviceId"`
-	ChannelId           int               `json:"channelId"`
-	Mode                uint8             `json:"mode"`
-	Rotation            uint8             `json:"rotation"`
-	Value               uint16            `json:"value"`
-	Color               rgb.Color         `json:"color"`
-	StartColor          rgb.Color         `json:"startColor"`
-	EndColor            rgb.Color         `json:"endColor"`
-	Speed               float64           `json:"speed"`
-	Smoothness          int               `json:"smoothness"`
-	Profile             string            `json:"profile"`
-	Label               string            `json:"label"`
-	Static              bool              `json:"static"`
-	Sensor              uint8             `json:"sensor"`
-	HardwareLight       int               `json:"hardwareLight"`
-	ZeroRpm             bool              `json:"zeroRpm"`
-	Linear              bool              `json:"linear"`
-	HwmonDeviceId       string            `json:"hwmonDeviceId"`
-	Enabled             bool              `json:"enabled"`
-	DeviceType          int               `json:"deviceType"`
-	KeyOption           int               `json:"keyOption"`
-	AreaOption          int               `json:"areaOption"`
-	KeyId               int               `json:"keyId"`
-	AreaId              int               `json:"areaId"`
-	DeviceAmount        int               `json:"deviceAmount"`
-	PortId              int               `json:"portId"`
-	UserProfileName     string            `json:"userProfileName"`
-	LcdSerial           string            `json:"lcdSerial"`
-	KeyboardProfileName string            `json:"keyboardProfileName"`
-	KeyboardLayout      string            `json:"keyboardLayout"`
-	KeyboardControlDial int               `json:"keyboardControlDial"`
-	SleepMode           int               `json:"sleepMode"`
-	PollingRate         int               `json:"pollingRate"`
-	ButtonOptimization  int               `json:"buttonOptimization"`
-	AngleSnapping       int               `json:"angleSnapping"`
-	PressAndHold        bool              `json:"pressAndHold"`
-	KeyIndex            int               `json:"keyIndex"`
-	KeyAssignmentType   uint8             `json:"keyAssignmentType"`
-	KeyAssignmentValue  uint8             `json:"keyAssignmentValue"`
-	MuteIndicator       int               `json:"muteIndicator"`
-	RgbControl          bool              `json:"rgbControl"`
-	RgbOff              string            `json:"rgbOff"`
-	RgbOn               string            `json:"rgbOn"`
-	Brightness          uint8             `json:"brightness"`
-	Position            int               `json:"position"`
-	DeviceIdString      string            `json:"deviceIdString"`
-	Direction           int               `json:"direction"`
-	StripId             int               `json:"stripId"`
-	FanMode             int               `json:"fanMode"`
-	New                 bool              `json:"new"`
-	Stages              map[int]uint16    `json:"stages"`
-	ColorDpi            rgb.Color         `json:"colorDpi"`
-	ColorZones          map[int]rgb.Color `json:"colorZones"`
-	Image               string            `json:"image"`
+	DeviceId            string             `json:"deviceId"`
+	ChannelId           int                `json:"channelId"`
+	ProfileId           uint8              `json:"profileId"`
+	Mode                uint8              `json:"mode"`
+	Rotation            uint8              `json:"rotation"`
+	Value               uint16             `json:"value"`
+	BackgroundColor     rgb.Color          `json:"backgroundColor"`
+	BorderColor         rgb.Color          `json:"borderColor"`
+	SeparatorColor      rgb.Color          `json:"separatorColor"`
+	Color               rgb.Color          `json:"color"`
+	StartColor          rgb.Color          `json:"startColor"`
+	EndColor            rgb.Color          `json:"endColor"`
+	TextColor           rgb.Color          `json:"textColor"`
+	Arcs                map[uint8]lcd.Arcs `json:"arcs"`
+	Speed               float64            `json:"speed"`
+	Thickness           float64            `json:"thickness"`
+	GapRadians          float64            `json:"gapRadians"`
+	Margin              float64            `json:"margin"`
+	Smoothness          int                `json:"smoothness"`
+	Profile             string             `json:"profile"`
+	Label               string             `json:"label"`
+	Static              bool               `json:"static"`
+	Sensor              uint8              `json:"sensor"`
+	HardwareLight       int                `json:"hardwareLight"`
+	ZeroRpm             bool               `json:"zeroRpm"`
+	Linear              bool               `json:"linear"`
+	HwmonDeviceId       string             `json:"hwmonDeviceId"`
+	Enabled             bool               `json:"enabled"`
+	DeviceType          int                `json:"deviceType"`
+	KeyOption           int                `json:"keyOption"`
+	AreaOption          int                `json:"areaOption"`
+	KeyId               int                `json:"keyId"`
+	AreaId              int                `json:"areaId"`
+	DeviceAmount        int                `json:"deviceAmount"`
+	PortId              int                `json:"portId"`
+	UserProfileName     string             `json:"userProfileName"`
+	LcdSerial           string             `json:"lcdSerial"`
+	KeyboardProfileName string             `json:"keyboardProfileName"`
+	KeyboardLayout      string             `json:"keyboardLayout"`
+	KeyboardControlDial int                `json:"keyboardControlDial"`
+	SleepMode           int                `json:"sleepMode"`
+	PollingRate         int                `json:"pollingRate"`
+	ButtonOptimization  int                `json:"buttonOptimization"`
+	AngleSnapping       int                `json:"angleSnapping"`
+	PressAndHold        bool               `json:"pressAndHold"`
+	KeyIndex            int                `json:"keyIndex"`
+	KeyAssignmentType   uint8              `json:"keyAssignmentType"`
+	KeyAssignmentValue  uint8              `json:"keyAssignmentValue"`
+	MuteIndicator       int                `json:"muteIndicator"`
+	RgbControl          bool               `json:"rgbControl"`
+	RgbOff              string             `json:"rgbOff"`
+	RgbOn               string             `json:"rgbOn"`
+	Brightness          uint8              `json:"brightness"`
+	Position            int                `json:"position"`
+	DeviceIdString      string             `json:"deviceIdString"`
+	Direction           int                `json:"direction"`
+	StripId             int                `json:"stripId"`
+	FanMode             int                `json:"fanMode"`
+	New                 bool               `json:"new"`
+	Stages              map[int]uint16     `json:"stages"`
+	ColorDpi            rgb.Color          `json:"colorDpi"`
+	ColorZones          map[int]rgb.Color  `json:"colorZones"`
+	Image               string             `json:"image"`
+	MacroId             int                `json:"macroId"`
+	MacroIndex          int                `json:"macroIndex"`
+	MacroName           string             `json:"macroName"`
+	MacroType           uint8              `json:"macroType"`
+	MacroValue          uint8              `json:"macroValue"`
+	MacroDelay          uint16             `json:"macroDelay"`
 	Status              int
 	Code                int
 	Message             string
@@ -428,7 +445,7 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		}
 	}
 
-	if req.Mode < 0 || req.Mode > 10 {
+	if req.Mode < 0 {
 		return &Payload{Message: "Invalid LCD mode", Code: http.StatusOK, Status: 0}
 	}
 
@@ -633,6 +650,104 @@ func ProcessLcdImageChange(r *http.Request) *Payload {
 		return &Payload{Message: "Unable to change LCD image", Code: http.StatusOK, Status: 0}
 	}
 	return &Payload{Message: "Unable to change lcd rotation", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessLcdProfileUpdate will process POST request from a client for LCD profile update
+func ProcessLcdProfileUpdate(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	profileId := req.ProfileId
+	if profileId < 100 {
+		return &Payload{Message: "Non-existing LCD profile", Code: http.StatusOK, Status: 0}
+	}
+
+	thickness := req.Thickness
+	if thickness < 10 || thickness > 50 {
+		return &Payload{Message: "Invalid thickness value. Thickness range is 10-50", Code: http.StatusOK, Status: 0}
+	}
+
+	margin := req.Margin
+	if margin < 10 || thickness > 50 {
+		return &Payload{Message: "Invalid margin value", Code: http.StatusOK, Status: 0}
+	}
+
+	var status uint8 = 0
+
+	switch profileId {
+	case lcd.DisplayArc:
+		sensorId := req.Sensor
+		if sensorId < 0 || sensorId > 5 {
+			return &Payload{Message: "Non-existing sensorId", Code: http.StatusOK, Status: 0}
+		}
+
+		// Profile
+		mode := lcd.GetArc()
+		mode.Sensor = sensorId
+		mode.Margin = margin
+		mode.Thickness = thickness
+		mode.GapRadians = req.GapRadians
+		mode.Background = req.BackgroundColor
+		mode.BorderColor = req.BorderColor
+		mode.StartColor = req.StartColor
+		mode.EndColor = req.EndColor
+		mode.TextColor = req.TextColor
+
+		// Send it
+		status = lcd.SaveArc(mode)
+		break
+	case lcd.DisplayDoubleArc:
+		// Colors
+		background := req.BackgroundColor
+		borderColor := req.BorderColor
+		separatorColor := req.SeparatorColor
+
+		mode := lcd.GetDoubleArc()
+		for i := 0; i < 2; i++ {
+			arc := req.Arcs[uint8(i)]
+			sensorId := arc.Sensor
+			if sensorId < 0 || sensorId > 5 {
+				return &Payload{Message: "Non-existing sensorId", Code: http.StatusOK, Status: 0}
+			}
+			arcName := mode.Arcs[i].Name
+
+			mode.Arcs[i] = lcd.Arcs{
+				Name:       arcName,
+				Sensor:     sensorId,
+				StartColor: arc.StartColor,
+				EndColor:   arc.EndColor,
+				TextColor:  arc.TextColor,
+			}
+		}
+
+		mode.Margin = margin
+		mode.GapRadians = req.GapRadians
+		mode.Thickness = thickness
+		mode.Background = background
+		mode.BorderColor = borderColor
+		mode.SeparatorColor = separatorColor
+
+		// Send it
+		status = lcd.SaveDoubleArc(mode)
+		break
+	default:
+		status = 0
+		break
+	}
+
+	if status == 1 {
+		return &Payload{Message: "LCD profile successfully updated", Code: http.StatusOK, Status: 1}
+	} else {
+		return &Payload{Message: "Unable to update LCD profile", Code: http.StatusOK, Status: 0}
+	}
 }
 
 // ProcessSaveUserProfile will process PUT request from a client for device profile save
@@ -996,6 +1111,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		ActionType:    req.KeyAssignmentType,
 		ActionCommand: req.KeyAssignmentValue,
 		ActionHold:    req.PressAndHold,
+		IsMacro:       req.KeyAssignmentType == 10,
 	}
 
 	// Run it
@@ -1893,4 +2009,196 @@ func ProcessHeadsetZoneColorsSave(r *http.Request) *Payload {
 		return &Payload{Message: "Mouse zone colors are successfully updated", Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: "Unable to save mouse zone colors", Code: http.StatusOK, Status: 0}
+}
+
+// ProcessDeleteMacroValue will process deletion of macro profile value
+func ProcessDeleteMacroValue(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroIndex < 0 || req.MacroId < 0 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid macro selected",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.DeleteMacroValue(req.MacroId, req.MacroIndex)
+	if res == 1 {
+		return &Payload{
+			Message: "Macro profile value is successfully deleted",
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	}
+
+	return &Payload{
+		Message: "Unable to delete macro profile value. Please try again!",
+		Code:    http.StatusOK,
+		Status:  0,
+	}
+}
+
+// ProcessDeleteMacroProfile will process deletion of macro profile
+func ProcessDeleteMacroProfile(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroId < 0 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid macro selected",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.DeleteMacroProfile(req.MacroId)
+	if res == 1 {
+		return &Payload{
+			Message: "Macro profile value is successfully deleted",
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	}
+
+	return &Payload{
+		Message: "Unable to delete macro profile value. Please try again!",
+		Code:    http.StatusOK,
+		Status:  0,
+	}
+}
+
+// ProcessNewMacroProfile will process creation of new macro profile
+func ProcessNewMacroProfile(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+	if len(req.MacroName) < 3 {
+		return &Payload{
+			Message: "Unable to validate your request. Macro name should have at least 3 characters!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.MacroName); !m {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name contains invalid characters",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.NewMacroProfile(req.MacroName)
+	if res == 1 {
+		return &Payload{
+			Message: "Macro profile value is successfully deleted",
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	}
+
+	return &Payload{
+		Message: "Unable to delete macro profile value. Please try again!",
+		Code:    http.StatusOK,
+		Status:  0,
+	}
+}
+
+// ProcessNewMacroProfileValue will process creation of new macro profile value
+func ProcessNewMacroProfileValue(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	macroId := req.MacroId
+	macroType := req.MacroType
+	macroValue := req.MacroValue
+	macroDelay := req.MacroDelay
+
+	if macroId < 0 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid macro selected!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if macroType == 0 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid macro type!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if macroType < 3 || macroType > 5 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid macro type!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if macroType == 3 && macroValue == 0 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid macro value!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if macroType == 5 && macroDelay < 1 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid delay value!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.NewMacroProfileValue(macroId, macroType, macroValue, macroDelay)
+	if res == 1 {
+		return &Payload{
+			Message: "Macro profile value is successfully deleted",
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	}
+
+	return &Payload{
+		Message: "Unable to delete macro profile value. Please try again!",
+		Code:    http.StatusOK,
+		Status:  0,
+	}
 }

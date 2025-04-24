@@ -39,6 +39,7 @@
 {{ end }}
 {{ end }}
 
+<!--
 <div class="row btn btn-secondary navigation-right-small">
     <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank">
         <img src="/static/img/icons/icon-github.svg" width="46" height="46" alt="GitHub" class="top-px" />
@@ -46,7 +47,6 @@
     </a>
 </div>
 
-<!-- API -->
 {{ if eq .Page "documentation" }}
 <div class="row btn btn-secondary active-nav-link navigation-right-small">
     <a style="color: #a1a1a1;" href="https://github.com/jurkovic-nikola/OpenLinkHub/tree/main/api" target="_blank">
@@ -62,6 +62,7 @@
     </a>
 </div>
 {{ end }}
+-->
 
 <!-- Profiles -->
 {{ if eq .Page "temperature" }}
@@ -120,6 +121,40 @@
     <a href="/rgb" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
         <span style="font-size: 13px;">RGB Editor</span>
+    </a>
+</div>
+{{ end }}
+
+<!-- Macros -->
+{{ if eq .Page "macros" }}
+<div class="row btn btn-secondary active-nav-link navigation-right-small">
+    <a href="/macros" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">Macros</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="/macros" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">Macros</span>
+    </a>
+</div>
+{{ end }}
+
+<!-- LCD -->
+{{ if eq .Page "lcd" }}
+<div class="row btn btn-secondary active-nav-link navigation-right-small">
+    <a href="/lcd" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">LCD</span>
+    </a>
+</div>
+{{ else }}
+<div class="row btn btn-secondary navigation-right-small">
+    <a href="/lcd" style="color: #a1a1a1;">
+        <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="Settings" class="top-px" />
+        <span style="font-size: 13px;">LCD</span>
     </a>
 </div>
 {{ end }}

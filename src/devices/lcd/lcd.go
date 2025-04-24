@@ -8,7 +8,9 @@ package lcd
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/rgb"
 	"bytes"
 	"fmt"
 	"github.com/golang/freetype"
@@ -26,6 +28,7 @@ import (
 	"image/color"
 	"image/gif"
 	"image/jpeg"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -47,6 +50,8 @@ const (
 	DisplayCpuGpuLoadTemp uint8 = 8
 	DisplayTime           uint8 = 9
 	DisplayImage          uint8 = 10
+	DisplayArc            uint8 = 100
+	DisplayDoubleArc      uint8 = 101
 )
 
 const (
@@ -66,6 +71,13 @@ var (
 	imgHeight           = 480
 	lcdDevices          = map[string]uint16{}
 	vendorId     uint16 = 6940 // Corsair
+	lcdSensors          = map[uint8]string{
+		0: "CPU Temp",
+		1: "GPU Temp",
+		2: "Liquid Temp",
+		3: "CPU Load",
+		4: "GPU Load",
+	}
 )
 
 type ImageData struct {
@@ -100,7 +112,7 @@ var lcd LCD
 
 // Init will initialize LCD data
 func Init() {
-	lcdDevices = make(map[string]uint16, 0)
+	lcdDevices = make(map[string]uint16)
 
 	// Open image
 	file, e := os.Open(location)
@@ -145,6 +157,12 @@ func Init() {
 	lcd = *lcdData
 	loadLcdImages()
 	loadLcdDevices()
+
+	// Single Arc
+	InitArc()
+
+	// Double arc
+	InitDoubleArc()
 }
 
 // Reconnect will reconnect to all available LCD devices
@@ -247,6 +265,52 @@ func GetLcdDevices() []Device {
 	return lcd.Devices
 }
 
+// GetLcdSensors will return list of LCD sensors
+func GetLcdSensors() map[uint8]string {
+	return lcdSensors
+}
+
+// generateColor will generate color.RGBA based on red, green and blue
+func generateColor(c rgb.Color) color.RGBA {
+	return color.RGBA{R: uint8(c.Red), G: uint8(c.Green), B: uint8(c.Blue), A: 255}
+}
+
+// drawCircle will draw filled circle
+func drawCircle(img *image.RGBA, centerX, centerY, radius float64, col color.Color) {
+	minX := int(centerX - radius)
+	maxX := int(centerX + radius)
+	minY := int(centerY - radius)
+	maxY := int(centerY + radius)
+
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			dx := float64(x) - centerX
+			dy := float64(y) - centerY
+			if dx*dx+dy*dy <= radius*radius {
+				if x >= 0 && y >= 0 && x < img.Bounds().Dx() && y < img.Bounds().Dy() {
+					img.Set(x, y, col)
+				}
+			}
+		}
+	}
+}
+
+// drawSmoothArcGradient will draw arc with color gradient
+func drawSmoothArcGradient(img *image.RGBA, centerX, centerY, innerR, outerR float64, startAngle, endAngle float64, cStart, cEnd color.RGBA) {
+	step := 0.01
+	angleRange := endAngle - startAngle
+
+	for angle := startAngle; angle <= endAngle; angle += step {
+		t := (angle - startAngle) / angleRange
+		col := lerpColor(cStart, cEnd, t)
+
+		radius := (innerR + outerR) / 2
+		x := centerX + radius*math.Cos(angle)
+		y := centerY + radius*math.Sin(angle)
+		drawCircle(img, x, y, (outerR-innerR)/2, col)
+	}
+}
+
 func calculateIntXY(fontSize float64, value int) (int, int) {
 	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
 	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
@@ -277,6 +341,236 @@ func calculateStringXY(fontSize float64, value string) (int, int) {
 	x := (imgWidth - textWidth) / 2
 	y := (imgHeight+textHeight)/2 - 10
 	return x, y
+}
+
+// sensorMaximumValue will return sensor maximum value
+func sensorMaximumValue(sensor uint8) int {
+	switch sensor {
+	case 0:
+		return 100
+	case 1:
+		return 90
+	case 2:
+		return 60
+	case 3, 4:
+		return 100
+	default:
+		return 100
+	}
+}
+
+// isSensorTemperature will check if given sensor is temperature one
+func isSensorTemperature(sensor uint8) bool {
+	if sensor == 0 || sensor == 1 || sensor == 2 {
+		return true
+	}
+	return false
+}
+
+// drawArcOutline will draw small outline
+func drawArcOutline(img *image.RGBA, centerX, centerY, innerR, outerR float64, startAngle, endAngle float64, col color.RGBA) {
+	step := 0.01
+	radius := (innerR + outerR) / 2
+	thickness := 3.0 // very thin
+
+	for angle := startAngle; angle <= endAngle; angle += step {
+		x := centerX + radius*math.Cos(angle)
+		y := centerY + radius*math.Sin(angle)
+		drawCircle(img, x, y, thickness, col)
+	}
+}
+
+// lerpColor will interpolates between two colors
+func lerpColor(c1, c2 color.RGBA, t float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(float64(c1.R)*(1-t) + float64(c2.R)*t),
+		G: uint8(float64(c1.G)*(1-t) + float64(c2.G)*t),
+		B: uint8(float64(c1.B)*(1-t) + float64(c2.B)*t),
+		A: 255,
+	}
+}
+
+// GetCustomLcdProfiles will return list of LCD profiles currently supported by the product. This list is defined
+// manually and its updated how new modes are created.
+func GetCustomLcdProfiles() map[uint8]interface{} {
+	profiles := make(map[uint8]interface{})
+	profiles[DisplayArc] = GetArc()
+	profiles[DisplayDoubleArc] = GetDoubleArc()
+	return profiles
+}
+
+// GenerateDoubleArcScreenImage handles generation or double arc screen image
+func GenerateDoubleArcScreenImage(values []int) []byte {
+	arcImage := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	bg := generateColor(doubleRrc.Background)
+	draw.Draw(arcImage, arcImage.Bounds(), &image.Uniform{C: bg}, image.Point{}, draw.Src)
+
+	c := freetype.NewContext()
+	c.SetDPI(72)
+	c.SetFont(lcd.font)
+	c.SetClip(arcImage.Bounds())
+	c.SetDst(arcImage)
+	c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
+
+	// Common radius math
+	outerRadius := float64(imgWidth)/2 - doubleRrc.Margin
+	innerRadius := outerRadius - doubleRrc.Thickness
+	centerY := float64(imgHeight) / 2
+
+	// Border
+	borderColor := generateColor(doubleRrc.BorderColor)
+
+	// Left arc
+	leftArc := doubleRrc.Arcs[0]
+	leftColStart := generateColor(leftArc.StartColor)
+	leftColEnd := generateColor(leftArc.EndColor)
+	leftCenterX := doubleRrc.Margin + outerRadius
+	leftMax := sensorMaximumValue(leftArc.Sensor)
+	leftValue := values[leftArc.Sensor]
+	if leftValue > leftMax {
+		leftValue = leftMax
+	}
+
+	leftArcStart := math.Pi/2 + doubleRrc.GapRadians/2
+	leftArcEnd := leftArcStart + float64(leftValue)/float64(leftMax)*(math.Pi-doubleRrc.GapRadians)
+	leftBorderEnd := leftArcStart + float64(leftMax)/float64(leftMax)*(math.Pi-doubleRrc.GapRadians)
+
+	// Border
+	drawArcOutline(arcImage, leftCenterX, centerY, innerRadius, outerRadius, leftArcStart, leftBorderEnd, borderColor)
+
+	// Arc
+	drawSmoothArcGradient(arcImage, leftCenterX, centerY, innerRadius, outerRadius, leftArcStart, leftArcEnd, leftColStart, leftColEnd)
+
+	if isSensorTemperature(leftArc.Sensor) {
+		v := dashboard.GetDashboard().TemperatureToString(float32(leftValue))
+		x, y := calculateStringXY(100, v)
+		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
+	} else {
+		v := fmt.Sprintf("%v %s", leftValue, "%")
+		x, y := calculateStringXY(100, v)
+		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
+	}
+
+	separator := "-------------------------------------------"
+	x, y := calculateStringXY(20, separator)
+	drawColorString(x, y, 20, separator, arcImage, doubleRrc.SeparatorColor)
+
+	// Right Arc
+	rightArc := doubleRrc.Arcs[1]
+	rightColStart := generateColor(rightArc.EndColor) // Reversed
+	rightColEnd := generateColor(rightArc.StartColor) // Reversed
+	rightCenterX := float64(imgWidth) - doubleRrc.Margin - outerRadius
+	rightMax := sensorMaximumValue(rightArc.Sensor)
+	rightValue := values[rightArc.Sensor]
+	if rightValue > leftMax {
+		rightValue = leftMax
+	}
+	rightArcEnd := math.Pi/2 - doubleRrc.GapRadians/2
+	rightArcStart := rightArcEnd - float64(rightValue)/float64(rightMax)*(math.Pi-doubleRrc.GapRadians)
+	rightBorderStart := rightArcEnd - float64(rightMax)/float64(rightMax)*(math.Pi-doubleRrc.GapRadians)
+
+	// Border
+	drawArcOutline(arcImage, rightCenterX, centerY, innerRadius, outerRadius, rightBorderStart, rightArcEnd, borderColor)
+
+	// Arc
+	drawSmoothArcGradient(arcImage, rightCenterX, centerY, innerRadius, outerRadius, rightArcStart, rightArcEnd, rightColStart, rightColEnd)
+
+	// Text
+	if isSensorTemperature(rightArc.Sensor) {
+		v := dashboard.GetDashboard().TemperatureToString(float32(rightValue))
+		x, y = calculateStringXY(100, v)
+		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
+	} else {
+		v := fmt.Sprintf("%v %s", rightValue, "%")
+		x, y = calculateStringXY(100, v)
+		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
+	}
+
+	// Send it
+	var b bytes.Buffer
+	err := jpeg.Encode(&b, arcImage, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
+		return nil
+	}
+	return b.Bytes()
+}
+
+// GenerateArcScreenImage handles generation or arc screen image
+func GenerateArcScreenImage(arcType, sensor, value int) []byte {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Prevent over 100
+	if (arcType == 0 || arcType == 1) && value > 100 {
+		value = 100
+	}
+
+	// Prevent over 60
+	if arcType == 2 && value > 60 {
+		value = 60
+	}
+
+	bg := generateColor(arc.Background)
+	arcStartColor := generateColor(arc.StartColor)
+	arcEndColor := generateColor(arc.EndColor)
+	arcThickness := arc.Thickness
+
+	maxValue := sensorMaximumValue(arc.Sensor)
+
+	img := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	draw.Draw(img, img.Bounds(), &image.Uniform{C: bg}, image.Point{}, draw.Src)
+	centerX, centerY := float64(imgWidth)/2, float64(imgHeight)/2
+	outerRadius := float64(imgWidth)/2 - arc.Margin
+	innerRadius := outerRadius - arcThickness
+	angleFraction := float64(value) / float64(maxValue)
+	angleFraction = angleFraction - (arc.GapRadians * 2 / (2 * math.Pi))
+	endAngle := startAngle + angleFraction*2*math.Pi
+
+	// Border
+	borderAngle := startAngle + 1*2*math.Pi
+	borderColor := generateColor(arc.BorderColor)
+
+	// Draw the arc
+	drawArcOutline(img, centerX, centerY, innerRadius, outerRadius, startAngle, borderAngle, borderColor)
+	drawSmoothArcGradient(img, centerX, centerY, innerRadius, outerRadius, startAngle, endAngle, arcStartColor, arcEndColor)
+
+	c := freetype.NewContext()
+	c.SetDPI(72)
+	c.SetFont(lcd.font)
+	c.SetClip(img.Bounds())
+	c.SetDst(img)
+	c.SetSrc(image.NewUniform(color.RGBA{R: 255, G: 255, B: 253, A: 255}))
+
+	// Text
+	if isSensorTemperature(uint8(sensor)) {
+		// Value
+		v := dashboard.GetDashboard().Temperature(float32(value))
+		x, y := calculateStringXY(250, v[0])
+		drawColorString(x, y, 250, v[0], img, arc.TextColor)
+
+		// Unit
+		unit := fmt.Sprintf("[ %s ]", v[1])
+		x, y = calculateStringXY(40, unit)
+		drawColorString(x, y+120, 40, unit, img, arc.TextColor)
+	} else {
+		// Value
+		x, y := calculateStringXY(280, strconv.Itoa(value))
+		drawColorString(x, y, 280, strconv.Itoa(value), img, arc.TextColor)
+
+		// Unit
+		x, y = calculateStringXY(40, "[ % ]")
+		drawColorString(x, y+120, 40, "[ % ]", img, arc.TextColor)
+	}
+
+	// Send it
+	var b bytes.Buffer
+	err := jpeg.Encode(&b, img, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
+		return nil
+	}
+	return b.Bytes()
 }
 
 // GenerateScreenImage will generate LCD screen image with given value
@@ -455,6 +749,31 @@ func drawString(x, y int, fontSite float64, text string, rgba *image.RGBA) {
 	d := &font.Drawer{
 		Dst:  rgba,
 		Src:  image.NewUniform(color.RGBA{R: 255, G: 255, B: 255, A: 255}),
+		Face: fontFace, // Use the built-in font
+		Dot:  pt,
+	}
+	d.DrawString(text)
+}
+
+// drawColorString will create a new string for image with color ability
+func drawColorString(x, y int, fontSite float64, text string, rgba *image.RGBA, textColor rgb.Color) {
+	pt := freetype.Pt(x, y)
+	opts := opentype.FaceOptions{Size: fontSite, DPI: 72, Hinting: 0}
+	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+		return
+	}
+	d := &font.Drawer{
+		Dst: rgba,
+		Src: image.NewUniform(
+			color.RGBA{
+				R: uint8(textColor.Red),
+				G: uint8(textColor.Green),
+				B: uint8(textColor.Blue),
+				A: 255,
+			},
+		),
 		Face: fontFace, // Use the built-in font
 		Dot:  pt,
 	}

@@ -165,3 +165,16 @@ func (d Dashboard) TemperatureToString(celsius float32) string {
 	}
 	return val
 }
+
+// Temperature will return string temperature with unit value
+func (d Dashboard) Temperature(celsius float32) []string {
+	val := make([]string, 2)
+	if d.Celsius {
+		val[0] = fmt.Sprintf("%.0f", roundFloat(float64(celsius), 2))
+		val[1] = "°C"
+	} else {
+		val[0] = fmt.Sprintf("%.0f", roundFloat(float64((celsius*9/5)+32), 2))
+		val[1] = "°F"
+	}
+	return val
+}

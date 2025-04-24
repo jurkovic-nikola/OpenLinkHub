@@ -9,6 +9,7 @@ package lt100
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
@@ -74,6 +75,7 @@ type Device struct {
 	DeviceProfile           *DeviceProfile
 	ExternalLedDeviceAmount map[int]string
 	activeRgb               *rgb.ActiveRGB
+	ledProfile              *led.Device
 	Template                string
 	Brightness              map[int]string
 	HasLCD                  bool
@@ -113,6 +115,7 @@ var (
 	maxBufferSizePerRequest = 50
 	ledsPerTower            = 27
 	deviceKeepAlive         = 2000
+	rgbProfileUpgrade       = []string{"custom"}
 )
 
 // Init will initialize a new device
@@ -155,6 +158,7 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 	if d.getDevices() > 0 {
 		d.setAutoRefresh()    // Set auto device refresh
 		d.saveDeviceProfile() // Create device profile
+		d.setupLedProfile()   // LED profile
 		d.setDeviceColor()    // Device color
 		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	} else {
@@ -163,6 +167,75 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 		return nil
 	}
 	return d
+}
+
+// GetDeviceLedData will return led profiles as interface
+func (d *Device) GetDeviceLedData() interface{} {
+	return d.ledProfile
+}
+
+// getLedProfileColor will get RGB color based on channelId and ledId
+func (d *Device) getLedProfileColor(channelId int, ledId int) *rgb.Color {
+	if channels, ok := d.ledProfile.Devices[channelId]; ok {
+		if color, found := channels.Channels[ledId]; found {
+			return &color
+		}
+	}
+	return nil
+}
+
+// setupLedProfile will init and load LED profile
+func (d *Device) setupLedProfile() {
+	d.ledProfile = led.LoadProfile(d.Serial)
+	if d.ledProfile == nil {
+		d.saveLedProfile()                       // Save profile
+		d.ledProfile = led.LoadProfile(d.Serial) // Reload
+	}
+}
+
+// saveLedProfile will save new LED profile
+func (d *Device) saveLedProfile() {
+	// Default profile
+	profile := d.GetRgbProfile("static")
+	if profile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Error("Unable to load static rgb profile")
+		return
+	}
+
+	// Init
+	lightChannels := 0
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	device := led.Device{
+		Serial:     d.Serial,
+		DeviceName: d.Product,
+	}
+
+	devices := map[int]led.DeviceData{}
+
+	for _, k := range keys {
+		channels := map[int]rgb.Color{}
+		deviceData := led.DeviceData{}
+		deviceData.LedChannels = d.Devices[k].LedChannels
+		deviceData.Tower = true
+		for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+			channels[i] = rgb.Color{
+				Red:   0,
+				Green: 255,
+				Blue:  255,
+				Hex:   fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
+			}
+		}
+		deviceData.Channels = channels
+		devices[k] = deviceData
+	}
+	device.Devices = devices
+	led.SaveProfile(d.Serial, device)
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -258,6 +331,40 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -1034,6 +1141,15 @@ func (d *Device) setDeviceColor() {
 					r.RGBEndColor.Brightness = r.RGBBrightness
 
 					switch d.Devices[k].RGB {
+					case "custom":
+						{
+							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
+								value := d.getLedProfileColor(k, n)
+								value.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+								val := rgb.ModifyBrightness(*value)
+								buff = append(buff, []byte{byte(val.Red), byte(val.Green), byte(val.Blue)}...)
+							}
+						}
 					case "off":
 						{
 							for n := 0; n < int(d.Devices[k].LedChannels); n++ {

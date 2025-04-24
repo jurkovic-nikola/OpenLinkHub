@@ -68,11 +68,16 @@ var (
 	prevTotal = 0
 	prevIdle  = 0
 	gpuIndex  = 0
+	amdsmi    = "amd-smi"
 )
 
 // Init will initialize and store system info
 func Init() {
 	gpuIndex = config.GetConfig().AMDGpuIndex
+	if len(config.GetConfig().AMDSmiPath) > 0 {
+		amdsmi = config.GetConfig().AMDSmiPath
+	}
+
 	info = &SystemInfo{}
 	info.getCpuData()
 	info.getKernelData()
@@ -217,7 +222,7 @@ func GetNVIDIAGpuModel() string {
 }
 
 func GetAMDGpuModel() string {
-	cmd := exec.Command("amd-smi", "static", "-g", strconv.Itoa(gpuIndex), "--asic", "--json")
+	cmd := exec.Command(amdsmi, "static", "-g", strconv.Itoa(gpuIndex), "--asic", "--json")
 	jsonOutput, err := cmd.Output()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to process amd-smi")
@@ -385,7 +390,7 @@ func GetCpuUtilization() float64 {
 
 // getAMDUtilization fetches the GPU utilization using amd-smi
 func getAMDUtilization() float64 {
-	cmd := exec.Command("amd-smi", "metric", "-g", strconv.Itoa(gpuIndex), "-u", "--json")
+	cmd := exec.Command(amdsmi, "metric", "-g", strconv.Itoa(gpuIndex), "-u", "--json")
 	jsonOutput, err := cmd.Output()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to process amd-smi")

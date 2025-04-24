@@ -56,6 +56,8 @@ import (
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/scimitar"
+	"OpenLinkHub/src/devices/scimitarSEW"
+	"OpenLinkHub/src/devices/scimitarSEWU"
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/slipstream"
@@ -79,66 +81,68 @@ import (
 )
 
 const (
-	productTypeLinkHub            = 0
-	productTypeCC                 = 1
-	productTypeCCXT               = 2
-	productTypeElite              = 3
-	productTypeLNCore             = 4
-	productTypeLnPro              = 5
-	productTypeCPro               = 6
-	productTypeXC7                = 7
-	productTypeMemory             = 8
-	productTypeNexus              = 9
-	productTypePlatinum           = 10
-	productTypeK65PM              = 101
-	productTypeK70Core            = 102
-	productTypeK55Core            = 103
-	productTypeK70Pro             = 104
-	productTypeK65Plus            = 105
-	productTypeK65PlusW           = 106
-	productTypeK100Air            = 107
-	productTypeK100AirW           = 108
-	productTypeK100               = 109
-	productTypeK70MK2             = 110
-	productTypeK70CoreTkl         = 111
-	productTypeK70CoreTklWU       = 112
-	productTypeK70CoreTklW        = 113
-	productTypeK70ProTkl          = 114
-	productTypeK70RgbTkl          = 115
-	productTypeKatarPro           = 201
-	productTypeIronClawRgb        = 202
-	productTypeIronClawRgbW       = 203
-	productTypeIronClawRgbWU      = 204
-	productTypeNightsabreW        = 205
-	productTypeNightsabreWU       = 206
-	productTypeScimitarRgbElite   = 207
-	productTypeScimitarRgbEliteW  = 208
-	productTypeScimitarRgbEliteWU = 209
-	productTypeM55                = 210
-	productTypeM55W               = 211
-	productTypeM55RgbPro          = 212
-	productTypeKatarProW          = 213
-	productTypeDarkCoreRgbProSEW  = 214
-	productTypeDarkCoreRgbProSEWU = 215
-	productTypeDarkCoreRgbProW    = 216
-	productTypeDarkCoreRgbProWU   = 217
-	productTypeM75                = 218
-	productTypeM75W               = 219
-	productTypeM75WU              = 220
-	productTypeM65RgbUltra        = 221
-	productTypeHarpoonRgbPro      = 222
-	productTypeHarpoonRgbW        = 223
-	productTypeHarpoonRgbWU       = 224
-	productTypeKatarProXT         = 225
-	productTypeDarkstarWU         = 226
-	productTypeDarkstarW          = 227
-	productTypeVirtuosoXTW        = 300
-	productTypeVirtuosoXTWU       = 301
-	productTypeVirtuosoMAXW       = 302
-	productTypeST100              = 401
-	productTypeMM700              = 402
-	productTypeLT100              = 403
-	productTypePSUHid             = 501
+	productTypeLinkHub              = 0
+	productTypeCC                   = 1
+	productTypeCCXT                 = 2
+	productTypeElite                = 3
+	productTypeLNCore               = 4
+	productTypeLnPro                = 5
+	productTypeCPro                 = 6
+	productTypeXC7                  = 7
+	productTypeMemory               = 8
+	productTypeNexus                = 9
+	productTypePlatinum             = 10
+	productTypeK65PM                = 101
+	productTypeK70Core              = 102
+	productTypeK55Core              = 103
+	productTypeK70Pro               = 104
+	productTypeK65Plus              = 105
+	productTypeK65PlusW             = 106
+	productTypeK100Air              = 107
+	productTypeK100AirW             = 108
+	productTypeK100                 = 109
+	productTypeK70MK2               = 110
+	productTypeK70CoreTkl           = 111
+	productTypeK70CoreTklWU         = 112
+	productTypeK70CoreTklW          = 113
+	productTypeK70ProTkl            = 114
+	productTypeK70RgbTkl            = 115
+	productTypeKatarPro             = 201
+	productTypeIronClawRgb          = 202
+	productTypeIronClawRgbW         = 203
+	productTypeIronClawRgbWU        = 204
+	productTypeNightsabreW          = 205
+	productTypeNightsabreWU         = 206
+	productTypeScimitarRgbElite     = 207
+	productTypeScimitarRgbEliteW    = 208
+	productTypeScimitarRgbEliteWU   = 209
+	productTypeM55                  = 210
+	productTypeM55W                 = 211
+	productTypeM55RgbPro            = 212
+	productTypeKatarProW            = 213
+	productTypeDarkCoreRgbProSEW    = 214
+	productTypeDarkCoreRgbProSEWU   = 215
+	productTypeDarkCoreRgbProW      = 216
+	productTypeDarkCoreRgbProWU     = 217
+	productTypeM75                  = 218
+	productTypeM75W                 = 219
+	productTypeM75WU                = 220
+	productTypeM65RgbUltra          = 221
+	productTypeHarpoonRgbPro        = 222
+	productTypeHarpoonRgbW          = 223
+	productTypeHarpoonRgbWU         = 224
+	productTypeKatarProXT           = 225
+	productTypeDarkstarWU           = 226
+	productTypeDarkstarW            = 227
+	productTypeScimitarRgbEliteSEW  = 228
+	productTypeScimitarRgbEliteSEWU = 229
+	productTypeVirtuosoXTW          = 300
+	productTypeVirtuosoXTWU         = 301
+	productTypeVirtuosoMAXW         = 302
+	productTypeST100                = 401
+	productTypeMM700                = 402
+	productTypeLT100                = 403
+	productTypePSUHid               = 501
 )
 
 type AIOData struct {
@@ -167,11 +171,11 @@ var (
 	expectedPermissions        = []int{0600, 0660}
 	vendorId            uint16 = 6940 // Corsair
 	interfaceId                = 0
-	devices                    = make(map[string]*Device, 0)
-	products                   = make(map[string]Product, 0)
+	devices                    = make(map[string]*Device)
+	products                   = make(map[string]Product)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090}
-	pads                       = []uint16{7067}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042}
+	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660}
 	headsets2                  = []uint16{10754}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
@@ -1193,6 +1197,46 @@ func ResetSpeedProfiles(profile string) {
 	}
 }
 
+// GetDeviceLedData will return device led data
+func GetDeviceLedData(deviceId string) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "GetDeviceLedData"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return 0
+}
+
+// GetDevicesLedData will return led data for all devices
+func GetDevicesLedData() interface{} {
+	var leds []interface{}
+	for _, device := range devices {
+		methodName := "GetDeviceLedData"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			continue
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				res := val.Interface()
+				leds = append(leds, res)
+			}
+		}
+	}
+	return leds
+}
+
 // GetDevices will return all available devices
 func GetDevices() map[string]*Device {
 	return devices
@@ -1889,6 +1933,26 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
+						case 11042: // CORSAIR SCIMITAR ELITE WIRELESS SE
+							{
+								d := scimitarSEW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeScimitarRgbEliteSEW,
+									Product:     "SCIMITAR ELITE SE",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						case 7096: // NIGHTSABRE
 							{
 								d := nightsabreW.Init(
@@ -2094,7 +2158,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 7067: // Corsair MM700 RGB Gaming Mousepad
+		case 7067, 7113: // Corsair MM700 RGB Gaming Mousepad
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := mm700.Init(vendorId, productId, key)
@@ -2266,6 +2330,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeScimitarRgbEliteWU,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 11042: // CORSAIR SCIMITAR ELITE WIRELESS SE
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := scimitarSEWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeScimitarRgbEliteSEWU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

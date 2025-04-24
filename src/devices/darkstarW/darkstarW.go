@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
@@ -163,11 +164,12 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			1: "Enabled",
 		},
 		KeyAssignmentTypes: map[int]string{
-			0: "None",
-			1: "Media Keys",
-			2: "DPI +",
-			3: "Keyboard",
-			4: "DPI -",
+			0:  "None",
+			1:  "Media Keys",
+			2:  "DPI +",
+			3:  "Keyboard",
+			4:  "DPI -",
+			10: "Macro",
 		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/darkstarW.json",
@@ -958,6 +960,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 		val.ActionHold = keyAssignment.ActionHold
 		val.ActionType = keyAssignment.ActionType
 		val.ActionCommand = keyAssignment.ActionCommand
+		val.IsMacro = keyAssignment.IsMacro
 		d.KeyAssignment[keyIndex] = val
 		d.saveKeyAssignments()
 		d.setupKeyAssignment()
@@ -1644,6 +1647,27 @@ func (d *Device) TriggerKeyAssignment(value uint32, serial string) {
 					case 4:
 						d.ModifyDpi(false)
 						break
+					case 10: // Macro
+						macroProfile := macro.GetProfile(int(val.ActionCommand))
+						if macroProfile == nil {
+							logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+							return
+						}
+						for i := 0; i < len(macroProfile.Actions); i++ {
+							if v, valid := macroProfile.Actions[i]; valid {
+								switch v.ActionType {
+								case 1, 3:
+									inputmanager.InputControl(v.ActionCommand, serial)
+									break
+								case 5:
+									if v.ActionDelay > 0 {
+										time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+									}
+									break
+								}
+							}
+						}
+						break
 					}
 					time.Sleep(20 * time.Millisecond)
 				}
@@ -1658,6 +1682,27 @@ func (d *Device) TriggerKeyAssignment(value uint32, serial string) {
 				break
 			case 4:
 				d.ModifyDpi(false)
+				break
+			case 10: // Macro
+				macroProfile := macro.GetProfile(int(val.ActionCommand))
+				if macroProfile == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+					return
+				}
+				for i := 0; i < len(macroProfile.Actions); i++ {
+					if v, valid := macroProfile.Actions[i]; valid {
+						switch v.ActionType {
+						case 1, 3:
+							inputmanager.InputControl(v.ActionCommand, serial)
+							break
+						case 5:
+							if v.ActionDelay > 0 {
+								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
+							break
+						}
+					}
+				}
 				break
 			}
 		}

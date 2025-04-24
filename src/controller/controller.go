@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/monitor"
 	"OpenLinkHub/src/rgb"
@@ -34,6 +35,7 @@ func Start() {
 	keyboards.Init()    // Keyboards
 	inputmanager.Init() // Input Manager
 	stats.Init()        // Statistics
+	macro.Init()        // Macro
 	devices.Init()      // Devices
 	monitor.Init()      // Monitor
 	server.Init()       // REST & WebUI

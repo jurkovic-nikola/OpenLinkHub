@@ -1,0 +1,111 @@
+{{ define "lcd-doublearc" }}
+{{ $doubleArc := index .LCDProfiles 101 }}
+{{ $lcdSensors := .LCDSensors }}
+<div class="col-md-2">
+    <div class="card mb-2">
+        <div class="card-header border-bottom border-dash-dark-1">{{ $doubleArc.Name }}</div>
+        <div class="card-body">
+            <table style="width: 100%;">
+                <tbody>
+                <tr>
+                    <th style="width: 50%;height:50px;">Margin</th>
+                    <th style="width: 50%">
+                        <input class="form-control" id="margin_{{ $doubleArc.Id }}" type="text" value="{{ $doubleArc.Margin }}">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Thickness</th>
+                    <th style="width: 50%">
+                        <input class="form-control" id="thickness_{{ $doubleArc.Id }}" type="text" value="{{ $doubleArc.Thickness }}">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Bottom Gap</th>
+                    <th style="width: 50%">
+                        <input class="form-control" id="gapRadians_{{ $doubleArc.Id }}" type="text" value="{{ $doubleArc.GapRadians }}">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Background</th>
+                    <th style="width: 50%">
+                        <input type="color" id="backgroundColor_{{ $doubleArc.Id }}" value="{{ $doubleArc.Background.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Border Color</th>
+                    <th style="width: 50%">
+                        <input type="color" id="borderColor_{{ $doubleArc.Id }}" value="{{ $doubleArc.BorderColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Separator Color</th>
+                    <th style="width: 50%">
+                        <input type="color" id="separatorColor_{{ $doubleArc.Id }}" value="{{ $doubleArc.SeparatorColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {{ range $key, $value := $doubleArc.Arcs }}
+        <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+            <span style="text-align: center;font-weight: bold;">
+                {{ $value.Name }}
+            </span>
+
+            <table style="width: 100%;">
+                <tbody>
+                <tr>
+                    <th style="width: 50%;height:50px;">Sensor</th>
+                    <th style="width: 50%">
+                        <select class="form-select sensorType" id="sensorType_{{ $key }}" style="width: auto;float: right;">
+                            {{ range $k, $v := $lcdSensors }}
+                            {{ if eq $k $value.Sensor }}
+                            <option value="{{ $k }}" selected>{{ $v }}</option>
+                            {{ else }}
+                            <option value="{{ $k }}">{{ $v }}</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </th>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Start Color</th>
+                    <th style="width: 50%">
+                        <input type="color" id="startColor_{{ $key }}" value="{{ $value.StartColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">End Color</th>
+                    <th style="width: 50%">
+                        <input type="color" id="endColor_{{ $key }}" value="{{ $value.EndColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+
+                <tr>
+                    <th style="width: 50%;height:50px;">Text Color</th>
+                    <th style="width: 50%">
+                        <input type="color" id="textColor_{{ $key }}" value="{{ $value.TextColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        {{ end }}
+
+        <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+            <div class="input-group">
+                <button class="btn btn-primary saveDoubleArcProfile" data-info="{{ $doubleArc.Id }}">Save Profile</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

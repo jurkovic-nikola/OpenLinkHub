@@ -1372,6 +1372,34 @@ func (d *Device) UpdateExternalHubDeviceType(_ int, externalType int) uint8 {
 func (d *Device) UpdateExternalHubDeviceAmount(_ int, externalDevices int) uint8 {
 	if d.DeviceProfile != nil {
 		if d.DeviceProfile.ExternalHubDeviceType > 0 {
+			maximum := -1
+
+			// Hydro X lineup
+			switch d.DeviceProfile.ExternalHubDeviceType {
+			case 7:
+				maximum = 1
+				break
+			case 8:
+				maximum = 1
+				break
+			case 9:
+				maximum = 1
+				break
+			case 10:
+				maximum = 2
+				break
+			case 11:
+				maximum = 2
+				break
+			case 12:
+				maximum = 2
+				break
+			}
+
+			if maximum > 0 && externalDevices > maximum {
+				return 0
+			}
+
 			d.DeviceProfile.ExternalHubDeviceAmount = externalDevices
 			if d.activeRgb != nil {
 				d.activeRgb.Exit <- true // Exit current RGB mode

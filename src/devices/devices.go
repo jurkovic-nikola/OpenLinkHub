@@ -16,6 +16,7 @@ import (
 	"OpenLinkHub/src/devices/harpoonWU"
 	"OpenLinkHub/src/devices/harpoonrgbpro"
 	"OpenLinkHub/src/devices/headsetdongle"
+	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/ironclawWU"
@@ -139,6 +140,7 @@ const (
 	productTypeVirtuosoXTW          = 300
 	productTypeVirtuosoXTWU         = 301
 	productTypeVirtuosoMAXW         = 302
+	productTypeHS80RGBW             = 303
 	productTypeST100                = 401
 	productTypeMM700                = 402
 	productTypeLT100                = 403
@@ -176,7 +178,7 @@ var (
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027}
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042}
 	pads                       = []uint16{7067, 7113}
-	headsets                   = []uint16{2658, 2660}
+	headsets                   = []uint16{2658, 2660, 2667}
 	headsets2                  = []uint16{10754}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 	legacyDevices              = []uint16{3090, 3091, 3093}
@@ -1788,7 +1790,7 @@ func Init() {
 					}
 				}(vendorId, productId, key)
 			}
-		case 2660: // Headset dongle
+		case 2660, 2667: // Headset dongle
 			{
 				go func(vendorId, productId uint16, key string) {
 					dev := headsetdongle.Init(vendorId, productId, key)
@@ -1820,6 +1822,26 @@ func Init() {
 								devices[d.Serial] = &Device{
 									ProductType: productTypeVirtuosoXTW,
 									Product:     "VIRTUOSO RGB WIRELESS XT",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-headphone.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
+						case 2665:
+							{
+								d := hs80rgbW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeHS80RGBW,
+									Product:     "HS80 RGB WIRELESS",
 									Serial:      d.Serial,
 									Firmware:    d.Firmware,
 									Image:       "icon-headphone.svg",

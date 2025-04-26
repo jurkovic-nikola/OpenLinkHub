@@ -1,7 +1,7 @@
-package virtuosorgbXTW
+package hs80rgbW
 
-// Package: CORSAIR VIRTUOSO RGB WIRELESS XT
-// This is the primary package for CORSAIR VIRTUOSO RGB WIRELESS XT.
+// Package: CORSAIR HS80 RGB WIRELESS
+// This is the primary package for CORSAIR HS80 RGB WIRELESS.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -112,7 +112,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	// Init new struct with HID device
 	d := &Device{
 		dev:          dev,
-		Template:     "virtuosorgbXTW.html",
+		Template:     "hs80rgbW.html",
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
@@ -125,7 +125,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "VIRTUOSO RGB WIRELESS XT",
+		Product: "HS80 RGB WIRELESS",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -135,7 +135,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			60: "1 hour",
 		},
 		LEDChannels:           3,
-		ChangeableLedChannels: 3,
+		ChangeableLedChannels: 2,
 		MuteIndicators: map[int]string{
 			0: "Disabled",
 			1: "Enabled",
@@ -595,17 +595,6 @@ func (d *Device) saveDeviceProfile() {
 				},
 				Name: "Microphone",
 			},
-			2: { // Indicator LED
-				ColorIndex: []int{1, 4, 7},
-				Color: &rgb.Color{
-					Red:        0,
-					Green:      255,
-					Blue:       255,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 255),
-				},
-				Name: "Indicator LED",
-			},
 		}
 
 		deviceProfile.SleepMode = 15
@@ -665,10 +654,11 @@ func (d *Device) saveDeviceProfile() {
 }
 
 // UpdateMuteIndicator will update device mute indicator
-func (d *Device) UpdateMuteIndicator(minutes int) uint8 {
+func (d *Device) UpdateMuteIndicator(status int) uint8 {
 	if d.DeviceProfile != nil {
-		d.DeviceProfile.MuteIndicator = minutes
+		d.DeviceProfile.MuteIndicator = status
 		d.saveDeviceProfile()
+		d.NotifyMuteChanged(d.MuteStatus)
 		return 1
 	}
 	return 0
@@ -1023,6 +1013,10 @@ func (d *Device) writeColor(data []byte) {
 		data[2] = 0xff
 		data[5] = 0x00
 		data[8] = 0x00
+	} else if d.DeviceProfile.MuteIndicator == 0 && d.MuteStatus == 1 {
+		data[2] = 0x00
+		data[5] = 0x00
+		data[8] = 0x00
 	}
 
 	buffer := make([]byte, len(data)+headerWriteSize)
@@ -1096,6 +1090,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 // NotifyMuteChanged will change microphone LED based on microphone status
 func (d *Device) NotifyMuteChanged(status byte) {
 	d.MuteStatus = status
+
 	// RGB reset
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1108,7 +1103,7 @@ func (d *Device) NotifyMuteChanged(status byte) {
 		buf[8] = 0x00
 	} else {
 		buf[2] = 0x00
-		buf[5] = 0xff
+		buf[5] = 0x00
 		buf[8] = 0x00
 	}
 

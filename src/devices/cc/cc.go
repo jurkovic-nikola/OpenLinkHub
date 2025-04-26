@@ -576,7 +576,7 @@ func (d *Device) GetDeviceTemplate() string {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1092,7 +1092,7 @@ func (d *Device) setDeviceColor() {
 
 // getRgbDevices will get all RGB devices
 func (d *Device) getRgbDevices() {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	var m = 0
 	amount := 7
 
@@ -1216,7 +1216,7 @@ func (d *Device) getRgbDevices() {
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	var m = 0
 
 	// Fans
@@ -1419,7 +1419,7 @@ func (d *Device) getLiquidTemperature() float32 {
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	go func() {
-		tmp := make(map[int]string, 0)
+		tmp := make(map[int]string)
 		channelSpeeds := map[int]byte{}
 
 		// Init speed channels

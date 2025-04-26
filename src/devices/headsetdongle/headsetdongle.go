@@ -8,6 +8,7 @@ package headsetdongle
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
@@ -76,7 +77,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		dev:            dev,
 		VendorId:       vendorId,
 		ProductId:      productId,
-		PairedDevices:  make(map[uint16]any, 0),
+		PairedDevices:  make(map[uint16]any),
 		Template:       "slipstream.html",
 		keepAliveChan:  make(chan struct{}),
 		timerKeepAlive: &time.Ticker{},
@@ -116,6 +117,11 @@ func (d *Device) Stop() {
 				dev.StopInternal()
 			}
 		}
+		if dev, found := value.(*hs80rgbW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
 	}
 
 	d.setHardwareMode()
@@ -150,7 +156,7 @@ func (d *Device) GetDevice() *hid.Device {
 
 // getDevices will get a list of paired devices
 func (d *Device) getDevices() {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	buff := d.read(cmdGetDevices)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
@@ -179,6 +185,11 @@ func (d *Device) getDevices() {
 				VendorId:  vendorId,
 				ProductId: productId,
 			}
+
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("Processing device")
+			}
+
 			devices[i] = device
 			position += 8 + int(deviceIdLen)
 		}
@@ -312,6 +323,12 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*hs80rgbW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -323,6 +340,11 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
+		if device, found := pairedDevice.(*hs80rgbW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
 	}
 }
 
@@ -330,6 +352,12 @@ func (d *Device) setDevicesOffline() {
 func (d *Device) setDeviceOnline() {
 	for _, pairedDevice := range d.PairedDevices {
 		if device, found := pairedDevice.(*virtuosorgbXTW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+			}
+		}
+		if device, found := pairedDevice.(*hs80rgbW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
@@ -432,10 +460,18 @@ func (d *Device) backendListener() {
 
 				// Battery
 				if data[1] == 0x01 && data[2] == 0x12 {
-					val := binary.LittleEndian.Uint16(data[4:6]) / 10
+					var val uint16 = 0
+					if data[6] > 0 { // Unclear why it switches 1 position next
+						val = binary.LittleEndian.Uint16(data[5:7]) / 10
+					} else {
+						val = binary.LittleEndian.Uint16(data[4:6]) / 10
+					}
 					if val > 0 {
 						for _, value := range d.PairedDevices {
 							if dev, found := value.(*virtuosorgbXTW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
+							if dev, found := value.(*hs80rgbW.Device); found {
 								dev.ModifyBatteryLevel(val)
 							}
 						}
@@ -446,9 +482,12 @@ func (d *Device) backendListener() {
 					value := data[5]
 					d.setDeviceStatus(value)
 				} else {
-					if data[2] == 0x01 && data[3] == 0x8e {
+					if data[2] == 0x01 && (data[3] == 0x8e || data[3] == 0xa6) {
 						for _, value := range d.PairedDevices {
 							if dev, found := value.(*virtuosorgbXTW.Device); found {
+								dev.NotifyMuteChanged(data[5])
+							}
+							if dev, found := value.(*hs80rgbW.Device); found {
 								dev.NotifyMuteChanged(data[5])
 							}
 						}

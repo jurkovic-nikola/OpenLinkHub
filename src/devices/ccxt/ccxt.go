@@ -180,6 +180,7 @@ type Devices struct {
 }
 
 type Device struct {
+	Debug                   bool
 	dev                     *hid.Device
 	Manufacturer            string                    `json:"manufacturer"`
 	Product                 string                    `json:"product"`
@@ -266,6 +267,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
+	d.getDebugMode()        // Debug mode
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
@@ -445,7 +447,7 @@ func (d *Device) GetDeviceTemplate() string {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -569,6 +571,11 @@ func (d *Device) setSoftwareMode() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
+}
+
+// getManufacturer will return device manufacturer
+func (d *Device) getDebugMode() {
+	d.Debug = config.GetConfig().Debug
 }
 
 // setColorEndpoint will activate hub color endpoint for further usage
@@ -973,14 +980,21 @@ func (d *Device) getDeviceData() {
 	}
 	var m = 0
 
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "channels": fmt.Sprintf("% 2x", channels)}).Info("getDeviceData()")
+	}
+
 	// Speed
 	response := d.read(modeGetSpeeds, dataTypeGetSpeeds, "getDeviceData")
 	if response == nil {
 		return
 	}
 	amount := d.getChannelAmount(channels)
-
 	sensorData := response[6:]
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "response": fmt.Sprintf("% 2x", response), "data": fmt.Sprintf("% 2x", sensorData), "amount": amount}).Info("getDeviceData() - Fans")
+	}
+
 	for i, s := 0, 0; i < amount; i, s = i+1, s+2 {
 		if d.Exit {
 			break
@@ -1003,9 +1017,13 @@ func (d *Device) getDeviceData() {
 	if response == nil {
 		return
 	}
-
 	amount = d.getChannelAmount(response)
 	sensorData = response[6:]
+
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "response": fmt.Sprintf("% 2x", response), "data": fmt.Sprintf("% 2x", sensorData), "amount": amount}).Info("getDeviceData() - Probes")
+	}
+
 	for i, s := 0, 0; i < amount; i, s = i+1, s+3 {
 		if d.Exit {
 			break
@@ -1455,7 +1473,7 @@ func (d *Device) getLedDevices() {
 
 // getRgbDevices will get all RGB devices
 func (d *Device) getRgbDevices() {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	var m = 0
 	amount := 6
 
@@ -1627,14 +1645,22 @@ func (d *Device) getRgbDevices() {
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	var m = 0
 
 	// Fans
 	response := d.read(modeGetFans, dataTypeGetFans, "getDevices")
 	amount := d.getChannelAmount(response)
+
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response), "amount": amount}).Info("getDevices()")
+	}
+
 	for i := 0; i < amount; i++ {
 		status := response[6:][i]
+		if d.Debug {
+			logger.Log(logger.Fields{"serial": d.Serial, "port": i, "status": status}).Info("getDevices() - Port Status")
+		}
 		if status == 0x07 {
 			// Get a persistent speed profile. Fallback to Normal is anything fails
 			speedProfile := "Normal"
@@ -1891,7 +1917,7 @@ func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	go func() {
-		tmp := make(map[int]string, 0)
+		tmp := make(map[int]string)
 		channelSpeeds := map[int]byte{}
 
 		// Init speed channels

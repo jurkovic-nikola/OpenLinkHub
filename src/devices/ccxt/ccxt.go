@@ -112,6 +112,42 @@ var (
 			Total:   8,
 			Command: 05,
 		},
+		{
+			Index:   7,
+			Name:    "XD7 Pump / Res Combo",
+			Total:   36,
+			Command: 01,
+		},
+		{
+			Index:   8,
+			Name:    "CX7 / XC9 CPU Block",
+			Total:   16,
+			Command: 01,
+		},
+		{
+			Index:   9,
+			Name:    "XC5 PRO / XC8 PRO CPU Block",
+			Total:   8,
+			Command: 01,
+		},
+		{
+			Index:   10,
+			Name:    "XD5 Pump / Res Combo",
+			Total:   10,
+			Command: 01,
+		},
+		{
+			Index:   11,
+			Name:    "GPU Block",
+			Total:   16,
+			Command: 01,
+		},
+		{
+			Index:   12,
+			Name:    "XD3 Pump / Res Combo",
+			Total:   16,
+			Command: 01,
+		},
 	}
 )
 

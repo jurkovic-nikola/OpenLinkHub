@@ -8,42 +8,44 @@ import (
 )
 
 type Configuration struct {
-	Debug             bool      `json:"debug"`
-	ListenPort        int       `json:"listenPort"`
-	ListenAddress     string    `json:"listenAddress"`
-	CPUSensorChip     string    `json:"cpuSensorChip"`
-	Manual            bool      `json:"manual"`
-	Frontend          bool      `json:"frontend"`
-	Metrics           bool      `json:"metrics"`
-	Memory            bool      `json:"memory"`
-	MemorySmBus       string    `json:"memorySmBus"`
-	MemoryType        int       `json:"memoryType"`
-	Exclude           []uint16  `json:"exclude"`
-	DecodeMemorySku   bool      `json:"decodeMemorySku"`
-	MemorySku         string    `json:"memorySku"`
-	ConfigPath        string    `json:",omitempty"`
-	ResumeDelay       int       `json:"resumeDelay"`
-	LogFile           string    `json:"logFile"`
-	LogLevel          log.Level `json:"logLevel"`
-	EnhancementKits   []byte    `json:"enhancementKits"`
-	TemperatureOffset int       `json:"temperatureOffset"`
-	AMDGpuIndex       int       `json:"amdGpuIndex"`
-	AMDSmiPath        string    `json:"amdsmiPath"`
+	Debug                 bool      `json:"debug"`
+	ListenPort            int       `json:"listenPort"`
+	ListenAddress         string    `json:"listenAddress"`
+	CPUSensorChip         string    `json:"cpuSensorChip"`
+	Manual                bool      `json:"manual"`
+	Frontend              bool      `json:"frontend"`
+	Metrics               bool      `json:"metrics"`
+	Memory                bool      `json:"memory"`
+	MemorySmBus           string    `json:"memorySmBus"`
+	MemoryType            int       `json:"memoryType"`
+	Exclude               []uint16  `json:"exclude"`
+	DecodeMemorySku       bool      `json:"decodeMemorySku"`
+	MemorySku             string    `json:"memorySku"`
+	ConfigPath            string    `json:",omitempty"`
+	ResumeDelay           int       `json:"resumeDelay"`
+	LogFile               string    `json:"logFile"`
+	LogLevel              log.Level `json:"logLevel"`
+	EnhancementKits       []byte    `json:"enhancementKits"`
+	TemperatureOffset     int       `json:"temperatureOffset"`
+	AMDGpuIndex           int       `json:"amdGpuIndex"`
+	AMDSmiPath            string    `json:"amdsmiPath"`
+	CheckDevicePermission bool      `json:"checkDevicePermission"`
 }
 
 var (
 	location      = ""
 	configuration Configuration
 	upgrade       = map[string]any{
-		"decodeMemorySku":   true,
-		"memorySku":         "",
-		"resumeDelay":       15000,
-		"logLevel":          log.InfoLevel,
-		"logFile":           "",
-		"enhancementKits":   make([]byte, 0),
-		"temperatureOffset": 0,
-		"amdGpuIndex":       0,
-		"amdsmiPath":        "",
+		"decodeMemorySku":       true,
+		"memorySku":             "",
+		"resumeDelay":           15000,
+		"logLevel":              log.InfoLevel,
+		"logFile":               "",
+		"enhancementKits":       make([]byte, 0),
+		"temperatureOffset":     0,
+		"amdGpuIndex":           0,
+		"amdsmiPath":            "",
+		"checkDevicePermission": true,
 	}
 )
 
@@ -78,26 +80,27 @@ func Init() {
 func upgradeFile(cfg string) {
 	if !common.FileExists(cfg) {
 		value := &Configuration{
-			Debug:             false,
-			ListenPort:        27003,
-			ListenAddress:     "127.0.0.1",
-			CPUSensorChip:     "",
-			Manual:            false,
-			Frontend:          true,
-			Metrics:           false,
-			Memory:            false,
-			MemorySmBus:       "i2c-0",
-			MemoryType:        4,
-			Exclude:           make([]uint16, 0),
-			DecodeMemorySku:   true,
-			MemorySku:         "",
-			ResumeDelay:       15000,
-			LogLevel:          log.InfoLevel,
-			LogFile:           "",
-			EnhancementKits:   make([]byte, 0),
-			TemperatureOffset: 0,
-			AMDGpuIndex:       0,
-			AMDSmiPath:        "",
+			Debug:                 false,
+			ListenPort:            27003,
+			ListenAddress:         "127.0.0.1",
+			CPUSensorChip:         "",
+			Manual:                false,
+			Frontend:              true,
+			Metrics:               false,
+			Memory:                false,
+			MemorySmBus:           "i2c-0",
+			MemoryType:            4,
+			Exclude:               make([]uint16, 0),
+			DecodeMemorySku:       true,
+			MemorySku:             "",
+			ResumeDelay:           15000,
+			LogLevel:              log.InfoLevel,
+			LogFile:               "",
+			EnhancementKits:       make([]byte, 0),
+			TemperatureOffset:     0,
+			AMDGpuIndex:           0,
+			AMDSmiPath:            "",
+			CheckDevicePermission: true,
 		}
 		saveConfigSettings(value)
 	} else {

@@ -1315,23 +1315,25 @@ func Init() {
 
 		if info.InterfaceNbr == interfaceId {
 			devPath := info.Path
-			dev, err := os.Stat(devPath)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to get device stat info")
-				return nil
-			}
-			filePerm := dev.Mode().Perm()
-			for _, expectedPermission := range expectedPermissions {
-				if filePerm != os.FileMode(expectedPermission) {
-					continue
-				} else {
-					match++
+			if config.GetConfig().CheckDevicePermission {
+				dev, err := os.Stat(devPath)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err}).Error("Unable to get device stat info")
+					return nil
 				}
-			}
-
-			if match == 0 {
-				logger.Log(logger.Fields{"productId": info.ProductID, "path": info.Path, "device": info.ProductStr}).Warn("Invalid permissions")
-				return nil
+				
+				filePerm := dev.Mode().Perm()
+				for _, expectedPermission := range expectedPermissions {
+					if filePerm != os.FileMode(expectedPermission) {
+						continue
+					} else {
+						match++
+					}
+				}
+				if match == 0 {
+					logger.Log(logger.Fields{"productId": info.ProductID, "path": info.Path, "device": info.ProductStr}).Warn("Invalid permissions")
+					return nil
+				}
 			}
 
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {

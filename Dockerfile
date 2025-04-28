@@ -1,4 +1,4 @@
-FROM golang:1.22.2-bullseye AS build
+FROM golang:1.23.8-bullseye AS build
 ARG GIT_TAG
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y libudev-dev

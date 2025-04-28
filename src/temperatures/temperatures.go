@@ -73,6 +73,8 @@ var (
 	mutex             sync.Mutex
 	temperatures      *Temperatures
 	cpuPackages       = []string{"k10temp", "zenpower", "coretemp"}
+	defaultTempFile   = "temp1_input"
+
 	// Defaults
 	profileQuiet = TemperatureProfileData{
 		Sensor: 0,
@@ -223,6 +225,10 @@ func Init() {
 		temperatureOffset = config.GetConfig().TemperatureOffset
 	}
 	memoryTemperature = make(map[int]MemoryTemperatures)
+
+	if len(config.GetConfig().CpuTempFile) > 0 {
+		defaultTempFile = config.GetConfig().CpuTempFile
+	}
 }
 
 // SetMemoryTemperature will update memory temperature
@@ -525,7 +531,7 @@ func GetGpuTemperature() float32 {
 
 // getHwMonTemperature will return temperature for given entry
 func getHwMonTemperature(hwmonDir string, entry os.DirEntry) float32 {
-	tempFile := filepath.Join(hwmonDir, entry.Name(), "temp1_input")
+	tempFile := filepath.Join(hwmonDir, entry.Name(), defaultTempFile)
 	temp, err := os.ReadFile(tempFile)
 	if err != nil {
 		return 0

@@ -30,6 +30,7 @@ type Configuration struct {
 	AMDGpuIndex           int       `json:"amdGpuIndex"`
 	AMDSmiPath            string    `json:"amdsmiPath"`
 	CheckDevicePermission bool      `json:"checkDevicePermission"`
+	CpuTempFile           string    `json:"cpuTempFile"`
 }
 
 var (
@@ -46,6 +47,7 @@ var (
 		"amdGpuIndex":           0,
 		"amdsmiPath":            "",
 		"checkDevicePermission": true,
+		"cpuTempFile":           "",
 	}
 )
 
@@ -101,6 +103,7 @@ func upgradeFile(cfg string) {
 			AMDGpuIndex:           0,
 			AMDSmiPath:            "",
 			CheckDevicePermission: true,
+			CpuTempFile:           "",
 		}
 		saveConfigSettings(value)
 	} else {

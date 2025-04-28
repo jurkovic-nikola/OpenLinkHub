@@ -170,7 +170,7 @@ type Product struct {
 }
 
 var (
-	expectedPermissions        = []int{0600, 0660}
+	expectedPermissions        = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
 	vendorId            uint16 = 6940 // Corsair
 	interfaceId                = 0
 	devices                    = make(map[string]*Device)
@@ -1296,7 +1296,6 @@ func Init() {
 			},
 		).Info("Processing device...")
 
-		match := 0
 		if slices.Contains(keyboards, info.ProductID) {
 			interfaceId = 1 // Keyboard
 		} else if slices.Contains(mouses, info.ProductID) {
@@ -1321,16 +1320,8 @@ func Init() {
 					logger.Log(logger.Fields{"error": err}).Error("Unable to get device stat info")
 					return nil
 				}
-				
 				filePerm := dev.Mode().Perm()
-				for _, expectedPermission := range expectedPermissions {
-					if filePerm != os.FileMode(expectedPermission) {
-						continue
-					} else {
-						match++
-					}
-				}
-				if match == 0 {
+				if !slices.Contains(expectedPermissions, filePerm) {
 					logger.Log(logger.Fields{"productId": info.ProductID, "path": info.Path, "device": info.ProductStr}).Warn("Invalid permissions")
 					return nil
 				}

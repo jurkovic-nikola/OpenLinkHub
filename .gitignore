@@ -4,6 +4,7 @@ rpmbuild/
 release/
 build.sh
 OpenLinkHub
+Buildfile
 config.json
 stdout.log
 dashboard.json
@@ -13,6 +14,7 @@ database/rgb/*.json
 database/key-assignments/*.json
 database/macros/*.json
 database/led/*.json
+database/lcd/*.json
 database/scheduler.json
 org.openlinkhub.OpenLinkHub.json
 .flatpak-builder/

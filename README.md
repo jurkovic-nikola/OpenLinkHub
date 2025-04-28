@@ -192,7 +192,8 @@ $ systemctl reboot
   "enhancementKits": [],
   "temperatureOffset": 0,
   "amdGpuIndex": 0,
-  "amdsmiPath": ""
+  "amdsmiPath": "",
+  "cpuTempFile": ""
 }
 ```
 - listenPort: HTTP server port.
@@ -218,7 +219,8 @@ $ systemctl reboot
   - When kits are used, you need to set `decodeMemorySku` to `false` and define `memorySku`
 - temperatureOffset: Temperature offset for AMD Threadripper CPUs
 - amdGpuIndex: GPU device index. You can find your GPU index via `amd-smi static --asic --json`
-- amdsmiPath: Manual path to amd-smi binary (not recommended). Better way is to define `amd-smi` path in `$PATH` variable if missing. 
+- amdsmiPath: Manual path to amd-smi binary (not recommended). Better way is to define `amd-smi` path in `$PATH` variable if missing.
+- cpuTempFile: custom hwmon temperature input file, e.g. tempX_input. Use in combination with `cpuSensorChip`.
 ## Uninstall
 ```bash
 # Stop service

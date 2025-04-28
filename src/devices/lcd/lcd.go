@@ -302,29 +302,13 @@ func drawSmoothArcGradient(img *image.RGBA, centerX, centerY, innerR, outerR flo
 
 	for angle := startAngle; angle <= endAngle; angle += step {
 		t := (angle - startAngle) / angleRange
-		col := lerpColor(cStart, cEnd, t)
+		col := interpolateColor(cStart, cEnd, t)
 
 		radius := (innerR + outerR) / 2
 		x := centerX + radius*math.Cos(angle)
 		y := centerY + radius*math.Sin(angle)
 		drawCircle(img, x, y, (outerR-innerR)/2, col)
 	}
-}
-
-func calculateIntXY(fontSize float64, value int) (int, int) {
-	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
-	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-	}
-
-	bounds, _ := font.BoundString(fontFace, strconv.Itoa(value))
-	textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-	textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-	x := (imgWidth - textWidth) / 2
-	y := (imgHeight+textHeight)/2 - 10
-	return x, y
 }
 
 func calculateStringXY(fontSize float64, value string) (int, int) {
@@ -339,6 +323,21 @@ func calculateStringXY(fontSize float64, value string) (int, int) {
 	textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
 
 	x := (imgWidth - textWidth) / 2
+	y := (imgHeight+textHeight)/2 - 10
+	return x, y
+}
+func calculateStringXYMinus(fontSize float64, value string, minus int) (int, int) {
+	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
+	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
+	}
+
+	bounds, _ := font.BoundString(fontFace, value)
+	textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
+	textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
+
+	x := (imgWidth-textWidth)/2 - minus
 	y := (imgHeight+textHeight)/2 - 10
 	return x, y
 }
@@ -380,8 +379,8 @@ func drawArcOutline(img *image.RGBA, centerX, centerY, innerR, outerR float64, s
 	}
 }
 
-// lerpColor will interpolates between two colors
-func lerpColor(c1, c2 color.RGBA, t float64) color.RGBA {
+// interpolateColor will interpolate between two colors
+func interpolateColor(c1, c2 color.RGBA, t float64) color.RGBA {
 	return color.RGBA{
 		R: uint8(float64(c1.R)*(1-t) + float64(c2.R)*t),
 		G: uint8(float64(c1.G)*(1-t) + float64(c2.G)*t),
@@ -462,8 +461,8 @@ func GenerateDoubleArcScreenImage(values []int) []byte {
 	rightCenterX := float64(imgWidth) - doubleRrc.Margin - outerRadius
 	rightMax := sensorMaximumValue(rightArc.Sensor)
 	rightValue := values[rightArc.Sensor]
-	if rightValue > leftMax {
-		rightValue = leftMax
+	if rightValue > rightMax {
+		rightValue = rightMax
 	}
 	rightArcEnd := math.Pi/2 - doubleRrc.GapRadians/2
 	rightArcStart := rightArcEnd - float64(rightValue)/float64(rightMax)*(math.Pi-doubleRrc.GapRadians)

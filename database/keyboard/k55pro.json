@@ -9,35 +9,35 @@
   "zones": {
     "1":{
       "color": {
-        "red": 100,
+        "red": 0,
         "green": 255,
         "blue": 255
       }
     },
     "2":{
       "color": {
-        "red": 100,
+        "red": 0,
         "green": 255,
         "blue": 255
       }
     },
     "3":{
       "color": {
-        "red": 100,
+        "red": 0,
         "green": 255,
         "blue": 255
       }
     },
     "4":{
       "color": {
-        "red": 100,
+        "red": 0,
         "green": 255,
         "blue": 255
       }
     },
     "5":{
       "color": {
-        "red": 100,
+        "red": 0,
         "green": 255,
         "blue": 255
       }

@@ -1338,13 +1338,11 @@ func (d *Device) controlButtonListener() {
 				case 0x02:
 					{
 						if data[16] == 0x02 {
-
-							if brightness == 0 {
-								brightness = 100
-							} else {
+							if brightness == 100 {
 								brightness = 0
+							} else {
+								brightness += 20
 							}
-
 							d.DeviceProfile.BrightnessSlider = &brightness
 							d.saveDeviceProfile()
 

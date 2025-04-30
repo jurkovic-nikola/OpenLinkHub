@@ -16,6 +16,8 @@ import (
 	"OpenLinkHub/src/devices/harpoonWU"
 	"OpenLinkHub/src/devices/harpoonrgbpro"
 	"OpenLinkHub/src/devices/headsetdongle"
+	"OpenLinkHub/src/devices/hs80maxW"
+	"OpenLinkHub/src/devices/hs80maxdongle"
 	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
@@ -141,6 +143,7 @@ const (
 	productTypeVirtuosoXTWU         = 301
 	productTypeVirtuosoMAXW         = 302
 	productTypeHS80RGBW             = 303
+	productTypeHS80MAXW             = 304
 	productTypeST100                = 401
 	productTypeMM700                = 402
 	productTypeLT100                = 403
@@ -179,7 +182,7 @@ var (
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667}
-	headsets2                  = []uint16{10754}
+	headsets2                  = []uint16{10754, 2711}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 	legacyDevices              = []uint16{3090, 3091, 3093}
 )
@@ -1877,6 +1880,46 @@ func Init() {
 							devices[d.Serial] = &Device{
 								ProductType: productTypeVirtuosoMAXW,
 								Product:     "VIRTUOSO MAX",
+								Serial:      d.Serial,
+								Firmware:    d.Firmware,
+								Image:       "icon-headphone.svg",
+								Instance:    d,
+							}
+							dev.AddPairedDevice(dev.Devices.ProductId, d)
+						}
+					default:
+						logger.Log(logger.Fields{"productId": dev.Devices.ProductId}).Warn("Unsupported device detected")
+					}
+					dev.InitAvailableDevices()
+				}(vendorId, productId, key)
+			}
+		case 2711: // CORSAIR HS80 MAX WIRELESS
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := hs80maxdongle.Init(vendorId, productId, key)
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeHS80MAXW,
+						Product:     "HEADSET DONGLE",
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-dongle.svg",
+						Instance:    dev,
+						Hidden:      true,
+					}
+					switch dev.Devices.ProductId {
+					case 2710:
+						{
+							d := hs80maxW.Init(
+								dev.Devices.VendorId,
+								productId,
+								dev.Devices.ProductId,
+								dev.GetDevice(),
+								dev.Devices.Endpoint,
+								dev.Devices.Serial,
+							)
+							devices[d.Serial] = &Device{
+								ProductType: productTypeHS80MAXW,
+								Product:     "HS80 MAX WIRELESS",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
 								Image:       "icon-headphone.svg",

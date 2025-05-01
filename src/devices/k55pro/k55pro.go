@@ -1,7 +1,7 @@
 package k55pro
 
-// Package: K55 PRO
-// This is the primary package for K55 CORE.
+// Package: K55 RGB PRO
+// This is the primary package for K55 RGB PRO.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -336,7 +336,7 @@ func (d *Device) initLeds() {
 func (d *Device) saveDeviceProfile() {
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
-	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
+	keyboardMap := make(map[string]*keyboards.Keyboard)
 
 	deviceProfile := &DeviceProfile{
 		Product:            d.Product,
@@ -423,7 +423,7 @@ func (d *Device) saveDeviceProfile() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1078,7 +1078,7 @@ func (d *Device) setDeviceColor() {
 		}
 		sort.Ints(keys)
 		i := 0
-		for _, _ = range keys {
+		for range keys {
 			buf[i] = byte(profileColor.Red)
 			buf[i+6] = byte(profileColor.Green)
 			buf[i+12] = byte(profileColor.Blue)
@@ -1239,14 +1239,14 @@ func (d *Device) setDeviceColor() {
 				sort.Ints(keys)
 				i := 0
 				m := 0
-				for _, _ = range keys {
+				for range keys {
 					buf[i] = buff[m]
 					buf[i+6] = buff[m+1]
 					buf[i+12] = buff[m+2]
 					i++
 					m += 3
 				}
-				d.writeColor(buf) // Write color once
+				d.writeColor(buf)
 				time.Sleep(40 * time.Millisecond)
 			}
 		}

@@ -49,6 +49,8 @@ import (
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m55rgbpro"
 	"OpenLinkHub/src/devices/m65rgbultra"
+	"OpenLinkHub/src/devices/m65rgbultraW"
+	"OpenLinkHub/src/devices/m65rgbultraWU"
 	"OpenLinkHub/src/devices/m75"
 	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/m75WU"
@@ -141,6 +143,8 @@ const (
 	productTypeDarkstarW            = 227
 	productTypeScimitarRgbEliteSEW  = 228
 	productTypeScimitarRgbEliteSEWU = 229
+	productTypeM65RgbUltraW         = 230
+	productTypeM65RgbUltraWU        = 231
 	productTypeVirtuosoXTW          = 300
 	productTypeVirtuosoXTWU         = 301
 	productTypeVirtuosoMAXW         = 302
@@ -181,7 +185,7 @@ var (
 	devices                    = make(map[string]*Device)
 	products                   = make(map[string]Product)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042, 7093}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667}
 	headsets2                  = []uint16{10754, 2711}
@@ -2190,6 +2194,26 @@ func Init() {
 								}
 								dev.AddPairedDevice(value.ProductId, d)
 							}
+						case 7093: // M65 RGB ULTRA WIRELESS Gaming Mouse
+							{
+								d := m65rgbultraW.Init(
+									value.VendorId,
+									productId,
+									value.ProductId,
+									dev.GetDevice(),
+									value.Endpoint,
+									value.Serial,
+								)
+								devices[d.Serial] = &Device{
+									ProductType: productTypeM65RgbUltraW,
+									Product:     "M65 RGB ULTRA",
+									Serial:      d.Serial,
+									Firmware:    d.Firmware,
+									Image:       "icon-mouse.svg",
+									Instance:    d,
+								}
+								dev.AddPairedDevice(value.ProductId, d)
+							}
 						case 11010: // K70 CORE TKL WIRELESS
 							{
 								d := k70coretklW.Init(
@@ -2560,6 +2584,23 @@ func Init() {
 					}
 					devices[dev.Serial] = &Device{
 						ProductType: productTypeM65RgbUltra,
+						Product:     dev.Product,
+						Serial:      dev.Serial,
+						Firmware:    dev.Firmware,
+						Image:       "icon-mouse.svg",
+						Instance:    dev,
+					}
+				}(vendorId, productId, key)
+			}
+		case 7093: // CORSAIR M65 RGB ULTRA WIRELESS Gaming Mouse
+			{
+				go func(vendorId, productId uint16, key string) {
+					dev := m65rgbultraWU.Init(vendorId, productId, key)
+					if dev == nil {
+						return
+					}
+					devices[dev.Serial] = &Device{
+						ProductType: productTypeM65RgbUltraWU,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    dev.Firmware,

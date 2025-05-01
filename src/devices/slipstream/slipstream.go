@@ -16,6 +16,7 @@ import (
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k70coretklW"
 	"OpenLinkHub/src/devices/m55W"
+	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/scimitarSEW"
@@ -190,6 +191,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*k70coretklW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*m65rgbultraW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -444,6 +450,11 @@ func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16
 				device.ModifyBatteryLevel(batteryLevel)
 			}
 		}
+		if device, found := dev.(*m65rgbultraW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
 	}
 }
 
@@ -510,6 +521,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*m65rgbultraW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -572,6 +588,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*k70coretklW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -647,6 +668,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*darkstarW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -729,6 +755,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						device.Connect()
 					}
 				}
+				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
 			}
 			break
 		case 2:
@@ -790,6 +821,11 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
+					if !device.Connected {
+						device.Connect()
+					}
+				}
+				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 					if !device.Connected {
 						device.Connect()
 					}
@@ -1039,6 +1075,11 @@ func (d *Device) backendListener() {
 									}
 								}
 								if dev, found := value.(*darkstarW.Device); found {
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+									}
+								}
+								if dev, found := value.(*m65rgbultraW.Device); found {
 									if data[1] == 0x02 {
 										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
 									}

@@ -2,6 +2,7 @@
 build/
 rpmbuild/
 release/
+docker/
 build.sh
 OpenLinkHub
 Buildfile

@@ -353,6 +353,14 @@ func (d *Device) setupLedProfile() {
 		d.saveLedProfile()                       // Save profile
 		d.ledProfile = led.LoadProfile(d.Serial) // Reload
 	}
+
+	profileLength := len(d.ledProfile.Devices)
+	actualLength := len(d.Devices)
+	if profileLength != actualLength {
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product, "profile": profileLength, "actual": actualLength}).Info("Device amount changed. LED profile will be re-created.")
+		d.saveLedProfile()                       // Save profile
+		d.ledProfile = led.LoadProfile(d.Serial) // Reload
+	}
 }
 
 // saveLedProfile will save new LED profile
@@ -1120,6 +1128,26 @@ func (d *Device) ChangeDeviceLcd(channelId int, lcdSerial string) uint8 {
 	} else {
 		return 2
 	}
+}
+
+// UpdateDeviceLedData will update device LED data
+func (d *Device) UpdateDeviceLedData(ledProfile led.Device) uint8 {
+	if d.ledProfile == nil {
+		return 0
+	}
+
+	// Go through all devices
+	for key, value := range d.ledProfile.Devices {
+		// Go through all channels
+		for i := range value.Channels {
+			// Check if channel we sent exists
+			if _, ok := ledProfile.Devices[key].Channels[i]; ok {
+				// Update specified channel
+				d.ledProfile.Devices[key].Channels[i] = ledProfile.Devices[key].Channels[i]
+			}
+		}
+	}
+	return 1
 }
 
 // UpdateDeviceLcdRotation will update device LCD rotation

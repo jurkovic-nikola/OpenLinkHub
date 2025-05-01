@@ -174,6 +174,17 @@ func getDeviceLed(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updateDeviceLed handles device LED changes
+func updateDeviceLed(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLedChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // getMacro returns response on /macro
 func getMacro(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -1262,6 +1273,8 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getDeviceLed)
 	r.Methods(http.MethodGet).Path("/api/led/").
 		HandlerFunc(getDeviceLed)
+	r.Methods(http.MethodPost).Path("/api/led/").
+		HandlerFunc(updateDeviceLed)
 	r.Methods(http.MethodGet).Path("/api/macro/{macroId}").
 		HandlerFunc(getMacro)
 	r.Methods(http.MethodGet).Path("/api/macro/").

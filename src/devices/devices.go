@@ -74,6 +74,7 @@ import (
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
@@ -1246,6 +1247,28 @@ func GetDevicesLedData() interface{} {
 		}
 	}
 	return leds
+}
+
+// UpdateDeviceLedData will update device led data
+func UpdateDeviceLedData(deviceId string, ledProfile led.Device) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateDeviceLedData"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(ledProfile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
 }
 
 // GetDevices will return all available devices

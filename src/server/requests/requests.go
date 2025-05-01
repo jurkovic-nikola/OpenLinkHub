@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
@@ -88,6 +89,7 @@ type Payload struct {
 	MacroType           uint8              `json:"macroType"`
 	MacroValue          uint8              `json:"macroValue"`
 	MacroDelay          uint16             `json:"macroDelay"`
+	LedProfile          led.Device         `json:"ledProfile"`
 	Status              int
 	Code                int
 	Message             string
@@ -2201,4 +2203,38 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 		Code:    http.StatusOK,
 		Status:  0,
 	}
+}
+
+// ProcessLedChange will process POST request from a client for LED change
+func ProcessLedChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: "Non-existing device", Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateDeviceLedData(req.DeviceId, req.LedProfile)
+	switch status {
+	case 1:
+		return &Payload{Message: "LED data successfully changed", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to update LED data", Code: http.StatusOK, Status: 0}
 }

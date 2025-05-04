@@ -111,10 +111,10 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, hea
 3. Navigate to the folder where the package is downloaded
 ```bash
 # Debian Based (deb)
-$ sudo apt install ./OpenLinkHub_X.X.X_amd64.deb 
+$ sudo apt install ./OpenLinkHub_?.?.?_amd64.deb 
 
 # RPM based (rpm)
-$ sudo dnf install ./OpenLinkHub-X.X.X-1.x86_64.rpm
+$ sudo dnf install ./OpenLinkHub-?.?.?-1.x86_64.rpm
 ```
 
 ## Installation (manual)
@@ -144,7 +144,7 @@ $ sudo ./install.sh
 ```bash
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases/latest
 $ wget "https://github.com/jurkovic-nikola/OpenLinkHub/releases/latest/download/OpenLinkHub_$(curl -s https://api.github.com/repos/jurkovic-nikola/OpenLinkHub/releases/latest | jq -r '.tag_name')_amd64.tar.gz"
-$ tar xf OpenLinkHub_*_amd64.tar.gz
+$ tar xf OpenLinkHub_?.?.?_amd64.tar.gz
 $ cd /home/$USER/OpenLinkHub/
 $ chmod +x install.sh
 $ sudo ./install.sh
@@ -157,7 +157,7 @@ $ sudo ./install.sh
 $ wget "https://github.com/jurkovic-nikola/OpenLinkHub/releases/latest/download/OpenLinkHub_$(curl -s https://api.github.com/repos/jurkovic-nikola/OpenLinkHub/releases/latest | jq -r '.tag_name')_amd64.tar.gz"
 
 # Extract package to your home directory
-$ tar xf OpenLinkHub_*_amd64.tar.gz -C /home/$USER/
+$ tar xf OpenLinkHub_?.?.?_amd64.tar.gz -C /home/$USER/
 
 # Go to extract folder
 $ cd /home/$USER/OpenLinkHub

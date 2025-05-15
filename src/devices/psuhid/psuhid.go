@@ -159,6 +159,14 @@ func (d *Device) Stop() {
 	}
 }
 
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
+	timer.Stop()
+	autoRefreshChan <- true
+	return 1
+}
+
 // GetDeviceTemplate will return device template name
 func (d *Device) GetDeviceTemplate() string {
 	return d.Template
@@ -282,7 +290,7 @@ func (d *Device) updateFanMode() {
 // getDevices will generate list of devices
 func (d *Device) getDevices() int {
 	m := 0
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 
 	// Fan
 	device := &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "Fan", m), Name: fmt.Sprintf("Fan %d", 1), Rpm: 0, HasSpeed: true, Label: "PSU Fan"}
@@ -479,7 +487,7 @@ func (d *Device) saveDeviceProfile() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -589,18 +597,20 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
 	mutex.Lock()
 	defer mutex.Unlock()
+
 	// Create read buffer
 	bufferR := make([]byte, readBufferSize)
+
 	// Send command to a device
 	if _, err := d.dev.Write(buffer); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 
 	if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {

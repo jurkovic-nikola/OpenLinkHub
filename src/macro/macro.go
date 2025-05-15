@@ -19,7 +19,7 @@ type Macro struct {
 
 type Actions struct {
 	ActionType    uint8  `json:"actionType"`
-	ActionCommand uint8  `json:"actionCommand"`
+	ActionCommand uint16 `json:"actionCommand"`
 	ActionDelay   uint16 `json:"actionDelay"`
 }
 
@@ -145,7 +145,7 @@ func NewMacroProfile(macroName string) uint8 {
 }
 
 // NewMacroProfileValue will create new macro profile value
-func NewMacroProfileValue(macroId int, actionType, actionCommand uint8, actionDelay uint16) uint8 {
+func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, actionDelay uint16) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 

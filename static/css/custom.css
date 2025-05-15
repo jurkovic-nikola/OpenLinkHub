@@ -51,6 +51,13 @@ nav#sidebar {
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
     box-sizing: border-box;         /* Opera/IE 8+ */
 }
+.tempProfiles:hover {
+    outline:1px solid #37cfdc;
+    cursor: pointer;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
 
 .macroList:hover {
     outline:1px solid #37cfdc;
@@ -821,4 +828,12 @@ input[type="color"]::-webkit-color-swatch-wrapper {
 
 input[type="color"]::-webkit-color-swatch {
     border: none;
+}
+
+canvas {
+    background-color: #181818;
+    border: 1px solid #535353;
+    cursor: crosshair;
+    width: auto;
+    height: 500px;
 }

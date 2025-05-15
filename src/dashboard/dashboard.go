@@ -18,14 +18,16 @@ type Dashboard struct {
 	VerticalUi  bool `json:"verticalUi"`
 	Celsius     bool `json:"celsius"`
 	ShowLabels  bool `json:"showLabels"`
+	ShowBattery bool `json:"showBattery"`
 }
 
 var (
 	location  = ""
 	dashboard Dashboard
 	upgrade   = map[string]any{
-		"celsius":    true,
-		"showLabels": true,
+		"celsius":     true,
+		"showLabels":  true,
+		"showBattery": false,
 	}
 )
 
@@ -63,6 +65,7 @@ func upgradeFile() {
 			VerticalUi:  false,
 			Celsius:     true,
 			ShowLabels:  true,
+			ShowBattery: false,
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")
@@ -113,7 +116,7 @@ func upgradeFile() {
 // SaveDashboardSettings will save dashboard settings
 func SaveDashboardSettings(data any, reload bool) uint8 {
 	// Convert to JSON
-	buffer, err := json.Marshal(data)
+	buffer, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format.")
 		return 0

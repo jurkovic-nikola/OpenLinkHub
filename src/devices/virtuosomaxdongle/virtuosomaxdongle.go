@@ -71,7 +71,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		dev:            dev,
 		VendorId:       vendorId,
 		ProductId:      productId,
-		PairedDevices:  make(map[uint16]any, 0),
+		PairedDevices:  make(map[uint16]any),
 		Template:       "slipstream.html",
 		keepAliveChan:  make(chan struct{}),
 		timerKeepAlive: &time.Ticker{},
@@ -121,6 +121,32 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop devices in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+		})
+	}()
+
+	for _, value := range d.PairedDevices {
+		if dev, found := value.(*virtuosomaxW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // getManufacturer will return device manufacturer
@@ -285,7 +311,6 @@ func (d *Device) monitorDevice() {
 						if d.Debug {
 							logger.Log(logger.Fields{"error": err}).Error("Unable to read paired device endpoint")
 						}
-						break
 					}
 				}
 			case <-d.keepAliveChan:

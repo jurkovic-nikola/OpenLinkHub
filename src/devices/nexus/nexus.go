@@ -52,7 +52,7 @@ type DeviceProfile struct {
 }
 
 type Button struct {
-	ActionCode       uint8     `json:"actionCode"`
+	ActionCode       uint16    `json:"actionCode"`
 	Text             string    `json:"text"`
 	TextSize         int       `json:"textSize"`
 	Width            int       `json:"width"`
@@ -80,11 +80,11 @@ type Profile struct {
 	TextColor  rgb.Color      `json:"textColor"`
 	Buttons    map[int]Button `json:"buttons"`
 	Keyboard   bool           `json:"keyboard"`
-	Buffer     []byte
-	Image      image.Image
-	Font       *truetype.Font
-	FontBytes  []byte
-	SfntFont   *opentype.Font
+	Buffer     []byte         `json:"-"`
+	Image      image.Image    `json:"-"`
+	Font       *truetype.Font `json:"-"`
+	FontBytes  []byte         `json:"-"`
+	SfntFont   *opentype.Font `json:"-"`
 }
 
 type LCDProfiles struct {
@@ -92,39 +92,38 @@ type LCDProfiles struct {
 }
 
 type Device struct {
-	Debug                  bool
-	dev                    *hid.Device
-	listener               *hid.Device
-	Manufacturer           string                    `json:"manufacturer"`
-	Product                string                    `json:"product"`
-	Serial                 string                    `json:"serial"`
-	Firmware               string                    `json:"firmware"`
-	AIO                    bool                      `json:"aio"`
-	UserProfiles           map[string]*DeviceProfile `json:"userProfiles"`
-	Devices                map[int]string            `json:"devices"`
-	DeviceProfile          *DeviceProfile
-	OriginalProfile        *DeviceProfile
-	Template               string
-	VendorId               uint16
-	ProductId              uint16
-	HasLCD                 bool
-	LCDModes               map[string]string
-	CpuTemp                float32
-	GpuTemp                float32
-	TemperatureString      string
-	CPUModel               string
-	GPUModel               string
-	LCDImage               *lcd.ImageData
-	Exit                   bool
-	mutex                  sync.Mutex
-	autoRefreshChan        chan struct{}
-	lcdRefreshChan         chan struct{}
-	lcdImageChan           chan struct{}
-	timer                  *time.Ticker
-	lcdTimer               *time.Ticker
-	LCDProfiles            *LCDProfiles
-	virtualKeyboardPresent bool
-	Keyboard               bool
+	Debug             bool
+	dev               *hid.Device
+	listener          *hid.Device
+	Manufacturer      string                    `json:"manufacturer"`
+	Product           string                    `json:"product"`
+	Serial            string                    `json:"serial"`
+	Firmware          string                    `json:"firmware"`
+	AIO               bool                      `json:"aio"`
+	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
+	Devices           map[int]string            `json:"devices"`
+	DeviceProfile     *DeviceProfile
+	OriginalProfile   *DeviceProfile
+	Template          string
+	VendorId          uint16
+	ProductId         uint16
+	HasLCD            bool
+	LCDModes          map[string]string
+	CpuTemp           float32
+	GpuTemp           float32
+	TemperatureString string
+	CPUModel          string
+	GPUModel          string
+	LCDImage          *lcd.ImageData
+	Exit              bool
+	mutex             sync.Mutex
+	autoRefreshChan   chan struct{}
+	lcdRefreshChan    chan struct{}
+	lcdImageChan      chan struct{}
+	timer             *time.Ticker
+	lcdTimer          *time.Ticker
+	LCDProfiles       *LCDProfiles
+	Keyboard          bool
 }
 
 var (
@@ -178,19 +177,18 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
-	d.getManufacturer()      // Manufacturer
-	d.getProduct()           // Product
-	d.getSerial()            // Serial
-	d.getDeviceFirmware()    // Firmware
-	d.loadDeviceProfiles()   // Load all device profiles
-	d.setAutoRefresh()       // Set auto device refresh
-	d.saveDeviceProfile()    // Save profile
-	d.loadLcdProfiles()      // LCD profiles
-	d.loadLcdFonts()         // LCD fonts
-	d.loadLcdBackground()    // LCD background
-	d.setupVirtualKeyboard() // Virtual keyboard
-	d.setupLCD()             // LCD
-	d.backendListener()      // Control listener
+	d.getManufacturer()    // Manufacturer
+	d.getProduct()         // Product
+	d.getSerial()          // Serial
+	d.getDeviceFirmware()  // Firmware
+	d.loadDeviceProfiles() // Load all device profiles
+	d.setAutoRefresh()     // Set auto device refresh
+	d.saveDeviceProfile()  // Save profile
+	d.loadLcdProfiles()    // LCD profiles
+	d.loadLcdFonts()       // LCD fonts
+	d.loadLcdBackground()  // LCD background
+	d.setupLCD()           // LCD
+	d.backendListener()    // Control listener
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -213,9 +211,6 @@ func (d *Device) Stop() {
 		})
 	}()
 
-	// Destroy virtual keyboard
-	inputmanager.DestroyVirtualKeyboard()
-
 	if d.dev != nil {
 		// Switch LCD back to hardware mode
 		lcdReports := map[int][]byte{0: {0x03, 0x0d, 0x01, 0x01}, 1: {0x03, 0x01, 0x64, 0x01}}
@@ -235,12 +230,26 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
-// setupVirtualKeyboard will create new virtual keyboard
-func (d *Device) setupVirtualKeyboard() {
-	err := inputmanager.CreateVirtualKeyboard(d.VendorId, d.ProductId)
-	if err == nil {
-		d.virtualKeyboardPresent = true
-	}
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+
+	d.timer.Stop()
+	d.lcdTimer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			if d.lcdRefreshChan != nil {
+				close(d.lcdRefreshChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // GetDeviceTemplate will return device template name
@@ -434,12 +443,33 @@ func (d *Device) loadLcdBackground() {
 
 							resizedIcon := common.ResizeImage(overlayImg, v.IconWidth, v.IconHeight)
 
+							// Convert the image to RGBA to get pixel data
+							iconImg := image.NewRGBA(image.Rect(0, 0, v.IconWidth, v.IconHeight))
+
+							// Draw the image onto the RGBA object
+							for iy := y; iy < y+v.IconHeight; iy++ {
+								for ix := x; ix < x+v.IconWidth; ix++ {
+									// Get the color of the pixel
+									c := resizedIcon.At(ix, iy)
+									r, g, b, a := c.RGBA()
+
+									// Convert to 8-bit RGBA (8 bits for each channel)
+									// Flip R and B values
+									iconImg.Set(ix-x, iy-y, color.RGBA{
+										B: uint8(r >> 8),
+										G: uint8(g >> 8),
+										R: uint8(b >> 8),
+										A: uint8(a >> 8),
+									})
+								}
+							}
+
 							// Set overlay position
 							offsetIcon := image.Pt(v.IconOffsetX, v.IconOffsetY)
-							overlayIconRect := image.Rectangle{Min: offsetIcon, Max: offsetIcon.Add(resizedIcon.Bounds().Size())}
+							overlayIconRect := image.Rectangle{Min: offsetIcon, Max: offsetIcon.Add(iconImg.Bounds().Size())}
 
 							// Draw overlay onto background with transparency (draw.Over handles alpha)
-							draw.Draw(img, overlayIconRect, resizedIcon, image.Point{}, draw.Over)
+							draw.Draw(img, overlayIconRect, iconImg, image.Point{}, draw.Over)
 						}
 
 						// Draw overlay on background
@@ -927,6 +957,7 @@ func (d *Device) setupLCD() {
 							buf := d.renderDeviceInfo(d.CPUModel, cpuTemp, cpuUtil)
 							d.transfer(buf)
 						}
+						break
 					case "gpu-info":
 						{
 							gpuModel := d.GPUModel
@@ -935,17 +966,26 @@ func (d *Device) setupLCD() {
 							buf := d.renderDeviceInfo(gpuModel, gpuTemp, gpuUtil)
 							d.transfer(buf)
 						}
+						break
 					case "time-info":
 						{
 							dateTime := fmt.Sprintf("%s - %s", common.GetDate(), common.GetTime())
 							buf := d.renderTimeInfo(dateTime)
 							d.transfer(buf)
 						}
-					case "media-control":
+						break
+					default:
 						{
-							buf := d.renderEmpty()
-							d.transfer(buf)
+							if d.LCDProfiles == nil {
+								return
+							}
+
+							if _, ok := d.LCDProfiles.Profiles[lcdMode]; ok {
+								buf := d.renderEmpty()
+								d.transfer(buf)
+							}
 						}
+						break
 					}
 				}
 			case <-d.lcdRefreshChan:
@@ -1006,7 +1046,7 @@ func (d *Device) backendListener() {
 						touchPosition := binary.LittleEndian.Uint16(data[6:8])
 						actionCode := d.getActionCodeByPosition(touchPosition)
 						if actionCode != 0 {
-							inputmanager.InputControlVirtual(actionCode)
+							inputmanager.InputControlKeyboard(actionCode, false)
 						}
 					} else if active == 0 && blocked == true {
 						blocked = false
@@ -1018,7 +1058,7 @@ func (d *Device) backendListener() {
 }
 
 // getActionCodeByPixel will return keyboard action code based on pixel position
-func (d *Device) getActionCodeByPosition(pixel uint16) uint8 {
+func (d *Device) getActionCodeByPosition(pixel uint16) uint16 {
 	if d.DeviceProfile == nil {
 		return 0
 	}

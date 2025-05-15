@@ -234,7 +234,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setDeviceColor(true)  // Device color
 	if config.GetConfig().Manual {
 		fmt.Println(
-			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
+			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
 		)
 	} else {
 		d.updateDeviceSpeed() // Update device speed
@@ -319,6 +319,29 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
+// StopDirty will device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+				}
+			}
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
+}
+
 // loadRgb will load RGB file if found, or create the default.
 func (d *Device) loadRgb() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -396,7 +419,7 @@ func (d *Device) GetDeviceTemplate() string {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1115,7 +1138,7 @@ func (d *Device) getDeviceData() {
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	m := 0
 
 	// Fans
@@ -1678,7 +1701,7 @@ func (d *Device) setAutoRefresh() {
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	go func() {
-		tmp := make(map[int]string, 0)
+		tmp := make(map[int]string)
 		for {
 			select {
 			case <-d.timerSpeed.C:
@@ -1754,15 +1777,33 @@ func (d *Device) updateDeviceSpeed() {
 							temp = 50
 						}
 
-						for i := 0; i < len(profiles.Profiles); i++ {
-							profile := profiles.Profiles[i]
-							minimum := profile.Min + 0.1
-							if common.InBetween(temp, minimum, profile.Max) {
-								cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
-								if ok := tmp[device.ChannelId]; ok != cp {
-									tmp[device.ChannelId] = cp
-									channelSpeeds[device.ChannelId] = byte(profile.Fans)
-									d.setSpeed(channelSpeeds)
+						if config.GetConfig().GraphProfiles {
+							fansValue := temperatures.Interpolate(profiles.Points[1], temp)
+							fans := int(math.Round(float64(fansValue)))
+							// Failsafe
+							if fans < 20 {
+								fans = 20
+							}
+							if fans > 100 {
+								fans = 100
+							}
+							cp := fmt.Sprintf("%s-%d-%f", device.Profile, device.ChannelId, temp)
+							if ok := tmp[device.ChannelId]; ok != cp {
+								tmp[device.ChannelId] = cp
+								channelSpeeds[device.ChannelId] = byte(fans)
+								d.setSpeed(channelSpeeds)
+							}
+						} else {
+							for i := 0; i < len(profiles.Profiles); i++ {
+								profile := profiles.Profiles[i]
+								minimum := profile.Min + 0.1
+								if common.InBetween(temp, minimum, profile.Max) {
+									cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
+									if ok := tmp[device.ChannelId]; ok != cp {
+										tmp[device.ChannelId] = cp
+										channelSpeeds[device.ChannelId] = byte(profile.Fans)
+										d.setSpeed(channelSpeeds)
+									}
 								}
 							}
 						}
@@ -1889,13 +1930,13 @@ func (d *Device) transfer(endpoint byte, commands []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 
 	return bufferR, nil

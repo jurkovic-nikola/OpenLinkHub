@@ -33,10 +33,13 @@
                                     </p>
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <button title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <span title="Connection (USB)" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                        <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </span>
+                                    <span title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
                                         {{ $device.BatteryLevel }} %
-                                    </button>
+                                    </span>
                                     <button title="Keyboard Layout" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -85,6 +88,8 @@
                                                 {{ else if eq $key "mouse" }}
                                                 {{ continue }}
                                                 {{ else if eq $key "headset" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "custom" }}
                                                 {{ continue }}
                                                 {{ end }}
                                                 {{ if eq $key $device.DeviceProfile.RGBProfile }}

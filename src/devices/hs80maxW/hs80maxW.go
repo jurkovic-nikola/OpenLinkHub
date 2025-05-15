@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -176,8 +177,25 @@ func (d *Device) StopInternal() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
+// StopDirty will stop devices in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	d.Connected = false
+	return 1
+}
+
 // SetConnected will change connected status
 func (d *Device) SetConnected(value bool) {
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+	}
 	d.Connected = value
 }
 
@@ -516,6 +534,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[4:6]) / 10
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -612,13 +631,19 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		}
+
+		if d.DeviceProfile.SleepMode == 0 {
+			deviceProfile.SleepMode = 15
+		} else {
+			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
-		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		deviceProfile.DisableMicIndicator = d.DeviceProfile.DisableMicIndicator
 
 		if len(d.DeviceProfile.Path) < 1 {
@@ -1088,13 +1113,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 	return bufferR, nil
 }
@@ -1121,4 +1146,5 @@ func (d *Device) NotifyMuteChanged(status byte) {
 // ModifyBatteryLevel will modify battery level
 func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
 	d.BatteryLevel = batteryLevel
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
 }

@@ -40,14 +40,20 @@ func (r *ActiveRGB) Temperature(currentTemp float64) {
 	startColor = interpolateColor(startColor, result, t, r.RGBBrightness)
 
 	for j := 0; j < r.LightChannels; j++ {
-		buf[j] = []byte{
-			byte(startColor.Red),
-			byte(startColor.Green),
-			byte(startColor.Blue),
-		}
-		if r.IsAIO && r.HasLCD {
-			if j > 15 && j < 20 {
-				buf[j] = []byte{0, 0, 0}
+		if len(r.Buffer) > 0 {
+			r.Buffer[j] = byte(startColor.Red)
+			r.Buffer[j+r.ColorOffset] = byte(startColor.Green)
+			r.Buffer[j+(r.ColorOffset*2)] = byte(startColor.Blue)
+		} else {
+			buf[j] = []byte{
+				byte(startColor.Red),
+				byte(startColor.Green),
+				byte(startColor.Blue),
+			}
+			if r.IsAIO && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

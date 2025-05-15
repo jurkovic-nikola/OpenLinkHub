@@ -4,7 +4,6 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
-	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
@@ -24,7 +23,7 @@ var (
 type Web struct {
 	Title             string
 	Tpl               *template.Template
-	Devices           map[string]*devices.Device
+	Devices           map[string]*common.Device
 	Configuration     config.Configuration
 	Device            interface{}
 	Lcd               interface{}
@@ -35,7 +34,7 @@ type Web struct {
 	Macros            map[int]macro.Macro
 	LCDProfiles       map[uint8]interface{}
 	LCDSensors        map[uint8]string
-	InputActions      map[uint8]inputmanager.InputAction
+	InputActions      map[uint16]inputmanager.InputAction
 	Scheduler         *scheduler.Scheduler
 	Rgb               map[string]rgb.Profile
 	SystemInfo        interface{}
@@ -46,6 +45,7 @@ type Web struct {
 	StorageTemp       []temperatures.StorageTemperatures
 	BuildInfo         *version.BuildInfo
 	Dashboard         dashboard.Dashboard
+	BatteryStats      interface{}
 }
 
 // Init will parse all templates

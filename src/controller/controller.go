@@ -43,5 +43,6 @@ func Start() {
 
 // Stop will stop device control
 func Stop() {
-	devices.Stop() // Devices
+	devices.Stop()      // Devices
+	inputmanager.Stop() // Cleanup virtual devices
 }

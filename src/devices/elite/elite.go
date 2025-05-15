@@ -318,7 +318,7 @@ func Init(vendorId, productId uint16) *Device {
 	d.setDeviceColor()     // Device color
 	if config.GetConfig().Manual {
 		fmt.Println(
-			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
+			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
 		)
 	} else {
 		d.updateDeviceSpeed() // Update device speed
@@ -365,6 +365,34 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+				}
+			}
+
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -526,7 +554,7 @@ func (d *Device) initLeds() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1239,7 +1267,7 @@ func (d *Device) UpdateDeviceMetrics() {
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	response := d.read(cmdState, cmdGetState)
 
 	for device := range deviceList {
@@ -1619,7 +1647,7 @@ func (d *Device) getLiquidTemperature() float32 {
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
-	tmp := make(map[int]string, 0)
+	tmp := make(map[int]string)
 	channelSpeeds := make(map[int]*SpeedMode, len(d.Devices))
 	var change = false
 
@@ -1685,6 +1713,7 @@ func (d *Device) updateDeviceSpeed() {
 					if temp == 0 {
 						temp = 50
 					}
+
 					if device.ChannelId == 0 {
 						cp := fmt.Sprintf("%s-%d", device.Profile, device.ChannelId)
 						if ok := tmp[device.ChannelId]; ok != cp {
@@ -1697,23 +1726,48 @@ func (d *Device) updateDeviceSpeed() {
 							change = true
 						}
 					} else {
-						for i := 0; i < len(profiles.Profiles); i++ {
-							profile := profiles.Profiles[i]
-							minimum := profile.Min + 0.1
-							if common.InBetween(temp, minimum, profile.Max) {
-								cp := fmt.Sprintf("%s-%d-%d", device.Profile, device.ChannelId, profile.Fans)
-								if ok := tmp[device.ChannelId]; ok != cp {
-									speedMode := &SpeedMode{}
-									tmp[device.ChannelId] = cp
-									speedMode.ZeroRpm = profiles.ZeroRpm
-									speedMode.Value = byte(profile.Fans)
-									speedMode.Pump = false
-									channelSpeeds[device.ChannelId] = speedMode
-									change = true
+						if config.GetConfig().GraphProfiles {
+							fansValue := temperatures.Interpolate(profiles.Points[1], temp)
+							fans := int(math.Round(float64(fansValue)))
+
+							// Failsafe
+							if fans < 20 {
+								fans = 20
+							}
+							if fans > 100 {
+								fans = 100
+							}
+							cp := fmt.Sprintf("%s-%d-%f", device.Profile, device.ChannelId, temp)
+							if ok := tmp[device.ChannelId]; ok != cp {
+								speedMode := &SpeedMode{}
+								tmp[device.ChannelId] = cp
+								speedMode.ZeroRpm = profiles.ZeroRpm
+								speedMode.Value = byte(fans)
+								speedMode.Pump = false
+								channelSpeeds[device.ChannelId] = speedMode
+								change = true
+							}
+
+						} else {
+							for i := 0; i < len(profiles.Profiles); i++ {
+								profile := profiles.Profiles[i]
+								minimum := profile.Min + 0.1
+								if common.InBetween(temp, minimum, profile.Max) {
+									cp := fmt.Sprintf("%s-%d-%d", device.Profile, device.ChannelId, profile.Fans)
+									if ok := tmp[device.ChannelId]; ok != cp {
+										speedMode := &SpeedMode{}
+										tmp[device.ChannelId] = cp
+										speedMode.ZeroRpm = profiles.ZeroRpm
+										speedMode.Value = byte(profile.Fans)
+										speedMode.Pump = false
+										channelSpeeds[device.ChannelId] = speedMode
+										change = true
+									}
 								}
 							}
 						}
 					}
+
 				}
 				if change {
 					change = false

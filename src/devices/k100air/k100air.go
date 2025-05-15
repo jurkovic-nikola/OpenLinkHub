@@ -12,6 +12,7 @@ import (
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
@@ -40,6 +41,7 @@ type DeviceProfile struct {
 	Keyboards       map[string]*keyboards.Keyboard
 	Profile         string
 	BrightnessLevel uint16
+	SleepMode       int
 	Profiles        []string
 }
 
@@ -91,6 +93,7 @@ var (
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x02}
 	cmdKeepAlive            = []byte{0x12}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
+	cmdSlipstreamMode       = map[int][]byte{0: {0x02, 0x3a, 0x00, 0x00}, 1: {0x01, 0x3a, 0x00, 0x01}}
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
 	transferTimeout         = 500
@@ -127,7 +130,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:         "K100 AIR RGB",
+		Product:         "K100 AIR",
 		LEDChannels:     137,
 		Layouts:         keyboards.GetLayouts(keyboardKey),
 		autoRefreshChan: make(chan struct{}),
@@ -189,6 +192,29 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device without closing the file handle.
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			close(d.keepAliveChan)
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -304,6 +330,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 0)
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -384,7 +411,7 @@ func (d *Device) initKeys() {
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
-	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
+	keyboardMap := make(map[string]*keyboards.Keyboard)
 
 	deviceProfile := &DeviceProfile{
 		Product: d.Product,
@@ -404,11 +431,18 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = []string{"default"}
 		deviceProfile.BrightnessLevel = 1000
 		deviceProfile.Layout = "US"
+		deviceProfile.SleepMode = 15
 	} else {
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
 		} else {
 			deviceProfile.Layout = d.DeviceProfile.Layout
+		}
+
+		if d.DeviceProfile.SleepMode == 0 {
+			deviceProfile.SleepMode = 15
+		} else {
+			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		}
 
 		// Upgrade process
@@ -483,7 +517,7 @@ func (d *Device) saveDeviceProfile() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1295,6 +1329,16 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 	}
 }
 
+// setSlipstreamMode will switch a device to slipstream mode
+func (d *Device) setSlipstreamMode() {
+	for i := 0; i < len(cmdSlipstreamMode); i++ {
+		_, err := d.transfer(cmdSlipstreamMode[i], nil)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		}
+	}
+}
+
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
@@ -1316,13 +1360,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 
 	return bufferR, nil
@@ -1388,9 +1432,14 @@ func (d *Device) backendListener() {
 					val := binary.LittleEndian.Uint16(data[4:6])
 					if val > 0 {
 						d.BatteryLevel = val / 10
+						stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 0)
 					}
 				}
 
+				if data[17] == 0x04 && data[18] == 0x08 {
+					d.setSlipstreamMode()
+					return
+				}
 				value := data[4]
 				if value == 0 && data[16] == 2 {
 					if brightness >= 1000 {
@@ -1398,7 +1447,6 @@ func (d *Device) backendListener() {
 					} else {
 						brightness += 200
 					}
-
 					if d.DeviceProfile != nil {
 						d.DeviceProfile.BrightnessLevel = brightness
 						d.saveDeviceProfile()

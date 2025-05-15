@@ -4,6 +4,7 @@ rpmbuild/
 release/
 docker/
 build.sh
+build_local.sh
 OpenLinkHub
 Buildfile
 config.json

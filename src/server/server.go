@@ -55,7 +55,6 @@ func (r *Response) Send(w http.ResponseWriter) {
 
 	data, err := json.Marshal(r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		_, err := fmt.Println(w, err.Error())
 		if err != nil {
 			return
@@ -128,20 +127,30 @@ func getStorageTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getBatteryStats will return battery stats
+func getBatteryStats(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   stats.GetBatteryStats(),
+	}
+	resp.Send(w)
+}
+
 // getDeviceMetrics will return a list device metrics in prometheus format
 func getDeviceMetrics(w http.ResponseWriter, r *http.Request) {
 	devices.UpdateDeviceMetrics()
 	promhttp.Handler().ServeHTTP(w, r)
 }
 
-// getDevice returns response on /devices
-func getDevice(w http.ResponseWriter, r *http.Request) {
+// getDevices returns response on /devices
+func getDevices(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceOd, valid := vars["deviceOd"]
 	if !valid {
 		resp := &Response{
 			Code:    http.StatusOK,
-			Devices: devices.GetDevices(),
+			Devices: devices.GetDevicesEx(),
 		}
 		resp.Send(w)
 	} else {
@@ -240,7 +249,7 @@ func getKeyName(w http.ResponseWriter, r *http.Request) {
 			resp := &Response{
 				Code:   http.StatusOK,
 				Status: 1,
-				Data:   inputmanager.GetKeyName(uint8(val)),
+				Data:   inputmanager.GetKeyName(uint16(val)),
 			}
 			resp.Send(w)
 		}
@@ -261,6 +270,36 @@ func getTemperature(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		if temperatureProfile := temperatures.GetTemperatureProfile(profile); temperatureProfile != nil {
+			resp = &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   temperatureProfile,
+			}
+		} else {
+			resp = &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: "No such temperature profile",
+			}
+		}
+	}
+	resp.Send(w)
+}
+
+// getTemperatureGraph returns response on for temperature graph
+func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{}
+
+	vars := mux.Vars(r)
+	profile, valid := vars["profile"]
+	if !valid {
+		resp = &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "No such temperature profile",
+		}
+	} else {
+		if temperatureProfile := temperatures.GetTemperatureGraph(profile); temperatureProfile != nil {
 			resp = &Response{
 				Code:   http.StatusOK,
 				Status: 1,
@@ -327,6 +366,16 @@ func getInputKeys(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getMouseButtons will return a map of mouse buttons
+func getMouseButtons(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   inputmanager.GetMouseButtons(),
+	}
+	resp.Send(w)
+}
+
 // updateRgbProfile handles device rgb profile update
 func updateRgbProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateRgbProfile(r)
@@ -363,6 +412,17 @@ func deleteTemperatureProfile(w http.ResponseWriter, r *http.Request) {
 // updateTemperatureProfile handles update of temperature profile
 func updateTemperatureProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateTemperatureProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// updateTemperatureProfile handles update of temperature profile
+func updateTemperatureProfileGraph(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateTemperatureProfileGraph(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -931,6 +991,7 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Dashboard = dashboard.GetDashboard()
+	web.BatteryStats = stats.GetBatteryStats()
 	web.Page = "index"
 
 	t := templates.GetTemplate()
@@ -967,7 +1028,39 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set(headers[header].Key, headers[header].Value)
 	}
 
-	err := t.ExecuteTemplate(w, "temperature.html", web)
+	tpl := "temperature.html"
+	if config.GetConfig().GraphProfiles {
+		tpl = "temperatureGraph.html"
+	}
+
+	err := t.ExecuteTemplate(w, tpl, web)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		resp.Send(w)
+	}
+}
+
+// uiTemperatureGraphOverview handles overview of graph temperature profiles
+func uiTemperatureGraphOverview(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.TemperatureProbes = devices.GetTemperatureProbes()
+	web.Temperatures = temperatures.GetTemperatureProfiles()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "temperature"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "temperatureGraph.html", web)
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
@@ -1137,6 +1230,33 @@ func uiLcdOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// uiSettings handles index page
+func uiSettings(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.Page = "settings"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "settings.html", web)
+	if err != nil {
+		fmt.Println(err)
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to serve web content",
+		}
+		resp.Send(w)
+	}
+}
+
 // setRoutes will set up all routes
 func setRoutes() *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
@@ -1155,10 +1275,12 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getGpuTemperatureClean)
 	r.Methods(http.MethodGet).Path("/api/storageTemp").
 		HandlerFunc(getStorageTemperature)
+	r.Methods(http.MethodGet).Path("/api/batteryStats").
+		HandlerFunc(getBatteryStats)
 	r.Methods(http.MethodGet).Path("/api/devices").
-		HandlerFunc(getDevice)
+		HandlerFunc(getDevices)
 	r.Methods(http.MethodGet).Path("/api/devices/{deviceOd}").
-		HandlerFunc(getDevice)
+		HandlerFunc(getDevices)
 	r.Methods(http.MethodGet).Path("/api/color").
 		HandlerFunc(getColor)
 	r.Methods(http.MethodGet).Path("/api/color/{deviceId}").
@@ -1169,14 +1291,20 @@ func setRoutes() *mux.Router {
 		HandlerFunc(getTemperature)
 	r.Methods(http.MethodGet).Path("/api/temperatures/{profile}").
 		HandlerFunc(getTemperature)
+	r.Methods(http.MethodGet).Path("/api/temperatures/graph/{profile}").
+		HandlerFunc(getTemperatureGraph)
 	r.Methods(http.MethodGet).Path("/api/input/media").
 		HandlerFunc(getMediaKeys)
 	r.Methods(http.MethodGet).Path("/api/input/keyboard").
 		HandlerFunc(getInputKeys)
+	r.Methods(http.MethodGet).Path("/api/input/mouse").
+		HandlerFunc(getMouseButtons)
 	r.Methods(http.MethodPost).Path("/api/temperatures").
 		HandlerFunc(newTemperatureProfile)
 	r.Methods(http.MethodPut).Path("/api/temperatures").
 		HandlerFunc(updateTemperatureProfile)
+	r.Methods(http.MethodPut).Path("/api/temperatures/graph").
+		HandlerFunc(updateTemperatureProfileGraph)
 	r.Methods(http.MethodDelete).Path("/api/temperatures").
 		HandlerFunc(deleteTemperatureProfile)
 	r.Methods(http.MethodPost).Path("/api/speed").
@@ -1304,6 +1432,8 @@ func setRoutes() *mux.Router {
 			HandlerFunc(uiDeviceOverview)
 		r.Methods(http.MethodGet).Path("/temperature").
 			HandlerFunc(uiTemperatureOverview)
+		r.Methods(http.MethodGet).Path("/temperatureGraphs").
+			HandlerFunc(uiTemperatureGraphOverview)
 		r.Methods(http.MethodGet).Path("/docs").
 			HandlerFunc(uiDocumentationOverview)
 		r.Methods(http.MethodGet).Path("/color").
@@ -1316,6 +1446,8 @@ func setRoutes() *mux.Router {
 			HandlerFunc(uiMacrosOverview)
 		r.Methods(http.MethodGet).Path("/lcd").
 			HandlerFunc(uiLcdOverview)
+		r.Methods(http.MethodGet).Path("/settings").
+			HandlerFunc(uiSettings)
 	}
 	return r
 }

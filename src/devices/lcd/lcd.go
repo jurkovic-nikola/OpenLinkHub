@@ -326,21 +326,6 @@ func calculateStringXY(fontSize float64, value string) (int, int) {
 	y := (imgHeight+textHeight)/2 - 10
 	return x, y
 }
-func calculateStringXYMinus(fontSize float64, value string, minus int) (int, int) {
-	opts := opentype.FaceOptions{Size: fontSize, DPI: 72, Hinting: 0}
-	fontFace, err := opentype.NewFace(lcd.sfntFont, &opts)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to process font face")
-	}
-
-	bounds, _ := font.BoundString(fontFace, value)
-	textWidth := (bounds.Max.X - bounds.Min.X).Ceil()
-	textHeight := (bounds.Max.Y - bounds.Min.Y).Ceil()
-
-	x := (imgWidth-textWidth)/2 - minus
-	y := (imgHeight+textHeight)/2 - 10
-	return x, y
-}
 
 // sensorMaximumValue will return sensor maximum value
 func sensorMaximumValue(sensor uint8) int {
@@ -399,7 +384,7 @@ func GetCustomLcdProfiles() map[uint8]interface{} {
 }
 
 // GenerateDoubleArcScreenImage handles generation or double arc screen image
-func GenerateDoubleArcScreenImage(values []int) []byte {
+func GenerateDoubleArcScreenImage(values []float32) []byte {
 	arcImage := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
 	bg := generateColor(doubleRrc.Background)
 	draw.Draw(arcImage, arcImage.Bounds(), &image.Uniform{C: bg}, image.Point{}, draw.Src)
@@ -426,8 +411,8 @@ func GenerateDoubleArcScreenImage(values []int) []byte {
 	leftCenterX := doubleRrc.Margin + outerRadius
 	leftMax := sensorMaximumValue(leftArc.Sensor)
 	leftValue := values[leftArc.Sensor]
-	if leftValue > leftMax {
-		leftValue = leftMax
+	if leftValue > float32(leftMax) {
+		leftValue = float32(leftMax)
 	}
 
 	leftArcStart := math.Pi/2 + doubleRrc.GapRadians/2
@@ -441,7 +426,7 @@ func GenerateDoubleArcScreenImage(values []int) []byte {
 	drawSmoothArcGradient(arcImage, leftCenterX, centerY, innerRadius, outerRadius, leftArcStart, leftArcEnd, leftColStart, leftColEnd)
 
 	if isSensorTemperature(leftArc.Sensor) {
-		v := dashboard.GetDashboard().TemperatureToString(float32(leftValue))
+		v := dashboard.GetDashboard().TemperatureToString(leftValue)
 		x, y := calculateStringXY(100, v)
 		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
 	} else {
@@ -461,8 +446,8 @@ func GenerateDoubleArcScreenImage(values []int) []byte {
 	rightCenterX := float64(imgWidth) - doubleRrc.Margin - outerRadius
 	rightMax := sensorMaximumValue(rightArc.Sensor)
 	rightValue := values[rightArc.Sensor]
-	if rightValue > rightMax {
-		rightValue = rightMax
+	if rightValue > float32(rightMax) {
+		rightValue = float32(rightMax)
 	}
 	rightArcEnd := math.Pi/2 - doubleRrc.GapRadians/2
 	rightArcStart := rightArcEnd - float64(rightValue)/float64(rightMax)*(math.Pi-doubleRrc.GapRadians)
@@ -476,7 +461,7 @@ func GenerateDoubleArcScreenImage(values []int) []byte {
 
 	// Text
 	if isSensorTemperature(rightArc.Sensor) {
-		v := dashboard.GetDashboard().TemperatureToString(float32(rightValue))
+		v := dashboard.GetDashboard().TemperatureToString(rightValue)
 		x, y = calculateStringXY(100, v)
 		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
 	} else {
@@ -969,7 +954,7 @@ func loadLcdDevices() {
 	// Enumerate all Corsair devices
 	err := hid.Enumerate(vendorId, hid.ProductIDAny, enum)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate LCD devices")
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Error("Unable to enumerate LCD devices")
 		return
 	}
 

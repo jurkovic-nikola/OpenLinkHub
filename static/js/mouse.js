@@ -449,6 +449,20 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             break;
 
+            case 9: { // Keyboard
+                $.ajax({
+                    url:'/api/input/mouse',
+                    type:'get',
+                    success:function(result){
+                        $(keyAssignmentValue).empty();
+                        $.each(result.data, function( index, value ) {
+                            $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                        });
+                    }
+                });
+            }
+            break;
+
             case 10: { // Macro
                 $.ajax({
                     url:'/api/macro/',
@@ -472,9 +486,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const pressAndHold = $("#pressAndHold_" + keyIndex).is(':checked');
         const keyAssignmentType = $("#keyAssignmentType_" + keyIndex).val();
         const keyAssignmentValue = $("#keyAssignmentValue_" + keyIndex).val();
-
-        console.log(deviceId, keyIndex, enabled, pressAndHold, keyAssignmentType, keyAssignmentValue);
-
 
         const pf = {};
         pf["deviceId"] = deviceId;

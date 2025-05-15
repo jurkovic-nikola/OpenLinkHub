@@ -14,6 +14,17 @@ import (
 	"time"
 )
 
+type Device struct {
+	ProductType uint16
+	Product     string
+	Serial      string
+	Firmware    string
+	Image       string
+	GetDevice   interface{}
+	Instance    interface{}
+	Hidden      bool
+}
+
 // runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.
 func runUdevadmInfo(devicePath string) (string, error) {
 	// Construct the udevadm command to get device properties
@@ -49,6 +60,30 @@ func GetDeviceUSBPath(devicePath string) (string, error) {
 	return idPath, nil
 }
 
+// GetShortUSBDevPath will get USB device PCI path
+func GetShortUSBDevPath(device string) (string, error) {
+	start := fmt.Sprintf("/sys/class/hidraw/%s/device", device)
+
+	path, err := filepath.EvalSymlinks(start)
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(path, "idVendor")); err == nil {
+			break // Found the USB device node
+		}
+
+		parent := filepath.Dir(path)
+		if parent == path || parent == "/" {
+			return "", fmt.Errorf("usb device node not found for %s", device)
+		}
+		path = parent
+	}
+	devPath := strings.TrimPrefix(path, "/sys")
+	return devPath, nil
+}
+
 // FileExists will check if given filename exists
 func FileExists(filename string) bool {
 	_, err := os.Stat(filename)
@@ -56,6 +91,27 @@ func FileExists(filename string) bool {
 		return false
 	}
 	return err == nil
+}
+
+// ReadFile will return file with given path
+func ReadFile(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+// ParseUEvent will parse kernel event when device is plugged / unplugged
+func ParseUEvent(msg []byte) map[string]string {
+	result := make(map[string]string)
+	parts := bytes.Split(msg, []byte{0x00})
+	for _, part := range parts {
+		if kv := strings.SplitN(string(part), "=", 2); len(kv) == 2 {
+			result[kv[0]] = kv[1]
+		}
+	}
+	return result
 }
 
 // Lerp performs linear interpolation between two values
@@ -210,27 +266,6 @@ func MuteWithALSA() error {
 	return cmd.Run()
 }
 
-// LinearInterpolation interpolates a given temperature within a min-max range
-func LinearInterpolation(minTemp, maxTemp, givenTemp float64) float64 {
-	if givenTemp < minTemp {
-		return 0 // Below range
-	} else if givenTemp > maxTemp {
-		return 1 // Above range
-	}
-	return (givenTemp - minTemp) / (maxTemp - minTemp)
-}
-
-// RoundFloatToByte will round float and convert to byte
-func RoundFloatToByte(value float64) byte {
-	rounded := math.Round(value) // Round to nearest integer
-	if rounded < 0 {
-		return 0 // Prevent underflow
-	} else if rounded > 255 {
-		return 255 // Prevent overflow
-	}
-	return byte(rounded)
-}
-
 // PidVidToUint16 will convert string based productId or vendorId to uint16 value
 func PidVidToUint16(value string) uint16 {
 	val, err := strconv.ParseUint(value, 16, 16)
@@ -238,4 +273,28 @@ func PidVidToUint16(value string) uint16 {
 		return 0
 	}
 	return uint16(val)
+}
+
+// GetBcdDevice will return device bcdDevice value
+func GetBcdDevice(path string) (string, error) {
+	base := filepath.Base(path)
+	sysClassPath := filepath.Join("/sys/class/hidraw", base, "device")
+	resolvedPath, err := filepath.EvalSymlinks(sysClassPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve symlink: %v", err)
+	}
+	usbDevicePath := filepath.Join(resolvedPath, "../..")
+	usbDevicePath = filepath.Clean(usbDevicePath)
+	bcdDevicePath := filepath.Join(usbDevicePath, "bcdDevice")
+	data, err := os.ReadFile(bcdDevicePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read bcdDevice: %v", err)
+	}
+	bcdStr := strings.TrimSpace(string(data))
+	if len(bcdStr) != 4 {
+		return "", fmt.Errorf("unexpected bcdDevice length: %s", bcdStr)
+	}
+	major := bcdStr[:2]
+	minor := bcdStr[2:]
+	return fmt.Sprintf("%s.%s", major, minor), nil
 }

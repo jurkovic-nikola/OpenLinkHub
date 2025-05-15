@@ -8,12 +8,10 @@ package inputmanager
 
 import (
 	"OpenLinkHub/src/logger"
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"os"
-	"path/filepath"
-	"strings"
+	"slices"
+	"sort"
 	"syscall"
 	"unsafe"
 )
@@ -22,7 +20,7 @@ type KeyAssignment struct {
 	Name          string `json:"name"`
 	Default       bool   `json:"default"`
 	ActionType    uint8  `json:"actionType"`
-	ActionCommand uint8  `json:"actionCommand"`
+	ActionCommand uint16 `json:"actionCommand"`
 	ActionHold    bool   `json:"actionHold"`
 	ButtonIndex   int    `json:"buttonIndex"`
 	IsMacro       bool   `json:"isMacro"`
@@ -32,6 +30,7 @@ type InputAction struct {
 	Name        string // Key name
 	CommandCode uint16 // Key code
 	Media       bool   // Key can control media playback
+	Mouse       bool
 }
 
 type uInputUserDev struct {
@@ -56,102 +55,114 @@ const (
 	UiDevDestroy        = 0x5502
 	UiSetEvbit          = 0x40045564
 	UiSetKeybit         = 0x40045565
+	UiSetRelbit         = 0x40045566
 	EvKey        uint16 = 1
 	EvSyn        uint16 = 0
+	EvRel        uint16 = 2
+	RelX                = 0x00
+	RelY                = 0x01
+	RelWheel            = 0x08
 )
 
 const (
-	None           uint8 = 0
-	VolumeUp       uint8 = 1
-	VolumeDown     uint8 = 2
-	VolumeMute     uint8 = 3
-	MediaStop      uint8 = 4
-	MediaPrev      uint8 = 5
-	MediaPlayPause uint8 = 6
-	MediaNext      uint8 = 7
-	Number1        uint8 = 8
-	Number2        uint8 = 9
-	Number3        uint8 = 10
-	Number4        uint8 = 11
-	Number5        uint8 = 12
-	Number6        uint8 = 13
-	Number7        uint8 = 14
-	Number8        uint8 = 15
-	Number9        uint8 = 16
-	Number0        uint8 = 17
-	KeyMinus       uint8 = 18
-	KeyEqual       uint8 = 19
-	KeyQ           uint8 = 20
-	KeyW           uint8 = 21
-	KeyE           uint8 = 22
-	KeyR           uint8 = 23
-	KeyT           uint8 = 24
-	KeyY           uint8 = 25
-	KeyU           uint8 = 26
-	KeyI           uint8 = 27
-	KeyO           uint8 = 28
-	KeyP           uint8 = 29
-	KeyA           uint8 = 30
-	KeyS           uint8 = 31
-	KeyD           uint8 = 32
-	KeyF           uint8 = 33
-	KeyG           uint8 = 34
-	KeyH           uint8 = 35
-	KeyJ           uint8 = 36
-	KeyK           uint8 = 37
-	KeyL           uint8 = 38
-	KeyZ           uint8 = 39
-	KeyX           uint8 = 40
-	KeyC           uint8 = 41
-	KeyV           uint8 = 42
-	KeyB           uint8 = 43
-	KeyN           uint8 = 44
-	KeyM           uint8 = 45
-	KeyF1          uint8 = 46
-	KeyF2          uint8 = 47
-	KeyF3          uint8 = 48
-	KeyF4          uint8 = 49
-	KeyF5          uint8 = 50
-	KeyF6          uint8 = 51
-	KeyF7          uint8 = 52
-	KeyF8          uint8 = 53
-	KeyF9          uint8 = 54
-	KeyF10         uint8 = 55
-	KeyF11         uint8 = 56
-	KeyF12         uint8 = 57
-	KeyBack        uint8 = 58
-	KeyTab         uint8 = 59
-	KeyEsc         uint8 = 60
-	KeyTilde       uint8 = 61
-	KeyLeftSquare  uint8 = 62
-	KeyRightSquare uint8 = 63
-	KeyBackslash   uint8 = 64
-	KeyCapslock    uint8 = 65
-	KeySemicolon   uint8 = 66
-	KeySingleQuote uint8 = 67
-	KeyEnter       uint8 = 68
-	KeyLeftShift   uint8 = 69
-	KeyComma       uint8 = 70
-	KeyDot         uint8 = 71
-	KeySlash       uint8 = 72
-	KeyRightShift  uint8 = 73
-	KeyUp          uint8 = 74
-	KeyLeftCtrl    uint8 = 75
-	KeyWindowsKey  uint8 = 76
-	KeyLeftAlt     uint8 = 77
-	KeySpace       uint8 = 78
-	KeyRightAlt    uint8 = 79
-	KeyMenu        uint8 = 80
-	KeyRightCtrl   uint8 = 81
-	KeyLeft        uint8 = 82
-	KeyDown        uint8 = 83
-	KeyRight       uint8 = 84
-	KeyIns         uint8 = 85
-	KeyHome        uint8 = 86
-	KeyPgUp        uint8 = 87
-	KeyDel         uint8 = 88
-	KeyEnd         uint8 = 89
-	KeyPgDn        uint8 = 90
+	vendorId       uint16 = 5840
+	productId      uint16 = 5175
+	None           uint16 = 0
+	VolumeUp       uint16 = 1
+	VolumeDown     uint16 = 2
+	VolumeMute     uint16 = 3
+	MediaStop      uint16 = 4
+	MediaPrev      uint16 = 5
+	MediaPlayPause uint16 = 6
+	MediaNext      uint16 = 7
+	Number1        uint16 = 8
+	Number2        uint16 = 9
+	Number3        uint16 = 10
+	Number4        uint16 = 11
+	Number5        uint16 = 12
+	Number6        uint16 = 13
+	Number7        uint16 = 14
+	Number8        uint16 = 15
+	Number9        uint16 = 16
+	Number0        uint16 = 17
+	KeyMinus       uint16 = 18
+	KeyEqual       uint16 = 19
+	KeyQ           uint16 = 20
+	KeyW           uint16 = 21
+	KeyE           uint16 = 22
+	KeyR           uint16 = 23
+	KeyT           uint16 = 24
+	KeyY           uint16 = 25
+	KeyU           uint16 = 26
+	KeyI           uint16 = 27
+	KeyO           uint16 = 28
+	KeyP           uint16 = 29
+	KeyA           uint16 = 30
+	KeyS           uint16 = 31
+	KeyD           uint16 = 32
+	KeyF           uint16 = 33
+	KeyG           uint16 = 34
+	KeyH           uint16 = 35
+	KeyJ           uint16 = 36
+	KeyK           uint16 = 37
+	KeyL           uint16 = 38
+	KeyZ           uint16 = 39
+	KeyX           uint16 = 40
+	KeyC           uint16 = 41
+	KeyV           uint16 = 42
+	KeyB           uint16 = 43
+	KeyN           uint16 = 44
+	KeyM           uint16 = 45
+	KeyF1          uint16 = 46
+	KeyF2          uint16 = 47
+	KeyF3          uint16 = 48
+	KeyF4          uint16 = 49
+	KeyF5          uint16 = 50
+	KeyF6          uint16 = 51
+	KeyF7          uint16 = 52
+	KeyF8          uint16 = 53
+	KeyF9          uint16 = 54
+	KeyF10         uint16 = 55
+	KeyF11         uint16 = 56
+	KeyF12         uint16 = 57
+	KeyBack        uint16 = 58
+	KeyTab         uint16 = 59
+	KeyEsc         uint16 = 60
+	KeyTilde       uint16 = 61
+	KeyLeftSquare  uint16 = 62
+	KeyRightSquare uint16 = 63
+	KeyBackslash   uint16 = 64
+	KeyCapslock    uint16 = 65
+	KeySemicolon   uint16 = 66
+	KeySingleQuote uint16 = 67
+	KeyEnter       uint16 = 68
+	KeyLeftShift   uint16 = 69
+	KeyComma       uint16 = 70
+	KeyDot         uint16 = 71
+	KeySlash       uint16 = 72
+	KeyRightShift  uint16 = 73
+	KeyUp          uint16 = 74
+	KeyLeftCtrl    uint16 = 75
+	KeyWindowsKey  uint16 = 76
+	KeyLeftAlt     uint16 = 77
+	KeySpace       uint16 = 78
+	KeyRightAlt    uint16 = 79
+	KeyMenu        uint16 = 80
+	KeyRightCtrl   uint16 = 81
+	KeyLeft        uint16 = 82
+	KeyDown        uint16 = 83
+	KeyRight       uint16 = 84
+	KeyIns         uint16 = 85
+	KeyHome        uint16 = 86
+	KeyPgUp        uint16 = 87
+	KeyDel         uint16 = 88
+	KeyEnd         uint16 = 89
+	KeyPgDn        uint16 = 90
+	BtnLeft        uint16 = 91
+	BtnRight       uint16 = 92
+	BtnMiddle      uint16 = 93
+	BtnBack        uint16 = 94
+	BtnForward     uint16 = 95
 )
 
 var (
@@ -247,10 +258,16 @@ var (
 	keyDel                 uint16 = 0x6F
 	keyEnd                 uint16 = 0x6B
 	keyPgDn                uint16 = 0x6D
-	devicePath             []string
-	inputActions           map[uint8]InputAction
+	btnLeft                uint16 = 0x110
+	btnRight               uint16 = 0x111
+	btnMiddle              uint16 = 0x112
+	btnForward             uint16 = 0x114
+	btnBack                uint16 = 0x113
+	inputActions           map[uint16]InputAction
 	virtualKeyboardPointer uintptr
-	virtualKeyboardFile    = &os.File{}
+	virtualMousePointer    uintptr
+	virtualKeyboardFile    *os.File
+	virtualMouseFile       *os.File
 )
 
 type inputEvent struct {
@@ -262,7 +279,7 @@ type inputEvent struct {
 
 // buildInputActions will fill inputActions map with InputAction data
 func buildInputActions() {
-	inputActions = make(map[uint8]InputAction)
+	inputActions = make(map[uint16]InputAction)
 
 	// Placeholder
 	inputActions[None] = InputAction{Name: "None"}
@@ -362,17 +379,52 @@ func buildInputActions() {
 	inputActions[KeyDel] = InputAction{Name: "Delete", CommandCode: keyDel}
 	inputActions[KeyEnd] = InputAction{Name: "End", CommandCode: keyEnd}
 	inputActions[KeyPgDn] = InputAction{Name: "Pg Dn", CommandCode: keyPgDn}
+
+	// Mouse
+	inputActions[BtnLeft] = InputAction{Name: "(Mouse) Left Click", CommandCode: btnLeft, Mouse: true}
+	inputActions[BtnRight] = InputAction{Name: "(Mouse) Right Click", CommandCode: btnRight, Mouse: true}
+	inputActions[BtnMiddle] = InputAction{Name: "(Mouse) Middle Click", CommandCode: btnMiddle, Mouse: true}
+	inputActions[BtnBack] = InputAction{Name: "(Mouse) Back", CommandCode: btnBack, Mouse: true}
+	inputActions[BtnForward] = InputAction{Name: "(Mouse) Forward", CommandCode: btnForward, Mouse: true}
 }
 
 // Init will fetch an input device
 func Init() {
-	devicePath = findDevice()
 	buildInputActions()
+	CreateVirtualKeyboard(productId)
+	CreateVirtualMouse(productId)
+}
+
+// CreateVirtualKeyboard will create new keyboard based on given productId
+func CreateVirtualKeyboard(productId uint16) {
+	if virtualKeyboardFile == nil {
+		err := createVirtualKeyboard(vendorId, productId)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to create virtual keyboard")
+		}
+	}
+}
+
+// CreateVirtualMouse will create new mouse based on given productId
+func CreateVirtualMouse(productId uint16) {
+	if virtualMouseFile == nil {
+		err := createVirtualMouse(vendorId, productId)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to create virtual keyboard")
+		}
+	}
+}
+
+// Stop will stop input manager and destroy virtual inputs
+func Stop() {
+	logger.Log(logger.Fields{}).Info("Stopping virtual keyboard and mouse")
+	destroyVirtualKeyboard()
+	destroyVirtualMouse()
 }
 
 // GetMediaKeys will return a map of InputAction for Media keys
-func GetMediaKeys() map[uint8]InputAction {
-	keys := make(map[uint8]InputAction)
+func GetMediaKeys() map[uint16]InputAction {
+	keys := make(map[uint16]InputAction)
 	for key, value := range inputActions {
 		if value.Media {
 			keys[key] = value
@@ -382,8 +434,8 @@ func GetMediaKeys() map[uint8]InputAction {
 }
 
 // GetInputKeys will return a map of InputAction for non-media keys
-func GetInputKeys() map[uint8]InputAction {
-	keys := make(map[uint8]InputAction)
+func GetInputKeys() map[uint16]InputAction {
+	keys := make(map[uint16]InputAction)
 	for key, value := range inputActions {
 		if value.Media {
 			continue
@@ -393,7 +445,18 @@ func GetInputKeys() map[uint8]InputAction {
 	return keys
 }
 
-func GetKeyName(keyIndex uint8) string {
+// GetMouseButtons will return a map of InputAction for mouse buttons
+func GetMouseButtons() map[uint16]InputAction {
+	keys := make(map[uint16]InputAction)
+	for key, value := range inputActions {
+		if value.Mouse {
+			keys[key] = value
+		}
+	}
+	return keys
+}
+
+func GetKeyName(keyIndex uint16) string {
 	if key, ok := inputActions[keyIndex]; ok {
 		return key.Name
 	}
@@ -401,262 +464,47 @@ func GetKeyName(keyIndex uint8) string {
 }
 
 // GetInputActions will return a map of InputAction
-func GetInputActions() map[uint8]InputAction {
+func GetInputActions() map[uint16]InputAction {
 	return inputActions
 }
 
-// InputControl will emulate input events based on device serial number
-func InputControl(controlType uint8, serial string) {
-	// Get a device path
-	path := getDevicePathBySerial(serial)
-
-	if len(path) < 1 {
-		logger.Log(logger.Fields{"path": path}).Error("No such input device")
-		return
+// FindKeyAssignment will find nearest KeyAssignment by input value and given offset
+func FindKeyAssignment(keyAssignment map[int]KeyAssignment, input uint32, offset []uint32) uint32 {
+	keys := make([]int, 0)
+	for k := range keyAssignment {
+		keys = append(keys, k)
 	}
+	sort.Ints(keys)
 
-	// Open device
-	device := openDevice(path)
-	if device == nil {
-		logger.Log(logger.Fields{"path": path}).Error("Failed to open device")
-		return
-	}
-
-	var events []inputEvent
-
-	// Get event key code
-	actionType := getInputAction(controlType)
-	if actionType == nil {
-		return
-	}
-
-	// Create events
-	events = createInputEvent(actionType.CommandCode)
-
-	// Send events
-	for _, event := range events {
-		if err := emitEvent(device, event); err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
-			return
+	if slices.Contains(keys, int(input)) {
+		return input
+	} else {
+		for _, k := range keys {
+			for _, value := range offset {
+				if k == int(input-value) {
+					return uint32(k)
+				}
+			}
 		}
 	}
-
-	// Close device
-	closeDevice(device)
-}
-
-// InputControlManual will emulate input events based on device path
-func InputControlManual(controlType uint8, path string) {
-	if len(path) < 1 {
-		logger.Log(logger.Fields{"path": path}).Error("No such input device")
-		return
-	}
-
-	// Open device
-	device := openDevice(path)
-	if device == nil {
-		logger.Log(logger.Fields{"path": path}).Error("Failed to open device")
-		return
-	}
-
-	var events []inputEvent
-
-	// Get event key code
-	actionType := getInputAction(controlType)
-	if actionType == nil {
-		return
-	}
-
-	// Create events
-	events = createInputEvent(actionType.CommandCode)
-
-	// Send events
-	for _, event := range events {
-		if err := emitEvent(device, event); err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
-			return
-		}
-	}
-
-	// Close device
-	closeDevice(device)
-}
-
-// InputControlVirtual will emulate input events based on virtual keyboard
-func InputControlVirtual(controlType uint8) {
-	if virtualKeyboardFile == nil {
-		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
-		return
-	}
-
-	var events []inputEvent
-
-	// Get event key code
-	actionType := getInputAction(controlType)
-	if actionType == nil {
-		return
-	}
-
-	// Create events
-	events = createInputEvent(actionType.CommandCode)
-
-	// Send events
-	for _, event := range events {
-		if err := writeVirtualEvent(virtualKeyboardFile, &event); err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
-			return
-		}
-	}
-}
-
-// DestroyVirtualKeyboard will destroy virtual keyboard and close uinput device
-func DestroyVirtualKeyboard() {
-	if virtualKeyboardPointer != 0 {
-		// Step 8: Destroy the device
-		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiDevDestroy, 0); errno != 0 {
-			logger.Log(logger.Fields{"error": errno}).Error("Failed to destroy virtual keyboard")
-		}
-
-		err := virtualKeyboardFile.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to close /dev/uinput")
-			return
-		}
-	}
-}
-
-// CreateVirtualKeyboard will create new virtual keyboard for devices without built-in -kbd event
-func CreateVirtualKeyboard(vendorId, productId uint16) error {
-	// Open device
-	f, err := os.OpenFile("/dev/uinput", os.O_WRONLY, 0660)
-	if err != nil {
-		virtualKeyboardFile = nil
-		logger.Log(logger.Fields{"error": err}).Error("Failed to open /dev/uinput")
-		return err
-	}
-	virtualKeyboardFile = f
-
-	// Set non-blocking mode
-	virtualKeyboardPointer = virtualKeyboardFile.Fd()
-	_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, virtualKeyboardPointer, syscall.F_SETFL, syscall.O_NONBLOCK)
-	if errno != 0 {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to set non-blocking mode")
-	}
-
-	// Define virtual device
-	uInputDevice := uInputUserDev{
-		ID: inputID{
-			BusType: 0x06, // BUS_VIRTUAL
-			Vendor:  vendorId,
-			Product: productId,
-			Version: 1,
-		},
-		FFEffects: 0,
-	}
-
-	// Set keyboard name
-	copy(uInputDevice.Name[:], "OpenLinkHub Virtual Keyboard")
-
-	// Ensure all required key event properties are enabled
-	if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiSetEvbit, uintptr(EvKey)); errno != 0 {
-		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable key events")
-		return err
-	}
-
-	// Enable sync events
-	if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiSetEvbit, uintptr(EvSyn)); errno != 0 {
-		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable sync events")
-		return errno
-	}
-
-	// Enable standard keyboard keys (letters, numbers, function keys)
-	for i := 0; i < 255; i++ {
-		if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), UiSetKeybit, uintptr(i)); errno != 0 {
-			logger.Log(logger.Fields{"error": errno, "key": i}).Error("Failed to enable key")
-			continue
-		}
-	}
-
-	// Ensure we correctly write the struct before creating the device
-	if _, e := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); e != nil {
-		logger.Log(logger.Fields{"error": e}).Error("Failed to write virtual keyboard data struct")
-		return e
-	}
-
-	// Ensure device is created
-	if _, _, errno = syscall.Syscall(syscall.SYS_IOCTL, virtualKeyboardPointer, UiDevCreate, 0); errno != 0 {
-		logger.Log(logger.Fields{"error": errno}).Error("Failed to create new virtual keyboard")
-		return errno
-	}
-
-	return nil
-}
-
-// writeVirtualEvent will send event to virtual keyboard device
-func writeVirtualEvent(f *os.File, event *inputEvent) error {
-	if f == nil {
-		logger.Log(logger.Fields{}).Error("No valid virtual keyboard")
-		return errors.New("no valid virtual keyboard")
-	}
-
-	buf := (*(*[unsafe.Sizeof(*event)]byte)(unsafe.Pointer(event)))[:]
-	_, err := f.Write(buf)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Failed to send keyboard event")
-		return err
-	}
-	return nil
+	return 0
 }
 
 // getInputAction will return InputAction based on actionType
-func getInputAction(actionType uint8) *InputAction {
+func getInputAction(actionType uint16) *InputAction {
 	if action, ok := inputActions[actionType]; ok {
 		return &action
 	}
 	return nil
 }
 
-// getDevicePathBySerial will return a device path by serial number
-func getDevicePathBySerial(serial string) string {
-	if devicePath != nil {
-		for _, value := range devicePath {
-			if strings.Contains(value, serial) {
-				return value
-			}
-		}
-	}
-	return ""
-}
-
-// emitEvent will send an event toward the device
-func emitEvent(file *os.File, event inputEvent) error {
-	var buf bytes.Buffer
-	if err := binary.Write(&buf, binary.LittleEndian, event); err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Failed to serialize event")
-		return err
-	}
-
-	if _, err := file.Write(buf.Bytes()); err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Failed to write event")
-		return err
-	}
-	return nil
-}
-
 // createInputEvent will create a list of input events
-func createInputEvent(code uint16) []inputEvent {
+func createInputEvent(code uint16, hold bool) []inputEvent {
 	// Create an input event for key press
 	keyPress := inputEvent{
 		Type:  evKey,
 		Code:  code,
 		Value: 1, // Key press
-	}
-
-	// Create an input event for key release
-	keyRelease := inputEvent{
-		Type:  evKey,
-		Code:  code,
-		Value: 0, // Key release
 	}
 
 	// Synchronization event
@@ -666,57 +514,32 @@ func createInputEvent(code uint16) []inputEvent {
 		Value: 0,
 	}
 
-	// Emit the events
-	events := []inputEvent{keyPress, syncEvent, keyRelease, syncEvent}
+	events := []inputEvent{keyPress, syncEvent}
+
+	// Only release if hold is false
+	if !hold {
+		keyRelease := inputEvent{
+			Type:  evKey,
+			Code:  code,
+			Value: 0,
+		}
+		events = append(events, keyRelease, syncEvent)
+	}
 	return events
 }
 
-// findDevice will find a Corsair keyboard input device
-func findDevice() []string {
-	var devices []string
-	vendor := "corsair"
-	// Path to the directory we want to scan
-	dir := "/dev/input/by-id/"
+// writeVirtualEvent will send event to virtual keyboard device
+func writeVirtualEvent(f *os.File, event *inputEvent) error {
+	if f == nil {
+		logger.Log(logger.Fields{}).Error("No valid virtual inputs")
+		return errors.New("no valid virtual inputs")
+	}
 
-	// Read the directory contents
-	files, err := os.ReadDir(dir)
+	buf := (*(*[unsafe.Sizeof(*event)]byte)(unsafe.Pointer(event)))[:]
+	_, err := f.Write(buf)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "directory": dir}).Error("Error reading directory")
-		return nil
+		logger.Log(logger.Fields{"error": err}).Error("Failed to send virtual inputs event")
+		return err
 	}
-
-	// Loop through the files and filter the ones matching *-kbd
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		if matched, _ := filepath.Match("*-kbd", file.Name()); matched {
-			path := filepath.Join(dir, file.Name())
-			if strings.Contains(strings.ToLower(path), strings.ToLower(vendor)) {
-				devices = append(devices, path)
-			}
-		}
-	}
-	return devices
-}
-
-// openDevice will open input device
-func openDevice(path string) *os.File {
-	file, err := os.OpenFile(path, os.O_WRONLY, 0666)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "device": path}).Error("Unable to open input device")
-		return nil
-	}
-	return file
-}
-
-// closeDevice will close an input device
-func closeDevice(f *os.File) {
-	if f != nil {
-		err := f.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close input device")
-			return
-		}
-	}
+	return nil
 }

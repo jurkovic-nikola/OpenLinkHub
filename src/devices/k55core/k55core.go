@@ -125,7 +125,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:         "K55 Core RGB",
+		Product:         "K55 CORE RGB",
 		LEDChannels:     10,
 		Layouts:         keyboards.GetLayouts(keyboardKey),
 		autoRefreshChan: make(chan struct{}),
@@ -191,6 +191,29 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			close(d.keepAliveChan)
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 2
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -336,7 +359,7 @@ func (d *Device) initLeds() {
 func (d *Device) saveDeviceProfile() {
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
-	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
+	keyboardMap := make(map[string]*keyboards.Keyboard)
 
 	deviceProfile := &DeviceProfile{
 		Product:            d.Product,
@@ -423,7 +446,7 @@ func (d *Device) saveDeviceProfile() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -598,72 +621,21 @@ func (d *Device) saveRgbProfile() {
 	}
 }
 
-// Close will close all timers and channels before restart
-func (d *Device) Close() {
-	d.Exit = true
-	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	time.Sleep(500 * time.Millisecond)
-}
-
-// toggleExit will change Exit value
-func (d *Device) toggleExit() {
-	if d.Exit {
-		d.Exit = false
-	}
-}
-
-// Restart will re-init device
-func (d *Device) Restart() {
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-	d.dev = nil
-
-	interfaceId := 1
-	path := ""
-	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		if info.InterfaceNbr == interfaceId {
-			path = info.Path
-		}
-		return nil
-	})
-	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
-	}
-
-	dev, err := hid.OpenPath(path)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "caller": "Restart()"}).Error("Unable to open HID device")
-		return
-	}
-	d.dev = dev
-	d.setSoftwareMode()       // Activate software mode
-	d.initLeds()              // Init LED ports
-	d.getDeviceFirmware()     // Firmware
-	d.toggleExit()            // Toggle exit mode
-	d.setDeviceColor()        // Device color
-	d.controlButtonListener() // Control buttons
-}
-
 // UpdatePollingRate will set device polling rate
 func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 	if _, ok := d.PollingRates[pullingRate]; ok {
 		if d.DeviceProfile == nil {
 			return 0
 		}
+		d.Exit = true
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		time.Sleep(40 * time.Millisecond)
 
 		d.DeviceProfile.PollingRate = pullingRate
 		d.saveDeviceProfile()
-
-		d.Close()
 		buf := make([]byte, 1)
 		buf[0] = byte(pullingRate)
 		_, err := d.transfer(cmdSetPollingRate, buf)
@@ -671,8 +643,6 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
 			return 0
 		}
-		time.Sleep(8000 * time.Millisecond)
-		d.Restart()
 		return 1
 	}
 	return 0
@@ -1371,13 +1341,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 
 	return bufferR, nil

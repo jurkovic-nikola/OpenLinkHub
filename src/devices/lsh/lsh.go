@@ -219,7 +219,8 @@ var (
 		{DeviceId: 9, Model: 1, Name: "iCUE LINK XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block", TemperatureProbe: true},
 		{DeviceId: 10, Model: 0, Name: "iCUE LINK XG3 HYBRID", LedChannels: 22, ContainsPump: false, Desc: "GPU Block", HasSpeed: true},
 		{DeviceId: 13, Model: 0, Name: "iCUE LINK XG7 RGB", LedChannels: 16, ContainsPump: false, Desc: "GPU Hybrid Block"},
-		{DeviceId: 12, Model: 0, Name: "iCUE LINK XD5 Elite", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
+		{DeviceId: 12, Model: 0, Name: "iCUE LINK XD5 ELITE", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
+		{DeviceId: 25, Model: 0, Name: "iCUE LINK XD6 ELITE", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
 		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
 		{DeviceId: 17, Model: 0, Name: "iCUE LINK TITAN 240", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
 		{DeviceId: 17, Model: 4, Name: "iCUE LINK TITAN 240", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
@@ -313,7 +314,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getTemperatureProbe() // Devices with temperature probes
 	if config.GetConfig().Manual {
 		fmt.Println(
-			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
+			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
 		)
 	} else {
 		d.updateDeviceSpeed() // Update device speed
@@ -505,8 +506,47 @@ func (d *Device) Stop() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
 	}
-
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+	d.timer.Stop()
+	close(d.autoRefreshChan)
+
+	if d.HasLCD {
+		close(d.lcdRefreshChan)
+		close(d.lcdImageChan)
+		d.lcdTimer.Stop()
+	}
+
+	if !config.GetConfig().Manual {
+		d.timerSpeed.Stop()
+		close(d.speedRefreshChan)
+	}
+
+	for _, lcdHidDevice := range d.lcdDevices {
+		if lcdHidDevice.Lcd != nil {
+			lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
+			for i := 0; i <= 1; i++ {
+				_, e := lcdHidDevice.Lcd.SendFeatureReport(lcdReports[i])
+				if e != nil {
+					logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
+				}
+			}
+			err := lcdHidDevice.Lcd.Close()
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
+			}
+		}
+	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // getLcdImages will preload lcd images for LCD devices
@@ -651,7 +691,7 @@ func (d *Device) GetDeviceTemplate() string {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1607,7 +1647,7 @@ func (d *Device) getLiquidTemperature() float32 {
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
 	go func() {
-		tmp := make(map[int]string, 0)
+		tmp := make(map[int]string)
 		channelSpeeds := map[int]byte{}
 
 		keys := make([]int, 0)
@@ -1706,32 +1746,49 @@ func (d *Device) updateDeviceSpeed() {
 						temp = 50
 					}
 
-					if profiles.Linear && profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
-						tempMin := float64(profiles.Profiles[0].Min)
-						tempMax := 95.0
+					if config.GetConfig().GraphProfiles {
+						var speed byte = 0x00
+						pumpValue := temperatures.Interpolate(profiles.Points[0], temp)
+						fansValue := temperatures.Interpolate(profiles.Points[1], temp)
 
-						if d.Devices[k].AIO || d.Devices[k].ContainsPump {
-							tempMax = float64(profiles.Profiles[0].Max)
-							if tempMax == 0 {
-								tempMax = 60
-							}
+						pump := int(math.Round(float64(pumpValue)))
+						fans := int(math.Round(float64(fansValue)))
+
+						// Failsafe
+						if fans < 20 {
+							fans = 20
 						}
-
-						value := common.LinearInterpolation(tempMin, tempMax, float64(temp)) * 100
 						if d.Devices[k].AIO {
-							if value < 50 {
-								value = 50
+							if pump < 50 {
+								pump = 70
 							}
 						} else {
-							if value < 20 {
-								value = 30
+							if pump < 20 {
+								pump = 30
 							}
 						}
+						if pump > 100 {
+							pump = 100
+						}
+						if fans > 100 {
+							fans = 100
+						}
 
-						output := common.RoundFloatToByte(value)
-						if channelSpeeds[d.Devices[k].ChannelId] != output {
-							channelSpeeds[d.Devices[k].ChannelId] = output
-							d.setSpeed(channelSpeeds, 0)
+						cp := fmt.Sprintf("%s-%d-%f", d.Devices[k].Profile, d.Devices[k].ChannelId, temp)
+						if ok := tmp[d.Devices[k].ChannelId]; ok != cp {
+							tmp[d.Devices[k].ChannelId] = cp
+							if d.Devices[k].ContainsPump {
+								speed = byte(pump)
+							} else {
+								speed = byte(fans)
+							}
+							if channelSpeeds[d.Devices[k].ChannelId] != speed {
+								channelSpeeds[d.Devices[k].ChannelId] = speed
+								d.setSpeed(channelSpeeds, 0)
+								if d.Debug {
+									logger.Log(logger.Fields{"serial": d.Serial, "pump": pump, "fans": fans, "temp": temp, "device": d.Devices[k].Name, "zeroRpm": profiles.ZeroRpm}).Info("updateDeviceSpeed()")
+								}
+							}
 						}
 					} else {
 						for i := 0; i < len(profiles.Profiles); i++ {
@@ -2014,7 +2071,7 @@ func (d *Device) getSupportedDevice(deviceId byte, deviceModel byte) *SupportedD
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
 	lcdAvailable := false
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	var nonAIOLcdData = lcd.GetNonAioLCDData()
 
 	response := d.read(modeGetDevices, dataTypeGetDevices)
@@ -2517,13 +2574,13 @@ func (d *Device) setDeviceColor() {
 // setColorEndpoint will activate hub color endpoint for further usage
 func (d *Device) setColorEndpoint() {
 	// Close any RGB endpoint
-	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, nil)
+	_, err := d.transfer(cmdCloseEndpoint, modeSetColor)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
-	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, nil)
+	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
@@ -2531,7 +2588,7 @@ func (d *Device) setColorEndpoint() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil, nil)
+	_, err := d.transfer(cmdHardwareMode, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -2539,7 +2596,7 @@ func (d *Device) setHardwareMode() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil, nil)
+	_, err := d.transfer(cmdSoftwareMode, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -2581,11 +2638,7 @@ func (d *Device) getSerial() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
-	fw, err := d.transfer(
-		cmdGetFirmware,
-		nil,
-		nil,
-	)
+	fw, err := d.transfer(cmdGetFirmware, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
@@ -2605,26 +2658,26 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	var buffer []byte
 
 	// Close specified endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
 	// Read data from endpoint
-	buffer, err = d.transfer(cmdRead, endpoint, bufferType)
+	buffer, err = d.transfer(cmdRead, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
 	if responseMatch(buffer, bufferType) {
 		// More data than it can fit into single 512 byte buffer
-		next, e := d.transfer(cmdRead, endpoint, bufferType)
+		next, e := d.transfer(cmdRead, endpoint)
 		if e != nil {
 			logger.Log(logger.Fields{"error": e}).Error("Unable to read endpoint")
 		}
@@ -2632,7 +2685,7 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	}
 
 	// Close specified endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
@@ -2893,12 +2946,12 @@ func (d *Device) setupLCD() {
 									}
 								case lcd.DisplayDoubleArc:
 									{
-										values := []int{
-											int(temperatures.GetCpuTemperature()),
-											int(temperatures.GetGpuTemperature()),
-											int(d.getLiquidTemperature()),
-											int(systeminfo.GetCpuUtilization()),
-											systeminfo.GetGPUUtilization(),
+										values := []float32{
+											temperatures.GetCpuTemperature(),
+											temperatures.GetGpuTemperature(),
+											d.getLiquidTemperature(),
+											float32(systeminfo.GetCpuUtilization()),
+											float32(systeminfo.GetGPUUtilization()),
 										}
 										image := lcd.GenerateDoubleArcScreenImage(values)
 										if image != nil {
@@ -2934,28 +2987,28 @@ func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 	}
 
 	// Close endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 		return bufferR
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 		return bufferR
 	}
 
 	// Send it
-	bufferR, err = d.transfer(cmdWrite, buffer, nil)
+	bufferR, err = d.transfer(cmdWrite, buffer)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to endpoint")
 		return bufferR
 	}
 
 	// Close endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 		return bufferR
@@ -2989,13 +3042,13 @@ func (d *Device) writeColor(data []byte) {
 		}
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk, nil)
+			_, err := d.transfer(cmdWriteColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
 			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk, nil)
+			_, err := d.transfer(dataTypeSubColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
@@ -3045,7 +3098,7 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer, bufferType []byte) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()

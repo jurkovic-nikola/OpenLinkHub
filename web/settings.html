@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $device := .Device }}
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4">
+                    <div class="ctn">
+                        <div class="row" style="width: 100%;">
+                            <div class="col-md-3" style="margin: 0 auto;">
+                                <div class="card mb-2">
+                                    <div class="card-header border-bottom border-dash-dark-1">Dashboard</div>
+                                    <div class="card-body">
+                                        <table style="width: 100%;">
+                                            <tbody>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show CPU in Dashboard</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-cpu" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show GPU in Dashboard</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-gpu" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show Storage in Dashboard</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-storage" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show Devices in Dashboard</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-devices" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show Temperature in Celsius</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-celsius" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show Device Labels</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-deviceLabels" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Show Battery Info</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <input class="form-check-input" id="checkbox-battery" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                        <div class="input-group">
+                                            <button class="btn btn-primary" type="button" id="btnSaveDashboardSettings">Save</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/settings.js"></script>
+</body>
+</html>

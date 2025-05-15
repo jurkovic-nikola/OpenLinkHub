@@ -337,7 +337,7 @@ func (d *Device) getEnhancementKit(address byte) bool {
 
 // getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	activated := 0
 
 	// DDR4
@@ -666,7 +666,7 @@ func (d *Device) getDevices() int {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)

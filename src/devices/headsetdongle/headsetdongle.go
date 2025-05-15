@@ -7,6 +7,7 @@ package headsetdongle
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
@@ -36,6 +37,8 @@ type Device struct {
 	ProductId      uint16
 	VendorId       uint16
 	Devices        map[int]*Devices `json:"devices"`
+	SharedDevices  map[string]*common.Device
+	DeviceList     map[string]*common.Device
 	PairedDevices  map[uint16]any
 	SingleDevice   bool
 	Template       string
@@ -62,9 +65,10 @@ var (
 	cmdWrite         = []byte{0x09, 0x00}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 1000
+	connectDelay     = 3000
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, productId uint16, key string, devices map[string]*common.Device) *Device {
 	// Open device, return if failure
 	dev, err := hid.OpenPath(key)
 	if err != nil {
@@ -78,9 +82,11 @@ func Init(vendorId, productId uint16, key string) *Device {
 		VendorId:       vendorId,
 		ProductId:      productId,
 		PairedDevices:  make(map[uint16]any),
+		DeviceList:     make(map[string]*common.Device),
 		Template:       "slipstream.html",
 		keepAliveChan:  make(chan struct{}),
 		timerKeepAlive: &time.Ticker{},
+		SharedDevices:  devices,
 	}
 
 	d.getDebugMode()      // Debug
@@ -134,6 +140,38 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
+// StopDirty will stop devices in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+		})
+	}()
+
+	for _, value := range d.PairedDevices {
+		if dev, found := value.(*virtuosorgbXTW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*hs80rgbW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+	}
+
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
+}
+
 // getManufacturer will return device manufacturer
 func (d *Device) getDebugMode() {
 	d.Debug = config.GetConfig().Debug
@@ -145,8 +183,9 @@ func (d *Device) GetDeviceTemplate() string {
 }
 
 // AddPairedDevice will add a paired device
-func (d *Device) AddPairedDevice(productId uint16, device any) {
+func (d *Device) AddPairedDevice(productId uint16, device any, dev *common.Device) {
 	d.PairedDevices[productId] = device
+	d.DeviceList[dev.Serial] = dev
 }
 
 // GetDevice will return HID device
@@ -350,17 +389,20 @@ func (d *Device) setDevicesOffline() {
 
 // setDeviceOffline will set device offline
 func (d *Device) setDeviceOnline() {
+	time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 	for _, pairedDevice := range d.PairedDevices {
 		if device, found := pairedDevice.(*virtuosorgbXTW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
+				d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 			}
 		}
 		if device, found := pairedDevice.(*hs80rgbW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
+				d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 			}
 		}
 	}
@@ -461,11 +503,12 @@ func (d *Device) backendListener() {
 				// Battery
 				if data[1] == 0x01 && data[2] == 0x12 {
 					var val uint16 = 0
-					if data[6] > 0 { // Unclear why it switches 1 position next
-						val = binary.LittleEndian.Uint16(data[5:7]) / 10
+					if data[7] > 0 { // Unclear why it switches 1 position next
+						val = binary.LittleEndian.Uint16(data[6:8]) / 10
 					} else {
-						val = binary.LittleEndian.Uint16(data[4:6]) / 10
+						val = binary.LittleEndian.Uint16(data[5:7]) / 10
 					}
+
 					if val > 0 {
 						for _, value := range d.PairedDevices {
 							if dev, found := value.(*virtuosorgbXTW.Device); found {

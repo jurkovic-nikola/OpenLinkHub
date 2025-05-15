@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
@@ -192,6 +193,27 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 2
 }
 
 // getManufacturer will return device manufacturer
@@ -533,6 +555,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[4:6]) / 10
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -782,7 +805,7 @@ func (d *Device) setSleepTimer() uint8 {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1124,13 +1147,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 	return bufferR, nil
 }
@@ -1217,6 +1240,7 @@ func (d *Device) backendListener() {
 					}
 					if val > 0 {
 						d.BatteryLevel = val / 10
+						stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
 					}
 				}
 

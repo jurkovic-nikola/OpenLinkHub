@@ -17,6 +17,9 @@ if [ -f $PRODUCT_FILE ]; then
   cp -r web/ "/opt/$PRODUCT/"
   cp -r static/ "/opt/$PRODUCT/"
   cp -r database/ "/opt/$PRODUCT/"
+  sudo cp 99-openlinkhub.rules /etc/udev/rules.d/
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger
   chmod -R 755 /opt/$PRODUCT
   chown -R "$CURRENT_USER":root /opt/$PRODUCT
   sudo systemctl start $PRODUCT

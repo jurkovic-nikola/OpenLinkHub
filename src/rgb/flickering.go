@@ -21,19 +21,30 @@ func (r *ActiveRGB) Flickering(startTime *time.Time) {
 	for j := 0; j < r.LightChannels; j++ {
 		t := float64(j) / float64(r.LightChannels) // Calculate interpolation factor
 		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
-		if rand.Intn(r.LightChannels*int(r.RgbModeSpeed)) == 1 {
-			buf[j] = []byte{0, 0, 0}
-		} else {
-			buf[j] = []byte{
-				byte(colors.Red),
-				byte(colors.Green),
-				byte(colors.Blue),
+		if len(r.Buffer) > 0 {
+			if rand.Intn(r.LightChannels*int(r.RgbModeSpeed)) == 1 {
+				r.Buffer[j] = 0
+				r.Buffer[j+r.ColorOffset] = 0
+				r.Buffer[j+(r.ColorOffset*2)] = 0
+			} else {
+				r.Buffer[j] = byte(colors.Red)
+				r.Buffer[j+r.ColorOffset] = byte(colors.Green)
+				r.Buffer[j+(r.ColorOffset*2)] = byte(colors.Blue)
 			}
-		}
-
-		if r.IsAIO && r.HasLCD {
-			if j > 15 && j < 20 {
+		} else {
+			if rand.Intn(r.LightChannels*int(r.RgbModeSpeed)) == 1 {
 				buf[j] = []byte{0, 0, 0}
+			} else {
+				buf[j] = []byte{
+					byte(colors.Red),
+					byte(colors.Green),
+					byte(colors.Blue),
+				}
+			}
+			if r.IsAIO && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

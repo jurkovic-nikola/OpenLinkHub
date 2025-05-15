@@ -20,76 +20,78 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId            string             `json:"deviceId"`
-	ChannelId           int                `json:"channelId"`
-	ProfileId           uint8              `json:"profileId"`
-	Mode                uint8              `json:"mode"`
-	Rotation            uint8              `json:"rotation"`
-	Value               uint16             `json:"value"`
-	BackgroundColor     rgb.Color          `json:"backgroundColor"`
-	BorderColor         rgb.Color          `json:"borderColor"`
-	SeparatorColor      rgb.Color          `json:"separatorColor"`
-	Color               rgb.Color          `json:"color"`
-	StartColor          rgb.Color          `json:"startColor"`
-	EndColor            rgb.Color          `json:"endColor"`
-	TextColor           rgb.Color          `json:"textColor"`
-	Arcs                map[uint8]lcd.Arcs `json:"arcs"`
-	Speed               float64            `json:"speed"`
-	Thickness           float64            `json:"thickness"`
-	GapRadians          float64            `json:"gapRadians"`
-	Margin              float64            `json:"margin"`
-	Smoothness          int                `json:"smoothness"`
-	Profile             string             `json:"profile"`
-	Label               string             `json:"label"`
-	Static              bool               `json:"static"`
-	Sensor              uint8              `json:"sensor"`
-	HardwareLight       int                `json:"hardwareLight"`
-	ZeroRpm             bool               `json:"zeroRpm"`
-	Linear              bool               `json:"linear"`
-	HwmonDeviceId       string             `json:"hwmonDeviceId"`
-	Enabled             bool               `json:"enabled"`
-	DeviceType          int                `json:"deviceType"`
-	KeyOption           int                `json:"keyOption"`
-	AreaOption          int                `json:"areaOption"`
-	KeyId               int                `json:"keyId"`
-	AreaId              int                `json:"areaId"`
-	DeviceAmount        int                `json:"deviceAmount"`
-	PortId              int                `json:"portId"`
-	UserProfileName     string             `json:"userProfileName"`
-	LcdSerial           string             `json:"lcdSerial"`
-	KeyboardProfileName string             `json:"keyboardProfileName"`
-	KeyboardLayout      string             `json:"keyboardLayout"`
-	KeyboardControlDial int                `json:"keyboardControlDial"`
-	SleepMode           int                `json:"sleepMode"`
-	PollingRate         int                `json:"pollingRate"`
-	ButtonOptimization  int                `json:"buttonOptimization"`
-	AngleSnapping       int                `json:"angleSnapping"`
-	PressAndHold        bool               `json:"pressAndHold"`
-	KeyIndex            int                `json:"keyIndex"`
-	KeyAssignmentType   uint8              `json:"keyAssignmentType"`
-	KeyAssignmentValue  uint8              `json:"keyAssignmentValue"`
-	MuteIndicator       int                `json:"muteIndicator"`
-	RgbControl          bool               `json:"rgbControl"`
-	RgbOff              string             `json:"rgbOff"`
-	RgbOn               string             `json:"rgbOn"`
-	Brightness          uint8              `json:"brightness"`
-	Position            int                `json:"position"`
-	DeviceIdString      string             `json:"deviceIdString"`
-	Direction           int                `json:"direction"`
-	StripId             int                `json:"stripId"`
-	FanMode             int                `json:"fanMode"`
-	New                 bool               `json:"new"`
-	Stages              map[int]uint16     `json:"stages"`
-	ColorDpi            rgb.Color          `json:"colorDpi"`
-	ColorZones          map[int]rgb.Color  `json:"colorZones"`
-	Image               string             `json:"image"`
-	MacroId             int                `json:"macroId"`
-	MacroIndex          int                `json:"macroIndex"`
-	MacroName           string             `json:"macroName"`
-	MacroType           uint8              `json:"macroType"`
-	MacroValue          uint8              `json:"macroValue"`
-	MacroDelay          uint16             `json:"macroDelay"`
-	LedProfile          led.Device         `json:"ledProfile"`
+	DeviceId            string               `json:"deviceId"`
+	ChannelId           int                  `json:"channelId"`
+	ProfileId           uint8                `json:"profileId"`
+	Mode                uint8                `json:"mode"`
+	Rotation            uint8                `json:"rotation"`
+	Value               uint16               `json:"value"`
+	BackgroundColor     rgb.Color            `json:"backgroundColor"`
+	BorderColor         rgb.Color            `json:"borderColor"`
+	SeparatorColor      rgb.Color            `json:"separatorColor"`
+	Color               rgb.Color            `json:"color"`
+	StartColor          rgb.Color            `json:"startColor"`
+	EndColor            rgb.Color            `json:"endColor"`
+	TextColor           rgb.Color            `json:"textColor"`
+	Arcs                map[uint8]lcd.Arcs   `json:"arcs"`
+	Speed               float64              `json:"speed"`
+	Thickness           float64              `json:"thickness"`
+	GapRadians          float64              `json:"gapRadians"`
+	Margin              float64              `json:"margin"`
+	Smoothness          int                  `json:"smoothness"`
+	Profile             string               `json:"profile"`
+	Label               string               `json:"label"`
+	Static              bool                 `json:"static"`
+	Sensor              uint8                `json:"sensor"`
+	HardwareLight       int                  `json:"hardwareLight"`
+	ZeroRpm             bool                 `json:"zeroRpm"`
+	Linear              bool                 `json:"linear"`
+	HwmonDeviceId       string               `json:"hwmonDeviceId"`
+	Enabled             bool                 `json:"enabled"`
+	DeviceType          int                  `json:"deviceType"`
+	KeyOption           int                  `json:"keyOption"`
+	AreaOption          int                  `json:"areaOption"`
+	KeyId               int                  `json:"keyId"`
+	AreaId              int                  `json:"areaId"`
+	DeviceAmount        int                  `json:"deviceAmount"`
+	PortId              int                  `json:"portId"`
+	UserProfileName     string               `json:"userProfileName"`
+	LcdSerial           string               `json:"lcdSerial"`
+	KeyboardProfileName string               `json:"keyboardProfileName"`
+	KeyboardLayout      string               `json:"keyboardLayout"`
+	KeyboardControlDial int                  `json:"keyboardControlDial"`
+	SleepMode           int                  `json:"sleepMode"`
+	PollingRate         int                  `json:"pollingRate"`
+	ButtonOptimization  int                  `json:"buttonOptimization"`
+	AngleSnapping       int                  `json:"angleSnapping"`
+	PressAndHold        bool                 `json:"pressAndHold"`
+	KeyIndex            int                  `json:"keyIndex"`
+	KeyAssignmentType   uint8                `json:"keyAssignmentType"`
+	KeyAssignmentValue  uint16               `json:"keyAssignmentValue"`
+	MuteIndicator       int                  `json:"muteIndicator"`
+	RgbControl          bool                 `json:"rgbControl"`
+	RgbOff              string               `json:"rgbOff"`
+	RgbOn               string               `json:"rgbOn"`
+	Brightness          uint8                `json:"brightness"`
+	Position            int                  `json:"position"`
+	DeviceIdString      string               `json:"deviceIdString"`
+	Direction           int                  `json:"direction"`
+	StripId             int                  `json:"stripId"`
+	FanMode             int                  `json:"fanMode"`
+	New                 bool                 `json:"new"`
+	Stages              map[int]uint16       `json:"stages"`
+	ColorDpi            rgb.Color            `json:"colorDpi"`
+	ColorZones          map[int]rgb.Color    `json:"colorZones"`
+	Image               string               `json:"image"`
+	MacroId             int                  `json:"macroId"`
+	MacroIndex          int                  `json:"macroIndex"`
+	MacroName           string               `json:"macroName"`
+	MacroType           uint8                `json:"macroType"`
+	MacroValue          uint16               `json:"macroValue"`
+	MacroDelay          uint16               `json:"macroDelay"`
+	LedProfile          led.Device           `json:"ledProfile"`
+	Points              []temperatures.Point `json:"points"`
+	UpdateType          uint8                `json:"updateType"`
 	Status              int
 	Code                int
 	Message             string
@@ -192,6 +194,50 @@ func ProcessUpdateTemperatureProfile(r *http.Request) *Payload {
 			Status:  0,
 		}
 	}
+}
+
+// ProcessUpdateTemperatureProfileGraph will process update of temperature profile graph
+func ProcessUpdateTemperatureProfileGraph(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: "Unable to validate your request. Please try again!",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	profile := req.Profile
+	updateType := req.UpdateType
+
+	if updateType < 0 || updateType > 1 {
+		return &Payload{
+			Message: "Unable to validate your request. Invalid update type",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", profile); !m {
+		return &Payload{
+			Message: "Unable to validate your request. Profile name contains invalid characters",
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	pf := temperatures.GetTemperatureProfile(profile)
+	if pf == nil {
+		return &Payload{Message: "Non-existing speed profile", Code: http.StatusOK, Status: 0}
+	}
+
+	pf.Points[updateType] = req.Points
+	if temperatures.UpdateTemperatureProfileGraph(profile, *pf) == 1 {
+		return &Payload{Message: "Speed profile is successfully updated", Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: "Unable to update temperature profile", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessNewTemperatureProfile will process the creation of temperature profile

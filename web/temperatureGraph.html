@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $device := .Device }}
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4">
+                    <div class="col-lg-2">
+                        <div class="card newTemp" data-bs-toggle="modal" data-bs-target="#newTempModal" style="margin-bottom: 20px;">
+                            <div class="card-body">
+                                <div class="row gx-12">
+                                    <div class="col-12">
+                                        <div>
+                                            <p class="text-xl fw-normal mb-0">New Profile</p>
+                                            <p class="text-uppercase text-sm fw-light mb-2">Create new profile</p>
+                                            <div class="progress" style="height: 2px">
+                                                <div class="progress-bar bg-dash-color-1" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal fade text-start" id="newTempModal" tabindex="-1" aria-labelledby="newTempModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="newTempModalLabel">New temperature profile</h5>
+                                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form>
+                                            <div class="mb-3">
+                                                <label class="form-label" for="profileName">Profile name</label>
+                                                <input class="form-control" id="profileName" type="text">
+
+                                                <label class="form-label" for="sensor">Sensor:</label>
+                                                <select class="form-select mb-1 tempProfile" id="sensor">
+                                                    <option value="0" selected>CPU</option>
+                                                    <option value="1">GPU</option>
+                                                    <option value="2">Liquid Temperature</option>
+                                                    <option value="3">Storage Temperature</option>
+                                                    <option value="4">Temperature Probe</option>
+                                                    <option value="5">CPU + GPU</option>
+                                                </select>
+
+                                                {{ if .TemperatureProbes }}
+                                                <div id="temperature-probe-data" style="display: none;">
+                                                    <label class="form-label" for="probeData">Temperature Probe:</label>
+                                                    <select class="form-select mb-1 tempProfile" id="probeData">
+                                                        <option value="0;0" selected>Select probe</option>
+                                                        {{ range .TemperatureProbes }}
+                                                        {{ range . }}
+                                                        <option value="{{ .Serial }};{{ .ChannelId }}">{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
+                                                        {{ end }}
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                {{ end }}
+
+                                                {{ if .SystemInfo.Storage }}
+                                                <div id="storage-data" style="display: none;">
+                                                    <label class="form-label" for="hwmonDeviceId">Storage Device:</label>
+                                                    <select class="form-select mb-1 tempProfile" id="hwmonDeviceId">
+                                                        {{ range .SystemInfo.Storage }}
+                                                        <option value="{{ .Key }}">{{ .Model }}</option>
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                {{ end }}
+
+                                                <div class="form-check">
+                                                    <input class="form-check-input" id="staticCheckbox" type="checkbox">
+                                                    <label class="form-check-label" for="staticCheckbox">Static</label>
+                                                </div>
+                                                <!--
+                                                <div class="form-check" id="linear-data" style="display: none;">
+                                                    <input class="form-check-input" id="linearCheckbox" type="checkbox">
+                                                    <label class="form-check-label" for="linearCheckbox">Linear (linear temperature / rpm interpolation)</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox" disabled>
+                                                    <label class="form-check-label" for="zeroRpmCheckbox">Zero RPM (Only for AIOs that support Zero RPM)</label>
+                                                </div>
+                                                -->
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                        <button class="btn btn-primary" type="button" id="btnSaveNewProfile">Create</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade text-start" id="deleteTempModal" tabindex="-1" aria-labelledby="newTempModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteTempModalLabel">Delete temperature profile</h5>
+                                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-1">
+                                            <p>Are you sure you want to delete this profile? </p>
+                                            <p style="color: #dc3545">ALL devices using this profile will be reset to the Normal profile!</p>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                        <button class="btn btn-danger" type="button" id="delete">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ range $key, $value := .Temperatures }}
+                        {{ if eq $value.Hidden true }}
+                        {{ continue }}
+                        {{ else if eq $key "Normal" }}
+                        {{ continue }}
+                        {{ else if eq $key "Performance" }}
+                        {{ continue }}
+                        {{ else if eq $key "Quiet" }}
+                        {{ continue }}
+                        {{ else }}
+                        <div class="card tempProfiles" id="{{ $key }}" style="margin-bottom: 20px;">
+                            <div class="card-body">
+                                <div class="row gx-12">
+                                    <div class="col-12">
+                                            <div>
+                                                <div style="overflow: hidden;">
+                                                    <div style="float: left;">
+                                                        <p class="text-xl fw-normal mb-0">{{ $key }}</p>
+                                                    </div>
+                                                    <div style="float: right;">
+                                                        <span title="Delete Profile" class="btn btn-secondary-empty" data-bs-toggle="modal" data-bs-target="#deleteTempModal">
+                                                            <i class="bi bi-trash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <p class="text-uppercase text-sm fw-light mb-1">Modes: {{ len $value.Profiles }}</p>
+                                                {{ if eq $value.Sensor 0 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: CPU</p>
+                                                {{ else if eq $value.Sensor 1 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: GPU</p>
+                                                {{ else if eq $value.Sensor 2 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Liquid</p>
+                                                {{ else if eq $value.Sensor 3 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Storage</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">Device ID: {{ $value.Device }}</p>
+                                                {{ else if eq $value.Sensor 4 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Temperature Probe</p>
+                                                {{ else if eq $value.Sensor 5 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: CPU + GPU</p>
+                                                {{ end }}
+
+                                                <!--
+                                                {{ if $value.ZeroRpm }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Zero RPM: Enabled</p>
+                                                {{ else }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">Zero RPM: Disabled</p>
+                                                {{ end }}
+                                                -->
+                                                <div class="progress" style="height: 2px">
+                                                    <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                            </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                        {{ end }}
+                    </div>
+                    <input type="hidden" id="profile" name="profile" value="">
+                    <div class="col-lg-10" style="padding-top: 0;display:none" id="graph-window">
+                        <div style="display: flex; width: 100%; gap: 10px; margin: 0; padding: 0;">
+                            <div style="flex: 1;">
+                                <canvas id="graphPump" style="width: 100%; height: 500px; display: block;"></canvas>
+                                <button class="btn btn-secondary" type="button" id="updatePump" style="margin-top:10px;width:150px;">Save</button>
+                            </div>
+                            <div style="flex: 1;">
+                                <canvas id="graphFans" style="width: 100%; height: 500px; display: block;"></canvas>
+                                <button class="btn btn-secondary" type="button" id="updateFans" style="margin-top:10px;width:150px;">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/dataTables.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/temperature.js"></script>
+</body>
+</html>

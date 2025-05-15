@@ -379,7 +379,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.resetLEDPorts()       // Reset device LED
 	if config.GetConfig().Manual {
 		fmt.Println(
-			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
+			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
 		)
 	} else {
 		d.updateDeviceSpeed() // Update device speed
@@ -463,6 +463,59 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+				}
+			}
+		})
+	}()
+
+	if d.HasLCD {
+		if d.DeviceProfile.LCDMode == lcd.DisplayImage {
+			if d.lcdImageChan != nil {
+				close(d.lcdImageChan)
+			}
+		} else {
+			if d.lcdRefreshChan != nil {
+				close(d.lcdRefreshChan)
+			}
+		}
+		d.lcdTimer.Stop()
+
+		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
+		for i := 0; i <= 1; i++ {
+			_, e := d.lcd.SendFeatureReport(lcdReports[i])
+			if e != nil {
+				logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
+			}
+		}
+
+		err := d.lcd.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
+		}
+	}
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -644,8 +697,9 @@ func (d *Device) loadDeviceProfiles() {
 
 // getDeviceLcd will check if AIO has LCD pump cover
 func (d *Device) getDeviceLcd() {
-	var productId uint16 = 3129
 	var serial = ""
+	var productIds = []uint16{3129, 3123}
+
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 		if info.InterfaceNbr == 0 {
 			serial = info.SerialNbr
@@ -653,22 +707,24 @@ func (d *Device) getDeviceLcd() {
 		return nil
 	})
 
-	// Enumerate all Corsair devices
-	err := hid.Enumerate(d.VendorId, productId, enum)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate LCD devices")
-		return
-	}
-
-	if len(serial) > 0 {
-		lcdPanel, e := hid.Open(d.VendorId, productId, serial)
-		if e != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": productId}).Error("Unable to open LCD HID device")
-			d.HasLCD = false
-			return
+	for _, productId := range productIds {
+		err := hid.Enumerate(d.VendorId, productId, enum)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate LCD devices")
+			continue
 		}
-		d.lcd = lcdPanel
-		d.HasLCD = true
+
+		if len(serial) > 0 {
+			lcdPanel, e := hid.Open(d.VendorId, productId, serial)
+			if e != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": productId}).Error("Unable to open LCD HID device")
+				d.HasLCD = false
+				continue
+			}
+			d.lcd = lcdPanel
+			d.HasLCD = true
+			break
+		}
 	}
 }
 
@@ -1512,26 +1568,45 @@ func (d *Device) updateDeviceSpeed() {
 						temp = 50
 					}
 
-					if profiles.Linear && profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
-						tempMin := float64(profiles.Profiles[0].Min)
-						tempMax := 95.0
+					if config.GetConfig().GraphProfiles {
+						pumpValue := temperatures.Interpolate(profiles.Points[0], temp)
+						fansValue := temperatures.Interpolate(profiles.Points[1], temp)
 
+						pump := int(math.Round(float64(pumpValue)))
+						fans := int(math.Round(float64(fansValue)))
+
+						// Failsafe
+						if fans < 20 {
+							fans = 20
+						}
 						if device.ContainsPump {
-							tempMax = float64(profiles.Profiles[0].Max)
-							if tempMax == 0 {
-								tempMax = 60
+							if pump < 50 {
+								pump = 70
+							}
+						} else {
+							if pump < 20 {
+								pump = 30
 							}
 						}
-
-						value := common.LinearInterpolation(tempMin, tempMax, float64(temp)) * 100
-						if value < 50 {
-							value = 50
+						if pump > 100 {
+							pump = 100
+						}
+						if fans > 100 {
+							fans = 100
 						}
 
-						output := common.RoundFloatToByte(value)
-						if channelSpeeds[device.ChannelId] != output {
-							channelSpeeds[device.ChannelId] = output
+						cp := fmt.Sprintf("%s-%d-%f", device.Profile, device.ChannelId, temp)
+						if ok := tmp[device.ChannelId]; ok != cp {
+							tmp[device.ChannelId] = cp
+							if device.ContainsPump {
+								channelSpeeds[device.ChannelId] = byte(pump)
+							} else {
+								channelSpeeds[device.ChannelId] = byte(fans)
+							}
 							d.setSpeed(channelSpeeds, 0)
+						}
+						if d.Debug {
+							logger.Log(logger.Fields{"serial": d.Serial, "pump": pump, "fans": fans, "temp": temp, "device": device.Name, "zeroRpm": profiles.ZeroRpm}).Info("updateDeviceSpeed()")
 						}
 					} else {
 						for i := 0; i < len(profiles.Profiles); i++ {
@@ -1597,12 +1672,19 @@ func (d *Device) getDeviceType() {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
 	pumpVersion := int16(deviceType[3])
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", deviceType)}).Info("getDeviceType() - Pump Version")
+	}
 
 	deviceType, err = d.transfer(cmdGetRadiatorType, nil, nil, "getDeviceType")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
 	radiatorSize := int16(binary.LittleEndian.Uint16(deviceType[3:5]))
+
+	if d.Debug {
+		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", deviceType)}).Info("getDeviceType() - Radiator size")
+	}
 
 	// We match a device with radiator size and pump version
 	for _, aioType := range aioList {
@@ -1877,6 +1959,33 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 		return 1
 	} else {
 		return 2
+	}
+}
+
+// UpdateDeviceLcdImage will update device LCD image
+func (d *Device) UpdateDeviceLcdImage(channelId int, image string) uint8 {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.HasLCD {
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", image); !m {
+			return 0
+		}
+		if len(lcd.GetLcdImages()) == 0 {
+			return 0
+		}
+
+		lcdImage := lcd.GetLcdImage(image)
+		if lcdImage == nil {
+			return 0
+		}
+
+		d.DeviceProfile.LCDImage = image
+		d.LCDImage = lcdImage
+		d.saveDeviceProfile()
+		return 1
+	} else {
+		return 0
 	}
 }
 
@@ -2781,12 +2890,12 @@ func (d *Device) setupLCD(reload bool) {
 					}
 				case lcd.DisplayDoubleArc:
 					{
-						values := []int{
-							int(temperatures.GetCpuTemperature()),
-							int(temperatures.GetGpuTemperature()),
-							int(d.getLiquidTemperature()),
-							int(systeminfo.GetCpuUtilization()),
-							systeminfo.GetGPUUtilization(),
+						values := []float32{
+							temperatures.GetCpuTemperature(),
+							temperatures.GetGpuTemperature(),
+							d.getLiquidTemperature(),
+							float32(systeminfo.GetCpuUtilization()),
+							float32(systeminfo.GetGPUUtilization()),
 						}
 						image := lcd.GenerateDoubleArcScreenImage(values)
 						if image != nil {
@@ -2939,13 +3048,13 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([
 		// Send command to a device
 		if _, err := d.dev.Write(bufferW); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to write to a device")
-			return nil, err
+			return bufferR, err
 		}
 
 		// Get data from a device
 		if _, err := d.dev.Read(bufferR); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
-			return nil, err
+			return bufferR, err
 		}
 
 		// Read remaining data from a device
@@ -2964,7 +3073,6 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([
 				return nil, ctx.Err()
 			}
 		}
-
 	}
 	return bufferR, nil
 }

@@ -22,14 +22,20 @@ func (r *ActiveRGB) Colorwarp(startTime *time.Time, activeRgb *ActiveRGB) {
 
 	// Update LED channels
 	for j := 0; j < r.LightChannels; j++ {
-		buf[j] = []byte{
-			byte(color.Red),
-			byte(color.Green),
-			byte(color.Blue),
-		}
-		if r.IsAIO && r.HasLCD {
-			if j > 15 && j < 20 {
-				buf[j] = []byte{0, 0, 0}
+		if len(r.Buffer) > 0 {
+			r.Buffer[j] = byte(color.Red)
+			r.Buffer[j+r.ColorOffset] = byte(color.Green)
+			r.Buffer[j+(r.ColorOffset*2)] = byte(color.Blue)
+		} else {
+			buf[j] = []byte{
+				byte(color.Red),
+				byte(color.Green),
+				byte(color.Blue),
+			}
+			if r.IsAIO && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

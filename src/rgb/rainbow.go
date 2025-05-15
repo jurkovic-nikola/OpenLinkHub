@@ -56,14 +56,20 @@ func (r *ActiveRGB) Rainbow(startTime time.Time) {
 	buf := map[int][]byte{}
 	colors := generateRainbowColors(r.LightChannels, elapsed, r.RGBBrightness)
 	for i, color := range colors {
-		buf[i] = []byte{
-			byte(color.R),
-			byte(color.G),
-			byte(color.B),
-		}
-		if r.IsAIO && r.HasLCD {
-			if i > 15 && i < 20 {
-				buf[i] = []byte{0, 0, 0}
+		if len(r.Buffer) > 0 {
+			r.Buffer[i] = byte(color.R)
+			r.Buffer[i+r.ColorOffset] = byte(color.G)
+			r.Buffer[i+(r.ColorOffset*2)] = byte(color.B)
+		} else {
+			buf[i] = []byte{
+				byte(color.R),
+				byte(color.G),
+				byte(color.B),
+			}
+			if r.IsAIO && r.HasLCD {
+				if i > 15 && i < 20 {
+					buf[i] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

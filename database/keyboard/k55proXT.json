@@ -2,25 +2,20 @@
   "version": 1,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
-  "key": "k70coretklW-default",
-  "device": "K70 CORE TKL WL",
+  "key": "k55proXT-default",
+  "device": "K55 RGB PRO XT",
   "layout": "US",
   "rows": 6,
-  "color": {
-    "red": 0,
-    "green": 255,
-    "blue": 255
-  },
   "row": {
     "0": {
       "keys": {
         "1": {
-          "keyName": "ESC",
+          "keyName": "G1",
           "width": 65,
           "height": 70,
           "left": 0,
           "top": 0,
-          "packetIndex": [123],
+          "packetIndex": [127],
           "color": {
             "red": 0,
             "green": 255,
@@ -28,540 +23,25 @@
           }
         },
         "2": {
+          "keyName": "ESC",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "zone": 1,
+          "packetIndex": [37],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "3": {
           "keyName": "F1",
           "width": 65,
           "height": 70,
           "left": 95,
           "top": 0,
-          "packetIndex": [174],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "3": {
-          "keyName": "F2",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [177],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "4": {
-          "keyName": "F3",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [180],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "5": {
-          "keyName": "F4",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [183],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "6": {
-          "keyName": "F5",
-          "width": 65,
-          "height": 70,
-          "left": 55,
-          "top": 0,
-          "packetIndex": [186],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "7": {
-          "keyName": "F6",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [189],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "8": {
-          "keyName": "F7",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [192],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "9": {
-          "keyName": "F8",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [195],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "10": {
-          "keyName": "F9",
-          "width": 65,
-          "height": 70,
-          "left": 60,
-          "top": 0,
-          "packetIndex": [198],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "11": {
-          "keyName": "F10",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [201],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "12": {
-          "keyName": "F11",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [204],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "13": {
-          "keyName": "F12",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [207],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "14": {
-          "keyName": "icon-speed.svg",
-          "width": 65,
-          "height": 70,
-          "left": 25,
-          "top": 0,
-          "packetIndex": [3],
-          "color": {
-            "red": 255,
-            "green": 255,
-            "blue": 0
-          },
-          "svg": true
-        },
-        "15": {
-          "keyName": "Profile",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [6],
-          "color": {
-            "red": 255,
-            "green": 255,
-            "blue": 0
-          }
-        }
-      }
-    },
-    "1": {
-      "keys": {
-        "16": {
-          "keyName": "` ~",
-          "width": 65,
-          "height": 70,
-          "left": 0,
-          "top": 15,
-          "packetIndex": [159],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "17": {
-          "keyName": "1",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [90],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "18": {
-          "keyName": "2",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [93],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "19": {
-          "keyName": "3",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [96],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "20": {
-          "keyName": "4",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [99],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "21": {
-          "keyName": "5",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [102],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "22": {
-          "keyName": "6",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [105],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "23": {
-          "keyName": "7",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [108],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "24": {
-          "keyName": "8",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [111],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "25": {
-          "keyName": "9",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [114],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "26": {
-          "keyName": "0",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [117],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "27": {
-          "keyName": "-",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [135],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "28": {
-          "keyName": "=",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [138],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "29": {
-          "keyName": "<---",
-          "width": 150,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [126],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "30": {
-          "keyName": "Ins",
-          "width": 65,
-          "height": 70,
-          "left": 25,
-          "top": 15,
-          "packetIndex": [219],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "31": {
-          "keyName": "Home",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [222],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "32": {
-          "keyName": "PgUp",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [225],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        }
-      }
-    },
-    "2": {
-      "keys": {
-        "33": {
-          "keyName": "Tab",
-          "width": 108,
-          "height": 70,
-          "left": 0,
-          "top": 15,
-          "packetIndex": [129],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "34": {
-          "keyName": "Q",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [60],
-          "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
-          }
-        },
-        "35": {
-          "keyName": "W",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [78],
-          "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
-          }
-        },
-        "36": {
-          "keyName": "E",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [24],
-          "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
-          }
-        },
-        "37": {
-          "keyName": "R",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [63],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "38": {
-          "keyName": "T",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [69],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "39": {
-          "keyName": "Y",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [84],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "40": {
-          "keyName": "U",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [72],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "41": {
-          "keyName": "I",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [36],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "42": {
-          "keyName": "O",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
           "packetIndex": [54],
           "color": {
             "red": 0,
@@ -569,12 +49,38 @@
             "blue": 255
           }
         },
-        "43": {
-          "keyName": "P",
+        "4": {
+          "keyName": "F2",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 15,
+          "top": 0,
+          "packetIndex": [55],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "5": {
+          "keyName": "F3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [56],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "6": {
+          "keyName": "F4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
           "packetIndex": [57],
           "color": {
             "red": 0,
@@ -582,78 +88,143 @@
             "blue": 255
           }
         },
-        "44": {
-          "keyName": "[ {",
+        "7": {
+          "keyName": "F5",
+          "width": 65,
+          "height": 70,
+          "left": 55,
+          "top": 0,
+          "packetIndex": [58],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "8": {
+          "keyName": "F6",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 15,
-          "packetIndex": [141],
+          "top": 0,
+          "packetIndex": [59],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "45": {
-          "keyName": "] }",
+        "9": {
+          "keyName": "F7",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 15,
-          "packetIndex": [144],
+          "top": 0,
+          "packetIndex": [60],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "46": {
-          "keyName": "\\ |",
-          "width": 107,
+        "10": {
+          "keyName": "F8",
+          "width": 65,
           "height": 70,
           "left": 15,
-          "top": 15,
-          "packetIndex": [147],
+          "top": 0,
+          "packetIndex": [61],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "47": {
-          "keyName": "Del",
+        "11": {
+          "keyName": "F9",
+          "width": 65,
+          "height": 70,
+          "left": 60,
+          "top": 0,
+          "packetIndex": [62],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "12": {
+          "keyName": "F10",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [63],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "13": {
+          "keyName": "F11",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [64],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "14": {
+          "keyName": "F12",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [65],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "15": {
+          "keyName": "PrtSc",
           "width": 65,
           "height": 70,
           "left": 25,
-          "top": 15,
-          "packetIndex": [228],
+          "top": 0,
+          "packetIndex": [66],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "48": {
-          "keyName": "End",
+        "16": {
+          "keyName": "ScrLk",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 15,
-          "packetIndex": [231],
+          "top": 0,
+          "packetIndex": [67],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "49": {
-          "keyName": "PgDn",
+        "17": {
+          "keyName": "Pause",
           "width": 65,
           "height": 70,
           "left": 15,
-          "top": 15,
-          "packetIndex": [234],
+          "top": 0,
+          "packetIndex": [68],
           "color": {
             "red": 0,
             "green": 255,
@@ -662,62 +233,49 @@
         }
       }
     },
-    "3": {
+    "1": {
       "keys": {
-        "50": {
-          "keyName": "CAPS",
-          "width": 131,
+        "18": {
+          "keyName": "G2",
+          "width": 65,
           "height": 70,
           "left": 0,
           "top": 15,
-          "packetIndex": [171],
+          "packetIndex": [128],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "51": {
-          "keyName": "A",
+        "19": {
+          "keyName": "` ~",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [12],
+          "packetIndex": [49],
           "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
+            "red": 0,
+            "green": 255,
+            "blue": 255
           }
         },
-        "52": {
-          "keyName": "S",
+        "20": {
+          "keyName": "1",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [66],
+          "packetIndex": [26],
           "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
+            "red": 0,
+            "green": 255,
+            "blue": 255
           }
         },
-        "53": {
-          "keyName": "D",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [21],
-          "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
-          }
-        },
-        "54": {
-          "keyName": "F",
+        "21": {
+          "keyName": "2",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -729,7 +287,612 @@
             "blue": 255
           }
         },
+        "22": {
+          "keyName": "3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [28],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "23": {
+          "keyName": "4",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [29],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }        },
+        "24": {
+          "keyName": "5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [30],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "25": {
+          "keyName": "6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [31],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "26": {
+          "keyName": "7",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [32],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "27": {
+          "keyName": "8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [33],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "28": {
+          "keyName": "9",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [34],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "29": {
+          "keyName": "0",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [35],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "30": {
+          "keyName": "-",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [41],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "31": {
+          "keyName": "=",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [42],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "32": {
+          "keyName": "<---",
+          "width": 150,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [38],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "33": {
+          "keyName": "Ins",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [69],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "34": {
+          "keyName": "Home",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [70],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "35": {
+          "keyName": "PgUp",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [71],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "36": {
+          "keyName": "Num",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [79],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "37": {
+          "keyName": "/",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [80],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "38": {
+          "keyName": "*",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [81],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "39": {
+          "keyName": "-",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [82],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        }
+      }
+    },
+    "2": {
+      "keys": {
+        "40": {
+          "keyName": "G3",
+          "width": 65,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [129],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "41": {
+          "keyName": "Tab",
+          "width": 108,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [39],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "42": {
+          "keyName": "Q",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [16],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          }
+        },
+        "43": {
+          "keyName": "W",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [22],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          }
+        },
+        "44": {
+          "keyName": "E",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [4],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          }
+        },
+        "45": {
+          "keyName": "R",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [17],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "46": {
+          "keyName": "T",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [19],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "47": {
+          "keyName": "Y",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [24],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "48": {
+          "keyName": "U",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [20],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "49": {
+          "keyName": "I",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [8],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "50": {
+          "keyName": "O",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [14],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "51": {
+          "keyName": "P",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [15],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "52": {
+          "keyName": "[ {",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [43],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "53": {
+          "keyName": "] }",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [44],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "54": {
+          "keyName": "\\ |",
+          "width": 107,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [45],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
         "55": {
+          "keyName": "Del",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [72],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "56": {
+          "keyName": "End",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [73],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "57": {
+          "keyName": "PgDn",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [74],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "58": {
+          "keyName": "7",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [91],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "59": {
+          "keyName": "8",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [92],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "60": {
+          "keyName": "9",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [93],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "61": {
+          "keyName": "+",
+          "width": 65,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [83],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        }
+      }
+    },
+    "3": {
+      "keys": {
+        "62": {
+          "keyName": "G4",
+          "width": 65,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [130],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "63": {
+          "keyName": "CAPS",
+          "width": 131,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [53],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "64": {
+          "keyName": "A",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [0],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          }
+        },
+        "65": {
+          "keyName": "S",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [18],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          }
+        },
+        "66": {
+          "keyName": "D",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [3],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          }
+        },
+        "67": {
+          "keyName": "F",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [5],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "68": {
           "keyName": "G",
           "width": 65,
           "height": 70,
@@ -742,186 +905,13 @@
             "blue": 255
           }
         },
-        "56": {
+        "69": {
           "keyName": "H",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [33],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "57": {
-          "keyName": "J",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [39],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "58": {
-          "keyName": "K",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [42],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "59": {
-          "keyName": "L",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [45],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "60": {
-          "keyName": "; :",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [153],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "61": {
-          "keyName": "' ''",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [156],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "62": {
-          "keyName": "Enter",
-          "width": 164,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [120],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        }
-      }
-    },
-    "4": {
-      "keys": {
-        "63": {
-          "keyName": "Shift",
-          "width": 170,
-          "height": 70,
-          "left": 0,
-          "top": 15,
-          "packetIndex": [318],
-          "color": {
-            "red": 255,
-            "green": 255,
-            "blue": 0
-          }
-        },
-        "64": {
-          "keyName": "Z",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [87],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "65": {
-          "keyName": "X",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [81],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "66": {
-          "keyName": "C",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [18],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "67": {
-          "keyName": "V",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [75],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "68": {
-          "keyName": "B",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [15],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "69": {
-          "keyName": "N",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [51],
+          "packetIndex": [7],
           "color": {
             "red": 0,
             "green": 255,
@@ -929,7 +919,60 @@
           }
         },
         "70": {
-          "keyName": "M",
+          "keyName": "J",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [9],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "71": {
+          "keyName": "K",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2,
+          "packetIndex": [10],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "72": {
+          "keyName": "L",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [11],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "73": {
+          "keyName": "; :",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [47],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "74": {
+          "keyName": "' ''",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -941,65 +984,291 @@
             "blue": 255
           }
         },
-        "71": {
+        "75": {
+          "keyName": "Enter",
+          "width": 164,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [36],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "76": {
+          "keyName": "4",
+          "width": 65,
+          "height": 70,
+          "left": 275,
+          "top": 15,
+          "packetIndex": [88],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "77": {
+          "keyName": "5",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [89],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "78": {
+          "keyName": "6",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [90],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        }
+      }
+    },
+    "4": {
+      "keys": {
+        "79": {
+          "keyName": "G5",
+          "width": 65,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [131],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "80": {
+          "keyName": "Shift",
+          "width": 170,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [102],
+          "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          }
+        },
+        "81": {
+          "keyName": "Z",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [25],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "82": {
+          "keyName": "X",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [23],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "83": {
+          "keyName": "C",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [2],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "84": {
+          "keyName": "V",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [21],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "85": {
+          "keyName": "B",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [1],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "86": {
+          "keyName": "N",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "zone": 2,
+          "packetIndex": [13],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "87": {
+          "keyName": "M",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [12],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "88": {
           "keyName": ", <",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [162],
+          "packetIndex": [50],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "72": {
+        "89": {
           "keyName": ". >",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [165],
+          "packetIndex": [51],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "73": {
+        "90": {
           "keyName": "/ ?",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [168],
+          "packetIndex": [52],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "74": {
+        "91": {
           "keyName": "Shift",
           "width": 205,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [330],
+          "packetIndex": [106],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "75": {
+        "92": {
           "keyName": "↑",
           "width": 65,
           "height": 70,
           "left": 105,
           "top": 15,
-          "packetIndex": [246],
+          "packetIndex": [78],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "93": {
+          "keyName": "1",
+          "width": 65,
+          "height": 70,
+          "left": 105,
+          "top": 15,
+          "packetIndex": [85],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "94": {
+          "keyName": "2",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [86],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "95": {
+          "keyName": "3",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [87],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "96": {
+          "keyName": "Enter",
+          "width": 65,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [84],
           "color": {
             "red": 0,
             "green": 255,
@@ -1010,50 +1279,11 @@
     },
     "5": {
       "keys": {
-        "76": {
-          "keyName": "Ctrl",
-          "width": 90,
+        "97": {
+          "keyName": "G6",
+          "width": 65,
           "height": 70,
           "left": 0,
-          "top": 15,
-          "packetIndex": [315],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "77": {
-          "keyName": "Win",
-          "width": 90,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [324],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "78": {
-          "keyName": "Alt",
-          "width": 90,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [321],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "79": {
-          "keyName": "----------",
-          "width": 455,
-          "height": 70,
-          "left": 15,
           "top": 15,
           "packetIndex": [132],
           "color": {
@@ -1062,91 +1292,169 @@
             "blue": 255
           }
         },
-        "80": {
-          "keyName": "Alt",
-          "width": 90,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [333],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "81": {
-          "keyName": "Fn",
-          "width": 90,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [366],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "82": {
-          "keyName": "Menu",
-          "width": 90,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [303],
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
-        "83": {
+        "98": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [327],
+          "packetIndex": [101],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "84": {
+        "99": {
+          "keyName": "Win",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [104],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "100": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [103],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "101": {
+          "keyName": "----------",
+          "width": 151,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [40],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "102": {
+          "keyName": "Alt",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [107],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "103": {
+          "keyName": "Fn",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [118],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "104": {
+          "keyName": "Menu",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [97],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "105": {
+          "keyName": "Ctrl",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [105],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "106": {
           "keyName": "←",
           "width": 65,
           "height": 70,
           "left": 25,
           "top": 15,
-          "packetIndex": [240],
+          "packetIndex": [76],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "85": {
+        "107": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [243],
+          "packetIndex": [77],
           "color": {
             "red": 0,
             "green": 255,
             "blue": 255
           }
         },
-        "86": {
+        "108": {
           "keyName": "→",
           "width": 65,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [237],
+          "packetIndex": [75],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "109": {
+          "keyName": "0",
+          "width": 145,
+          "height": 70,
+          "left": 25,
+          "top": 15,
+          "packetIndex": [94],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "110": {
+          "keyName": ".",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [95],
           "color": {
             "red": 0,
             "green": 255,

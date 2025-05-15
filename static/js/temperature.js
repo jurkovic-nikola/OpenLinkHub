@@ -147,6 +147,238 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+    $('.deletePf').on('click', function(){
+        e.stopPropagation();
+    });
+
+    $('.tempProfiles').on('click', function(){
+        const profile = $(this).attr('id');
+        $('.tempProfiles').removeClass('selected-effect');
+        $(this).addClass('selected-effect');
+        $.ajax({
+            url: '/api/temperatures/graph/' + profile,
+            dataType: 'JSON',
+            success: function(response) {
+                if (response.code === 0) {
+                    toast.warning(response.message);
+                } else {
+                    $("#profile").val(profile);
+                    $("#graph-window").show();
+                    let maxValue = 100;
+                    let sensor = response.data[0].sensor
+                    if (sensor === 2) { // Liquid temp, max is 60
+                        maxValue = 60
+                    }
+                    let pump = response.data[0].points
+                    let fans = response.data[1].points
+                    renderCanvas('graphPump', pump,"Pump Speed (%)", maxValue, "updatePump", 0);
+                    renderCanvas('graphFans', fans, "Fan Speed (%)", maxValue, "updateFans", 1);
+                }
+            }
+        });
+    });
+
+    function renderCanvas(canvasName, points, label, maxValue, buttonName, updateType) {
+        function resizeCanvasToDisplaySize(canvas) {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        const canvas = document.getElementById(canvasName);
+        resizeCanvasToDisplaySize(canvas);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any existing data
+
+        const margin = 60;
+        const width = canvas.width;
+        const height = canvas.height;
+        const graphWidth = width - 2 * margin;
+        const graphHeight = height - 2 * margin;
+        const state = {
+            dragging: false,
+            dragIndex: -1
+        };
+
+        function tempToX(temp) {
+            return margin + (temp / maxValue) * graphWidth;
+        }
+
+        function speedToY(speed) {
+            return height - margin - (speed / 100) * graphHeight;
+        }
+
+        function xToTemp(x) {
+            return Math.max(0, Math.min(maxValue, ((x - margin) / graphWidth) * maxValue));
+        }
+
+        function yToSpeed(y) {
+            return Math.max(0, Math.min(100, ((height - margin - y) / graphHeight) * 100));
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 1;
+            ctx.font = "12px sans-serif";
+            ctx.fillStyle = "#aaa";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+
+            for (let i = 0; i <= 10; i++) {
+                const val = i * 10;
+                const y = speedToY(val);
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(width - margin, y);
+                ctx.stroke();
+                ctx.fillText(`${val}%`, margin - 10, y);
+            }
+
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            for (let i = 0; i <= 10; i++) {
+                const val = i * 10;
+                const x = tempToX(val);
+                ctx.beginPath();
+                ctx.moveTo(x, height - margin);
+                ctx.lineTo(x, margin);
+                ctx.stroke();
+                ctx.fillText(`${val}°`, x, height - margin + 5);
+            }
+
+            ctx.strokeStyle = "#888";
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.stroke();
+
+            ctx.fillStyle = "#ccc";
+            ctx.font = "14px sans-serif";
+            ctx.fillText("Temperature (°C)", width / 2, height-25);
+            ctx.fillText(label, width / 2, 25);
+            ctx.save();
+
+            points.sort((a, b) => a.x - b.x);
+            ctx.strokeStyle = "#42a5f5";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                if (p.x > 100) {
+                    p.x = 100
+                }
+                const x = tempToX(p.x);
+                const y = speedToY(p.y);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            points.forEach(p => {
+                const x = tempToX(p.x);
+                const y = speedToY(p.y);
+                ctx.fillStyle = "#42a5f5";
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        function findNearbyPoint(mx, my) {
+            return points.findIndex(p => {
+                const dx = tempToX(p.x) - mx;
+                const dy = speedToY(p.y) - my;
+                return dx * dx + dy * dy < 100; // within 10px radius
+            });
+        }
+
+        canvas.addEventListener("mousedown", (e) => {
+            const { x, y } = getMousePos(e);
+            const index = findNearbyPoint(x, y);
+            if (index !== -1) {
+                state.dragging = true;
+                state.dragIndex = index;
+            } else {
+                // Add new point
+                const temp = xToTemp(x);
+                const speed = yToSpeed(y);
+                points.push({ x: Math.round(temp), y: Math.round(speed) });
+                draw();
+            }
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            if (!state.dragging) return;
+            const { x, y } = getMousePos(e);
+            const temp = xToTemp(x);
+            const speed = yToSpeed(y);
+            points[state.dragIndex] = { x: Math.round(temp), y: Math.round(speed) };
+            draw();
+        });
+
+        canvas.addEventListener("mouseup", () => {
+            state.dragging = false;
+            state.dragIndex = -1;
+        });
+
+        canvas.addEventListener("contextmenu", (e) => {
+            e.preventDefault(); // Disable default right-click menu
+            const { x, y } = getMousePos(e);
+            const index = findNearbyPoint(x, y);
+            if (index !== -1) {
+                points.splice(index, 1); // Remove the point
+                draw(); // Redraw graph
+            }
+        });
+        draw();
+
+        // Button cleanup
+        const button = document.getElementById(buttonName);
+        if (button._clickListener) {
+            button.removeEventListener("click", button._clickListener);
+        }
+
+        button._clickListener = function () {
+            let capturedPoints = points.map(p => ({ ...p }));
+            const profile = $("#profile").val();
+            const pf = {};
+            pf["profile"] = profile;
+            pf["updateType"] = parseInt(updateType);
+            pf["points"] = capturedPoints;
+            const json = JSON.stringify(pf, null, 2);
+
+            console.log(json);
+
+            $.ajax({
+                url: '/api/temperatures/graph',
+                type: 'PUT',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1) {
+                            toast.success(response.message);
+                        } else {
+                            toast.warning(response.message);
+                        }
+                    } catch (err) {
+                        toast.warning(response.message);
+                    }
+                }
+            });
+        };
+        button.addEventListener("click", button._clickListener);
+    }
 
     $('#delete').on('click', function(){
         const profile = $("#profile").val();

@@ -323,7 +323,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.resetLEDPorts()       // Reset device LED
 	if config.GetConfig().Manual {
 		fmt.Println(
-			fmt.Sprintf("[%s] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial),
+			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
 		)
 	} else {
 		d.updateDeviceSpeed() // Update device speed
@@ -370,6 +370,33 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+				}
+			}
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -2071,33 +2098,76 @@ func (d *Device) updateDeviceSpeed() {
 						temp = 50
 					}
 
-					for i := 0; i < len(profiles.Profiles); i++ {
-						profile := profiles.Profiles[i]
-						minimum := profile.Min + 0.1
-						if common.InBetween(temp, minimum, profile.Max) {
-							cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
-							if ok := tmp[device.ChannelId]; ok != cp {
-								tmp[device.ChannelId] = cp
+					if config.GetConfig().GraphProfiles {
+						pumpValue := temperatures.Interpolate(profiles.Points[0], temp)
+						fansValue := temperatures.Interpolate(profiles.Points[1], temp)
 
-								// Validation
-								if profile.Mode < 0 || profile.Mode > 1 {
-									profile.Mode = 0
-								}
+						pump := int(math.Round(float64(pumpValue)))
+						fans := int(math.Round(float64(fansValue)))
 
-								if profile.Pump < 50 {
-									profile.Pump = 50
-								}
+						// Failsafe
+						if fans < 20 {
+							fans = 20
+						}
+						if device.ContainsPump {
+							if pump < 50 {
+								pump = 70
+							}
+						} else {
+							if pump < 20 {
+								pump = 30
+							}
+						}
+						if pump > 100 {
+							pump = 100
+						}
+						if fans > 100 {
+							fans = 100
+						}
 
-								if profile.Pump > 100 {
-									profile.Pump = 100
-								}
+						cp := fmt.Sprintf("%s-%d-%f", device.Profile, device.ChannelId, temp)
+						if ok := tmp[device.ChannelId]; ok != cp {
+							tmp[device.ChannelId] = cp
+							if device.ContainsPump {
+								channelSpeeds[device.ChannelId] = byte(pump)
+							} else {
+								channelSpeeds[device.ChannelId] = byte(fans)
+							}
+							d.setSpeed(channelSpeeds, 0)
+						}
 
-								if device.ContainsPump {
-									channelSpeeds[device.ChannelId] = byte(profile.Pump)
-								} else {
-									channelSpeeds[device.ChannelId] = byte(profile.Fans)
+						if d.Debug {
+							logger.Log(logger.Fields{"serial": d.Serial, "pump": pump, "fans": fans, "temp": temp, "device": device.Name, "zeroRpm": profiles.ZeroRpm}).Info("updateDeviceSpeed()")
+						}
+					} else {
+						for i := 0; i < len(profiles.Profiles); i++ {
+							profile := profiles.Profiles[i]
+							minimum := profile.Min + 0.1
+							if common.InBetween(temp, minimum, profile.Max) {
+								cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
+								if ok := tmp[device.ChannelId]; ok != cp {
+									tmp[device.ChannelId] = cp
+
+									// Validation
+									if profile.Mode < 0 || profile.Mode > 1 {
+										profile.Mode = 0
+									}
+
+									if profile.Pump < 50 {
+										profile.Pump = 50
+									}
+
+									if profile.Pump > 100 {
+										profile.Pump = 100
+									}
+
+									if device.ContainsPump {
+										channelSpeeds[device.ChannelId] = byte(profile.Pump)
+									} else {
+										channelSpeeds[device.ChannelId] = byte(profile.Fans)
+									}
+									d.setSpeed(channelSpeeds, 0)
 								}
-								d.setSpeed(channelSpeeds, 0)
 							}
 						}
 					}
@@ -2486,13 +2556,13 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([
 		// Send command to a device
 		if _, err := d.dev.Write(bufferW); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to write to a device")
-			return nil, err
+			return bufferR, err
 		}
 
 		// Get data from a device
 		if _, err := d.dev.Read(bufferR); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
-			return nil, err
+			return bufferR, err
 		}
 
 		// Read remaining data from a device

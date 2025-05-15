@@ -19,10 +19,17 @@ func (r *ActiveRGB) Wave(startTime *time.Time) {
 		red := modify.Red * intensity
 		green := modify.Green * intensity
 		blue := modify.Blue * intensity
-		buf[i] = []byte{byte(red), byte(green), byte(blue)}
-		if r.IsAIO && r.HasLCD {
-			if i > 15 && i < 20 {
-				buf[i] = []byte{0, 0, 0}
+
+		if len(r.Buffer) > 0 {
+			r.Buffer[i] = byte(red)
+			r.Buffer[i+r.ColorOffset] = byte(green)
+			r.Buffer[i+(r.ColorOffset*2)] = byte(blue)
+		} else {
+			buf[i] = []byte{byte(red), byte(green), byte(blue)}
+			if r.IsAIO && r.HasLCD {
+				if i > 15 && i < 20 {
+					buf[i] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

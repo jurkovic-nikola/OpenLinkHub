@@ -184,6 +184,8 @@
                                                 {{ continue }}
                                                 {{ else if eq $key "wave" }}
                                                 {{ continue }}
+                                                {{ else if eq $key "custom" }}
+                                                {{ continue }}
                                                 {{ end }}
                                                 {{ if eq $key $device.RGB }}
                                                 <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>

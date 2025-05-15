@@ -159,6 +159,8 @@
                                                     {{ continue }}
                                                     {{ else if eq $key "mouse" }}
                                                     {{ continue }}
+                                                    {{ else if eq $key "custom" }}
+                                                    {{ continue }}
                                                     {{ end }}
                                                     {{ if eq $key $device.DeviceProfile.RGBProfile }}
                                                     <option value="0;{{ $key }}" selected>{{ $key }}</option>

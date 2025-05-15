@@ -82,6 +82,7 @@
                                                     <input class="form-check-input" id="staticCheckbox" type="checkbox">
                                                     <label class="form-check-label" for="staticCheckbox">Static (no temperature ranges)</label>
                                                 </div>
+                                                <!--
                                                 <div class="form-check" id="linear-data" style="display: none;">
                                                     <input class="form-check-input" id="linearCheckbox" type="checkbox">
                                                     <label class="form-check-label" for="linearCheckbox">Linear (linear temperature / rpm interpolation)</label>
@@ -90,6 +91,7 @@
                                                     <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox" disabled>
                                                     <label class="form-check-label" for="zeroRpmCheckbox">Zero RPM (Only for AIOs that support Zero RPM)</label>
                                                 </div>
+                                                -->
                                             </div>
                                         </form>
                                     </div>
@@ -122,7 +124,15 @@
                             </div>
                         </div>
                         {{ range $key, $value := .Temperatures }}
-                        {{ if eq $value.Hidden false }}
+                        {{ if eq $value.Hidden true }}
+                        {{ continue }}
+                        {{ else if eq $key "Normal" }}
+                        {{ continue }}
+                        {{ else if eq $key "Performance" }}
+                        {{ continue }}
+                        {{ else if eq $key "Quiet" }}
+                        {{ continue }}
+                        {{ else }}
                         <div class="card tempList" id="{{ $key }}" style="margin-bottom: 20px;">
                             <div class="card-body">
                                 <div class="row gx-12">

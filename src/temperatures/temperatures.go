@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,6 +30,15 @@ type UpdateData struct {
 	Pump uint16 `json:"pump"`
 }
 
+type Point struct {
+	X float32 `json:"x"` // Temperature
+	Y float32 `json:"y"` // Speed
+}
+
+type PointData struct {
+	Sensor uint8   `json:"sensor"`
+	Point  []Point `json:"points"`
+}
 type TemperatureProfile struct {
 	Id   int     `json:"id"`
 	Min  float32 `json:"min"`
@@ -46,6 +56,7 @@ type TemperatureProfileData struct {
 	Sensor    uint8                `json:"sensor"`
 	ZeroRpm   bool                 `json:"zeroRpm"`
 	Profiles  []TemperatureProfile `json:"profiles"`
+	Points    map[uint8][]Point    `json:"points"`
 	Device    string               `json:"device"`
 	ChannelId int                  `json:"channelId"`
 	Linear    bool                 `json:"linear"`
@@ -217,6 +228,10 @@ func Init() {
 	profiles["Performance"] = profilePerformance
 	profiles["aioCriticalTemperature"] = aioCriticalTemperature
 
+	// Upgrade existing profiles to graph data
+	upgradeGraphProfiles()
+
+	// Setup
 	temperatures = &Temperatures{
 		Profiles: profiles,
 	}
@@ -228,6 +243,56 @@ func Init() {
 
 	if len(config.GetConfig().CpuTempFile) > 0 {
 		defaultTempFile = config.GetConfig().CpuTempFile
+	}
+}
+
+// upgradeGraphProfiles will perform initial graph calculation
+func upgradeGraphProfiles() {
+	for name, profile := range profiles {
+		if profile.Points == nil {
+			pump := make([]Point, 0)
+			fans := make([]Point, 0)
+			data := make(map[uint8][]Point)
+			if len(profile.Profiles) == 1 {
+				for _, profileData := range profile.Profiles {
+					point := Point{}
+					// Pump
+					point.X = profileData.Min
+					point.Y = float32(profileData.Pump)
+					pump = append(pump, point)
+					point.X = profileData.Max
+					pump = append(pump, point)
+
+					// Fans
+					point.X = profileData.Min
+					point.Y = float32(profileData.Fans)
+					fans = append(fans, point)
+					point.X = profileData.Max
+					fans = append(fans, point)
+				}
+			} else {
+				for i, profileData := range profile.Profiles {
+					point := Point{}
+					if i == 0 {
+						point.X = profileData.Min
+						point.Y = float32(profileData.Pump)
+					} else {
+						point.X = profileData.Max
+						point.Y = float32(profileData.Pump)
+					}
+					pump = append(pump, point)
+
+					// Fan values
+					point.Y = float32(profileData.Fans)
+					fans = append(fans, point)
+				}
+			}
+
+			data[0] = pump
+			data[1] = fans
+			profile.Points = data
+			profiles[name] = profile
+		}
 	}
 }
 
@@ -261,7 +326,37 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 				pf.Linear = linear
 				pf.Sensor = sensor
 			}
-			saveProfileToDisk(profile, pf)
+
+			if pf.Points == nil {
+				pump := make([]Point, 0)
+				fans := make([]Point, 0)
+				data := make(map[uint8][]Point)
+				for _, profileData := range pf.Profiles {
+					point := Point{}
+					// Pump
+					point.X = profileData.Min
+					point.Y = float32(profileData.Pump)
+					pump = append(pump, point)
+					point.X = profileData.Max
+					pump = append(pump, point)
+
+					// Fans
+					point.X = profileData.Min
+					point.Y = float32(profileData.Fans)
+					fans = append(fans, point)
+					point.X = profileData.Max
+					fans = append(fans, point)
+				}
+
+				data[0] = pump
+				data[1] = fans
+				pf.Points = data
+			}
+
+			err := saveProfileToDisk(profile, pf)
+			if err != nil {
+				return false
+			}
 			return true
 		}
 
@@ -318,7 +413,36 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 		pf.Sensor = sensor
 		pf.ZeroRpm = zeroRpm
 		pf.Linear = linear
-		saveProfileToDisk(profile, pf)
+
+		if pf.Points == nil {
+			pump := make([]Point, 0)
+			fans := make([]Point, 0)
+			data := make(map[uint8][]Point)
+			for i, profileData := range pf.Profiles {
+				point := Point{}
+				if i == 0 {
+					point.X = profileData.Min
+					point.Y = float32(profileData.Pump)
+				} else {
+					point.X = profileData.Max
+					point.Y = float32(profileData.Pump)
+				}
+				pump = append(pump, point)
+
+				// Fan values
+				point.Y = float32(profileData.Fans)
+				fans = append(fans, point)
+			}
+
+			data[0] = pump
+			data[1] = fans
+			pf.Points = data
+		}
+
+		err := saveProfileToDisk(profile, pf)
+		if err != nil {
+			return false
+		}
 		return true
 	} else {
 		return false
@@ -360,8 +484,22 @@ func UpdateTemperatureProfile(profile string, values string) int {
 	}
 
 	// Persistent save
-	saveProfileToDisk(profile, profiles[profile])
+	err = saveProfileToDisk(profile, profiles[profile])
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "caller": "UpdateTemperatureProfile()"}).Error("Unable to save profile to disk")
+		return 0
+	}
 	return i
+}
+
+// UpdateTemperatureProfileGraph will update temperature profile with given JSON string
+func UpdateTemperatureProfileGraph(profile string, value TemperatureProfileData) uint8 {
+	err := saveProfileToDisk(profile, value)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "caller": "UpdateTemperatureProfile()"}).Error("Unable to save profile to disk")
+		return 0
+	}
+	return 1
 }
 
 // DeleteTemperatureProfile will delete temperature profile
@@ -389,6 +527,20 @@ func GetTemperatureProfile(profile string) *TemperatureProfileData {
 		return &value
 	}
 	return nil
+}
+
+// GetTemperatureGraph will return temperature graph in X,Y slice for given profile name
+func GetTemperatureGraph(profile string) map[int]PointData {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	result := make(map[int]PointData, 2)
+
+	if value, ok := temperatures.Profiles[profile]; ok {
+		result[0] = PointData{Sensor: value.Sensor, Point: value.Points[0]} // 0 - Pump
+		result[1] = PointData{Sensor: value.Sensor, Point: value.Points[1]} // 1 - Fans
+	}
+	return result
 }
 
 // GetTemperatureProfiles will return map of structs.TemperatureProfile
@@ -435,13 +587,14 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 }
 
 // saveProfileToDisk will save profile to the disk
-func saveProfileToDisk(profile string, values TemperatureProfileData) {
+func saveProfileToDisk(profile string, values TemperatureProfileData) error {
 	profileLocation := location + profile + ".json"
 
 	// Convert to JSON
-	buffer, err := json.Marshal(values)
+	buffer, err := json.MarshalIndent(values, "", "    ")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to convert to json format")
+		return err
 	}
 
 	// Create profile filename
@@ -454,7 +607,7 @@ func saveProfileToDisk(profile string, values TemperatureProfileData) {
 	_, err = file.Write(buffer)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile, "caller": "saveProfileToDisk()"}).Error("Unable to write data")
-		return
+		return err
 	}
 
 	// Close file
@@ -464,6 +617,7 @@ func saveProfileToDisk(profile string, values TemperatureProfileData) {
 	}
 
 	LoadUserProfiles(profiles)
+	return nil
 }
 
 // GetAMDGpuTemperature will return AMD GPU temperature
@@ -666,4 +820,38 @@ func GetStorageTemperature(hwmonDeviceId string) float32 {
 	}
 
 	return float32(tempMilliC / 1000)
+}
+
+// Interpolate will perform linear interpolation
+func Interpolate(points []Point, inputTemp float32) float32 {
+	if len(points) == 0 {
+		return 0
+	}
+
+	// Sort points by temperature
+	sort.Slice(points, func(i, j int) bool {
+		return points[i].X < points[j].X
+	})
+
+	// Clamp below first point
+	if inputTemp <= points[0].X {
+		return points[0].Y
+	}
+
+	// Clamp above last point
+	if inputTemp >= points[len(points)-1].X {
+		return points[len(points)-1].Y
+	}
+
+	// Linear interpolation between two points
+	for i := 0; i < len(points)-1; i++ {
+		a := points[i]
+		b := points[i+1]
+		if inputTemp >= a.X && inputTemp <= b.X {
+			ratio := (inputTemp - a.X) / (b.X - a.X)
+			return a.Y + ratio*(b.Y-a.Y)
+		}
+	}
+
+	return 0
 }

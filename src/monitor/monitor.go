@@ -1,13 +1,32 @@
 package monitor
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
 	"github.com/godbus/dbus/v5"
+	"slices"
+	"syscall"
 	"time"
 )
+
+const (
+	NetlinkKernelObjectUEvent        = 15
+	bufferSize                       = 2048
+	sysRoot                          = "/sys"
+	vendorId                  uint16 = 6940 // Corsair
+)
+
+// exclude list of device that are not supported via USB mode
+var exclude = []uint16{10752, 2666, 2710, 2659}
+
+type USBInfo struct {
+	VendorID  uint16
+	ProductID uint16
+	Serial    string
+}
 
 func Init() {
 	go func() {
@@ -54,6 +73,116 @@ func Init() {
 					}
 				}
 			}
+		}
+	}()
+
+	go func() {
+		cache := make(map[string]USBInfo)
+
+		// Populate cache on initial start
+		for _, product := range devices.GetProducts() {
+			if slices.Contains(exclude, product.ProductId) {
+				continue
+			}
+			cache[product.DevPath] = USBInfo{
+				VendorID:  vendorId,
+				ProductID: product.ProductId,
+				Serial:    product.Serial,
+			}
+		}
+
+		fd, err := syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_DGRAM, NetlinkKernelObjectUEvent)
+		if err != nil {
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Error opening sysfs socket")
+			}
+			return
+		}
+		defer func(fd int) {
+			err = syscall.Close(fd)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Error closing sysfs socket")
+			}
+		}(fd)
+
+		sa := &syscall.SockaddrNetlink{
+			Family: syscall.AF_NETLINK,
+			Groups: 1,
+		}
+
+		if err = syscall.Bind(fd, sa); err != nil {
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to bind to sysfs socket")
+			}
+			return
+		}
+
+		logger.Log(logger.Fields{}).Info("Starting USB monitor...")
+
+		for {
+			buf := make([]byte, bufferSize)
+			n, _, err := syscall.Recvfrom(fd, buf, 0)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Error receiving USB monitor data")
+				continue
+			}
+
+			msg := common.ParseUEvent(buf[:n])
+			if msg["SUBSYSTEM"] != "usb" || msg["DEVTYPE"] != "usb_device" {
+				continue
+			}
+
+			action := msg["ACTION"]
+			devPath := msg["DEVPATH"]
+
+			if devPath == "" {
+				continue
+			}
+
+			switch action {
+			case "add":
+				{
+					basePath := sysRoot + devPath
+					vendor := common.ReadFile(basePath + "/idVendor")
+					vid := common.PidVidToUint16(vendor)
+					if vid == vendorId {
+						product := common.ReadFile(basePath + "/idProduct")
+						pid := common.PidVidToUint16(product)
+
+						if slices.Contains(exclude, pid) {
+							continue
+						}
+						serial := common.ReadFile(basePath + "/serial")
+						cache[devPath] = USBInfo{
+							VendorID:  vid,
+							ProductID: pid,
+							Serial:    serial,
+						}
+
+						time.Sleep(5000 * time.Millisecond) // Wait for 8 seconds
+						logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
+						devices.InitManual(pid)
+					}
+				}
+				break
+			case "remove":
+				{
+					time.Sleep(100 * time.Millisecond)
+					info, ok := cache[devPath]
+					if !ok {
+						logger.Log(logger.Fields{"path": devPath}).Info("Trying to remove non-existing device")
+						continue
+					}
+
+					if info.VendorID == vendorId {
+						logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": info.Serial}).Info("Dirty USB removal...")
+						devices.StopDirty(info.Serial)
+						delete(cache, devPath)
+					}
+				}
+				break
+			}
+			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 }

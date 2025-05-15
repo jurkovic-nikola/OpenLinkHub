@@ -84,9 +84,11 @@ type Device struct {
 	timerKeepAlive        *time.Ticker
 	keepAliveChan         chan struct{}
 	KeyAssignment         map[int]inputmanager.KeyAssignment
-	InputActions          map[uint8]inputmanager.InputAction
+	InputActions          map[uint16]inputmanager.InputAction
 	PressLoop             bool
 	keyAssignmentFile     string
+	KeyAssignmentData     *inputmanager.KeyAssignment
+	ModifierIndex         byte
 }
 
 var (
@@ -166,6 +168,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			1:  "Media Keys",
 			2:  "DPI",
 			3:  "Keyboard",
+			9:  "Mouse",
 			10: "Macro",
 		},
 		InputActions:      inputmanager.GetInputActions(),
@@ -223,6 +226,27 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // getManufacturer will return device manufacturer
@@ -710,6 +734,19 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		}
+
+		if d.DeviceProfile.SleepMode == 0 {
+			deviceProfile.SleepMode = 15
+		} else {
+			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
+		}
+
+		if d.DeviceProfile.PollingRate == 0 {
+			deviceProfile.PollingRate = 4
+		} else {
+			deviceProfile.PollingRate = d.DeviceProfile.PollingRate
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
@@ -717,8 +754,6 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Profile = d.DeviceProfile.Profile
-		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
-		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 		deviceProfile.AngleSnapping = d.DeviceProfile.AngleSnapping
 		deviceProfile.ButtonOptimization = d.DeviceProfile.ButtonOptimization
 
@@ -915,7 +950,7 @@ func (d *Device) loadKeyAssignments() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1039,75 +1074,21 @@ func (d *Device) setDeviceColor() {
 	return
 }
 
-// Close will close all timers and channels before restart
-func (d *Device) Close() {
-	d.Exit = true
-	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	time.Sleep(500 * time.Millisecond)
-}
-
-// toggleExit will change Exit value
-func (d *Device) toggleExit() {
-	if d.Exit {
-		d.Exit = false
-	}
-}
-
-// Restart will re-init device
-func (d *Device) Restart() {
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
-	}
-	d.dev = nil
-
-	interfaceId := 1
-	path := ""
-	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-		if info.InterfaceNbr == interfaceId {
-			path = info.Path
-		}
-		return nil
-	})
-	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to enumerate devices")
-	}
-
-	dev, err := hid.OpenPath(path)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "caller": "Restart()"}).Error("Unable to open HID device")
-		return
-	}
-	d.dev = dev
-	d.setSoftwareMode()    // Activate software mode
-	d.setAngleSnapping()   // Angle snapping
-	d.initLeds()           // Init LED ports
-	d.getDeviceFirmware()  // Firmware
-	d.toggleExit()         // Remove Exit flag
-	d.setDeviceColor()     // Device color
-	d.backendListener()    // Control listener
-	d.toggleDPI()          // Set current DPI
-	d.setupKeyAssignment() // Setup key assignments
-}
-
 // UpdatePollingRate will set device polling rate
 func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 	if _, ok := d.PollingRates[pullingRate]; ok {
 		if d.DeviceProfile == nil {
 			return 0
 		}
+		d.Exit = true
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		time.Sleep(40 * time.Millisecond)
 
 		d.DeviceProfile.PollingRate = pullingRate
 		d.saveDeviceProfile()
-
-		d.Close()
 		buf := make([]byte, 1)
 		buf[0] = byte(pullingRate)
 		_, err := d.transfer(cmdSetPollingRate, buf)
@@ -1115,8 +1096,6 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
 			return 0
 		}
-		time.Sleep(5000 * time.Millisecond)
-		d.Restart()
 		return 1
 	}
 	return 0
@@ -1196,10 +1175,19 @@ func (d *Device) setupKeyAssignment() {
 
 // triggerKeyAssignment will trigger key assignment if defined
 func (d *Device) triggerKeyAssignment(value byte) {
-	if value == 0 {
-		d.PressLoop = false
+	if d.ModifierIndex != value {
+		if d.KeyAssignmentData != nil {
+			switch d.KeyAssignmentData.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboard(d.KeyAssignmentData.ActionCommand, d.PressLoop)
+				break
+			}
+		}
+		d.KeyAssignmentData = nil
 	}
+	d.ModifierIndex = value
 
+	value = byte(inputmanager.FindKeyAssignment(d.KeyAssignment, uint32(value), []uint32{1, 2, 4}))
 	if val, ok := d.KeyAssignment[int(value)]; ok {
 		if value == 0x20 && val.Default {
 			d.ModifyDpi()
@@ -1210,76 +1198,42 @@ func (d *Device) triggerKeyAssignment(value byte) {
 			return
 		}
 
-		if val.ActionHold {
-			d.PressLoop = val.ActionHold
-			go func() {
-				for {
-					if !d.PressLoop {
-						return
-					}
-					switch val.ActionType {
-					case 1, 3:
-						inputmanager.InputControl(val.ActionCommand, d.Serial)
-						break
-					case 2:
-						d.ModifyDpi()
-						break
-					case 10: // Macro
-						macroProfile := macro.GetProfile(int(val.ActionCommand))
-						if macroProfile == nil {
-							logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
-							return
-						}
-						for i := 0; i < len(macroProfile.Actions); i++ {
-							if v, valid := macroProfile.Actions[i]; valid {
-								switch v.ActionType {
-								case 1, 3:
-									inputmanager.InputControl(v.ActionCommand, d.Serial)
-									break
-								case 5:
-									if v.ActionDelay > 0 {
-										time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
-									}
-									break
-								}
-							}
-						}
-						break
-					}
-					time.Sleep(20 * time.Millisecond)
-				}
-			}()
-		} else {
-			switch val.ActionType {
-			case 1, 3:
-				inputmanager.InputControl(val.ActionCommand, d.Serial)
-				break
-			case 2:
-				d.ModifyDpi()
-				break
-			case 10: // Macro
-				macroProfile := macro.GetProfile(int(val.ActionCommand))
-				if macroProfile == nil {
-					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
-					return
-				}
-				for i := 0; i < len(macroProfile.Actions); i++ {
-					if v, valid := macroProfile.Actions[i]; valid {
-						switch v.ActionType {
-						case 1, 3:
-							inputmanager.InputControl(v.ActionCommand, d.Serial)
-							break
-						case 5:
-							if v.ActionDelay > 0 {
-								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
-							}
-							break
-						}
-					}
-				}
-				break
+		switch val.ActionType {
+		case 1, 3:
+			if val.ActionHold {
+				d.KeyAssignmentData = &val
 			}
+			inputmanager.InputControlKeyboard(val.ActionCommand, val.ActionHold)
+			break
+		case 2:
+			d.ModifyDpi()
+			break
+		case 9:
+			inputmanager.InputControlMouse(val.ActionCommand)
+			break
+		case 10: // Macro
+			macroProfile := macro.GetProfile(int(val.ActionCommand))
+			if macroProfile == nil {
+				logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+				return
+			}
+			for i := 0; i < len(macroProfile.Actions); i++ {
+				if v, valid := macroProfile.Actions[i]; valid {
+					switch v.ActionType {
+					case 1, 3:
+						inputmanager.InputControlKeyboard(v.ActionCommand, false)
+						break
+					case 5:
+						if v.ActionDelay > 0 {
+							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+						}
+						break
+					}
+				}
+			}
+			break
 		}
+
 	}
 }
 
@@ -1446,13 +1400,13 @@ func (d *Device) transferDevice(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.ReadWithTimeout(bufferR, 50*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 	return bufferR, nil
 }

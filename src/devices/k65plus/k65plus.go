@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
@@ -43,6 +44,7 @@ type DeviceProfile struct {
 	Profiles        []string
 	ControlDial     int
 	BrightnessLevel uint16
+	SleepMode       int
 }
 
 type Device struct {
@@ -126,7 +128,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     "K65 Plus Wireless",
+		Product:     "K65 PLUS",
 		LEDChannels: 123,
 		Layouts:     keyboards.GetLayouts(keyboardKey),
 		ControlDialOptions: map[int]string{
@@ -191,6 +193,29 @@ func (d *Device) Stop() {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			close(d.keepAliveChan)
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -306,6 +331,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 0)
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -344,7 +370,7 @@ func (d *Device) initLeds() {
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
-	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
+	keyboardMap := make(map[string]*keyboards.Keyboard)
 
 	deviceProfile := &DeviceProfile{
 		Product: d.Product,
@@ -365,11 +391,40 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Layout = "US"
 		deviceProfile.ControlDial = 1
 		deviceProfile.BrightnessLevel = 1000
+		deviceProfile.SleepMode = 15
 	} else {
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
 		} else {
 			deviceProfile.Layout = d.DeviceProfile.Layout
+		}
+
+		if d.DeviceProfile.SleepMode == 0 {
+			deviceProfile.SleepMode = 15
+		} else {
+			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
+		}
+
+		// Upgrade process
+		currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
+		layout := keyboards.GetKeyboard(currentLayout)
+		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
+			logger.Log(
+				logger.Fields{
+					"current":  d.DeviceProfile.Keyboards["default"].Version,
+					"expected": layout.Version,
+					"serial":   d.Serial,
+				},
+			).Info("Upgrading keyboard profile version")
+			d.DeviceProfile.Keyboards["default"] = layout
+		} else {
+			logger.Log(
+				logger.Fields{
+					"current":  d.DeviceProfile.Keyboards["default"].Version,
+					"expected": layout.Version,
+					"serial":   d.Serial,
+				},
+			).Info("Keyboard profile version is OK")
 		}
 
 		deviceProfile.Active = d.DeviceProfile.Active
@@ -424,7 +479,7 @@ func (d *Device) saveDeviceProfile() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1228,13 +1283,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 	return bufferR, nil
 }
@@ -1303,6 +1358,7 @@ func (d *Device) backendListener() {
 				// Battery
 				if data[2] == 0x0f {
 					d.BatteryLevel = binary.LittleEndian.Uint16(data[4:6]) / 10
+					stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 0)
 				}
 
 				value := data[4]
@@ -1310,15 +1366,15 @@ func (d *Device) backendListener() {
 				case 1:
 					{
 						if value == 0 && data[19] == 2 {
-							inputmanager.InputControl(inputmanager.VolumeMute, d.Serial)
+							inputmanager.InputControlKeyboard(inputmanager.VolumeMute, false)
 						} else {
 							if data[1] == 5 {
 								switch value {
 								case 1:
-									inputmanager.InputControl(inputmanager.VolumeUp, d.Serial)
+									inputmanager.InputControlKeyboard(inputmanager.VolumeUp, false)
 									break
 								case 255:
-									inputmanager.InputControl(inputmanager.VolumeDown, d.Serial)
+									inputmanager.InputControlKeyboard(inputmanager.VolumeDown, false)
 									break
 								}
 							}

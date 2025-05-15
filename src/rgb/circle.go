@@ -25,21 +25,33 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 		t := float64(j) / float64(40) // Calculate interpolation factor
 		colors := interpolateColors(r.RGBStartColor, r.RGBStartColor, t, r.RGBBrightness)
 
-		buf[j] = []byte{
-			byte(colors.Red),
-			byte(colors.Green),
-			byte(colors.Blue),
-		}
+		if len(r.Buffer) > 0 {
+			r.Buffer[j] = byte(colors.Red)
+			r.Buffer[j+r.ColorOffset] = byte(colors.Green)
+			r.Buffer[j+(r.ColorOffset*2)] = byte(colors.Blue)
+		} else {
+			buf[j] = []byte{
+				byte(colors.Red),
+				byte(colors.Green),
+				byte(colors.Blue),
+			}
 
-		if r.IsAIO && r.HasLCD {
-			if j > 15 && j < 20 {
-				buf[j] = []byte{0, 0, 0}
+			if r.IsAIO && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}
 
 	for j := activeLEDs; j < r.LightChannels; j++ {
-		buf[j] = []byte{0, 0, 0}
+		if len(r.Buffer) > 0 {
+			r.Buffer[j] = 0
+			r.Buffer[j+r.ColorOffset] = 0
+			r.Buffer[j+(r.ColorOffset*2)] = 0
+		} else {
+			buf[j] = []byte{0, 0, 0}
+		}
 	}
 
 	if r.Inverted {
@@ -69,22 +81,33 @@ func (r *ActiveRGB) CircleShift(startTime *time.Time) {
 	for j := 0; j < activeLEDs; j++ {
 		t := float64(j) / float64(r.LightChannels) // Calculate interpolation factor
 		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
+		if len(r.Buffer) > 0 {
+			r.Buffer[j] = byte(colors.Red)
+			r.Buffer[j+r.ColorOffset] = byte(colors.Green)
+			r.Buffer[j+(r.ColorOffset*2)] = byte(colors.Blue)
+		} else {
+			buf[j] = []byte{
+				byte(colors.Red),
+				byte(colors.Green),
+				byte(colors.Blue),
+			}
 
-		buf[j] = []byte{
-			byte(colors.Red),
-			byte(colors.Green),
-			byte(colors.Blue),
-		}
-
-		if r.IsAIO && r.HasLCD {
-			if j > 15 && j < 20 {
-				buf[j] = []byte{0, 0, 0}
+			if r.IsAIO && r.HasLCD {
+				if j > 15 && j < 20 {
+					buf[j] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}
 
 	for j := activeLEDs; j < r.LightChannels; j++ {
-		buf[j] = []byte{0, 0, 0}
+		if len(r.Buffer) > 0 {
+			r.Buffer[j] = 0
+			r.Buffer[j+r.ColorOffset] = 0
+			r.Buffer[j+(r.ColorOffset*2)] = 0
+		} else {
+			buf[j] = []byte{0, 0, 0}
+		}
 	}
 
 	if r.Inverted {

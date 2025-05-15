@@ -19,10 +19,16 @@ func (r *ActiveRGB) Storm() {
 	buf := map[int][]byte{}
 	for i := 0; i < r.LightChannels; i++ {
 		red, green, blue := stormColorEffect(r.RGBStartColor, r.RGBEndColor, r.RGBStartColor.Brightness)
-		buf[i] = []byte{red, green, blue}
-		if r.IsAIO && r.HasLCD {
-			if i > 15 && i < 20 {
-				buf[i] = []byte{0, 0, 0}
+		if len(r.Buffer) > 0 {
+			r.Buffer[i] = red
+			r.Buffer[i+r.ColorOffset] = green
+			r.Buffer[i+(r.ColorOffset*2)] = blue
+		} else {
+			buf[i] = []byte{red, green, blue}
+			if r.IsAIO && r.HasLCD {
+				if i > 15 && i < 20 {
+					buf[i] = []byte{0, 0, 0}
+				}
 			}
 		}
 	}

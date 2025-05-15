@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -80,7 +81,7 @@ type Device struct {
 	UIKeyboardRow      string
 	BatteryLevel       uint16
 	KeyAssignment      map[int]inputmanager.KeyAssignment
-	InputActions       map[uint8]inputmanager.InputAction
+	InputActions       map[uint16]inputmanager.InputAction
 	PressLoop          bool
 	keyAssignmentFile  string
 }
@@ -105,6 +106,7 @@ var (
 	cmdWrite                = []byte{0x06, 0x01}
 	cmdWriteExtra           = []byte{0x07, 0x01}
 	cmdBluetoothMode        = []byte{0x01, 0x3a, 0x00, 0x02}
+	cmdUsbMode              = map[int][]byte{0: {0x02, 0x3a, 0x00, 0x00}, 1: {0x01, 0x3a, 0x00, 0x00}}
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 2
@@ -135,7 +137,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "K100 AIR RGB",
+		Product: "K100 AIR",
 		Layouts: keyboards.GetLayouts(keyboardKey),
 		RGBModes: map[string]string{
 			"watercolor":    "Watercolor",
@@ -190,8 +192,25 @@ func (d *Device) StopInternal() {
 	d.setHardwareMode()
 }
 
+// StopDirty will stop all device operations in dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
+
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.Connected = false
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
+}
+
 // SetConnected will change connected status
 func (d *Device) SetConnected(value bool) {
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+	}
 	d.Connected = value
 }
 
@@ -330,6 +349,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 0)
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -341,7 +361,15 @@ func (d *Device) setSoftwareMode() {
 	d.Connected = true
 }
 
-// setSoftwareMode will switch a device to software mode
+// GetSleepMode will return current sleep mode
+func (d *Device) GetSleepMode() int {
+	if d.DeviceProfile != nil {
+		return d.DeviceProfile.SleepMode
+	}
+	return 0
+}
+
+// setSoftwareMode will switch a device to bluetooth mode
 func (d *Device) setBluetoothMode() {
 	if d.Connected {
 		_, err := d.transfer(cmdBluetoothMode, nil)
@@ -349,6 +377,18 @@ func (d *Device) setBluetoothMode() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 		}
 		d.Connected = false
+	}
+}
+
+// setUsbMode will switch a device to usb mode
+func (d *Device) setUsbMode() {
+	if d.Connected {
+		for i := 0; i < len(cmdUsbMode); i++ {
+			_, err := d.transfer(cmdUsbMode[i], nil)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+			}
+		}
 	}
 }
 
@@ -443,7 +483,7 @@ func (d *Device) initKeys() {
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
-	keyboardMap := make(map[string]*keyboards.Keyboard, 0)
+	keyboardMap := make(map[string]*keyboards.Keyboard)
 
 	deviceProfile := &DeviceProfile{
 		Product: d.Product,
@@ -470,6 +510,12 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.Layout = "US"
 		} else {
 			deviceProfile.Layout = d.DeviceProfile.Layout
+		}
+
+		if d.DeviceProfile.SleepMode == 0 {
+			deviceProfile.SleepMode = 15
+		} else {
+			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		}
 
 		// Upgrade process
@@ -502,7 +548,6 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
 		deviceProfile.ControlDial = d.DeviceProfile.ControlDial
-		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		deviceProfile.BrightnessLevel = d.DeviceProfile.BrightnessLevel
 
 		if len(d.DeviceProfile.Path) < 1 {
@@ -547,7 +592,7 @@ func (d *Device) saveDeviceProfile() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1395,13 +1440,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 	return bufferR, nil
 }
@@ -1423,6 +1468,8 @@ func (d *Device) modifyBrightness() {
 func (d *Device) TriggerKeyAssignment(data []byte) {
 	if data[16] == 0x02 {
 		d.modifyBrightness()
+	} else if data[17] == 0x04 && data[18] == 0x08 {
+		d.setUsbMode()
 	} else if data[17] == 0x04 && data[18] == 0x10 {
 		cmdBluetoothMode[3] = 0x02 // Profile 1
 		d.setBluetoothMode()
@@ -1438,4 +1485,5 @@ func (d *Device) TriggerKeyAssignment(data []byte) {
 // ModifyBatteryLevel will modify battery level
 func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
 	d.BatteryLevel = batteryLevel
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 0)
 }

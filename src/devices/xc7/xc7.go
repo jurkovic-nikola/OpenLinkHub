@@ -299,6 +299,37 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.timer.Stop()
+	d.lcdTimer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+			if d.DeviceProfile.LCDMode == lcd.DisplayImage {
+				if d.lcdImageChan != nil {
+					close(d.lcdImageChan)
+				}
+			} else {
+				if d.lcdRefreshChan != nil {
+					close(d.lcdRefreshChan)
+				}
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
+}
+
 // loadRgb will load RGB file if found, or create the default.
 func (d *Device) loadRgb() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -439,7 +470,7 @@ func (d *Device) getSerial() {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1341,12 +1372,12 @@ func (d *Device) setupLCD(reload bool) {
 					}
 				case lcd.DisplayDoubleArc:
 					{
-						values := []int{
-							int(temperatures.GetCpuTemperature()),
-							int(temperatures.GetGpuTemperature()),
-							int(d.getLiquidTemperature()),
-							int(systeminfo.GetCpuUtilization()),
-							systeminfo.GetGPUUtilization(),
+						values := []float32{
+							temperatures.GetCpuTemperature(),
+							temperatures.GetGpuTemperature(),
+							d.getLiquidTemperature(),
+							float32(systeminfo.GetCpuUtilization()),
+							float32(systeminfo.GetGPUUtilization()),
 						}
 						image := lcd.GenerateDoubleArcScreenImage(values)
 						if image != nil {

@@ -303,6 +303,27 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
+// StopDirty will stop device in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.timer.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+			}
+		})
+	}()
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
+}
+
 // loadRgb will load RGB file if found, or create the default.
 func (d *Device) loadRgb() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -380,7 +401,7 @@ func (d *Device) GetDeviceTemplate() string {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -522,7 +543,7 @@ func (d *Device) saveDeviceProfile() {
 		Product:            d.Product,
 		Serial:             d.Serial,
 		RGBProfiles:        rgbProfiles,
-		ExternalHubs:       make(map[int]*ExternalHubData, 0),
+		ExternalHubs:       make(map[int]*ExternalHubData),
 		Labels:             labels,
 		Path:               profilePath,
 		BrightnessSlider:   &defaultBrightness,
@@ -600,7 +621,7 @@ func (d *Device) saveDeviceProfile() {
 
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	if d.DeviceProfile != nil {
 		m := 0
 		var LedChannels uint8 = 0
@@ -1024,7 +1045,7 @@ func (d *Device) setDeviceColor(resetColor bool) {
 
 	if resetColor {
 		color := &rgb.Color{Red: 0, Green: 0, Blue: 0, Brightness: 0}
-		buff := make(map[byte][]byte, 0)
+		buff := make(map[byte][]byte)
 		for _, k := range keys {
 			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
 				buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], []byte{
@@ -1058,7 +1079,7 @@ func (d *Device) setDeviceColor(resetColor bool) {
 			}
 			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			buff := make(map[byte][]byte, 0)
+			buff := make(map[byte][]byte)
 			for _, k := range keys {
 				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
 					buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], []byte{
@@ -1086,7 +1107,7 @@ func (d *Device) setDeviceColor(resetColor bool) {
 			case <-d.activeRgb.Exit:
 				return
 			default:
-				buff := make(map[byte][]byte, 0)
+				buff := make(map[byte][]byte)
 				for _, k := range keys {
 					rgbCustomColor := true
 					profile := d.GetRgbProfile(d.Devices[k].RGB)
@@ -1379,14 +1400,14 @@ func (d *Device) transfer(endpoint byte, buffer []byte, read bool) ([]byte, erro
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	if read {
 		// Get data from a device
 		if _, err := d.dev.Read(bufferR); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-			return nil, err
+			return bufferR, err
 		}
 	}
 	return bufferR, nil

@@ -1,11 +1,16 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k70coretkl-default",
   "device": "K70 CORE TKL",
   "layout": "US",
   "rows": 6,
+  "color": {
+    "red": 0,
+    "green": 255,
+    "blue": 255
+  },
   "row": {
     "0": {
       "keys": {
@@ -19,7 +24,7 @@
           "color": {
             "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           }
         },
         "2": {
@@ -179,12 +184,26 @@
           }
         },
         "14": {
-          "keyName": "Profile",
+          "keyName": "icon-speed.svg",
           "width": 65,
           "height": 70,
           "left": 25,
           "top": 0,
-          "packetIndex": [372],
+          "packetIndex": [3],
+          "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          },
+          "svg": true
+        },
+        "15": {
+          "keyName": "Profile",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [6],
           "color": {
             "red": 255,
             "green": 255,
@@ -195,7 +214,7 @@
     },
     "1": {
       "keys": {
-        "15": {
+        "16": {
           "keyName": "` ~",
           "width": 65,
           "height": 70,
@@ -208,7 +227,7 @@
             "blue": 255
           }
         },
-        "16": {
+        "17": {
           "keyName": "1",
           "width": 65,
           "height": 70,
@@ -221,7 +240,7 @@
             "blue": 255
           }
         },
-        "17": {
+        "18": {
           "keyName": "2",
           "width": 65,
           "height": 70,
@@ -234,7 +253,7 @@
             "blue": 255
           }
         },
-        "18": {
+        "19": {
           "keyName": "3",
           "width": 65,
           "height": 70,
@@ -247,7 +266,7 @@
             "blue": 255
           }
         },
-        "19": {
+        "20": {
           "keyName": "4",
           "width": 65,
           "height": 70,
@@ -260,7 +279,7 @@
             "blue": 255
           }
         },
-        "20": {
+        "21": {
           "keyName": "5",
           "width": 65,
           "height": 70,
@@ -273,7 +292,7 @@
             "blue": 255
           }
         },
-        "21": {
+        "22": {
           "keyName": "6",
           "width": 65,
           "height": 70,
@@ -286,7 +305,7 @@
             "blue": 255
           }
         },
-        "22": {
+        "23": {
           "keyName": "7",
           "width": 65,
           "height": 70,
@@ -299,7 +318,7 @@
             "blue": 255
           }
         },
-        "23": {
+        "24": {
           "keyName": "8",
           "width": 65,
           "height": 70,
@@ -312,7 +331,7 @@
             "blue": 255
           }
         },
-        "24": {
+        "25": {
           "keyName": "9",
           "width": 65,
           "height": 70,
@@ -325,7 +344,7 @@
             "blue": 255
           }
         },
-        "25": {
+        "26": {
           "keyName": "0",
           "width": 65,
           "height": 70,
@@ -338,7 +357,7 @@
             "blue": 255
           }
         },
-        "26": {
+        "27": {
           "keyName": "-",
           "width": 65,
           "height": 70,
@@ -351,7 +370,7 @@
             "blue": 255
           }
         },
-        "27": {
+        "28": {
           "keyName": "=",
           "width": 65,
           "height": 70,
@@ -364,7 +383,7 @@
             "blue": 255
           }
         },
-        "28": {
+        "29": {
           "keyName": "<---",
           "width": 150,
           "height": 70,
@@ -377,7 +396,7 @@
             "blue": 255
           }
         },
-        "29": {
+        "30": {
           "keyName": "Ins",
           "width": 65,
           "height": 70,
@@ -390,7 +409,7 @@
             "blue": 255
           }
         },
-        "30": {
+        "31": {
           "keyName": "Home",
           "width": 65,
           "height": 70,
@@ -403,7 +422,7 @@
             "blue": 255
           }
         },
-        "31": {
+        "32": {
           "keyName": "PgUp",
           "width": 65,
           "height": 70,
@@ -420,7 +439,7 @@
     },
     "2": {
       "keys": {
-        "32": {
+        "33": {
           "keyName": "Tab",
           "width": 108,
           "height": 70,
@@ -433,7 +452,7 @@
             "blue": 255
           }
         },
-        "33": {
+        "34": {
           "keyName": "Q",
           "width": 65,
           "height": 70,
@@ -446,7 +465,7 @@
             "blue": 0
           }
         },
-        "34": {
+        "35": {
           "keyName": "W",
           "width": 65,
           "height": 70,
@@ -459,7 +478,7 @@
             "blue": 0
           }
         },
-        "35": {
+        "36": {
           "keyName": "E",
           "width": 65,
           "height": 70,
@@ -472,7 +491,7 @@
             "blue": 0
           }
         },
-        "36": {
+        "37": {
           "keyName": "R",
           "width": 65,
           "height": 70,
@@ -485,7 +504,7 @@
             "blue": 255
           }
         },
-        "37": {
+        "38": {
           "keyName": "T",
           "width": 65,
           "height": 70,
@@ -498,7 +517,7 @@
             "blue": 255
           }
         },
-        "38": {
+        "39": {
           "keyName": "Y",
           "width": 65,
           "height": 70,
@@ -511,7 +530,7 @@
             "blue": 255
           }
         },
-        "39": {
+        "40": {
           "keyName": "U",
           "width": 65,
           "height": 70,
@@ -524,7 +543,7 @@
             "blue": 255
           }
         },
-        "40": {
+        "41": {
           "keyName": "I",
           "width": 65,
           "height": 70,
@@ -537,7 +556,7 @@
             "blue": 255
           }
         },
-        "41": {
+        "42": {
           "keyName": "O",
           "width": 65,
           "height": 70,
@@ -550,7 +569,7 @@
             "blue": 255
           }
         },
-        "42": {
+        "43": {
           "keyName": "P",
           "width": 65,
           "height": 70,
@@ -563,7 +582,7 @@
             "blue": 255
           }
         },
-        "43": {
+        "44": {
           "keyName": "[ {",
           "width": 65,
           "height": 70,
@@ -576,7 +595,7 @@
             "blue": 255
           }
         },
-        "44": {
+        "45": {
           "keyName": "] }",
           "width": 65,
           "height": 70,
@@ -589,7 +608,7 @@
             "blue": 255
           }
         },
-        "45": {
+        "46": {
           "keyName": "\\ |",
           "width": 107,
           "height": 70,
@@ -602,7 +621,7 @@
             "blue": 255
           }
         },
-        "46": {
+        "47": {
           "keyName": "Del",
           "width": 65,
           "height": 70,
@@ -615,7 +634,7 @@
             "blue": 255
           }
         },
-        "47": {
+        "48": {
           "keyName": "End",
           "width": 65,
           "height": 70,
@@ -628,7 +647,7 @@
             "blue": 255
           }
         },
-        "48": {
+        "49": {
           "keyName": "PgDn",
           "width": 65,
           "height": 70,
@@ -645,7 +664,7 @@
     },
     "3": {
       "keys": {
-        "49": {
+        "50": {
           "keyName": "CAPS",
           "width": 131,
           "height": 70,
@@ -658,7 +677,7 @@
             "blue": 255
           }
         },
-        "50": {
+        "51": {
           "keyName": "A",
           "width": 65,
           "height": 70,
@@ -671,7 +690,7 @@
             "blue": 0
           }
         },
-        "51": {
+        "52": {
           "keyName": "S",
           "width": 65,
           "height": 70,
@@ -684,7 +703,7 @@
             "blue": 0
           }
         },
-        "52": {
+        "53": {
           "keyName": "D",
           "width": 65,
           "height": 70,
@@ -697,7 +716,7 @@
             "blue": 0
           }
         },
-        "53": {
+        "54": {
           "keyName": "F",
           "width": 65,
           "height": 70,
@@ -710,7 +729,7 @@
             "blue": 255
           }
         },
-        "54": {
+        "55": {
           "keyName": "G",
           "width": 65,
           "height": 70,
@@ -723,7 +742,7 @@
             "blue": 255
           }
         },
-        "55": {
+        "56": {
           "keyName": "H",
           "width": 65,
           "height": 70,
@@ -736,7 +755,7 @@
             "blue": 255
           }
         },
-        "56": {
+        "57": {
           "keyName": "J",
           "width": 65,
           "height": 70,
@@ -749,7 +768,7 @@
             "blue": 255
           }
         },
-        "57": {
+        "58": {
           "keyName": "K",
           "width": 65,
           "height": 70,
@@ -762,7 +781,7 @@
             "blue": 255
           }
         },
-        "58": {
+        "59": {
           "keyName": "L",
           "width": 65,
           "height": 70,
@@ -775,7 +794,7 @@
             "blue": 255
           }
         },
-        "59": {
+        "60": {
           "keyName": "; :",
           "width": 65,
           "height": 70,
@@ -788,7 +807,7 @@
             "blue": 255
           }
         },
-        "60": {
+        "61": {
           "keyName": "' ''",
           "width": 65,
           "height": 70,
@@ -801,7 +820,7 @@
             "blue": 255
           }
         },
-        "61": {
+        "62": {
           "keyName": "Enter",
           "width": 164,
           "height": 70,
@@ -818,7 +837,7 @@
     },
     "4": {
       "keys": {
-        "62": {
+        "63": {
           "keyName": "Shift",
           "width": 170,
           "height": 70,
@@ -831,7 +850,7 @@
             "blue": 0
           }
         },
-        "63": {
+        "64": {
           "keyName": "Z",
           "width": 65,
           "height": 70,
@@ -844,7 +863,7 @@
             "blue": 255
           }
         },
-        "64": {
+        "65": {
           "keyName": "X",
           "width": 65,
           "height": 70,
@@ -857,7 +876,7 @@
             "blue": 255
           }
         },
-        "65": {
+        "66": {
           "keyName": "C",
           "width": 65,
           "height": 70,
@@ -870,7 +889,7 @@
             "blue": 255
           }
         },
-        "66": {
+        "67": {
           "keyName": "V",
           "width": 65,
           "height": 70,
@@ -883,7 +902,7 @@
             "blue": 255
           }
         },
-        "67": {
+        "68": {
           "keyName": "B",
           "width": 65,
           "height": 70,
@@ -896,7 +915,7 @@
             "blue": 255
           }
         },
-        "68": {
+        "69": {
           "keyName": "N",
           "width": 65,
           "height": 70,
@@ -909,7 +928,7 @@
             "blue": 255
           }
         },
-        "69": {
+        "70": {
           "keyName": "M",
           "width": 65,
           "height": 70,
@@ -922,7 +941,7 @@
             "blue": 255
           }
         },
-        "70": {
+        "71": {
           "keyName": ", <",
           "width": 65,
           "height": 70,
@@ -935,7 +954,7 @@
             "blue": 255
           }
         },
-        "71": {
+        "72": {
           "keyName": ". >",
           "width": 65,
           "height": 70,
@@ -948,7 +967,7 @@
             "blue": 255
           }
         },
-        "72": {
+        "73": {
           "keyName": "/ ?",
           "width": 65,
           "height": 70,
@@ -961,7 +980,7 @@
             "blue": 255
           }
         },
-        "73": {
+        "74": {
           "keyName": "Shift",
           "width": 205,
           "height": 70,
@@ -974,7 +993,7 @@
             "blue": 255
           }
         },
-        "74": {
+        "75": {
           "keyName": "↑",
           "width": 65,
           "height": 70,
@@ -991,7 +1010,7 @@
     },
     "5": {
       "keys": {
-        "75": {
+        "76": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1004,7 +1023,7 @@
             "blue": 255
           }
         },
-        "76": {
+        "77": {
           "keyName": "Win",
           "width": 90,
           "height": 70,
@@ -1017,7 +1036,7 @@
             "blue": 255
           }
         },
-        "77": {
+        "78": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1030,7 +1049,7 @@
             "blue": 255
           }
         },
-        "78": {
+        "79": {
           "keyName": "----------",
           "width": 455,
           "height": 70,
@@ -1043,7 +1062,7 @@
             "blue": 255
           }
         },
-        "79": {
+        "80": {
           "keyName": "Alt",
           "width": 90,
           "height": 70,
@@ -1056,7 +1075,7 @@
             "blue": 255
           }
         },
-        "80": {
+        "81": {
           "keyName": "Fn",
           "width": 90,
           "height": 70,
@@ -1069,7 +1088,7 @@
             "blue": 255
           }
         },
-        "81": {
+        "82": {
           "keyName": "Menu",
           "width": 90,
           "height": 70,
@@ -1082,7 +1101,7 @@
             "blue": 255
           }
         },
-        "82": {
+        "83": {
           "keyName": "Ctrl",
           "width": 90,
           "height": 70,
@@ -1095,7 +1114,7 @@
             "blue": 255
           }
         },
-        "83": {
+        "84": {
           "keyName": "←",
           "width": 65,
           "height": 70,
@@ -1108,7 +1127,7 @@
             "blue": 255
           }
         },
-        "84": {
+        "85": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
@@ -1121,7 +1140,7 @@
             "blue": 255
           }
         },
-        "85": {
+        "86": {
           "keyName": "→",
           "width": 65,
           "height": 70,

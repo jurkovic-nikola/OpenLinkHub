@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,7 @@ type DeviceProfile struct {
 	BrightnessSlider   *uint8
 	Label              string
 	Profile            int
+	PollingRate        int
 	Profiles           map[int]DPIProfile
 	SleepMode          int
 	AngleSnapping      int
@@ -82,10 +84,12 @@ type Device struct {
 	mutex                 sync.Mutex
 	Exit                  bool
 	KeyAssignment         map[int]inputmanager.KeyAssignment
-	InputActions          map[uint8]inputmanager.InputAction
+	InputActions          map[uint16]inputmanager.InputAction
 	PressLoop             bool
 	keyAssignmentFile     string
 	BatteryLevel          uint16
+	KeyAssignmentData     *inputmanager.KeyAssignment
+	ModifierIndex         byte
 }
 
 var (
@@ -154,6 +158,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			1:  "Media Keys",
 			2:  "DPI",
 			3:  "Keyboard",
+			9:  "Mouse",
 			10: "Macro",
 		},
 		InputActions:      inputmanager.GetInputActions(),
@@ -189,8 +194,25 @@ func (d *Device) StopInternal() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
+// StopDirty will stop all device operations in dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
+
+	if d.activeRgb != nil {
+		d.activeRgb.Stop()
+	}
+
+	d.Connected = false
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 1
+}
+
 // SetConnected will change connected status
 func (d *Device) SetConnected(value bool) {
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+	}
 	d.Connected = value
 }
 
@@ -390,6 +412,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[3:5]) / 10
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 1)
 }
 
 // setSoftwareMode will switch a device to software mode
@@ -555,6 +578,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.Profile = 1
 		deviceProfile.SleepMode = 15
+		deviceProfile.PollingRate = 4
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
@@ -562,13 +586,25 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		}
+
+		if d.DeviceProfile.SleepMode == 0 {
+			deviceProfile.SleepMode = 15
+		} else {
+			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
+		}
+
+		if d.DeviceProfile.PollingRate == 0 {
+			deviceProfile.PollingRate = 4
+		} else {
+			deviceProfile.PollingRate = d.DeviceProfile.PollingRate
+		}
+
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Profile = d.DeviceProfile.Profile
-		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		deviceProfile.AngleSnapping = d.DeviceProfile.AngleSnapping
 		deviceProfile.ButtonOptimization = d.DeviceProfile.ButtonOptimization
 
@@ -810,7 +846,7 @@ func (d *Device) setSleepTimer() uint8 {
 
 // loadDeviceProfiles will load custom user profiles
 func (d *Device) loadDeviceProfiles() {
-	profileList := make(map[string]*DeviceProfile, 0)
+	profileList := make(map[string]*DeviceProfile)
 	userProfileDirectory := pwd + "/database/profiles/"
 
 	files, err := os.ReadDir(userProfileDirectory)
@@ -1002,11 +1038,20 @@ func (d *Device) setupKeyAssignment() {
 }
 
 // TriggerKeyAssignment will trigger key assignment if defined
-func (d *Device) TriggerKeyAssignment(value byte, serial string) {
-	if value == 0 {
-		d.PressLoop = false
+func (d *Device) TriggerKeyAssignment(value byte) {
+	if d.ModifierIndex != value {
+		if d.KeyAssignmentData != nil {
+			switch d.KeyAssignmentData.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboard(d.KeyAssignmentData.ActionCommand, d.PressLoop)
+				break
+			}
+		}
+		d.KeyAssignmentData = nil
 	}
+	d.ModifierIndex = value
 
+	value = byte(inputmanager.FindKeyAssignment(d.KeyAssignment, uint32(value), []uint32{1, 2, 4}))
 	if val, ok := d.KeyAssignment[int(value)]; ok {
 		if value == 0x20 && val.Default {
 			d.ModifyDpi()
@@ -1017,76 +1062,42 @@ func (d *Device) TriggerKeyAssignment(value byte, serial string) {
 			return
 		}
 
-		if val.ActionHold {
-			d.PressLoop = val.ActionHold
-			go func() {
-				for {
-					if !d.PressLoop {
-						return
-					}
-					switch val.ActionType {
-					case 1, 3:
-						inputmanager.InputControl(val.ActionCommand, serial)
-						break
-					case 2:
-						d.ModifyDpi()
-						break
-					case 10: // Macro
-						macroProfile := macro.GetProfile(int(val.ActionCommand))
-						if macroProfile == nil {
-							logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
-							return
-						}
-						for i := 0; i < len(macroProfile.Actions); i++ {
-							if v, valid := macroProfile.Actions[i]; valid {
-								switch v.ActionType {
-								case 1, 3:
-									inputmanager.InputControl(v.ActionCommand, serial)
-									break
-								case 5:
-									if v.ActionDelay > 0 {
-										time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
-									}
-									break
-								}
-							}
-						}
-						break
-					}
-					time.Sleep(20 * time.Millisecond)
-				}
-			}()
-		} else {
-			switch val.ActionType {
-			case 1, 3:
-				inputmanager.InputControl(val.ActionCommand, serial)
-				break
-			case 2:
-				d.ModifyDpi()
-				break
-			case 10: // Macro
-				macroProfile := macro.GetProfile(int(val.ActionCommand))
-				if macroProfile == nil {
-					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
-					return
-				}
-				for i := 0; i < len(macroProfile.Actions); i++ {
-					if v, valid := macroProfile.Actions[i]; valid {
-						switch v.ActionType {
-						case 1, 3:
-							inputmanager.InputControl(v.ActionCommand, serial)
-							break
-						case 5:
-							if v.ActionDelay > 0 {
-								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
-							}
-							break
-						}
-					}
-				}
-				break
+		switch val.ActionType {
+		case 1, 3:
+			if val.ActionHold {
+				d.KeyAssignmentData = &val
 			}
+			inputmanager.InputControlKeyboard(val.ActionCommand, val.ActionHold)
+			break
+		case 2:
+			d.ModifyDpi()
+			break
+		case 9:
+			inputmanager.InputControlMouse(val.ActionCommand)
+			break
+		case 10: // Macro
+			macroProfile := macro.GetProfile(int(val.ActionCommand))
+			if macroProfile == nil {
+				logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+				return
+			}
+			for i := 0; i < len(macroProfile.Actions); i++ {
+				if v, valid := macroProfile.Actions[i]; valid {
+					switch v.ActionType {
+					case 1, 3:
+						inputmanager.InputControlKeyboard(v.ActionCommand, false)
+						break
+					case 5:
+						if v.ActionDelay > 0 {
+							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+						}
+						break
+					}
+				}
+			}
+			break
 		}
+
 	}
 }
 
@@ -1192,13 +1203,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return nil, err
+		return bufferR, err
 	}
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return nil, err
+		return bufferR, err
 	}
 	return bufferR, nil
 }
@@ -1217,4 +1228,5 @@ func (d *Device) getListenerData() []byte {
 // ModifyBatteryLevel will modify battery level
 func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
 	d.BatteryLevel = batteryLevel
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 1)
 }

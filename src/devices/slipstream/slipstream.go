@@ -7,6 +7,7 @@ package slipstream
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/darkcorergbproW"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
@@ -49,6 +50,8 @@ type Device struct {
 	VendorId       uint16
 	Devices        map[int]*Devices `json:"devices"`
 	PairedDevices  map[uint16]any
+	SharedDevices  map[string]*common.Device
+	DeviceList     map[string]*common.Device
 	SingleDevice   bool
 	Template       string
 	Debug          bool
@@ -78,9 +81,10 @@ var (
 	cmdBatteryLevel  = []byte{0x02, 0x0f}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 100
+	connectDelay     = 3000
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, productId uint16, key string, devices map[string]*common.Device) *Device {
 	// Open device, return if failure
 	dev, err := hid.OpenPath(key)
 	if err != nil {
@@ -93,12 +97,14 @@ func Init(vendorId, productId uint16, key string) *Device {
 		dev:            dev,
 		VendorId:       vendorId,
 		ProductId:      productId,
-		PairedDevices:  make(map[uint16]any, 0),
+		PairedDevices:  make(map[uint16]any),
+		DeviceList:     make(map[string]*common.Device),
 		Template:       "slipstream.html",
 		sleepChan:      make(chan struct{}),
 		keepAliveChan:  make(chan struct{}),
 		timerSleep:     &time.Ticker{},
 		timerKeepAlive: &time.Ticker{},
+		SharedDevices:  devices,
 	}
 
 	d.getDebugMode()      // Debug
@@ -113,6 +119,95 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.backendListener()   // Control listener
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
+}
+
+// StopDirty will stop devices in a dirty way
+func (d *Device) StopDirty() uint8 {
+	d.Exit = true
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+
+	d.timerSleep.Stop()
+	d.timerKeepAlive.Stop()
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.keepAliveChan != nil {
+				close(d.keepAliveChan)
+			}
+			if d.sleepChan != nil {
+				close(d.sleepChan)
+			}
+		})
+	}()
+
+	for _, value := range d.PairedDevices {
+		if dev, found := value.(*m55W.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*nightsabreW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*k100airW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*ironclawW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*scimitarW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*scimitarSEW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*darkcorergbproseW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*darkcorergbproW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*m75W.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*harpoonW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*darkstarW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*k70coretklW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*m65rgbultraW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+	}
+	return 1
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -223,8 +318,9 @@ func (d *Device) GetDeviceTemplate() string {
 }
 
 // AddPairedDevice will add a paired device
-func (d *Device) AddPairedDevice(productId uint16, device any) {
+func (d *Device) AddPairedDevice(productId uint16, device any, dev *common.Device) {
 	d.PairedDevices[productId] = device
+	d.DeviceList[dev.Serial] = dev
 }
 
 // GetDevice will return HID device
@@ -234,7 +330,7 @@ func (d *Device) GetDevice() *hid.Device {
 
 // getDevices will get a list of paired devices
 func (d *Device) getDevices() {
-	var devices = make(map[int]*Devices, 0)
+	var devices = make(map[int]*Devices)
 	buff := d.read(cmdGetDevices)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
@@ -473,6 +569,7 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 		}
 		if device, found := dev.(*scimitarSEW.Device); found {
 			if !device.Connected {
+				time.Sleep(2000 * time.Millisecond)
 				device.Connect()
 			}
 		}
@@ -685,6 +782,7 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 
 // setDeviceOffline will set device offline
 func (d *Device) setDeviceOnline(deviceType int) {
+	time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 	for _, pairedDevice := range d.PairedDevices {
 		switch deviceType {
 		case 0:
@@ -693,11 +791,13 @@ func (d *Device) setDeviceOnline(deviceType int) {
 				if device, found := pairedDevice.(*k100airW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 			}
@@ -708,56 +808,67 @@ func (d *Device) setDeviceOnline(deviceType int) {
 				if device, found := pairedDevice.(*m55W.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*scimitarW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*scimitarSEW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*nightsabreW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*ironclawW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*m75W.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*harpoonW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*darkstarW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 			}
@@ -768,66 +879,79 @@ func (d *Device) setDeviceOnline(deviceType int) {
 				if device, found := pairedDevice.(*k100airW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*m55W.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*scimitarW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*scimitarSEW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*nightsabreW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*ironclawW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*m75W.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*harpoonW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*darkstarW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 					if !device.Connected {
 						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
 			}
@@ -878,7 +1002,7 @@ func (d *Device) monitorDevice() {
 						_, e := d.transfer(value.Endpoint, cmdHeartbeat, nil)
 						if e != nil {
 							if d.Debug {
-								logger.Log(logger.Fields{"error": err}).Error("Unable to read paired device endpoint")
+								logger.Log(logger.Fields{"error": e}).Error("Unable to read paired device endpoint")
 							}
 							continue
 						}
@@ -886,11 +1010,10 @@ func (d *Device) monitorDevice() {
 						batteryLevel, e := d.transfer(value.Endpoint, cmdBatteryLevel, nil)
 						if e != nil {
 							if d.Debug {
-								logger.Log(logger.Fields{"error": err}).Error("Unable to read paired device endpoint")
+								logger.Log(logger.Fields{"error": e}).Error("Unable to read paired device endpoint")
 							}
 							continue
 						}
-
 						val := binary.LittleEndian.Uint16(batteryLevel[3:5])
 						if val > 0 {
 							d.setDeviceBatteryLevelByProductId(value.ProductId, val/10)
@@ -910,7 +1033,9 @@ func (d *Device) getSleepMode(dev any) int {
 	methodName := "GetSleepMode"
 	method := reflect.ValueOf(dev).MethodByName(methodName)
 	if !method.IsValid() {
-		logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+		if d.Debug {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device")
+		}
 		return 0
 	} else {
 		results := method.Call(nil)
@@ -950,7 +1075,9 @@ func (d *Device) sleepMonitor() {
 										methodName := "SetSleepMode"
 										method := reflect.ValueOf(dev).MethodByName(methodName)
 										if !method.IsValid() {
-											logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+											if d.Debug {
+												logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+											}
 											continue
 										} else {
 											if inactive >= sleepMode {
@@ -1031,12 +1158,12 @@ func (d *Device) backendListener() {
 								}
 								if dev, found := value.(*m55W.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(data[2], d.Serial)
+										dev.TriggerKeyAssignment(data[2])
 									}
 								}
 								if dev, found := value.(*m75W.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(data[2], d.Serial)
+										dev.TriggerKeyAssignment(data[2])
 									}
 								}
 								if dev, found := value.(*scimitarW.Device); found {
@@ -1051,37 +1178,37 @@ func (d *Device) backendListener() {
 								}
 								if dev, found := value.(*nightsabreW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*darkcorergbproseW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*darkcorergbproW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*harpoonW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(data[2], d.Serial)
+										dev.TriggerKeyAssignment(data[2])
 									}
 								}
 								if dev, found := value.(*ironclawW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*darkstarW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*m65rgbultraW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*k70coretklW.Device); found {

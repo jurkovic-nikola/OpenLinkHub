@@ -42,7 +42,7 @@ $ curl -X POST http:/127.0.0.1:27003/api/temperatures -d '{ "profile":"Example",
 
 ### Delete temperature profile
 ```bash
-$ curl -X DELETE http:/127.0.0.1:27003/api/temperatures -d '{ "profile":"Example" }' --silent | jq
+$ curl -X DELETE http:/127.0.0.1:27003/api/temperatures/delete -d '{ "profile":"Example" }' --silent | jq
 ```
 
 ### Get all temperature profiles

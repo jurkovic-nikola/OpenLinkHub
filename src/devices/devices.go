@@ -543,20 +543,13 @@ func UpdateDeviceMetrics() {
 
 	// Devices
 	for _, device := range devices {
-		if device.ProductType == productTypeLinkHub ||
-			device.ProductType == productTypeCC ||
-			device.ProductType == productTypeElite ||
-			device.ProductType == productTypeCPro ||
-			device.ProductType == productTypePlatinum ||
-			device.ProductType == productTypeCCXT {
-			methodName := "UpdateDeviceMetrics"
-			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-			if !method.IsValid() {
-				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-				continue
-			} else {
-				method.Call(nil)
-			}
+		methodName := "UpdateDeviceMetrics"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			continue
+		} else {
+			method.Call(nil)
 		}
 	}
 }

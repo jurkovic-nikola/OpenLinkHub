@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/userProfile',
+            url: '/api/userProfile/change',
             type: 'POST',
             data: json,
             cache: false,

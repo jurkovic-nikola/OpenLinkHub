@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/macro/',
+            url: '/api/macro/new',
             type: 'PUT',
             data: json,
             cache: false,
@@ -176,7 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/macro/',
+            url: '/api/macro/profile',
             type: 'DELETE',
             data: json,
             cache: false,
@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/macro/',
+            url: '/api/macro/newValue',
             type: 'POST',
             data: json,
             cache: false,

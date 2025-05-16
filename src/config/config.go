@@ -3,35 +3,34 @@ package config
 import (
 	"OpenLinkHub/src/common"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"os"
 )
 
 type Configuration struct {
-	Debug                 bool      `json:"debug"`
-	ListenPort            int       `json:"listenPort"`
-	ListenAddress         string    `json:"listenAddress"`
-	CPUSensorChip         string    `json:"cpuSensorChip"`
-	Manual                bool      `json:"manual"`
-	Frontend              bool      `json:"frontend"`
-	Metrics               bool      `json:"metrics"`
-	Memory                bool      `json:"memory"`
-	MemorySmBus           string    `json:"memorySmBus"`
-	MemoryType            int       `json:"memoryType"`
-	Exclude               []uint16  `json:"exclude"`
-	DecodeMemorySku       bool      `json:"decodeMemorySku"`
-	MemorySku             string    `json:"memorySku"`
-	ConfigPath            string    `json:",omitempty"`
-	ResumeDelay           int       `json:"resumeDelay"`
-	LogFile               string    `json:"logFile"`
-	LogLevel              log.Level `json:"logLevel"`
-	EnhancementKits       []byte    `json:"enhancementKits"`
-	TemperatureOffset     int       `json:"temperatureOffset"`
-	AMDGpuIndex           int       `json:"amdGpuIndex"`
-	AMDSmiPath            string    `json:"amdsmiPath"`
-	CheckDevicePermission bool      `json:"checkDevicePermission"`
-	GraphProfiles         bool      `json:"graphProfiles"`
-	CpuTempFile           string    `json:"cpuTempFile"`
+	Debug                 bool     `json:"debug"`
+	ListenPort            int      `json:"listenPort"`
+	ListenAddress         string   `json:"listenAddress"`
+	CPUSensorChip         string   `json:"cpuSensorChip"`
+	Manual                bool     `json:"manual"`
+	Frontend              bool     `json:"frontend"`
+	Metrics               bool     `json:"metrics"`
+	Memory                bool     `json:"memory"`
+	MemorySmBus           string   `json:"memorySmBus"`
+	MemoryType            int      `json:"memoryType"`
+	Exclude               []uint16 `json:"exclude"`
+	DecodeMemorySku       bool     `json:"decodeMemorySku"`
+	MemorySku             string   `json:"memorySku"`
+	ConfigPath            string   `json:",omitempty"`
+	ResumeDelay           int      `json:"resumeDelay"`
+	LogFile               string   `json:"logFile"`
+	LogLevel              string   `json:"logLevel"`
+	EnhancementKits       []byte   `json:"enhancementKits"`
+	TemperatureOffset     int      `json:"temperatureOffset"`
+	AMDGpuIndex           int      `json:"amdGpuIndex"`
+	AMDSmiPath            string   `json:"amdsmiPath"`
+	CheckDevicePermission bool     `json:"checkDevicePermission"`
+	GraphProfiles         bool     `json:"graphProfiles"`
+	CpuTempFile           string   `json:"cpuTempFile"`
 }
 
 var (
@@ -41,8 +40,8 @@ var (
 		"decodeMemorySku":       true,
 		"memorySku":             "",
 		"resumeDelay":           15000,
-		"logLevel":              log.InfoLevel,
-		"logFile":               "",
+		"logLevel":              "string",
+		"logFile":               "info",
 		"enhancementKits":       make([]byte, 0),
 		"temperatureOffset":     0,
 		"amdGpuIndex":           0,
@@ -98,7 +97,7 @@ func upgradeFile(cfg string) {
 			DecodeMemorySku:       true,
 			MemorySku:             "",
 			ResumeDelay:           15000,
-			LogLevel:              log.InfoLevel,
+			LogLevel:              "info",
 			LogFile:               "",
 			EnhancementKits:       make([]byte, 0),
 			TemperatureOffset:     0,

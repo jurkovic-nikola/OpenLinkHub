@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const json = JSON.stringify(pf, null, 2);
 
                         $.ajax({
-                            url: '/api/color',
+                            url: '/api/color/change',
                             type: 'PUT',
                             data: json,
                             cache: false,

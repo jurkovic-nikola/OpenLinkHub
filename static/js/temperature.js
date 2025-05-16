@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/temperatures',
+            url: '/api/temperatures/new',
             type: 'POST',
             data: json,
             cache: false,
@@ -360,7 +360,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log(json);
 
             $.ajax({
-                url: '/api/temperatures/graph',
+                url: '/api/temperatures/updateGraph',
                 type: 'PUT',
                 data: json,
                 cache: false,
@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/temperatures',
+            url: '/api/temperatures/delete',
             type: 'DELETE',
             data: json,
             cache: false,
@@ -428,7 +428,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(dict, null, 2);
 
         $.ajax({
-            url: '/api/temperatures',
+            url: '/api/temperatures/update',
             type: 'PUT',
             data: {
                 profile: profile,

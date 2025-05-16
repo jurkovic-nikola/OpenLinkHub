@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server/requests"
@@ -18,10 +19,10 @@ import (
 	"OpenLinkHub/src/version"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -140,13 +141,12 @@ func getBatteryStats(w http.ResponseWriter, _ *http.Request) {
 // getDeviceMetrics will return a list device metrics in prometheus format
 func getDeviceMetrics(w http.ResponseWriter, r *http.Request) {
 	devices.UpdateDeviceMetrics()
-	promhttp.Handler().ServeHTTP(w, r)
+	metrics.Handler(w, r)
 }
 
 // getDevices returns response on /devices
 func getDevices(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceOd, valid := vars["deviceOd"]
+	deviceId, valid := getVar("/api/devices/", r)
 	if !valid {
 		resp := &Response{
 			Code:    http.StatusOK,
@@ -156,7 +156,7 @@ func getDevices(w http.ResponseWriter, r *http.Request) {
 	} else {
 		resp := &Response{
 			Code:   http.StatusOK,
-			Device: devices.GetDevice(deviceOd),
+			Device: devices.GetDevice(deviceId),
 		}
 		resp.Send(w)
 	}
@@ -164,8 +164,7 @@ func getDevices(w http.ResponseWriter, r *http.Request) {
 
 // getDeviceLed returns response on /led
 func getDeviceLed(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceOd, valid := vars["deviceOd"]
+	deviceId, valid := getVar("/api/led/", r)
 	if !valid {
 		resp := &Response{
 			Code:   http.StatusOK,
@@ -177,7 +176,7 @@ func getDeviceLed(w http.ResponseWriter, r *http.Request) {
 		resp := &Response{
 			Code:   http.StatusOK,
 			Status: 1,
-			Data:   devices.GetDeviceLedData(deviceOd),
+			Data:   devices.GetDeviceLedData(deviceId),
 		}
 		resp.Send(w)
 	}
@@ -196,8 +195,7 @@ func updateDeviceLed(w http.ResponseWriter, r *http.Request) {
 
 // getMacro returns response on /macro
 func getMacro(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	macroId, valid := vars["macroId"]
+	macroId, valid := getVar("/api/macro/", r)
 	if !valid {
 		resp := &Response{
 			Code:   http.StatusOK,
@@ -227,8 +225,7 @@ func getMacro(w http.ResponseWriter, r *http.Request) {
 
 // getKeyName returns response on /api/macro/keyInfo/
 func getKeyName(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	keyIndex, valid := vars["keyIndex"]
+	keyIndex, valid := getVar("/api/macro/keyInfo/", r)
 	if !valid {
 		resp := &Response{
 			Code:    http.StatusOK,
@@ -259,9 +256,7 @@ func getKeyName(w http.ResponseWriter, r *http.Request) {
 // getTemperatures returns response on /temperatures
 func getTemperature(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
-
-	vars := mux.Vars(r)
-	profile, valid := vars["profile"]
+	profile, valid := getVar("/api/temperatures/", r)
 	if !valid {
 		resp = &Response{
 			Code:   http.StatusOK,
@@ -289,9 +284,7 @@ func getTemperature(w http.ResponseWriter, r *http.Request) {
 // getTemperatureGraph returns response on for temperature graph
 func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
-
-	vars := mux.Vars(r)
-	profile, valid := vars["profile"]
+	profile, valid := getVar("/api/temperatures/graph/", r)
 	if !valid {
 		resp = &Response{
 			Code:    http.StatusOK,
@@ -319,9 +312,7 @@ func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 // getColor returns response on /color
 func getColor(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
-
-	vars := mux.Vars(r)
-	deviceId, valid := vars["deviceId"]
+	deviceId, valid := getVar("/api/color/", r)
 	if !valid {
 		resp = &Response{
 			Code:   http.StatusOK,
@@ -927,8 +918,7 @@ func newMacroProfileValue(w http.ResponseWriter, r *http.Request) {
 
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceOd, valid := vars["deviceOd"]
+	deviceId, valid := getVar("/device/", r)
 	if !valid {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
@@ -938,7 +928,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		resp.Send(w)
 	}
 
-	device := devices.GetDevice(deviceOd)
+	device := devices.GetDevice(deviceId)
 	template := devices.GetDeviceTemplate(device)
 	if len(template) == 0 {
 		resp := &Response{
@@ -1147,32 +1137,6 @@ func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-// uiDocumentationOverview handles overview of documentation
-func uiDocumentationOverview(w http.ResponseWriter, _ *http.Request) {
-	web := templates.Web{}
-	web.Title = "Device Dashboard"
-	web.Devices = devices.GetDevices()
-	web.Configuration = config.GetConfig()
-	web.BuildInfo = version.GetBuildInfo()
-	web.SystemInfo = systeminfo.GetInfo()
-	web.Page = "documentation"
-	t := templates.GetTemplate()
-
-	for header := range headers {
-		w.Header().Set(headers[header].Key, headers[header].Value)
-	}
-
-	err := t.ExecuteTemplate(w, "docs.html", web)
-
-	if err != nil {
-		resp := &Response{
-			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
-		}
-		resp.Send(w)
-	}
-}
-
 // uiMacrosOverview handles overview of macro profiles
 func uiMacrosOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
@@ -1257,197 +1221,132 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-// setRoutes will set up all routes
-func setRoutes() *mux.Router {
-	r := mux.NewRouter().StrictSlash(true)
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+// getVar will extract dynamic path from GET request
+func getVar(path string, r *http.Request) (string, bool) {
+	value := strings.TrimPrefix(r.URL.Path, path)
+	if value == "" || strings.Contains(value, "/") {
+		return "", false
+	}
 
-	// API
-	r.Methods(http.MethodGet).Path("/api/").
-		HandlerFunc(homePage)
-	r.Methods(http.MethodGet).Path("/api/cpuTemp").
-		HandlerFunc(getCpuTemperature)
-	r.Methods(http.MethodGet).Path("/api/cpuTemp/clean").
-		HandlerFunc(getCpuTemperatureClean)
-	r.Methods(http.MethodGet).Path("/api/gpuTemp").
-		HandlerFunc(getGpuTemperature)
-	r.Methods(http.MethodGet).Path("/api/gpuTemp/clean").
-		HandlerFunc(getGpuTemperatureClean)
-	r.Methods(http.MethodGet).Path("/api/storageTemp").
-		HandlerFunc(getStorageTemperature)
-	r.Methods(http.MethodGet).Path("/api/batteryStats").
-		HandlerFunc(getBatteryStats)
-	r.Methods(http.MethodGet).Path("/api/devices").
-		HandlerFunc(getDevices)
-	r.Methods(http.MethodGet).Path("/api/devices/{deviceOd}").
-		HandlerFunc(getDevices)
-	r.Methods(http.MethodGet).Path("/api/color").
-		HandlerFunc(getColor)
-	r.Methods(http.MethodGet).Path("/api/color/{deviceId}").
-		HandlerFunc(getColor)
-	r.Methods(http.MethodPut).Path("/api/color").
-		HandlerFunc(updateRgbProfile)
-	r.Methods(http.MethodGet).Path("/api/temperatures").
-		HandlerFunc(getTemperature)
-	r.Methods(http.MethodGet).Path("/api/temperatures/{profile}").
-		HandlerFunc(getTemperature)
-	r.Methods(http.MethodGet).Path("/api/temperatures/graph/{profile}").
-		HandlerFunc(getTemperatureGraph)
-	r.Methods(http.MethodGet).Path("/api/input/media").
-		HandlerFunc(getMediaKeys)
-	r.Methods(http.MethodGet).Path("/api/input/keyboard").
-		HandlerFunc(getInputKeys)
-	r.Methods(http.MethodGet).Path("/api/input/mouse").
-		HandlerFunc(getMouseButtons)
-	r.Methods(http.MethodPost).Path("/api/temperatures").
-		HandlerFunc(newTemperatureProfile)
-	r.Methods(http.MethodPut).Path("/api/temperatures").
-		HandlerFunc(updateTemperatureProfile)
-	r.Methods(http.MethodPut).Path("/api/temperatures/graph").
-		HandlerFunc(updateTemperatureProfileGraph)
-	r.Methods(http.MethodDelete).Path("/api/temperatures").
-		HandlerFunc(deleteTemperatureProfile)
-	r.Methods(http.MethodPost).Path("/api/speed").
-		HandlerFunc(setDeviceSpeed)
-	r.Methods(http.MethodPost).Path("/api/speed/manual").
-		HandlerFunc(setManualDeviceSpeed)
-	r.Methods(http.MethodPost).Path("/api/color").
-		HandlerFunc(setDeviceColor)
-	r.Methods(http.MethodPost).Path("/api/color/hardware").
-		HandlerFunc(setDeviceHardwareColor)
-	r.Methods(http.MethodPost).Path("/api/hub/strip").
-		HandlerFunc(setDeviceStrip)
-	r.Methods(http.MethodPost).Path("/api/hub/type").
-		HandlerFunc(setExternalHubDeviceType)
-	r.Methods(http.MethodPost).Path("/api/hub/amount").
-		HandlerFunc(setExternalHubDeviceAmount)
-	r.Methods(http.MethodPost).Path("/api/label").
-		HandlerFunc(setDeviceLabel)
-	r.Methods(http.MethodPost).Path("/api/lcd").
-		HandlerFunc(setDeviceLcd)
-	r.Methods(http.MethodPost).Path("/api/lcd/device").
-		HandlerFunc(changeDeviceLcd)
-	r.Methods(http.MethodPost).Path("/api/lcd/rotation").
-		HandlerFunc(setDeviceLcdRotation)
-	r.Methods(http.MethodPost).Path("/api/lcd/profile").
-		HandlerFunc(setDeviceLcdProfile)
-	r.Methods(http.MethodPost).Path("/api/lcd/image").
-		HandlerFunc(setDeviceLcdImage)
-	r.Methods(http.MethodPut).Path("/api/lcd/modes").
-		HandlerFunc(updateLcdProfile)
-	r.Methods(http.MethodPut).Path("/api/userProfile").
-		HandlerFunc(saveUserProfile)
-	r.Methods(http.MethodPost).Path("/api/userProfile").
-		HandlerFunc(changeUserProfile)
-	r.Methods(http.MethodPost).Path("/api/brightness").
-		HandlerFunc(changeBrightness)
-	r.Methods(http.MethodPost).Path("/api/brightness/gradual").
-		HandlerFunc(changeBrightnessGradual)
-	r.Methods(http.MethodPost).Path("/api/position").
-		HandlerFunc(changePosition)
-	r.Methods(http.MethodGet).Path("/api/dashboard").
-		HandlerFunc(getDashboardSettings)
-	r.Methods(http.MethodPost).Path("/api/dashboard").
-		HandlerFunc(setDashboardSettings)
-	r.Methods(http.MethodPost).Path("/api/argb").
-		HandlerFunc(setARGBDevice)
-	r.Methods(http.MethodPost).Path("/api/keyboard/color").
-		HandlerFunc(setKeyboardColor)
-	r.Methods(http.MethodPost).Path("/api/misc/color").
-		HandlerFunc(setMiscColor)
-	r.Methods(http.MethodPut).Path("/api/keyboard/profile/new").
-		HandlerFunc(saveDeviceProfile)
-	r.Methods(http.MethodPost).Path("/api/keyboard/profile/change").
-		HandlerFunc(changeKeyboardProfile)
-	r.Methods(http.MethodPost).Path("/api/keyboard/profile/save").
-		HandlerFunc(saveDeviceProfile)
-	r.Methods(http.MethodDelete).Path("/api/keyboard/profile/delete").
-		HandlerFunc(deleteKeyboardProfile)
-	r.Methods(http.MethodPost).Path("/api/keyboard/layout").
-		HandlerFunc(changeKeyboardLayout)
-	r.Methods(http.MethodPost).Path("/api/keyboard/dial").
-		HandlerFunc(changeControlDial)
-	r.Methods(http.MethodPost).Path("/api/keyboard/sleep").
-		HandlerFunc(changeSleepMode)
-	r.Methods(http.MethodPost).Path("/api/keyboard/pollingRate").
-		HandlerFunc(changePollingRate)
-	r.Methods(http.MethodPost).Path("/api/scheduler/rgb").
-		HandlerFunc(changeRgbScheduler)
-	r.Methods(http.MethodPost).Path("/api/psu/speed").
-		HandlerFunc(changePsuFanMode)
-	r.Methods(http.MethodPost).Path("/api/mouse/dpi").
-		HandlerFunc(saveMouseDpi)
-	r.Methods(http.MethodPost).Path("/api/mouse/zoneColors").
-		HandlerFunc(saveMouseZoneColors)
-	r.Methods(http.MethodPost).Path("/api/mouse/dpiColors").
-		HandlerFunc(saveMouseDpiColors)
-	r.Methods(http.MethodPost).Path("/api/mouse/sleep").
-		HandlerFunc(changeSleepMode)
-	r.Methods(http.MethodPost).Path("/api/mouse/pollingRate").
-		HandlerFunc(changePollingRate)
-	r.Methods(http.MethodPost).Path("/api/mouse/angleSnapping").
-		HandlerFunc(changeAngleSnapping)
-	r.Methods(http.MethodPost).Path("/api/mouse/buttonOptimization").
-		HandlerFunc(changeButtonOptimization)
-	r.Methods(http.MethodPost).Path("/api/mouse/updateKeyAssignment").
-		HandlerFunc(changeKeyAssignment)
-	r.Methods(http.MethodPost).Path("/api/headset/zoneColors").
-		HandlerFunc(saveHeadsetZoneColors)
-	r.Methods(http.MethodPost).Path("/api/headset/sleep").
-		HandlerFunc(changeSleepMode)
-	r.Methods(http.MethodPost).Path("/api/headset/muteIndicator").
-		HandlerFunc(changeMuteIndicator)
-	r.Methods(http.MethodGet).Path("/api/led/{deviceOd}").
-		HandlerFunc(getDeviceLed)
-	r.Methods(http.MethodGet).Path("/api/led/").
-		HandlerFunc(getDeviceLed)
-	r.Methods(http.MethodPost).Path("/api/led/").
-		HandlerFunc(updateDeviceLed)
-	r.Methods(http.MethodGet).Path("/api/macro/{macroId}").
-		HandlerFunc(getMacro)
-	r.Methods(http.MethodGet).Path("/api/macro/").
-		HandlerFunc(getMacro)
-	r.Methods(http.MethodGet).Path("/api/macro/keyInfo/{keyIndex}").
-		HandlerFunc(getKeyName)
-	r.Methods(http.MethodDelete).Path("/api/macro/value").
-		HandlerFunc(deleteMacroValue)
-	r.Methods(http.MethodDelete).Path("/api/macro/").
-		HandlerFunc(deleteMacroProfile)
-	r.Methods(http.MethodPut).Path("/api/macro/").
-		HandlerFunc(newMacroProfile)
-	r.Methods(http.MethodPost).Path("/api/macro/").
-		HandlerFunc(newMacroProfileValue)
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-;:]+$", value); !m {
+		return "", false
+	}
+
+	return value, true
+}
+
+func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.ResponseWriter, r *http.Request)) {
+	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == method {
+			handler(w, r)
+		} else {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
+}
+
+// setRoutes will set up all routes
+func setRoutes() http.Handler {
+	r := http.NewServeMux()
+	fs := http.FileServer(http.Dir("./static"))
+	r.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// GET
+	handleFunc(r, "/api/", http.MethodGet, homePage)
+	handleFunc(r, "/api/cpuTemp", http.MethodGet, getCpuTemperature)
+	handleFunc(r, "/api/cpuTemp/clean", http.MethodGet, getCpuTemperatureClean)
+	handleFunc(r, "/api/gpuTemp", http.MethodGet, getGpuTemperature)
+	handleFunc(r, "/api/gpuTemp/clean", http.MethodGet, getGpuTemperatureClean)
+	handleFunc(r, "/api/storageTemp", http.MethodGet, getStorageTemperature)
+	handleFunc(r, "/api/batteryStats", http.MethodGet, getBatteryStats)
+	handleFunc(r, "/api/devices/", http.MethodGet, getDevices)
+	handleFunc(r, "/api/color/", http.MethodGet, getColor)
+	handleFunc(r, "/api/color/change", http.MethodPut, updateRgbProfile)
+	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
+	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
+	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
+	handleFunc(r, "/api/input/keyboard", http.MethodGet, getInputKeys)
+	handleFunc(r, "/api/input/mouse", http.MethodGet, getMouseButtons)
+	handleFunc(r, "/api/led/", http.MethodGet, getDeviceLed)
+	handleFunc(r, "/api/macro/", http.MethodGet, getMacro)
+	handleFunc(r, "/api/macro/keyInfo/", http.MethodGet, getKeyName)
+	handleFunc(r, "/api/dashboard", http.MethodGet, getDashboardSettings)
+
+	// POST
+	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
+	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
+	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)
+	handleFunc(r, "/api/color", http.MethodPost, setDeviceColor)
+	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
+	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
+	handleFunc(r, "/api/hub/type", http.MethodPost, setExternalHubDeviceType)
+	handleFunc(r, "/api/hub/amount", http.MethodPost, setExternalHubDeviceAmount)
+	handleFunc(r, "/api/label", http.MethodPost, setDeviceLabel)
+	handleFunc(r, "/api/lcd", http.MethodPost, setDeviceLcd)
+	handleFunc(r, "/api/lcd/device", http.MethodPost, changeDeviceLcd)
+	handleFunc(r, "/api/lcd/rotation", http.MethodPost, setDeviceLcdRotation)
+	handleFunc(r, "/api/lcd/profile", http.MethodPost, setDeviceLcdProfile)
+	handleFunc(r, "/api/lcd/image", http.MethodPost, setDeviceLcdImage)
+	handleFunc(r, "/api/brightness", http.MethodPost, changeBrightness)
+	handleFunc(r, "/api/brightness/gradual", http.MethodPost, changeBrightnessGradual)
+	handleFunc(r, "/api/position", http.MethodPost, changePosition)
+	handleFunc(r, "/api/dashboard/update", http.MethodPost, setDashboardSettings)
+	handleFunc(r, "/api/argb", http.MethodPost, setARGBDevice)
+	handleFunc(r, "/api/keyboard/color", http.MethodPost, setKeyboardColor)
+	handleFunc(r, "/api/misc/color", http.MethodPost, setMiscColor)
+	handleFunc(r, "/api/userProfile/change", http.MethodPost, changeUserProfile)
+	handleFunc(r, "/api/keyboard/profile/change", http.MethodPost, changeKeyboardProfile)
+	handleFunc(r, "/api/keyboard/profile/save", http.MethodPost, saveDeviceProfile)
+	handleFunc(r, "/api/keyboard/layout", http.MethodPost, changeKeyboardLayout)
+	handleFunc(r, "/api/keyboard/dial", http.MethodPost, changeControlDial)
+	handleFunc(r, "/api/keyboard/sleep", http.MethodPost, changeSleepMode)
+	handleFunc(r, "/api/keyboard/pollingRate", http.MethodPost, changePollingRate)
+	handleFunc(r, "/api/scheduler/rgb", http.MethodPost, changeRgbScheduler)
+	handleFunc(r, "/api/psu/speed", http.MethodPost, changePsuFanMode)
+	handleFunc(r, "/api/mouse/dpi", http.MethodPost, saveMouseDpi)
+	handleFunc(r, "/api/mouse/zoneColors", http.MethodPost, saveMouseZoneColors)
+	handleFunc(r, "/api/mouse/dpiColors", http.MethodPost, saveMouseDpiColors)
+	handleFunc(r, "/api/mouse/sleep", http.MethodPost, changeSleepMode)
+	handleFunc(r, "/api/mouse/pollingRate", http.MethodPost, changePollingRate)
+	handleFunc(r, "/api/mouse/angleSnapping", http.MethodPost, changeAngleSnapping)
+	handleFunc(r, "/api/mouse/buttonOptimization", http.MethodPost, changeButtonOptimization)
+	handleFunc(r, "/api/mouse/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
+	handleFunc(r, "/api/headset/zoneColors", http.MethodPost, saveHeadsetZoneColors)
+	handleFunc(r, "/api/headset/sleep", http.MethodPost, changeSleepMode)
+	handleFunc(r, "/api/headset/muteIndicator", http.MethodPost, changeMuteIndicator)
+	handleFunc(r, "/api/led/update", http.MethodPost, updateDeviceLed)
+	handleFunc(r, "/api/macro/newValue", http.MethodPost, newMacroProfileValue)
+
+	// PUT
+	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)
+	handleFunc(r, "/api/temperatures/updateGraph", http.MethodPut, updateTemperatureProfileGraph)
+	handleFunc(r, "/api/lcd/modes", http.MethodPut, updateLcdProfile)
+	handleFunc(r, "/api/userProfile", http.MethodPut, saveUserProfile)
+	handleFunc(r, "/api/keyboard/profile/new", http.MethodPut, saveDeviceProfile)
+	handleFunc(r, "/api/macro/new", http.MethodPut, newMacroProfile)
+
+	// DELETE
+	handleFunc(r, "/api/keyboard/profile/delete", http.MethodDelete, deleteKeyboardProfile)
+	handleFunc(r, "/api/macro/value", http.MethodDelete, deleteMacroValue)
+	handleFunc(r, "/api/temperatures/delete", http.MethodDelete, deleteTemperatureProfile)
+	handleFunc(r, "/api/macro/profile", http.MethodDelete, deleteMacroProfile)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {
-		r.Methods(http.MethodGet).Path("/api/metrics").
-			HandlerFunc(getDeviceMetrics)
+		handleFunc(r, "/api/metrics", http.MethodGet, getDeviceMetrics)
 	}
 
 	if config.GetConfig().Frontend {
-		// Frontend
-		r.Methods(http.MethodGet).Path("/").
-			HandlerFunc(uiIndex)
-		r.Methods(http.MethodGet).Path("/device/{deviceOd}").
-			HandlerFunc(uiDeviceOverview)
-		r.Methods(http.MethodGet).Path("/temperature").
-			HandlerFunc(uiTemperatureOverview)
-		r.Methods(http.MethodGet).Path("/temperatureGraphs").
-			HandlerFunc(uiTemperatureGraphOverview)
-		r.Methods(http.MethodGet).Path("/docs").
-			HandlerFunc(uiDocumentationOverview)
-		r.Methods(http.MethodGet).Path("/color").
-			HandlerFunc(uiColorOverview)
-		r.Methods(http.MethodGet).Path("/scheduler").
-			HandlerFunc(uiSchedulerOverview)
-		r.Methods(http.MethodGet).Path("/rgb").
-			HandlerFunc(uiRgbEditor)
-		r.Methods(http.MethodGet).Path("/macros").
-			HandlerFunc(uiMacrosOverview)
-		r.Methods(http.MethodGet).Path("/lcd").
-			HandlerFunc(uiLcdOverview)
-		r.Methods(http.MethodGet).Path("/settings").
-			HandlerFunc(uiSettings)
+		handleFunc(r, "/", http.MethodGet, uiIndex)
+		handleFunc(r, "/device/", http.MethodGet, uiDeviceOverview)
+		handleFunc(r, "/temperature", http.MethodGet, uiTemperatureOverview)
+		handleFunc(r, "/temperatureGraphs", http.MethodGet, uiTemperatureGraphOverview)
+		handleFunc(r, "/color", http.MethodGet, uiColorOverview)
+		handleFunc(r, "/scheduler", http.MethodGet, uiSchedulerOverview)
+		handleFunc(r, "/rgb", http.MethodGet, uiRgbEditor)
+		handleFunc(r, "/macros", http.MethodGet, uiMacrosOverview)
+		handleFunc(r, "/lcd", http.MethodGet, uiLcdOverview)
+		handleFunc(r, "/settings", http.MethodGet, uiSettings)
 	}
 	return r
 }

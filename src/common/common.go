@@ -25,6 +25,15 @@ type Device struct {
 	Hidden      bool
 }
 
+type LogLevel int
+
+const (
+	LogInfo LogLevel = iota
+	LogWarn
+	LogError
+	LogFatal
+)
+
 // runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.
 func runUdevadmInfo(devicePath string) (string, error) {
 	// Construct the udevadm command to get device properties

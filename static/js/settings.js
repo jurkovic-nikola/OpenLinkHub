@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const json = JSON.stringify(pf, null, 2);
 
             $.ajax({
-                url: '/api/dashboard',
+                url: '/api/dashboard/update',
                 type: 'POST',
                 data: json,
                 cache: false,

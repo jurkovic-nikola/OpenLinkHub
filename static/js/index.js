@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             $.ajax({
-                url:'/api/devices',
+                url:'/api/devices/',
                 type:'get',
                 success:function(result){
                     $.each(result.devices, function( index, value ) {

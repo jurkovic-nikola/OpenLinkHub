@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
@@ -250,6 +251,16 @@ func (d *Device) StopDirty() uint8 {
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+// UpdateDeviceMetrics will update device metrics
+func (d *Device) UpdateDeviceMetrics() {
+	header := &metrics.Header{
+		Product:  d.Product,
+		Serial:   d.Serial,
+		Firmware: d.Firmware,
+	}
+	metrics.Populate(header)
 }
 
 // GetDeviceTemplate will return device template name

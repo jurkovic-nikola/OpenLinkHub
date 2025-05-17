@@ -1078,7 +1078,7 @@ func (d *Device) getActionCodeByPosition(pixel uint16) uint16 {
 		return 0
 	}
 
-	for _, value := range d.LCDProfiles.Profiles {
+	if value, ok := d.LCDProfiles.Profiles[d.DeviceProfile.LCDMode]; ok {
 		for _, button := range value.Buttons {
 			if pixel >= button.TouchPositionMin && pixel <= button.TouchPositionMax {
 				return button.ActionCode

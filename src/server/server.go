@@ -1261,7 +1261,6 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/batteryStats", http.MethodGet, getBatteryStats)
 	handleFunc(r, "/api/devices/", http.MethodGet, getDevices)
 	handleFunc(r, "/api/color/", http.MethodGet, getColor)
-	handleFunc(r, "/api/color/change", http.MethodPut, updateRgbProfile)
 	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
 	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
 	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
@@ -1324,6 +1323,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/userProfile", http.MethodPut, saveUserProfile)
 	handleFunc(r, "/api/keyboard/profile/new", http.MethodPut, saveDeviceProfile)
 	handleFunc(r, "/api/macro/new", http.MethodPut, newMacroProfile)
+	handleFunc(r, "/api/color/change", http.MethodPut, updateRgbProfile)
 
 	// DELETE
 	handleFunc(r, "/api/keyboard/profile/delete", http.MethodDelete, deleteKeyboardProfile)

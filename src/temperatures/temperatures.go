@@ -320,11 +320,13 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 		pf := TemperatureProfileData{}
 		if static || linear {
 			pf = profileStatic
-
+			pf.Sensor = sensor
+			if sensor == 2 {
+				pf.Profiles[0].Max = 60
+			}
 			if linear {
 				pf = profileLinearLiquid
 				pf.Linear = linear
-				pf.Sensor = sensor
 			}
 
 			if pf.Points == nil {

@@ -357,8 +357,6 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["points"] = capturedPoints;
             const json = JSON.stringify(pf, null, 2);
 
-            console.log(json);
-
             $.ajax({
                 url: '/api/temperatures/updateGraph',
                 type: 'PUT',

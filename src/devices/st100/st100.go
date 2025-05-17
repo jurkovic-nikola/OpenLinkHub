@@ -257,7 +257,7 @@ func (d *Device) StopDirty() uint8 {
 		})
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // UpdateDeviceMetrics will update device metrics

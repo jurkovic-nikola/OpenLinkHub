@@ -298,7 +298,7 @@ func (d *Device) StopDirty() uint8 {
 		})
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // loadRgb will load RGB file if found, or create the default.

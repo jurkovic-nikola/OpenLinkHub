@@ -465,7 +465,7 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 		x, y = calculateStringXY(100, v)
 		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
 	} else {
-		v := fmt.Sprintf("%v %s", rightValue, "%")
+		v := fmt.Sprintf("%.1f %s", rightValue, "%")
 		x, y = calculateStringXY(100, v)
 		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
 	}
@@ -499,17 +499,14 @@ func GenerateArcScreenImage(arcType, sensor, value int) []byte {
 	arcStartColor := generateColor(arc.StartColor)
 	arcEndColor := generateColor(arc.EndColor)
 	arcThickness := arc.Thickness
-
 	maxValue := sensorMaximumValue(arc.Sensor)
-
 	img := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
 	draw.Draw(img, img.Bounds(), &image.Uniform{C: bg}, image.Point{}, draw.Src)
 	centerX, centerY := float64(imgWidth)/2, float64(imgHeight)/2
 	outerRadius := float64(imgWidth)/2 - arc.Margin
 	innerRadius := outerRadius - arcThickness
-	angleFraction := float64(value) / float64(maxValue)
-	angleFraction = angleFraction - (arc.GapRadians * 2 / (2 * math.Pi))
-	endAngle := startAngle + angleFraction*2*math.Pi
+	arcStart := math.Pi/2 + arc.GapRadians/2
+	arcEnd := arcStart + float64(value)/float64(maxValue)*((math.Pi*2)-arc.GapRadians)
 
 	// Border
 	borderAngle := startAngle + 1*2*math.Pi
@@ -517,8 +514,9 @@ func GenerateArcScreenImage(arcType, sensor, value int) []byte {
 
 	// Draw the arc
 	drawArcOutline(img, centerX, centerY, innerRadius, outerRadius, startAngle, borderAngle, borderColor)
-	drawSmoothArcGradient(img, centerX, centerY, innerRadius, outerRadius, startAngle, endAngle, arcStartColor, arcEndColor)
-
+	if value > 0 {
+		drawSmoothArcGradient(img, centerX, centerY, innerRadius, outerRadius, arcStart, arcEnd, arcStartColor, arcEndColor)
+	}
 	c := freetype.NewContext()
 	c.SetDPI(72)
 	c.SetFont(lcd.font)

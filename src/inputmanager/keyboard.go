@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"os"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -107,10 +108,14 @@ func InputControlKeyboard(controlType uint16, hold bool) {
 	events = createInputEvent(actionType.CommandCode, hold)
 
 	// Send events
-	for _, event := range events {
+	for i, event := range events {
 		if err := writeVirtualEvent(virtualKeyboardFile, &event); err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
 			return
+		}
+		if i == 1 && !hold && len(events) > 2 {
+			// Delay rapid events
+			time.Sleep(20 * time.Millisecond)
 		}
 	}
 }

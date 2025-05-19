@@ -1,0 +1,21 @@
+{
+  "name": "OpenLinkHub",
+  "icons": [
+    {
+      "src": "/static/img/512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/static/img/192.png",
+      "type": "static/icons/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#181818",
+  "theme_color": "#181818",
+  "short_name": "OpenLinkHub",
+  "description": "Open source interface for iCUE LINK Hub and other Corsair AIOs, Hubs for Linux."
+}

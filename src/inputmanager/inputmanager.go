@@ -293,8 +293,8 @@ var (
 	keyKpPlus              uint16 = 0x4E
 	keyKpMinus             uint16 = 0x4A
 	keyKpMultiply          uint16 = 0x37
-	keyKpDivide            uint16 = 0x35
-	keyKpEnter             uint16 = 0xE0
+	keyKpDivide            uint16 = 0x62
+	keyKpEnter             uint16 = 0x60
 	inputActions           map[uint16]InputAction
 	virtualKeyboardPointer uintptr
 	virtualMousePointer    uintptr

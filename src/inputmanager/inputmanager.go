@@ -163,6 +163,22 @@ const (
 	BtnMiddle      uint16 = 93
 	BtnBack        uint16 = 94
 	BtnForward     uint16 = 95
+	Kp1            uint16 = 96
+	Kp2            uint16 = 97
+	Kp3            uint16 = 98
+	Kp4            uint16 = 99
+	Kp5            uint16 = 100
+	Kp6            uint16 = 101
+	Kp7            uint16 = 102
+	Kp8            uint16 = 103
+	Kp9            uint16 = 104
+	Kp0            uint16 = 105
+	KpDot          uint16 = 106
+	KpPlus         uint16 = 107
+	KpMinus        uint16 = 108
+	KpMultiply     uint16 = 109
+	KpDivide       uint16 = 110
+	KpEnter        uint16 = 111
 )
 
 var (
@@ -263,6 +279,22 @@ var (
 	btnMiddle              uint16 = 0x112
 	btnForward             uint16 = 0x114
 	btnBack                uint16 = 0x113
+	keyKp1                 uint16 = 0x4F
+	keyKp2                 uint16 = 0x50
+	keyKp3                 uint16 = 0x51
+	keyKp4                 uint16 = 0x4B
+	keyKp5                 uint16 = 0x4C
+	keyKp6                 uint16 = 0x4D
+	keyKp7                 uint16 = 0x47
+	keyKp8                 uint16 = 0x48
+	keyKp9                 uint16 = 0x49
+	keyKp0                 uint16 = 0x52
+	keyKpDot               uint16 = 0x53
+	keyKpPlus              uint16 = 0x4E
+	keyKpMinus             uint16 = 0x4A
+	keyKpMultiply          uint16 = 0x37
+	keyKpDivide            uint16 = 0x35
+	keyKpEnter             uint16 = 0xE0
 	inputActions           map[uint16]InputAction
 	virtualKeyboardPointer uintptr
 	virtualMousePointer    uintptr
@@ -304,6 +336,24 @@ func buildInputActions() {
 	inputActions[Number7] = InputAction{Name: "Number 7", CommandCode: keyNumber7}
 	inputActions[Number8] = InputAction{Name: "Number 8", CommandCode: keyNumber8}
 	inputActions[Number9] = InputAction{Name: "Number 9", CommandCode: keyNumber9}
+
+	// Numpad
+	inputActions[Kp1] = InputAction{Name: "Numpad 1", CommandCode: keyKp1}
+	inputActions[Kp2] = InputAction{Name: "Numpad 2", CommandCode: keyKp2}
+	inputActions[Kp3] = InputAction{Name: "Numpad 3", CommandCode: keyKp3}
+	inputActions[Kp4] = InputAction{Name: "Numpad 4", CommandCode: keyKp4}
+	inputActions[Kp5] = InputAction{Name: "Numpad 5", CommandCode: keyKp5}
+	inputActions[Kp6] = InputAction{Name: "Numpad 6", CommandCode: keyKp6}
+	inputActions[Kp7] = InputAction{Name: "Numpad 7", CommandCode: keyKp7}
+	inputActions[Kp8] = InputAction{Name: "Numpad 8", CommandCode: keyKp8}
+	inputActions[Kp9] = InputAction{Name: "Numpad 9", CommandCode: keyKp9}
+	inputActions[Kp0] = InputAction{Name: "Numpad 0", CommandCode: keyKp0}
+	inputActions[KpEnter] = InputAction{Name: "Numpad Enter", CommandCode: keyKpEnter}
+	inputActions[KpDot] = InputAction{Name: "Numpad Dot (.)", CommandCode: keyKpDot}
+	inputActions[KpPlus] = InputAction{Name: "Numpad Plus (+)", CommandCode: keyKpPlus}
+	inputActions[KpMinus] = InputAction{Name: "Numpad Minus (-)", CommandCode: keyKpMinus}
+	inputActions[KpMultiply] = InputAction{Name: "Numpad Multiply (*)", CommandCode: keyKpMultiply}
+	inputActions[KpDivide] = InputAction{Name: "Numpad Divide (/)", CommandCode: keyKpDivide}
 
 	// Keys
 	inputActions[KeyMinus] = InputAction{Name: "Minus (-)", CommandCode: keyMinus}

@@ -44,6 +44,7 @@ type DeviceProfile struct {
 	ZoneColors         map[int]ZoneColors
 	Profiles           map[int]DPIProfile
 	AngleSnapping      int
+	KeyAssignmentHash  string
 }
 
 type ZoneColors struct {
@@ -521,7 +522,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.DPIColor = d.DeviceProfile.DPIColor
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.AngleSnapping = d.DeviceProfile.AngleSnapping
-
+		deviceProfile.KeyAssignmentHash = d.DeviceProfile.KeyAssignmentHash
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -579,9 +580,11 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 // saveKeyAssignments will save new key assignments
 func (d *Device) saveKeyAssignments() {
 	keyAssignmentsFile := pwd + d.keyAssignmentFile
-	if common.FileExists(keyAssignmentsFile) {
-
+	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
+		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
+		keyAssignmentsFile = pwd + fileFormat
 	}
+
 	// Convert to JSON
 	buffer, err := json.MarshalIndent(d.KeyAssignment, "", "    ")
 	if err != nil {
@@ -616,6 +619,11 @@ func (d *Device) loadKeyAssignments() {
 		return
 	}
 	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
+		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
+		keyAssignmentsFile = pwd + fileFormat
+	}
+
 	if common.FileExists(keyAssignmentsFile) {
 		file, err := os.Open(keyAssignmentsFile)
 		if err != nil {
@@ -812,10 +820,12 @@ func (d *Device) getDeviceProfile() {
 func (d *Device) SaveUserProfile(profileName string) uint8 {
 	if d.DeviceProfile != nil {
 		profilePath := pwd + "/database/profiles/" + d.Serial + "-" + profileName + ".json"
+		keyAssignmentHash := common.GenerateRandomMD5()
 
 		newProfile := d.DeviceProfile
 		newProfile.Path = profilePath
 		newProfile.Active = false
+		newProfile.KeyAssignmentHash = keyAssignmentHash
 
 		buffer, err := json.Marshal(newProfile)
 		if err != nil {
@@ -841,6 +851,7 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to close file handle")
 			return 0
 		}
+		d.saveKeyAssignments()
 		d.loadDeviceProfiles()
 		return 1
 	}
@@ -925,6 +936,8 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
+		d.loadKeyAssignments()
+		d.setupKeyAssignment()
 		return 1
 	}
 	return 0

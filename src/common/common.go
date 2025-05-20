@@ -2,10 +2,13 @@ package common
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"golang.org/x/image/draw"
 	"image"
 	"math"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -306,4 +309,22 @@ func GetBcdDevice(path string) (string, error) {
 	major := bcdStr[:2]
 	minor := bcdStr[2:]
 	return fmt.Sprintf("%s.%s", major, minor), nil
+}
+
+// generateRandomString generates random string with given length
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+// GenerateRandomMD5 will generate random MD5 string
+func GenerateRandomMD5() string {
+	rand.Seed(time.Now().UnixNano())
+	randomStr := generateRandomString(32)
+	hash := md5.Sum([]byte(randomStr))
+	return hex.EncodeToString(hash[:])
 }

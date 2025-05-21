@@ -1070,6 +1070,10 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
+		d.DeviceProfile.RGBProfile = "keyboard"
+	}
+
 	if d.DeviceProfile.RGBProfile == "keyboard" {
 		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 			for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {

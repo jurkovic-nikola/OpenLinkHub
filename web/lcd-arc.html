@@ -8,7 +8,7 @@
             <table style="width: 100%;">
                 <tbody>
                 <tr>
-                    <th style="width: 50%;height:50px;">Sensor</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtSensor" }}</th>
                     <th style="width: 50%">
                         <select class="form-select sensorType" id="sensorType_{{ $arc.Id }}" style="width: auto;float: right;">
                             {{ range $k, $v := $lcdSensors }}
@@ -23,56 +23,56 @@
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Margin</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtMargin" }}</th>
                     <th style="width: 50%">
                         <input class="form-control" id="margin_{{ $arc.Id }}" type="text" value="{{ $arc.Margin }}">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Thickness</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtThickness" }}</th>
                     <th style="width: 50%">
                         <input class="form-control" id="thickness_{{ $arc.Id }}" type="text" value="{{ $arc.Thickness }}">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Bottom Gap</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtBottomGap" }}</th>
                     <th style="width: 50%">
                         <input class="form-control" id="gapRadians_{{ $arc.Id }}" type="text" value="{{ $arc.GapRadians }}">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Background</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtBackground" }}</th>
                     <th style="width: 50%">
                         <input type="color" id="backgroundColor_{{ $arc.Id }}" value="{{ $arc.Background.Hex }}" style="float: right;">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Border Color</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtBorderColor" }}</th>
                     <th style="width: 50%">
                         <input type="color" id="borderColor_{{ $arc.Id }}" value="{{ $arc.BorderColor.Hex }}" style="float: right;">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Start Color</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtStartColor" }}</th>
                     <th style="width: 50%">
                         <input type="color" id="startColor_{{ $arc.Id }}" value="{{ $arc.StartColor.Hex }}" style="float: right;">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">End Color</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtEndColor" }}</th>
                     <th style="width: 50%">
                         <input type="color" id="endColor_{{ $arc.Id }}" value="{{ $arc.EndColor.Hex }}" style="float: right;">
                     </th>
                 </tr>
 
                 <tr>
-                    <th style="width: 50%;height:50px;">Text Color</th>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtTextColor" }}</th>
                     <th style="width: 50%">
                         <input type="color" id="textColor_{{ $arc.Id }}" value="{{ $arc.TextColor.Hex }}" style="float: right;">
                     </th>
@@ -83,7 +83,7 @@
         </div>
         <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
             <div class="input-group">
-                <button class="btn btn-primary saveArcProfile" data-info="{{ $arc.Id }}">Save Profile</button>
+                <button class="btn btn-primary saveArcProfile" data-info="{{ $arc.Id }}">{{ .Lang "txtSaveProfile" }}</button>
             </div>
         </div>
     </div>

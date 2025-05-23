@@ -11,23 +11,25 @@ import (
 )
 
 type Dashboard struct {
-	ShowCpu     bool `json:"showCpu"`
-	ShowDisk    bool `json:"showDisk"`
-	ShowGpu     bool `json:"showGpu"`
-	ShowDevices bool `json:"showDevices"`
-	VerticalUi  bool `json:"verticalUi"`
-	Celsius     bool `json:"celsius"`
-	ShowLabels  bool `json:"showLabels"`
-	ShowBattery bool `json:"showBattery"`
+	ShowCpu      bool   `json:"showCpu"`
+	ShowDisk     bool   `json:"showDisk"`
+	ShowGpu      bool   `json:"showGpu"`
+	ShowDevices  bool   `json:"showDevices"`
+	VerticalUi   bool   `json:"verticalUi"`
+	Celsius      bool   `json:"celsius"`
+	ShowLabels   bool   `json:"showLabels"`
+	ShowBattery  bool   `json:"showBattery"`
+	LanguageCode string `json:"languageCode"`
 }
 
 var (
 	location  = ""
 	dashboard Dashboard
 	upgrade   = map[string]any{
-		"celsius":     true,
-		"showLabels":  true,
-		"showBattery": false,
+		"celsius":      true,
+		"showLabels":   true,
+		"showBattery":  false,
+		"languageCode": "en_US",
 	}
 )
 
@@ -58,14 +60,15 @@ func upgradeFile() {
 
 		// File isn't found, create initial one
 		dash := &Dashboard{
-			ShowCpu:     true,
-			ShowDisk:    true,
-			ShowGpu:     true,
-			ShowDevices: false,
-			VerticalUi:  false,
-			Celsius:     true,
-			ShowLabels:  true,
-			ShowBattery: false,
+			ShowCpu:      true,
+			ShowDisk:     true,
+			ShowGpu:      true,
+			ShowDevices:  false,
+			VerticalUi:   false,
+			Celsius:      true,
+			ShowLabels:   true,
+			ShowBattery:  false,
+			LanguageCode: "en_US",
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")

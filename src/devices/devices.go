@@ -59,6 +59,7 @@ import (
 	"OpenLinkHub/src/devices/m75WU"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
+	"OpenLinkHub/src/devices/mm800"
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/nightsabreWU"
@@ -160,6 +161,7 @@ const (
 	productTypeST100                = 401
 	productTypeMM700                = 402
 	productTypeLT100                = 403
+	productTypeMM800                = 404
 	productTypePSUHid               = 501
 )
 
@@ -2465,6 +2467,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				devices[dev.Serial] = &common.Device{
 					ProductType: productTypeMM700,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mousepad.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 6971: // Corsair Gaming MM800 RGB POLARIS
+		{
+			go func(vendorId, productId uint16, serialId string) {
+				dev := mm800.Init(vendorId, productId, serialId)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeMM800,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,

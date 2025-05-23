@@ -5,14 +5,14 @@
 <div class="row btn btn-secondary active-nav-link navigation-left-small">
     <a href="/" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
-        <span style="font-size: 13px;">Dashboard</span>
+        <span style="font-size: 13px;">{{ .Lang "txtDashboard" }}</span>
     </a>
 </div>
 {{ else }}
 <div class="row btn btn-secondary navigation-left-small">
     <a href="/" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
-        <span style="font-size: 13px;">Dashboard</span>
+        <span style="font-size: 13px;">{{ .Lang "txtDashboard" }}</span>
     </a>
 </div>
 {{ end }}
@@ -69,14 +69,14 @@
 <div class="row btn btn-secondary active-nav-link navigation-right-small">
     <a href="/temperature" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
-        <span style="font-size: 13px;">Profiles</span>
+        <span style="font-size: 13px;">{{ .Lang "txtProfiles" }}</span>
     </a>
 </div>
 {{ else }}
 <div class="row btn btn-secondary navigation-right-small">
     <a href="/temperature" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
-        <span style="font-size: 13px;">Profiles</span>
+        <span style="font-size: 13px;">{{ .Lang "txtProfiles" }}</span>
     </a>
 </div>
 {{ end }}
@@ -86,31 +86,31 @@
 <div class="row btn btn-secondary active-nav-link navigation-right-small">
     <a href="/scheduler" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">Scheduler</span>
+        <span style="font-size: 13px;">{{ .Lang "txtScheduler" }}</span>
     </a>
 </div>
 {{ else }}
 <div class="row btn btn-secondary navigation-right-small">
     <a href="/scheduler" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">Scheduler</span>
+        <span style="font-size: 13px;">{{ .Lang "txtScheduler" }}</span>
     </a>
 </div>
 {{ end }}
 
-<!-- Scheduler -->
+<!-- Rgb -->
 {{ if eq .Page "rgb" }}
 <div class="row btn btn-secondary active-nav-link navigation-right-small">
     <a href="/rgb" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">RGB Editor</span>
+        <span style="font-size: 13px;">{{ .Lang "txtRgbEditor" }}</span>
     </a>
 </div>
 {{ else }}
 <div class="row btn btn-secondary navigation-right-small">
     <a href="/rgb" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">RGB Editor</span>
+        <span style="font-size: 13px;">{{ .Lang "txtRgbEditor" }}</span>
     </a>
 </div>
 {{ end }}
@@ -120,14 +120,14 @@
 <div class="row btn btn-secondary active-nav-link navigation-right-small">
     <a href="/macros" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">Macros</span>
+        <span style="font-size: 13px;">{{ .Lang "txtMacros" }}</span>
     </a>
 </div>
 {{ else }}
 <div class="row btn btn-secondary navigation-right-small">
     <a href="/macros" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">Macros</span>
+        <span style="font-size: 13px;">{{ .Lang "txtMacros" }}</span>
     </a>
 </div>
 {{ end }}
@@ -137,14 +137,14 @@
 <div class="row btn btn-secondary active-nav-link navigation-right-small">
     <a href="/lcd" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">LCD</span>
+        <span style="font-size: 13px;">{{ .Lang "txtLcd" }}</span>
     </a>
 </div>
 {{ else }}
 <div class="row btn btn-secondary navigation-right-small">
     <a href="/lcd" style="color: #a1a1a1;">
         <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="Settings" class="top-px" />
-        <span style="font-size: 13px;">LCD</span>
+        <span style="font-size: 13px;">{{ .Lang "txtLcd" }}</span>
     </a>
 </div>
 {{ end }}

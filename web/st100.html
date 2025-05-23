@@ -29,11 +29,11 @@
                                 <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
                                     <span>{{ .Device.Product }}</span><br />
                                     <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -49,7 +49,7 @@
                                             </select>
                                         </li>
                                     </ul>
-                                    <button title="Brightness" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
@@ -57,7 +57,7 @@
                                             <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
                                         </li>
                                     </ul>
-                                    <button title="RGB Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -86,7 +86,7 @@
                                             </select>
                                         </li>
                                     </ul>
-                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                 </div>
@@ -120,7 +120,7 @@
                                             <span>Apply</span>
                                         </button>
                                         <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Save</span>
+                                            <span>{{ .Lang "txtSave" }}</span>
                                         </button>
                                     </div>
                                     {{ end }}

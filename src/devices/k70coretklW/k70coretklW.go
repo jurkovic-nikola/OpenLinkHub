@@ -111,6 +111,20 @@ var (
 	maxBufferSizePerRequest = 61
 	keyboardKey             = "k70coretkl-default"
 	defaultLayout           = "k70coretkl-default-US"
+	rgbModes                = []string{
+		"watercolor",
+		"visor",
+		"rainbowwave",
+		"colorwave",
+		"colorshift",
+		"colorpulse",
+		"spiralrainbow",
+		"tlr",
+		"tlk",
+		"rain",
+		"keyboard",
+		"off",
+	}
 )
 
 func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial, serialSlipstream string) *Device {
@@ -1005,6 +1019,10 @@ func (d *Device) setDeviceColor() {
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
+	}
+
+	if !slices.Contains(rgbModes, d.DeviceProfile.RGBProfile) {
+		d.DeviceProfile.RGBProfile = "keyboard"
 	}
 
 	switch d.DeviceProfile.RGBProfile {

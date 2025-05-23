@@ -74,6 +74,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const v_checkboxDeviceLabels = checkboxDeviceLabels.is(':checked');
             const v_checkboxCelsius = checkboxCelsius.is(':checked');
             const v_checkboxBattery = checkboxBattery.is(':checked');
+            const v_languageCode = $("#userLanguage").val();
+
+            console.log(v_languageCode);
 
             const pf = {};
             pf["showCpu"] = v_checkboxCpu;
@@ -83,6 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["showLabels"] = v_checkboxDeviceLabels;
             pf["celsius"] = v_checkboxCelsius;
             pf["showBattery"] = v_checkboxBattery;
+            pf["languageCode"] = v_languageCode;
 
             const json = JSON.stringify(pf, null, 2);
 

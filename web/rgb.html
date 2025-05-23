@@ -45,10 +45,10 @@
                                         <table class="table text-sm" id="table" style="width: 100%;">
                                             <thead>
                                             <tr>
-                                                <th>Name</th>
-                                                <th>Start Color</th>
-                                                <th>End Color</th>
-                                                <th>Speed</th>
+                                                <th>{{ .Lang "txtName" }}</th>
+                                                <th>{{ .Lang "txtStartColor" }}</th>
+                                                <th>{{ .Lang "txtEndColor" }}</th>
+                                                <th>{{ .Lang "txtSpeed" }}</th>
                                                 <th></th>
                                             </tr>
                                             </thead>
@@ -58,8 +58,8 @@
                             </div>
                         </div>
                         <br/>
-                        <button class="btn btn-success" type="button" id="updateBtn" style="float: right;display:none">Update</button>
-                        <button class="btn btn-danger" type="button" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#deleteTempModal" style="display:none">Delete</button>
+                        <button class="btn btn-success" type="button" id="updateBtn" style="float: right;display:none">{{ .Lang "txtUpdate" }}</button>
+                        <button class="btn btn-danger" type="button" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#deleteTempModal" style="display:none">{{ .Lang "txtDelete" }}</button>
                     </div>
                 </div>
             </div>

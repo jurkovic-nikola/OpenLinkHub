@@ -6,6 +6,7 @@
     <div class="page-content">
         {{ $devs := .Devices }}
         {{ $device := .Device }}
+        {{ $languageCode := .LanguageCode }}
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -18,50 +19,64 @@
                         <div class="row" style="width: 100%;">
                             <div class="col-md-3" style="margin: 0 auto;">
                                 <div class="card mb-2">
-                                    <div class="card-header border-bottom border-dash-dark-1">Dashboard</div>
+                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtDashboard" }}</div>
                                     <div class="card-body">
                                         <table style="width: 100%;">
                                             <tbody>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show CPU in Dashboard</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowCpuInDashboard" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-cpu" type="checkbox">
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show GPU in Dashboard</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowGpuInDashboard" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-gpu" type="checkbox">
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show Storage in Dashboard</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowStorageInDashboard" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-storage" type="checkbox">
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show Devices in Dashboard</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowDevicesInDashboard" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-devices" type="checkbox">
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show Temperature in Celsius</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowTempInC" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-celsius" type="checkbox">
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show Device Labels</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowDeviceLabels" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-deviceLabels" type="checkbox">
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th style="width: 80%;height:40px;">Show Battery Info</th>
+                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowBatterInfo" }}</th>
                                                 <th style="width: 20%;text-align: right;">
                                                     <input class="form-check-input" id="checkbox-battery" type="checkbox">
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 80%;height:40px;">Language</th>
+                                                <th style="width: 20%;text-align: right;">
+                                                    <select class="form-select userLanguage" id="userLanguage">
+                                                        {{ range $k, $v := .Languages }}
+                                                        {{ if eq $languageCode $k }}
+                                                        <option value="{{ $k }}" selected>{{ $v.Name }}</option>
+                                                        {{ else }}
+                                                        <option value="{{ $k }}">{{ $v.Name }}</option>
+                                                        {{ end }}
+                                                        {{ end }}
+                                                    </select>
                                                 </th>
                                             </tr>
                                             </tbody>
@@ -69,7 +84,7 @@
                                     </div>
                                     <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
                                         <div class="input-group">
-                                            <button class="btn btn-primary" type="button" id="btnSaveDashboardSettings">Save</button>
+                                            <button class="btn btn-primary" type="button" id="btnSaveDashboardSettings">{{ .Lang "txtSave" }}</button>
                                         </div>
                                     </div>
                                 </div>

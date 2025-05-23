@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/language"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/metrics"
@@ -209,7 +210,7 @@ func getMacro(w http.ResponseWriter, r *http.Request) {
 			resp := &Response{
 				Code:    http.StatusOK,
 				Status:  0,
-				Message: "Unable to parse macroId",
+				Message: language.GetValue("txtUnableToParseMacroId"),
 			}
 			resp.Send(w)
 		} else {
@@ -230,7 +231,7 @@ func getKeyName(w http.ResponseWriter, r *http.Request) {
 		resp := &Response{
 			Code:    http.StatusOK,
 			Status:  0,
-			Message: "Unable to parse keyIndex",
+			Message: language.GetValue("txtUnableToParseKeyIndex"),
 		}
 		resp.Send(w)
 	} else {
@@ -239,7 +240,7 @@ func getKeyName(w http.ResponseWriter, r *http.Request) {
 			resp := &Response{
 				Code:    http.StatusOK,
 				Status:  0,
-				Message: "Unable to parse macroId",
+				Message: language.GetValue("txtUnableToParseMacroId"),
 			}
 			resp.Send(w)
 		} else {
@@ -274,7 +275,7 @@ func getTemperature(w http.ResponseWriter, r *http.Request) {
 			resp = &Response{
 				Code:    http.StatusOK,
 				Status:  0,
-				Message: "No such temperature profile",
+				Message: language.GetValue("txtNoSuchTemperatureProfile"),
 			}
 		}
 	}
@@ -289,7 +290,7 @@ func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 		resp = &Response{
 			Code:    http.StatusOK,
 			Status:  0,
-			Message: "No such temperature profile",
+			Message: language.GetValue("txtNoSuchTemperatureProfile"),
 		}
 	} else {
 		if temperatureProfile := temperatures.GetTemperatureGraph(profile); temperatureProfile != nil {
@@ -302,7 +303,7 @@ func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 			resp = &Response{
 				Code:    http.StatusOK,
 				Status:  0,
-				Message: "No such temperature profile",
+				Message: language.GetValue("txtNoSuchTemperatureProfile"),
 			}
 		}
 	}
@@ -330,7 +331,7 @@ func getColor(w http.ResponseWriter, r *http.Request) {
 			resp = &Response{
 				Code:    http.StatusOK,
 				Status:  0,
-				Message: "No such RGB profile",
+				Message: language.GetValue("txtNoSuchRGBProfile"),
 			}
 		}
 	}
@@ -923,7 +924,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
 			Status:  0,
-			Message: "Unable to process device request. Please try again",
+			Message: language.GetValue("txtUnableToProcessDeviceRequest"),
 		}
 		resp.Send(w)
 	}
@@ -934,7 +935,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
 			Status:  0,
-			Message: "Unable to process device request. Please try again",
+			Message: language.GetValue("txtUnableToProcessDeviceRequest"),
 		}
 		resp.Send(w)
 	}
@@ -965,7 +966,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -992,10 +993,9 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 
 	err := t.ExecuteTemplate(w, "index.html", web)
 	if err != nil {
-		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1025,9 +1025,10 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 
 	err := t.ExecuteTemplate(w, tpl, web)
 	if err != nil {
+		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1054,7 +1055,7 @@ func uiTemperatureGraphOverview(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1079,7 +1080,7 @@ func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1105,7 +1106,7 @@ func uiRgbEditor(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1127,11 +1128,10 @@ func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	err := t.ExecuteTemplate(w, "rgb.html", web)
-
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1159,7 +1159,7 @@ func uiMacrosOverview(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1186,9 +1186,10 @@ func uiLcdOverview(w http.ResponseWriter, _ *http.Request) {
 
 	err := t.ExecuteTemplate(w, "lcd.html", web)
 	if err != nil {
+		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1202,6 +1203,8 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
 	web.Dashboard = dashboard.GetDashboard()
+	web.Languages = language.GetLanguages()
+	web.LanguageCode = dashboard.GetDashboard().LanguageCode
 	web.Page = "settings"
 
 	t := templates.GetTemplate()
@@ -1212,10 +1215,9 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 
 	err := t.ExecuteTemplate(w, "settings.html", web)
 	if err != nil {
-		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to serve web content",
+			Message: language.GetValue("txtUnableToServeWebContent"),
 		}
 		resp.Send(w)
 	}
@@ -1240,7 +1242,7 @@ func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.Res
 		if r.Method == method {
 			handler(w, r)
 		} else {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			http.Error(w, language.GetValue("txtMethodNotAllowed"), http.StatusMethodNotAllowed)
 		}
 	})
 }

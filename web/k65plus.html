@@ -29,14 +29,14 @@
                                 <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
                                     <span>{{ .Device.Product }}</span><br />
                                     <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <span title="Connection (USB)" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </span>
-                                    <button title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
                                         {{ $device.BatteryLevel }} %
                                     </button>
@@ -56,7 +56,7 @@
                                             </select>
                                         </li>
                                     </ul>
-                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -72,7 +72,7 @@
                                             </select>
                                         </li>
                                     </ul>
-                                    <button title="RGB Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -118,7 +118,7 @@
                                         </li>
                                     </ul>
 
-                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                 </div>
@@ -175,7 +175,7 @@
                                             <span>Save As</span>
                                         </button>
                                         <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;margin-left: 10px;float: right">
-                                            <span>Save</span>
+                                            <span>{{ .Lang "txtSave" }}</span>
                                         </button>
                                         <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
                                             <span>Delete</span>

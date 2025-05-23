@@ -1050,7 +1050,7 @@ func (d *Device) loadKeyAssignments() {
 		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
 		keyAssignmentsFile = pwd + fileFormat
 	}
-	
+
 	if common.FileExists(keyAssignmentsFile) {
 		file, err := os.Open(keyAssignmentsFile)
 		if err != nil {
@@ -1415,7 +1415,6 @@ func (d *Device) setDeviceColor() {
 					for i := 0; i < d.ChangeableLedChannels*3; i++ {
 						buff = append(buff, []byte{0, 0, 0}...)
 					}
-					logger.Log(logger.Fields{"profile": d.DeviceProfile.RGBProfile, "serial": d.Serial}).Warn("No such RGB profile found")
 					continue
 				}
 				rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)

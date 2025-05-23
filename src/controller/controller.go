@@ -7,6 +7,7 @@ import (
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
+	"OpenLinkHub/src/language"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/metrics"
@@ -38,6 +39,7 @@ func Start() {
 	macro.Init()        // Macro
 	devices.Init()      // Devices
 	monitor.Init()      // Monitor
+	language.Init()     // Language
 	server.Init()       // REST & WebUI
 }
 

@@ -627,7 +627,6 @@ func (d *Device) setDeviceColor() {
 						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
 							buff = append(buff, []byte{0, 0, 0}...)
 						}
-						logger.Log(logger.Fields{"profile": d.Devices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
 						continue
 					}
 

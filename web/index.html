@@ -12,6 +12,7 @@
 
         <section class="pt-0 pt-sm-4">
             <div class="container-fluid">
+                {{ $root := . }}
                 {{ $battery := .BatteryStats }}
                 {{ $dash := .Dashboard }}
                 {{ if $dash.ShowDevices }}
@@ -152,7 +153,7 @@
                 <div class="row gy-4">
                     <div class="bg-dash-dark-2 py-4 box-info">
                         <div class="container-fluid">
-                            <h2 class="h5 mb-0">Temperature Sensors</h2>
+                            <h2 class="h5 mb-0">{{ $root.Lang "txtTempSensors" }}</h2>
                         </div>
                     </div>
                     <div class="row">
@@ -168,7 +169,7 @@
                                     <div class="ds-svg-placeholder-left" style="margin-left: 20px;width:auto">
                                         <span style="font-size: 13px;">{{ .SystemInfo.CPU.Model }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">Temperature</span>
+                                            <span class="temp-left-70">{{ $root.Lang "txtTemperature" }}</span>
                                             <span id="cpu_temp" class="temp-right-30 text-dash-color-2-custom-4">{{ .CpuTemp }}</span><br />
                                         </p>
                                     </div>
@@ -190,7 +191,7 @@
                                     <div class="ds-svg-placeholder-left" style="margin-left: 20px;width:auto;min-width: 150px;">
                                         <span style="font-size: 13px;">{{ .SystemInfo.GPU.Model }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">Temperature</span>
+                                            <span class="temp-left-70">{{ $root.Lang "txtTemperature" }}</span>
                                             <span id="gpu_temp" class="temp-right-30 text-dash-color-2-custom-4">{{ .GpuTemp }}</span><br />
                                         </p>
                                     </div>
@@ -215,7 +216,7 @@
                                     <div class="ds-svg-placeholder-right" style="margin-left: 20px;min-width: 200px">
                                         <span style="font-size: 13px;">{{ .Model }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">Temperature</span>
+                                            <span class="temp-left-70">{{ $root.Lang "txtTemperature" }}</span>
                                             <span id="storage_temp-{{ .Key }}" class="temp-right-30 text-dash-color-2-custom-4">{{ $dash.TemperatureToString .Temperature }}</span><br />
                                         </p>
                                     </div>
@@ -234,7 +235,7 @@
                 <div class="row gy-4">
                     <div class="bg-dash-dark-2 py-4 box-info">
                         <div class="container-fluid">
-                            <h2 class="h5 mb-0">Battery Levels</h2>
+                            <h2 class="h5 mb-0">{{ $root.Lang "txtBatteryLevels" }}</h2>
                         </div>
                     </div>
                     <div class="row">
@@ -257,7 +258,7 @@
                                     <div class="ds-svg-placeholder-right" style="margin-left: 20px;min-width: 200px">
                                         <span style="font-size: 13px;">{{ $value.Device }}</span><br />
                                         <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">Level</span>
+                                            <span class="temp-left-70">{{ $root.Lang "txtLevel" }}</span>
                                             <span id="battery_level-{{ $key }}" class="temp-right-30 text-dash-color-2-custom-4">{{ $value.Level }} %</span><br />
                                         </p>
                                     </div>

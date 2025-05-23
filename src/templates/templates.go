@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/language"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
@@ -45,7 +46,14 @@ type Web struct {
 	StorageTemp       []temperatures.StorageTemperatures
 	BuildInfo         *version.BuildInfo
 	Dashboard         dashboard.Dashboard
+	Languages         map[string]language.Language
+	LanguageCode      string
 	BatteryStats      interface{}
+}
+
+// Lang is called from template files
+func (w Web) Lang(key string) string {
+	return language.GetValue(key)
 }
 
 // Init will parse all templates

@@ -6,6 +6,7 @@
     <div class="page-content">
         {{ $devs := .Devices }}
         {{ $device := .Device }}
+        {{ $root := . }}
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -20,8 +21,8 @@
                                 <div class="row gx-12">
                                     <div class="col-12">
                                         <div>
-                                            <p class="text-xl fw-normal mb-0">New Profile</p>
-                                            <p class="text-uppercase text-sm fw-light mb-2">Create new profile</p>
+                                            <p class="text-xl fw-normal mb-0">{{ .Lang "txtNewProfile" }}</p>
+                                            <p class="text-uppercase text-sm fw-light mb-2">{{ .Lang "txtCreateNewProfile" }}</p>
                                             <div class="progress" style="height: 2px">
                                                 <div class="progress-bar bg-dash-color-1" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
                                             </div>
@@ -34,16 +35,16 @@
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="newTempModalLabel">New temperature profile</h5>
+                                        <h5 class="modal-title" id="newTempModalLabel">{{ .Lang "txtNewTempProfile" }}</h5>
                                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                         <form>
                                             <div class="mb-3">
-                                                <label class="form-label" for="profileName">Profile name</label>
+                                                <label class="form-label" for="profileName">{{ .Lang "txtProfileName" }}</label>
                                                 <input class="form-control" id="profileName" type="text">
 
-                                                <label class="form-label" for="sensor">Sensor:</label>
+                                                <label class="form-label" for="sensor">{{ .Lang "txtSensor" }}:</label>
                                                 <select class="form-select mb-1 tempProfile" id="sensor">
                                                     <option value="0" selected>CPU</option>
                                                     <option value="1">GPU</option>
@@ -55,7 +56,7 @@
 
                                                 {{ if .TemperatureProbes }}
                                                 <div id="temperature-probe-data" style="display: none;">
-                                                    <label class="form-label" for="probeData">Temperature Probe:</label>
+                                                    <label class="form-label" for="probeData">{{ .Lang "txtTemperatureProbe" }}:</label>
                                                     <select class="form-select mb-1 tempProfile" id="probeData">
                                                         <option value="0;0" selected>Select probe</option>
                                                         {{ range .TemperatureProbes }}
@@ -69,7 +70,7 @@
 
                                                 {{ if .SystemInfo.Storage }}
                                                 <div id="storage-data" style="display: none;">
-                                                    <label class="form-label" for="hwmonDeviceId">Storage Device:</label>
+                                                    <label class="form-label" for="hwmonDeviceId">{{ .Lang "txtStorageDevice" }}:</label>
                                                     <select class="form-select mb-1 tempProfile" id="hwmonDeviceId">
                                                         {{ range .SystemInfo.Storage }}
                                                         <option value="{{ .Key }}">{{ .Model }}</option>
@@ -80,7 +81,7 @@
 
                                                 <div class="form-check">
                                                     <input class="form-check-input" id="staticCheckbox" type="checkbox">
-                                                    <label class="form-check-label" for="staticCheckbox">Static</label>
+                                                    <label class="form-check-label" for="staticCheckbox">{{ .Lang "txtStaticTemp" }}</label>
                                                 </div>
                                                 <!--
                                                 <div class="form-check" id="linear-data" style="display: none;">
@@ -96,8 +97,8 @@
                                         </form>
                                     </div>
                                     <div class="modal-footer">
-                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                        <button class="btn btn-primary" type="button" id="btnSaveNewProfile">Create</button>
+                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
+                                        <button class="btn btn-primary" type="button" id="btnSaveNewProfile">{{ .Lang "txtCreate" }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -107,18 +108,18 @@
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="deleteTempModalLabel">Delete temperature profile</h5>
+                                        <h5 class="modal-title" id="deleteTempModalLabel">{{ .Lang "txtDeleteTempProfile" }}</h5>
                                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                         <div class="mb-1">
-                                            <p>Are you sure you want to delete this profile? </p>
-                                            <p style="color: #dc3545">ALL devices using this profile will be reset to the Normal profile!</p>
+                                            <p>{{ .Lang "txtDeleteTempProfileConfirm" }}</p>
+                                            <p style="color: #dc3545">{{ .Lang "txtDeleteTempProfileDesc" }}</p>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
-                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                        <button class="btn btn-danger" type="button" id="delete">Delete</button>
+                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
+                                        <button class="btn btn-danger" type="button" id="delete">{{ .Lang "txtDelete" }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -148,20 +149,20 @@
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <p class="text-uppercase text-sm fw-light mb-1">Modes: {{ len $value.Profiles }}</p>
+                                                <p class="text-uppercase text-sm fw-light mb-1">{{ $root.Lang "txtModes" }}: {{ len $value.Profiles }}</p>
                                                 {{ if eq $value.Sensor 0 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: CPU</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: CPU</p>
                                                 {{ else if eq $value.Sensor 1 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: GPU</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: GPU</p>
                                                 {{ else if eq $value.Sensor 2 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Liquid</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Liquid</p>
                                                 {{ else if eq $value.Sensor 3 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Storage</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Storage</p>
                                                 <p class="text-uppercase text-sm fw-light mb-2">Device ID: {{ $value.Device }}</p>
                                                 {{ else if eq $value.Sensor 4 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: Temperature Probe</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Temperature Probe</p>
                                                 {{ else if eq $value.Sensor 5 }}
-                                                <p class="text-uppercase text-sm fw-light mb-2">Sensor: CPU + GPU</p>
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: CPU + GPU</p>
                                                 {{ end }}
 
                                                 <!--
@@ -187,11 +188,11 @@
                         <div style="display: flex; width: 100%; gap: 10px; margin: 0; padding: 0;">
                             <div style="flex: 1;">
                                 <canvas id="graphPump" style="width: 100%; height: 500px; display: block;"></canvas>
-                                <button class="btn btn-secondary" type="button" id="updatePump" style="margin-top:10px;width:150px;">Save</button>
+                                <button class="btn btn-secondary" type="button" id="updatePump" style="margin-top:10px;width:150px;">{{ .Lang "txtSave" }}</button>
                             </div>
                             <div style="flex: 1;">
                                 <canvas id="graphFans" style="width: 100%; height: 500px; display: block;"></canvas>
-                                <button class="btn btn-secondary" type="button" id="updateFans" style="margin-top:10px;width:150px;">Save</button>
+                                <button class="btn btn-secondary" type="button" id="updateFans" style="margin-top:10px;width:150px;">{{ .Lang "txtSave" }}</button>
                             </div>
                         </div>
                     </div>

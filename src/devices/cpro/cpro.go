@@ -1529,7 +1529,6 @@ func (d *Device) setDeviceColor(resetColor bool) {
 
 					profile := d.GetRgbProfile(d.Devices[k].RGB)
 					if profile == nil {
-						logger.Log(logger.Fields{"profile": d.Devices[k].RGB, "serial": d.Serial}).Warn("No such RGB profile found")
 						continue
 					}
 

@@ -44,7 +44,7 @@
                                     <div style="text-align: center;">
                                         <div class="d-flex align-items-end justify-content-between mb-2">
                                             <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Firmware</p>
+                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ .Lang "txtFirmware" }}</p>
                                             </div>
                                             <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Device.Firmware }}</p>
                                         </div>
@@ -174,7 +174,7 @@
 
                                         <div style="overflow: hidden; margin-top: 10px;">
                                             <button class="btn btn-secondary saveUserProfile">
-                                                <span>Save As</span>
+                                                <span>{{ .Lang "txtSaveAs" }}</span>
                                             </button>
                                         </div>
                                     </div>

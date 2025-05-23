@@ -1301,7 +1301,6 @@ func (d *Device) setDeviceColor(dpi bool) {
 					for i := 0; i < d.ChangeableLedChannels*3; i++ {
 						buff = append(buff, []byte{0, 0, 0}...)
 					}
-					logger.Log(logger.Fields{"profile": d.DeviceProfile.RGBProfile, "serial": d.Serial}).Warn("No such RGB profile found")
 					continue
 				}
 				rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)

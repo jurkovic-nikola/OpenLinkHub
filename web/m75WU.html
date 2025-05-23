@@ -32,18 +32,18 @@
                                 <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
                                     <span>{{ .Device.Product }}</span><br />
                                     <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">Firmware: {{ .Device.Firmware }}</span>
+                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
                                     </p>
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <span title="Connection (USB)" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </span>
-                                    <span title="Battery Level" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <span title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
                                         {{ $device.BatteryLevel }} %
                                     </span>
-                                    <button title="User Profile" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -60,7 +60,7 @@
                                         </li>
                                     </ul>
 
-                                    <button title="Polling Rate" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtPollingRate" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -77,7 +77,7 @@
                                         </li>
                                     </ul>
 
-                                    <button title="Angle Snapping" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtAngleSnapping" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi fa-angle-down svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -94,7 +94,7 @@
                                         </li>
                                     </ul>
 
-                                    <button title="Button Response Optimization" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtButtonResponseOptimization" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-menu-button-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -111,7 +111,7 @@
                                         </li>
                                     </ul>
 
-                                    <button title="Save user profile" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                 </div>
@@ -145,10 +145,10 @@
                                         <div style="margin: 0 auto;">
                                             <div style="float: left;width: 530px;">
                                                 <button class="btn btn-secondary" id="default5DPI" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                                    <span>Default</span>
+                                                    <span>{{ .Lang "defaultValue" }}</span>
                                                 </button>
                                                 <button class="btn btn-secondary" id="saveDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                                    <span>Save DPI</span>
+                                                    <span>{{ .Lang "txtSaveDpi" }}</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -159,17 +159,17 @@
                                                 <table class="table mb-0">
                                                     <thead>
                                                     <tr>
-                                                        <th style="text-align: left;">Key Assignment</th>
+                                                        <th style="text-align: left;">{{ .Lang "txtKeyAssignment" }}</th>
                                                         <th>
-                                                            Default
+                                                            {{ .Lang "defaultValue" }}
                                                             <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
                                                         </th>
                                                         <th>
-                                                            Press and Hold
+                                                            {{ .Lang "txtPressAndHold" }}
                                                             <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
                                                         </th>
-                                                        <th>Assignment Type</th>
-                                                        <th>Assignment Key</th>
+                                                        <th>{{ .Lang "txtAssignmentType" }}</th>
+                                                        <th>{{ .Lang "txtAssignmentKey" }}</th>
                                                         <th></th>
                                                     </tr>
                                                     </thead>
@@ -232,7 +232,7 @@
                                                         </td>
                                                         <td style="text-align: right;">
                                                             <button class="btn btn-secondary saveKeyAssignment" data-info="{{ $key }}">
-                                                                <span>Save</span>
+                                                                <span>{{ .Lang "txtSave" }}</span>
                                                             </button>
                                                         </td>
                                                     </tr>

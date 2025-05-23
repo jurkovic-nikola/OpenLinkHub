@@ -1017,6 +1017,10 @@ func (d *Device) setDeviceColor() {
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
 
+	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
+		d.DeviceProfile.RGBProfile = "keyboard"
+	}
+
 	if d.DeviceProfile.RGBProfile == "keyboard" {
 		var buf = make([]byte, colorPacketLength)
 		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {

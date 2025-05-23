@@ -4,6 +4,7 @@
 <body>
 <div class="d-flex align-items-stretch">
     <div class="page-content">
+        {{ $root := . }}
         {{ $devs := .Devices }}
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
@@ -46,7 +47,7 @@
                                     {{ if $device.HasTemps }}
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtTemp" }}</p>
                                         </div>
                                         <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ .DeviceId }}">{{ $device.TemperatureString }}</p>
                                     </div>
@@ -58,7 +59,7 @@
                                     {{ if $device.HasSpeed }}
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtSpeed" }}</p>
                                         </div>
                                         <p class="text-sm lh-1 mb-0 text-dash-color-2" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</p>
                                     </div>
@@ -70,7 +71,7 @@
                                     {{ if $device.HasWatts }}
                                     <div class="d-flex align-items-end justify-content-between mb-2">
                                         <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Watts</p>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtWatts" }}</p>
                                         </div>
                                         <p class="text-sm lh-1 mb-0 text-dash-color-2" id="watts-{{ .DeviceId }}">{{ $device.Watts }} W</p>
                                     </div>
@@ -82,7 +83,7 @@
                                     {{ if $device.HasAmps }}
                                     <div class="d-flex align-items-end justify-content-between mb-2" {{ if $device.HasAmps }} style="margin-top: 10px;" {{ end }}>
                                         <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Amps</p>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtAmps" }}</p>
                                         </div>
                                         <p class="text-sm lh-1 mb-0 text-dash-color-2" id="amps-{{ .DeviceId }}" style="margin-top: 5px;">{{ $device.Amps }} A</p>
                                     </div>
@@ -94,7 +95,7 @@
                                     {{ if $device.HasVolts }}
                                     <div class="d-flex align-items-end justify-content-between mb-2" {{ if $device.HasVolts }} style="margin-top: 10px;" {{ end }}>
                                         <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Volts</p>
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtVolts" }}</p>
                                         </div>
                                         <p class="text-sm lh-1 mb-0 text-dash-color-2" id="volts-{{ .DeviceId }}" style="margin-top: 5px;">{{ $device.Volts }} V</p>
                                     </div>
@@ -121,7 +122,6 @@
                                         </div>
                                     </div>
                                     {{ end }}
-
                                 </div>
                             </div>
                         </div>

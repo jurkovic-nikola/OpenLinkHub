@@ -110,6 +110,19 @@ var (
 	maxBufferSizePerRequest = 61
 	keyboardKey             = "k65plus-default"
 	defaultLayout           = "k65plus-default-US"
+	rgbModes                = []string{
+		"watercolor",
+		"rainbowwave",
+		"colorwave",
+		"colorshift",
+		"colorpulse",
+		"spiralrainbow",
+		"tlr",
+		"tlk",
+		"rain",
+		"keyboard",
+		"off",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -1058,6 +1071,10 @@ func (d *Device) setDeviceColor() {
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
+	}
+
+	if !slices.Contains(rgbModes, d.DeviceProfile.RGBProfile) {
+		d.DeviceProfile.RGBProfile = "keyboard"
 	}
 
 	switch d.DeviceProfile.RGBProfile {

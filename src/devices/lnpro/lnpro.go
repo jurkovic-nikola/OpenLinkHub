@@ -153,6 +153,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			6: "6 Devices",
 			7: "7 Devices",
 			8: "8 Devices",
+			9: "9 Devices",
 		},
 		Brightness: map[int]string{
 			0: "RGB Profile",

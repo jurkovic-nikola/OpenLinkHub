@@ -112,39 +112,7 @@ var (
 	maxBufferSizePerRequest = 50
 	maximumLedAmount        = 204
 	deviceUpdateDelay       = 5
-	externalLedDevices      = []ExternalLedDevice{
-		{
-			Index: 1,
-			Name:  "HD RGB Series Fan",
-			Total: 12,
-		},
-		{
-			Index: 2,
-			Name:  "LL RGB Series Fan",
-			Total: 16,
-		},
-		{
-			Index: 3,
-			Name:  "ML PRO RGB Series Fan",
-			Total: 4,
-		},
-		{
-			Index: 4,
-			Name:  "QL RGB Series Fan",
-			Total: 34,
-		},
-		{
-			Index: 5,
-			Name:  "8-LED Series Fan",
-			Total: 8,
-		},
-		{
-			Index: 6,
-			Name:  "SP RGB Series Fan (1 LED)",
-			Total: 1,
-		},
-	}
-	hardwareLights = map[int][]byte{
+	hardwareLights          = map[int][]byte{
 		0: {0x02, 0x01, 0x00, 0x01, 0x00, 0x00},
 		1: {0x01, 0x01, 0x00, 0x01, 0x00, 0x00},
 		2: {0x03, 0x01, 0x01, 0x01, 0x00, 0x00},
@@ -171,9 +139,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:               dev,
-		Template:          "lnpro.html",
-		ExternalLedDevice: externalLedDevices,
+		dev:      dev,
+		Template: "lnpro.html",
 		ExternalLedDeviceAmount: map[int]string{
 			0: "No Device",
 			1: "1 Device",
@@ -182,6 +149,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			4: "4 Devices",
 			5: "5 Devices",
 			6: "6 Devices",
+			7: "7 Devices",
+			8: "8 Devices",
 		},
 		Brightness: map[int]string{
 			0: "RGB Profile",
@@ -206,17 +175,18 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
-	d.getManufacturer()    // Manufacturer
-	d.getProduct()         // Product
-	d.getSerial()          // Serial
-	d.loadRgb()            // Load RGB
-	d.loadDeviceProfiles() // Load all device profiles
-	d.getDeviceFirmware()  // Firmware
-	d.getDevices()         // Get devices connected to a hub
-	d.setAutoRefresh()     // Set auto device refresh
-	d.saveDeviceProfile()  // Create device profile
-	d.setColorEndpoint()   // Setup lightning
-	d.setDeviceColor(true) // Device color
+	d.getManufacturer()     // Manufacturer
+	d.getProduct()          // Product
+	d.getSerial()           // Serial
+	d.loadExternalDevices() // External metadata
+	d.loadRgb()             // Load RGB
+	d.loadDeviceProfiles()  // Load all device profiles
+	d.getDeviceFirmware()   // Firmware
+	d.getDevices()          // Get devices connected to a hub
+	d.setAutoRefresh()      // Set auto device refresh
+	d.saveDeviceProfile()   // Create device profile
+	d.setColorEndpoint()    // Setup lightning
+	d.setDeviceColor(true)  // Device color
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -322,6 +292,64 @@ func (d *Device) StopDirty() uint8 {
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+func (d *Device) loadExternalDevices() {
+	externalDevicesFile := pwd + "/database/external/lnpro.json"
+	if common.FileExists(externalDevicesFile) {
+		file, err := os.Open(externalDevicesFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+			return
+		}
+		if err = json.NewDecoder(file).Decode(&d.ExternalLedDevice); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to decode external devices metadata")
+			return
+		}
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": externalDevicesFile, "serial": d.Serial}).Warn("Failed to close external devices metadata")
+		}
+	} else {
+		logger.Log(logger.Fields{"serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+		d.ExternalLedDevice = []ExternalLedDevice{
+			{
+				Index: 1,
+				Name:  "HD RGB Series Fan",
+				Total: 12,
+			},
+			{
+				Index: 2,
+				Name:  "LL RGB Series Fan",
+				Total: 16,
+			},
+			{
+				Index: 3,
+				Name:  "ML PRO RGB Series Fan",
+				Total: 4,
+			},
+			{
+				Index: 4,
+				Name:  "QL RGB Series Fan",
+				Total: 34,
+			},
+			{
+				Index: 5,
+				Name:  "8-LED Series Fan",
+				Total: 8,
+			},
+			{
+				Index: 6,
+				Name:  "SP RGB Series Fan (1 LED)",
+				Total: 1,
+			},
+			{
+				Index: 7,
+				Name:  "LC100 Accent Triangles",
+				Total: 9,
+			},
+		}
+	}
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -674,7 +702,7 @@ func (d *Device) getDevices() int {
 
 // getExternalLedDevice will return ExternalLedDevice based on given device index
 func (d *Device) getExternalLedDevice(index int) *ExternalLedDevice {
-	for _, externalLedDevice := range externalLedDevices {
+	for _, externalLedDevice := range d.ExternalLedDevice {
 		if externalLedDevice.Index == index {
 			return &externalLedDevice
 		}

@@ -1,0 +1,37 @@
+[
+    {
+      "index": 1,
+      "name":  "HD RGB Series Fan",
+      "total": 12
+    },
+    {
+      "index": 2,
+      "name":  "LL RGB Series Fan",
+      "total": 16
+    },
+    {
+      "index": 3,
+      "name":  "ML PRO RGB Series Fan",
+      "total": 4
+    },
+    {
+      "index": 4,
+      "name":  "QL RGB Series Fan",
+      "total": 34
+    },
+    {
+      "index": 5,
+      "name":  "8-LED Series Fan",
+      "total": 8
+    },
+    {
+      "index": 6,
+      "name":  "SP RGB Series Fan (1 LED)",
+      "total": 1
+    },
+    {
+      "index": 7,
+      "name":  "LC100 Accent Triangle",
+      "total": 9
+    }
+]

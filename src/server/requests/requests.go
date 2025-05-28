@@ -1836,7 +1836,7 @@ func ProcessExternalHubDeviceAmount(r *http.Request) *Payload {
 		}
 	}
 
-	if req.DeviceAmount < 0 || req.DeviceAmount > 6 {
+	if req.DeviceAmount < 0 || req.DeviceAmount > 8 {
 		return &Payload{Message: language.GetValue("txtInvalidDeviceAmount"), Code: http.StatusOK, Status: 0}
 	}
 	if req.PortId < 0 || req.PortId > 1 {

@@ -26,10 +26,11 @@ import (
 
 // ExternalLedDevice contains a list of supported external-LED devices connected to a HUB
 type ExternalLedDevice struct {
-	Index   int
-	Name    string
-	Total   int
-	Command byte
+	Index    int
+	Name     string
+	Total    int
+	Command  byte
+	Triangle bool
 }
 
 type ExternalHubData struct {
@@ -67,6 +68,7 @@ type Devices struct {
 	PortId       byte   `json:"-"`
 	CellSize     uint8
 	ContainsPump bool
+	IsTriangle   bool
 }
 
 type Device struct {
@@ -294,6 +296,7 @@ func (d *Device) StopDirty() uint8 {
 	return 1
 }
 
+// loadExternalDevices will load external device definitions
 func (d *Device) loadExternalDevices() {
 	externalDevicesFile := pwd + "/database/external/lnpro.json"
 	if common.FileExists(externalDevicesFile) {
@@ -688,6 +691,7 @@ func (d *Device) getDevices() int {
 						CellSize:    2,
 						PortId:      externalHub.PortId,
 						Label:       label,
+						IsTriangle:  externalDeviceType.Triangle,
 					}
 					devices[m] = device
 					m++

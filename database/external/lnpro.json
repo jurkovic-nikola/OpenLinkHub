@@ -32,6 +32,7 @@
     {
       "index": 7,
       "name":  "LC100 Accent Triangle",
-      "total": 9
+      "total": 9,
+      "triangle": true
     }
 ]

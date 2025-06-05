@@ -53,6 +53,8 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 			buf[j] = []byte{0, 0, 0}
 		}
 	}
+	// Raw colors
+	r.Raw = buf
 
 	if r.Inverted {
 		r.Output = SetColorInverted(buf)
@@ -109,6 +111,8 @@ func (r *ActiveRGB) CircleShift(startTime *time.Time) {
 			buf[j] = []byte{0, 0, 0}
 		}
 	}
+	// Raw colors
+	r.Raw = buf
 
 	if r.Inverted {
 		r.Output = SetColorInverted(buf)

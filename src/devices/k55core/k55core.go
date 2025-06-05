@@ -141,19 +141,19 @@ func Init(vendorId, productId uint16, key string) *Device {
 		},
 	}
 
-	d.getDebugMode()          // Debug mode
-	d.getManufacturer()       // Manufacturer
-	d.getSerial()             // Serial
-	d.loadRgb()               // Load RGB
-	d.setSoftwareMode()       // Activate software mode
-	d.initLeds()              // Init LED ports
-	d.getDeviceFirmware()     // Firmware
-	d.loadDeviceProfiles()    // Load all device profiles
-	d.saveDeviceProfile()     // Save profile
-	d.setAutoRefresh()        // Set auto device refresh
-	d.setKeepAlive()          // Keepalive
-	d.setDeviceColor()        // Device color
-	d.controlButtonListener() // Control buttons
+	d.getDebugMode()       // Debug mode
+	d.getManufacturer()    // Manufacturer
+	d.getSerial()          // Serial
+	d.loadRgb()            // Load RGB
+	d.setSoftwareMode()    // Activate software mode
+	d.initLeds()           // Init LED ports
+	d.getDeviceFirmware()  // Firmware
+	d.loadDeviceProfiles() // Load all device profiles
+	d.saveDeviceProfile()  // Save profile
+	d.setAutoRefresh()     // Set auto device refresh
+	d.setKeepAlive()       // Keepalive
+	d.setDeviceColor()     // Device color
+	d.backendListener()    // Control buttons
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -1251,7 +1251,7 @@ func (d *Device) getListenerData() []byte {
 }
 
 // controlButtonListener will listen for events from the control buttons
-func (d *Device) controlButtonListener() {
+func (d *Device) backendListener() {
 	var brightness uint8 = 0
 	brightness = *d.DeviceProfile.BrightnessSlider
 

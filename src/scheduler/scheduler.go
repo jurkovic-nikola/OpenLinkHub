@@ -53,7 +53,9 @@ func Init() {
 	}
 
 	if scheduler.RGBControl {
-		startTasks()
+		go func() {
+			startTasks()
+		}()
 	}
 }
 
@@ -120,6 +122,33 @@ func GetScheduler() *Scheduler {
 func startTasks() {
 	scheduledTimeOff, _ := time.Parse("15:04", scheduler.RGBOff)
 	scheduledTimeOn, _ := time.Parse("15:04", scheduler.RGBOn)
+
+	isInOffRange := func(now, off, on time.Time) bool {
+		offToday := time.Date(now.Year(), now.Month(), now.Day(), off.Hour(), off.Minute(), 0, 0, now.Location())
+		onToday := time.Date(now.Year(), now.Month(), now.Day(), on.Hour(), on.Minute(), 0, 0, now.Location())
+
+		if onToday.Before(offToday) {
+			return now.After(offToday) || now.Before(onToday)
+		}
+		return now.After(offToday) && now.Before(onToday)
+	}
+
+	// Check if program started after Off or On time and apply values
+	timeNow := time.Now()
+	time.Sleep(time.Duration(refreshTime) * time.Millisecond) // Wait for 5 seconds
+	if isInOffRange(timeNow, scheduledTimeOff, scheduledTimeOn) {
+		if !scheduler.LightsOut {
+			scheduler.LightsOut = true
+			devices.ScheduleDeviceBrightness(0)
+			SaveSchedulerSettings(scheduler)
+		}
+	} else {
+		if scheduler.LightsOut {
+			scheduler.LightsOut = false
+			devices.ScheduleDeviceBrightness(1)
+			SaveSchedulerSettings(scheduler)
+		}
+	}
 
 	// Define the times you want the task to run
 	schedules := []Schedule{

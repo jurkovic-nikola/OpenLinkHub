@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
@@ -92,6 +93,11 @@ type Payload struct {
 	LedProfile          led.Device           `json:"ledProfile"`
 	Points              []temperatures.Point `json:"points"`
 	UpdateType          uint8                `json:"updateType"`
+	Data                interface{}          `json:"data"`
+	PerfWinKey          bool                 `json:"perf_winKey"`
+	PerfShiftTab        bool                 `json:"perf_shiftTab"`
+	PerfAltTab          bool                 `json:"perf_altTab"`
+	PerfAltF4           bool                 `json:"perf_altF4"`
 	Status              int
 	Code                int
 	Message             string
@@ -2283,4 +2289,85 @@ func ProcessLedChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtLedDataChanged"), Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLedData"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessGetKeyboardKey will process getting keyboard key data
+func ProcessGetKeyboardKey(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	data := devices.ProcessGetKeyboardKey(req.DeviceId, req.KeyId)
+	if data != nil {
+		return &Payload{
+			Data:   data,
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNoKeyboardKeyData"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
+// ProcessSetKeyboardPerformance will process setting keyboard performance
+func ProcessSetKeyboardPerformance(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	performance := common.KeyboardPerformanceData{
+		WinKey:   req.PerfWinKey,
+		ShiftTab: req.PerfShiftTab,
+		AltTab:   req.PerfAltTab,
+		AltF4:    req.PerfAltF4,
+	}
+
+	status := devices.ProcessSetKeyboardPerformance(req.DeviceId, performance)
+	switch status {
+	case 1:
+		return &Payload{Message: language.GetValue("txtKeyboardPerformanceUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToSetKeyboardPerformance"), Code: http.StatusOK, Status: 0}
 }

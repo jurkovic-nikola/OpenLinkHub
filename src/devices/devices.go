@@ -41,6 +41,7 @@ import (
 	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/k70protkl"
 	"OpenLinkHub/src/devices/k70rgbtklcs"
+	"OpenLinkHub/src/devices/k95platinum"
 	"OpenLinkHub/src/devices/katarpro"
 	"OpenLinkHub/src/devices/katarproW"
 	"OpenLinkHub/src/devices/katarproxt"
@@ -122,6 +123,7 @@ const (
 	productTypeK55Pro               = 116
 	productTypeK55ProXT             = 117
 	productTypeK55                  = 118
+	productTypeK95Platinum          = 119
 	productTypeKatarPro             = 201
 	productTypeIronClawRgb          = 202
 	productTypeIronClawRgbW         = 203
@@ -189,7 +191,7 @@ var (
 	interfaceId                = 0
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973}
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957}
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7163}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667}
@@ -1288,6 +1290,87 @@ func UpdateDeviceLedData(deviceId string, ledProfile led.Device) uint8 {
 	return 0
 }
 
+// ProcessGetKeyboardKey will get keyboard key data
+func ProcessGetKeyboardKey(deviceId string, keyId int) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessGetKeyboardKey"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(keyId))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessGetKeyAssignmentTypes will get keyboard key assignment types
+func ProcessGetKeyAssignmentTypes(deviceId string) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessGetKeyAssignmentTypes"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessGetKeyboardPerformance will get keyboard performance
+func ProcessGetKeyboardPerformance(deviceId string) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessGetKeyboardPerformance"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessSetKeyboardPerformance will set keyboard performance
+func ProcessSetKeyboardPerformance(deviceId string, performance common.KeyboardPerformanceData) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessSetKeyboardPerformance"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(performance))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // GetDevices will return all available devices
 func GetDevices() map[string]*common.Device {
 	return devices
@@ -1837,6 +1920,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				devices[dev.Serial] = &common.Device{
 					ProductType: productTypeK55,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 6957: // K95 PLATINUM
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := k95platinum.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeK95Platinum,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,

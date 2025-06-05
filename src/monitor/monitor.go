@@ -159,7 +159,7 @@ func Init() {
 							Serial:    serial,
 						}
 
-						time.Sleep(5000 * time.Millisecond) // Wait for 8 seconds
+						time.Sleep(5000 * time.Millisecond)
 						logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
 						devices.InitManual(pid)
 					}

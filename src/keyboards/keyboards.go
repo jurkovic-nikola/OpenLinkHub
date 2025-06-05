@@ -34,21 +34,35 @@ type Zones struct {
 }
 
 type Row struct {
+	Top  int         `json:"top"`
+	Css  string      `json:"css"`
 	Keys map[int]Key `json:"keys"`
 }
 
 type Key struct {
-	KeyName     string    `json:"keyName"`
-	Width       int       `json:"width"`
-	Height      int       `json:"height"`
-	Left        int       `json:"left"`
-	Top         int       `json:"top"`
-	PacketIndex []int     `json:"packetIndex"`
-	Color       rgb.Color `json:"color"`
-	Zone        int       `json:"zone"`
-	Svg         bool      `json:"svg"`
-	Spacing     []int     `json:"spacing"`
-	Css         string    `json:"css"`
+	KeyName       string    `json:"keyName"`
+	Width         int       `json:"width"`
+	Height        int       `json:"height"`
+	Left          int       `json:"left"`
+	Top           int       `json:"top"`
+	PacketIndex   []int     `json:"packetIndex"`
+	Color         rgb.Color `json:"color"`
+	Zone          int       `json:"zone"`
+	Svg           bool      `json:"svg"`
+	Spacing       []int     `json:"spacing"`
+	Css           string    `json:"css"`
+	KeyEmpty      []string  `json:"keyEmpty"`
+	KeySpace      string    `json:"keySpace"`
+	KeyData       []uint16  `json:"keyData"`
+	CustomKeyData byte      `json:"customKeyData"`
+	Default       bool      `json:"default"`
+	NoColor       bool      `json:"noColor"`
+	KeyHash       []string  `json:"keyHash"`
+	ActionType    uint8     `json:"actionType"`
+	ActionCommand uint16    `json:"actionCommand"`
+	ActionHold    bool      `json:"actionHold"`
+	OnlyColor     bool      `json:"onlyColor"`
+	IsLock        bool      `json:"isLock"`
 }
 
 // Init will load and initialize keyboard data
@@ -84,7 +98,7 @@ func Init() {
 		var keyboard Keyboard
 
 		reader := json.NewDecoder(file)
-		if err = reader.Decode(&keyboard); fe != nil {
+		if err = reader.Decode(&keyboard); err != nil {
 			logger.Log(logger.Fields{"error": fe, "location": pullPath}).Error("Unable to decode keyboard file")
 			continue
 		}

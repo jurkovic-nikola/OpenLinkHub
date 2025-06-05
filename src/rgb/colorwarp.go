@@ -39,6 +39,9 @@ func (r *ActiveRGB) Colorwarp(startTime *time.Time, activeRgb *ActiveRGB) {
 			}
 		}
 	}
+	// Raw colors
+	r.Raw = buf
+	
 	if r.Inverted {
 		r.Output = SetColorInverted(buf)
 	} else {

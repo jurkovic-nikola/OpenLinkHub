@@ -76,9 +76,10 @@ func Init() {
 		templateList = append(templateList, templateFile)
 	}
 
-	tpl, err := template.ParseFiles(templateList...)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Failed to load templates")
+	tpl, e := template.ParseFiles(templateList...)
+	if e != nil {
+		fmt.Println(e)
+		logger.Log(logger.Fields{"error": e}).Fatal("Failed to load templates")
 	}
 
 	templates = tpl

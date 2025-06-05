@@ -33,6 +33,9 @@ func (r *ActiveRGB) Wave(startTime *time.Time) {
 			}
 		}
 	}
+	// Raw colors
+	r.Raw = buf
+
 	if r.Inverted {
 		r.Output = SetColorInverted(buf)
 	} else {

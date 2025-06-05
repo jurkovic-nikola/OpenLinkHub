@@ -837,3 +837,12 @@ canvas {
     width: auto;
     height: 500px;
 }
+
+.keySelector.active {
+    border: 1px solid;
+}
+
+.modal-dialog-800 {
+    max-width: 800px;
+    margin: 1rem auto;
+}

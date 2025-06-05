@@ -127,20 +127,19 @@
                                     {{ range $index, $keyEmpty := $keys.KeyEmpty }}
                                     <div class="{{ $keyEmpty }}"></div>
                                     {{ end }}
-                                    {{ $color := index $keyboard.Zones $keys.Zone }}
 
                                     {{ if gt (len $keys.KeySpace) 0 }}
-                                    <div class="{{ $keys.KeySpace }} keyboardColor keySelector" data-info="{{ $index }};{{ $color.Color.Red }};{{ $color.Color.Green }};{{ $color.Color.Blue }}">
+                                    <div class="{{ $keys.KeySpace }} keyboardColor keySelector" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                     {{ else }}
-                                    <div class="keyboard-key keyboardColor keySelector" data-info="{{ $index }};{{ $color.Color.Red }};{{ $color.Color.Green }};{{ $color.Color.Blue }}">
+                                    <div class="keyboard-key keyboardColor keySelector" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                     {{ end }}
                                         {{ if $keys.NoColor }}
                                         <span class="key-uppercase" style="color: rgba(255,255,255,1);text-align: center;align-items: center;justify-content: center;display: flex;">
-                                           {{ $keys.KeyName }}<br /><span style="width: 100%;text-align: center;font-size: 12px;"></span>
+                                           {{ $keys.KeyName }}
                                         </span>
                                         {{ else }}
-                                        <span class="key-uppercase"  style="color: rgba({{ $color.Color.Red }}, {{ $color.Color.Green }}, {{ $color.Color.Blue }}, 1);width: 100%;text-align: center;">
-                                           {{ $keys.KeyName }}<br /><span style="width: 100%;text-align: center;font-size: 12px;">Zone {{ $keys.Zone }}</span>
+                                        <span class="key-uppercase" style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);width: 100%;text-align: center;">
+                                           {{ $keys.KeyName }}
                                         </span>
                                         {{ end }}
                                     </div>
@@ -151,8 +150,9 @@
                                     <div style="float: left;width: 400px;">
                                         <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
                                         <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
-                                            <option value="0">{{ .Lang "txtCurrentZone" }}</option>
-                                            <option value="2">{{ .Lang "txtAllZones" }}</option>
+                                            <option value="0">Current Key</option>
+                                            <option value="1">Current Row</option>
+                                            <option value="2">All Keys</option>
                                         </select>
                                         <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
                                             <span>Apply</span>

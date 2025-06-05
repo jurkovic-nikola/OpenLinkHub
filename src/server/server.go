@@ -368,6 +368,66 @@ func getMouseButtons(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getKeyAssignmentTypes returns list of key assignment types for keyboard
+func getKeyAssignmentTypes(w http.ResponseWriter, r *http.Request) {
+	deviceId, valid := getVar("/api/keyboard/assignmentsTypes/", r)
+	if !valid {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: language.GetValue("txtInvalidDeviceId"),
+		}
+		resp.Send(w)
+	} else {
+		val := devices.ProcessGetKeyAssignmentTypes(deviceId)
+		if val == nil {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetAssignmentsTypes"),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   val,
+			}
+			resp.Send(w)
+		}
+	}
+}
+
+// getKeyboardPerformance returns keyboard performance data
+func getKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
+	deviceId, valid := getVar("/api/keyboard/getPerformance/", r)
+	if !valid {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: language.GetValue("txtInvalidDeviceId"),
+		}
+		resp.Send(w)
+	} else {
+		val := devices.ProcessGetKeyboardPerformance(deviceId)
+		if val == nil {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetKeyboardPerformance"),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   val,
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // updateRgbProfile handles device rgb profile update
 func updateRgbProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateRgbProfile(r)
@@ -917,6 +977,28 @@ func newMacroProfileValue(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getKeyboardKey handles information about keyboard get
+func getGetKeyboardKey(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetKeyboardKey(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// setKeyboardPerformance handles setting keyboard performance
+func setKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetKeyboardPerformance(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -1272,6 +1354,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/", http.MethodGet, getMacro)
 	handleFunc(r, "/api/macro/keyInfo/", http.MethodGet, getKeyName)
 	handleFunc(r, "/api/dashboard", http.MethodGet, getDashboardSettings)
+	handleFunc(r, "/api/keyboard/assignmentsTypes/", http.MethodGet, getKeyAssignmentTypes)
+	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -1317,6 +1401,9 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/headset/muteIndicator", http.MethodPost, changeMuteIndicator)
 	handleFunc(r, "/api/led/update", http.MethodPost, updateDeviceLed)
 	handleFunc(r, "/api/macro/newValue", http.MethodPost, newMacroProfileValue)
+	handleFunc(r, "/api/keyboard/getKey/", http.MethodPost, getGetKeyboardKey)
+	handleFunc(r, "/api/keyboard/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
+	handleFunc(r, "/api/keyboard/setPerformance", http.MethodPost, setKeyboardPerformance)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

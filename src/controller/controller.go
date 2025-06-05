@@ -27,7 +27,6 @@ func Start() {
 	config.Init()       // Configuration
 	logger.Init()       // Logger
 	dashboard.Init()    // Dashboard
-	scheduler.Init()    // Scheduler
 	systeminfo.Init()   // Build system info
 	metrics.Init()      // Metrics
 	rgb.Init()          // RGB
@@ -40,6 +39,7 @@ func Start() {
 	devices.Init()      // Devices
 	monitor.Init()      // Monitor
 	language.Init()     // Language
+	scheduler.Init()    // Scheduler
 	server.Init()       // REST & WebUI
 }
 

@@ -449,7 +449,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             break;
 
-            case 9: { // Keyboard
+            case 9: { // Mouse
                 $.ajax({
                     url:'/api/input/mouse',
                     type:'get',

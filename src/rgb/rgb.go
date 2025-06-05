@@ -50,6 +50,7 @@ type ActiveRGB struct {
 	lightChannelsPerDevice map[int][]int
 	Exit                   chan bool
 	Output                 []byte
+	Raw                    map[int][]byte
 	Tracking               []int
 	Phase                  int
 	TempColor              *Color

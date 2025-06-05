@@ -28,6 +28,20 @@ type Device struct {
 	Hidden      bool
 }
 
+type KeyboardPerformance struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Value    bool   `json:"value"`
+	Internal string `json:"internal"`
+}
+
+type KeyboardPerformanceData struct {
+	WinKey   bool
+	ShiftTab bool
+	AltTab   bool
+	AltF4    bool
+}
+
 type LogLevel int
 
 const (

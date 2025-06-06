@@ -31,6 +31,7 @@ type Configuration struct {
 	CheckDevicePermission bool     `json:"checkDevicePermission"`
 	GraphProfiles         bool     `json:"graphProfiles"`
 	CpuTempFile           string   `json:"cpuTempFile"`
+	RamTempViaHwmon       bool     `json:"ramTempViaHwmon"`
 }
 
 var (
@@ -49,6 +50,7 @@ var (
 		"checkDevicePermission": true,
 		"cpuTempFile":           "",
 		"graphProfiles":         false,
+		"ramTempViaHwmon":       false,
 	}
 )
 
@@ -106,6 +108,7 @@ func upgradeFile(cfg string) {
 			CheckDevicePermission: true,
 			CpuTempFile:           "",
 			GraphProfiles:         false,
+			RamTempViaHwmon:       false,
 		}
 		saveConfigSettings(value)
 	} else {

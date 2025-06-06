@@ -52,6 +52,7 @@ type Devices struct {
 	TemperatureString  string  `json:"temperatureString"`
 	Label              string  `json:"label"`
 	RGB                string  `json:"rgb"`
+	HwmonPath          string  `json:"hwmonPath"`
 	HasTemps           bool    `json:"-"`
 	HasSpeed           bool
 	ContainsPump       bool
@@ -132,6 +133,7 @@ var (
 	temperatureAddresses  = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR4
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
 	temperatureRegister   = byte(0x05)
+	basePath              = "/sys/bus/i2c/drivers/spd5118/"
 )
 
 func Init(device, product string) *Device {
@@ -139,6 +141,10 @@ func Init(device, product string) *Device {
 		temperatureAddresses = dimmInfoAddresses                                // DDR5
 		colorAddresses = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR5
 		temperatureRegister = byte(0x31)                                        // DDR5 temperature register
+	}
+
+	if config.GetConfig().RamTempViaHwmon {
+		dimmInfoAddresses = colorAddresses
 	}
 
 	// Set global working directory
@@ -235,6 +241,46 @@ func (d *Device) Stop() {
 	}
 
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+}
+
+// getHwMonTemperatureFile will get hwmon
+func (d *Device) getHwMonTemperatureFile(baseId int) string {
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "path": basePath}).Warn("Failed to read directory")
+		return ""
+	}
+
+	for _, entry := range entries {
+		i2cPath := filepath.Join(basePath, entry.Name())
+		i2cDevice := filepath.Join(i2cPath, "name")
+		deviceName, err := os.ReadFile(i2cDevice)
+		if err != nil {
+			continue
+		}
+		name := strings.TrimSpace(string(deviceName))
+		if name != "spd5118" {
+			continue
+		}
+		if strings.Contains(entry.Name(), strconv.Itoa(baseId)) {
+			hwmonRoot := filepath.Join(i2cPath, "hwmon")
+			hwmonFolders, err := filepath.Glob(filepath.Join(hwmonRoot, "hwmon*"))
+			if err != nil {
+				continue
+			}
+
+			for _, hwmonFolder := range hwmonFolders {
+				files, err := filepath.Glob(filepath.Join(hwmonFolder, "temp*_input"))
+				if err != nil {
+					continue
+				}
+				if len(files) > 0 {
+					return files[0]
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -335,10 +381,25 @@ func (d *Device) getEnhancementKit(address byte) bool {
 	return false
 }
 
+// getTemperature will read hwmon temperature file
+func (d *Device) getTemperature(filePath string) (float32, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return 0, err
+	}
+	raw := strings.TrimSpace(string(data))
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, err
+	}
+	return float32(value) / 1000.0, nil
+}
+
 // getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices)
 	activated := 0
+	baseDevice := 51
 
 	// DDR4
 	skuRangeLow := byte(0x49)
@@ -650,11 +711,25 @@ func (d *Device) getDevices() int {
 						device.HasTemps = false
 					}
 
+					if config.GetConfig().RamTempViaHwmon {
+						hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice)
+						if len(hwmonTemperatureFile) > 0 {
+							device.HwmonPath = hwmonTemperatureFile
+							hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
+							if err == nil {
+								device.Temperature = hwmonTemp
+								device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
+								device.HasTemps = true
+							}
+						}
+					}
+
 					if d.Debug {
 						logger.Log(logger.Fields{"memoryDevice": device}).Info("Memory DIMM Info - Device")
 					}
 					devices[i] = device
 					d.LEDChannels += ledChannels
+					baseDevice += i + 1
 				}
 			}
 		}
@@ -1361,23 +1436,31 @@ func (d *Device) setTemperatures() {
 			if d.Exit {
 				return
 			}
-			// Temperature
-			temp := d.transfer(
-				nil,
-				temperatureAddresses[device.ChannelId],
-				0,
-				0, transferTypeTemperature,
-			)
-			if temp < 1 {
-				// No sensor
+			if config.GetConfig().RamTempViaHwmon {
+				hwmonTemp, err := d.getTemperature(device.HwmonPath)
+				if err == nil {
+					device.Temperature = hwmonTemp
+					device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
+				}
 			} else {
-				temperature := d.calculateTemperature(temp)
-				temperatureString := dashboard.GetDashboard().TemperatureToString(float32(temperature))
-				d.Devices[device.ChannelId].Temperature = float32(temperature)
-				d.Devices[device.ChannelId].TemperatureString = temperatureString
+				// Temperature
+				temp := d.transfer(
+					nil,
+					temperatureAddresses[device.ChannelId],
+					0,
+					0, transferTypeTemperature,
+				)
+				if temp < 1 {
+					// No sensor
+				} else {
+					temperature := d.calculateTemperature(temp)
+					temperatureString := dashboard.GetDashboard().TemperatureToString(float32(temperature))
+					d.Devices[device.ChannelId].Temperature = float32(temperature)
+					d.Devices[device.ChannelId].TemperatureString = temperatureString
 
-				// Update temperature data
-				temperatures.SetMemoryTemperature(device.ChannelId, float32(temperature))
+					// Update temperature data
+					temperatures.SetMemoryTemperature(device.ChannelId, float32(temperature))
+				}
 			}
 		}
 	}

@@ -710,6 +710,35 @@ footer {
     color: #bf8d19;
 }
 
+.keyboard-key-half-container {
+    display: flex;
+    flex-direction: column;
+    height: 60px;
+}
+
+/* Special item with two parts stacked vertically */
+.keyboard-key-half {
+    width: 60px;
+    height: 25px;
+    background-color: #1e1e1e;
+    border: 1px solid #474747;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: #bf8d19;
+    flex: 1;
+}
+
+.keyboard-key-half:active {
+    background-color: #272727;
+}
+
 .keyboard-key-125 {
     width: 60px;
     height: 125px;

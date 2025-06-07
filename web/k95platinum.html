@@ -150,12 +150,12 @@
                                     <div style="float: left;width: 400px;" class="keyColorArea">
                                         <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
                                         <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
-                                            <option value="0">Current Key</option>
-                                            <option value="1">Current Row</option>
-                                            <option value="2">All Keys</option>
+                                            <option value="0">{{ .Lang "txtCurrentKey" }}</option>
+                                            <option value="1">{{ .Lang "txtCurrentRow" }}</option>
+                                            <option value="2">{{ .Lang "txtAllKeys" }}</option>
                                         </select>
                                         <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Apply</span>
+                                            <span>{{ .Lang "txtApply" }}</span>
                                         </button>
                                     </div>
                                     <div style="float: right;width: auto;">
@@ -180,7 +180,7 @@
                                     </div>
                                     <div style="float: right;width: auto;">
                                         <button class="btn btn-secondary openKeyAssignments" style="margin-top: 10px;margin-left: 10px;float: right;">
-                                            <span>Key Assignments</span>
+                                            <span>{{ .Lang "txtKeyAssignments" }}</span>
                                         </button>
                                     </div>
                                 </div>

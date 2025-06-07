@@ -1447,15 +1447,6 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
-func isAllZero(data []byte) bool {
-	for _, b := range data {
-		if b != 0 {
-			return false
-		}
-	}
-	return true
-}
-
 // controlButtonListener will listen for events from the control buttons
 func (d *Device) backendListener() {
 	go func() {

@@ -51,6 +51,7 @@ type Key struct {
 	Svg           bool      `json:"svg"`
 	Spacing       []int     `json:"spacing"`
 	Css           string    `json:"css"`
+	ExtraCss      string    `json:"extraCss"`
 	KeyEmpty      []string  `json:"keyEmpty"`
 	KeySpace      string    `json:"keySpace"`
 	KeyData       []uint16  `json:"keyData"`
@@ -63,6 +64,9 @@ type Key struct {
 	ActionHold    bool      `json:"actionHold"`
 	OnlyColor     bool      `json:"onlyColor"`
 	IsLock        bool      `json:"isLock"`
+	HalfKey       bool      `json:"halfKey"`
+	HalfKeyStart  bool      `json:"halfKeyStart"`
+	HalfKeyEnd    bool      `json:"halfKeyEnd"`
 }
 
 // Init will load and initialize keyboard data

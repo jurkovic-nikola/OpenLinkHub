@@ -134,6 +134,7 @@
                                     {{ else }}
                                     <div class="keyboard-key keyboardColor keySelector" data-info="{{ $index }};{{ $color.Color.Red }};{{ $color.Color.Green }};{{ $color.Color.Blue }}">
                                     {{ end }}
+
                                         {{ if $keys.NoColor }}
                                         <span class="key-uppercase" style="color: rgba(255,255,255,1);text-align: center;align-items: center;justify-content: center;display: flex;">
                                            {{ $keys.KeyName }}<br /><span style="width: 100%;text-align: center;font-size: 12px;"></span>
@@ -155,7 +156,7 @@
                                             <option value="2">{{ .Lang "txtAllZones" }}</option>
                                         </select>
                                         <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Apply</span>
+                                            <span>{{ .Lang "txtApply" }}</span>
                                         </button>
                                     </div>
                                     <div style="float: right;width: auto;">
@@ -180,7 +181,7 @@
                                     </div>
                                     <div style="float: right;width: auto;">
                                         <button class="btn btn-secondary openKeyAssignments" style="margin-top: 10px;margin-left: 10px;float: right;">
-                                            <span>Key Assignments</span>
+                                            <span>{{ .Lang "txtKeyAssignments" }}</span>
                                         </button>
                                     </div>
                                 </div>

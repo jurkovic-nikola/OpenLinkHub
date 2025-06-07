@@ -5,7 +5,9 @@
     "txtSave": "Save",
     "txtApply": "Apply",
     "txtCurrentArea": "Current Area",
+    "txtCurrentKey": "Current Key",
     "txtCurrentRow": "Current Row",
+    "txtAllKeys": "All Keys",
     "txtAllRows": "All Rows",
     "txtRgbProfile": "RGB Profile",
     "txtSaveUserProfile": "Save user profile",
@@ -191,6 +193,7 @@
     "txtAssignmentType": "Assignment Type",
     "txtPressAndHold": "Press and Hold",
     "txtKeyAssignment": "Key Assignment",
+    "txtKeyAssignments": "Key Assignments",
     "txtAddRemoveDevice": "Add / Remove Device",
     "txtCustomRgbDevice": "Custom ARGB Device",
     "txtSaveAs": "Save As",
@@ -276,5 +279,6 @@
     "txtUnableToGetAssignmentsTypes": "Unable to get assignments types",
     "txtUnableToGetKeyboardPerformance": "Unable to get keyboard performance",
     "txtKeyboardPerformanceUpdated": "Keyboard performance is successfully updated",
-    "txtUnableToSetKeyboardPerformance": "Unable to set keyboard performance"}
+    "txtUnableToSetKeyboardPerformance": "Unable to set keyboard performance"
+  }
 }

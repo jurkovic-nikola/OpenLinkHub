@@ -224,6 +224,13 @@ func (d *Device) StopDirty() uint8 {
 
 // setupKeyAssignment will setup keyboard keys
 func (d *Device) setupKeyAssignment() {
+	if d.DeviceProfile == nil {
+		return
+	}
+	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; !ok {
+		return
+	}
+
 	buf := make([]byte, 0)
 	keyMap := make(map[uint16]byte)
 	for _, value := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
@@ -361,6 +368,10 @@ func (d *Device) getDebugMode() {
 
 // setupPerformance will set up keyboard performance mode
 func (d *Device) setupPerformance() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
 	base := byte(160)
 	if d.DeviceProfile.Performance {
 		if d.DeviceProfile.DisableWinKey {

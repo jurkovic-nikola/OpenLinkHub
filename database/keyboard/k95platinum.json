@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k95platinum-default",
@@ -1120,10 +1120,7 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          },
-          "actionType": 3,
-          "actionCommand": 10,
-          "actionHold": true
+          }
         },
         "70": {
           "keyName": "Tab",
@@ -1156,10 +1153,7 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          },
-          "actionType": 3,
-          "actionCommand": 10,
-          "actionHold": true
+          }
         },
         "72": {
           "keyName": "W",
@@ -1175,10 +1169,7 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          },
-          "actionType": 3,
-          "actionCommand": 10,
-          "actionHold": true
+          }
         },
         "73": {
           "keyName": "E",
@@ -1194,10 +1185,7 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          },
-          "actionType": 3,
-          "actionCommand": 10,
-          "actionHold": true
+          }
         },
         "74": {
           "keyName": "R",

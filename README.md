@@ -267,10 +267,10 @@ $ docker build . -t openlinkhub
 $ # To build a specific version you can use the GIT_TAG build argument
 $ docker build --build-arg GIT_TAG=0.1.3-beta -t openlinkhub .
 
-$ docker run --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
+$ docker run --privileged openlinkhub
 
 # For WebUI access, networking is required
-$ docker run --network host --privileged -v ./config.json:/opt/OpenLinkHub/config.json openlinkhub
+$ docker run --network host --privileged openlinkhub
 ```
 
 ## LCD

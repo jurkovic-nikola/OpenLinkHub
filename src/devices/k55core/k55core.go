@@ -263,9 +263,6 @@ func (d *Device) setupKeyAssignment() {
 			if key.Default {
 				val = 0x01
 			}
-			if len(key.KeyData) == 0 {
-				continue
-			}
 			buf[key.KeyData[0]] = val
 		}
 	}

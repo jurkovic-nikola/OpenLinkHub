@@ -1109,12 +1109,22 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 
 // UpdateDeviceColor will update device color based on selected input
 func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; !ok {
+		return 0
+	}
+
 	switch keyOption {
 	case 0:
 		{
 			for rowIndex, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 				for keyIndex, key := range row.Keys {
 					if keyIndex == keyId {
+						if key.NoColor {
+							return 0
+						}
 						key.Color = rgb.Color{
 							Red:        color.Red,
 							Green:      color.Green,
@@ -1136,8 +1146,11 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 		{
 			rowId := -1
 			for rowIndex, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
-				for keyIndex := range row.Keys {
+				for keyIndex, key := range row.Keys {
 					if keyIndex == keyId {
+						if key.NoColor {
+							return 0
+						}
 						rowId = rowIndex
 						break
 					}
@@ -1168,6 +1181,10 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 		{
 			for rowIndex, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 				for keyIndex, key := range row.Keys {
+					if key.NoColor {
+						continue
+					}
+
 					key.Color = rgb.Color{
 						Red:        color.Red,
 						Green:      color.Green,

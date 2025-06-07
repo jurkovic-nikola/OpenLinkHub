@@ -182,6 +182,36 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    function noColorChange(deviceId, keyId) {
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyId"] = parseInt(keyId);
+        const json = JSON.stringify(pf, null, 2);
+
+        return new Promise((noChange, allowChange) => {
+            $.ajax({
+                url: '/api/keyboard/getKey/',
+                type: 'POST',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1 && response.data.noColor === true) {
+                            noChange(true);
+                        } else {
+                            noChange(false);
+                        }
+                    } catch (err) {
+                        noChange(false);
+                    }
+                },
+                error: function() {
+                    noChange(false);
+                }
+            });
+        });
+    }
+
     $('.openKeyAssignments').on('click', function () {
         if (globalKeyId === 0) {
             toast.warning('Select a valid key');
@@ -1446,6 +1476,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const deviceId = $("#deviceId").val();
         const keyInfo = $(this).attr("data-info").split(";");
         const keyId = parseInt(keyInfo[0]);
+        noColorChange(deviceId, keyId).then(result => {
+            if (result) {
+                $(".keyColorArea").hide();
+            } else {
+                $(".keyColorArea").show();
+            }
+        });
         const colorR = parseInt(keyInfo[1]);
         const colorG = parseInt(keyInfo[2]);
         const colorB = parseInt(keyInfo[3]);

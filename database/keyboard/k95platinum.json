@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k95platinum-default",
@@ -687,7 +687,6 @@
           "keyData": [182,98],
           "default": true,
           "keyEmpty": ["keyboard-key-empty"],
-          "noColor": true,
           "keyHash": ["316912650057057350374175801344"],
           "color": {
             "red": 0,
@@ -704,7 +703,6 @@
           "packetIndex": [45],
           "keyData": [184,99],
           "default": true,
-          "noColor": true,
           "keyHash": ["633825300114114700748351602688"],
           "color": {
             "red": 0,
@@ -721,7 +719,6 @@
           "packetIndex": [57],
           "keyData": [186,100],
           "default": true,
-          "noColor": true,
           "keyHash": ["1267650600228229401496703205376"],
           "color": {
             "red": 0,
@@ -738,7 +735,6 @@
           "packetIndex": [69],
           "keyData": [188,101],
           "default": true,
-          "noColor": true,
           "keyHash": ["2535301200456458802993406410752"],
           "color": {
             "red": 0,

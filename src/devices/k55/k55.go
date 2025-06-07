@@ -1096,6 +1096,12 @@ func (d *Device) ProcessSetKeyboardPerformance(performance common.KeyboardPerfor
 
 // UpdateDeviceKeyAssignment will update device key assignments
 func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmanager.KeyAssignment) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; !ok {
+		return 0
+	}
 	for rowId, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 		for keyId, key := range row.Keys {
 			if keyIndex == keyId {
@@ -1118,6 +1124,13 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 
 // UpdateDeviceColor will update device color based on selected input
 func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; !ok {
+		return 0
+	}
+
 	zoneId := -1
 	switch keyOption {
 	case 0:
@@ -1125,12 +1138,14 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 			for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 				for keyIndex, key := range row.Keys {
 					if keyIndex == keyId {
+						if key.NoColor {
+							return 0
+						}
 						zoneId = key.Zone
 						break
 					}
 				}
 			}
-
 			cl := rgb.Color{
 				Red:        color.Red,
 				Green:      color.Green,

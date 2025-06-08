@@ -21,6 +21,7 @@ type Keyboard struct {
 	Key            string        `json:"key"`
 	Device         string        `json:"device"`
 	Layout         string        `json:"layout"`
+	BufferSize     int           `json:"bufferSize"`
 	Rows           int           `json:"rows"`
 	Row            map[int]Row   `json:"row"`
 	Zones          map[int]Zones `json:"zones"`

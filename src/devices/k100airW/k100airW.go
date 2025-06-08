@@ -1087,8 +1087,8 @@ func (d *Device) setDeviceColor() {
 	switch d.DeviceProfile.RGBProfile {
 	case "off":
 		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 129)
+			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+				var buf = make([]byte, keyboard.BufferSize)
 				buf[3] = 0x01
 				buf[4] = 0xff
 				buf[5] = 0
@@ -1096,7 +1096,7 @@ func (d *Device) setDeviceColor() {
 				buf[7] = 0
 				buf[8] = byte(d.KeyAmount)
 				start := 9
-				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for _, row := range keyboard.Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
 							value := key.PacketIndex[packet] / 3
@@ -1114,7 +1114,7 @@ func (d *Device) setDeviceColor() {
 		{
 			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var colorIndex = make([]byte, 0)
-				var buf = make([]byte, 129)
+				var buf = make([]byte, keyboard.BufferSize)
 				buf[3] = 0x01
 				buf[4] = 0xff
 				buf[5] = byte(keyboard.Color.Blue)

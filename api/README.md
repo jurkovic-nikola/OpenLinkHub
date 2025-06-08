@@ -95,21 +95,6 @@ $ curl -X GET http://127.0.0.1:27003/api/batteryStats --silent | jq
   }
 }
 ```
-### Get battery status
-```bash
-$ curl -X GET http://127.0.0.1:27003/api/batteryStats --silent | jq
-{
-  "code": 200,
-  "status": 1,
-  "data": {
-    "A9SVC43300IDO4W": {
-      "Device": "VIRTUOSO MAX WIRELESS",
-      "Level": 62,
-      "DeviceType": 2
-    }
-  }
-}
-```
 ### Get all devices
 ```bash
 $ curl -X GET http://127.0.0.1:27003/api/devices/ --silent | jq
@@ -662,63 +647,63 @@ $ curl -X POST http://127.0.0.1:27003/api/color -d '{"deviceId":"40027074EFEBF25
 ```
 ### Set LED Strip type (Link System Hub)
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/hub/strip -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 3, "stripId": 1}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/hub/strip -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 3, "stripId": 1}' --silent | jq
 ```
 ### Set external LED device type (CC XT, Commander Pro, Lightning Node Pro)
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/hub/type -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "portId": 1, "deviceType": 2}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/hub/type -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "portId": 1, "deviceType": 2}' --silent | jq
 ```
 ### Set external LED device amount (CC XT, Commander Pro, Lightning Node Pro)
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/hub/amount -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "portId": 1, "deviceAmount": 2}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/hub/amount -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "portId": 1, "deviceAmount": 2}' --silent | jq
 ```
 ### Set device label
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/label -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "deviceType": 0, "label": "Top Fan"}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/label -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "deviceType": 0, "label": "Top Fan"}' --silent | jq
 ```
 ### Setup multiple LCD devices (Link System Hub)
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/device -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "deviceType": 0, "lcdSerial": "1234567890"}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/device -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "deviceType": 0, "lcdSerial": "1234567890"}' --silent | jq
 ```
 ### Change LCD animation image
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/image -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "image": "mySuperGif"}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/image -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "image": "mySuperGif"}' --silent | jq
 ```
 ### Change LCD rotation - default
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 0}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 0}' --silent | jq
 ```
 ### Change LCD rotation - 90 degrees
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 1}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 1}' --silent | jq
 ```
 ### Change LCD rotation - 180 degrees
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 2}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 2}' --silent | jq
 ```
 ### Change LCD rotation - 270 degrees
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 3}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "channelId": 1, "rotation": 3}' --silent | jq
 ```
 ### Change LCD profile
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/lcd/profile -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "profile": "100"}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/lcd/profile -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "profile": "100"}' --silent | jq
 ```
 ### Change brightness - Dropdown
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/brightness -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "brightness": 1}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/brightness -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "brightness": 1}' --silent | jq
 ```
 ### Change brightness - Slider
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/brightness/gradual -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "brightness": 75}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/brightness/gradual -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "brightness": 75}' --silent | jq
 ```
 ### Change device position (Link System Hub) - To Left
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/position -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "position": 3, "deviceIdString": "0100136032035898E900007609", "direction": 0}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/position -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "position": 3, "deviceIdString": "0100136032035898E900007609", "direction": 0}' --silent | jq
 ```
 ### Change device position (Link System Hub) - To Right
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/position -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "position": 3, "deviceIdString": "0100136032035898E900007609", "direction": 1}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/position -d '{"deviceId":"40027074EFEBF2568288ACE590128B30", "position": 3, "deviceIdString": "0100136032035898E900007609", "direction": 1}' --silent | jq
 ```
 ## Set dashboard settings
 ```bash
@@ -730,31 +715,31 @@ $ curl -X POST http://127.0.0.1:27003/api/argb -d '{"deviceId":"5C126A3EB51A3956
 ```
 ### Set keyboard color - Single key
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "keyId": 15, "keyOption": 0, color: {"red":255, "green":255, "blue":255}}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "keyId": 15, "keyOption": 0, "color:" {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set keyboard color - Single row
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "keyId": 15, "keyOption": 1, color: {"red":255, "green":255, "blue":255}}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "keyId": 15, "keyOption": 1, "color:" {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set keyboard color - All keys
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "keyId": 15, "keyOption": 2, color: {"red":255, "green":255, "blue":255}}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "keyId": 15, "keyOption": 2, "color:" {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set misc color - Current area (MM700, ST100)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "areaId": 1, "areaOption": 0, color: {"red":255, "green":255, "blue":255}}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "areaId": 1, "areaOption": 0, "color:" {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set misc color - Current row (MM700, ST100)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "areaId": 1, "areaOption": 1, color: {"red":255, "green":255, "blue":255}}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "areaId": 1, "areaOption": 1, "color:" {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set misc color - All rows (MM700, ST100)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "areaId": 1, "areaOption": 2, color: {"red":255, "green":255, "blue":255}}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "areaId": 1, "areaOption": 2, "color:" {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Change user profile
 ```bash
-$ curl -X POST http:/127.0.0.1:27003/api/userProfile -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/userProfile -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq
 ```
 ### Change keyboard profile
 ```bash
@@ -850,7 +835,7 @@ $ curl -X POST http://127.0.0.1:27003/api/mouse/buttonOptimization -d '{"deviceI
 ```
 ### Set mouse Key Assignment
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/updateKeyAssignment -d '{"deviceId":"5C126A3EB51A", "keyIndex": 10, "enabled":true,"pressAndHold":false,"keyAssignmentType:":3,"keyAssignmentValue":55}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/mouse/updateKeyAssignment -d '{"deviceId":"5C126A3EB51A", "keyIndex": 10, "enabled":true,"pressAndHold":false,"keyAssignmentType": 3,"keyAssignmentValue":55}' --silent | jq
 ```
 ### Set headset Zone colors
 ```bash
@@ -878,7 +863,7 @@ $ curl -X POST http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile
 ```
 ### Save new user profile
 ```bash
-$ curl -X PUT http:/127.0.0.1:27003/api/userProfile -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq
+$ curl -X PUT http://127.0.0.1:27003/api/userProfile -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq
 ```
 ### Save new keyboard profile
 ```bash

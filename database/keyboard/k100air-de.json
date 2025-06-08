@@ -5,7 +5,7 @@
   "key": "k100air-default",
   "device": "K100 AIR RGB",
   "layout": "DE",
-  "bufferSize": 129,
+  "bufferSize": 130,
   "rows": 6,
   "color": {
     "red": 0,

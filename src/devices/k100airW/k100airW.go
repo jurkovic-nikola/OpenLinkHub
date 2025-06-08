@@ -1322,8 +1322,8 @@ func (d *Device) setDeviceColor() {
 		}
 	case "watercolor":
 		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 129)
+			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+				var buf = make([]byte, keyboard.BufferSize)
 				buf[2] = 0x01
 				buf[3] = 0xff
 				buf[4] = 0xff

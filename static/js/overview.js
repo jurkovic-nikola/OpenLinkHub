@@ -786,6 +786,13 @@ document.addEventListener("DOMContentLoaded", function () {
             modal.data('bs.modal', null);
         })
 
+        modal.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                modal.find('#btnSaveLabel').click();
+            }
+        });
+
         modal.on('shown.bs.modal', function (e) {
             const labelName = modal.find('#labelName');
             labelName.focus();

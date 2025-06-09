@@ -133,7 +133,7 @@
           },
           "keyData": [41],
           "keyHash": ["2199023255552"],
-          "default": false
+          "default": true
         },
         "9": {
           "keyName": "F1",

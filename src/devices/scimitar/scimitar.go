@@ -1740,8 +1740,6 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 			if val.ActionHold {
 				d.KeyAssignmentData = &val
 			}
-
-			fmt.Println(val.ActionHold)
 			inputmanager.InputControlMouseHold(val.ActionCommand, val.ActionHold)
 			break
 		case 10:

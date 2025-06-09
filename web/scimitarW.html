@@ -4,6 +4,7 @@
 <body>
 <div class="d-flex align-items-stretch">
     <div class="page-content">
+        {{ $root := . }}
         {{ $devs := .Devices }}
         {{ $macros := .Macros }}
         {{ $temperatures := .Temperatures }}
@@ -297,7 +298,7 @@
                                                         </td>
                                                         <td style="text-align: right;">
                                                             <button class="btn btn-secondary saveKeyAssignment" data-info="{{ $key }}">
-                                                                <span>{{ .Lang "txtSave" }}</span>
+                                                                <span>{{ $root.Lang "txtSave" }}</span>
                                                             </button>
                                                         </td>
                                                     </tr>

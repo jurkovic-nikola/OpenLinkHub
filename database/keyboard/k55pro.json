@@ -261,7 +261,7 @@
           "keyData": [66],
           "default": true,
           "keyEmpty": ["keyboard-key-empty"],
-          "keyHash": ["73786976294838206464\n"]
+          "keyHash": ["73786976294838206464"]
         },
         "18": {
           "keyName": "F10",
@@ -443,7 +443,7 @@
           "zone": 2,
           "keyData": [33],
           "default": true,
-          "keyHash": ["48589934592"]
+          "keyHash": ["8589934592"]
         },
         "34": {
           "keyName": "5",
@@ -794,7 +794,7 @@
           "keyData": [49],
           "default": true,
           "keySpace": "keyboard-key wide",
-          "keyHash": ["ž562949953421312"]
+          "keyHash": ["562949953421312"]
         },
         "65": {
           "keyName": "Del",

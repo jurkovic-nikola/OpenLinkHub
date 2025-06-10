@@ -1735,10 +1735,10 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 		if isPressed {
 			if mask == 0x08 && val.Default {
 				d.ModifyDpi()
-				return
+				continue
 			}
 			if val.Default {
-				return
+				continue
 			}
 
 			switch val.ActionType {

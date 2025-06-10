@@ -129,7 +129,7 @@ func InputControlMouse(controlType uint16) {
 
 // InputControlMouseHold will emulate input events based on virtual mouse and button hold.
 // Experimental for now
-func InputControlMouseHold(controlType uint16, hold bool) {
+func InputControlMouseHold(controlType uint16, press bool) {
 	if virtualMouseFile == nil {
 		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
 		return
@@ -143,7 +143,7 @@ func InputControlMouseHold(controlType uint16, hold bool) {
 	}
 
 	// Create events
-	events = createInputEvent(actionType.CommandCode, hold)
+	events = createInputEventHold(actionType.CommandCode, press)
 
 	// Send events
 	for _, event := range events {

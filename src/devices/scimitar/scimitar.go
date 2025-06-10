@@ -16,13 +16,15 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
+	"math/bits"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -1700,74 +1702,100 @@ func (d *Device) setupKeyAssignment() {
 
 // triggerKeyAssignment will trigger key assignment if defined
 func (d *Device) triggerKeyAssignment(value uint32) {
-	if d.ModifierIndex != value {
-		if d.KeyAssignmentData != nil {
-			switch d.KeyAssignmentData.ActionType {
-			case 1, 3:
-				inputmanager.InputControlKeyboard(d.KeyAssignmentData.ActionCommand, d.PressLoop)
-				break
-			case 9:
-				inputmanager.InputControlMouseHold(d.KeyAssignmentData.ActionCommand, d.PressLoop)
-				break
-			}
-		}
-		d.KeyAssignmentData = nil
-	}
+	var bitDiff = value ^ d.ModifierIndex
+	var pressedKeys = bitDiff & value
+	var releasedKeys = bitDiff & ^value
 	d.ModifierIndex = value
 
-	value = inputmanager.FindKeyAssignment(d.KeyAssignment, value, []uint32{1, 2, 4})
-	if val, ok := d.KeyAssignment[int(value)]; ok {
-		if value == 0x08 && val.Default {
-			d.ModifyDpi()
-			return
+	for {
+		if releasedKeys == 0 {
+			break
 		}
 
-		if val.Default {
-			return
-		}
-
-		switch val.ActionType {
-		case 1, 3:
-			if val.ActionHold {
-				d.KeyAssignmentData = &val
-			}
-			inputmanager.InputControlKeyboard(val.ActionCommand, val.ActionHold)
-			break
-		case 2:
-			d.ModifyDpi()
-			break
-		case 9:
-			if val.ActionHold {
-				d.KeyAssignmentData = &val
-			}
-			inputmanager.InputControlMouseHold(val.ActionCommand, val.ActionHold)
-			break
-		case 10:
-			macroProfile := macro.GetProfile(int(val.ActionCommand))
-			if macroProfile == nil {
-				logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+		var bitIdx = bits.TrailingZeros32(releasedKeys)
+		value = 1 << bitIdx
+		if val, ok := d.KeyAssignment[int(value)]; ok {
+			if val.Default || !val.ActionHold {
 				return
 			}
-			for i := 0; i < len(macroProfile.Actions); i++ {
-				if v, valid := macroProfile.Actions[i]; valid {
-					switch v.ActionType {
-					case 1, 3:
-						inputmanager.InputControlKeyboard(v.ActionCommand, false)
-						break
-					case 9:
-						inputmanager.InputControlMouse(v.ActionCommand)
-						break
-					case 5:
-						if v.ActionDelay > 0 {
-							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
-						}
-						break
-					}
-				}
+
+			switch val.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+				break
+			case 9:
+				inputmanager.InputControlMouseHold(val.ActionCommand, false)
+				break
 			}
+		}
+
+		releasedKeys &= ^value
+	}
+
+	for {
+		if pressedKeys == 0 {
 			break
 		}
 
+		var bitIdx = bits.TrailingZeros32(pressedKeys)
+		value = 1 << bitIdx
+
+		if val, ok := d.KeyAssignment[int(value)]; ok {
+			if value == 0x08 && val.Default {
+				d.ModifyDpi()
+				return
+			}
+
+			if val.Default {
+				return
+			}
+
+			switch val.ActionType {
+			case 1, 3:
+				if val.ActionHold {
+					inputmanager.InputControlKeyboardHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlKeyboard(val.ActionCommand, false)
+				}
+				break
+			case 2:
+				d.ModifyDpi()
+				break
+			case 9:
+				if val.ActionHold {
+					inputmanager.InputControlMouseHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlMouse(val.ActionCommand)
+				}
+				break
+			case 10:
+				macroProfile := macro.GetProfile(int(val.ActionCommand))
+				if macroProfile == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+					return
+				}
+				for i := range len(macroProfile.Actions) {
+					if v, valid := macroProfile.Actions[i]; valid {
+						switch v.ActionType {
+						case 1, 3:
+							inputmanager.InputControlKeyboard(v.ActionCommand, false)
+							break
+						case 9:
+							inputmanager.InputControlMouse(v.ActionCommand)
+							break
+						case 5:
+							if v.ActionDelay > 0 {
+								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+
+		pressedKeys &= ^value
 	}
 }
 

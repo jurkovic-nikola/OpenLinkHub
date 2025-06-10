@@ -119,3 +119,30 @@ func InputControlKeyboard(controlType uint16, hold bool) {
 		}
 	}
 }
+
+// InputControlKeyboard will emulate input events based on virtual keyboard
+func InputControlKeyboardHold(controlType uint16, press bool) {
+	if virtualKeyboardFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
+		return
+	}
+
+	var events []inputEvent
+
+	// Get event key code
+	actionType := getInputAction(controlType)
+	if actionType == nil {
+		return
+	}
+
+	// Create events
+	events = createInputEventHold(actionType.CommandCode, press)
+
+	// Send events
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualKeyboardFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
+			return
+		}
+	}
+}

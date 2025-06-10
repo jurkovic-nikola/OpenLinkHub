@@ -578,6 +578,37 @@ func createInputEvent(code uint16, hold bool) []inputEvent {
 	return events
 }
 
+func createInputEventHold(code uint16, press bool) []inputEvent {
+	// Synchronization event
+	syncEvent := inputEvent{
+		Type:  evSyn,
+		Code:  0,
+		Value: 0,
+	}
+
+	var events []inputEvent
+
+	// Only release if hold is false
+	if press {
+		// Create an input event for key press
+		keyPress := inputEvent{
+			Type:  evKey,
+			Code:  code,
+			Value: 1, // Key press
+		}
+		events = []inputEvent{keyPress, syncEvent}
+	} else {
+		// Create an input event for key release
+		keyRelease := inputEvent{
+			Type:  evKey,
+			Code:  code,
+			Value: 0,
+		}
+		events = []inputEvent{keyRelease, syncEvent}
+	}
+	return events
+}
+
 // writeVirtualEvent will send event to virtual keyboard device
 func writeVirtualEvent(f *os.File, event *inputEvent) error {
 	if f == nil {

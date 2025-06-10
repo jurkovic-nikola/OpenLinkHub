@@ -1707,45 +1707,36 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 	var releasedKeys = bitDiff & ^value
 	d.ModifierIndex = value
 
-	for {
-		if releasedKeys == 0 {
-			break
+	for keys := pressedKeys | releasedKeys; keys != 0; {
+		bitIdx := bits.TrailingZeros32(keys)
+		mask := uint32(1) << bitIdx
+		keys &^= mask
+
+		isPressed := pressedKeys&mask != 0
+		isReleased := releasedKeys&mask != 0
+
+		val, ok := d.KeyAssignment[int(mask)]
+		if !ok {
+			continue
 		}
 
-		var bitIdx = bits.TrailingZeros32(releasedKeys)
-		value = 1 << bitIdx
-		if val, ok := d.KeyAssignment[int(value)]; ok {
+		if isReleased {
 			if val.Default || !val.ActionHold {
-				return
+				continue
 			}
-
 			switch val.ActionType {
 			case 1, 3:
 				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
-				break
 			case 9:
 				inputmanager.InputControlMouseHold(val.ActionCommand, false)
-				break
 			}
 		}
 
-		releasedKeys &= ^value
-	}
-
-	for {
-		if pressedKeys == 0 {
-			break
-		}
-
-		var bitIdx = bits.TrailingZeros32(pressedKeys)
-		value = 1 << bitIdx
-
-		if val, ok := d.KeyAssignment[int(value)]; ok {
-			if value == 0x08 && val.Default {
+		if isPressed {
+			if mask == 0x08 && val.Default {
 				d.ModifyDpi()
 				return
 			}
-
 			if val.Default {
 				return
 			}
@@ -1757,17 +1748,14 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 				} else {
 					inputmanager.InputControlKeyboard(val.ActionCommand, false)
 				}
-				break
 			case 2:
 				d.ModifyDpi()
-				break
 			case 9:
 				if val.ActionHold {
 					inputmanager.InputControlMouseHold(val.ActionCommand, true)
 				} else {
 					inputmanager.InputControlMouse(val.ActionCommand)
 				}
-				break
 			case 10:
 				macroProfile := macro.GetProfile(int(val.ActionCommand))
 				if macroProfile == nil {
@@ -1779,23 +1767,17 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 						switch v.ActionType {
 						case 1, 3:
 							inputmanager.InputControlKeyboard(v.ActionCommand, false)
-							break
 						case 9:
 							inputmanager.InputControlMouse(v.ActionCommand)
-							break
 						case 5:
 							if v.ActionDelay > 0 {
 								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
 							}
-							break
 						}
 					}
 				}
-				break
 			}
 		}
-
-		pressedKeys &= ^value
 	}
 }
 

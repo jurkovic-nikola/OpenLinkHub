@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math/bits"
 	"os"
 	"regexp"
 	"sort"
@@ -1638,65 +1639,82 @@ func (d *Device) setupKeyAssignment() {
 
 // TriggerKeyAssignment will trigger key assignment if defined
 func (d *Device) TriggerKeyAssignment(value uint32, serial string) {
-	if d.ModifierIndex != value {
-		if d.KeyAssignmentData != nil {
-			switch d.KeyAssignmentData.ActionType {
-			case 1, 3:
-				inputmanager.InputControlKeyboard(d.KeyAssignmentData.ActionCommand, d.PressLoop)
-				break
-			}
-		}
-		d.KeyAssignmentData = nil
-	}
+	var bitDiff = value ^ d.ModifierIndex
+	var pressedKeys = bitDiff & value
+	var releasedKeys = bitDiff & ^value
 	d.ModifierIndex = value
 
-	value = inputmanager.FindKeyAssignment(d.KeyAssignment, value, []uint32{1, 2, 4})
-	if val, ok := d.KeyAssignment[int(value)]; ok {
-		if value == 0x08 && val.Default {
-			d.ModifyDpi()
-			return
+	for keys := pressedKeys | releasedKeys; keys != 0; {
+		bitIdx := bits.TrailingZeros32(keys)
+		mask := uint32(1) << bitIdx
+		keys &^= mask
+
+		isPressed := pressedKeys&mask != 0
+		isReleased := releasedKeys&mask != 0
+
+		val, ok := d.KeyAssignment[int(mask)]
+		if !ok {
+			continue
 		}
 
-		if val.Default {
-			return
+		if isReleased {
+			if val.Default || !val.ActionHold {
+				continue
+			}
+			switch val.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+			case 9:
+				inputmanager.InputControlMouseHold(val.ActionCommand, false)
+			}
 		}
 
-		switch val.ActionType {
-		case 1, 3:
-			if val.ActionHold {
-				d.KeyAssignmentData = &val
+		if isPressed {
+			if mask == 0x08 && val.Default {
+				d.ModifyDpi()
+				continue
 			}
-			inputmanager.InputControlKeyboard(val.ActionCommand, val.ActionHold)
-			break
-		case 2:
-			d.ModifyDpi()
-			break
-		case 9:
-			inputmanager.InputControlMouse(val.ActionCommand)
-			break
-		case 10:
-			macroProfile := macro.GetProfile(int(val.ActionCommand))
-			if macroProfile == nil {
-				logger.Log(logger.Fields{"serial": serial}).Error("Invalid macro profile")
-				return
+			if val.Default {
+				continue
 			}
-			for i := 0; i < len(macroProfile.Actions); i++ {
-				if v, valid := macroProfile.Actions[i]; valid {
-					switch v.ActionType {
-					case 1, 3:
-						inputmanager.InputControlKeyboard(v.ActionCommand, false)
-						break
-					case 5:
-						if v.ActionDelay > 0 {
-							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+
+			switch val.ActionType {
+			case 1, 3:
+				if val.ActionHold {
+					inputmanager.InputControlKeyboardHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlKeyboard(val.ActionCommand, false)
+				}
+			case 2:
+				d.ModifyDpi()
+			case 9:
+				if val.ActionHold {
+					inputmanager.InputControlMouseHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlMouse(val.ActionCommand)
+				}
+			case 10:
+				macroProfile := macro.GetProfile(int(val.ActionCommand))
+				if macroProfile == nil {
+					logger.Log(logger.Fields{"serial": serial}).Error("Invalid macro profile")
+					return
+				}
+				for i := range len(macroProfile.Actions) {
+					if v, valid := macroProfile.Actions[i]; valid {
+						switch v.ActionType {
+						case 1, 3:
+							inputmanager.InputControlKeyboard(v.ActionCommand, false)
+						case 9:
+							inputmanager.InputControlMouse(v.ActionCommand)
+						case 5:
+							if v.ActionDelay > 0 {
+								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
 						}
-						break
 					}
 				}
 			}
-			break
 		}
-
 	}
 }
 

@@ -36,8 +36,8 @@ func (r *ActiveRGB) Temperature(currentTemp float64) {
 	startColor := r.RGBStartColor
 	buf := map[int][]byte{}
 	t := MapTemperatureToPercent(currentTemp, r.MinTemp, r.MaxTemp)
-	result := GenerateTemperatureColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBStartColor.Brightness)
-	startColor = interpolateColor(startColor, result, t, r.RGBBrightness)
+	//result := GenerateTemperatureColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBStartColor.Brightness)
+	startColor = interpolateColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
 
 	for j := 0; j < r.LightChannels; j++ {
 		if len(r.Buffer) > 0 {

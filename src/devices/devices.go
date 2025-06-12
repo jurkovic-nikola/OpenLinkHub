@@ -2609,7 +2609,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 			}(vendorId, productId, key, productPath)
 		}
-	case 7198, 7203, 7199, 7173, 7174, 7175, 7176, 7181, 7180:
+	case 7198, 7203, 7199, 7173, 7174, 7175, 7176, 7181, 7180, 7207:
 		// Corsair HX1000i Power Supply
 		// Corsair HX1200i Power Supply
 		// Corsair HX1500i Power Supply
@@ -2619,6 +2619,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 		// Corsair HX1200i Power Supply
 		// Corsair RM1000i Power Supply
 		// Corsair RM850i Power Supply
+		// Corsair HX1200i Power Supply
 		{
 			go func(vendorId, productId uint16, key string) {
 				dev := psuhid.Init(vendorId, productId, key)

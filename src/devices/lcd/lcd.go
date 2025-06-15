@@ -78,7 +78,7 @@ var (
 		3: "CPU Load",
 		4: "GPU Load",
 	}
-	sensorTextCache = make(map[int]string)
+	sensorTextCache = make(map[uint8]string)
 )
 
 type ImageData struct {
@@ -174,8 +174,8 @@ func Init() {
 	// Animations
 	InitAnimation()
 
-	for i, sensor := range animation.Sensors {
-		sensorTextCache[i] = strings.ToUpper(lcdSensors[sensor.Sensor]) // reuse
+	for i, _ := range lcdSensors {
+		sensorTextCache[i] = strings.ToUpper(lcdSensors[i])
 	}
 }
 
@@ -561,7 +561,7 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 						drawColorString(x, y+padding, 80, v, canvas, sensor.TextColor)
 					}
 
-					sensorText := sensorTextCache[m]
+					sensorText := sensorTextCache[sensor.Sensor]
 					x, y := calculateStringXY(40, sensorText)
 					drawColorString(x, y+padding+55, 40, sensorText, canvas, sensor.TextColor)
 

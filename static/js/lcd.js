@@ -109,6 +109,115 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.lcdWorkersInfo').on('click', function () {
+        const modalDefault = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">Workers</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>The amount of CPU workers used to render animation. More workers will make the animation transition smoother but at the cost of higher CPU usage. The minimum is 1 worker and the maximum is 16.</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoDefault = $(modalDefault).modal('toggle');
+        infoDefault.on('hidden.bs.modal', function () {
+            infoDefault.data('bs.modal', null);
+        })
+    });
+
+    $('.lcdFrameDelayInfo').on('click', function () {
+        const modalDefault = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">Workers</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>Use frame delay for animations that have a frame delay of 0 and play too fast. Value is from 0 to 100. This option requires a service restart.</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoDefault = $(modalDefault).modal('toggle');
+        infoDefault.on('hidden.bs.modal', function () {
+            infoDefault.data('bs.modal', null);
+        })
+    });
+
+    $('.saveAnimationProfile').on('click', function(){
+        let profileId = $(this).attr('data-info');
+        let separatorColorVal = $("#separatorColor_" + profileId).val();
+        let backgroundImageVal = $("#backgroundImage_" + profileId).val();
+        const marginVal = $("#margin_" + profileId).val();
+        const workersVal = $("#workers_" + profileId).val();
+        const frameDelayVal = $("#frameDelay_" + profileId).val();
+        let separatorColorRgb = {}
+        const separatorColor = hexToRgb(separatorColorVal);
+        separatorColorRgb = {red:separatorColor.r, green:separatorColor.g, blue:separatorColor.b, hex:separatorColor.hex}
+
+        let sensors = {}
+        for (let i = 0; i <= 2; i++) {
+            let textColorRgb = {}
+
+            let sensorTypeVal = $("#sensorType_" + i + "_" + profileId).val();
+            let textColorVal = $("#textColor_" + i + "_" + profileId).val();
+            const sensorEnabledVal = $("#sensorEnabled_" + i + "_" + profileId);
+            const sensorEnabled = sensorEnabledVal.is(':checked');
+            const textColor = hexToRgb(textColorVal);
+            textColorRgb = {red:textColor.r, green:textColor.g, blue:textColor.b, hex:textColor.hex}
+
+            sensors[i] = {
+                "sensor": parseInt(sensorTypeVal),
+                "textColor": textColorRgb,
+                "enabled": sensorEnabled,
+            }
+        }
+
+        const pf = {};
+        pf["profileId"] = parseInt(profileId);
+        pf["margin"] = parseFloat(marginVal);
+        pf["workers"] = parseInt(workersVal);
+        pf["frameDelay"] = parseInt(frameDelayVal);
+        pf["backgroundImage"] = backgroundImageVal;
+        pf["separatorColor"] = separatorColorRgb;
+        pf["sensors"] = sensors;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/modes',
+            type: 'PUT',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.saveDoubleArcProfile').on('click', function(){
         let profileId = $(this).attr('data-info');
         let marginVal = $("#margin_" + profileId).val();

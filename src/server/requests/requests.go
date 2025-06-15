@@ -21,83 +21,87 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId            string               `json:"deviceId"`
-	ChannelId           int                  `json:"channelId"`
-	ProfileId           uint8                `json:"profileId"`
-	Mode                uint8                `json:"mode"`
-	Rotation            uint8                `json:"rotation"`
-	Value               uint16               `json:"value"`
-	BackgroundColor     rgb.Color            `json:"backgroundColor"`
-	BorderColor         rgb.Color            `json:"borderColor"`
-	SeparatorColor      rgb.Color            `json:"separatorColor"`
-	Color               rgb.Color            `json:"color"`
-	StartColor          rgb.Color            `json:"startColor"`
-	EndColor            rgb.Color            `json:"endColor"`
-	TextColor           rgb.Color            `json:"textColor"`
-	Arcs                map[uint8]lcd.Arcs   `json:"arcs"`
-	Speed               float64              `json:"speed"`
-	Thickness           float64              `json:"thickness"`
-	GapRadians          float64              `json:"gapRadians"`
-	Margin              float64              `json:"margin"`
-	Smoothness          int                  `json:"smoothness"`
-	Profile             string               `json:"profile"`
-	Label               string               `json:"label"`
-	Static              bool                 `json:"static"`
-	Sensor              uint8                `json:"sensor"`
-	HardwareLight       int                  `json:"hardwareLight"`
-	ZeroRpm             bool                 `json:"zeroRpm"`
-	Linear              bool                 `json:"linear"`
-	HwmonDeviceId       string               `json:"hwmonDeviceId"`
-	Enabled             bool                 `json:"enabled"`
-	DeviceType          int                  `json:"deviceType"`
-	KeyOption           int                  `json:"keyOption"`
-	AreaOption          int                  `json:"areaOption"`
-	KeyId               int                  `json:"keyId"`
-	AreaId              int                  `json:"areaId"`
-	DeviceAmount        int                  `json:"deviceAmount"`
-	PortId              int                  `json:"portId"`
-	UserProfileName     string               `json:"userProfileName"`
-	LcdSerial           string               `json:"lcdSerial"`
-	KeyboardProfileName string               `json:"keyboardProfileName"`
-	KeyboardLayout      string               `json:"keyboardLayout"`
-	KeyboardControlDial int                  `json:"keyboardControlDial"`
-	SleepMode           int                  `json:"sleepMode"`
-	PollingRate         int                  `json:"pollingRate"`
-	ButtonOptimization  int                  `json:"buttonOptimization"`
-	AngleSnapping       int                  `json:"angleSnapping"`
-	PressAndHold        bool                 `json:"pressAndHold"`
-	KeyIndex            int                  `json:"keyIndex"`
-	KeyAssignmentType   uint8                `json:"keyAssignmentType"`
-	KeyAssignmentValue  uint16               `json:"keyAssignmentValue"`
-	MuteIndicator       int                  `json:"muteIndicator"`
-	RgbControl          bool                 `json:"rgbControl"`
-	RgbOff              string               `json:"rgbOff"`
-	RgbOn               string               `json:"rgbOn"`
-	Brightness          uint8                `json:"brightness"`
-	Position            int                  `json:"position"`
-	DeviceIdString      string               `json:"deviceIdString"`
-	Direction           int                  `json:"direction"`
-	StripId             int                  `json:"stripId"`
-	FanMode             int                  `json:"fanMode"`
-	New                 bool                 `json:"new"`
-	Stages              map[int]uint16       `json:"stages"`
-	ColorDpi            rgb.Color            `json:"colorDpi"`
-	ColorZones          map[int]rgb.Color    `json:"colorZones"`
-	Image               string               `json:"image"`
-	MacroId             int                  `json:"macroId"`
-	MacroIndex          int                  `json:"macroIndex"`
-	MacroName           string               `json:"macroName"`
-	MacroType           uint8                `json:"macroType"`
-	MacroValue          uint16               `json:"macroValue"`
-	MacroDelay          uint16               `json:"macroDelay"`
-	LedProfile          led.Device           `json:"ledProfile"`
-	Points              []temperatures.Point `json:"points"`
-	UpdateType          uint8                `json:"updateType"`
-	Data                interface{}          `json:"data"`
-	PerfWinKey          bool                 `json:"perf_winKey"`
-	PerfShiftTab        bool                 `json:"perf_shiftTab"`
-	PerfAltTab          bool                 `json:"perf_altTab"`
-	PerfAltF4           bool                 `json:"perf_altF4"`
+	DeviceId            string                `json:"deviceId"`
+	ChannelId           int                   `json:"channelId"`
+	ProfileId           uint8                 `json:"profileId"`
+	Mode                uint8                 `json:"mode"`
+	Rotation            uint8                 `json:"rotation"`
+	Value               uint16                `json:"value"`
+	BackgroundColor     rgb.Color             `json:"backgroundColor"`
+	BackgroundImage     string                `json:"backgroundImage"`
+	BorderColor         rgb.Color             `json:"borderColor"`
+	SeparatorColor      rgb.Color             `json:"separatorColor"`
+	Color               rgb.Color             `json:"color"`
+	StartColor          rgb.Color             `json:"startColor"`
+	EndColor            rgb.Color             `json:"endColor"`
+	TextColor           rgb.Color             `json:"textColor"`
+	Arcs                map[uint8]lcd.Arcs    `json:"arcs"`
+	Sensors             map[uint8]lcd.Sensors `json:"sensors"`
+	Speed               float64               `json:"speed"`
+	Thickness           float64               `json:"thickness"`
+	GapRadians          float64               `json:"gapRadians"`
+	Margin              float64               `json:"margin"`
+	Smoothness          int                   `json:"smoothness"`
+	Workers             int                   `json:"workers"`
+	FrameDelay          int                   `json:"frameDelay"`
+	Profile             string                `json:"profile"`
+	Label               string                `json:"label"`
+	Static              bool                  `json:"static"`
+	Sensor              uint8                 `json:"sensor"`
+	HardwareLight       int                   `json:"hardwareLight"`
+	ZeroRpm             bool                  `json:"zeroRpm"`
+	Linear              bool                  `json:"linear"`
+	HwmonDeviceId       string                `json:"hwmonDeviceId"`
+	Enabled             bool                  `json:"enabled"`
+	DeviceType          int                   `json:"deviceType"`
+	KeyOption           int                   `json:"keyOption"`
+	AreaOption          int                   `json:"areaOption"`
+	KeyId               int                   `json:"keyId"`
+	AreaId              int                   `json:"areaId"`
+	DeviceAmount        int                   `json:"deviceAmount"`
+	PortId              int                   `json:"portId"`
+	UserProfileName     string                `json:"userProfileName"`
+	LcdSerial           string                `json:"lcdSerial"`
+	KeyboardProfileName string                `json:"keyboardProfileName"`
+	KeyboardLayout      string                `json:"keyboardLayout"`
+	KeyboardControlDial int                   `json:"keyboardControlDial"`
+	SleepMode           int                   `json:"sleepMode"`
+	PollingRate         int                   `json:"pollingRate"`
+	ButtonOptimization  int                   `json:"buttonOptimization"`
+	AngleSnapping       int                   `json:"angleSnapping"`
+	PressAndHold        bool                  `json:"pressAndHold"`
+	KeyIndex            int                   `json:"keyIndex"`
+	KeyAssignmentType   uint8                 `json:"keyAssignmentType"`
+	KeyAssignmentValue  uint16                `json:"keyAssignmentValue"`
+	MuteIndicator       int                   `json:"muteIndicator"`
+	RgbControl          bool                  `json:"rgbControl"`
+	RgbOff              string                `json:"rgbOff"`
+	RgbOn               string                `json:"rgbOn"`
+	Brightness          uint8                 `json:"brightness"`
+	Position            int                   `json:"position"`
+	DeviceIdString      string                `json:"deviceIdString"`
+	Direction           int                   `json:"direction"`
+	StripId             int                   `json:"stripId"`
+	FanMode             int                   `json:"fanMode"`
+	New                 bool                  `json:"new"`
+	Stages              map[int]uint16        `json:"stages"`
+	ColorDpi            rgb.Color             `json:"colorDpi"`
+	ColorZones          map[int]rgb.Color     `json:"colorZones"`
+	Image               string                `json:"image"`
+	MacroId             int                   `json:"macroId"`
+	MacroIndex          int                   `json:"macroIndex"`
+	MacroName           string                `json:"macroName"`
+	MacroType           uint8                 `json:"macroType"`
+	MacroValue          uint16                `json:"macroValue"`
+	MacroDelay          uint16                `json:"macroDelay"`
+	LedProfile          led.Device            `json:"ledProfile"`
+	Points              []temperatures.Point  `json:"points"`
+	UpdateType          uint8                 `json:"updateType"`
+	Data                interface{}           `json:"data"`
+	PerfWinKey          bool                  `json:"perf_winKey"`
+	PerfShiftTab        bool                  `json:"perf_shiftTab"`
+	PerfAltTab          bool                  `json:"perf_altTab"`
+	PerfAltF4           bool                  `json:"perf_altF4"`
 	Status              int
 	Code                int
 	Message             string
@@ -718,16 +722,6 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingLcdProfile"), Code: http.StatusOK, Status: 0}
 	}
 
-	thickness := req.Thickness
-	if thickness < 10 || thickness > 50 {
-		return &Payload{Message: language.GetValue("txtInvalidThickness"), Code: http.StatusOK, Status: 0}
-	}
-
-	margin := req.Margin
-	if margin < 10 || thickness > 50 {
-		return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
-	}
-
 	var status uint8 = 0
 
 	switch profileId {
@@ -735,6 +729,16 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		sensorId := req.Sensor
 		if sensorId < 0 || sensorId > 5 {
 			return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
+		}
+
+		thickness := req.Thickness
+		if thickness < 10 || thickness > 50 {
+			return &Payload{Message: language.GetValue("txtInvalidThickness"), Code: http.StatusOK, Status: 0}
+		}
+
+		margin := req.Margin
+		if margin < 10 || thickness > 50 {
+			return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
 		}
 
 		// Profile
@@ -753,6 +757,16 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		status = lcd.SaveArc(mode)
 		break
 	case lcd.DisplayDoubleArc:
+		thickness := req.Thickness
+		if thickness < 10 || thickness > 50 {
+			return &Payload{Message: language.GetValue("txtInvalidThickness"), Code: http.StatusOK, Status: 0}
+		}
+
+		margin := req.Margin
+		if margin < 10 || thickness > 50 {
+			return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
+		}
+
 		// Colors
 		background := req.BackgroundColor
 		borderColor := req.BorderColor
@@ -785,6 +799,52 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 
 		// Send it
 		status = lcd.SaveDoubleArc(mode)
+		break
+	case lcd.DisplayAnimation:
+		// Colors
+		background := req.BackgroundImage
+		separatorColor := req.SeparatorColor
+
+		margin := req.Margin
+		if margin < 10 || margin > 100 {
+			return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
+		}
+
+		workers := req.Workers
+		if workers < 1 || workers > 16 {
+			return &Payload{Message: language.GetValue("txtInvalidWorkers"), Code: http.StatusOK, Status: 0}
+		}
+
+		frameDelay := req.FrameDelay
+		if frameDelay < 0 || frameDelay > 100 {
+			return &Payload{Message: language.GetValue("txtInvalidFrameDelay"), Code: http.StatusOK, Status: 0}
+		}
+
+		mode := lcd.GetAnimation()
+		for i := 0; i <= 2; i++ {
+			sensor := req.Sensors[uint8(i)]
+			sensorId := sensor.Sensor
+			if sensorId < 0 || sensorId > 5 {
+				return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
+			}
+			sensorName := mode.Sensors[i].Name
+
+			mode.Sensors[i] = lcd.Sensors{
+				Name:      sensorName,
+				Sensor:    sensorId,
+				TextColor: sensor.TextColor,
+				Enabled:   sensor.Enabled,
+			}
+		}
+
+		mode.Margin = margin
+		mode.Background = background
+		mode.SeparatorColor = separatorColor
+		mode.Workers = workers
+		mode.FrameDelay = frameDelay
+
+		// Send it
+		status = lcd.SaveAnimation(mode)
 		break
 	default:
 		status = 0

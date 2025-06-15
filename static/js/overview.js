@@ -974,6 +974,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     if (response.status === 1) {
                         toast.success(response.message);
+                        $("#selectedProfile_" + parseInt(profile[0])).html(profile[1]);
                     } else {
                         toast.warning(response.message);
                     }
@@ -1038,6 +1039,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     if (response.status === 1) {
                         toast.success(response.message);
+                        $("#selectedRgb_" + parseInt(profile[0])).html(profile[1]);
                     } else {
                         toast.warning(response.message);
                     }

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math/bits"
 	"os"
 	"regexp"
 	"sort"
@@ -1130,6 +1131,84 @@ func (d *Device) setupKeyAssignment() {
 
 // triggerKeyAssignment will trigger key assignment if defined
 func (d *Device) triggerKeyAssignment(value byte) {
+	var bitDiff = value ^ d.ModifierIndex
+	var pressedKeys = bitDiff & value
+	var releasedKeys = bitDiff & ^value
+	d.ModifierIndex = value
+
+	for keys := pressedKeys | releasedKeys; keys != 0; {
+		bitIdx := bits.TrailingZeros8(keys)
+		mask := uint8(1) << bitIdx
+		keys &^= mask
+
+		isPressed := pressedKeys&mask != 0
+		isReleased := releasedKeys&mask != 0
+
+		val, ok := d.KeyAssignment[int(mask)]
+		if !ok {
+			continue
+		}
+
+		if isReleased {
+			if val.Default || !val.ActionHold {
+				continue
+			}
+			switch val.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+			case 9:
+				inputmanager.InputControlMouseHold(val.ActionCommand, false)
+			}
+		}
+
+		if isPressed {
+			if val.Default {
+				continue
+			}
+
+			switch val.ActionType {
+			case 1, 3:
+				if val.ActionHold {
+					inputmanager.InputControlKeyboardHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlKeyboard(val.ActionCommand, false)
+				}
+				break
+			case 9:
+				if val.ActionHold {
+					inputmanager.InputControlMouseHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlMouse(val.ActionCommand)
+				}
+				break
+			case 10:
+				macroProfile := macro.GetProfile(int(val.ActionCommand))
+				if macroProfile == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+					return
+				}
+				for i := range len(macroProfile.Actions) {
+					if v, valid := macroProfile.Actions[i]; valid {
+						switch v.ActionType {
+						case 1, 3:
+							inputmanager.InputControlKeyboard(v.ActionCommand, false)
+						case 9:
+							inputmanager.InputControlMouse(v.ActionCommand)
+						case 5:
+							if v.ActionDelay > 0 {
+								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
+						}
+					}
+				}
+				break
+			}
+		}
+	}
+}
+
+// triggerKeyAssignment will trigger key assignment if defined
+func (d *Device) triggerKeyAssignment2(value byte) {
 	if d.ModifierIndex != value {
 		if d.KeyAssignmentData != nil {
 			switch d.KeyAssignmentData.ActionType {

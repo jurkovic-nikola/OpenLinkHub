@@ -263,6 +263,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			10:  "Image / GIF",
 			100: "Arc",
 			101: "Double Arc",
+			102: "Animation",
 		},
 		LCDRotations: map[int]string{
 			0: "default",
@@ -2955,6 +2956,28 @@ func (d *Device) setupLCD() {
 										image := lcd.GenerateDoubleArcScreenImage(values)
 										if image != nil {
 											d.transferToLcd(image, lcdDevice.Lcd)
+										}
+									}
+								case lcd.DisplayAnimation:
+									{
+										values := []float32{
+											temperatures.GetCpuTemperature(),
+											temperatures.GetGpuTemperature(),
+											d.getLiquidTemperature(),
+											float32(systeminfo.GetCpuUtilization()),
+											float32(systeminfo.GetGPUUtilization()),
+										}
+										image := lcd.GenerateAnimationScreenImage(values)
+										if image != nil {
+											imageLen := len(image)
+											for i := 0; i < imageLen; i++ {
+												d.transferToLcd(image[i].Buffer, lcdDevice.Lcd)
+												if i != imageLen-1 {
+													if image[i].Delay > 0 {
+														time.Sleep(time.Duration(image[i].Delay) * time.Millisecond)
+													}
+												}
+											}
 										}
 									}
 								}

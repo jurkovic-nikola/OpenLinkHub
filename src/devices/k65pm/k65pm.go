@@ -48,6 +48,7 @@ type DeviceProfile struct {
 type Device struct {
 	Debug           bool
 	dev             *hid.Device
+	listener        *hid.Device
 	Manufacturer    string `json:"manufacturer"`
 	Product         string `json:"product"`
 	Serial          string `json:"serial"`
@@ -73,6 +74,7 @@ type Device struct {
 	Exit            bool
 	UIKeyboard      string
 	UIKeyboardRow   string
+	Modifier        bool
 }
 
 var (
@@ -119,7 +121,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:         "K65 Pro Mini",
+		Product:         "K65 PRO Mini",
 		LEDChannels:     130,
 		Layouts:         keyboards.GetLayouts(keyboardKey),
 		autoRefreshChan: make(chan struct{}),
@@ -148,6 +150,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.saveDeviceProfile()  // Save profile
 	d.setAutoRefresh()     // Set auto device refresh
 	d.setDeviceColor()     // Device color
+	d.backendListener()    // Control buttons
 	return d
 }
 
@@ -996,29 +999,6 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
-	// Reset
-	reset := map[int][]byte{}
-	var buffer []byte
-
-	// Reset all channels
-	color := &rgb.Color{
-		Red:        0,
-		Green:      0,
-		Blue:       0,
-		Brightness: 0,
-	}
-
-	for i := 0; i < d.LEDChannels; i++ {
-		reset[i] = []byte{
-			byte(color.Red),
-			byte(color.Green),
-			byte(color.Blue),
-		}
-	}
-
-	buffer = rgb.SetColor(reset)
-	d.writeColor(buffer)
-
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
@@ -1032,11 +1012,18 @@ func (d *Device) setDeviceColor() {
 					colors := keys.Color
 					colors.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					profileColor := rgb.ModifyBrightness(colors)
-
 					for _, packetIndex := range keys.PacketIndex {
 						buf[packetIndex] = byte(profileColor.Red)
 						buf[packetIndex+1] = byte(profileColor.Green)
 						buf[packetIndex+2] = byte(profileColor.Blue)
+					}
+
+					if d.Modifier && keys.ColorOffOnModifier {
+						for _, packetIndex := range keys.PacketIndex {
+							buf[packetIndex] = 0
+							buf[packetIndex+1] = 0
+							buf[packetIndex+2] = 0
+						}
 					}
 				}
 			}
@@ -1056,15 +1043,26 @@ func (d *Device) setDeviceColor() {
 
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
-		for i := 0; i < d.LEDChannels; i++ {
-			reset[i] = []byte{
-				byte(profileColor.Red),
-				byte(profileColor.Green),
-				byte(profileColor.Blue),
+
+		var buf = make([]byte, colorPacketLength)
+		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+			for _, keys := range rows.Keys {
+				for _, packetIndex := range keys.PacketIndex {
+					buf[packetIndex] = byte(profileColor.Red)
+					buf[packetIndex+1] = byte(profileColor.Green)
+					buf[packetIndex+2] = byte(profileColor.Blue)
+				}
+
+				if d.Modifier && keys.ColorOffOnModifier {
+					for _, packetIndex := range keys.PacketIndex {
+						buf[packetIndex] = 0
+						buf[packetIndex+1] = 0
+						buf[packetIndex+2] = 0
+					}
+				}
 			}
 		}
-		buffer = rgb.SetColor(reset)
-		d.writeColor(buffer) // Write color once
+		d.writeColor(buf) // Write color once
 		return
 	}
 
@@ -1082,6 +1080,7 @@ func (d *Device) setDeviceColor() {
 				return
 			default:
 				buff := make([]byte, 0)
+				var buf = make([]byte, colorPacketLength)
 
 				rgbCustomColor := true
 				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
@@ -1208,8 +1207,27 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				}
+
+				for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+					for _, keys := range rows.Keys {
+						for _, packetIndex := range keys.PacketIndex {
+							buf[packetIndex] = r.Output[packetIndex]
+							buf[packetIndex+1] = r.Output[packetIndex+1]
+							buf[packetIndex+2] = r.Output[packetIndex+2]
+						}
+
+						if d.Modifier && keys.ColorOffOnModifier {
+							for _, packetIndex := range keys.PacketIndex {
+								buf[packetIndex] = 0
+								buf[packetIndex+1] = 0
+								buf[packetIndex+2] = 0
+							}
+						}
+					}
+				}
+
 				// Send it
-				d.writeColor(buff)
+				d.writeColor(buf)
 				time.Sleep(20 * time.Millisecond)
 			}
 		}
@@ -1242,6 +1260,77 @@ func (d *Device) writeColor(data []byte) {
 			}
 		}
 	}
+}
+
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
+}
+
+// backendListener will listen for events from the control buttons
+func (d *Device) backendListener() {
+	go func() {
+		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+			if info.InterfaceNbr == 2 {
+				listener, err := hid.OpenPath(info.Path)
+				if err != nil {
+					return err
+				}
+				d.listener = listener
+			}
+			return nil
+		})
+
+		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+		}
+
+		// Listen loop
+		for {
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
+
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
+
+				// FN color change
+				modifier := data[17] == 0x04
+				if modifier {
+					d.Modifier = modifier
+					if d.activeRgb != nil {
+						d.activeRgb.Exit <- true // Exit current RGB mode
+						d.activeRgb = nil
+					}
+					d.setDeviceColor() // Restart RGB
+				} else if !modifier && d.Modifier {
+					d.Modifier = modifier
+					if d.activeRgb != nil {
+						d.activeRgb.Exit <- true // Exit current RGB mode
+						d.activeRgb = nil
+					}
+					d.setDeviceColor() // Restart RGB
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+		}
+	}()
 }
 
 // transfer will send data to a device and retrieve device output

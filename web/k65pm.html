@@ -134,7 +134,6 @@
                                     </button>
                                 </div>
                             </div>
-                            {{ if eq "keyboard" $device.DeviceProfile.RGBProfile }}
                             <div class="{{ $device.UIKeyboard }}" style="margin-top: 10px;margin-bottom: 10px;">
                                 {{ range $index, $keys := $keyboard.Row }}
                                 <div class="{{ $device.UIKeyboardRow }}">
@@ -144,9 +143,9 @@
                                     {{ end }}
 
                                     {{ if gt (len $keys.Css) 0 }}
-                                    <div class="{{ $keys.Css }} keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="{{ $keys.Css }} keyboardColor keySelector" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                     {{ else }}
-                                    <div class="keyboard-key keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="keyboard-key keyboardColor keySelector" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                     {{ end }}
 
                                     {{ if $keys.Svg }}
@@ -164,9 +163,9 @@
                                     <div style="float: left;width: 400px;">
                                         <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
                                         <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
-                                            <option value="0">Current Key</option>
-                                            <option value="1">Current Row</option>
-                                            <option value="2">All Keys</option>
+                                            <option value="0">{{ .Lang "txtCurrentKey" }}</option>
+                                            <option value="1">{{ .Lang "txtCurrentRow" }}</option>
+                                            <option value="2">{{ .Lang "txtAllKeys" }}</option>
                                         </select>
                                         <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
                                             <span>Apply</span>
@@ -183,18 +182,17 @@
                                             {{ end }}
                                         </select>
                                         <button class="btn btn-secondary" id="saveAsProfile" style="margin-top: 10px;margin-left: 10px;float: right;">
-                                            <span>Save As</span>
+                                            <span>{{ .Lang "txtSaveAs" }}</span>
                                         </button>
                                         <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;margin-left: 10px;float: right">
                                             <span>{{ .Lang "txtSave" }}</span>
                                         </button>
                                         <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
-                                            <span>Delete</span>
+                                            <span>{{ .Lang "txtDelete" }}</span>
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                            {{ end }}
                         </div>
                     </div>
                 </div>

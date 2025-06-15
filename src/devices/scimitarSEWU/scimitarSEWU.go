@@ -1818,14 +1818,17 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 				} else {
 					inputmanager.InputControlKeyboard(val.ActionCommand, false)
 				}
+				break
 			case 2:
 				d.ModifyDpi()
+				break
 			case 9:
 				if val.ActionHold {
 					inputmanager.InputControlMouseHold(val.ActionCommand, true)
 				} else {
 					inputmanager.InputControlMouse(val.ActionCommand)
 				}
+				break
 			case 10:
 				macroProfile := macro.GetProfile(int(val.ActionCommand))
 				if macroProfile == nil {
@@ -1846,6 +1849,7 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 						}
 					}
 				}
+				break
 			}
 		}
 	}

@@ -1720,6 +1720,7 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 				} else {
 					inputmanager.InputControlKeyboard(val.ActionCommand, false)
 				}
+				break
 			case 2:
 				d.ModifyDpi(true)
 				break
@@ -1752,6 +1753,7 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 						}
 					}
 				}
+				break
 			}
 		}
 	}

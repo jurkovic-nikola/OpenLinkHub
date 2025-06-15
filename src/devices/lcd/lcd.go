@@ -26,7 +26,6 @@ import (
 	_ "golang.org/x/image/webp"
 	"image"
 	"image/color"
-	"image/gif"
 	"image/jpeg"
 	"math"
 	"os"
@@ -52,6 +51,7 @@ const (
 	DisplayImage          uint8 = 10
 	DisplayArc            uint8 = 100
 	DisplayDoubleArc      uint8 = 101
+	DisplayAnimation      uint8 = 102
 )
 
 const (
@@ -78,6 +78,7 @@ var (
 		3: "CPU Load",
 		4: "GPU Load",
 	}
+	sensorTextCache = make(map[int]string)
 )
 
 type ImageData struct {
@@ -89,6 +90,12 @@ type ImageData struct {
 type Frames struct {
 	Buffer []byte
 	Delay  float64
+}
+
+type AnimationFrames struct {
+	Delay  float64
+	Canvas *image.RGBA
+	RGBA   *image.RGBA
 }
 type LCD struct {
 	image     image.Image
@@ -163,6 +170,13 @@ func Init() {
 
 	// Double arc
 	InitDoubleArc()
+
+	// Animations
+	InitAnimation()
+
+	for i, sensor := range animation.Sensors {
+		sensorTextCache[i] = strings.ToUpper(lcdSensors[sensor.Sensor]) // reuse
+	}
 }
 
 // Reconnect will reconnect to all available LCD devices
@@ -380,10 +394,11 @@ func GetCustomLcdProfiles() map[uint8]interface{} {
 	profiles := make(map[uint8]interface{})
 	profiles[DisplayArc] = GetArc()
 	profiles[DisplayDoubleArc] = GetDoubleArc()
+	profiles[DisplayAnimation] = GetAnimation()
 	return profiles
 }
 
-// GenerateDoubleArcScreenImage handles generation or double arc screen image
+// GenerateDoubleArcScreenImage handles generation of double arc screen image
 func GenerateDoubleArcScreenImage(values []float32) []byte {
 	arcImage := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
 	bg := generateColor(doubleRrc.Background)
@@ -478,6 +493,100 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 		return nil
 	}
 	return b.Bytes()
+}
+
+// GenerateAnimationScreenImage handles generation of animation screen image
+func GenerateAnimationScreenImage(values []float32) []Frames {
+	mutex.Lock()
+	background := animation.Background
+	val, ok := animation.Images[background]
+	sensors := animation.Sensors
+	separatorColor := animation.SeparatorColor
+	margin := int(animation.Margin)
+	mutex.Unlock()
+
+	if !ok {
+		return nil
+	}
+
+	z := 0
+	for _, sensor := range sensors {
+		if sensor.Enabled {
+			z++
+		}
+	}
+
+	jpegOptions := jpeg.Options{Quality: 90}
+
+	imageBuffer := make([]Frames, len(val))
+	var wg sync.WaitGroup
+	wg.Add(len(val))
+	sem := make(chan struct{}, animation.Workers)
+
+	for i := 0; i < len(val); i++ {
+		sem <- struct{}{}
+
+		i := i
+		canvasSource := val[i].Canvas
+		canvasRGBA := val[i].RGBA
+		delay := val[i].Delay
+
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			canvas := canvasRGBA
+			copy(canvas.Pix, canvasSource.Pix)
+
+			total := z * 125
+			paddingStart := -total / 2
+			paddingStart += margin
+			padding := paddingStart
+
+			for m := 0; m < len(sensors); m++ {
+				sensor := sensors[m]
+				if sensor.Enabled {
+					sensorMax := sensorMaximumValue(sensor.Sensor)
+					sensorValue := values[sensor.Sensor]
+					if sensorValue > float32(sensorMax) {
+						sensorValue = float32(sensorMax)
+					}
+					if isSensorTemperature(sensor.Sensor) {
+						v := dashboard.GetDashboard().TemperatureToString(sensorValue)
+						x, y := calculateStringXY(80, v)
+						drawColorString(x, y+padding, 80, v, canvas, sensor.TextColor)
+					} else {
+						v := fmt.Sprintf("%.1f %%", sensorValue)
+						x, y := calculateStringXY(80, v)
+						drawColorString(x, y+padding, 80, v, canvas, sensor.TextColor)
+					}
+
+					sensorText := sensorTextCache[m]
+					x, y := calculateStringXY(40, sensorText)
+					drawColorString(x, y+padding+55, 40, sensorText, canvas, sensor.TextColor)
+
+					if m != len(sensors)-1 {
+						separator := "-------------------------------------------"
+						x, y = calculateStringXY(20, separator)
+						drawColorString(x, y+padding+88, 20, separator, canvas, separatorColor)
+					}
+					padding += 125
+				}
+			}
+
+			var buf bytes.Buffer
+			err := jpeg.Encode(&buf, canvas, &jpegOptions)
+			if err == nil {
+				imageBuffer[i] = Frames{
+					Buffer: buf.Bytes(),
+					Delay:  delay,
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+	return imageBuffer
 }
 
 // GenerateArcScreenImage handles generation or arc screen image
@@ -850,31 +959,33 @@ func loadImage(imagePath string, format uint8) {
 			}
 		}
 		break
-	case ImageFormatGif: // Gif
-		{
-			var src *gif.GIF
-			src, err = gif.DecodeAll(file)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Error decoding gif animation")
-				return
-			}
-			imageBuffer = make([]Frames, len(src.Image))
+		/*
+			case ImageFormatGif: // Gif
+				{
+					var src *gif.GIF
+					src, err = gif.DecodeAll(file)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Error decoding gif animation")
+						return
+					}
+					imageBuffer = make([]Frames, len(src.Image))
 
-			for i, frame := range src.Image {
-				var buffer bytes.Buffer
-				resized := common.ResizeImage(frame, imgWidth, imgHeight)
-				err = jpeg.Encode(&buffer, resized, nil)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
-					continue
+					for i, frame := range src.Image {
+						var buffer bytes.Buffer
+						resized := common.ResizeImage(frame, imgWidth, imgHeight)
+						err = jpeg.Encode(&buffer, resized, nil)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
+							continue
+						}
+						imageBuffer[i] = Frames{
+							Buffer: buffer.Bytes(),
+							Delay:  float64(src.Delay[i]) * 10, // Multiply by 10 to get frame delay in milliseconds
+						}
+					}
 				}
-				imageBuffer[i] = Frames{
-					Buffer: buffer.Bytes(),
-					Delay:  float64(src.Delay[i]) * 10, // Multiply by 10 to get frame delay in milliseconds
-				}
-			}
-		}
-		break
+				break
+		*/
 	}
 
 	imageList := &ImageData{

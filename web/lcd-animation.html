@@ -1,0 +1,109 @@
+{{ define "lcd-animation" }}
+{{ $animation := index .LCDProfiles 102 }}
+{{ $lcdSensors := .LCDSensors }}
+{{ $root := . }}
+<div class="col-md-2">
+    <div class="card mb-2">
+        <div class="card-header border-bottom border-dash-dark-1">{{ $animation.Name }}</div>
+        <div class="card-body">
+            <table style="width: 100%;">
+                <tbody>
+                <tr>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtBackground" }}</th>
+                    <th style="width: 50%">
+                        <select class="form-select backgroundImage" id="backgroundImage_{{ $animation.Id }}" style="width: auto;float: right;">
+                            {{ range $k, $v := $animation.Images }}
+                            {{ if eq $k $animation.Background }}
+                            <option value="{{ $k }}" selected>{{ $k }}</option>
+                            {{ else }}
+                            <option value="{{ $k }}">{{ $k }}</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtMargin" }}</th>
+                    <th style="width: 50%">
+                        <input class="form-control" id="margin_{{ $animation.Id }}" type="text" value="{{ $animation.Margin }}">
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 50%;height:50px;">
+                        {{ .Lang "txtWorkers" }}
+                        <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy lcdWorkersInfo"></i>
+                    </th>
+                    <th style="width: 50%">
+                        <input class="form-control" id="workers_{{ $animation.Id }}" type="text" value="{{ $animation.Workers }}">
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 50%;height:50px;">
+                        {{ .Lang "txtFrameDelay" }}
+                        <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy lcdFrameDelayInfo"></i>
+                    </th>
+                    <th style="width: 50%">
+                        <input class="form-control" id="frameDelay_{{ $animation.Id }}" type="text" value="{{ $animation.FrameDelay }}">
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 50%;height:50px;">{{ .Lang "txtSeparatorColor" }}</th>
+                    <th style="width: 50%">
+                        <input type="color" id="separatorColor_{{ $animation.Id }}" value="{{ $animation.SeparatorColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {{ range $key, $value := $animation.Sensors }}
+        <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+            <span style="text-align: center;font-weight: bold;">
+                {{ $value.Name }}
+            </span>
+
+            <table style="width: 100%;">
+                <tbody>
+                <tr>
+                    <th style="width: 50%;height:50px;">{{ $root.Lang "txtEnable" }}</th>
+                    <th style="width: 50%">
+                        {{ if $value.Enabled }}
+                        <input class="form-check-input" id="sensorEnabled_{{ $key }}_{{ $animation.Id }}" type="checkbox" style="float: right;" checked>
+                        {{ else }}
+                        <input class="form-check-input" id="sensorEnabled_{{ $key }}_{{ $animation.Id }}" type="checkbox" style="float: right;">
+                        {{ end }}
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 50%;height:50px;">{{ $root.Lang "txtSensor" }}</th>
+                    <th style="width: 50%">
+                        <select class="form-select sensorType" id="sensorType_{{ $key }}_{{ $animation.Id }}" style="width: auto;float: right;">
+                            {{ range $k, $v := $lcdSensors }}
+                            {{ if eq $k $value.Sensor }}
+                            <option value="{{ $k }}" selected>{{ $v }}</option>
+                            {{ else }}
+                            <option value="{{ $k }}">{{ $v }}</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 50%;height:50px;">{{ $root.Lang "txtTextColor" }}</th>
+                    <th style="width: 50%">
+                        <input type="color" id="textColor_{{ $key }}_{{ $animation.Id }}" value="{{ $value.TextColor.Hex }}" style="float: right;">
+                    </th>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        {{ end }}
+
+        <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+            <div class="input-group">
+                <button class="btn btn-primary saveAnimationProfile" data-info="{{ $animation.Id }}">{{ .Lang "txtSaveProfile" }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

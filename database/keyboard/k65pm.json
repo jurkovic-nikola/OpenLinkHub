@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k65pm-default",
@@ -190,7 +190,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide3"
+          "css": "keyboard-key wide3",
+          "colorOffOnModifier": true
         },
         "15": {
           "keyName": "Logo",
@@ -286,7 +287,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "22": {
           "keyName": "Y",
@@ -299,7 +301,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "23": {
           "keyName": "U",
@@ -312,7 +315,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "24": {
           "keyName": "I",
@@ -325,7 +329,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "25": {
           "keyName": "O",
@@ -338,7 +343,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "26": {
           "keyName": "P",
@@ -422,7 +428,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide"
+          "css": "keyboard-key wide",
+          "colorOffOnModifier": true
         },
         "32": {
           "keyName": "A",
@@ -487,7 +494,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "37": {
           "keyName": "H",
@@ -500,7 +508,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "38": {
           "keyName": "J",
@@ -513,7 +522,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "39": {
           "keyName": "K",
@@ -526,7 +536,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "40": {
           "keyName": "L",
@@ -579,7 +590,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide3"
+          "css": "keyboard-key wide3",
+          "colorOffOnModifier": true
         },
         "44": {
           "keyName": "PG UP",
@@ -610,7 +622,8 @@
             "green": 255,
             "blue": 0
           },
-          "css": "keyboard-key wide3"
+          "css": "keyboard-key wide3",
+          "colorOffOnModifier": true
         },
         "46": {
           "keyName": "Z",
@@ -649,7 +662,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "49": {
           "keyName": "V",
@@ -662,7 +676,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "50": {
           "keyName": "B",
@@ -675,7 +690,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "51": {
           "keyName": "N",
@@ -688,7 +704,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "52": {
           "keyName": "M",
@@ -701,7 +718,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "53": {
           "keyName": ", <",
@@ -714,7 +732,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "54": {
           "keyName": ". >",
@@ -754,7 +773,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide"
+          "css": "keyboard-key wide",
+          "colorOffOnModifier": true
         },
         "57": {
           "keyName": "↑",
@@ -798,7 +818,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide"
+          "css": "keyboard-key wide",
+          "colorOffOnModifier": true
         },
         "60": {
           "keyName": "Win",
@@ -825,7 +846,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide"
+          "css": "keyboard-key wide",
+          "colorOffOnModifier": true
         },
         "62": {
           "keyName": "SPACE",
@@ -839,7 +861,8 @@
             "green": 255,
             "blue": 255
           },
-          "css": "keyboard-key wide6"
+          "css": "keyboard-key wide6",
+          "colorOffOnModifier": true
         },
         "63": {
           "keyName": "ALT",
@@ -852,7 +875,8 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "colorOffOnModifier": true
         },
         "64": {
           "keyName": "FN",

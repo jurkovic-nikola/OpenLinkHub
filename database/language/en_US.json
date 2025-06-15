@@ -279,6 +279,10 @@
     "txtUnableToGetAssignmentsTypes": "Unable to get assignments types",
     "txtUnableToGetKeyboardPerformance": "Unable to get keyboard performance",
     "txtKeyboardPerformanceUpdated": "Keyboard performance is successfully updated",
-    "txtUnableToSetKeyboardPerformance": "Unable to set keyboard performance"
+    "txtUnableToSetKeyboardPerformance": "Unable to set keyboard performance",
+    "txtWorkers": "Workers",
+    "txtInvalidWorkers": "Workers can be defined from 1-8",
+    "txtFrameDelay": "Frame Delay",
+    "txtInvalidFrameDelay": "Invalid frame delay"
   }
 }

@@ -70,6 +70,7 @@ type DeviceProfile struct {
 	OriginalBrightness uint8
 	RGBProfiles        map[int]string
 	Labels             map[int]string
+	MultiRGB           string
 }
 
 type Device struct {
@@ -187,6 +188,7 @@ func Init(device, product string) *Device {
 	d.setAutoRefresh()      // Set auto device refresh
 	d.saveDeviceProfile()   // Save profile
 	d.setDeviceColor()      // Device color
+	d.setTemperatures()     // Initial temp
 	d.getTemperatureProbe() // Devices with temperature value
 	return d
 }
@@ -849,6 +851,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
+		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -969,6 +972,17 @@ func (d *Device) setDeviceColor() {
 	if lightChannels == 0 {
 		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
 		return
+	}
+
+	// Reset
+	for _, k := range keys {
+		static := map[int][]byte{}
+		for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+			static[i] = []byte{byte(0), byte(0), byte(0)}
+		}
+		buffer = rgb.SetColor(static)
+		d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
+		time.Sleep(5 * time.Millisecond)
 	}
 
 	if d.isRgbStatic() {
@@ -1308,6 +1322,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	if channelId < 0 {
+		d.DeviceProfile.MultiRGB = profile
 		for _, device := range d.Devices {
 			if device.LedChannels > 0 {
 				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile

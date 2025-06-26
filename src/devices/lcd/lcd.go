@@ -174,7 +174,7 @@ func Init() {
 	// Animations
 	InitAnimation()
 
-	for i, _ := range lcdSensors {
+	for i := range lcdSensors {
 		sensorTextCache[i] = strings.ToUpper(lcdSensors[i])
 	}
 }

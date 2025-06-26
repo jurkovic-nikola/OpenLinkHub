@@ -94,4 +94,54 @@ document.addEventListener("DOMContentLoaded", function () {
         },3000);
     }
     autoRefresh();
+
+    $('.moveDown').on('click', function () {
+        const deviceId = $(this).data('info');
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["position"] = 1;
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/dashboard/position',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.moveUp').on('click', function () {
+        const deviceId = $(this).data('info');
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["position"] = 0;
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/dashboard/position',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

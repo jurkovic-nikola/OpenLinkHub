@@ -20,6 +20,7 @@ import (
 	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/nightsabreW"
+	"OpenLinkHub/src/devices/sabrergbproW"
 	"OpenLinkHub/src/devices/scimitarSEW"
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/logger"
@@ -206,6 +207,11 @@ func (d *Device) StopDirty() uint8 {
 				dev.StopDirty()
 			}
 		}
+		if dev, found := value.(*sabrergbproW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
 	}
 	return 1
 }
@@ -291,6 +297,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*m65rgbultraW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*sabrergbproW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -551,6 +562,11 @@ func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16
 				device.ModifyBatteryLevel(batteryLevel)
 			}
 		}
+		if device, found := dev.(*sabrergbproW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
 	}
 }
 
@@ -623,6 +639,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*sabrergbproW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -690,6 +711,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*m65rgbultraW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*sabrergbproW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -770,6 +796,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*sabrergbproW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -871,6 +902,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
+				if device, found := pairedDevice.(*sabrergbproW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+					}
+				}
 			}
 			break
 		case 2:
@@ -949,6 +986,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+					}
+				}
+				if device, found := pairedDevice.(*sabrergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
@@ -1168,12 +1211,12 @@ func (d *Device) backendListener() {
 								}
 								if dev, found := value.(*scimitarW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*scimitarSEW.Device); found {
 									if data[1] == 0x02 {
-										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]), d.Serial)
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}
 								}
 								if dev, found := value.(*nightsabreW.Device); found {
@@ -1207,6 +1250,11 @@ func (d *Device) backendListener() {
 									}
 								}
 								if dev, found := value.(*m65rgbultraW.Device); found {
+									if data[1] == 0x02 {
+										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
+									}
+								}
+								if dev, found := value.(*sabrergbproW.Device); found {
 									if data[1] == 0x02 {
 										dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[2:6]))
 									}

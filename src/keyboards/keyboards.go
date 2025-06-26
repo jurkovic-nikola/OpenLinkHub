@@ -17,17 +17,18 @@ var (
 )
 
 type Keyboard struct {
-	Version        int           `json:"version"`
-	Key            string        `json:"key"`
-	Device         string        `json:"device"`
-	Layout         string        `json:"layout"`
-	BufferSize     int           `json:"bufferSize"`
-	Rows           int           `json:"rows"`
-	Row            map[int]Row   `json:"row"`
-	Zones          map[int]Zones `json:"zones"`
-	Color          rgb.Color     `json:"color"`
-	UppercaseClass string        `json:"uppercaseClass"`
-	FontSize       int           `json:"fontSize"`
+	Version          int           `json:"version"`
+	Key              string        `json:"key"`
+	Device           string        `json:"device"`
+	Layout           string        `json:"layout"`
+	BufferSize       int           `json:"bufferSize"`
+	Rows             int           `json:"rows"`
+	Row              map[int]Row   `json:"row"`
+	Zones            map[int]Zones `json:"zones"`
+	Color            rgb.Color     `json:"color"`
+	UppercaseClass   string        `json:"uppercaseClass"`
+	FontSize         int           `json:"fontSize"`
+	ModifierPosition uint8         `json:"modifierPosition"`
 }
 
 type Zones struct {
@@ -41,34 +42,50 @@ type Row struct {
 }
 
 type Key struct {
-	KeyName            string    `json:"keyName"`
-	Width              int       `json:"width"`
-	Height             int       `json:"height"`
-	Left               int       `json:"left"`
-	Top                int       `json:"top"`
-	PacketIndex        []int     `json:"packetIndex"`
-	Color              rgb.Color `json:"color"`
-	Zone               int       `json:"zone"`
-	Svg                bool      `json:"svg"`
-	Spacing            []int     `json:"spacing"`
-	Css                string    `json:"css"`
-	ExtraCss           string    `json:"extraCss"`
-	KeyEmpty           []string  `json:"keyEmpty"`
-	KeySpace           string    `json:"keySpace"`
-	KeyData            []uint16  `json:"keyData"`
-	CustomKeyData      byte      `json:"customKeyData"`
-	Default            bool      `json:"default"`
-	NoColor            bool      `json:"noColor"`
-	KeyHash            []string  `json:"keyHash"`
-	ActionType         uint8     `json:"actionType"`
-	ActionCommand      uint16    `json:"actionCommand"`
-	ActionHold         bool      `json:"actionHold"`
-	OnlyColor          bool      `json:"onlyColor"`
-	IsLock             bool      `json:"isLock"`
-	HalfKey            bool      `json:"halfKey"`
-	HalfKeyStart       bool      `json:"halfKeyStart"`
-	HalfKeyEnd         bool      `json:"halfKeyEnd"`
-	ColorOffOnModifier bool      `json:"colorOffOnModifier"`
+	KeyName                       string    `json:"keyName"`
+	SubKeyName                    string    `json:"subKeyName"`
+	KeyNameInternal               string    `json:"keyNameInternal"`
+	Width                         int       `json:"width"`
+	Height                        int       `json:"height"`
+	Left                          int       `json:"left"`
+	Top                           int       `json:"top"`
+	PacketIndex                   []int     `json:"packetIndex"`
+	Color                         rgb.Color `json:"color"`
+	Zone                          int       `json:"zone"`
+	Svg                           bool      `json:"svg"`
+	Spacing                       []int     `json:"spacing"`
+	Css                           string    `json:"css"`
+	ExtraCss                      string    `json:"extraCss"`
+	KeyEmpty                      []string  `json:"keyEmpty"`
+	KeySpace                      string    `json:"keySpace"`
+	KeyData                       []uint16  `json:"keyData"`
+	CustomKeyData                 byte      `json:"customKeyData"`
+	Default                       bool      `json:"default"`
+	NoColor                       bool      `json:"noColor"`
+	KeyHash                       []string  `json:"keyHash"`
+	ActionType                    uint8     `json:"actionType"`
+	ActionCommand                 uint16    `json:"actionCommand"`
+	ActionHold                    bool      `json:"actionHold"`
+	OnlyColor                     bool      `json:"onlyColor"`
+	IsLock                        bool      `json:"isLock"`
+	HalfKey                       bool      `json:"halfKey"`
+	HalfKeyStart                  bool      `json:"halfKeyStart"`
+	HalfKeyEnd                    bool      `json:"halfKeyEnd"`
+	ColorOffOnFunctionKey         bool      `json:"colorOffOnFunctionKey"`
+	ColorOffOnFunctionKeyInternal bool      `json:"colorOffOnFunctionKeyInternal"`
+	Modifier                      bool      `json:"modifier"`
+	FunctionKey                   bool      `json:"functionKey"`
+	ModifierKey                   uint8     `json:"modifierKey"`
+	BrightnessKey                 bool      `json:"brightnessKey"`
+	ProfileKey                    bool      `json:"profileKey"`
+	MacroRecordingKey             bool      `json:"macroRecordingKey"`
+	MediaKey                      bool      `json:"mediaKey"`
+	RgbKey                        bool      `json:"rgbKey"`
+	FnActionType                  uint8     `json:"fnActionType"`
+	FnActionCommand               uint16    `json:"fnActionCommand"`
+	ModifierPacketValue           uint8     `json:"modifierPacketValue"`
+	ModifierShift                 byte      `json:"modifierShift"`
+	RetainOriginal                bool      `json:"retainOriginal"`
 }
 
 // Init will load and initialize keyboard data

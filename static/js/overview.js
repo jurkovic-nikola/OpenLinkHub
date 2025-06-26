@@ -65,6 +65,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function fetchAssignmentModifiers(deviceId, selectedType, callback) {
+        $.ajax({
+            url: '/api/keyboard/assignmentsModifiers/' + deviceId,
+            type: 'GET',
+            cache: false,
+            success: function(response) {
+                let optionTypes = '';
+                $.each(response.data, function(key, value) {
+                    optionTypes += `<option value="${key}" ${parseInt(selectedType) === parseInt(key) ? 'selected' : ''}>${value}</option>`;
+                });
+                callback(optionTypes);
+            }
+        });
+    }
+
 
     $('.keyboardPerformance').on('click', function () {
         const deviceId = $("#deviceId").val();
@@ -211,6 +226,44 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     }
+
+    function noKeyAssignments(deviceId, keyId) {
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyId"] = parseInt(keyId);
+        const json = JSON.stringify(pf, null, 2);
+
+        return new Promise((noChange, allowChange) => {
+            $.ajax({
+                url: '/api/keyboard/getKey/',
+                type: 'POST',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1 && response.data.functionKey === true) {
+                            noChange(true);
+                        } else {
+                            noChange(false);
+                        }
+                    } catch (err) {
+                        noChange(false);
+                    }
+                },
+                error: function() {
+                    noChange(false);
+                }
+            });
+        });
+    }
+
+    $('.device-selectable').click(function () {
+        $(this).toggleClass('device-selected');
+        const deviceSelected = $('.device-selectable.device-selected').map(function () {
+            return $(this).data('info');
+        }).get();
+        $('#selectedDevices').val(deviceSelected.length ? deviceSelected.join(',') : '');
+    });
 
     $('.openKeyAssignments').on('click', function () {
         if (globalKeyId === 0) {
@@ -509,6 +562,349 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.openKeyAssignmentsWithModifier').on('click', function () {
+        if (globalKeyId === 0) {
+            toast.warning('Select a valid key');
+            return false;
+        }
+
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyId"] = parseInt(globalKeyId);
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/keyboard/getKey/',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        let data = response.data;
+                        if (data.onlyColor === true) {
+                            toast.warning('This object does not support Key Assignments');
+                            return false;
+                        }
+
+                        let defaultCheckbox ='';
+                        if (data.default === true) {
+                            defaultCheckbox = '<input id="default" type="checkbox" checked/>';
+                        } else {
+                            defaultCheckbox = '<input id="default" type="checkbox"/>';
+                        }
+
+                        let holdCheckbox ='';
+                        if (data.actionHold === true) {
+                            holdCheckbox = '<input id="pressAndHold" type="checkbox" checked/>';
+                        } else {
+                            holdCheckbox = '<input id="pressAndHold" type="checkbox"/>';
+                        }
+
+                        let retainCheckbox ='';
+                        if (data.retainOriginal === true) {
+                            retainCheckbox = '<input id="retainOriginal" type="checkbox" checked/>';
+                        } else {
+                            retainCheckbox = '<input id="retainOriginal" type="checkbox"/>';
+                        }
+
+                        let modalElement = `
+                          <div class="modal fade text-start" id="setupKeyAssignments" tabindex="-1" aria-labelledby="setupKeyAssignments">
+                            <div class="modal-dialog modal-dialog-1000">
+                              <div class="modal-content" style="width: 1000px;">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
+                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                  <form>
+                                    <div class="mb-3">
+                                        <table class="table mb-0">
+                                            <thead>
+                                            <tr>
+                                                <th style="text-align: left;">Key</th>
+                                                <th>
+                                                    Default
+                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
+                                                </th>
+                                                <th>
+                                                    Press and Hold
+                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                                </th>
+                                                <th>
+                                                    Original
+                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy originalInfoToggle"></i>
+                                                </th>
+                                                <th>Modifier</th>
+                                                <th>Type</th>
+                                                <th>Value</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <th scope="row" style="text-align: left;">${data.keyName}</th>
+                                                <td>${defaultCheckbox}</td>
+                                                <td>${holdCheckbox}</td>
+                                                <td>${retainCheckbox}</td>
+                                                <td><select class="form-select keyAssignmentModifier" id="keyAssignmentModifier"></select></td>
+                                                <td><select class="form-select keyAssignmentType" id="keyAssignmentType"></select></td>
+                                                <td><select class="form-select" id="keyAssignmentValue"></select></td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                  </form>
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveKeyAssignments">Save</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+                        const keyAssignmentValue = modal.find("#keyAssignmentValue");
+
+                        // Fetch assignment types
+                        fetchAssignmentTypes(deviceId, data.actionType, function(optionTypes) {
+                            modal.find('#keyAssignmentType').html(optionTypes);
+                        });
+
+                        fetchAssignmentModifiers(deviceId, data.modifierKey, function(optionTypes) {
+                            modal.find('#keyAssignmentModifier').html(optionTypes);
+                        });
+
+                        if (parseInt(data.actionType) === 0) {
+                            $(keyAssignmentValue).empty();
+                            $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
+                        } else {
+                            let url = '';
+                            switch (data.actionType) {
+                                case 1: {
+                                    url = '/api/input/media';
+                                }
+                                    break;
+                                case 3: {
+                                    url = '/api/input/keyboard';
+                                }
+                                    break;
+                                case 9: {
+                                    url = '/api/input/mouse';
+                                }
+                                    break;
+                                case 10: {
+                                    url = '/api/macro/';
+                                }
+                                    break;
+                            }
+
+                            $.ajax({
+                                url:url,
+                                type:'get',
+                                success:function(result){
+                                    $(keyAssignmentValue).empty();
+                                    $.each(result.data, function( index, value ) {
+                                        const displayName = value.Name || value.name;
+                                        $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                    });
+                                }
+                            });
+                        }
+
+                        modal.find('#keyAssignmentType').on('change', function () {
+                            const selectedValue = parseInt($(this).val());
+                            switch (selectedValue) {
+                                case 0: {
+                                    $(keyAssignmentValue).empty();
+                                    $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
+                                }
+                                    break;
+                                case 1: { // Media keys
+                                    $.ajax({
+                                        url:'/api/input/media',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                    break;
+                                case 3: { // Keyboard
+                                    $.ajax({
+                                        url:'/api/input/keyboard',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                    break;
+                                case 9: { // Mouse
+                                    $.ajax({
+                                        url:'/api/input/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                    break;
+                                case 10: { // Macro
+                                    $.ajax({
+                                        url:'/api/macro/',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                    break;
+                            }
+                        });
+
+                        modal.find('.defaultInfoToggle').on('click', function () {
+                            const modalDefault = `
+                                <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="infoToggleLabel">Keyboard Default Action</h5>
+                                                <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <span>When enabled, the keyboard performs its default key action. This checkbox ignores all user custom assignments.</span>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            const infoDefault = $(modalDefault).modal('toggle');
+                            infoDefault.on('hidden.bs.modal', function () {
+                                infoDefault.data('bs.modal', null);
+                            })
+                        });
+
+                        modal.find('.pressAndHoldInfoToggle').on('click', function () {
+                            const modalPressAndHold = `
+                                <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                                                <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <span>When enabled, the keyboard continuously sends action until the key is released.</span>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+                            infoPressAndHold.on('hidden.bs.modal', function () {
+                                infoPressAndHold.data('bs.modal', null);
+                            })
+                        });
+
+                        modal.find('.originalInfoToggle').on('click', function () {
+                            const modalPressAndHold = `
+                                <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                                                <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <span>When enabled, the original key is sent first, following the user-defined value.</span>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+                            infoPressAndHold.on('hidden.bs.modal', function () {
+                                infoPressAndHold.data('bs.modal', null);
+                            })
+                        });
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveKeyAssignments').on('click', function () {
+                                const enabled = modal.find("#default").is(':checked');
+                                const pressAndHold = modal.find("#pressAndHold").is(':checked');
+                                const retainOriginal = modal.find("#retainOriginal").is(':checked');
+                                const keyAssignmentModifier = modal.find("#keyAssignmentModifier").val();
+                                const keyAssignmentType = modal.find("#keyAssignmentType").val();
+                                const keyAssignmentValue = modal.find("#keyAssignmentValue").val();
+
+                                const pf = {};
+                                pf["deviceId"] = deviceId;
+                                pf["keyIndex"] = parseInt(globalKeyId);
+                                pf["enabled"] = enabled;
+                                pf["pressAndHold"] = pressAndHold;
+                                pf["keyAssignmentOriginal"] = retainOriginal;
+                                pf["keyAssignmentModifier"] = parseInt(keyAssignmentModifier);
+                                pf["keyAssignmentType"] = parseInt(keyAssignmentType);
+                                pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/keyboard/updateKeyAssignment',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                const modalElement = $("#setupKeyAssignments");
+                                                $(modalElement).modal('hide');
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 
     $('.userProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
@@ -985,13 +1381,61 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('.globalRgb').on('change', function () {
+    $('.globalTempProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val();
+        const selectedDevices = $("#selectedDevices").val();
+        let selectedDevicesArray = [];
+        if (selectedDevices.length > 0) {
+            selectedDevicesArray = selectedDevices
+                .split(',')
+                .map(str => parseInt(str.trim(), 10))
+                .filter(num => !isNaN(num)); // Ensure valid numbers only
+        }
 
         const pf = {};
         pf["deviceId"] = deviceId;
         pf["channelId"] = -1;
+        pf["channelIds"] = selectedDevicesArray;
+        pf["profile"] = profile;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/speed',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.globalRgb').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const profile = $(this).val();
+        const selectedDevices = $("#selectedDevices").val();
+        let selectedDevicesArray = [];
+        if (selectedDevices.length > 0) {
+            selectedDevicesArray = selectedDevices
+                .split(',')
+                .map(str => parseInt(str.trim(), 10))
+                .filter(num => !isNaN(num)); // Ensure valid numbers only
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = -1;
+        pf["channelIds"] = selectedDevicesArray;
         pf["profile"] = profile;
 
         const json = JSON.stringify(pf, null, 2);
@@ -1492,6 +1936,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 $(".keyColorArea").show();
             }
         });
+
+        noKeyAssignments(deviceId, keyId).then(result => {
+            if (result) {
+                $(".keyAssignmentsArea").hide();
+            } else {
+                $(".keyAssignmentsArea").show();
+            }
+        });
+
         const colorR = parseInt(keyInfo[1]);
         const colorG = parseInt(keyInfo[2]);
         const colorB = parseInt(keyInfo[3]);

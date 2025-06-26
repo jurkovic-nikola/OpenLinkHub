@@ -277,12 +277,15 @@
     "txtNoKeyboardKeyData": "Unable to get keyboard key data",
     "txtInvalidDeviceId": "Invalid device ID",
     "txtUnableToGetAssignmentsTypes": "Unable to get assignments types",
+    "txtUnableToGetAssignmentsModifiers": "Unable to get assignments modifiers",
     "txtUnableToGetKeyboardPerformance": "Unable to get keyboard performance",
     "txtKeyboardPerformanceUpdated": "Keyboard performance is successfully updated",
     "txtUnableToSetKeyboardPerformance": "Unable to set keyboard performance",
     "txtWorkers": "Workers",
     "txtInvalidWorkers": "Workers can be defined from 1-8",
     "txtFrameDelay": "Frame Delay",
-    "txtInvalidFrameDelay": "Invalid frame delay"
+    "txtInvalidFrameDelay": "Invalid frame delay",
+    "txtUnableToChangeDevicePosition": "Unable to change device position",
+    "txtDevicePositionChanged": "Device position is successfully changed"
   }
 }

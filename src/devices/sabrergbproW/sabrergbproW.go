@@ -1,7 +1,7 @@
-package scimitarSEW
+package sabrergbproW
 
-// Package: CORSAIR SCIMITAR ELITE WIRELESS SE
-// This is the primary package for CORSAIR SCIMITAR ELITE WIRELESS SE.
+// Package: CORSAIR SABRE RGB PRO WIRELESS
+// This is the primary package for CORSAIR SABRE RGB PRO WIRELESS.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -119,7 +119,7 @@ var (
 	bufferSizeWrite           = bufferSize + 1
 	headerSize                = 2
 	headerWriteSize           = 4
-	keyAmount                 = 17
+	keyAmount                 = 7
 	minDpiValue               = 100
 	maxDpiValue               = 26000
 )
@@ -131,7 +131,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	// Init new struct with HID device
 	d := &Device{
 		dev:          dev,
-		Template:     "scimitarSEW.html",
+		Template:     "sabrergbproW.html",
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
@@ -144,7 +144,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "SCIMITAR ELITE SE",
+		Product: "SABRE RGB PRO",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -164,7 +164,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			10: "Macro",
 		},
 		InputActions:      inputmanager.GetInputActions(),
-		keyAssignmentFile: "/database/key-assignments/scimitar.json",
+		keyAssignmentFile: "/database/key-assignments/sabrergbpro.json",
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -711,19 +711,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Label = "Mouse"
 		deviceProfile.Active = true
 		deviceProfile.ZoneColors = map[int]ZoneColors{
-			0: { // Side
-				ColorIndex: []int{1, 5, 9},
-				Color: &rgb.Color{
-					Red:        255,
-					Green:      255,
-					Blue:       0,
-					Brightness: 1,
-					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
-				},
-				Name: "Side",
-			},
-			1: { // Logo
-				ColorIndex: []int{0, 4, 8},
+			0: { // Logo
+				ColorIndex: []int{0, 3, 6},
 				Color: &rgb.Color{
 					Red:        255,
 					Green:      255,
@@ -740,7 +729,7 @@ func (d *Device) saveDeviceProfile() {
 				Value:       400,
 				PackerIndex: 1,
 				ColorIndex: map[int][]int{
-					0: {2, 6, 10},
+					0: {1, 4, 7},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -755,7 +744,7 @@ func (d *Device) saveDeviceProfile() {
 				Value:       800,
 				PackerIndex: 2,
 				ColorIndex: map[int][]int{
-					0: {2, 6, 10},
+					0: {1, 4, 7},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -770,7 +759,7 @@ func (d *Device) saveDeviceProfile() {
 				Value:       1200,
 				PackerIndex: 3,
 				ColorIndex: map[int][]int{
-					0: {2, 6, 10},
+					0: {1, 4, 7},
 				},
 				Color: &rgb.Color{
 					Red:        0,
@@ -785,7 +774,7 @@ func (d *Device) saveDeviceProfile() {
 				Value:       1600,
 				PackerIndex: 4,
 				ColorIndex: map[int][]int{
-					0: {2, 6, 10},
+					0: {1, 4, 7},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -800,7 +789,7 @@ func (d *Device) saveDeviceProfile() {
 				Value:       3200,
 				PackerIndex: 5,
 				ColorIndex: map[int][]int{
-					0: {2, 6, 10},
+					0: {1, 4, 7},
 				},
 				Color: &rgb.Color{
 					Red:        0,
@@ -843,7 +832,6 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.KeyAssignmentHash = d.DeviceProfile.KeyAssignmentHash
-
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -970,99 +958,29 @@ func (d *Device) loadKeyAssignments() {
 		}
 	} else {
 		var keyAssignment = map[int]inputmanager.KeyAssignment{
-			65536: {
-				Name:          "Side Button 12",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 19,
-				ActionHold:    false,
-			},
-			32768: {
-				Name:          "Side Button 11",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 18,
-				ActionHold:    false,
-			},
-			16384: {
-				Name:          "Side Button 10",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 17,
-				ActionHold:    false,
-			},
-			8192: {
-				Name:          "Side Button 9",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 16,
-				ActionHold:    false,
-			},
-			4096: {
-				Name:          "Side Button 8",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 15,
-				ActionHold:    false,
-			},
-			2048: {
-				Name:          "Side Button 7",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 14,
-				ActionHold:    false,
-			},
-			1024: {
-				Name:          "Side Button 6",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 13,
-				ActionHold:    false,
-			},
-			512: {
-				Name:          "Side Button 5",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 12,
-				ActionHold:    false,
-			},
-			256: {
-				Name:          "Side Button 4",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 11,
-				ActionHold:    false,
-			},
-			128: {
-				Name:          "Side Button 3",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 10,
-				ActionHold:    false,
-			},
 			64: {
-				Name:          "Side Button 2",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 9,
-				ActionHold:    false,
-			},
-			32: {
-				Name:          "Side Button 1",
-				Default:       false,
-				ActionType:    3,
-				ActionCommand: 8,
-				ActionHold:    false,
-			},
-			16: {
 				Name:          "Profile Switch",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
-			8: {
+			32: {
 				Name:          "DPI Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			16: {
+				Name:          "Back Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+			8: {
+				Name:          "Forward Button",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
@@ -1671,7 +1589,7 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 		}
 
 		if isPressed {
-			if mask == 0x08 && val.Default {
+			if mask == 0x20 && val.Default {
 				d.ModifyDpi()
 				continue
 			}

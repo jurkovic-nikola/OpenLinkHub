@@ -17,13 +17,15 @@ import (
 )
 
 type KeyAssignment struct {
-	Name          string `json:"name"`
-	Default       bool   `json:"default"`
-	ActionType    uint8  `json:"actionType"`
-	ActionCommand uint16 `json:"actionCommand"`
-	ActionHold    bool   `json:"actionHold"`
-	ButtonIndex   int    `json:"buttonIndex"`
-	IsMacro       bool   `json:"isMacro"`
+	Name           string `json:"name"`
+	Default        bool   `json:"default"`
+	ActionType     uint8  `json:"actionType"`
+	ActionCommand  uint16 `json:"actionCommand"`
+	ActionHold     bool   `json:"actionHold"`
+	ButtonIndex    int    `json:"buttonIndex"`
+	IsMacro        bool   `json:"isMacro"`
+	ModifierKey    uint8  `json:"modifierKey"`
+	RetainOriginal bool   `json:"retainOriginal"`
 }
 
 type InputAction struct {
@@ -179,6 +181,18 @@ const (
 	KpMultiply     uint16 = 109
 	KpDivide       uint16 = 110
 	KpEnter        uint16 = 111
+	KeyF13         uint16 = 112
+	KeyF14         uint16 = 113
+	KeyF15         uint16 = 114
+	KeyF16         uint16 = 115
+	KeyF17         uint16 = 116
+	KeyF18         uint16 = 117
+	KeyF19         uint16 = 118
+	KeyF20         uint16 = 119
+	KeyF21         uint16 = 120
+	KeyF22         uint16 = 121
+	KeyF23         uint16 = 122
+	KeyF24         uint16 = 123
 )
 
 var (
@@ -214,6 +228,18 @@ var (
 	keyF10                 uint16 = 0x44
 	keyF11                 uint16 = 0x57
 	keyF12                 uint16 = 0x58
+	keyF13                 uint16 = 0xB7
+	keyF14                 uint16 = 0xB8
+	keyF15                 uint16 = 0xB9
+	keyF16                 uint16 = 0xBA
+	keyF17                 uint16 = 0xBB
+	keyF18                 uint16 = 0xBC
+	keyF19                 uint16 = 0xBD
+	keyF20                 uint16 = 0xBE
+	keyF21                 uint16 = 0xBF
+	keyF22                 uint16 = 0xC0
+	keyF23                 uint16 = 0xC1
+	keyF24                 uint16 = 0xC2
 	keyTilde               uint16 = 0x29
 	keyMinus               uint16 = 0xC
 	keyEqual               uint16 = 0xD
@@ -396,6 +422,18 @@ func buildInputActions() {
 	inputActions[KeyF10] = InputAction{Name: "F10", CommandCode: keyF10}
 	inputActions[KeyF11] = InputAction{Name: "F11", CommandCode: keyF11}
 	inputActions[KeyF12] = InputAction{Name: "F12", CommandCode: keyF12}
+	inputActions[KeyF13] = InputAction{Name: "F13", CommandCode: keyF13}
+	inputActions[KeyF14] = InputAction{Name: "F14", CommandCode: keyF14}
+	inputActions[KeyF15] = InputAction{Name: "F15", CommandCode: keyF15}
+	inputActions[KeyF16] = InputAction{Name: "F16", CommandCode: keyF16}
+	inputActions[KeyF17] = InputAction{Name: "F17", CommandCode: keyF17}
+	inputActions[KeyF18] = InputAction{Name: "F18", CommandCode: keyF18}
+	inputActions[KeyF19] = InputAction{Name: "F19", CommandCode: keyF19}
+	inputActions[KeyF20] = InputAction{Name: "F20", CommandCode: keyF20}
+	inputActions[KeyF21] = InputAction{Name: "F21", CommandCode: keyF21}
+	inputActions[KeyF22] = InputAction{Name: "F22", CommandCode: keyF22}
+	inputActions[KeyF23] = InputAction{Name: "F23", CommandCode: keyF23}
+	inputActions[KeyF24] = InputAction{Name: "F24", CommandCode: keyF24}
 	inputActions[KeyBack] = InputAction{Name: "Back", CommandCode: keyBack}
 	inputActions[KeyTab] = InputAction{Name: "Tab", CommandCode: keyTab}
 	inputActions[KeyEsc] = InputAction{Name: "Esc", CommandCode: keyEsc}

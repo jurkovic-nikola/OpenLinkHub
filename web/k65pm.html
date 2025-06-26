@@ -39,6 +39,9 @@
                                     <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </span>
+                                    <span title="{{ .Lang "txtPerformance" }}" class="btn btn-secondary-empty keyboardPerformance" type="button" style="margin-top: 5px;">
+                                    <i class="bi bi-speedometer svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </span>
                                     <button title="Keyboard Layout" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -138,8 +141,8 @@
                                 {{ range $index, $keys := $keyboard.Row }}
                                 <div class="{{ $device.UIKeyboardRow }}">
                                     {{ range $index, $keys := .Keys }}
-                                    {{ range $amount := $keys.Spacing }}
-                                    <div class="keyboard-key-empty"></div>
+                                    {{ range $index, $keyEmpty := $keys.KeyEmpty }}
+                                    <div class="{{ $keyEmpty }}"></div>
                                     {{ end }}
 
                                     {{ if gt (len $keys.Css) 0 }}
@@ -151,8 +154,11 @@
                                     {{ if $keys.Svg }}
                                         <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>
                                     {{ else }}
-                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);">
+                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);text-align: center;">
                                            {{ $keys.KeyName }}
+                                            {{ if gt (len $keys.SubKeyName) 0 }}
+                                            <br />{{ $keys.SubKeyName }}
+                                            {{ end }}
                                         </span>
                                     {{ end }}
                                     </div>
@@ -160,7 +166,7 @@
                                 </div>
                                 {{ end }}
                                 <div>
-                                    <div style="float: left;width: 400px;">
+                                    <div style="float: left;width: 400px;" class="keyColorArea">
                                         <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
                                         <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
                                             <option value="0">{{ .Lang "txtCurrentKey" }}</option>
@@ -189,6 +195,11 @@
                                         </button>
                                         <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
                                             <span>{{ .Lang "txtDelete" }}</span>
+                                        </button>
+                                    </div>
+                                    <div style="float: right;width: auto;" class="keyAssignmentsArea">
+                                        <button class="btn btn-secondary openKeyAssignmentsWithModifier" style="margin-top: 10px;margin-left: 10px;float: right;">
+                                            <span>{{ .Lang "txtKeyAssignments" }}</span>
                                         </button>
                                     </div>
                                 </div>

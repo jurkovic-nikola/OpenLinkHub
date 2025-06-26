@@ -398,6 +398,36 @@ func getKeyAssignmentTypes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getKeyAssignmentModifiers returns list of key assignment modifiers for keyboard
+func getKeyAssignmentModifiers(w http.ResponseWriter, r *http.Request) {
+	deviceId, valid := getVar("/api/keyboard/assignmentsModifiers/", r)
+	if !valid {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: language.GetValue("txtInvalidDeviceId"),
+		}
+		resp.Send(w)
+	} else {
+		val := devices.ProcessGetKeyAssignmentModifiers(deviceId)
+		if val == nil {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetAssignmentsModifiers"),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   val,
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // getKeyboardPerformance returns keyboard performance data
 func getKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/api/keyboard/getPerformance/", r)
@@ -716,6 +746,17 @@ func getDashboardSettings(w http.ResponseWriter, _ *http.Request) {
 // setDashboardSettings handles dashboard settings change
 func setDashboardSettings(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDashboardSettingsChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setDashboardDevicePosition handles dashboard device position change
+func setDashboardDevicePosition(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDashboardDevicePositionChange(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1056,9 +1097,10 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 
 // uiIndex handles index page
 func uiIndex(w http.ResponseWriter, _ *http.Request) {
+	deviceList := devices.GetDevices()
 	web := templates.Web{}
 	web.Title = "Device Dashboard"
-	web.Devices = devices.GetDevices()
+	web.Devices = deviceList
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
@@ -1067,14 +1109,17 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.BatteryStats = stats.GetBatteryStats()
 	web.Page = "index"
 
-	t := templates.GetTemplate()
+	// Add all devices to the list
+	dashboard.AddDeviceToOrderList(deviceList)
 
+	t := templates.GetTemplate()
 	for header := range headers {
 		w.Header().Set(headers[header].Key, headers[header].Value)
 	}
 
 	err := t.ExecuteTemplate(w, "index.html", web)
 	if err != nil {
+		fmt.Println(err)
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
 			Message: language.GetValue("txtUnableToServeWebContent"),
@@ -1355,6 +1400,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/keyInfo/", http.MethodGet, getKeyName)
 	handleFunc(r, "/api/dashboard", http.MethodGet, getDashboardSettings)
 	handleFunc(r, "/api/keyboard/assignmentsTypes/", http.MethodGet, getKeyAssignmentTypes)
+	handleFunc(r, "/api/keyboard/assignmentsModifiers/", http.MethodGet, getKeyAssignmentModifiers)
 	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
 
 	// POST
@@ -1376,6 +1422,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/brightness/gradual", http.MethodPost, changeBrightnessGradual)
 	handleFunc(r, "/api/position", http.MethodPost, changePosition)
 	handleFunc(r, "/api/dashboard/update", http.MethodPost, setDashboardSettings)
+	handleFunc(r, "/api/dashboard/position", http.MethodPost, setDashboardDevicePosition)
 	handleFunc(r, "/api/argb", http.MethodPost, setARGBDevice)
 	handleFunc(r, "/api/keyboard/color", http.MethodPost, setKeyboardColor)
 	handleFunc(r, "/api/misc/color", http.MethodPost, setMiscColor)

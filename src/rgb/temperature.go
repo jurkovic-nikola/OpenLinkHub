@@ -1,54 +1,77 @@
 package rgb
 
 import (
-	"OpenLinkHub/src/common"
 	"math"
 )
 
-// GenerateTemperatureColor will generate temperature color based on min and max temperature value and given t factor
-func GenerateTemperatureColor(c1, c2 *Color, t, brightness float64) *Color {
-	// Lerp
-	r := uint8(common.Lerp(c1.Red, c2.Red, t))
-	g := uint8(common.Lerp(c1.Green, c2.Green, t))
-	b := uint8(common.Lerp(c1.Blue, c2.Blue, t))
-
-	// Generate new color
-	endColor := Color{
-		Red:        float64(r),
-		Green:      float64(g),
-		Blue:       float64(b),
-		Brightness: brightness,
+// smoothColor smooths the color with smoothing factor
+func smoothColor(old, new *Color, smoothing float64) *Color {
+	return &Color{
+		Red:   old.Red + smoothing*(new.Red-old.Red),
+		Green: old.Green + smoothing*(new.Green-old.Green),
+		Blue:  old.Blue + smoothing*(new.Blue-old.Blue),
 	}
+}
 
-	// Brightness
-	modify := ModifyBrightness(endColor)
-	return modify
+// interpolateTemperatureColor interpolates between 2 colors
+func interpolateTemperatureColor(start, end *Color, t float64, brightness float64) *Color {
+	return &Color{
+		Red:   (start.Red + (end.Red-start.Red)*t) * brightness,
+		Green: (start.Green + (end.Green-start.Green)*t) * brightness,
+		Blue:  (start.Blue + (end.Blue-start.Blue)*t) * brightness,
+	}
 }
 
 // MapTemperatureToPercent maps a temperature value within a range to a percentage between 0 and 1
 func MapTemperatureToPercent(temp, minTemp, maxTemp float64) float64 {
 	clampedTemp := math.Max(minTemp, math.Min(maxTemp, temp))
+	if maxTemp == minTemp {
+		return 0.5
+	}
 	return (clampedTemp - minTemp) / (maxTemp - minTemp)
 }
 
-// Temperature will return color based from min/max and current temperature factor
+func (r *ActiveRGB) SmoothTemperature(currentTemp float64) float64 {
+	if r.TempAlpha == 0 {
+		r.TempAlpha = 0.1
+	}
+	if r.PreviousTemp == 0 {
+		r.PreviousTemp = currentTemp
+	}
+	r.PreviousTemp = r.PreviousTemp + r.TempAlpha*(currentTemp-r.PreviousTemp)
+	return r.PreviousTemp
+}
+
 func (r *ActiveRGB) Temperature(currentTemp float64) {
-	startColor := r.RGBStartColor
+	smoothedTemp := r.SmoothTemperature(currentTemp)
+	t := MapTemperatureToPercent(smoothedTemp, r.MinTemp, r.MaxTemp)
+	targetColor := interpolateTemperatureColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
+
+	// Initialize PreviousColor if needed
+	if r.PreviousColor == nil {
+		r.PreviousColor = &Color{
+			Red:   targetColor.Red,
+			Green: targetColor.Green,
+			Blue:  targetColor.Blue,
+		}
+	}
+
+	smoothing := 0.1 // or whatever you wish
+	smoothed := smoothColor(r.PreviousColor, targetColor, smoothing)
+	r.PreviousColor = smoothed
+
 	buf := map[int][]byte{}
-	t := MapTemperatureToPercent(currentTemp, r.MinTemp, r.MaxTemp)
-	//result := GenerateTemperatureColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBStartColor.Brightness)
-	startColor = interpolateColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
 
 	for j := 0; j < r.LightChannels; j++ {
 		if len(r.Buffer) > 0 {
-			r.Buffer[j] = byte(startColor.Red)
-			r.Buffer[j+r.ColorOffset] = byte(startColor.Green)
-			r.Buffer[j+(r.ColorOffset*2)] = byte(startColor.Blue)
+			r.Buffer[j] = byte(smoothed.Red)
+			r.Buffer[j+r.ColorOffset] = byte(smoothed.Green)
+			r.Buffer[j+(r.ColorOffset*2)] = byte(smoothed.Blue)
 		} else {
 			buf[j] = []byte{
-				byte(startColor.Red),
-				byte(startColor.Green),
-				byte(startColor.Blue),
+				byte(smoothed.Red),
+				byte(smoothed.Green),
+				byte(smoothed.Blue),
 			}
 			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {

@@ -53,6 +53,8 @@ type DeviceProfile struct {
 	LCDImages          map[int]string
 	LCDRotations       map[int]uint8
 	LCDDevices         map[int]string
+	MultiRGB           string
+	MultiProfile       string
 }
 
 type LCD struct {
@@ -320,8 +322,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
-	d.setDeviceColor() // Device color
-
+	d.setTemperatures() // Get initial temps
+	d.setDeviceColor()  // Device color
 	if d.HasLCD {
 		d.getLcdImages()
 		d.setLcdRotation() // LCD rotation
@@ -962,6 +964,8 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
+		deviceProfile.MultiProfile = d.DeviceProfile.MultiProfile
+		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
 	}
 
 	keys := make([]int, 0, len(deviceProfile.DevicePosition))
@@ -1442,6 +1446,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	}
 
 	if channelId < 0 {
+		d.DeviceProfile.MultiProfile = profile
 		// All devices
 		for _, device := range d.Devices {
 			d.Devices[device.ChannelId].Profile = profile
@@ -1452,6 +1457,71 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 			// Update channel with new profile
 			d.Devices[channelId].Profile = profile
 		}
+	}
+
+	// Save to profile
+	d.saveDeviceProfile()
+	return 1
+}
+
+// UpdateSpeedProfileBulk will update device channel speed.
+func (d *Device) UpdateSpeedProfileBulk(channelIds []int, profile string) uint8 {
+	valid := false
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		for _, device := range d.Devices {
+			if device.AIO || device.ContainsPump {
+				valid = true
+				break
+			}
+		}
+
+		if !valid {
+			return 2
+		}
+	}
+
+	if profiles.ZeroRpm && !valid {
+		return 2
+	}
+
+	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
+		if strings.HasPrefix(profiles.Device, i2cPrefix) {
+			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
+				return 5
+			}
+		} else {
+			if profiles.Device != d.Serial {
+				return 3
+			}
+
+			if _, ok := d.Devices[profiles.ChannelId]; !ok {
+				return 4
+			}
+		}
+	}
+
+	if len(channelIds) > 0 {
+		d.DeviceProfile.MultiProfile = profile
+		for _, channelId := range channelIds {
+			if _, ok := d.Devices[channelId]; ok {
+				// Update channel with new profile
+				d.Devices[channelId].Profile = profile
+			} else {
+				return 0
+			}
+		}
+	} else {
+		return 0
 	}
 
 	// Save to profile
@@ -1588,6 +1658,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	if channelId < 0 {
+		d.DeviceProfile.MultiRGB = profile
 		for _, device := range d.Devices {
 			if device.LedChannels > 0 {
 				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
@@ -1601,6 +1672,51 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		} else {
 			return 0
 		}
+	}
+
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// UpdateRgbProfileBulk will update device RGB profile on bulk selected devices
+func (d *Device) UpdateRgbProfileBulk(channelIds []int, profile string) uint8 {
+	if d.GetRgbProfile(profile) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+	hasPump := false
+
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if len(channelIds) > 0 {
+		d.DeviceProfile.MultiRGB = profile
+		for _, channelId := range channelIds {
+			if _, ok := d.Devices[channelId]; ok {
+				d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
+				d.Devices[channelId].RGB = profile
+			} else {
+				return 0
+			}
+		}
+	} else {
+		return 0
 	}
 
 	d.saveDeviceProfile() // Save profile
@@ -2456,6 +2572,9 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor.Brightness = r.RGBBrightness
 					}
 
+					r.MinTemp = profile.MinTemp
+					r.MaxTemp = profile.MaxTemp
+
 					switch d.Devices[k].RGB {
 					case "custom":
 						{
@@ -2487,22 +2606,16 @@ func (d *Device) setDeviceColor() {
 						}
 					case "liquid-temperature":
 						{
-							r.MinTemp = profile.MinTemp
-							r.MaxTemp = profile.MaxTemp
 							r.Temperature(float64(d.getLiquidTemperature()))
 							buff = append(buff, r.Output...)
 						}
 					case "cpu-temperature":
 						{
-							r.MinTemp = profile.MinTemp
-							r.MaxTemp = profile.MaxTemp
 							r.Temperature(float64(d.CpuTemp))
 							buff = append(buff, r.Output...)
 						}
 					case "gpu-temperature":
 						{
-							r.MinTemp = profile.MinTemp
-							r.MaxTemp = profile.MaxTemp
 							r.Temperature(float64(d.GpuTemp))
 							buff = append(buff, r.Output...)
 						}

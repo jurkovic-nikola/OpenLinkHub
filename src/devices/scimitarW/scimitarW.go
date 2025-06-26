@@ -1638,7 +1638,7 @@ func (d *Device) setupKeyAssignment() {
 }
 
 // TriggerKeyAssignment will trigger key assignment if defined
-func (d *Device) TriggerKeyAssignment(value uint32, serial string) {
+func (d *Device) TriggerKeyAssignment(value uint32) {
 	var bitDiff = value ^ d.ModifierIndex
 	var pressedKeys = bitDiff & value
 	var releasedKeys = bitDiff & ^value
@@ -1699,7 +1699,7 @@ func (d *Device) TriggerKeyAssignment(value uint32, serial string) {
 			case 10:
 				macroProfile := macro.GetProfile(int(val.ActionCommand))
 				if macroProfile == nil {
-					logger.Log(logger.Fields{"serial": serial}).Error("Invalid macro profile")
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
 					return
 				}
 				for i := range len(macroProfile.Actions) {

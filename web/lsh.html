@@ -19,6 +19,7 @@
         {{ $rgbStrips := .Device.RGBStrips }}
         {{ $lcdRotations := .Device.LCDRotations }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -122,7 +123,33 @@
                                                         {{ else if eq $key "custom" }}
                                                         {{ continue }}
                                                         {{ end }}
+
+                                                        {{ if eq $deviceProfile.MultiRGB $key }}
+                                                        <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                        {{ else }}
                                                         <option value="{{ $key }}">{{ $key }}</option>
+                                                        {{ end }}
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="custom-device-block">
+                                                <div class="custom-float-20-left">
+                                                    <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                </div>
+                                                <div class="custom-float-80-right">
+                                                    <select class="form-select globalTempProfile" style="line-height: 1;margin-top: 10px;">
+                                                        {{ range $key, $pf := $temperatures }}
+                                                        {{ if $pf.Hidden }}
+                                                        {{ continue }}
+                                                        {{ end }}
+
+                                                        {{ if eq $deviceProfile.MultiProfile $key }}
+                                                        <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                        {{ else }}
+                                                        <option value="{{ $key }}">{{ $key }}</option>
+                                                        {{ end }}
                                                         {{ end }}
                                                     </select>
                                                 </div>
@@ -145,7 +172,7 @@
                                 {{ range $key, $device := $devices }}
                                 {{ if eq $device.DeviceId $devId }}
                                 <div style="width: auto;">
-                                    <div class="card mb-4">
+                                    <div class="card mb-4 device-selectable" data-info="{{ $device.ChannelId }}">
                                         <div class="card-header border-bottom border-dash-dark-1">
                                             <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
                                                 {{ if $device.ContainsPump }}

@@ -180,6 +180,8 @@ type DeviceProfile struct {
 	CustomLEDs              map[int]int
 	ExternalHubDeviceType   int
 	ExternalHubDeviceAmount int
+	MultiRGB                string
+	MultiProfile            string
 }
 
 type TemperatureProbe struct {
@@ -1193,6 +1195,7 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	}
 
 	if channelId < 0 {
+		d.DeviceProfile.MultiProfile = profile
 		// All devices
 		for _, device := range d.Devices {
 			d.Devices[device.ChannelId].Profile = profile
@@ -1203,6 +1206,58 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 			// Update channel with new profile
 			d.Devices[channelId].Profile = profile
 		}
+	}
+
+	// Save to profile
+	d.saveDeviceProfile()
+	return 1
+}
+
+// UpdateSpeedProfileBulk will update device channel speed.
+func (d *Device) UpdateSpeedProfileBulk(channelIds []int, profile string) uint8 {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// Check if the profile exists
+	profiles := temperatures.GetTemperatureProfile(profile)
+	if profiles == nil {
+		return 0
+	}
+
+	// If the profile is liquid temperature, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
+		// This device does not have an option for AIO pump
+		return 2
+	}
+
+	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
+		if strings.HasPrefix(profiles.Device, i2cPrefix) {
+			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
+				return 5
+			}
+		} else {
+			if profiles.Device != d.Serial {
+				return 3
+			}
+
+			if _, ok := d.Devices[profiles.ChannelId]; !ok {
+				return 4
+			}
+		}
+	}
+
+	if len(channelIds) > 0 {
+		d.DeviceProfile.MultiProfile = profile
+		for _, channelId := range channelIds {
+			if _, ok := d.Devices[channelId]; ok {
+				// Update channel with new profile
+				d.Devices[channelId].Profile = profile
+			} else {
+				return 0
+			}
+		}
+	} else {
+		return 0
 	}
 
 	// Save to profile
@@ -1347,6 +1402,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	if channelId < 0 {
+		d.DeviceProfile.MultiRGB = profile
 		for _, device := range d.RgbDevices {
 			if device.LedChannels > 0 {
 				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
@@ -1924,6 +1980,9 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.ExternalHubDeviceType = d.DeviceProfile.ExternalHubDeviceType
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.MultiProfile = d.DeviceProfile.MultiProfile
+		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
+
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath

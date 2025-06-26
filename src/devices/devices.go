@@ -66,11 +66,14 @@ import (
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psuhid"
+	"OpenLinkHub/src/devices/sabrergbproW"
+	"OpenLinkHub/src/devices/sabrergbproWU"
 	"OpenLinkHub/src/devices/scimitar"
 	"OpenLinkHub/src/devices/scimitarSEW"
 	"OpenLinkHub/src/devices/scimitarSEWU"
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/devices/scimitarWU"
+	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/virtuosomaxW"
@@ -155,6 +158,8 @@ const (
 	productTypeScimitarRgbEliteSEWU = 229
 	productTypeM65RgbUltraW         = 230
 	productTypeM65RgbUltraWU        = 231
+	productTypeSabreRgbProWU        = 232
+	productTypeSabreRgbProW         = 233
 	productTypeVirtuosoXTW          = 300
 	productTypeVirtuosoXTWU         = 301
 	productTypeVirtuosoMAXW         = 302
@@ -192,7 +197,7 @@ var (
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7163}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7163, 7064, 7051}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667}
 	headsets2                  = []uint16{10754, 2711}
@@ -1094,6 +1099,29 @@ func UpdateSpeedProfile(deviceId string, channelId int, profile string) uint8 {
 	return 0
 }
 
+// UpdateSpeedProfileBulk will update device speeds with a given serial number and array of device ids
+func UpdateSpeedProfileBulk(deviceId string, channelIds []int, profile string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateSpeedProfileBulk"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelIds))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateManualSpeed will update device speeds with a given serial number
 func UpdateManualSpeed(deviceId string, channelId int, value uint16) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -1151,6 +1179,29 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 		} else {
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateRgbProfileBulk will update device RGB profile on bulk selected devices
+func UpdateRgbProfileBulk(deviceId string, channelIds []int, profile string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateRgbProfileBulk"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelIds))
 			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
@@ -1315,6 +1366,25 @@ func ProcessGetKeyboardKey(deviceId string, keyId int) interface{} {
 func ProcessGetKeyAssignmentTypes(deviceId string) interface{} {
 	if device, ok := devices[deviceId]; ok {
 		methodName := "ProcessGetKeyAssignmentTypes"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			results := method.Call(nil)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessGetKeyAssignmentModifiers will get keyboard key assignment modifiers
+func ProcessGetKeyAssignmentModifiers(deviceId string) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessGetKeyAssignmentModifiers"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 		if !method.IsValid() {
 			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
@@ -2534,6 +2604,26 @@ func initializeDevice(productId uint16, key, productPath string) {
 							}
 							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
 						}
+					case 7064: // CORSAIR SABRE RGB PRO WIRELESS Gaming Mouse
+						{
+							d := sabrergbproW.Init(
+								value.VendorId,
+								productId,
+								value.ProductId,
+								dev.GetDevice(),
+								value.Endpoint,
+								value.Serial,
+							)
+							devices[d.Serial] = &common.Device{
+								ProductType: productTypeSabreRgbProW,
+								Product:     "SABRE RGB PRO",
+								Serial:      d.Serial,
+								Firmware:    d.Firmware,
+								Image:       "icon-mouse.svg",
+								Instance:    d,
+							}
+							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
+						}
 					default:
 						logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 					}
@@ -2726,6 +2816,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 		{
 			go func(vendorId, productId uint16, key string) {
 				dev := scimitar.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeScimitarRgbElite,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 7051: // CORSAIR SCIMITAR RGB ELITE
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := scimitarrgbelite.Init(vendorId, productId, key)
 				if dev == nil {
 					return
 				}
@@ -2943,7 +3050,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 			}(vendorId, productId, key)
 		}
-	case 7006: // CORSAIR HARPOON RGB PRO Gaming Mouse
+	case 7006: // CORSAIR HARPOON Gaming Mouse
 		{
 			go func(vendorId, productId uint16, key string) {
 				dev := harpoonWU.Init(vendorId, productId, key)
@@ -2952,6 +3059,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				devices[dev.Serial] = &common.Device{
 					ProductType: productTypeHarpoonRgbWU,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 7064: // CORSAIR SABRE RGB PRO WIRELESS Gaming Mouse
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := sabrergbproWU.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeSabreRgbProWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,

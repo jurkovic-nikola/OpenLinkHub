@@ -3,6 +3,7 @@ build/
 rpmbuild/
 release/
 docker/
+ppa/
 build.sh
 build_local.sh
 OpenLinkHub

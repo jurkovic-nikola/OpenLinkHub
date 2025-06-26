@@ -11,15 +11,16 @@ import (
 )
 
 type Dashboard struct {
-	ShowCpu      bool   `json:"showCpu"`
-	ShowDisk     bool   `json:"showDisk"`
-	ShowGpu      bool   `json:"showGpu"`
-	ShowDevices  bool   `json:"showDevices"`
-	VerticalUi   bool   `json:"verticalUi"`
-	Celsius      bool   `json:"celsius"`
-	ShowLabels   bool   `json:"showLabels"`
-	ShowBattery  bool   `json:"showBattery"`
-	LanguageCode string `json:"languageCode"`
+	ShowCpu      bool           `json:"showCpu"`
+	ShowDisk     bool           `json:"showDisk"`
+	ShowGpu      bool           `json:"showGpu"`
+	ShowDevices  bool           `json:"showDevices"`
+	VerticalUi   bool           `json:"verticalUi"`
+	Celsius      bool           `json:"celsius"`
+	ShowLabels   bool           `json:"showLabels"`
+	ShowBattery  bool           `json:"showBattery"`
+	LanguageCode string         `json:"languageCode"`
+	DeviceOrder  map[int]string `json:"deviceOrder"`
 }
 
 var (
@@ -30,6 +31,7 @@ var (
 		"showLabels":   true,
 		"showBattery":  false,
 		"languageCode": "en_US",
+		"deviceOrder":  make(map[int]string),
 	}
 )
 
@@ -69,6 +71,7 @@ func upgradeFile() {
 			ShowLabels:   true,
 			ShowBattery:  false,
 			LanguageCode: "en_US",
+			DeviceOrder:  make(map[int]string),
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")
@@ -183,4 +186,68 @@ func (d Dashboard) Temperature(celsius float32) []string {
 		val[1] = "°F"
 	}
 	return val
+}
+
+// deviceExist will check if serial already exists in dashboard.DeviceOrder
+func deviceExist(serial string) bool {
+	for _, v := range dashboard.DeviceOrder {
+		if v == serial {
+			return true
+		}
+	}
+	return false
+}
+
+// deviceExist will check if serial already exists in dashboard.DeviceOrder
+func devicePosition(serial string) int {
+	for k, v := range dashboard.DeviceOrder {
+		if v == serial {
+			return k
+		}
+	}
+	return 0
+}
+
+// AddDeviceToOrderList will add device to dashboard order list
+func AddDeviceToOrderList(devices map[string]*common.Device) {
+	for _, device := range devices {
+		// Skip devices without GetDevice data
+		if device.GetDevice == nil {
+			continue
+		}
+
+		// Already on the list
+		if deviceExist(device.Serial) {
+			continue
+		}
+
+		// Add it
+		i := len(dashboard.DeviceOrder)
+		dashboard.DeviceOrder[i+1] = device.Serial
+	}
+	SaveDashboardSettings(dashboard, true)
+}
+
+func UpdateDevicePosition(deviceId string, direction int) uint8 {
+	position := devicePosition(deviceId)
+	if position == 0 {
+		return 0
+	}
+
+	var swap int
+	if direction == 1 {
+		swap = position - 1
+	} else {
+		swap = position + 1
+	}
+
+	otherDevice, exists := dashboard.DeviceOrder[swap]
+	if !exists {
+		return 0
+	}
+
+	dashboard.DeviceOrder[swap] = dashboard.DeviceOrder[position]
+	dashboard.DeviceOrder[position] = otherDevice
+	SaveDashboardSettings(dashboard, true)
+	return 1
 }

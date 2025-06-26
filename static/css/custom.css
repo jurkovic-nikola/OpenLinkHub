@@ -342,6 +342,14 @@ footer {
     cursor: pointer;
 }
 
+.moveUp {
+    cursor: pointer;
+}
+
+.moveDown {
+    cursor: pointer;
+}
+
 .align-center-text {
     text-align: center;
 }
@@ -874,4 +882,32 @@ canvas {
 .modal-dialog-800 {
     max-width: 800px;
     margin: 1rem auto;
+}
+
+.modal-dialog-900 {
+    max-width: 900px;
+    margin: 1rem auto;
+}
+
+.modal-dialog-1000 {
+    max-width: 1000px;
+    margin: 1rem auto;
+}
+
+.device-selectable {
+    cursor: pointer;
+}
+
+.device-selectable.device-selected {
+    border: 1px solid #bf8d19;
+}
+
+.dashboard-device-name-left {
+    float: left;
+    width: auto;
+}
+
+.dashboard-device-name-right {
+    float: left;
+    width: auto;
 }

@@ -84,7 +84,11 @@
                                                     {{ else if eq $key "custom" }}
                                                     {{ continue }}
                                                     {{ end }}
+                                                    {{ if eq $deviceProfile.MultiRGB $key }}
+                                                    <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                    {{ else }}
                                                     <option value="{{ $key }}">{{ $key }}</option>
+                                                    {{ end }}
                                                     {{ end }}
                                                 </select>
                                             </div>

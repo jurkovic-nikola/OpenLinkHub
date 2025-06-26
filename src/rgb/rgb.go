@@ -44,6 +44,7 @@ type ActiveRGB struct {
 	RgbModeSpeed           float64
 	RGBEndColor            *Color
 	RGBStartColor          *Color
+	PreviousColor          *Color
 	RGBBrightness          float64
 	RgbLoopDuration        time.Duration
 	RGBCustomColor         bool
@@ -61,6 +62,8 @@ type ActiveRGB struct {
 	Inverted               bool
 	Buffer                 []byte
 	ColorOffset            int
+	PreviousTemp           float64
+	TempAlpha              float64
 }
 
 var (

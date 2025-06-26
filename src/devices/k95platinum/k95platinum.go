@@ -1265,6 +1265,20 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	if d.DeviceProfile.RGBProfile == "off" {
+		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+			for _, keys := range rows.Keys {
+				for _, packetIndex := range keys.PacketIndex {
+					buf[0][packetIndex] = byte(0)
+					buf[1][packetIndex] = byte(0)
+					buf[2][packetIndex] = byte(0)
+				}
+			}
+		}
+		d.writeColor(buf) // Write color once
+		return
+	}
+
 	go func(lightChannels int) {
 		startTime := time.Now()
 		d.activeRgb = rgb.Exit()
@@ -1314,12 +1328,6 @@ func (d *Device) setDeviceColor() {
 				r.RGBEndColor.Brightness = r.RGBBrightness
 
 				switch d.DeviceProfile.RGBProfile {
-				case "off":
-					{
-						for n := 0; n < d.LEDChannels; n++ {
-							r.Raw[n] = []byte{0, 0, 0}
-						}
-					}
 				case "rainbow":
 					{
 						r.Rainbow(startTime)

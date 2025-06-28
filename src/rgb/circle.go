@@ -1,6 +1,7 @@
 package rgb
 
 import (
+	"math"
 	"time"
 )
 
@@ -8,33 +9,46 @@ import (
 func (r *ActiveRGB) Circle(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
 
-	// Calculate progress and reset when it exceeds 1.0
 	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
 	if progress >= 1.0 {
-		*startTime = time.Now() // Reset startTime to the current time
-		elapsed = 0             // Reset elapsed time
-		progress = 0            // Reset progress
+		*startTime = time.Now()
+		elapsed = 0
+		progress = 0
 	}
 
-	activeLEDs := int(progress * float64(r.LightChannels))
-	if r.LightChannels == 1 {
-		activeLEDs = 1
-	}
+	progress = math.Mod(progress, 1.0)
+
 	buf := map[int][]byte{}
-	for j := 0; j < activeLEDs; j++ {
-		t := float64(j) / float64(40) // Calculate interpolation factor
-		colors := interpolateColors(r.RGBStartColor, r.RGBStartColor, t, r.RGBBrightness)
+	fadeFactor := 6.0 // Adjust for sharpness of the glowing point
+
+	for j := 0; j < r.LightChannels; j++ {
+		pos := float64(j) / float64(r.LightChannels)
+		distance := math.Abs(progress - pos)
+
+		// Wrap around for circular motion
+		if distance > 0.5 {
+			distance = 1.0 - distance
+		}
+
+		// Cosine falloff for natural fade
+		fade := math.Cos(distance * math.Pi * fadeFactor)
+		if fade < 0 {
+			fade = 0
+		}
+
+		// Single-color pulse, you can optionally use interpolateColors to create gradients if needed
+		colors := interpolateColors(r.RGBStartColor, r.RGBStartColor, 0, r.RGBBrightness)
+
+		red := byte(colors.Red * fade)
+		green := byte(colors.Green * fade)
+		blue := byte(colors.Blue * fade)
 
 		if len(r.Buffer) > 0 {
-			r.Buffer[j] = byte(colors.Red)
-			r.Buffer[j+r.ColorOffset] = byte(colors.Green)
-			r.Buffer[j+(r.ColorOffset*2)] = byte(colors.Blue)
+			r.Buffer[j] = red
+			r.Buffer[j+r.ColorOffset] = green
+			r.Buffer[j+(r.ColorOffset*2)] = blue
 		} else {
-			buf[j] = []byte{
-				byte(colors.Red),
-				byte(colors.Green),
-				byte(colors.Blue),
-			}
+			buf[j] = []byte{red, green, blue}
 
 			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {
@@ -44,16 +58,12 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 		}
 	}
 
-	for j := activeLEDs; j < r.LightChannels; j++ {
-		if len(r.Buffer) > 0 {
-			r.Buffer[j] = 0
-			r.Buffer[j+r.ColorOffset] = 0
-			r.Buffer[j+(r.ColorOffset*2)] = 0
-		} else {
+	if len(r.Buffer) == 0 {
+		for j := len(buf); j < r.LightChannels; j++ {
 			buf[j] = []byte{0, 0, 0}
 		}
 	}
-	// Raw colors
+
 	r.Raw = buf
 
 	if r.Inverted {
@@ -67,32 +77,46 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 func (r *ActiveRGB) CircleShift(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
 
-	// Calculate progress and reset when it exceeds 1.0
 	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
 	if progress >= 1.0 {
-		*startTime = time.Now() // Reset startTime to the current time
-		elapsed = 0             // Reset elapsed time
-		progress = 0            // Reset progress
+		*startTime = time.Now()
+		elapsed = 0
+		progress = 0
 	}
 
-	activeLEDs := int(progress * float64(r.LightChannels))
-	if r.LightChannels == 1 {
-		activeLEDs = 1
-	}
+	// Normalize progress to loop around
+	progress = math.Mod(progress, 1.0)
+
 	buf := map[int][]byte{}
-	for j := 0; j < activeLEDs; j++ {
-		t := float64(j) / float64(r.LightChannels) // Calculate interpolation factor
-		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
+	fadeFactor := 6.0 // Controls how soft or sharp the gradient is
+
+	for j := 0; j < r.LightChannels; j++ {
+		pos := float64(j) / float64(r.LightChannels)
+		distance := math.Abs(progress - pos)
+
+		// Wrap distance for circular effect
+		if distance > 0.5 {
+			distance = 1.0 - distance
+		}
+
+		// Use cosine-based fade for smoother transition
+		fade := math.Cos(distance * math.Pi * fadeFactor)
+		if fade < 0 {
+			fade = 0
+		}
+
+		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, pos, r.RGBBrightness)
+
+		red := byte(colors.Red * fade)
+		green := byte(colors.Green * fade)
+		blue := byte(colors.Blue * fade)
+
 		if len(r.Buffer) > 0 {
-			r.Buffer[j] = byte(colors.Red)
-			r.Buffer[j+r.ColorOffset] = byte(colors.Green)
-			r.Buffer[j+(r.ColorOffset*2)] = byte(colors.Blue)
+			r.Buffer[j] = red
+			r.Buffer[j+r.ColorOffset] = green
+			r.Buffer[j+(r.ColorOffset*2)] = blue
 		} else {
-			buf[j] = []byte{
-				byte(colors.Red),
-				byte(colors.Green),
-				byte(colors.Blue),
-			}
+			buf[j] = []byte{red, green, blue}
 
 			if r.IsAIO && r.HasLCD {
 				if j > 15 && j < 20 {
@@ -102,16 +126,13 @@ func (r *ActiveRGB) CircleShift(startTime *time.Time) {
 		}
 	}
 
-	for j := activeLEDs; j < r.LightChannels; j++ {
-		if len(r.Buffer) > 0 {
-			r.Buffer[j] = 0
-			r.Buffer[j+r.ColorOffset] = 0
-			r.Buffer[j+(r.ColorOffset*2)] = 0
-		} else {
+	// Fill unused buffer if needed
+	if len(r.Buffer) == 0 {
+		for j := len(buf); j < r.LightChannels; j++ {
 			buf[j] = []byte{0, 0, 0}
 		}
 	}
-	// Raw colors
+
 	r.Raw = buf
 
 	if r.Inverted {

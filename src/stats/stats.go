@@ -1,5 +1,7 @@
 package stats
 
+import "sync"
+
 type Device struct {
 	Device            string
 	TemperatureString string
@@ -22,8 +24,10 @@ type Stats struct {
 }
 
 var (
-	stats        = map[string]DeviceList{}
-	batteryStats = map[string]BatteryStats{}
+	stats             = map[string]DeviceList{}
+	statsMutex        sync.RWMutex
+	batteryStats      = map[string]BatteryStats{}
+	batteryStatsMutex sync.RWMutex
 )
 
 func Init() {
@@ -33,6 +37,9 @@ func Init() {
 
 // UpdateBatteryStats will update battery stats
 func UpdateBatteryStats(serial, device string, level uint16, deviceType uint8) {
+	batteryStatsMutex.Lock()
+	defer batteryStatsMutex.Unlock()
+
 	if data, ok := batteryStats[serial]; ok {
 		data.Level = level
 		data.DeviceType = deviceType
@@ -49,6 +56,9 @@ func UpdateBatteryStats(serial, device string, level uint16, deviceType uint8) {
 
 // UpdateAIOStats will update AIO stats
 func UpdateAIOStats(serial, name, temp, speed, label string, channelId int) {
+	statsMutex.Lock()
+	defer statsMutex.Unlock()
+
 	if data, ok := stats[serial]; ok {
 		data.Devices[channelId] = Device{
 			Device:            name,
@@ -71,11 +81,26 @@ func UpdateAIOStats(serial, name, temp, speed, label string, channelId int) {
 
 // GetAIOStats will return AIO stats
 func GetAIOStats() map[string]DeviceList {
-	return stats
+	//return stats
+	statsMutex.RLock()
+	defer statsMutex.RUnlock()
+
+	cp := make(map[string]DeviceList, len(stats))
+	for key, value := range stats {
+		device := make(map[int]Device, len(value.Devices))
+		for dk, dv := range value.Devices {
+			device[dk] = dv
+		}
+		cp[key] = DeviceList{Devices: device}
+	}
+	return cp
 }
 
 // GetAIOData will return AIO data
 func GetAIOData(serial string, channelId int) *Device {
+	statsMutex.RLock()
+	defer statsMutex.RUnlock()
+
 	if value, ok := stats[serial]; ok {
 		if data, found := value.Devices[channelId]; found {
 			return &data
@@ -86,5 +111,12 @@ func GetAIOData(serial string, channelId int) *Device {
 
 // GetBatteryStats will return battery stats
 func GetBatteryStats() map[string]BatteryStats {
-	return batteryStats
+	batteryStatsMutex.RLock()
+	defer batteryStatsMutex.RUnlock()
+
+	cp := make(map[string]BatteryStats, len(batteryStats))
+	for key, value := range batteryStats {
+		cp[key] = value
+	}
+	return cp
 }

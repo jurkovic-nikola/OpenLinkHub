@@ -15,6 +15,7 @@ import (
 	"OpenLinkHub/src/server/requests"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
+	"OpenLinkHub/src/systray"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/templates"
 	"OpenLinkHub/src/version"
@@ -364,6 +365,16 @@ func getMouseButtons(w http.ResponseWriter, _ *http.Request) {
 		Code:   http.StatusOK,
 		Status: 1,
 		Data:   inputmanager.GetMouseButtons(),
+	}
+	resp.Send(w)
+}
+
+// getSystrayData will return systray data
+func getSystrayData(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   systray.Get(),
 	}
 	resp.Send(w)
 }
@@ -1402,6 +1413,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/assignmentsTypes/", http.MethodGet, getKeyAssignmentTypes)
 	handleFunc(r, "/api/keyboard/assignmentsModifiers/", http.MethodGet, getKeyAssignmentModifiers)
 	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
+	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)

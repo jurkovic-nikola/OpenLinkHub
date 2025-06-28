@@ -1386,11 +1386,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const profile = $(this).val();
         const selectedDevices = $("#selectedDevices").val();
         let selectedDevicesArray = [];
-        if (selectedDevices.length > 0) {
-            selectedDevicesArray = selectedDevices
-                .split(',')
-                .map(str => parseInt(str.trim(), 10))
-                .filter(num => !isNaN(num)); // Ensure valid numbers only
+
+        if (selectedDevices != null) {
+            if (selectedDevices.length > 0) {
+                selectedDevicesArray = selectedDevices
+                    .split(',')
+                    .map(str => parseInt(str.trim(), 10))
+                    .filter(num => !isNaN(num)); // Ensure valid numbers only
+            }
         }
 
         const pf = {};
@@ -1425,11 +1428,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const profile = $(this).val();
         const selectedDevices = $("#selectedDevices").val();
         let selectedDevicesArray = [];
-        if (selectedDevices.length > 0) {
-            selectedDevicesArray = selectedDevices
-                .split(',')
-                .map(str => parseInt(str.trim(), 10))
-                .filter(num => !isNaN(num)); // Ensure valid numbers only
+
+        if (selectedDevices != null) {
+            if (selectedDevices.length > 0) {
+                selectedDevicesArray = selectedDevices
+                    .split(',')
+                    .map(str => parseInt(str.trim(), 10))
+                    .filter(num => !isNaN(num)); // Ensure valid numbers only
+            }
         }
 
         const pf = {};

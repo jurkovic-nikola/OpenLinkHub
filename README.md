@@ -12,6 +12,7 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, hea
 - Manage keyboards, mice and headsets
 - Support for DDR4 and DDR5 memory
 - Custom fan profiles, temperature sensors and RGB editor
+- If you need system tray menu - https://github.com/jurkovic-nikola/openlinkhub-tray
 
 ![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 

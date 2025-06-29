@@ -123,6 +123,13 @@ $ sudo apt install ./OpenLinkHub_?.?.?_amd64.deb
 $ sudo dnf install ./OpenLinkHub-?.?.?-1.x86_64.rpm
 ```
 
+## Installation (PPA)
+```bash
+$ sudo add-apt-repository ppa:jurkovic-nikola/openlinkhub
+$ sudo apt update
+$ sudo apt-get install openlinkhub
+```
+
 ## Installation (manual)
 ### 1. Requirements
 - libudev-dev

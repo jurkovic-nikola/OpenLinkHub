@@ -58,6 +58,7 @@ type DPIProfile struct {
 	Name        string `json:"name"`
 	Value       uint16
 	PackerIndex int
+	Sniper      bool
 }
 
 type Device struct {
@@ -95,6 +96,7 @@ type Device struct {
 	keyAssignmentFile  string
 	KeyAssignmentData  *inputmanager.KeyAssignment
 	ModifierIndex      uint16
+	SniperMode         bool
 }
 
 var (
@@ -161,6 +163,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			1:  "Media Keys",
 			2:  "DPI",
 			3:  "Keyboard",
+			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
 		},
@@ -490,11 +493,20 @@ func (d *Device) saveDeviceProfile() {
 				Value:       3000,
 				PackerIndex: 3,
 			},
+			3: {
+				Name:        "Sniper",
+				Value:       200,
+				PackerIndex: 4,
+				Sniper:      true,
+			},
 		}
 		deviceProfile.Profile = 1
 		deviceProfile.PollingRate = 1
 		deviceProfile.SleepMode = 15
 	} else {
+		// Upgrade DPI profile
+		d.upgradeDpiProfiles()
+
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
 			d.DeviceProfile.BrightnessSlider = &defaultBrightness
@@ -560,6 +572,28 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles() // Reload
+}
+
+// upgradeDpiProfiles will perform upgrade of DPI profiles in needed
+func (d *Device) upgradeDpiProfiles() {
+	found := false
+	for _, profile := range d.DeviceProfile.Profiles {
+		if strings.EqualFold(profile.Name, "Sniper") {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		index := len(d.DeviceProfile.Profiles)
+		sniper := DPIProfile{
+			Name:        "Sniper",
+			Value:       200,
+			PackerIndex: 4,
+			Sniper:      true,
+		}
+		d.DeviceProfile.Profiles[index] = sniper
+	}
 }
 
 // UpdateDeviceKeyAssignment will update device key assignments
@@ -904,6 +938,9 @@ func (d *Device) updateMouseDPI() {
 	for key, value := range d.DeviceProfile.Profiles {
 		buf := make([]byte, 10)
 		buf[0] = byte(index + key)
+		if value.Sniper {
+			buf[0] = byte(index - 1)
+		}
 		buf[1] = 0x00
 		buf[2] = 0x00
 		binary.LittleEndian.PutUint16(buf[3:5], value.Value)
@@ -911,6 +948,11 @@ func (d *Device) updateMouseDPI() {
 		buf[7] = byte(d.DeviceProfile.DPIColor.Red)
 		buf[8] = byte(d.DeviceProfile.DPIColor.Green)
 		buf[9] = byte(d.DeviceProfile.DPIColor.Blue)
+		if value.Sniper {
+			buf[7] = 255
+			buf[8] = 255
+			buf[9] = 0
+		}
 		err := d.transfer([]byte{cmdWrite}, buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to set dpi")
@@ -1437,6 +1479,8 @@ func (d *Device) triggerKeyAssignment(value uint16) {
 			switch val.ActionType {
 			case 1, 3:
 				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+			case 8:
+				d.sniperMode(false)
 			case 9:
 				inputmanager.InputControlMouseHold(val.ActionCommand, false)
 			}
@@ -1461,6 +1505,9 @@ func (d *Device) triggerKeyAssignment(value uint16) {
 				break
 			case 2:
 				d.toggleDPI(true)
+				break
+			case 8:
+				d.sniperMode(true)
 				break
 			case 9:
 				if val.ActionHold {
@@ -1492,6 +1539,40 @@ func (d *Device) triggerKeyAssignment(value uint16) {
 				break
 			}
 		}
+	}
+}
+
+func (d *Device) getSniperModeIndex() int {
+	for key, profile := range d.DeviceProfile.Profiles {
+		if profile.Sniper {
+			return key
+		}
+	}
+	return 0
+}
+
+// sniperMode will set mouse DPI to sniper mode
+func (d *Device) sniperMode(active bool) {
+	d.SniperMode = active
+	if active {
+		for _, profile := range d.DeviceProfile.Profiles {
+			if profile.Sniper {
+				pf := d.DeviceProfile.Profile + 1
+				buf := make([]byte, 3)
+				buf[0] = 0x02
+				buf[1] = 0x00
+				buf[2] = byte(pf)
+				if profile.Sniper {
+					buf[2] = 0x00
+				}
+				err := d.transfer([]byte{cmdWrite}, buf)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
+				}
+			}
+		}
+	} else {
+		d.toggleDPI(false)
 	}
 }
 

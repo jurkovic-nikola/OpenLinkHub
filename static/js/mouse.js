@@ -1,6 +1,7 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", function () {
+    const dpiStageAmount = 5;
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -35,7 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const toast = CreateToastr();
 
     $(function() {
-        for (let i = 0; i <= 4; i++) {
+        for (let i = 0; i <= dpiStageAmount; i++) {
             const stage = document.getElementById("stage" + i);
             if (stage == null) {
                 continue
@@ -49,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('#defaultDPI').on('click', function () {
-        for (let i = 0; i <= 4; i++) {
+        for (let i = 0; i <= dpiStageAmount; i++) {
             const stage = document.getElementById("stage" + i);
             if (stage == null) {
                 continue
@@ -72,7 +73,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('#default5DPI').on('click', function () {
-        for (let i = 0; i <= 4; i++) {
+        for (let i = 0; i <= dpiStageAmount; i++) {
             const stage = document.getElementById("stage" + i);
             if (stage == null) {
                 continue
@@ -95,6 +96,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 case 4:
                     stage.value = 3200
                     break;
+                case 5:
+                    stage.value = 200
+                    break;
             }
             stageValue.value = stage.value
         }
@@ -107,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let stages = {};
 
         pf["deviceId"] = deviceId;
-        for (let i = 0; i <= 4; i++) {
+        for (let i = 0; i <= dpiStageAmount; i++) {
             const stage = $("#stageValue" + i).val();
             if (stage == null) {
                 continue
@@ -446,6 +450,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                     }
                 });
+            }
+            break;
+
+            case 8: { // Sniper
+                $(keyAssignmentValue).empty();
+                $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
             }
             break;
 

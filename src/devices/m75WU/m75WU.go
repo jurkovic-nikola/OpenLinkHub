@@ -61,6 +61,7 @@ type DPIProfile struct {
 	PackerIndex int
 	ColorIndex  map[int][]int
 	Color       *rgb.Color
+	Sniper      bool
 }
 
 type Device struct {
@@ -103,6 +104,7 @@ type Device struct {
 	BatteryLevel             uint16
 	KeyAssignmentData        *inputmanager.KeyAssignment
 	ModifierIndex            byte
+	SniperMode               bool
 }
 
 var (
@@ -110,12 +112,14 @@ var (
 	cmdSoftwareMode           = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode           = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdGetFirmware            = []byte{0x02, 0x13}
+	cmdWriteColor             = []byte{0x06, 0x00}
 	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
 	cmdSetDpi                 = map[int][]byte{0: {0x01, 0x21, 0x00}, 1: {0x01, 0x22, 0x00}}
 	cmdHeartbeat              = []byte{0x12}
 	cmdSleep                  = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
 	cmdSetPollingRate         = []byte{0x01, 0x01, 0x00}
 	cmdWrite                  = []byte{0x06, 0x01}
+	cmdOpenEndpoint           = []byte{0x0d, 0x00, 0x01}
 	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
 	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
 	cmdAngleSnapping          = []byte{0x01, 0x07, 0x00}
@@ -165,10 +169,12 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		keepAliveChan:   make(chan struct{}),
-		timerKeepAlive:  &time.Ticker{},
-		autoRefreshChan: make(chan struct{}),
-		timer:           &time.Ticker{},
+		LEDChannels:           1,
+		ChangeableLedChannels: 0,
+		keepAliveChan:         make(chan struct{}),
+		timerKeepAlive:        &time.Ticker{},
+		autoRefreshChan:       make(chan struct{}),
+		timer:                 &time.Ticker{},
 		PollingRates: map[int]string{
 			0: "Not Set",
 			1: "125 Hz / 8 msec",
@@ -184,6 +190,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			0:  "None",
 			1:  "Media Keys",
 			3:  "Keyboard",
+			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
 		},
@@ -202,6 +209,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setSoftwareMode()       // Activate software mode
 	d.getBatterLevel()        // Battery level
 	d.toggleDPI()             // DPI
+	d.initLeds()              // Init LED ports
+	d.setDeviceColor()        // Device color
 	d.backendListener()       // Control listener
 	d.setKeepAlive()          // Keepalive
 	d.setAutoRefresh()        // Set auto device refresh
@@ -431,6 +440,67 @@ func (d *Device) saveRgbProfile() {
 	}
 }
 
+// initLeds will initialize LED endpoint
+func (d *Device) initLeds() {
+	_, err := d.transfer(cmdOpenEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+	}
+}
+
+// getSniperColor will get sniper dpi color
+func (d *Device) getSniperColor() *rgb.Color {
+	for _, val := range d.DeviceProfile.Profiles {
+		if val.Sniper {
+			return val.Color
+		}
+	}
+	return nil
+}
+
+// setDeviceColor will activate and set device RGB
+func (d *Device) setDeviceColor() {
+	if d.Exit {
+		return
+	}
+
+	buf := make([]byte, d.LEDChannels*3)
+
+	if d.DeviceProfile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
+	// DPI
+	dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
+	if d.SniperMode {
+		dpiColor = d.getSniperColor()
+	}
+	if dpiColor == nil {
+		return
+	}
+
+	dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+	dpiColor = rgb.ModifyBrightness(*dpiColor)
+
+	dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
+	for i := 0; i < len(dpiLeds.ColorIndex); i++ {
+		dpiColorIndexRange := dpiLeds.ColorIndex[i]
+		for key, dpiColorIndex := range dpiColorIndexRange {
+			switch key {
+			case 0: // Red
+				buf[dpiColorIndex] = byte(dpiColor.Red)
+			case 1: // Green
+				buf[dpiColorIndex] = byte(dpiColor.Green)
+			case 2: // Blue
+				buf[dpiColorIndex] = byte(dpiColor.Blue)
+			}
+		}
+	}
+	d.writeColor(buf)
+	return
+}
+
 // UpdatePollingRate will set device polling rate
 func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 	if _, ok := d.PollingRates[pullingRate]; ok {
@@ -597,6 +667,48 @@ func (d *Device) SaveMouseDPI(stages map[int]uint16) uint8 {
 	return 0
 }
 
+// SaveMouseDpiColors will save mouse dpi colors
+func (d *Device) SaveMouseDpiColors(dpi rgb.Color, dpiColors map[int]rgb.Color) uint8 {
+	i := 0
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if dpi.Red > 255 ||
+		dpi.Green > 255 ||
+		dpi.Blue > 255 ||
+		dpi.Red < 0 ||
+		dpi.Green < 0 ||
+		dpi.Blue < 0 {
+		return 0
+	}
+
+	// Zone Colors
+	for key, zone := range dpiColors {
+		if zone.Red > 255 ||
+			zone.Green > 255 ||
+			zone.Blue > 255 ||
+			zone.Red < 0 ||
+			zone.Green < 0 ||
+			zone.Blue < 0 {
+			continue
+		}
+		if profileColor, ok := d.DeviceProfile.Profiles[key]; ok {
+			profileColor.Color.Red = zone.Red
+			profileColor.Color.Green = zone.Green
+			profileColor.Color.Blue = zone.Blue
+			profileColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(zone.Red), int(zone.Green), int(zone.Blue))
+		}
+		i++
+	}
+
+	if i > 0 {
+		d.saveDeviceProfile()
+		d.setDeviceColor() // Restart RGB
+		return 1
+	}
+	return 0
+}
+
 // getManufacturer will return device manufacturer
 func (d *Device) getDebugMode() {
 	d.Debug = config.GetConfig().Debug
@@ -705,7 +817,7 @@ func (d *Device) saveDeviceProfile() {
 				Value:       1200,
 				PackerIndex: 1,
 				ColorIndex: map[int][]int{
-					0: {1, 3, 5},
+					0: {0, 1, 2},
 				},
 				Color: &rgb.Color{
 					Red:        255,
@@ -715,11 +827,30 @@ func (d *Device) saveDeviceProfile() {
 					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
 				},
 			},
+			1: {
+				Name:        "Sniper",
+				Value:       200,
+				PackerIndex: 2,
+				ColorIndex: map[int][]int{
+					0: {0, 1, 2},
+				},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      255,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
+				},
+				Sniper: true,
+			},
 		}
 		deviceProfile.Profile = 0
 		deviceProfile.SleepMode = 15
 		deviceProfile.PollingRate = 4
 	} else {
+		// Upgrade DPI profile
+		d.upgradeDpiProfiles()
+
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
 			d.DeviceProfile.BrightnessSlider = &defaultBrightness
@@ -786,6 +917,54 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles() // Reload
+}
+
+// upgradeDpiProfiles will perform upgrade of DPI profiles in needed
+func (d *Device) upgradeDpiProfiles() {
+	found := false
+	for _, profile := range d.DeviceProfile.Profiles {
+		if strings.EqualFold(profile.Name, "Sniper") {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		normal := DPIProfile{
+			Name:        "Stage 1",
+			Value:       1200,
+			PackerIndex: 1,
+			ColorIndex: map[int][]int{
+				0: {0, 1, 2},
+			},
+			Color: &rgb.Color{
+				Red:        255,
+				Green:      0,
+				Blue:       0,
+				Brightness: 1,
+				Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 0, 0),
+			},
+		}
+		d.DeviceProfile.Profiles[0] = normal
+
+		sniper := DPIProfile{
+			Name:        "Sniper",
+			Value:       200,
+			PackerIndex: 2,
+			ColorIndex: map[int][]int{
+				0: {1, 3, 5},
+			},
+			Color: &rgb.Color{
+				Red:        255,
+				Green:      255,
+				Blue:       0,
+				Brightness: 1,
+				Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
+			},
+			Sniper: true,
+		}
+		d.DeviceProfile.Profiles[1] = sniper
+	}
 }
 
 // UpdateDeviceKeyAssignment will update device key assignments
@@ -1156,6 +1335,8 @@ func (d *Device) triggerKeyAssignment(value byte) {
 			switch val.ActionType {
 			case 1, 3:
 				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+			case 8:
+				d.sniperMode(false)
 			case 9:
 				inputmanager.InputControlMouseHold(val.ActionCommand, false)
 			}
@@ -1173,6 +1354,9 @@ func (d *Device) triggerKeyAssignment(value byte) {
 				} else {
 					inputmanager.InputControlKeyboard(val.ActionCommand, false)
 				}
+				break
+			case 8:
+				d.sniperMode(true)
 				break
 			case 9:
 				if val.ActionHold {
@@ -1207,59 +1391,37 @@ func (d *Device) triggerKeyAssignment(value byte) {
 	}
 }
 
-// triggerKeyAssignment will trigger key assignment if defined
-func (d *Device) triggerKeyAssignment2(value byte) {
-	if d.ModifierIndex != value {
-		if d.KeyAssignmentData != nil {
-			switch d.KeyAssignmentData.ActionType {
-			case 1, 3:
-				inputmanager.InputControlKeyboard(d.KeyAssignmentData.ActionCommand, d.PressLoop)
-				break
-			}
-		}
-		d.KeyAssignmentData = nil
-	}
-	d.ModifierIndex = value
+// sniperMode will set mouse DPI to sniper mode
+func (d *Device) sniperMode(active bool) {
+	d.SniperMode = active
+	if active {
+		for _, profile := range d.DeviceProfile.Profiles {
+			if profile.Sniper {
+				value := profile.Value
 
-	value = byte(inputmanager.FindKeyAssignment(d.KeyAssignment, uint32(value), []uint32{1, 2, 4}))
-	if val, ok := d.KeyAssignment[int(value)]; ok {
-		if val.Default {
-			return
-		}
+				// Send DPI packet
+				if value < uint16(minDpiValue) {
+					value = uint16(minDpiValue)
+				}
+				if value > uint16(maxDpiValue) {
+					value = uint16(maxDpiValue)
+				}
 
-		switch val.ActionType {
-		case 1, 3:
-			if val.ActionHold {
-				d.KeyAssignmentData = &val
-			}
-			inputmanager.InputControlKeyboard(val.ActionCommand, val.ActionHold)
-			break
-		case 9:
-			inputmanager.InputControlMouse(val.ActionCommand)
-			break
-		case 10: // Macro
-			macroProfile := macro.GetProfile(int(val.ActionCommand))
-			if macroProfile == nil {
-				logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
-				return
-			}
-			for i := 0; i < len(macroProfile.Actions); i++ {
-				if v, valid := macroProfile.Actions[i]; valid {
-					switch v.ActionType {
-					case 1, 3:
-						inputmanager.InputControlKeyboard(v.ActionCommand, false)
-						break
-					case 5:
-						if v.ActionDelay > 0 {
-							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
-						}
-						break
+				buf := make([]byte, 2)
+				binary.LittleEndian.PutUint16(buf[0:2], value)
+				for i := 0; i < 2; i++ {
+					command := cmdSetDpi[i]
+					_, err := d.transfer(command, buf)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 					}
 				}
+				d.setDeviceColor() // Restart RGB
 			}
-			break
 		}
-
+	} else {
+		// Reset to normal DPI mode
+		d.toggleDPI()
 	}
 }
 
@@ -1289,6 +1451,7 @@ func (d *Device) toggleDPI() {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 			}
 		}
+		d.setDeviceColor() // Restart RGB
 	}
 }
 
@@ -1317,6 +1480,20 @@ func (d *Device) setKeepAlive() {
 			}
 		}
 	}()
+}
+
+// writeColor will write color data to the device with a specific endpoint.
+func (d *Device) writeColor(data []byte) {
+	if d.Exit {
+		return
+	}
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+	_, err := d.transfer(cmdWriteColor, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+	}
 }
 
 // writeKeyAssignmentData will write key assignment to the device.

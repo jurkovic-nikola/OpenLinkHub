@@ -164,11 +164,7 @@
                                                 <div style="margin-top: 10px;">
                                                     <div class="dpi-left">
                                                         <p style="color: rgba({{ $device.DeviceProfile.DPIColor.Red }}, {{ $device.DeviceProfile.DPIColor.Green }}, {{ $device.DeviceProfile.DPIColor.Blue }}, 1);">
-                                                            {{ if eq $key $device.DeviceProfile.Profile }}
-                                                            {{ $pf.Name }} *
-                                                            {{ else }}
                                                             {{ $pf.Name }}
-                                                            {{ end }}
                                                         </p>
                                                     </div>
                                                     <div class="dpi-middle">

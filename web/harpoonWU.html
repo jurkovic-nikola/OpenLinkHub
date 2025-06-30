@@ -14,7 +14,7 @@
         {{ $deviceProfile := .Device.DeviceProfile }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <input type="hidden" id="zones" name="zones" value="1">
-        <input type="hidden" id="dpis" name="dpis" value="5">
+        <input type="hidden" id="dpis" name="dpis" value="6">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -165,11 +165,7 @@
                                                 <div style="margin-top: 10px;">
                                                     <div class="dpi-left">
                                                         <p style="color: rgba({{ $pf.Color.Red }}, {{ $pf.Color.Green }}, {{ $pf.Color.Blue }}, 1);">
-                                                            {{ if eq $key $device.DeviceProfile.Profile }}
-                                                            {{ $pf.Name }} *
-                                                            {{ else }}
                                                             {{ $pf.Name }}
-                                                            {{ end }}
                                                         </p>
                                                     </div>
                                                     <div class="dpi-middle">

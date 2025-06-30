@@ -416,12 +416,6 @@ func (d *Device) setupPerformance() {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 		}
 	}
-
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	d.setDeviceColor() // Restart RGB
 }
 
 // getManufacturer will return device manufacturer

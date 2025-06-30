@@ -75,6 +75,7 @@ type Device struct {
 	GpuTemp            float32
 	Layouts            []string
 	Rgb                *rgb.RGB
+	rgbMutex           sync.RWMutex
 	Exit               bool
 	timer              *time.Ticker
 	timerKeepAlive     *time.Ticker

@@ -81,6 +81,7 @@ type Device struct {
 	GpuTemp               float32
 	Layouts               []string
 	Rgb                   *rgb.RGB
+	rgbMutex              sync.RWMutex
 	Endpoint              byte
 	SleepModes            map[int]string
 	Connected             bool

@@ -70,6 +70,7 @@ type Device struct {
 	ProductId          uint16
 	ControlDialOptions map[int]string
 	Rgb                *rgb.RGB
+	rgbMutex           sync.RWMutex
 	Exit               bool
 	timer              *time.Ticker
 	timerKeepAlive     *time.Ticker
@@ -659,6 +660,9 @@ func (d *Device) saveRgbProfile() {
 
 // UpdateRgbProfileData will update RGB profile data
 func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	d.rgbMutex.Lock()
+	defer d.rgbMutex.Unlock()
+
 	if d.GetRgbProfile(profileName) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -1022,7 +1026,7 @@ func (d *Device) setDeviceColor() {
 	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
 		d.DeviceProfile.RGBProfile = "keyboard"
 	}
-	
+
 	if d.DeviceProfile.RGBProfile == "keyboard" {
 		var buf = make([]byte, colorPacketLength)
 		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {

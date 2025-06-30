@@ -69,6 +69,7 @@ type Device struct {
 	GpuTemp               float32
 	Layouts               []string
 	Rgb                   *rgb.RGB
+	rgbMutex              sync.RWMutex
 	SleepModes            map[int]string
 	mutex                 sync.Mutex
 	timerKeepAlive        *time.Ticker
@@ -369,6 +370,9 @@ func (d *Device) saveRgbProfile() {
 
 // UpdateRgbProfileData will update RGB profile data
 func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	d.rgbMutex.Lock()
+	defer d.rgbMutex.Unlock()
+
 	if d.GetRgbProfile(profileName) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0

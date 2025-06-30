@@ -252,6 +252,7 @@ type Device struct {
 	FreeLedPorts       map[int]string
 	FreeLedPortLEDs    map[int]string
 	Rgb                *rgb.RGB
+	rgbMutex           sync.RWMutex
 	LCDImage           *lcd.ImageData
 	Exit               bool
 	mutex              sync.Mutex
@@ -2333,6 +2334,9 @@ func (d *Device) saveRgbProfile() {
 
 // UpdateRgbProfileData will update RGB profile data
 func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	d.rgbMutex.Lock()
+	defer d.rgbMutex.Unlock()
+
 	if pf := d.GetRgbProfile(profileName); pf == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0

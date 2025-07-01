@@ -8,6 +8,7 @@ WorkingDirectory=/opt/OpenLinkHub
 ExecStart=/opt/OpenLinkHub/OpenLinkHub
 ExecReload=/bin/kill -s HUP $MAINPID
 RestartSec=5
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

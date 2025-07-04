@@ -1773,6 +1773,13 @@ func (d *Device) updateDeviceSpeed() {
 									logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "channelId": profiles.ChannelId, "cpu": cpuTemp, "gpu": gpuTemp}).Warn("Unable to get maximum temperature value out of 2 numbers.")
 								}
 							}
+						case temperatures.SensorTypeExternalHwMon:
+							{
+								temp = temperatures.GetHwMonTemperature(profiles.Device)
+								if temp == 0 {
+									logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
+								}
+							}
 						}
 
 						// All temps failed, default to 50

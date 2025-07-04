@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"os"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -87,6 +88,14 @@ func createVirtualMouse(vendorId, productId uint16) error {
 		}
 	}
 
+	// Enable keyboard keys used for zoom (Ctrl)
+	for _, code := range []uint16{keyLeftCtrl, keyRightCtrl, keyLeftAlt, keyLeftShift} {
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMousePointer, UiSetKeybit, uintptr(code)); errno != 0 {
+			logger.Log(logger.Fields{"error": errno, "code": code}).Error("Failed to enable keyboard key event")
+			return errno
+		}
+	}
+	
 	// Ensure we correctly write the struct before creating the device
 	if _, e := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); e != nil {
 		logger.Log(logger.Fields{"error": e}).Error("Failed to write virtual mouse data struct")
@@ -124,6 +133,72 @@ func InputControlMouse(controlType uint16) {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to emit event")
 			return
 		}
+	}
+}
+
+// InputControlScroll will trigger scroll up / down
+func InputControlScroll(up bool) {
+	if virtualMouseFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual mouse is not present")
+		return
+	}
+
+	value := int32(-1)
+	if up {
+		value = 1
+	}
+
+	scrollEvent := inputEvent{
+		Type:  evRel,
+		Code:  relWheel,
+		Value: value,
+	}
+
+	syncEvent := inputEvent{
+		Type:  evSyn,
+		Code:  0,
+		Value: 0,
+	}
+
+	events := []inputEvent{scrollEvent, syncEvent}
+
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualMouseFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit scroll event")
+			return
+		}
+	}
+}
+
+// InputControlZoom will trigger zoom
+func InputControlZoom(in bool) {
+	if virtualMouseFile == nil {
+		logger.Log(nil).Error("Virtual mouse is not present")
+		return
+	}
+
+	scrollValue := int32(1)
+	if !in {
+		scrollValue = -1
+	}
+
+	pressCtrl := inputEvent{Type: evKey, Code: keyLeftCtrl, Value: 1}
+	sync := inputEvent{Type: evSyn, Code: 0, Value: 0}
+	scroll := inputEvent{Type: evRel, Code: relWheel, Value: scrollValue}
+	releaseCtrl := inputEvent{Type: evKey, Code: keyLeftCtrl, Value: 0}
+
+	events := []inputEvent{
+		pressCtrl, sync,
+		scroll, sync,
+		releaseCtrl, sync,
+	}
+
+	for _, e := range events {
+		if err := writeVirtualEvent(virtualMouseFile, &e); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit zoom event")
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

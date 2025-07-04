@@ -31,8 +31,8 @@ import (
 	"OpenLinkHub/src/devices/k55pro"
 	"OpenLinkHub/src/devices/k55proXT"
 	"OpenLinkHub/src/devices/k60rgbpro"
-	"OpenLinkHub/src/devices/k65plus"
 	"OpenLinkHub/src/devices/k65plusW"
+	"OpenLinkHub/src/devices/k65plusWU"
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70coretkl"
@@ -2122,7 +2122,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 	case 11024: // K65 PLUS USB
 		{
 			go func(vendorId, productId uint16, key string) {
-				dev := k65plus.Init(vendorId, productId, key)
+				dev := k65plusWU.Init(vendorId, productId, key)
 				if dev == nil {
 					return
 				}

@@ -15,6 +15,7 @@ import (
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 )
@@ -53,6 +54,7 @@ type Payload struct {
 	ZeroRpm               bool                  `json:"zeroRpm"`
 	Linear                bool                  `json:"linear"`
 	HwmonDeviceId         string                `json:"hwmonDeviceId"`
+	TemperatureInputId    string                `json:"temperatureInputId"`
 	Enabled               bool                  `json:"enabled"`
 	DeviceType            int                   `json:"deviceType"`
 	KeyOption             int                   `json:"keyOption"`
@@ -299,11 +301,11 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	}
 	deviceId := ""
 	channelId := 0
-	if sensor == 3 {
+	if sensor == temperatures.SensorTypeStorage {
 		deviceId = req.HwmonDeviceId
 	}
 
-	if sensor == 4 || sensor == 6 {
+	if sensor == temperatures.SensorTypeTemperatureProbe {
 		deviceId = req.DeviceId
 		channelId = req.ChannelId
 
@@ -318,6 +320,35 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		if channelId < 1 {
 			return &Payload{
 				Message: language.GetValue("txtInvalidSensorValue"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+	}
+
+	if sensor == temperatures.SensorTypeExternalHwMon {
+		hwmonDeviceId := req.HwmonDeviceId
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", hwmonDeviceId); !m {
+			return &Payload{
+				Message: language.GetValue("txtInvalidHwMon"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		temperatureInputId := req.TemperatureInputId
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", temperatureInputId); !m {
+			return &Payload{
+				Message: language.GetValue("txtInvalidHwMon"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		deviceId = fmt.Sprintf("/sys/class/hwmon/%s/%s", hwmonDeviceId, temperatureInputId)
+		if !common.FileExists(deviceId) {
+			return &Payload{
+				Message: language.GetValue("txtInvalidHwMon"),
 				Code:    http.StatusOK,
 				Status:  0,
 			}

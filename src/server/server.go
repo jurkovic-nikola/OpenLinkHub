@@ -1145,6 +1145,7 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.TemperatureProbes = devices.GetTemperatureProbes()
+	web.HwMonSensors = temperatures.GetExternalHwMonSensors()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
@@ -1178,6 +1179,7 @@ func uiTemperatureGraphOverview(w http.ResponseWriter, _ *http.Request) {
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
 	web.TemperatureProbes = devices.GetTemperatureProbes()
+	web.HwMonSensors = temperatures.GetExternalHwMonSensors()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()

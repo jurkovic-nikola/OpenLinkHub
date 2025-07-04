@@ -30,6 +30,7 @@ type Web struct {
 	Lcd               interface{}
 	LCDImages         interface{}
 	TemperatureProbes interface{}
+	HwMonSensors      interface{}
 	RGBProfiles       map[string]interface{}
 	Temperatures      map[string]temperatures.TemperatureProfileData
 	Macros            map[int]macro.Macro

@@ -52,6 +52,7 @@
                                                     <option value="3">Storage Temperature</option>
                                                     <option value="4">Temperature Probe</option>
                                                     <option value="5">CPU + GPU</option>
+                                                    <option value="6">External HWMON</option>
                                                 </select>
 
                                                 {{ if .TemperatureProbes }}
@@ -63,6 +64,18 @@
                                                         {{ range . }}
                                                         <option value="{{ .Serial }};{{ .ChannelId }}">{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
                                                         {{ end }}
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                {{ end }}
+
+                                                {{ if .HwMonSensors }}
+                                                <div id="hwmon-sensors-probe-data" style="display: none;">
+                                                    <label class="form-label" for="probeData">{{ .Lang "txtHwMonSensor" }}:</label>
+                                                    <select class="form-select mb-1 tempProfile" id="hwmon-probeData">
+                                                        <option value="0;0" selected>Select sensor</option>
+                                                        {{ range .HwMonSensors }}
+                                                        <option value="{{ .HwmonName }};{{ .InputName }}">{{ .SensorName }} - {{ .Label }} - {{ .TempC }} °C</option>
                                                         {{ end }}
                                                     </select>
                                                 </div>
@@ -154,6 +167,8 @@
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Temperature Probe</p>
                                                 {{ else if eq $value.Sensor 5 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: CPU + GPU</p>
+                                                {{ else if eq $value.Sensor 6 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Hwmon</p>
                                                 {{ end }}
 
                                                 <!--

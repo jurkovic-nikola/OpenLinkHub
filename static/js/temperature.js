@@ -67,6 +67,11 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["deviceId"] = probeData[0];
             pf["channelId"] = parseInt(probeData[1]);
         }
+        if (parseInt(sensor) === 6) {
+            const hwmonData = $("#hwmon-probeData").val().split(';')
+            pf["hwmonDeviceId"] = hwmonData[0];
+            pf["temperatureInputId"] = hwmonData[1];
+        }
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -457,12 +462,19 @@ document.addEventListener("DOMContentLoaded", function () {
         if (value === "3") {
             $("#storage-data").show();
             $("#temperature-probe-data").hide();
+            $("#hwmon-sensors-probe-data").hide();
         } else if (value === "4") {
             $("#storage-data").hide();
             $("#temperature-probe-data").show();
+            $("#hwmon-sensors-probe-data").hide();
+        } else if (value === "6") {
+            $("#storage-data").hide();
+            $("#temperature-probe-data").hide();
+            $("#hwmon-sensors-probe-data").show();
         } else {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
+            $("#hwmon-sensors-probe-data").hide();
         }
     });
 });

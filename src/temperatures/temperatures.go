@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -23,6 +24,7 @@ const (
 	SensorTypeStorage           = 3
 	SensorTypeTemperatureProbe  = 4
 	SensorTypeCpuGpu            = 5
+	SensorTypeExternalHwMon     = 6
 )
 
 type UpdateData struct {
@@ -72,6 +74,15 @@ type StorageTemperatures struct {
 
 type MemoryTemperatures struct {
 	Temperature float32
+}
+
+type HwMonSensor struct {
+	HwmonName  string
+	SensorName string
+	InputName  string
+	Label      string
+	TempC      float64
+	Path       string
 }
 
 var (
@@ -402,6 +413,10 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 			{
 				pf = profileNormal
 			}
+		case SensorTypeExternalHwMon:
+			{
+				pf = profileNormal
+			}
 		}
 
 		if len(deviceId) > 0 {
@@ -600,8 +615,8 @@ func saveProfileToDisk(profile string, values TemperatureProfileData) error {
 	}
 
 	// Create profile filename
-	file, fileErr := os.Create(profileLocation)
-	if fileErr != nil {
+	file, err := os.Create(profileLocation)
+	if err != nil {
 		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to create new filename")
 	}
 
@@ -620,6 +635,12 @@ func saveProfileToDisk(profile string, values TemperatureProfileData) error {
 
 	LoadUserProfiles(profiles)
 	return nil
+}
+
+// friendlyTempLabel will attempt to make friendly name of the sensor
+func friendlyTempLabel(file string) string {
+	num := file[4:strings.Index(file, "_")]
+	return "Sensor " + num
 }
 
 // GetAMDGpuTemperature will return AMD GPU temperature
@@ -820,8 +841,22 @@ func GetStorageTemperature(hwmonDeviceId string) float32 {
 		logger.Log(logger.Fields{"deviceId": hwmonDeviceId, "file": tempFile, "error": e}).Error("Unable to read storage temperature file")
 		return 0
 	}
-
 	return float32(tempMilliC / 1000)
+}
+
+// GetHwMonTemperature will return hwmon temperature for specified hwmon sensor
+func GetHwMonTemperature(hwmonDevice string) float32 {
+	temp, e := os.ReadFile(hwmonDevice)
+	if e != nil {
+		return 0
+	}
+
+	tempMilliC, e := strconv.Atoi(strings.TrimSpace(string(temp)))
+	if e != nil {
+		logger.Log(logger.Fields{"file": hwmonDevice, "error": e}).Error("Unable to read storage temperature file")
+		return 0
+	}
+	return float32(math.Round(float64(tempMilliC)/10.0) / 100.0)
 }
 
 // Interpolate will perform linear interpolation
@@ -854,6 +889,80 @@ func Interpolate(points []Point, inputTemp float32) float32 {
 			return a.Y + ratio*(b.Y-a.Y)
 		}
 	}
-
 	return 0
+}
+
+// GetExternalHwMonSensors will parse and return all external hwmon sensors available in the system.
+func GetExternalHwMonSensors() interface{} {
+	basePath := "/sys/class/hwmon/"
+	hwmonEntries, err := os.ReadDir(basePath)
+	if err != nil {
+		fmt.Printf("Error reading hwmon dir: %v\n", err)
+		return nil
+	}
+
+	var sensors []HwMonSensor
+
+	for _, entry := range hwmonEntries {
+		hwmonDirName := entry.Name()
+		hwmonPath := filepath.Join(basePath, hwmonDirName)
+
+		info, err := os.Stat(hwmonPath)
+		if err != nil || !info.IsDir() {
+			continue
+		}
+
+		// Read sensor chip name
+		nameBytes, err := os.ReadFile(filepath.Join(hwmonPath, "name"))
+		if err != nil {
+			continue
+		}
+		sensorName := strings.TrimSpace(string(nameBytes))
+
+		files, err := os.ReadDir(hwmonPath)
+		if err != nil {
+			continue
+		}
+
+		for _, file := range files {
+			fileName := file.Name()
+
+			if strings.HasPrefix(fileName, "temp") && strings.HasSuffix(fileName, "_input") {
+				fullPath := filepath.Join(hwmonPath, fileName)
+
+				dataBytes, err := os.ReadFile(fullPath)
+				if err != nil {
+					continue
+				}
+				rawStr := strings.TrimSpace(string(dataBytes))
+				rawMilliC, err := strconv.Atoi(rawStr)
+				if err != nil {
+					continue
+				}
+				tempC := float64(rawMilliC) / 1000.0
+
+				// Try to read label
+				labelFile := strings.Replace(fileName, "_input", "_label", 1)
+				labelPath := filepath.Join(hwmonPath, labelFile)
+				label := ""
+				if labelBytes, err := os.ReadFile(labelPath); err == nil {
+					label = strings.TrimSpace(string(labelBytes))
+				} else {
+					label = friendlyTempLabel(fileName)
+				}
+
+				sensors = append(sensors,
+					HwMonSensor{
+						HwmonName:  hwmonDirName,
+						SensorName: sensorName,
+						InputName:  fileName,
+						Label:      label,
+						TempC:      tempC,
+						Path:       fullPath,
+					},
+				)
+			}
+		}
+	}
+	return sensors
 }

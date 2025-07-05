@@ -81,6 +81,11 @@
                                                 </div>
                                                 {{ end }}
 
+                                                <div id="binary-sensors-probe-data" style="display: none;">
+                                                    <label class="form-label" for="probeData">{{ .Lang "txtExternalBinary" }}:</label>
+                                                    <input class="form-control" id="binary-probeData" type="text" placeholder="Path to binary">
+                                                </div>
+
                                                 {{ if .SystemInfo.Storage }}
                                                 <div id="storage-data" style="display: none;">
                                                     <label class="form-label" for="hwmonDeviceId">{{ .Lang "txtStorageDevice" }}:</label>
@@ -169,6 +174,8 @@
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: CPU + GPU</p>
                                                 {{ else if eq $value.Sensor 6 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Hwmon</p>
+                                                {{ else if eq $value.Sensor 7 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Binary</p>
                                                 {{ end }}
 
                                                 <!--

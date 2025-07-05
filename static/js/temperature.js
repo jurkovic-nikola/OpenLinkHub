@@ -62,16 +62,28 @@ document.addEventListener("DOMContentLoaded", function () {
         if (parseInt(sensor) === 3) {
             pf["hwmonDeviceId"] = $("#hwmonDeviceId").val();
         }
+
         if (parseInt(sensor) === 4) {
             const probeData = $("#probeData").val().split(';')
             pf["deviceId"] = probeData[0];
             pf["channelId"] = parseInt(probeData[1]);
         }
+
         if (parseInt(sensor) === 6) {
             const hwmonData = $("#hwmon-probeData").val().split(';')
             pf["hwmonDeviceId"] = hwmonData[0];
             pf["temperatureInputId"] = hwmonData[1];
         }
+
+        if (parseInt(sensor) === 7) {
+            const binaryPath = $("#binary-probeData").val();
+            if (binaryPath.length === 0) {
+                toast.warning('Define path to binary');
+                return false;
+            }
+            pf["externalExecutable"] = binaryPath;
+        }
+
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -463,18 +475,27 @@ document.addEventListener("DOMContentLoaded", function () {
             $("#storage-data").show();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
+            $("#binary-sensors-probe-data").hide();
         } else if (value === "4") {
             $("#storage-data").hide();
             $("#temperature-probe-data").show();
             $("#hwmon-sensors-probe-data").hide();
+            $("#binary-sensors-probe-data").hide();
         } else if (value === "6") {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").show();
+            $("#binary-sensors-probe-data").hide();
+        } else if (value === "7") {
+            $("#storage-data").hide();
+            $("#temperature-probe-data").hide();
+            $("#hwmon-sensors-probe-data").hide();
+            $("#binary-sensors-probe-data").show();
         } else {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
+            $("#binary-sensors-probe-data").hide();
         }
     });
 });

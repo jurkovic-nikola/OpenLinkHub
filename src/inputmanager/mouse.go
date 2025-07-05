@@ -95,7 +95,7 @@ func createVirtualMouse(vendorId, productId uint16) error {
 			return errno
 		}
 	}
-	
+
 	// Ensure we correctly write the struct before creating the device
 	if _, e := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); e != nil {
 		logger.Log(logger.Fields{"error": e}).Error("Failed to write virtual mouse data struct")
@@ -203,7 +203,6 @@ func InputControlZoom(in bool) {
 }
 
 // InputControlMouseHold will emulate input events based on virtual mouse and button hold.
-// Experimental for now
 func InputControlMouseHold(controlType uint16, press bool) {
 	if virtualMouseFile == nil {
 		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")

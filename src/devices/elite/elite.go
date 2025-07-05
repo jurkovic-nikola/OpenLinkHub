@@ -1717,6 +1717,13 @@ func (d *Device) updateDeviceSpeed() {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
 						}
+					case temperatures.SensorTypeExternalExecutable:
+						{
+							temp = temperatures.GetExternalBinaryTemperature(profiles.Device)
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "binary": profiles.Device}).Warn("Unable to get temperature from binary.")
+							}
+						}
 					}
 
 					// All temps failed, default to 50

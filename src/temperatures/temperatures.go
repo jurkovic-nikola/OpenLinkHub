@@ -18,13 +18,14 @@ import (
 )
 
 const (
-	SensorTypeCPU               = 0
-	SensorTypeGPU               = 1
-	SensorTypeLiquidTemperature = 2
-	SensorTypeStorage           = 3
-	SensorTypeTemperatureProbe  = 4
-	SensorTypeCpuGpu            = 5
-	SensorTypeExternalHwMon     = 6
+	SensorTypeCPU                = 0
+	SensorTypeGPU                = 1
+	SensorTypeLiquidTemperature  = 2
+	SensorTypeStorage            = 3
+	SensorTypeTemperatureProbe   = 4
+	SensorTypeCpuGpu             = 5
+	SensorTypeExternalHwMon      = 6
+	SensorTypeExternalExecutable = 7
 )
 
 type UpdateData struct {
@@ -414,6 +415,10 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 				pf = profileNormal
 			}
 		case SensorTypeExternalHwMon:
+			{
+				pf = profileNormal
+			}
+		case SensorTypeExternalExecutable:
 			{
 				pf = profileNormal
 			}
@@ -853,10 +858,28 @@ func GetHwMonTemperature(hwmonDevice string) float32 {
 
 	tempMilliC, e := strconv.Atoi(strings.TrimSpace(string(temp)))
 	if e != nil {
-		logger.Log(logger.Fields{"file": hwmonDevice, "error": e}).Error("Unable to read storage temperature file")
+		logger.Log(logger.Fields{"file": hwmonDevice, "error": e}).Error("Unable to read hwmon temperature file")
 		return 0
 	}
 	return float32(math.Round(float64(tempMilliC)/10.0) / 100.0)
+}
+
+// GetExternalBinaryTemperature will return temperature of external binary
+func GetExternalBinaryTemperature(filePath string) float32 {
+	cmd := exec.Command(filePath)
+	output, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+
+	temp := strings.TrimSpace(string(output))
+	tempFloat, err := strconv.ParseFloat(temp, 64)
+	if err != nil {
+		logger.Log(logger.Fields{"file": filePath, "error": err}).Error("Unable to parse binary temperature output")
+		return 0
+	}
+
+	return float32(math.Round(tempFloat*100) / 100)
 }
 
 // Interpolate will perform linear interpolation

@@ -55,6 +55,7 @@ type Payload struct {
 	Linear                bool                  `json:"linear"`
 	HwmonDeviceId         string                `json:"hwmonDeviceId"`
 	TemperatureInputId    string                `json:"temperatureInputId"`
+	ExternalExecutable    string                `json:"externalExecutable"`
 	Enabled               bool                  `json:"enabled"`
 	DeviceType            int                   `json:"deviceType"`
 	KeyOption             int                   `json:"keyOption"`
@@ -292,7 +293,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 6 || sensor < 0 {
+	if sensor > 7 || sensor < 0 {
 		return &Payload{
 			Message: language.GetValue("txtInvalidSensorValue"),
 			Code:    http.StatusOK,
@@ -353,6 +354,25 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 				Status:  0,
 			}
 		}
+	}
+
+	if sensor == temperatures.SensorTypeExternalExecutable {
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9_\\-/]+$", req.ExternalExecutable); !m {
+			return &Payload{
+				Message: language.GetValue("txtInvalidExternalFile"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		if !common.FileExists(req.ExternalExecutable) {
+			return &Payload{
+				Message: language.GetValue("txtInvalidExternalFile"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+		deviceId = req.ExternalExecutable
 	}
 
 	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId) {

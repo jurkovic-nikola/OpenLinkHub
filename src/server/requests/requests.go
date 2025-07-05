@@ -2012,7 +2012,18 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		}
 	}
 
-	status := dashboard.SaveDashboardSettings(req, true)
+	dash := &dashboard.Dashboard{
+		ShowCpu:      req.ShowCpu,
+		ShowGpu:      req.ShowGpu,
+		ShowDisk:     req.ShowDisk,
+		ShowBattery:  req.ShowBattery,
+		ShowDevices:  req.ShowDevices,
+		ShowLabels:   req.ShowLabels,
+		Celsius:      req.Celsius,
+		LanguageCode: req.LanguageCode,
+		DeviceOrder:  dashboard.GetDashboard().DeviceOrder,
+	}
+	status := dashboard.SaveDashboardSettings(dash, true)
 	switch status {
 	case 0:
 		return &Payload{Message: language.GetValue("txtUnableToSaveDashboardSettings"), Code: http.StatusOK, Status: 0}

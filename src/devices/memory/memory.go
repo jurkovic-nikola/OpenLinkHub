@@ -401,6 +401,7 @@ func (d *Device) getTemperature(filePath string) (float32, error) {
 // getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices)
+	var modules []RAMModule
 	activated := 0
 	baseDevice := 51
 
@@ -411,6 +412,17 @@ func (d *Device) getDevices() int {
 		// DDR5
 		skuRangeLow = byte(0x89)
 		skuRangeHigh = byte(0x9b)
+		modules, err := NewMemoryModules()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to get memory modules")
+			return 0
+		}
+		if len(modules) == 0 {
+			logger.Log(logger.Fields{}).Warn("No memory modules found")
+			return 0
+		} else {
+			logger.Log(logger.Fields{"count": len(modules)}).Info("Found memory modules")
+		}
 	}
 
 	if d.Debug {
@@ -510,6 +522,12 @@ func (d *Device) getDevices() int {
 			if d.Debug {
 				logger.Log(logger.Fields{"sku": buf, "skuString": string(buf), "skuLen": len(buf)}).Info("Memory SKU")
 			}
+		}
+		if len(modules) > 0 {
+			// If modules are available, we can fetch memory SKU from them
+			// For now we'll just use the SKU of the first module
+			memorySku := modules[0].SKU
+			buf = []byte(memorySku)
 		} else {
 			// This is where memory SKU cannot be fetched
 			memorySku := config.GetConfig().MemorySku

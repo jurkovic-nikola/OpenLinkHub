@@ -412,9 +412,8 @@ func (d *Device) getDevices() int {
 		// DDR5
 		skuRangeLow = byte(0x89)
 		skuRangeHigh = byte(0x9b)
-		modules, err := NewMemoryModules()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to get memory modules")
+		modules = NewMemoryModules()
+		if modules == nil {
 			return 0
 		}
 		if len(modules) == 0 {
@@ -424,7 +423,7 @@ func (d *Device) getDevices() int {
 			logger.Log(logger.Fields{"count": len(modules)}).Info("Found memory modules")
 		}
 	}
-
+	
 	if d.Debug {
 		logger.Log(logger.Fields{"skuRangeLow": skuRangeLow, "skuRangeHigh": skuRangeHigh}).Info("DEBUG skuRange")
 	}
@@ -523,6 +522,7 @@ func (d *Device) getDevices() int {
 				logger.Log(logger.Fields{"sku": buf, "skuString": string(buf), "skuLen": len(buf)}).Info("Memory SKU")
 			}
 		}
+
 		if len(modules) > 0 {
 			// If modules are available, we can fetch memory SKU from them
 			// For now we'll just use the SKU of the first module
@@ -537,7 +537,6 @@ func (d *Device) getDevices() int {
 			}
 			buf = []byte(memorySku)
 		}
-
 		if len(buf) > 15 {
 			// https://help.corsair.com/hc/en-us/articles/8528259685901-RAM-How-to-Read-the-CORSAIR-memory-part-number
 			// https://help.corsair.com/hc/en-us/articles/360051011331-RAM-DDR4-memory-module-dimensions

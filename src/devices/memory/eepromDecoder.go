@@ -76,9 +76,8 @@ func findEEPROMs() ([]string, error) {
 }
 
 // decodeEEPROMs reads the EEPROM files and decodes the SPD data into RAMModule structs.
-func decodeEEPROMs(paths []string) ([]RAMModule, error) {
+func decodeEEPROMs(paths []string) []RAMModule {
 	var modules []RAMModule
-
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -88,16 +87,15 @@ func decodeEEPROMs(paths []string) ([]RAMModule, error) {
 		module := parseSPDModule(path, data)
 		modules = append(modules, module)
 	}
-
-	return modules, nil
+	return modules
 }
 
 // NewMemoryModules finds and decodes all memory modules in the system.
-func NewMemoryModules() ([]RAMModule, error) {
+func NewMemoryModules() []RAMModule {
 	paths, err := findEEPROMs()
 	if err != nil {
 		// If no EEPROMs are found, return an empty slice and the error
-		return nil, err
+		return nil
 	}
 	return decodeEEPROMs(paths)
 }

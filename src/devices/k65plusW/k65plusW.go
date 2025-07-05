@@ -660,6 +660,11 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
 		deviceProfile.ControlDial = d.DeviceProfile.ControlDial
 		deviceProfile.BrightnessLevel = d.DeviceProfile.BrightnessLevel
+		deviceProfile.DisableAltTab = d.DeviceProfile.DisableAltTab
+		deviceProfile.DisableAltF4 = d.DeviceProfile.DisableAltF4
+		deviceProfile.DisableShiftTab = d.DeviceProfile.DisableShiftTab
+		deviceProfile.DisableWinKey = d.DeviceProfile.DisableWinKey
+		deviceProfile.Performance = d.DeviceProfile.Performance
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -984,6 +989,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
+		d.setupPerformance()
 		return 1
 	}
 	return 0

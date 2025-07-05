@@ -258,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     $('.device-selectable').click(function (e) {
-        if ($(e.target).closest('button, select, input, .newLabel').length > 0) {
+        if ($(e.target).closest('button, select, input, .newLabel, .newRgbLabel').length > 0) {
             return;
         }
 
@@ -1234,75 +1234,77 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('.newRgbLabel').on('click', function () {
-        const channelId = $(this).children('.deviceData').val();
-        const valueOut = $(this).children('.labelValue');
-        let modalElement = '<div class="modal fade text-start" id="newLabelModal" tabindex="-1" aria-labelledby="newLabelModalLabel" aria-hidden="true">';
-        modalElement+='<div class="modal-dialog">';
-        modalElement+='<div class="modal-content">';
-        modalElement+='<div class="modal-header">';
-        modalElement+='<h5 class="modal-title" id="newLabelModalLabel">Set device label</h5>';
-        modalElement+='<button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>';
-        modalElement+='</div>';
-        modalElement+='<div class="modal-body">';
-        modalElement+='<form>';
-        modalElement+='<div class="mb-3">';
-        modalElement+='<label class="form-label" for="labelName">Name</label>';
-        modalElement+='<input class="form-control" id="labelName" type="text">';
-        modalElement+='</div>';
-        modalElement+='</form>';
-        modalElement+='</div>';
-        modalElement+='<div class="modal-footer">';
-        modalElement+='<button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>';
-        modalElement+='<button class="btn btn-primary" type="button" id="btnSaveLabel">Save</button>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        const modal = $(modalElement).modal('toggle');
+        e.stopPropagation();
 
-        modal.on('hidden.bs.modal', function () {
-            modal.data('bs.modal', null);
-        })
+        const $this = $(this);
+        const channelId = $this.find('.deviceData').val();
+        const $label = $this.find('.labelValue');
 
-        modal.on('shown.bs.modal', function (e) {
-            const labelName = modal.find('#labelName');
-            labelName.focus();
-            labelName.val(valueOut.text());
+        if ($label.find('input').length > 0) return;
 
-            modal.find('#btnSaveLabel').on('click', function () {
-                const labelValue = labelName.val();
-                if (labelValue.length < 1) {
-                    toast.warning('Device label can not be empty');
-                    return false
-                }
-                const deviceId = $("#deviceId").val();
-
-                const pf = {};
-                pf["deviceId"] = deviceId;
-                pf["channelId"] = parseInt(channelId);
-                pf["deviceType"] = 1;
-                pf["label"] = labelValue;
-                const json = JSON.stringify(pf, null, 2);
-
-                $.ajax({
-                    url: '/api/label',
-                    type: 'POST',
-                    data: json,
-                    cache: false,
-                    success: function(response) {
-                        try {
-                            if (response.status === 1) {
-                                location.reload();
-                            } else {
-                                toast.warning(response.message);
-                            }
-                        } catch (err) {
-                            toast.warning(response.message);
-                        }
-                    }
-                });
+        const originalText = $label.text().trim();
+        const $input = $('<input type="text" class="form-control form-control-sm" />')
+            .val(originalText)
+            .css({
+                'width': '100%',
+                'display': 'inline-block'
             });
-        })
+
+        $label.empty().append($input);
+        $input.focus();
+
+        function saveLabelIfChanged() {
+            const newLabel = $input.val().trim();
+
+            if (newLabel === originalText) {
+                $label.text(originalText);
+                return;
+            }
+
+            if (newLabel.length < 1) {
+                toast.warning('Device label cannot be empty');
+                $label.text(originalText);
+                return;
+            }
+
+            $label.text(newLabel);
+
+            const pf = {
+                deviceId: $("#deviceId").val(),
+                channelId: parseInt(channelId),
+                deviceType: 1,
+                label: newLabel
+            };
+
+            $.ajax({
+                url: '/api/label',
+                type: 'POST',
+                data: JSON.stringify(pf),
+                contentType: 'application/json',
+                success: function (response) {
+                    if (response.status === 1) {
+                        toast.success("Label updated");
+                    } else {
+                        toast.warning(response.message);
+                        $label.text(originalText);
+                    }
+                },
+                error: function () {
+                    toast.warning("Failed to update label");
+                    $label.text(originalText);
+                }
+            });
+        }
+
+        $input.on('blur', saveLabelIfChanged);
+        $input.on('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveLabelIfChanged();
+            } else if (e.key === 'Escape') {
+                $label.text(originalText); // Cancel
+            }
+        });
     });
 
     function autoRefresh() {

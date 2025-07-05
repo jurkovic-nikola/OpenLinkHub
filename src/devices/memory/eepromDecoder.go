@@ -7,6 +7,7 @@ package memory
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/logger"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,7 +27,7 @@ type RAMModule struct {
 
 }
 
-// Reads the byte range the SKU/Part Number is normally found at and filters out non-printable ASCII characters
+// parseSKUInfo Reads the byte range the SKU/Part Number is normally found at and filters out non-printable ASCII characters
 func parseSKUInfo(m *RAMModule, spd []byte) {
 	if len(spd) >= 0x021B {
 		partBytes := spd[0x0209:0x021B]
@@ -39,7 +40,7 @@ func parseSKUInfo(m *RAMModule, spd []byte) {
 
 }
 
-// Parse the SPD data from the EEPROM file.
+// parseSPDModule Parse the SPD data from the EEPROM file.
 func parseSPDModule(path string, spd []byte) RAMModule {
 	var m RAMModule
 	m.EEPROMPath = path
@@ -47,7 +48,7 @@ func parseSPDModule(path string, spd []byte) RAMModule {
 	return m
 }
 
-// traverse the hwmon directory structure to find EEPROMs
+// findEEPROMs traverse the hwmon directory structure to find EEPROMs
 func findEEPROMs() ([]string, error) {
 	var paths []string
 
@@ -81,7 +82,7 @@ func decodeEEPROMs(paths []string) ([]RAMModule, error) {
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to read EEPROM file %s: %v\n", path, err)
+			logger.Log(logger.Fields{"error": err, "path": path}).Error("Failed to read eeprom data")
 			continue
 		}
 		module := parseSPDModule(path, data)

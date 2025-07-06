@@ -1,0 +1,114 @@
+[
+  {
+    "index":   0,
+    "name":    "No Device",
+    "total":   0,
+    "command": 0
+  },
+  {
+    "index":   1,
+    "name":    "RGB Led Strip",
+    "total":   10,
+    "command": 1
+  },
+  {
+    "index":   2,
+    "name":    "HD RGB Series Fan",
+    "total":   12,
+    "command": 4
+  },
+  {
+    "index":   3,
+    "name":    "LL RGB Series Fan",
+    "total":   16,
+    "command": 2
+  },
+  {
+    "index":   4,
+    "name":    "ML PRO RGB Series Fan",
+    "total":   4,
+    "command": 3
+  },
+  {
+    "index":   5,
+    "name":    "QL RGB Series Fan",
+    "total":   34,
+    "command": 6
+  },
+  {
+    "index":   6,
+    "name":    "8-LED Series Fan",
+    "total":   8,
+    "command": 5
+  },
+  {
+    "index":   7,
+    "name":    "XD7 Pump / Res Combo",
+    "total":   36,
+    "command": 1
+  },
+  {
+    "index":   8,
+    "name":    "CX7 / XC9 CPU Block",
+    "total":   16,
+    "command": 1
+  },
+  {
+    "index":   9,
+    "name":    "XC5 PRO / XC8 PRO CPU Block",
+    "total":   8,
+    "command": 1
+  },
+  {
+    "index":   10,
+    "name":    "XD5 Pump / Res Combo",
+    "total":   10,
+    "command": 1
+  },
+  {
+    "index":   11,
+    "name":    "GPU Block",
+    "total":   16,
+    "command": 1
+  },
+  {
+    "index":   12,
+    "name":    "XD3 Pump / Res Combo",
+    "total":   16,
+    "command": 1
+  },
+  {
+    "index":   13,
+    "name":    "XH305i RGB PRO",
+    "total":   26,
+    "command": 1,
+    "kit": true,
+    "devices": {
+      "0": {
+        "name": "XC7 RGB PRO",
+        "total": 16
+      },
+      "1": {
+        "name": "XD5 Pump / Res Combo",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   14,
+    "name":    "XH305i RGB",
+    "total":   26,
+    "command": 1,
+    "kit": true,
+    "devices": {
+      "0": {
+        "name": "XC7 RGB",
+        "total": 16
+      },
+      "1": {
+        "name": "XD5 Pump / Res Combo",
+        "total": 10
+      }
+    }
+  }
+]

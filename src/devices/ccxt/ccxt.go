@@ -41,9 +41,11 @@ var (
 	cmdHardwareMode            = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdWrite                   = []byte{0x06, 0x01}
 	cmdWriteColor              = []byte{0x06, 0x00}
+	cmdWriteColorNext          = []byte{0x07, 0x00}
 	cmdRead                    = []byte{0x08, 0x01}
 	cmdResetLedPower           = []byte{0x15, 0x01}
 	cmdSetLedPorts             = []byte{0x1e}
+	cmdSetLedPortsChannels     = []byte{0x1d}
 	modeGetLeds                = []byte{0x20}
 	modeGetSpeeds              = []byte{0x17}
 	modeSetSpeed               = []byte{0x18}
@@ -69,86 +71,6 @@ var (
 	maxBufferSizePerRequest    = 381
 	i2cPrefix                  = "i2c"
 	rgbProfileUpgrade          = []string{"custom"}
-	externalLedDevices         = []ExternalLedDevice{
-		{
-			Index:   0,
-			Name:    "No Device",
-			Total:   0,
-			Command: 00,
-		},
-		{
-			Index:   1,
-			Name:    "RGB Led Strip",
-			Total:   10,
-			Command: 01,
-		},
-		{
-			Index:   2,
-			Name:    "HD RGB Series Fan",
-			Total:   12,
-			Command: 04,
-		},
-		{
-			Index:   3,
-			Name:    "LL RGB Series Fan",
-			Total:   16,
-			Command: 02,
-		},
-		{
-			Index:   4,
-			Name:    "ML PRO RGB Series Fan",
-			Total:   4,
-			Command: 03,
-		},
-		{
-			Index:   5,
-			Name:    "QL RGB Series Fan",
-			Total:   34,
-			Command: 06,
-		},
-		{
-			Index:   6,
-			Name:    "8-LED Series Fan",
-			Total:   8,
-			Command: 05,
-		},
-		{
-			Index:   7,
-			Name:    "XD7 Pump / Res Combo",
-			Total:   36,
-			Command: 01,
-		},
-		{
-			Index:   8,
-			Name:    "CX7 / XC9 CPU Block",
-			Total:   16,
-			Command: 01,
-		},
-		{
-			Index:   9,
-			Name:    "XC5 PRO / XC8 PRO CPU Block",
-			Total:   8,
-			Command: 01,
-		},
-		{
-			Index:   10,
-			Name:    "XD5 Pump / Res Combo",
-			Total:   10,
-			Command: 01,
-		},
-		{
-			Index:   11,
-			Name:    "GPU Block",
-			Total:   16,
-			Command: 01,
-		},
-		{
-			Index:   12,
-			Name:    "XD3 Pump / Res Combo",
-			Total:   16,
-			Command: 01,
-		},
-	}
 )
 
 // ExternalLedDevice contains a list of supported external-LED devices connected to a HUB
@@ -157,6 +79,8 @@ type ExternalLedDevice struct {
 	Name    string
 	Total   int
 	Command byte
+	Kit     bool
+	Devices map[int]ExternalLedDevice
 }
 
 type LedChannel struct {
@@ -268,9 +192,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:               dev,
-		ExternalHub:       true,
-		ExternalLedDevice: externalLedDevices,
+		dev:         dev,
+		ExternalHub: true,
 		ExternalLedDeviceAmount: map[int]string{
 			0: "No Devices",
 			1: "1 Device",
@@ -310,6 +233,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
+	d.loadExternalDevices() // External metadata
 	d.loadRgb()             // Load RGB
 	d.loadDeviceProfiles()  // Load all device profiles
 	d.getDeviceFirmware()   // Firmware
@@ -400,6 +324,108 @@ func (d *Device) StopDirty() uint8 {
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+// loadExternalDevices will load external device definitions
+func (d *Device) loadExternalDevices() {
+	externalDevicesFile := pwd + "/database/external/ccxt.json"
+	if common.FileExists(externalDevicesFile) {
+		file, err := os.Open(externalDevicesFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+			return
+		}
+		if err = json.NewDecoder(file).Decode(&d.ExternalLedDevice); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to decode external devices metadata")
+			return
+		}
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": externalDevicesFile, "serial": d.Serial}).Warn("Failed to close external devices metadata")
+		}
+	} else {
+		logger.Log(logger.Fields{"serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+		d.ExternalLedDevice = []ExternalLedDevice{
+			{
+				Index:   0,
+				Name:    "No Device",
+				Total:   0,
+				Command: 00,
+			},
+			{
+				Index:   1,
+				Name:    "RGB Led Strip",
+				Total:   10,
+				Command: 01,
+			},
+			{
+				Index:   2,
+				Name:    "HD RGB Series Fan",
+				Total:   12,
+				Command: 04,
+			},
+			{
+				Index:   3,
+				Name:    "LL RGB Series Fan",
+				Total:   16,
+				Command: 02,
+			},
+			{
+				Index:   4,
+				Name:    "ML PRO RGB Series Fan",
+				Total:   4,
+				Command: 03,
+			},
+			{
+				Index:   5,
+				Name:    "QL RGB Series Fan",
+				Total:   34,
+				Command: 06,
+			},
+			{
+				Index:   6,
+				Name:    "8-LED Series Fan",
+				Total:   8,
+				Command: 05,
+			},
+			{
+				Index:   7,
+				Name:    "XD7 Pump / Res Combo",
+				Total:   36,
+				Command: 01,
+			},
+			{
+				Index:   8,
+				Name:    "CX7 / XC9 CPU Block",
+				Total:   16,
+				Command: 01,
+			},
+			{
+				Index:   9,
+				Name:    "XC5 PRO / XC8 PRO CPU Block",
+				Total:   8,
+				Command: 01,
+			},
+			{
+				Index:   10,
+				Name:    "XD5 Pump / Res Combo",
+				Total:   10,
+				Command: 01,
+			},
+			{
+				Index:   11,
+				Name:    "GPU Block",
+				Total:   16,
+				Command: 01,
+			},
+			{
+				Index:   12,
+				Name:    "XD3 Pump / Res Combo",
+				Total:   16,
+				Command: 01,
+			},
+		}
+	}
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -951,6 +977,7 @@ func (d *Device) setDeviceColor() {
 
 // resetLEDPorts will reset internal-LED channels
 func (d *Device) resetLEDPorts() {
+	kitLeds := 0
 	var buf []byte
 
 	// Init
@@ -968,12 +995,21 @@ func (d *Device) resetLEDPorts() {
 		} else {
 			externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
 			if externalDeviceType != nil {
-				// Add number of devices to a buffer
-				buf = append(buf, byte(d.DeviceProfile.ExternalHubDeviceAmount))
-
-				// Append device command code a buffer
-				for m := 0; m < d.DeviceProfile.ExternalHubDeviceAmount; m++ {
+				if externalDeviceType.Kit {
+					// All kits follow 0x01, 0x01
 					buf = append(buf, externalDeviceType.Command)
+					buf = append(buf, externalDeviceType.Command)
+					for m := 0; m < len(externalDeviceType.Devices); m++ {
+						kitLeds += externalDeviceType.Devices[m].Total
+					}
+				} else {
+					// Add number of devices to a buffer
+					buf = append(buf, byte(d.DeviceProfile.ExternalHubDeviceAmount))
+
+					// Append device command code a buffer
+					for m := 0; m < d.DeviceProfile.ExternalHubDeviceAmount; m++ {
+						buf = append(buf, externalDeviceType.Command)
+					}
 				}
 			} else {
 				buf = append(buf, 0x00)
@@ -1015,6 +1051,16 @@ func (d *Device) resetLEDPorts() {
 
 	d.write(cmdSetLedPorts, nil, buf, 0, "resetLEDPorts")
 
+	// Led kits
+	if kitLeds > 0 {
+		var bufKit = make([]byte, 17) // This is always 0x11 for custom kits
+		bufKit[0] = 0x0c
+		bufKit[1] = 0x00
+		bufKit[2] = 0x07
+		bufKit[3] = byte(kitLeds)
+		d.write(cmdSetLedPortsChannels, nil, bufKit, 0, "resetLEDPorts")
+	}
+
 	// Re-init LED ports
 	_, err := d.transfer(cmdResetLedPower, nil, nil, "resetLEDPorts")
 	if err != nil {
@@ -1024,7 +1070,7 @@ func (d *Device) resetLEDPorts() {
 
 // getExternalLedDevice will return ExternalLedDevice based on given device index
 func (d *Device) getExternalLedDevice(index int) *ExternalLedDevice {
-	for _, externalLedDevice := range externalLedDevices {
+	for _, externalLedDevice := range d.ExternalLedDevice {
 		if externalLedDevice.Index == index {
 			return &externalLedDevice
 		}
@@ -1435,13 +1481,17 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 // UpdateExternalHubDeviceType will update a device type connected to the external-LED hub
 func (d *Device) UpdateExternalHubDeviceType(_ int, externalType int) uint8 {
 	if d.DeviceProfile != nil {
-		if d.getExternalLedDevice(externalType) != nil {
+		metadata := d.getExternalLedDevice(externalType)
+		if metadata != nil {
 			d.DeviceProfile.ExternalHubDeviceType = externalType
+			if metadata.Kit {
+				// Hard code amount to 1 if kit is present
+				d.DeviceProfile.ExternalHubDeviceAmount = 1
+			}
 			if d.activeRgb != nil {
 				d.activeRgb.Exit <- true // Exit current RGB mode
 				d.activeRgb = nil
 			}
-
 			d.resetLEDPorts()     // Reset LED ports
 			d.getRgbDevices()     // Reload devices
 			d.saveDeviceProfile() // Save profile
@@ -1480,6 +1530,15 @@ func (d *Device) UpdateExternalHubDeviceAmount(_ int, externalDevices int) uint8
 			case 12:
 				maximum = 2
 				break
+			}
+
+			metadata := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
+			if metadata == nil {
+				return 0
+			}
+
+			if metadata.Kit && externalDevices > 1 {
+				return 0
 			}
 
 			if maximum > 0 && externalDevices > maximum {
@@ -1741,51 +1800,102 @@ func (d *Device) getRgbDevices() {
 		externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.ExternalHubDeviceType)
 		if externalDeviceType != nil {
 			var LedChannels uint8 = 0
-			var name = ""
 			LedChannels = uint8(externalDeviceType.Total)
-			name = externalDeviceType.Name
-
+			name := externalDeviceType.Name
+			if externalDeviceType.Kit {
+				for n := 0; n < len(externalDeviceType.Devices); n++ {
+					LedChannels += uint8(externalDeviceType.Devices[n].Total)
+				}
+			}
 			if LedChannels > 0 {
-				for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
-					rgbProfile := "static"
-					label := "Set Label"
-					// Profile is set
-					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
-						// Profile device channel exists
-						if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
-							// Speed profile exists in configuration
-							rgbProfile = rp
+				if externalDeviceType.Kit {
+					// Custom kits
+					for z := 0; z < len(externalDeviceType.Devices); z++ {
+						kitDeviceName := externalDeviceType.Devices[z].Name
+						ledAmount := externalDeviceType.Devices[z].Total
+						rgbProfile := "static"
+						label := "Set Label"
+						// Profile is set
+						if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
+							// Profile device channel exists
+							if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+								// Speed profile exists in configuration
+								rgbProfile = rp
+							} else {
+								logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+							}
 						} else {
-							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
 						}
-					} else {
-						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
-					}
 
-					// Device label
-					if lb, ok := d.DeviceProfile.RGBLabels[m]; ok {
-						label = lb
-					}
+						// Device label
+						if lb, ok := d.DeviceProfile.RGBLabels[m]; ok {
+							label = lb
+						}
 
-					device := &Devices{
-						ChannelId:          m,
-						DeviceId:           fmt.Sprintf("%s-%v", "LED", z),
-						Name:               name,
-						Rpm:                0,
-						Temperature:        0,
-						Description:        "LED",
-						HubId:              d.Serial,
-						HasSpeed:           false,
-						HasTemps:           false,
-						IsTemperatureProbe: false,
-						LedChannels:        LedChannels,
-						RGB:                rgbProfile,
-						ExternalLed:        true,
-						CellSize:           2,
-						Label:              label,
+						device := &Devices{
+							ChannelId:          m,
+							DeviceId:           fmt.Sprintf("%s-%v", "LED", z),
+							Name:               kitDeviceName,
+							Rpm:                0,
+							Temperature:        0,
+							Description:        "LED",
+							HubId:              d.Serial,
+							HasSpeed:           false,
+							HasTemps:           false,
+							IsTemperatureProbe: false,
+							LedChannels:        uint8(ledAmount),
+							RGB:                rgbProfile,
+							ExternalLed:        true,
+							CellSize:           2,
+							Label:              label,
+						}
+						devices[m] = device
+						m++
 					}
-					devices[m] = device
-					m++
+				} else {
+					// Regular devices
+					for z := 0; z < d.DeviceProfile.ExternalHubDeviceAmount; z++ {
+						rgbProfile := "static"
+						label := "Set Label"
+						// Profile is set
+						if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
+							// Profile device channel exists
+							if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+								// Speed profile exists in configuration
+								rgbProfile = rp
+							} else {
+								logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+							}
+						} else {
+							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
+						}
+
+						// Device label
+						if lb, ok := d.DeviceProfile.RGBLabels[m]; ok {
+							label = lb
+						}
+
+						device := &Devices{
+							ChannelId:          m,
+							DeviceId:           fmt.Sprintf("%s-%v", "LED", z),
+							Name:               name,
+							Rpm:                0,
+							Temperature:        0,
+							Description:        "LED",
+							HubId:              d.Serial,
+							HasSpeed:           false,
+							HasTemps:           false,
+							IsTemperatureProbe: false,
+							LedChannels:        LedChannels,
+							RGB:                rgbProfile,
+							ExternalLed:        true,
+							CellSize:           2,
+							Label:              label,
+						}
+						devices[m] = device
+						m++
+					}
 				}
 			}
 		}
@@ -2533,21 +2643,18 @@ func (d *Device) writeColor(data []byte) {
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
 
-	// Process buffer and create a chunked array if needed
-	writeColorEp := cmdWriteColor
-	colorEp := make([]byte, len(writeColorEp))
-	copy(colorEp, writeColorEp)
-
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
 		if i > 0 {
-			// We start at 0x06 with the first chunk, and 0x07 is repeated until all chunks are processed
-			colorEp[0] = 0x07
-		}
-		// Send it
-		_, err := d.transfer(colorEp, chunk, nil, "writeColor")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+			_, err := d.transfer(cmdWriteColorNext, chunk, nil, "writeColor")
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+			}
+		} else {
+			_, err := d.transfer(cmdWriteColor, chunk, nil, "writeColor")
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+			}
 		}
 	}
 }

@@ -413,17 +413,20 @@ func (d *Device) getDevices() int {
 		skuRangeLow = byte(0x89)
 		skuRangeHigh = byte(0x9b)
 		modules = NewMemoryModules()
-		if modules == nil {
-			return 0
-		}
-		if len(modules) == 0 {
-			logger.Log(logger.Fields{}).Warn("No memory modules found")
-			return 0
-		} else {
-			logger.Log(logger.Fields{"count": len(modules)}).Info("Found memory modules")
-		}
+		/*
+			This will fail on older kernels and return 0 devices, without ever reading user defined SKU
+			if modules == nil {
+				return 0
+			}
+			if len(modules) == 0 {
+				logger.Log(logger.Fields{}).Warn("No memory modules found")
+				return 0
+			} else {
+				logger.Log(logger.Fields{"count": len(modules)}).Info("Found memory modules")
+			}
+		*/
 	}
-	
+
 	if d.Debug {
 		logger.Log(logger.Fields{"skuRangeLow": skuRangeLow, "skuRangeHigh": skuRangeHigh}).Info("DEBUG skuRange")
 	}
@@ -523,7 +526,7 @@ func (d *Device) getDevices() int {
 			}
 		}
 
-		if len(modules) > 0 {
+		if modules != nil && len(modules) > 0 {
 			// If modules are available, we can fetch memory SKU from them
 			// For now we'll just use the SKU of the first module
 			memorySku := modules[0].SKU

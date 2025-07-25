@@ -10,7 +10,9 @@
         {{ $devices := $device.Devices }}
         {{ $rgb := .Rgb }}
         {{ $deviceProfile := .Device.DeviceProfile }}
+        {{ $stick := index $devices 1 }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="zones" name="zones" value="6">
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -21,210 +23,184 @@
             <div class="container-fluid">
                 <div class="row gy-4" style="margin-top: 10px;">
                     <div class="row">
-                        {{ if gt $device.LEDChannels 0 }}
-                        <div style="width: 300px;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left">
-                                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
-                                    </div>
-                                    <div class="ds-svg-placeholder-right">
-                                        <span style="font-size: 13px;">{{ .Device.Product }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                            <span>Device Settings</span>
-                                        </p>
-                                    </div>
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
                                 </div>
-                                <div class="card-body" style="padding: 1rem 1rem;">
-                                    <div style="text-align: center;">
-                                        <div class="custom-device-block">
-                                            <div class="custom-float-20-left">
-                                                <i class="bi bi-person svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                            </div>
-                                            <div class="custom-float-80-right">
-                                                <select class="form-select userProfile" style="line-height: 1;margin-top: 10px;">
-                                                    {{ range $key, $profile := $device.UserProfiles }}
-                                                    {{ if $profile.Active }}
-                                                    <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </div>
-                                        </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">{{ $stick.Name }}</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select userProfile" style="line-height: 1;">
+                                                {{ range $key, $profile := $device.UserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
+                                        <li>
+                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
+                                        </li>
+                                    </ul>
 
-                                        <div class="custom-device-block">
-                                            <div class="custom-float-20-left">
-                                                <img src="/static/img/icons/icon-brightness2.svg" width="20" height="20" alt="Brightness" style="vertical-align: top;"/>
-                                            </div>
-                                            <div class="custom-float-80-right">
-                                                <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="5" />
-                                            </div>
-                                        </div>
-                                        <div class="custom-device-block">
-                                            <div class="custom-float-20-left">
-                                                <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                            </div>
-                                            <div class="custom-float-80-right">
-                                                <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
-                                                    {{ range $key, $_ := $rgb }}
-                                                    {{ if eq $key "stand" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "keyboard" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "mousepad" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "mouse" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "liquid-temperature" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "headset" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "custom" }}
-                                                    {{ continue }}
-                                                    {{ end }}
-                                                    {{ if eq $deviceProfile.MultiRGB $key }}
-                                                    <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div style="overflow: hidden; margin-top: 10px;">
-                                            <button class="btn btn-secondary saveUserProfile">
-                                                <span>{{ .Lang "txtSaveAs" }}</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select globalRgb" style="line-height: 1;">
+                                                {{ range $key, $_ := $rgb }}
+                                                {{ if eq $key "stand" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "keyboard" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mousepad" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "mouse" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "liquid-temperature" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "headset" }}
+                                                {{ continue }}
+                                                {{ else if eq $key "custom" }}
+                                                {{ continue }}
+                                                {{ end }}
+                                                {{ if eq $deviceProfile.MultiRGB $key }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                    <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                        {{ end }}
-                        {{ range $device := $devices }}
-                        <div style="width: 350px;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
-                                        <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
+                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
+                                <div class="row">
+                                {{ range $device := $devices }}
+                                <div class="ram-container">
+                                    <div class="ram-title" style="float: left;">
+                                        {{ $device.Name }}
+                                    </div>
+                                    <div class="ram-stick">
+                                        <div class="memory-chip"></div>
+                                        <div class="memory-chip"></div>
+                                        <div class="memory-chip"></div>
+                                        <div class="memory-chip"></div>
+                                        <div class="memory-chip"></div>
+                                        <div class="memory-chip"></div>
+                                        <div class="contacts">
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                            <div class="contact"></div>
+                                        </div>
                                     </div>
 
-                                    <div class="ds-svg-placeholder-right-2">
-                                        <span style="font-size: 13px;">{{ $device.Name }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3 newLabel" style="margin-top: 5px;">
-                                            <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                            <span class="labelValue">{{ $device.Label }}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="card-body" style="padding: 1rem 1rem;">
-                                    <div style="text-align: center;">
-                                        <div class="d-flex align-items-end justify-content-between mb-2">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">SKU</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ $device.Sku }}</p>
+                                    <div class="ram-info">
+                                        <div class="info-row">
+                                            <div class="info-label">SKU</div>
+                                            <div class="info-value text-dash-color-2">{{ $device.Sku }}</div>
                                         </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-
                                         {{ if gt $device.Size 0 }}
-                                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Size</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ $device.Size }} GB</p>
-                                        </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="info-row">
+                                            <div class="info-label">SIZE</div>
+                                            <div class="info-value text-dash-color-2">{{ $device.Size }} GB</div>
                                         </div>
                                         {{ end }}
-
-                                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Type</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2">DDR{{ $device.MemoryType }}</p>
+                                        <div class="info-row">
+                                            <div class="info-label">TYPE</div>
+                                            <div class="info-value text-dash-color-2">DDR{{ $device.MemoryType }}</div>
                                         </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-
                                         {{ if gt $device.Speed 0 }}
-                                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ $device.Speed }} MHz</p>
-                                        </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="info-row">
+                                            <div class="info-label">SPEED</div>
+                                            <div class="info-value text-dash-color-2">{{ $device.Speed }} MHz</div>
                                         </div>
                                         {{ end }}
-
                                         {{ if gt $device.Latency 0 }}
-                                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Latency</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2">C{{ $device.Latency }}</p>
-                                        </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="info-row">
+                                            <div class="info-label">LATENCY</div>
+                                            <div class="info-value text-dash-color-2">C{{ $device.Latency }}</div>
                                         </div>
                                         {{ end }}
-
                                         {{ if gt $device.Temperature 0.00 }}
-                                        <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
-                                            <div class="me-2">
-                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
-                                            </div>
-                                            <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</p>
-                                        </div>
-                                        <div class="progress" style="height: 3px">
-                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="info-row">
+                                            <div class="info-label">TEMP</div>
+                                            <div class="info-value text-dash-color-2">{{ $device.TemperatureString }}</div>
                                         </div>
                                         {{ end }}
 
                                         {{ if gt $device.LedChannels 0 }}
-                                        <div class="custom-device-block">
-                                            <div class="custom-float-20-left">
-                                                <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                            </div>
-                                            <div class="custom-float-80-right">
-                                                <select class="form-select rgbProfile" style="line-height: 1;margin-top:10px;">
-                                                    {{ range $key, $_ := $rgb }}
-                                                    {{ if eq $key $device.RGB }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                                                    {{ else }}
-                                                    {{ if eq $key "stand" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "keyboard" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "mousepad" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "mouse" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "liquid-temperature" }}
-                                                    {{ continue }}
-                                                    {{ else if eq $key "headset" }}
-                                                    {{ continue }}
-                                                    {{ end }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                                                    {{ end }}
-                                                    {{ end }}
-                                                </select>
+                                        <div class="info-row" style="display: flex; align-items: center;">
+                                            <div class="info-label">RGB</div>
+                                            <div class="info-value">
+                                                <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
+                                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                                    <li>
+                                                        <select class="form-select rgbProfile" name="{{ $device.DeviceId }}">
+                                                            {{ range $key, $_ := $rgb }}
+                                                            {{ if eq $key $device.RGB }}
+                                                            <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                            {{ else }}
+                                                            {{ if eq $key "stand" }}
+                                                            {{ continue }}
+                                                            {{ else if eq $key "keyboard" }}
+                                                            {{ continue }}
+                                                            {{ else if eq $key "mousepad" }}
+                                                            {{ continue }}
+                                                            {{ else if eq $key "mouse" }}
+                                                            {{ continue }}
+                                                            {{ else if eq $key "liquid-temperature" }}
+                                                            {{ continue }}
+                                                            {{ else if eq $key "headset" }}
+                                                            {{ continue }}
+                                                            {{ end }}
+                                                            <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                            {{ end }}
+                                                            {{ end }}
+                                                        </select>
+                                                    </li>
+                                                </ul>
+                                                <button title="RGB Override" class="btn btn-secondary-empty rgbOverride" data-info="{{ $device.ChannelId }}" type="button" style="margin-left: 5px;">
+                                                    <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                </button>
                                             </div>
                                         </div>
                                         {{ end }}
                                     </div>
                                 </div>
+                                {{ end }}
+                                </div>
                             </div>
                         </div>
-                        {{ end }}
                     </div>
                 </div>
             </div>
@@ -236,5 +212,6 @@
 <script src="/static/js/jquery-3.7.1.min.js"></script>
 <script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
+<script src="/static/js/headset.js"></script>
 </body>
 </html>

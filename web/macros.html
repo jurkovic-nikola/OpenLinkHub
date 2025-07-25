@@ -113,7 +113,11 @@
                                                 <th>{{ .Lang "txtId" }}</th>
                                                 <th>{{ .Lang "txtMacroType" }}</th>
                                                 <th>{{ .Lang "txtMacroValue" }}</th>
-                                                <th style="width:10%;">{{ .Lang "txtOption" }}</th>
+                                                <th>
+                                                    {{ .Lang "txtPressAndHold" }}
+                                                    <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldMacroInfoToggle"></i>
+                                                </th>
+                                                <th style="width:20%;">{{ .Lang "txtOptions" }}</th>
                                             </tr>
                                             </thead>
                                         </table>

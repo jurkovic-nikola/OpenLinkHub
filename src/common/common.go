@@ -3,12 +3,14 @@ package common
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"golang.org/x/image/draw"
 	"image"
+	"io"
 	"math"
-	"math/rand"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -325,20 +327,65 @@ func GetBcdDevice(path string) (string, error) {
 	return fmt.Sprintf("%s.%s", major, minor), nil
 }
 
-// generateRandomString generates random string with given length
-func generateRandomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+// GetBcdDeviceHex returns the firmware version from bcdDevice as "1.18"
+func GetBcdDeviceHex(path string) (string, error) {
+	base := filepath.Base(path)
+	sysClassPath := filepath.Join("/sys/class/hidraw", base, "device")
+	resolvedPath, err := filepath.EvalSymlinks(sysClassPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve symlink: %v", err)
 	}
-	return string(b)
+
+	usbDevicePath := filepath.Join(resolvedPath, "../..")
+	usbDevicePath = filepath.Clean(usbDevicePath)
+	bcdDevicePath := filepath.Join(usbDevicePath, "bcdDevice")
+
+	data, err := os.ReadFile(bcdDevicePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read bcdDevice: %v", err)
+	}
+
+	bcdStr := strings.TrimSpace(string(data))
+	if len(bcdStr) != 4 {
+		return "", fmt.Errorf("unexpected bcdDevice length: %s", bcdStr)
+	}
+
+	majorHex := bcdStr[:2]
+	minorHex := bcdStr[2:]
+
+	major, err := strconv.ParseInt(majorHex, 16, 0)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse major version: %v", err)
+	}
+
+	minor, err := strconv.ParseInt(minorHex, 16, 0)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse minor version: %v", err)
+	}
+
+	return fmt.Sprintf("%d.%02d", major, minor), nil
 }
 
-// GenerateRandomMD5 will generate random MD5 string
+// generateRandomString generates a secure random string of the given length
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, length)
+	for i := range result {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			continue
+		}
+		result[i] = charset[n.Int64()]
+	}
+	return string(result)
+}
+
+// GenerateRandomMD5 generates a random MD5 string using secure random bytes
 func GenerateRandomMD5() string {
-	rand.Seed(time.Now().UnixNano())
-	randomStr := generateRandomString(32)
-	hash := md5.Sum([]byte(randomStr))
+	randomBytes := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, randomBytes); err != nil {
+		return generateRandomString(32) // fall back to normal string
+	}
+	hash := md5.Sum(randomBytes)
 	return hex.EncodeToString(hash[:])
 }

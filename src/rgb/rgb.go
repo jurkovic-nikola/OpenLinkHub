@@ -38,6 +38,12 @@ type Profile struct {
 	MaxTemp     float64 `json:"maxTemp"`
 }
 
+type LastCycle struct {
+	RGBStartColor *Color
+	RGBEndColor   *Color
+	LastCycle     int
+}
+
 type ActiveRGB struct {
 	LightChannels          int
 	Smoothness             int
@@ -52,7 +58,6 @@ type ActiveRGB struct {
 	Exit                   chan bool
 	Output                 []byte
 	Raw                    map[int][]byte
-	Tracking               []int
 	Phase                  int
 	TempColor              *Color
 	HasLCD                 bool
@@ -64,6 +69,8 @@ type ActiveRGB struct {
 	ColorOffset            int
 	PreviousTemp           float64
 	TempAlpha              float64
+	ChannelId              int
+	LastCycle              map[int]*LastCycle
 }
 
 var (
@@ -136,6 +143,15 @@ func interpolateColors(c1, c2 *Color, t, bts float64) Color {
 	return *modify
 }
 
+func cloneColor(c *Color) *Color {
+	return &Color{
+		Red:        c.Red,
+		Green:      c.Green,
+		Blue:       c.Blue,
+		Brightness: c.Brightness,
+	}
+}
+
 // Interpolate function to calculate the intermediate color
 func interpolate(
 	r1,
@@ -177,8 +193,13 @@ func New(
 }
 
 func Exit() *ActiveRGB {
+	lastCycle := map[int]*LastCycle{}
+	for i := 0; i < 64; i++ {
+		lastCycle[i] = &LastCycle{}
+	}
 	return &ActiveRGB{
-		Exit: make(chan bool),
+		Exit:      make(chan bool),
+		LastCycle: lastCycle,
 	}
 }
 

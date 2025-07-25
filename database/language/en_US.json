@@ -100,6 +100,7 @@
     "txtUnableToChangeButtonOptimization": "Unable to change button optimization mode",
     "txtUnableToApplyKeyAssigment": "Unable to update key assignment",
     "txtKeyAssigmentUpdated": "Device key assignment successfully updated",
+    "txtPressAndHoldNotAllowed": "Unable to update key assignments. Macro can not have Press and Hold value checked.",
     "txtInvalidIndicatorOption": "Invalid indicator option",
     "txtIndicatorChanged": "Device mute indicator mode successfully changed",
     "txtUnableToChangeIndicator": "Unable to change device mute indicator mode",
@@ -132,6 +133,7 @@
     "txtDeviceRgbProfileChanged": "Device RGB profile is successfully changed",
     "txtNonExistingHwProfile": "Non-existing hardware profile",
     "txtNonExistingRgbStrip": "Non-existing RGB strip",
+    "txtNonExistingLinkAdapter": "Non-existing LINK adapter",
     "txtRgbStripChanged": "Device RGB strip is successfully changed",
     "txtUnableToChangeRgbStrip": "Unable to change device RGB strip",
     "txtUnableToChangeRgbStripNoLink": "Unable to change device RGB strip. You need iCUE Link Adapter",
@@ -165,7 +167,10 @@
     "txtMouseDpiColorsChanged": "Mouse DPI colors are successfully updated",
     "txtInvalidMacroSelected": "Unable to validate your request. Invalid macro selected",
     "txtMacroProfileValueDeleted": "Macro profile value is successfully deleted",
+    "txtMacroProfileValueUpdated": "Macro profile value is successfully updated",
     "txtUnableToDeleteMacroProfileValue": "Unable to delete macro profile value. Please try again!",
+    "txtUnableToUpdateMacroProfileValue": "Unable to update macro profile value. Please try again!",
+    "txtUnableToUpdateMacroProfileValuePressAndHold": "Unable to update macro profile value. You need to have at least 1 Press and Hold un-checked!",
     "txtMacroProfileDeleted": "Macro profile value is successfully deleted",
     "txtUnableToDeleteMacroProfile": "Unable to delete macro profile. Please try again!",
     "txtUnableToValidateMacroName": "Unable to validate your request. Macro name should have at least 3 characters!",
@@ -243,6 +248,7 @@
     "txtMacroType": "Macro Type",
     "txtMacroValue": "Macro Value",
     "txtOption": "Option",
+    "txtOptions": "Options",
     "txtDeleteProfile": "Delete Profile",
     "txtName": "Name",
     "txtSpeed": "Speed",
@@ -290,6 +296,10 @@
     "txtFrameDelay": "Frame Delay",
     "txtInvalidFrameDelay": "Invalid frame delay",
     "txtUnableToChangeDevicePosition": "Unable to change device position",
-    "txtDevicePositionChanged": "Device position is successfully changed"
+    "txtDevicePositionChanged": "Device position is successfully changed",
+    "txtNoRgbOverride": "No RGB override found",
+    "txtInvalidSpeedValue": "Invalid speed value",
+    "txtRgbOverrideUpdated": "RGB override successfully updated",
+    "txtRgbOverrideFailed": "Unable to update RGB override"
   }
 }

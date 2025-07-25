@@ -58,11 +58,11 @@ var (
 	cmdHardwareMode  = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdGetDevices    = []byte{0x24}
 	cmdHeartbeat     = []byte{0x12}
-	cmdOpenEndpoint  = []byte{0x0d, 0x00}
-	cmdCloseEndpoint = []byte{0x05, 0x01}
+	cmdOpenEndpoint  = []byte{0x0d, 0x01}
+	cmdCloseEndpoint = []byte{0x05, 0x01, 0x01}
 	cmdGetFirmware   = []byte{0x02, 0x13}
-	cmdRead          = []byte{0x08, 0x00}
-	cmdWrite         = []byte{0x09, 0x00}
+	cmdRead          = []byte{0x08, 0x01}
+	cmdWrite         = []byte{0x09, 0x01}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 1000
 	connectDelay     = 3000
@@ -212,6 +212,10 @@ func (d *Device) getDevices() {
 			productId := uint16(data[position+5])<<8 | uint16(data[position+4])
 			deviceType := data[position+6]
 			deviceIdLen := data[position+7]
+			if position+8+int(deviceIdLen) > len(data) {
+				logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "position": position + 8 + int(deviceIdLen), "data": fmt.Sprintf("% 2x", buff)}).Warn("Requested position exceeds maximum length")
+				continue
+			}
 			deviceId := data[position+8 : position+8+int(deviceIdLen)]
 			endpoint := base + deviceType
 			if channels == 1 {

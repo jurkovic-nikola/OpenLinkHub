@@ -38,28 +38,8 @@
                     </div>
                     <input type="hidden" id="profile" name="profile" value="">
                     <div class="col-lg-10">
-                        <div class="card" style="margin-top: 10px;">
-                            <div class="card-body">
-                                <div class="row gx-5">
-                                    <div class="table-responsive">
-                                        <table class="table text-sm" id="table" style="width: 100%;">
-                                            <thead>
-                                            <tr>
-                                                <th>{{ .Lang "txtName" }}</th>
-                                                <th>{{ .Lang "txtStartColor" }}</th>
-                                                <th>{{ .Lang "txtEndColor" }}</th>
-                                                <th>{{ .Lang "txtSpeed" }}</th>
-                                                <th></th>
-                                            </tr>
-                                            </thead>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="row" id="rgbDivList"></div>
                         <br/>
-                        <button class="btn btn-success" type="button" id="updateBtn" style="float: right;display:none">{{ .Lang "txtUpdate" }}</button>
-                        <button class="btn btn-danger" type="button" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#deleteTempModal" style="display:none">{{ .Lang "txtDelete" }}</button>
                     </div>
                 </div>
             </div>

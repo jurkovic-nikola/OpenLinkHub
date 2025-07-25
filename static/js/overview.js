@@ -1505,6 +1505,76 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.linkAdapterRgbProfile').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const profile = $(this).val().split(";");
+        if (profile.length < 3 || profile.length > 3) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(profile[0]);
+        pf["adapterId"] = parseInt(profile[1]);
+        pf["profile"] = profile[2];
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/linkAdapter',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                        $("#selectedRgb_" + parseInt(profile[0])).html(profile[1]);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.linkAdapterRgbProfileBulk').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const profile = $(this).val().split(";");
+        if (profile.length < 2 || profile.length > 2) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(profile[0]);
+        pf["profile"] = profile[1];
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/linkAdapter/bulk',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.keyboardRgbProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
@@ -1590,6 +1660,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
         $.ajax({
             url: '/api/hub/strip',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.linkAdapterChange').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const stripData = $(this).val().split(";");
+        if (stripData.length < 2 || stripData.length > 2) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(stripData[0]);
+        pf["adapterId"] = parseInt(stripData[1]);
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/hub/linkAdapter',
             type: 'POST',
             data: json,
             cache: false,
@@ -1925,6 +2028,275 @@ document.addEventListener("DOMContentLoaded", function () {
                         location.reload();
                     } else {
                         toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.rgbOverride').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const channelId = $(this).attr("data-info");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(channelId);
+        pf["subDeviceId"] = 0;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/getOverride',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        const data = response.data;
+
+                        const startColor = rgbToHex(data.RGBStartColor.red, data.RGBStartColor.green, data.RGBStartColor.blue);
+                        const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
+
+                        let modalElement = `
+                          <div class="modal fade text-start" id="rgbOverrideModel" tabindex="-1" aria-labelledby="rgbOverrideModel">
+                            <div class="modal-dialog modal-dialog-800">
+                              <div class="modal-content" style="width: 800px;">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="rgbOverrideModel">RGB Override</h5>
+                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                  <form>
+                                    <div class="mb-3">
+                                        <table class="table mb-0">
+                                            <thead>
+                                            <tr>
+                                                <th style="text-align: left;">Enabled</th>
+                                                <th style="text-align: left;">Start</th>
+                                                <th style="text-align: left;">End</th>
+                                                <th style="text-align: right;">Speed</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <th style="text-align: left;">
+                                                    <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
+                                                </th>
+                                                <th style="text-align: left;">
+                                                    <input type="color" id="startColor" value="${startColor}">
+                                                </th>
+                                                <th style="text-align: left;">
+                                                    <input type="color" id="endColor" value="${endColor}">
+                                                </th>
+                                                <th style="text-align: right;">
+                                                    <input class="brightness-slider" type="range" id="speedSlider" name="speedSlider" style="margin-top: 5px;" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1" />
+                                                </th>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                  </form>
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveRgbOverride">Save</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveRgbOverride').on('click', function () {
+                                const pf = {};
+                                let startColorRgb = {}
+                                let endColorRgb = {}
+
+                                let speed = $("#speedSlider").val();
+                                const startColorVal = $("#startColor").val();
+                                const endColorVal = $("#endColor").val();
+
+                                const startColor = hexToRgb(startColorVal);
+                                startColorRgb = {red:startColor.r, green:startColor.g, blue:startColor.b}
+
+                                const endColor = hexToRgb(endColorVal);
+                                endColorRgb = {red:endColor.r, green:endColor.g, blue:endColor.b}
+
+                                const enabled = $("#enabledCheckbox").is(':checked');
+
+                                pf["deviceId"] = deviceId;
+                                pf["channelId"] = parseInt(channelId);
+                                pf["subDeviceId"] = 0;
+                                pf["enabled"] = enabled;
+                                pf["startColor"] = startColorRgb;
+                                pf["endColor"] = endColorRgb;
+                                pf["speed"] = parseFloat(speed);
+
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/color/setOverride',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.rgbOverrideLinkAdapter').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const channelId = $(this).attr("data-info").split(';');
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(channelId[0]);
+        pf["subDeviceId"] = parseInt(channelId[1]);
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/getOverride',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        console.log(response);
+                        const data = response.data;
+
+                        const startColor = rgbToHex(data.RGBStartColor.red, data.RGBStartColor.green, data.RGBStartColor.blue);
+                        const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
+
+                        let modalElement = `
+                          <div class="modal fade text-start" id="rgbOverrideModel" tabindex="-1" aria-labelledby="rgbOverrideModel">
+                            <div class="modal-dialog modal-dialog-800">
+                              <div class="modal-content" style="width: 800px;">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="rgbOverrideModel">RGB Override</h5>
+                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                  <form>
+                                    <div class="mb-3">
+                                        <table class="table mb-0">
+                                            <thead>
+                                            <tr>
+                                                <th style="text-align: left;">Enabled</th>
+                                                <th style="text-align: left;">Start</th>
+                                                <th style="text-align: left;">End</th>
+                                                <th style="text-align: right;">Speed</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                <th style="text-align: left;">
+                                                    <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
+                                                </th>
+                                                <th style="text-align: left;">
+                                                    <input type="color" id="startColor" value="${startColor}">
+                                                </th>
+                                                <th style="text-align: left;">
+                                                    <input type="color" id="endColor" value="${endColor}">
+                                                </th>
+                                                <th style="text-align: right;">
+                                                    <input class="brightness-slider" type="range" id="speedSlider" name="speedSlider" style="margin-top: 5px;" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1" />
+                                                </th>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                  </form>
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveRgbOverrideLinkAdapter">Save</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveRgbOverrideLinkAdapter').on('click', function () {
+                                const pf = {};
+                                let startColorRgb = {}
+                                let endColorRgb = {}
+
+                                let speed = $("#speedSlider").val();
+                                const startColorVal = $("#startColor").val();
+                                const endColorVal = $("#endColor").val();
+
+                                const startColor = hexToRgb(startColorVal);
+                                startColorRgb = {red:startColor.r, green:startColor.g, blue:startColor.b}
+
+                                const endColor = hexToRgb(endColorVal);
+                                endColorRgb = {red:endColor.r, green:endColor.g, blue:endColor.b}
+
+                                const enabled = $("#enabledCheckbox").is(':checked');
+
+                                pf["deviceId"] = deviceId;
+                                pf["channelId"] = parseInt(channelId[0]);
+                                pf["subDeviceId"] = parseInt(channelId[1]);
+                                pf["enabled"] = enabled;
+                                pf["startColor"] = startColorRgb;
+                                pf["endColor"] = endColorRgb;
+                                pf["speed"] = parseFloat(speed);
+
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/color/setOverride',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
                     }
                 } catch (err) {
                     toast.warning(response.message);

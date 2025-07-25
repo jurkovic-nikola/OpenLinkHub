@@ -76,7 +76,7 @@
                                                     <select class="form-select mb-1 tempProfile" id="hwmon-probeData">
                                                         <option value="0;0" selected>Select sensor</option>
                                                         {{ range .HwMonSensors }}
-                                                        <option value="{{ .HwmonName }};{{ .InputName }}">{{ .SensorName }} - {{ .Label }} - {{ .TempC }} °C</option>
+                                                        <option value="{{ .HwmonName }};{{ .InputName }};{{ .SensorName }}">{{ .SensorName }} - {{ .Label }} - {{ .TempC }} °C</option>
                                                         {{ end }}
                                                     </select>
                                                 </div>

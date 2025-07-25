@@ -1,15 +1,15 @@
 package rgb
 
 import (
+	"math"
 	"time"
 )
 
 // Spinner will run RGB function
 func (r *ActiveRGB) Spinner(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
-
-	// Calculate progress and reset when it exceeds 1.0
-	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
+	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*1000), 1.0)
+	
 	if progress >= 1.0 {
 		*startTime = time.Now() // Reset startTime to the current time
 		elapsed = 0             // Reset elapsed time

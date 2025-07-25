@@ -187,15 +187,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const dpiColor = $("#dpiColor").val();
+        const sniperColor = $("#sniperColor").val();
         const pf = {};
         pf["deviceId"] = deviceId;
         pf["colorZones"] = colors
+
         if (dpiColor != null) {
             const dpiColorRgb = hexToRgb(dpiColor);
             pf["colorDpi"] = {red:dpiColorRgb.r, green:dpiColorRgb.g, blue:dpiColorRgb.b}
         }
 
+        if (sniperColor != null) {
+            const sniperColorRgb = hexToRgb(sniperColor);
+            pf["colorSniper"] = {red:sniperColorRgb.r, green:sniperColorRgb.g, blue:sniperColorRgb.b}
+            pf["isSniper"] = true
+        }
+
         const json = JSON.stringify(pf, null, 2);
+
         $.ajax({
             url: '/api/mouse/zoneColors',
             type: 'POST',

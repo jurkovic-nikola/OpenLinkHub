@@ -98,12 +98,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                 break;
                         }
 
+                        const isChecked = item.actionHold === true ? 'checked' : '';
+                        const actionHold = '<input class="pressAndHold" type="checkbox" ' + isChecked + ' />';
+
                         if (item.actionType === 5) { // 5 is always Delay option
                             dt.row.add([
                                 i,
                                 actionType,
                                 item.actionDelay,
-                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 100%;">'
+                                actionHold,
+                                '<input class="btn btn-danger updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE">' +
+                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE">'
                             ]).draw();
                         } else {
                             // Render row if we have actual key
@@ -112,7 +117,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                     i,
                                     actionType,
                                     result,
-                                    '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 100%;">'
+                                    actionHold,
+                                    '<input class="btn btn-info updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE" style="width: 45%;">' +
+                                    '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 45%;margin-left: 10px;">'
                                 ]).draw();
                             });
                         }
@@ -154,12 +161,76 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                         });
                     });
+
+                    dt.on('click', '.updateMacroValue', function () {
+                        const $btn = $(this); // Save reference to the clicked button
+                        const macroInfo = $btn.data('id');
+                        const macro = macroInfo.split(";");
+                        const $row = $btn.closest('tr');
+                        const pressAndHold = $row.find('.pressAndHold').is(':checked');
+
+                        if (macro.length < 2 || macro.length > 2) {
+                            toast.warning('Invalid macro profile selected');
+                            return false;
+                        }
+
+                        const pf = {
+                            macroId: parseInt(macro[0]),
+                            macroIndex: parseInt(macro[1]),
+                            pressAndHold: pressAndHold
+                        };
+
+                        const json = JSON.stringify(pf, null, 2);
+
+                        $.ajax({
+                            url: '/api/macro/updateValue',
+                            type: 'POST',
+                            data: json,
+                            cache: false,
+                            success: function(response) {
+                                try {
+                                    if (response.status === 1) {
+                                        toast.success("Macro value successfully updated.");
+                                    } else {
+                                        toast.warning(response.message);
+                                    }
+                                } catch (err) {
+                                    toast.warning("Error occurred while processing response.");
+                                }
+                            }
+                        });
+                    });
                     $("#deleteBtn").show();
                     $("#newMacroValue").show();
                 }
             }
         });
     }
+
+    $('.pressAndHoldMacroInfoToggle').on('click', function () {
+        const modalPressAndHold = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>When enabled, the keyboard continuously sends action until macro chain is finished. You need to have at least 1 Press and Hold un-checked in order to finish the macro.</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+        infoPressAndHold.on('hidden.bs.modal', function () {
+            infoPressAndHold.data('bs.modal', null);
+        })
+    });
 
     $('.macroList').on('click', function(){
         const profile = $(this).attr('id');

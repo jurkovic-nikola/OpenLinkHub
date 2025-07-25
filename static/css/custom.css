@@ -79,6 +79,10 @@ nav#sidebar {
     margin-top: 10px;
 }
 
+.rgbList:first-of-type {
+    margin-top: 1px;
+}
+
 .newTemp {
     cursor: pointer;
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
@@ -910,4 +914,91 @@ canvas {
 .dashboard-device-name-right {
     float: left;
     width: auto;
+}
+
+.link-adapter-devices {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ram-container {
+    margin-left: 10px;
+}
+
+.ram-container {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    width: 450px;
+}
+
+.ram-title {
+    font-size: 18px;
+    color: #aaa;
+    margin-bottom: 15px;
+}
+
+.ram-stick {
+    background: #232323;
+    width: 100%;
+    height: 100px;
+    border-radius: 6px;
+    position: relative;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    border: 1px solid #656565;
+}
+
+.memory-chip {
+    width: 50px;
+    height: 70px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    box-shadow: inset 0 0 5px #000;
+}
+
+.contacts {
+    position: absolute;
+    bottom: 6px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-evenly;
+    height: 16px;
+    padding: 0 20px;
+}
+
+.contact {
+    width: 6px;
+    height: 14px;
+    background: #daa520;
+    border-radius: 1px;
+}
+
+.ram-info {
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.info-label {
+    color: #888;
+}
+
+.info-value {
+    color: #39aafc;
 }

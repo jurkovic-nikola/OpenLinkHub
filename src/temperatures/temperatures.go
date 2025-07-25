@@ -56,14 +56,16 @@ type Temperatures struct {
 }
 
 type TemperatureProfileData struct {
-	Sensor    uint8                `json:"sensor"`
-	ZeroRpm   bool                 `json:"zeroRpm"`
-	Profiles  []TemperatureProfile `json:"profiles"`
-	Points    map[uint8][]Point    `json:"points"`
-	Device    string               `json:"device"`
-	ChannelId int                  `json:"channelId"`
-	Linear    bool                 `json:"linear"`
-	Hidden    bool
+	Sensor             uint8                `json:"sensor"`
+	ZeroRpm            bool                 `json:"zeroRpm"`
+	Profiles           []TemperatureProfile `json:"profiles"`
+	Points             map[uint8][]Point    `json:"points"`
+	Device             string               `json:"device"`
+	HwmonDevice        string               `json:"hwmonDevice"`
+	TemperatureInputId string               `json:"temperatureInputId"`
+	ChannelId          int                  `json:"channelId"`
+	Linear             bool                 `json:"linear"`
+	Hidden             bool
 }
 
 type StorageTemperatures struct {
@@ -324,7 +326,7 @@ func GetMemoryTemperature(channelId int) float32 {
 }
 
 // AddTemperatureProfile will save new temperature profile
-func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear bool, sensor uint8, channelId int) bool {
+func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear bool, sensor uint8, channelId int, hwmonDevice, temperatureInputId string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -430,6 +432,11 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 
 		if sensor == 4 {
 			pf.ChannelId = channelId
+		}
+
+		if len(hwmonDevice) > 0 {
+			pf.HwmonDevice = hwmonDevice
+			pf.TemperatureInputId = temperatureInputId
 		}
 
 		pf.Sensor = sensor
@@ -572,6 +579,32 @@ func GetTemperatureProfiles() map[string]TemperatureProfileData {
 	return temperatures.Profiles
 }
 
+// getHwMonDirectoryByDeviceName return hwmon path for given device
+func getHwMonDirectoryByDeviceName(deviceName string) string {
+	basePath := "/sys/class/hwmon/"
+	hwmonEntries, err := os.ReadDir(basePath)
+	if err != nil {
+		fmt.Printf("Error reading hwmon dir: %v\n", err)
+		return ""
+	}
+
+	for _, entry := range hwmonEntries {
+		hwmonDirName := entry.Name()
+		hwmonPath := filepath.Join(basePath, hwmonDirName)
+
+		// Read sensor chip name
+		nameBytes, err := os.ReadFile(filepath.Join(hwmonPath, "name"))
+		if err != nil {
+			continue
+		}
+		sensorName := strings.TrimSpace(string(nameBytes))
+		if sensorName == deviceName {
+			return hwmonPath
+		}
+	}
+	return ""
+}
+
 // LoadUserProfiles will load all user profiles
 func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 	files, err := os.ReadDir(location)
@@ -603,6 +636,13 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 		reader := json.NewDecoder(file)
 		if fe = reader.Decode(&profile); fe != nil {
 			logger.Log(logger.Fields{"error": fe, "location": profileLocation, "caller": "LoadUserProfiles()"}).Fatal("Unable to read temperature profile")
+		}
+
+		// Recalculate hwmon dynamic path
+		if len(profile.HwmonDevice) > 0 && len(profile.TemperatureInputId) > 0 {
+			path := getHwMonDirectoryByDeviceName(profile.HwmonDevice)
+			deviceId := fmt.Sprintf("%s/%s", path, profile.TemperatureInputId)
+			profile.Device = deviceId
 		}
 		profiles[profileName] = profile
 	}

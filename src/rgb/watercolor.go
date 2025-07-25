@@ -5,17 +5,17 @@ import (
 	"time"
 )
 
-// watercolorColor function returns an RGB color corresponding to a given position in the watercolor spectrum
 func watercolorColor(position float64) (int, int, int) {
-	// Normalize position to be between 0 and 1
 	position = math.Mod(position, 1.0)
 
-	// Adjust hue, saturation, and brightness to create pastel colors
-	hue := position * 360 // Convert position to hue angle (0-360 degrees)
-	saturation := 0.4     // Lower saturation for watercolor effect
-	bts := 1.0            // Full brightness for watercolor effect
+	// Smooth hue with oscillation
+	hue := (math.Sin(position*math.Pi*2) + 1) / 2 * 360
 
-	return HSBToRGB(hue, saturation, bts)
+	// Dynamic saturation & brightness for organic feel
+	saturation := 0.3 + 0.2*math.Sin(position*2*math.Pi)
+	brightness := 0.8 + 0.1*math.Cos(position*2*math.Pi)
+
+	return HSBToRGB(hue, saturation, brightness)
 }
 
 // HSBToRGB function converts HSB/HSV color space to RGB color space
@@ -52,7 +52,7 @@ func HSBToRGB(h, s, v float64) (int, int, int) {
 func generateWaterColors(lightChannels int, elapsedTime, brightnessValue float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, lightChannels)
 	for i := 0; i < lightChannels; i++ {
-		position := (float64(i) / float64(lightChannels)) + (elapsedTime / 4.0)
+		position := (float64(i) / float64(lightChannels)) + elapsedTime
 		position = math.Mod(position, 1.0) // Keep position within the 0-1 range
 		r, g, b := watercolorColor(position)
 
@@ -70,9 +70,14 @@ func generateWaterColors(lightChannels int, elapsedTime, brightnessValue float64
 
 // Watercolor will run RGB function
 func (r *ActiveRGB) Watercolor(startTime time.Time) {
-	elapsed := time.Since(startTime).Seconds() * r.RgbModeSpeed
+	elapsed := time.Since(startTime).Seconds()
+	speedFactor := 4.0
+	if r.RgbModeSpeed > 0 {
+		speedFactor = 4.0 / r.RgbModeSpeed
+	}
+	
 	buf := map[int][]byte{}
-	colors := generateWaterColors(r.LightChannels, elapsed, r.RGBBrightness)
+	colors := generateWaterColors(r.LightChannels, elapsed*speedFactor, r.RGBBrightness)
 	for i, color := range colors {
 		if len(r.Buffer) > 0 {
 			r.Buffer[i] = byte(color.R)
@@ -93,7 +98,7 @@ func (r *ActiveRGB) Watercolor(startTime time.Time) {
 	}
 	// Raw colors
 	r.Raw = buf
-	
+
 	if r.Inverted {
 		r.Output = SetColorInverted(buf)
 	} else {

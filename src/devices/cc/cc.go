@@ -17,8 +17,6 @@ import (
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
-	"bytes"
-	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -62,7 +60,6 @@ var (
 	dataTypeSubColor           = []byte{0x07, 0x00}
 	bufferSize                 = 64
 	bufferSizeWrite            = bufferSize + 1
-	transferTimeout            = 500
 	ledInit                    = 500
 	headerSize                 = 2
 	headerWriteSize            = 4
@@ -149,6 +146,13 @@ var (
 	}
 )
 
+type RGBOverride struct {
+	Enabled       bool
+	RGBStartColor rgb.Color
+	RGBEndColor   rgb.Color
+	RgbModeSpeed  float64
+}
+
 type ExternalLedDevice struct {
 	Index   int
 	Name    string
@@ -190,6 +194,7 @@ type DeviceProfile struct {
 	CustomLEDs         map[int]int
 	MultiRGB           string
 	MultiProfile       string
+	RGBOverride        map[int]map[int]RGBOverride
 }
 
 type TemperatureProbe struct {
@@ -257,6 +262,7 @@ type Device struct {
 	Exit               bool
 	mutex              sync.Mutex
 	mutexLcd           sync.Mutex
+	deviceLock         sync.Mutex
 	autoRefreshChan    chan struct{}
 	speedRefreshChan   chan struct{}
 	lcdRefreshChan     chan struct{}
@@ -770,7 +776,6 @@ func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(
 		cmdGetFirmware,
 		nil,
-		nil,
 		"getDeviceFirmware",
 	)
 	if err != nil {
@@ -787,6 +792,7 @@ func (d *Device) getLedDevices() {
 	// LED channels
 	lc := d.read(modeGetLeds, dataTypeGetLeds, "getLedDevices")
 	ld := lc[ledStartIndex:] // Channel data starts from position 6 and 4x increments per channel
+
 	amount := 7
 	for i := 0; i < amount; i++ {
 		var numLEDs uint16 = 0
@@ -911,35 +917,19 @@ func (d *Device) setDeviceColor() {
 	// Reset
 	reset := map[int][]byte{}
 	var buffer []byte
+	lightChannels := 0
 
-	// Reset all channels
-	color := &rgb.Color{
-		Red:        0,
-		Green:      0,
-		Blue:       0,
-		Brightness: 0,
-	}
-
-	for _, device := range d.RgbDevices {
-		LedChannels := device.LedChannels
-		if LedChannels > 0 {
-			for i := 0; i < int(LedChannels); i++ {
-				reset[i] = []byte{
-					byte(color.Red),
-					byte(color.Green),
-					byte(color.Blue),
-				}
-			}
+	s, l := 0, 0
+	keys := make([]int, 0)
+	for k, device := range d.RgbDevices {
+		lightChannels += int(device.LedChannels)
+		keys = append(keys, k)
+		l++ // device has LED
+		if device.RGB == "static" {
+			s++ // led profile is set to static
 		}
 	}
-	buffer = rgb.SetColor(reset)
-	d.writeColor(buffer)
-
-	// Get the number of LED channels we have
-	lightChannels := 0
-	for _, device := range d.RgbDevices {
-		lightChannels += int(device.LedChannels)
-	}
+	sort.Ints(keys)
 
 	// Do we have any RGB component in the system?
 	if lightChannels == 0 {
@@ -947,38 +937,57 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	// Reset all channels
+	color := &rgb.Color{Red: 0, Green: 0, Blue: 0, Brightness: 0}
+	for i := 0; i < lightChannels; i++ {
+		reset[i] = []byte{
+			byte(color.Red),
+			byte(color.Green),
+			byte(color.Blue),
+		}
+	}
+
+	buffer = rgb.SetColor(reset)
+	d.writeColor(buffer)
+
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.
-	s, l := 0, 0
-	for _, device := range d.RgbDevices {
-		if device.LedChannels > 0 {
-			l++ // device has LED
-			if device.RGB == "static" {
-				s++ // led profile is set to static
-			}
-		}
-	}
-	if s > 0 || l > 0 { // We have some values
-		if s == l { // number of devices matches number of devices with static profile
-			profile := d.GetRgbProfile("static")
-			if profile == nil {
-				return
-			}
-
-			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for i := 0; i < lightChannels; i++ {
-				reset[i] = []byte{
-					byte(profileColor.Red),
-					byte(profileColor.Green),
-					byte(profileColor.Blue),
-				}
-			}
-			buffer = rgb.SetColor(reset)
-			d.writeColor(buffer) // Write color once
+	if s == l { // number of devices matches number of devices with static profile
+		profile := d.GetRgbProfile("static")
+		if profile == nil {
 			return
 		}
+
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		profileColor := rgb.ModifyBrightness(profile.StartColor)
+		m := 0
+
+		for _, k := range keys {
+			var c *rgb.Color
+			rgbOverride := d.getRgbOverride(k, 0)
+			if rgbOverride != nil && rgbOverride.Enabled && d.RgbDevices[k].LedChannels > 0 {
+				profileOverride := d.GetRgbProfile("static")
+				if profileOverride == nil {
+					return
+				}
+				profileOverride.StartColor = rgbOverride.RGBStartColor
+				c = rgb.ModifyBrightness(profileOverride.StartColor)
+			} else {
+				c = profileColor
+			}
+			for i := 0; i < int(d.RgbDevices[k].LedChannels); i++ {
+				reset[m] = []byte{
+					byte(c.Red),
+					byte(c.Green),
+					byte(c.Blue),
+				}
+				m++
+			}
+		}
+		buffer = rgb.SetColor(reset)
+		d.writeColor(buffer) // Write color once
+		return
 	}
 
 	go func(lightChannels int) {
@@ -988,13 +997,6 @@ func (d *Device) setDeviceColor() {
 		// Generate random colors
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
-
-		keys := make([]int, 0)
-		for k := range d.RgbDevices {
-			keys = append(keys, k)
-		}
-		sort.Ints(keys)
-
 		for {
 			select {
 			case <-d.activeRgb.Exit:
@@ -1040,11 +1042,19 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
 
+					index := 0
+					rgbOverride := d.getRgbOverride(k, index)
+					if rgbOverride != nil && rgbOverride.Enabled && d.RgbDevices[k].LedChannels > 0 {
+						r.RGBStartColor = &rgbOverride.RGBStartColor
+						r.RGBEndColor = &rgbOverride.RGBEndColor
+						r.RgbModeSpeed = common.FClamp(rgbOverride.RgbModeSpeed, 0.1, 10)
+					}
+
 					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
-
+					r.ChannelId = k
 					switch d.RgbDevices[k].RGB {
 					case "off":
 						{
@@ -1464,6 +1474,24 @@ func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
 	return d.TemperatureProbes
 }
 
+// getRgbOverride will return RGBOverride object
+func (d *Device) getRgbOverride(deviceId, subDeviceId int) *RGBOverride {
+	if value, ok := d.DeviceProfile.RGBOverride[deviceId]; ok {
+		if val, found := value[subDeviceId]; found {
+			return &val
+		}
+	}
+	return nil
+}
+
+// setRgbOverride will set RGBOverride object
+func (d *Device) setRgbOverride(deviceId, subDeviceId int, rgbOverride RGBOverride) {
+	if value, ok := d.DeviceProfile.RGBOverride[deviceId]; ok {
+		value[subDeviceId] = rgbOverride
+		d.DeviceProfile.RGBOverride[deviceId] = value
+	}
+}
+
 // getLiquidTemperature will fetch temperature from AIO device
 func (d *Device) getLiquidTemperature() float32 {
 	for _, device := range d.Devices {
@@ -1668,7 +1696,7 @@ func (d *Device) updateDeviceSpeed() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil, nil, "setHardwareMode")
+	_, err := d.transfer(cmdHardwareMode, nil, "setHardwareMode")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
@@ -1676,7 +1704,7 @@ func (d *Device) setHardwareMode() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil, nil, "setHardwareMode")
+	_, err := d.transfer(cmdSoftwareMode, nil, "setHardwareMode")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
@@ -1684,7 +1712,7 @@ func (d *Device) setSoftwareMode() {
 
 // getDeviceType will set a type of AIO
 func (d *Device) getDeviceType() {
-	deviceType, err := d.transfer(cmdGetPumpVersion, nil, nil, "getDeviceType")
+	deviceType, err := d.transfer(cmdGetPumpVersion, nil, "getDeviceType")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
@@ -1693,7 +1721,7 @@ func (d *Device) getDeviceType() {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", deviceType)}).Info("getDeviceType() - Pump Version")
 	}
 
-	deviceType, err = d.transfer(cmdGetRadiatorType, nil, nil, "getDeviceType")
+	deviceType, err = d.transfer(cmdGetRadiatorType, nil, "getDeviceType")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
@@ -1718,14 +1746,17 @@ func (d *Device) getDeviceType() {
 
 // setColorEndpoint will activate hub color endpoint for further usage
 func (d *Device) setColorEndpoint() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Close any RGB endpoint
-	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, nil, "setColorEndpoint")
+	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, "setColorEndpoint")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
-	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, nil, "setColorEndpoint")
+	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, "setColorEndpoint")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
 	}
@@ -1980,7 +2011,7 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 }
 
 // UpdateDeviceLcdImage will update device LCD image
-func (d *Device) UpdateDeviceLcdImage(channelId int, image string) uint8 {
+func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -2421,6 +2452,43 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	return 1
 }
 
+// ProcessGetRgbOverride will get rgb override data
+func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
+	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetRgbOverride will update RGB override settings
+func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	rgbOverride := d.getRgbOverride(channelId, subDeviceId)
+	if rgbOverride == nil {
+		return 0
+	}
+
+	if speed < 0 || speed > 10 {
+		return 0
+	}
+
+	rgbOverride.Enabled = enabled
+	rgbOverride.RGBStartColor = startColor
+	rgbOverride.RGBEndColor = endColor
+	rgbOverride.RgbModeSpeed = speed
+	rgbOverride.RGBStartColor.Brightness = 1
+	rgbOverride.RGBEndColor.Brightness = 1
+
+	d.setRgbOverride(channelId, subDeviceId, *rgbOverride)
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
 // UpdateARGBDevice will update or create a new device with ARGB 3-pin support
 func (d *Device) UpdateARGBDevice(portId, deviceType int) uint8 {
 	if portId < 1 || portId > 6 {
@@ -2501,7 +2569,7 @@ func (d *Device) UpdateDeviceMetrics() {
 func (d *Device) initLedPorts() {
 	for i := 0; i <= 6; i++ {
 		var command = []byte{0x14, byte(i), 0x01}
-		_, err := d.transfer(command, nil, nil, "initLedPorts")
+		_, err := d.transfer(command, nil, "initLedPorts")
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "port": i}).Error("Failed to initialize LED ports")
 		}
@@ -2551,6 +2619,7 @@ func (d *Device) resetLEDPorts() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	noOverride := false
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
@@ -2559,6 +2628,11 @@ func (d *Device) saveDeviceProfile() {
 	labels := make(map[int]string, len(d.Devices))
 	rgbLabels := make(map[int]string, len(d.Devices))
 	customLEDs := make(map[int]int, len(d.Devices))
+	rgbOverride := make(map[int]map[int]RGBOverride, len(d.RgbDevices))
+
+	if d.DeviceProfile == nil || d.DeviceProfile.RGBOverride == nil {
+		noOverride = true
+	}
 
 	for _, device := range d.Devices {
 		if device.IsTemperatureProbe {
@@ -2572,6 +2646,53 @@ func (d *Device) saveDeviceProfile() {
 			rgbProfiles[device.ChannelId] = device.RGB
 		}
 		rgbLabels[device.ChannelId] = device.Label
+		if noOverride {
+			rgbOverride[device.ChannelId] = map[int]RGBOverride{
+				0: {
+					Enabled: false,
+					RGBStartColor: rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					RGBEndColor: rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					RgbModeSpeed: 3,
+				},
+			}
+		} else {
+			if _, ok := d.DeviceProfile.RGBOverride[device.ChannelId]; !ok {
+				rgbOverride[device.ChannelId] = map[int]RGBOverride{
+					0: {
+						Enabled: false,
+						RGBStartColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "#00ffff",
+						},
+						RGBEndColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "#00ffff",
+						},
+						RgbModeSpeed: 3,
+					},
+				}
+			} else {
+				rgbOverride[device.ChannelId] = d.DeviceProfile.RGBOverride[device.ChannelId]
+			}
+		}
 	}
 
 	for _, device := range d.Devices {
@@ -2588,6 +2709,7 @@ func (d *Device) saveDeviceProfile() {
 		Path:               profilePath,
 		BrightnessSlider:   &defaultBrightness,
 		OriginalBrightness: 100,
+		RGBOverride:        rgbOverride,
 	}
 
 	// First save, assign saved profile to a device
@@ -2667,7 +2789,7 @@ func (d *Device) saveDeviceProfile() {
 		return
 	}
 
-	// Write JSON buffer to file
+	// WriteWrite JSON buffer to file
 	_, err = file.Write(buffer)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
@@ -2685,6 +2807,10 @@ func (d *Device) saveDeviceProfile() {
 
 // read will read data from a device and return data as a byte array
 func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
+	// Lock it
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Endpoint data
 	var buffer []byte
 
@@ -2693,28 +2819,28 @@ func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
 	}
 
 	// Close specified endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return nil
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to open endpoint")
 		return nil
 	}
 
 	// Read data from endpoint
-	buffer, err = d.transfer(cmdRead, endpoint, bufferType, caller)
+	buffer, err = d.transfer(cmdRead, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read endpoint")
 		return nil
 	}
 
 	// Close specified endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return nil
@@ -2726,6 +2852,10 @@ func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	// Lock it
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -2740,13 +2870,13 @@ func (d *Device) writeColor(data []byte) {
 	for i, chunk := range chunks {
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk, nil, "writeColor")
+			_, err := d.transfer(cmdWriteColor, chunk, "writeColor")
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
 			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk, nil, "writeColor")
+			_, err := d.transfer(dataTypeSubColor, chunk, "writeColor")
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
@@ -2756,6 +2886,9 @@ func (d *Device) writeColor(data []byte) {
 
 // write will write data to the device with specific endpoint
 func (d *Device) write(endpoint, bufferType, data []byte, extra bool, caller string) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Buffer
 	buffer := make([]byte, len(bufferType)+len(data)+headerWriteSize)
 	if extra {
@@ -2773,28 +2906,28 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra bool, caller str
 	}
 
 	// Close endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return bufferR
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to open endpoint")
 		return bufferR
 	}
 
 	// Send it
-	bufferR, err = d.transfer(cmdWrite, buffer, nil, caller)
+	bufferR, err = d.transfer(cmdWrite, buffer, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 		return bufferR
 	}
 
 	// Close endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return bufferR
@@ -3119,7 +3252,7 @@ func (d *Device) transferToLcd(buffer []byte) {
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte, caller string) ([]byte, error) {
 	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -3163,29 +3296,6 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 			return bufferR, err
 		}
-
-		// Read remaining data from a device
-		if len(bufferType) == 2 {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(transferTimeout)*time.Millisecond)
-			defer cancel()
-
-			for ctx.Err() != nil && !responseMatch(bufferR, bufferType) {
-				if _, err := d.dev.Read(bufferR); err != nil {
-					logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
-					return nil, err
-				}
-			}
-			if ctx.Err() != nil {
-				logger.Log(logger.Fields{"error": ctx.Err(), "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
-				return nil, ctx.Err()
-			}
-		}
 	}
 	return bufferR, nil
-}
-
-// responseMatch will check if two byte arrays match
-func responseMatch(response, expected []byte) bool {
-	responseBuffer := response[4:6]
-	return bytes.Equal(responseBuffer, expected)
 }

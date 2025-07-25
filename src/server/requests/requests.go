@@ -24,6 +24,7 @@ import (
 type Payload struct {
 	DeviceId              string                `json:"deviceId"`
 	ChannelId             int                   `json:"channelId"`
+	SubDeviceId           int                   `json:"subDeviceId"`
 	ChannelIds            []int                 `json:"channelIds"`
 	ProfileId             uint8                 `json:"profileId"`
 	Mode                  uint8                 `json:"mode"`
@@ -54,6 +55,7 @@ type Payload struct {
 	ZeroRpm               bool                  `json:"zeroRpm"`
 	Linear                bool                  `json:"linear"`
 	HwmonDeviceId         string                `json:"hwmonDeviceId"`
+	HwmonDevice           string                `json:"hwmonDevice"`
 	TemperatureInputId    string                `json:"temperatureInputId"`
 	ExternalExecutable    string                `json:"externalExecutable"`
 	Enabled               bool                  `json:"enabled"`
@@ -88,11 +90,14 @@ type Payload struct {
 	DeviceIdString        string                `json:"deviceIdString"`
 	Direction             int                   `json:"direction"`
 	StripId               int                   `json:"stripId"`
+	AdapterId             int                   `json:"adapterId"`
 	FanMode               int                   `json:"fanMode"`
 	New                   bool                  `json:"new"`
 	Stages                map[int]uint16        `json:"stages"`
 	ColorDpi              rgb.Color             `json:"colorDpi"`
+	ColorSniper           rgb.Color             `json:"colorSniper"`
 	ColorZones            map[int]rgb.Color     `json:"colorZones"`
+	IsSniper              bool                  `json:"isSniper"`
 	Image                 string                `json:"image"`
 	MacroId               int                   `json:"macroId"`
 	MacroIndex            int                   `json:"macroIndex"`
@@ -327,9 +332,11 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
+	hwmonId := ""
+	temperatureInputId := ""
 	if sensor == temperatures.SensorTypeExternalHwMon {
 		hwmonDeviceId := req.HwmonDeviceId
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", hwmonDeviceId); !m {
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", hwmonDeviceId); !m {
 			return &Payload{
 				Message: language.GetValue("txtInvalidHwMon"),
 				Code:    http.StatusOK,
@@ -337,8 +344,17 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 			}
 		}
 
-		temperatureInputId := req.TemperatureInputId
+		temperatureInputId = req.TemperatureInputId
 		if m, _ := regexp.MatchString("^[a-zA-Z0-9_]+$", temperatureInputId); !m {
+			return &Payload{
+				Message: language.GetValue("txtInvalidHwMon"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		hwmonId = req.HwmonDevice
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9_:-]+$", hwmonId); !m {
 			return &Payload{
 				Message: language.GetValue("txtInvalidHwMon"),
 				Code:    http.StatusOK,
@@ -375,7 +391,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		deviceId = req.ExternalExecutable
 	}
 
-	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId) {
+	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId, hwmonId, temperatureInputId) {
 		return &Payload{
 			Message: language.GetValue("txtSpeedProfileSaved"),
 			Code:    http.StatusOK,
@@ -1284,6 +1300,10 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		RetainOriginal: req.KeyAssignmentOriginal,
 	}
 
+	if keyAssignment.IsMacro && keyAssignment.ActionHold {
+		return &Payload{Message: language.GetValue("txtPressAndHoldNotAllowed"), Code: http.StatusOK, Status: 0}
+	}
+
 	// Run it
 	status := devices.ChangeDeviceKeyAssignment(req.DeviceId, req.KeyIndex, keyAssignment)
 	switch status {
@@ -1734,6 +1754,92 @@ func ProcessChangeColor(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
 }
 
+// ProcessChangeLinkAdapterColor will process POST request from a client for RGB LINK adapter profile change
+func ProcessChangeLinkAdapterColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.Profile) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.AdapterId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingLinkAdapter"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.Profile); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingRgbProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateLinkAdapterRgbProfile(req.DeviceId, req.ChannelId, req.AdapterId, req.Profile)
+
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+	case 2:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
+	case 3:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeLinkAdapterColorBulk will process POST request from a client for RGB LINK adapter bulk RGB change
+func ProcessChangeLinkAdapterColorBulk(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.Profile) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.Profile); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingRgbProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateLinkAdapterRgbProfileBulk(req.DeviceId, req.ChannelId, req.Profile)
+
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+	case 2:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
+	case 3:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+}
+
 // ProcessHardwareChangeColor will process POST request from a client for hardware color change
 func ProcessHardwareChangeColor(r *http.Request) *Payload {
 	req := &Payload{}
@@ -1790,6 +1896,41 @@ func ProcessChangeStrip(r *http.Request) *Payload {
 
 	// Run it
 	status := devices.UpdateRgbStrip(req.DeviceId, req.ChannelId, req.StripId)
+
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
+	case 2:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeLinkAdapter will process POST request from a client for LINK adapter change
+func ProcessChangeLinkAdapter(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.AdapterId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingLinkAdapter"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	status := devices.UpdateLinkAdapter(req.DeviceId, req.ChannelId, req.AdapterId)
 
 	switch status {
 	case 0:
@@ -2179,8 +2320,13 @@ func ProcessMouseZoneColorsSave(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.SaveMouseZoneColors(req.DeviceId, req.ColorDpi, req.ColorZones)
+	var status uint8 = 0
+	if req.IsSniper {
+		status = devices.SaveMouseZoneColorsSniper(req.DeviceId, req.ColorDpi, req.ColorZones, req.ColorSniper)
+	} else {
+		status = devices.SaveMouseZoneColors(req.DeviceId, req.ColorDpi, req.ColorZones)
+	}
+
 	switch status {
 	case 0:
 		return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
@@ -2280,6 +2426,56 @@ func ProcessDeleteMacroValue(r *http.Request) *Payload {
 		Message: language.GetValue("txtUnableToDeleteMacroProfileValue"),
 		Code:    http.StatusOK,
 		Status:  0,
+	}
+}
+
+// ProcessUpdateMacroValue will process update of macro profile value
+func ProcessUpdateMacroValue(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroIndex < 0 || req.MacroId < 0 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroSelected"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.UpdateMacroValue(req.MacroId, req.MacroIndex, req.PressAndHold)
+	switch res {
+	case 0:
+		return &Payload{
+			Message: language.GetValue("txtUnableToUpdateMacroProfileValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	case 1:
+		return &Payload{
+			Message: language.GetValue("txtMacroProfileValueUpdated"),
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	case 2:
+		return &Payload{
+			Message: language.GetValue("txtUnableToUpdateMacroProfileValuePressAndHold"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	default:
+		return &Payload{
+			Message: language.GetValue("txtUnableToUpdateMacroProfileValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
 	}
 }
 
@@ -2551,4 +2747,102 @@ func ProcessSetKeyboardPerformance(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtKeyboardPerformanceUpdated"), Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSetKeyboardPerformance"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessGetRgbOverride will process getting data for RGB override
+func ProcessGetRgbOverride(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.SubDeviceId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	data := devices.ProcessGetRgbOverride(req.DeviceId, req.ChannelId, req.SubDeviceId)
+	if data != nil {
+		return &Payload{
+			Data:   data,
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNoRgbOverride"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
+// ProcessSetRgbOverride will process setting RGB override
+func ProcessSetRgbOverride(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.Speed < 0 || req.Speed > 10 {
+		return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	status := devices.ProcessSetRgbOverride(
+		req.DeviceId,
+		req.ChannelId,
+		req.SubDeviceId,
+		req.Enabled,
+		req.StartColor,
+		req.EndColor,
+		req.Speed,
+	)
+	switch status {
+	case 1:
+		return &Payload{Message: language.GetValue("txtRgbOverrideUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
 }

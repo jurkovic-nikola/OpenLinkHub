@@ -1,20 +1,22 @@
 package rgb
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // Colorpulse will run RGB function
 func (r *ActiveRGB) Colorpulse(startTime *time.Time) {
 	buf := map[int][]byte{}
 	elapsed := time.Since(*startTime).Milliseconds()
+	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*1000), 1.0)
 
-	// Calculate progress and reset when it exceeds 1.0
-	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
 	if progress >= 1.0 {
 		*startTime = time.Now() // Reset startTime to the current time
 		elapsed = 0             // Reset elapsed time
 		progress = 0            // Reset progress
 	}
-	color := interpolateColor(r.RGBStartColor, r.RGBEndColor, progress, r.RGBBrightness)
+	color := interpolateColors(r.RGBStartColor, r.RGBEndColor, progress, r.RGBBrightness)
 
 	// Update LED channels
 	for j := 0; j < r.LightChannels; j++ {

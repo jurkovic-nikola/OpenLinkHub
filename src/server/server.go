@@ -689,6 +689,50 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setLinkAdapterColor handles LINK adapter color changes
+func setLinkAdapterColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeLinkAdapterColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setLinkAdapterBulkColor handles LINK adapter bulk color changes
+func setLinkAdapterBulkColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeLinkAdapterColorBulk(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// getRgbOverride return RGB override for given device
+func getRgbOverride(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetRgbOverride(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// getRgbOverride return RGB override for given device
+func setRgbOverride(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetRgbOverride(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceHardwareColor handles device hardware color changes
 func setDeviceHardwareColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessHardwareChangeColor(r)
@@ -703,6 +747,17 @@ func setDeviceHardwareColor(w http.ResponseWriter, r *http.Request) {
 // setDeviceStrip handles device RGB strip changes
 func setDeviceStrip(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeStrip(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setDeviceLinkAdapter handles LINK adapter device change
+func setDeviceLinkAdapter(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeLinkAdapter(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -988,6 +1043,17 @@ func saveHeadsetZoneColors(w http.ResponseWriter, r *http.Request) {
 // deleteMacroValue handles deletion of macro profile value
 func deleteMacroValue(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDeleteMacroValue(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// updateMacroValue handles update of macro profile value
+func updateMacroValue(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateMacroValue(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1422,8 +1488,13 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
 	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)
 	handleFunc(r, "/api/color", http.MethodPost, setDeviceColor)
+	handleFunc(r, "/api/color/linkAdapter", http.MethodPost, setLinkAdapterColor)
+	handleFunc(r, "/api/color/linkAdapter/bulk", http.MethodPost, setLinkAdapterBulkColor)
+	handleFunc(r, "/api/color/getOverride", http.MethodPost, getRgbOverride)
+	handleFunc(r, "/api/color/setOverride", http.MethodPost, setRgbOverride)
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
 	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
+	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)
 	handleFunc(r, "/api/hub/type", http.MethodPost, setExternalHubDeviceType)
 	handleFunc(r, "/api/hub/amount", http.MethodPost, setExternalHubDeviceAmount)
 	handleFunc(r, "/api/label", http.MethodPost, setDeviceLabel)
@@ -1465,6 +1536,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/getKey/", http.MethodPost, getGetKeyboardKey)
 	handleFunc(r, "/api/keyboard/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/keyboard/setPerformance", http.MethodPost, setKeyboardPerformance)
+	handleFunc(r, "/api/macro/updateValue", http.MethodPost, updateMacroValue)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

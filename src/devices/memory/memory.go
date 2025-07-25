@@ -28,6 +28,13 @@ import (
 	"time"
 )
 
+type RGBOverride struct {
+	Enabled       bool
+	RGBStartColor rgb.Color
+	RGBEndColor   rgb.Color
+	RgbModeSpeed  float64
+}
+
 type TemperatureProbe struct {
 	ChannelId int
 	Name      string
@@ -71,6 +78,7 @@ type DeviceProfile struct {
 	RGBProfiles        map[int]string
 	Labels             map[int]string
 	MultiRGB           string
+	RGBOverride        map[int]map[int]RGBOverride
 }
 
 type Device struct {
@@ -832,15 +840,69 @@ func (d *Device) loadDeviceProfiles() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	noOverride := false
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	labels := make(map[int]string, len(d.Devices))
+	rgbOverride := make(map[int]map[int]RGBOverride, len(d.Devices))
+
+	if d.DeviceProfile == nil || d.DeviceProfile.RGBOverride == nil {
+		noOverride = true
+	}
 
 	for _, device := range d.Devices {
 		rgbProfiles[device.ChannelId] = device.RGB
 		labels[device.ChannelId] = device.Label
+
+		if noOverride {
+			rgbOverride[device.ChannelId] = map[int]RGBOverride{
+				0: {
+					Enabled: false,
+					RGBStartColor: rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					RGBEndColor: rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					RgbModeSpeed: 3,
+				},
+			}
+		} else {
+			if _, ok := d.DeviceProfile.RGBOverride[device.ChannelId]; !ok {
+				rgbOverride[device.ChannelId] = map[int]RGBOverride{
+					0: {
+						Enabled: false,
+						RGBStartColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "#00ffff",
+						},
+						RGBEndColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "#00ffff",
+						},
+						RgbModeSpeed: 3,
+					},
+				}
+			} else {
+				rgbOverride[device.ChannelId] = d.DeviceProfile.RGBOverride[device.ChannelId]
+			}
+		}
 	}
 
 	deviceProfile := &DeviceProfile{
@@ -851,6 +913,7 @@ func (d *Device) saveDeviceProfile() {
 		Path:               profilePath,
 		BrightnessSlider:   &defaultBrightness,
 		OriginalBrightness: 100,
+		RGBOverride:        rgbOverride,
 	}
 
 	// First save, assign saved profile to a device
@@ -947,6 +1010,24 @@ func (d *Device) getTemperatureProbe() {
 	d.TemperatureProbes = &probes
 }
 
+// getRgbOverride will return RGBOverride object
+func (d *Device) getRgbOverride(deviceId, subDeviceId int) *RGBOverride {
+	if value, ok := d.DeviceProfile.RGBOverride[deviceId]; ok {
+		if val, found := value[subDeviceId]; found {
+			return &val
+		}
+	}
+	return nil
+}
+
+// setRgbOverride will set RGBOverride object
+func (d *Device) setRgbOverride(deviceId, subDeviceId int, rgbOverride RGBOverride) {
+	if value, ok := d.DeviceProfile.RGBOverride[deviceId]; ok {
+		value[subDeviceId] = rgbOverride
+		d.DeviceProfile.RGBOverride[deviceId] = value
+	}
+}
+
 // isRgbStatic will return true or false if all devices are set to static RGB mode
 func (d *Device) isRgbStatic() bool {
 	s, l := 0, 0
@@ -1017,12 +1098,25 @@ func (d *Device) setDeviceColor() {
 
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for _, k := range keys {
+			var c *rgb.Color
+			rgbOverride := d.getRgbOverride(k, 0)
+			if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {
+				profileOverride := d.GetRgbProfile("static")
+				if profileOverride == nil {
+					return
+				}
+				profileOverride.StartColor = rgbOverride.RGBStartColor
+				c = rgb.ModifyBrightness(profileOverride.StartColor)
+			} else {
+				c = profileColor
+			}
+
 			static := map[int][]byte{}
 			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
 				static[i] = []byte{
-					byte(profileColor.Red),
-					byte(profileColor.Green),
-					byte(profileColor.Blue),
+					byte(c.Red),
+					byte(c.Green),
+					byte(c.Blue),
 				}
 			}
 			buffer = rgb.SetColor(static)
@@ -1081,6 +1175,14 @@ func (d *Device) setDeviceColor() {
 						r.RGBEndColor = d.activeRgb.RGBEndColor
 					}
 
+					index := 0
+					rgbOverride := d.getRgbOverride(k, index)
+					if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {
+						r.RGBStartColor = &rgbOverride.RGBStartColor
+						r.RGBEndColor = &rgbOverride.RGBEndColor
+						r.RgbModeSpeed = common.FClamp(rgbOverride.RgbModeSpeed, 0.1, 10)
+					}
+
 					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
@@ -1092,6 +1194,7 @@ func (d *Device) setDeviceColor() {
 						r.RGBStartColor.Brightness = r.RGBBrightness
 						r.RGBEndColor.Brightness = r.RGBBrightness
 					}
+					r.ChannelId = k
 
 					switch d.Devices[k].RGB {
 					case "off":
@@ -1363,6 +1466,43 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ProcessGetRgbOverride will get rgb override data
+func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
+	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetRgbOverride will update RGB override settings
+func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	rgbOverride := d.getRgbOverride(channelId, subDeviceId)
+	if rgbOverride == nil {
+		return 0
+	}
+
+	if speed < 0 || speed > 10 {
+		return 0
+	}
+
+	rgbOverride.Enabled = enabled
+	rgbOverride.RGBStartColor = startColor
+	rgbOverride.RGBEndColor = endColor
+	rgbOverride.RgbModeSpeed = speed
+	rgbOverride.RGBStartColor.Brightness = 1
+	rgbOverride.RGBEndColor.Brightness = 1
+
+	d.setRgbOverride(channelId, subDeviceId, *rgbOverride)
+	d.saveDeviceProfile()
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil

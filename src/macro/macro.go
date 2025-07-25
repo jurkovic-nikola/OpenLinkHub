@@ -21,6 +21,7 @@ type Actions struct {
 	ActionType    uint8  `json:"actionType"`
 	ActionCommand uint16 `json:"actionCommand"`
 	ActionDelay   uint16 `json:"actionDelay"`
+	ActionHold    bool   `json:"actionHold"`
 }
 
 var (
@@ -91,6 +92,46 @@ func DeleteMacroValue(macroId, macroIndex int) uint8 {
 		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
 		if _, ok := val.Actions[macroIndex]; ok {
 			delete(val.Actions, macroIndex)
+			macros[macroId] = val
+			SaveProfile(profile, val)
+			return 1
+		}
+	}
+	return 0
+}
+
+// validatePressAndHold will validate press and hold action
+func validatePressAndHold(macroId int) bool {
+	count := 0
+	if val, ok := macros[macroId]; ok {
+		actionsLen := len(val.Actions)
+		for _, v := range val.Actions {
+			if v.ActionHold {
+				count++
+			}
+		}
+
+		if count == actionsLen-1 {
+			return false
+		}
+	}
+	return true
+}
+
+// UpdateMacroValue will update macro value
+func UpdateMacroValue(macroId, macroIndex int, actionHold bool) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if val, ok := macros[macroId]; ok {
+		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		if action, ok := val.Actions[macroIndex]; ok {
+			if actionHold {
+				if !validatePressAndHold(macroId) {
+					return 2
+				}
+			}
+			action.ActionHold = actionHold
+			val.Actions[macroIndex] = action
 			macros[macroId] = val
 			SaveProfile(profile, val)
 			return 1

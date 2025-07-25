@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const hwmonData = $("#hwmon-probeData").val().split(';')
             pf["hwmonDeviceId"] = hwmonData[0];
             pf["temperatureInputId"] = hwmonData[1];
+            pf["hwmonDevice"] = hwmonData[2];
         }
 
         if (parseInt(sensor) === 7) {
@@ -85,7 +86,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const json = JSON.stringify(pf, null, 2);
-
         $.ajax({
             url: '/api/temperatures/new',
             type: 'POST',

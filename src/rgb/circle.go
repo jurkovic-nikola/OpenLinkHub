@@ -8,8 +8,8 @@ import (
 // Circle will run RGB function
 func (r *ActiveRGB) Circle(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
+	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*1000), 1.0)
 
-	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
 	if progress >= 1.0 {
 		*startTime = time.Now()
 		elapsed = 0
@@ -76,8 +76,8 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 // CircleShift will run RGB function
 func (r *ActiveRGB) CircleShift(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
+	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*1000), 1.0)
 
-	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
 	if progress >= 1.0 {
 		*startTime = time.Now()
 		elapsed = 0

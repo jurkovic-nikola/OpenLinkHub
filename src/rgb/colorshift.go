@@ -1,26 +1,30 @@
 package rgb
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // Colorshift will run RGB function
 func (r *ActiveRGB) Colorshift(startTime *time.Time, activeRgb *ActiveRGB) {
 	buf := map[int][]byte{}
-	elapsed := time.Since(*startTime).Milliseconds()
-	color := &Color{}
 
-	// Calculate progress and reset when it exceeds 1.0
-	progress := float64(elapsed) / (r.RgbModeSpeed * 1000)
-	if progress >= 1.0 {
-		*startTime = time.Now() // Reset startTime to the current time
-		elapsed = 0             // Reset elapsed time
-		progress = 0            // Reset progress
-		if activeRgb.Phase == 1 {
-			activeRgb.Phase = 0
-		} else {
-			activeRgb.Phase = 1
-		}
+	elapsed := time.Since(*startTime).Milliseconds()
+	if r.RgbModeSpeed == 0 {
+		r.RgbModeSpeed = 1.0
 	}
 
+	totalProgress := float64(elapsed) / (r.RgbModeSpeed * 1000)
+	progress := math.Mod(totalProgress, 1.0)
+
+	cycleCount := int(totalProgress)
+	if cycleCount%2 == 0 {
+		activeRgb.Phase = 0
+	} else {
+		activeRgb.Phase = 1
+	}
+
+	var color *Color
 	if activeRgb.Phase == 0 {
 		color = interpolateColor(r.RGBStartColor, r.RGBEndColor, progress, r.RGBBrightness)
 	} else {

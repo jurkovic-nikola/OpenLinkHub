@@ -34,27 +34,45 @@ import (
 	"time"
 )
 
+type RGBOverride struct {
+	Enabled       bool
+	RGBStartColor rgb.Color
+	RGBEndColor   rgb.Color
+	RgbModeSpeed  float64
+}
+
 type DeviceProfile struct {
-	Active             bool
-	Path               string
-	Product            string
-	Serial             string
-	LCDMode            uint8
-	LCDRotation        uint8
-	Brightness         uint8
-	BrightnessSlider   *uint8
-	OriginalBrightness uint8
-	SpeedProfiles      map[int]string
-	RGBProfiles        map[int]string
-	Labels             map[int]string
-	DevicePosition     map[int]string
-	ExternalAdapter    map[int]int
-	LCDModes           map[int]uint8
-	LCDImages          map[int]string
-	LCDRotations       map[int]uint8
-	LCDDevices         map[int]string
-	MultiRGB           string
-	MultiProfile       string
+	Active               bool
+	Path                 string
+	Product              string
+	Serial               string
+	LCDMode              uint8
+	LCDRotation          uint8
+	Brightness           uint8
+	BrightnessSlider     *uint8
+	OriginalBrightness   uint8
+	SpeedProfiles        map[int]string
+	RGBProfiles          map[int]string
+	Labels               map[int]string
+	DevicePosition       map[int]string
+	ExternalAdapter      map[int]int
+	LCDModes             map[int]uint8
+	LCDImages            map[int]string
+	LCDRotations         map[int]uint8
+	LCDDevices           map[int]string
+	MultiRGB             string
+	MultiProfile         string
+	SubDeviceRGBProfiles map[int]map[int]string
+	RGBOverride          map[int]map[int]RGBOverride
+}
+
+// LinkAdapter contains a list of supported external-LED devices connected to a LINK adapter
+type LinkAdapter struct {
+	Index   int
+	Name    string
+	Total   uint8
+	Command byte
+	Devices map[int]LinkAdapter
 }
 
 type LCD struct {
@@ -114,52 +132,60 @@ type Devices struct {
 	Position           int
 	ExternalAdapter    int
 	LCDSerial          string
+	SubDevices         map[int]LinkAdapter
+	DeviceCode         byte
 }
 
 type Device struct {
-	Debug             bool
-	dev               *hid.Device
-	Manufacturer      string                    `json:"manufacturer"`
-	Product           string                    `json:"product"`
-	Serial            string                    `json:"serial"`
-	Firmware          string                    `json:"firmware"`
-	AIO               bool                      `json:"aio"`
-	Devices           map[int]*Devices          `json:"devices"`
-	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
-	DeviceProfile     *DeviceProfile
-	OriginalProfile   *DeviceProfile
-	TemperatureProbes *[]TemperatureProbe
-	activeRgb         *rgb.ActiveRGB
-	ledProfile        *led.Device
-	Template          string
-	HasLCD            bool
-	VendorId          uint16
-	ProductId         uint16
-	LCDModes          map[int]string
-	LCDRotations      map[int]string
-	Brightness        map[int]string
-	RGBStrips         map[int]string
-	PortProtection    map[uint8]int
-	GlobalBrightness  float64
-	IsCritical        bool
-	FirmwareInternal  []int
-	CpuTemp           float32
-	GpuTemp           float32
-	XD5LCDs           int
-	Rgb               *rgb.RGB
-	rgbMutex          sync.RWMutex
-	Exit              bool
-	LCDImage          map[int]*lcd.ImageData
-	lcdRefreshChan    chan struct{}
-	lcdImageChan      chan struct{}
-	autoRefreshChan   chan struct{}
-	speedRefreshChan  chan struct{}
-	timer             *time.Ticker
-	timerSpeed        *time.Ticker
-	lcdTimer          *time.Ticker
-	mutex             sync.Mutex
-	mutexLcd          sync.Mutex
-	lcdDevices        map[string]*LCD
+	Debug               bool
+	dev                 *hid.Device
+	Manufacturer        string                    `json:"manufacturer"`
+	Product             string                    `json:"product"`
+	Serial              string                    `json:"serial"`
+	Firmware            string                    `json:"firmware"`
+	AIO                 bool                      `json:"aio"`
+	Devices             map[int]*Devices          `json:"devices"`
+	UserProfiles        map[string]*DeviceProfile `json:"userProfiles"`
+	DeviceProfile       *DeviceProfile
+	OriginalProfile     *DeviceProfile
+	TemperatureProbes   *[]TemperatureProbe
+	activeRgb           *rgb.ActiveRGB
+	ledProfile          *led.Device
+	Template            string
+	HasLCD              bool
+	VendorId            uint16
+	ProductId           uint16
+	LCDModes            map[int]string
+	LCDRotations        map[int]string
+	Brightness          map[int]string
+	RGBStrips           map[int]string
+	PortProtection      map[uint8]int
+	GlobalBrightness    float64
+	IsCritical          bool
+	FirmwareInternal    []int
+	CpuTemp             float32
+	GpuTemp             float32
+	XD5LCDs             int
+	Rgb                 *rgb.RGB
+	rgbMutex            sync.RWMutex
+	Exit                bool
+	LCDImage            map[int]*lcd.ImageData
+	lcdRefreshChan      chan struct{}
+	lcdImageChan        chan struct{}
+	autoRefreshChan     chan struct{}
+	speedRefreshChan    chan struct{}
+	timer               *time.Ticker
+	timerSpeed          *time.Ticker
+	lcdTimer            *time.Ticker
+	mutex               sync.Mutex
+	mutexLcd            sync.Mutex
+	deviceLock          sync.Mutex
+	lcdDevices          map[string]*LCD
+	LinkAdapter         []LinkAdapter
+	HasLinkAdapter      bool
+	LedDeviceTypes      []byte
+	LedDeviceTypeLength byte
+	LedDeviceTypeLed    []byte
 }
 
 var (
@@ -167,12 +193,17 @@ var (
 	cmdOpenEndpoint             = []byte{0x0d, 0x01}
 	cmdOpenColorEndpoint        = []byte{0x0d, 0x00}
 	cmdCloseEndpoint            = []byte{0x05, 0x01, 0x01}
+	cmdCloseColorEndpoint       = []byte{0x05, 0x01}
 	cmdGetFirmware              = []byte{0x02, 0x13}
 	cmdSoftwareMode             = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode             = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdWrite                    = []byte{0x06, 0x01}
 	cmdWriteColor               = []byte{0x06, 0x00}
 	cmdRead                     = []byte{0x08, 0x01}
+	cmdReadColor                = []byte{0x08, 0x00}
+	cmdResetLedPower            = []byte{0x15, 0x01}
+	cmdDeviceCommandCodes       = []byte{0x1e}
+	cmdDeviceCommandLeds        = []byte{0x1d}
 	modeGetDevices              = []byte{0x36}
 	modeGetTemperatures         = []byte{0x21}
 	modeGetSpeeds               = []byte{0x17}
@@ -184,6 +215,8 @@ var (
 	dataTypeSetSpeed            = []byte{0x07, 0x00}
 	dataTypeSetColor            = []byte{0x12, 0x00}
 	dataTypeSubColor            = []byte{0x07, 0x00}
+	dataTypeCommandMode         = []byte{0x0d, 0x00}
+	dataTypeLedCount            = []byte{0x0c, 0x00}
 	bufferSize                  = 512
 	headerSize                  = 3
 	headerWriteSize             = 4
@@ -211,7 +244,7 @@ var (
 		{DeviceId: 3, Model: 0, Name: "iCUE LINK RX RGB MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan", HasSpeed: true},
 		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
 		{DeviceId: 15, Model: 0, Name: "iCUE LINK RX RGB", LedChannels: 8, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan", HasSpeed: true},
+		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
 		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
 		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
 		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
@@ -303,11 +336,13 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
+	d.loadExternalDevices() // External metadata
 	d.loadRgb()             // Load RGB
 	d.loadDeviceProfiles()  // Load all device profiles
 	d.getDeviceLcd()        // Check for LCDs
 	d.getDeviceFirmware()   // Firmware
 	d.setSoftwareMode()     // Activate software mode
+	d.getLedDeviceTypes()   // Device led types
 	d.getDevices()          // Get devices connected to a hub
 	d.setColorEndpoint()    // Set device color endpoint
 	d.setDeviceProtection() // Protect device
@@ -438,6 +473,7 @@ func (d *Device) saveLedProfile() {
 // setDeviceProtection will reduce LED brightness if you are running too many devices per hub physical port.
 // Reduction is applied globally, not per physical port
 func (d *Device) setDeviceProtection() {
+	d.GlobalBrightness = 0
 	for _, portLedChannels := range d.PortProtection {
 
 		// > 7 QX fans
@@ -551,6 +587,28 @@ func (d *Device) StopDirty() uint8 {
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+// loadExternalDevices will load external device definitions
+func (d *Device) loadExternalDevices() {
+	externalDevicesFile := pwd + "/database/external/linkadapter.json"
+	if common.FileExists(externalDevicesFile) {
+		file, err := os.Open(externalDevicesFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+			return
+		}
+		if err = json.NewDecoder(file).Decode(&d.LinkAdapter); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to decode external devices metadata")
+			return
+		}
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": externalDevicesFile, "serial": d.Serial}).Warn("Failed to close external devices metadata")
+		}
+	} else {
+		logger.Log(logger.Fields{"serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+	}
 }
 
 // getLcdImages will preload lcd images for LCD devices
@@ -771,7 +829,7 @@ func (d *Device) getDeviceLcd() {
 }
 
 // getLedStripData will return number of LEDs for given strip ID
-func (d *Device) getLedStripData(stripId int) uint8 {
+func (d *Device) getLedStripData(stripId int) int {
 	switch stripId {
 	case 0:
 		return 0 // None
@@ -785,6 +843,16 @@ func (d *Device) getLedStripData(stripId int) uint8 {
 		return 98 // 2x iCUE LINK LS430 Aurora RGB Light Strip
 	}
 	return 0
+}
+
+// getLinkAdapterDevice will return LinkAdapter based on adapterId
+func (d *Device) getLinkAdapterDevice(adapterId int) *LinkAdapter {
+	for _, value := range d.LinkAdapter {
+		if value.Index == adapterId {
+			return &value
+		}
+	}
+	return nil
 }
 
 // getDeviceProfile will load persistent device configuration
@@ -805,6 +873,7 @@ func (d *Device) getDeviceProfile() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	noOverride := false
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
@@ -817,6 +886,11 @@ func (d *Device) saveDeviceProfile() {
 	lcdImages := make(map[int]string, len(d.Devices))
 	lcdRotations := make(map[int]uint8, len(d.Devices))
 	lcdDevices := make(map[int]string, len(d.Devices))
+	rgbOverride := make(map[int]map[int]RGBOverride, len(d.Devices))
+
+	if d.DeviceProfile == nil || d.DeviceProfile.RGBOverride == nil {
+		noOverride = true
+	}
 
 	for _, device := range d.Devices {
 		speedProfiles[device.ChannelId] = device.Profile
@@ -825,6 +899,109 @@ func (d *Device) saveDeviceProfile() {
 
 		if device.ContainsPump || device.AIO {
 			lcdDevices[device.ChannelId] = device.LCDSerial
+		}
+
+		if noOverride {
+			if device.IsLinkAdapter {
+				override := map[int]RGBOverride{}
+				for i := 0; i < 6; i++ {
+					override[i] = RGBOverride{
+						Enabled: false,
+						RGBStartColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "",
+						},
+						RGBEndColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "",
+						},
+						RgbModeSpeed: 3,
+					}
+				}
+				rgbOverride[device.ChannelId] = override
+			} else {
+				rgbOverride[device.ChannelId] = map[int]RGBOverride{
+					0: {
+						Enabled: false,
+						RGBStartColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "",
+						},
+						RGBEndColor: rgb.Color{
+							Red:        0,
+							Green:      255,
+							Blue:       255,
+							Brightness: 1,
+							Hex:        "",
+						},
+						RgbModeSpeed: 3,
+					},
+				}
+			}
+		} else {
+			if device.IsLinkAdapter {
+				rgbOverrides := make(map[int]RGBOverride)
+				for i := 0; i < 6; i++ {
+					override := d.DeviceProfile.RGBOverride[device.ChannelId]
+					if _, ok := override[i]; !ok {
+						rgbOverrides[i] = RGBOverride{
+							Enabled: false,
+							RGBStartColor: rgb.Color{
+								Red:        0,
+								Green:      255,
+								Blue:       255,
+								Brightness: 1,
+								Hex:        "#00ffff",
+							},
+							RGBEndColor: rgb.Color{
+								Red:        0,
+								Green:      255,
+								Blue:       255,
+								Brightness: 1,
+								Hex:        "#00ffff",
+							},
+							RgbModeSpeed: 3,
+						}
+					} else {
+						rgbOverrides[i] = override[i]
+					}
+				}
+				rgbOverride[device.ChannelId] = rgbOverrides
+			} else {
+				if _, ok := d.DeviceProfile.RGBOverride[device.ChannelId]; !ok {
+					rgbOverride[device.ChannelId] = map[int]RGBOverride{
+						0: {
+							Enabled: false,
+							RGBStartColor: rgb.Color{
+								Red:        0,
+								Green:      255,
+								Blue:       255,
+								Brightness: 1,
+								Hex:        "#00ffff",
+							},
+							RGBEndColor: rgb.Color{
+								Red:        0,
+								Green:      255,
+								Blue:       255,
+								Brightness: 1,
+								Hex:        "#00ffff",
+							},
+							RgbModeSpeed: 3,
+						},
+					}
+				} else {
+					rgbOverride[device.ChannelId] = d.DeviceProfile.RGBOverride[device.ChannelId]
+				}
+			}
 		}
 	}
 
@@ -837,6 +1014,7 @@ func (d *Device) saveDeviceProfile() {
 		Path:               profilePath,
 		BrightnessSlider:   &defaultBrightness,
 		OriginalBrightness: 100,
+		RGBOverride:        rgbOverride,
 	}
 
 	// First save, assign saved profile to a device
@@ -865,6 +1043,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDImages = lcdImages
 		deviceProfile.LCDRotations = lcdRotations
 		deviceProfile.LCDDevices = lcdDevices
+		deviceProfile.RGBOverride = rgbOverride
 		d.DeviceProfile = deviceProfile
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
@@ -967,6 +1146,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
 		deviceProfile.MultiProfile = d.DeviceProfile.MultiProfile
 		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
+		deviceProfile.SubDeviceRGBProfiles = d.DeviceProfile.SubDeviceRGBProfiles
 	}
 
 	keys := make([]int, 0, len(deviceProfile.DevicePosition))
@@ -1033,6 +1213,24 @@ func (d *Device) ResetSpeedProfiles(profile string) {
 // GetTemperatureProbes will return a list of temperature probes
 func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
 	return d.TemperatureProbes
+}
+
+// getRgbOverride will return RGBOverride object
+func (d *Device) getRgbOverride(deviceId, subDeviceId int) *RGBOverride {
+	if value, ok := d.DeviceProfile.RGBOverride[deviceId]; ok {
+		if val, found := value[subDeviceId]; found {
+			return &val
+		}
+	}
+	return nil
+}
+
+// setRgbOverride will set RGBOverride object
+func (d *Device) setRgbOverride(deviceId, subDeviceId int, rgbOverride RGBOverride) {
+	if val, ok := d.DeviceProfile.RGBOverride[deviceId]; ok {
+		val[subDeviceId] = rgbOverride
+		d.DeviceProfile.RGBOverride[deviceId] = val
+	}
 }
 
 // UpdateDevicePosition will update device position on WebUI
@@ -1665,8 +1863,22 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		d.DeviceProfile.MultiRGB = profile
 		for _, device := range d.Devices {
 			if device.LedChannels > 0 {
-				d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
-				d.Devices[device.ChannelId].RGB = profile
+				if device.IsLinkAdapter {
+					if device.SubDevices != nil {
+						rgbProfiles := make(map[int]string, len(device.SubDevices))
+						for key := range device.SubDevices {
+							rgbProfiles[key] = profile // We default to static on change
+						}
+
+						if _, found := d.DeviceProfile.SubDeviceRGBProfiles[device.ChannelId]; found {
+							d.DeviceProfile.SubDeviceRGBProfiles[device.ChannelId] = rgbProfiles
+						}
+						d.Devices[device.ChannelId].RGB = profile
+					}
+				} else {
+					d.DeviceProfile.RGBProfiles[device.ChannelId] = profile
+					d.Devices[device.ChannelId].RGB = profile
+				}
 			}
 		}
 	} else {
@@ -1685,6 +1897,102 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 	d.setDeviceColor() // Restart RGB
 	return 1
+}
+
+// UpdateLinkAdapterRgbProfile will update device RGB profile
+func (d *Device) UpdateLinkAdapterRgbProfile(channelId, adapterId int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.GetRgbProfile(profile) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+	hasPump := false
+
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if device, ok := d.Devices[channelId]; ok {
+		if device.IsLinkAdapter {
+			if out, found := d.DeviceProfile.SubDeviceRGBProfiles[channelId]; found {
+				if _, valid := out[adapterId]; valid {
+					d.DeviceProfile.SubDeviceRGBProfiles[device.ChannelId][adapterId] = profile
+					d.saveDeviceProfile() // Save profile
+					if d.activeRgb != nil {
+						d.activeRgb.Exit <- true // Exit current RGB mode
+						d.activeRgb = nil
+					}
+					d.setDeviceColor() // Restart RGB
+					return 1
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateLinkAdapterRgbProfileBulk will update device RGB profile in bulk
+func (d *Device) UpdateLinkAdapterRgbProfileBulk(channelId int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.GetRgbProfile(profile) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+	hasPump := false
+
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if device, ok := d.Devices[channelId]; ok {
+		if device.IsLinkAdapter {
+			if val, found := d.DeviceProfile.ExternalAdapter[channelId]; found {
+				adapterData := d.getLinkAdapterDevice(val)
+				if adapterData != nil {
+					if _, valid := d.DeviceProfile.SubDeviceRGBProfiles[channelId]; valid {
+						for k := range adapterData.Devices {
+							d.DeviceProfile.SubDeviceRGBProfiles[channelId][k] = profile
+						}
+					}
+				}
+				d.Devices[channelId].RGB = profile
+				d.saveDeviceProfile() // Save profile
+				if d.activeRgb != nil {
+					d.activeRgb.Exit <- true // Exit current RGB mode
+					d.activeRgb = nil
+				}
+				d.setDeviceColor() // Restart RGB
+				return 1
+			}
+		}
+	}
+	return 0
 }
 
 // UpdateRgbProfileBulk will update device RGB profile on bulk selected devices
@@ -1715,6 +2023,16 @@ func (d *Device) UpdateRgbProfileBulk(channelIds []int, profile string) uint8 {
 			if _, ok := d.Devices[channelId]; ok {
 				d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
 				d.Devices[channelId].RGB = profile
+
+				if d.Devices[channelId].IsLinkAdapter {
+					rgbProfiles := make(map[int]string, len(d.Devices[channelId].SubDevices))
+					for key := range d.Devices[channelId].SubDevices {
+						rgbProfiles[key] = "off" // We default to static on change
+					}
+					if _, found := d.DeviceProfile.SubDeviceRGBProfiles[channelId]; found {
+						d.DeviceProfile.SubDeviceRGBProfiles[channelId] = rgbProfiles
+					}
+				}
 			} else {
 				return 0
 			}
@@ -1732,26 +2050,222 @@ func (d *Device) UpdateRgbProfileBulk(channelIds []int, profile string) uint8 {
 	return 1
 }
 
-// UpdateExternalAdapter will update external RGB adapter
-func (d *Device) UpdateExternalAdapter(channelId int, stripId int) uint8 {
+// ProcessGetRgbOverride will get rgb override data
+func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
+	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetRgbOverride will update RGB override settings
+func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	rgbOverride := d.getRgbOverride(channelId, subDeviceId)
+	if rgbOverride == nil {
+		return 0
+	}
+
+	if speed < 0 || speed > 10 {
+		return 0
+	}
+
+	rgbOverride.Enabled = enabled
+	rgbOverride.RGBStartColor = startColor
+	rgbOverride.RGBEndColor = endColor
+	rgbOverride.RgbModeSpeed = speed
+	rgbOverride.RGBStartColor.Brightness = 1
+	rgbOverride.RGBEndColor.Brightness = 1
+
+	d.setRgbOverride(channelId, subDeviceId, *rgbOverride)
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+func (d *Device) setupLinkAdapter() {
+
+}
+
+// UpdateLinkAdapter will update LINK adapter
+func (d *Device) UpdateLinkAdapter(channelId int, adapterId int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
 	if device, ok := d.Devices[channelId]; ok {
 		if device.IsLinkAdapter {
-			d.DeviceProfile.ExternalAdapter[channelId] = stripId // Set profile
-			d.Devices[channelId].ExternalAdapter = stripId
-			d.Devices[channelId].LedChannels = d.getLedStripData(stripId)
-			d.saveDeviceProfile() // Save profile
-			if d.activeRgb != nil {
-				d.activeRgb.Exit <- true // Exit current RGB mode
-				d.activeRgb = nil
+			if d.LedDeviceTypeLength != d.maxChannelId()+1 {
+				logger.Log(logger.Fields{"channelAmount": d.maxChannelId() + 1, "deviceAmount": d.LedDeviceTypeLength}).Warn("Channel count does not match device count. Request is aborted to prevent device damage")
+				return 0
 			}
-			d.setDeviceColor() // Restart RGB
-			return 1
+
+			if adapterId == 0 {
+				// Reset color
+				if d.isRgbStatic() {
+					d.setupLinkAdapterRgb(false, channelId)
+					time.Sleep(10 * time.Millisecond)
+				} else {
+					// Active RGB mode.
+					// Set link adapter to off to disable LEDs and wait for 100ms for any effect to finish
+					if _, found := d.DeviceProfile.SubDeviceRGBProfiles[channelId]; found {
+						rgbProfiles := make(map[int]string, len(d.DeviceProfile.SubDeviceRGBProfiles[channelId]))
+						for i := 0; i < len(d.DeviceProfile.SubDeviceRGBProfiles[channelId]); i++ {
+							rgbProfiles[i] = "off" // We default to static on change
+						}
+						d.DeviceProfile.SubDeviceRGBProfiles[channelId] = rgbProfiles
+					}
+				}
+
+				var buf []byte
+				for k := 1; k <= int(d.maxChannelId()); k++ {
+					if dev, found := d.Devices[k]; found {
+						if dev.IsLinkAdapter {
+							if dev.ChannelId == channelId {
+								buf = append(buf, 0x00)
+							} else {
+								if externalAdapterId, valid := d.DeviceProfile.ExternalAdapter[dev.ChannelId]; valid {
+									if externalAdapterId > 0 {
+										adapterData := d.getLinkAdapterDevice(externalAdapterId)
+										if adapterData == nil {
+											buf = append(buf, 0x00)
+										} else {
+											buf = append(buf, 0x01)
+											buf = append(buf, adapterData.Command)
+										}
+									} else {
+										buf = append(buf, 0x00)
+									}
+								}
+							}
+						} else {
+							if d.Devices[k].DeviceCode > 0 {
+								buf = append(buf, 0x01)
+								buf = append(buf, dev.DeviceCode)
+							} else {
+								buf = append(buf, 0x00)
+							}
+						}
+
+					} else {
+						buf = append(buf, 0x00)
+					}
+				}
+
+				buffer := make([]byte, len(buf)+2)
+				buffer[0] = d.maxChannelId() + 1
+				buffer[1] = 0x00
+				copy(buffer[2:], buf)
+				d.write(cmdDeviceCommandCodes, dataTypeCommandMode, buffer)
+				if d.updateLinkAdapterLeds(device.ChannelId, 0) {
+					d.write(cmdDeviceCommandLeds, dataTypeLedCount, d.LedDeviceTypeLed)
+				}
+
+				// Finish it
+				d.Devices[channelId].SubDevices = nil
+				d.Devices[channelId].LedChannels = 0
+				d.Devices[channelId].ExternalAdapter = 0
+				d.Devices[channelId].RGB = ""
+				d.DeviceProfile.ExternalAdapter[channelId] = adapterId
+				d.setupPortProtection()
+				d.saveDeviceProfile()
+
+				// Full LED reset
+				_, err := d.transfer(cmdResetLedPower, nil)
+				if err != nil {
+					return 0
+				}
+				return 1
+			} else {
+				adapterData := d.getLinkAdapterDevice(adapterId)
+				if adapterData == nil {
+					return 2
+				}
+
+				var buf []byte
+				for k := 1; k <= int(d.maxChannelId()); k++ {
+					if dev, found := d.Devices[k]; found {
+						if dev.IsLinkAdapter {
+							if dev.ChannelId == channelId {
+								buf = append(buf, 0x01)
+								buf = append(buf, adapterData.Command)
+							} else {
+								if externalAdapterId, valid := d.DeviceProfile.ExternalAdapter[dev.ChannelId]; valid {
+									if externalAdapterId > 0 {
+										currentAdapterData := d.getLinkAdapterDevice(externalAdapterId)
+										if currentAdapterData == nil {
+											buf = append(buf, 0x00)
+										} else {
+											buf = append(buf, 0x01)
+											buf = append(buf, currentAdapterData.Command)
+										}
+									} else {
+										buf = append(buf, 0x00)
+									}
+								}
+							}
+						} else {
+							if d.Devices[k].DeviceCode > 0 {
+								buf = append(buf, 0x01)
+								buf = append(buf, dev.DeviceCode)
+							} else {
+								buf = append(buf, 0x00)
+							}
+						}
+					} else {
+						buf = append(buf, 0x00)
+					}
+				}
+
+				buffer := make([]byte, len(buf)+2)
+				buffer[0] = d.maxChannelId() + 1
+				buffer[1] = 0x00
+				copy(buffer[2:], buf)
+				d.write(cmdDeviceCommandCodes, dataTypeCommandMode, buffer)
+				if d.updateLinkAdapterLeds(device.ChannelId, adapterData.Total) {
+					d.write(cmdDeviceCommandLeds, dataTypeLedCount, d.LedDeviceTypeLed)
+				}
+
+				// Re-init LED ports
+				_, err := d.transfer(cmdResetLedPower, nil)
+				if err != nil {
+					return 0
+				}
+
+				var ledChannels uint8 = 0
+				rgbProfiles := make(map[int]string, len(adapterData.Devices))
+				for key, value := range adapterData.Devices {
+					rgbProfiles[key] = "static" // We default to static on change
+					ledChannels += value.Total
+				}
+				d.DeviceProfile.ExternalAdapter[channelId] = adapterId
+
+				// Default init
+				if d.DeviceProfile.SubDeviceRGBProfiles == nil {
+					d.DeviceProfile.SubDeviceRGBProfiles = make(map[int]map[int]string)
+				}
+				d.DeviceProfile.SubDeviceRGBProfiles[channelId] = rgbProfiles
+
+				d.Devices[channelId].SubDevices = adapterData.Devices
+				d.Devices[channelId].LedChannels = ledChannels
+				d.Devices[channelId].ExternalAdapter = adapterId
+				d.Devices[channelId].RGB = "static"
+				d.saveDeviceProfile() // Save profile
+				d.setupPortProtection()
+				if d.isRgbStatic() {
+					d.setupLinkAdapterRgb(true, channelId)
+				}
+				return 1
+			}
 		} else {
 			return 2
 		}
-	} else {
-		return 0
 	}
+	return 0
 }
 
 // getLiquidTemperature will fetch temperature from AIO device
@@ -2203,6 +2717,41 @@ func (d *Device) getSupportedDevice(deviceId byte, deviceModel byte) *SupportedD
 	return nil
 }
 
+// getDevicesValue finds the value for a given deviceId based on packet index logic.
+func (d *Device) getDevicesValue(deviceId int) (byte, bool) {
+	pos := 0
+	packetIndex := 0
+
+	for pos < len(d.LedDeviceTypes) {
+		if packetIndex == deviceId {
+			if d.LedDeviceTypes[pos] == 0x01 && pos+1 < len(d.LedDeviceTypes) {
+				return d.LedDeviceTypes[pos+1], true
+			} else {
+				return 0x00, true
+			}
+		}
+
+		if d.LedDeviceTypes[pos] == 0x01 && pos+1 < len(d.LedDeviceTypes) {
+			pos += 2
+		} else {
+			pos += 1
+		}
+		packetIndex++
+	}
+	return 0x00, false
+}
+
+// maxChannelId will return maximum channel id
+func (d *Device) maxChannelId() byte {
+	maxChannelId := 0
+	for _, device := range d.Devices {
+		if device.ChannelId > maxChannelId {
+			maxChannelId = device.ChannelId
+		}
+	}
+	return byte(maxChannelId)
+}
+
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
 	lcdAvailable := false
@@ -2305,11 +2854,18 @@ func (d *Device) getDevices() int {
 		*/
 		var ledChannels uint8 = 0
 		var adapterLedData uint8 = 0
-		var adapterData = 0
+		var subDevices = map[int]LinkAdapter{}
+		var adapterId = 0
 		if d.DeviceProfile != nil {
-			if ea, ok := d.DeviceProfile.ExternalAdapter[i]; ok {
-				adapterLedData = d.getLedStripData(ea)
-				adapterData = ea
+			if val, ok := d.DeviceProfile.ExternalAdapter[i]; ok {
+				adapterId = val
+				adapterData := d.getLinkAdapterDevice(adapterId)
+				if adapterData != nil {
+					subDevices = adapterData.Devices
+					for _, adapter := range adapterData.Devices {
+						adapterLedData += adapter.Total
+					}
+				}
 			}
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
@@ -2344,7 +2900,13 @@ func (d *Device) getDevices() int {
 			PortId:             0,
 			IsTemperatureProbe: deviceMeta.TemperatureProbe,
 			IsLinkAdapter:      deviceMeta.LinkAdapter,
-			ExternalAdapter:    adapterData,
+			ExternalAdapter:    adapterId,
+			SubDevices:         subDevices,
+		}
+
+		deviceValue, found := d.getDevicesValue(i)
+		if found {
+			device.DeviceCode = deviceValue
 		}
 
 		if device.ContainsPump && device.AIO && len(lcd.GetAioLCDSerial()) > 0 {
@@ -2411,7 +2973,20 @@ func (d *Device) getDevices() int {
 		d.PortProtection[device.PortId] += int(device.LedChannels)
 	}
 	d.Devices = devices
+
 	return len(devices)
+}
+
+// setupPortProtection will set port protection
+func (d *Device) setupPortProtection() {
+	for key := range d.PortProtection {
+		d.PortProtection[key] = 0
+	}
+
+	for _, value := range d.Devices {
+		d.PortProtection[value.PortId] += int(value.LedChannels)
+	}
+	d.setDeviceProtection()
 }
 
 // isRgbStatic will return true or false if all devices are set to static RGB mode
@@ -2426,9 +3001,25 @@ func (d *Device) isRgbStatic() bool {
 
 	for _, k := range keys {
 		if d.Devices[k].LedChannels > 0 {
-			l++ // device has LED
-			if d.Devices[k].RGB == "static" {
-				s++ // led profile is set to static
+			if d.Devices[k].IsLinkAdapter {
+				if adapterId, ok := d.DeviceProfile.ExternalAdapter[k]; ok {
+					adapterData := d.getLinkAdapterDevice(adapterId)
+					for _, val := range adapterData.Devices {
+						l++
+						if out, valid := d.DeviceProfile.SubDeviceRGBProfiles[d.Devices[k].ChannelId]; valid {
+							if rgbProfile, found := out[val.Index]; found {
+								if rgbProfile == "static" {
+									s++
+								}
+							}
+						}
+					}
+				}
+			} else {
+				l++
+				if d.Devices[k].RGB == "static" {
+					s++ // led profile is set to static
+				}
 			}
 		}
 	}
@@ -2439,6 +3030,71 @@ func (d *Device) isRgbStatic() bool {
 		}
 	}
 	return false
+}
+
+// setupLinkAdapterRgb will set up link adapter devices rgb
+func (d *Device) setupLinkAdapterRgb(enabled bool, channelId int) {
+	static := map[int][]byte{}
+	profile := d.GetRgbProfile("static")
+	if profile == nil {
+		return
+	}
+	profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+
+	// Global override
+	if d.GlobalBrightness != 0 {
+		profile.StartColor.Brightness = d.GlobalBrightness
+	}
+	profileColor := rgb.ModifyBrightness(profile.StartColor)
+	m := 0
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		if d.HasLCD && d.Devices[k].AIO {
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				static[m] = []byte{
+					byte(profileColor.Red),
+					byte(profileColor.Green),
+					byte(profileColor.Blue),
+				}
+				if i > 15 && i < 20 {
+					static[m] = []byte{0, 0, 0}
+				}
+				m++
+			}
+		} else {
+			if d.Devices[k].IsLinkAdapter {
+				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+					static[m] = []byte{0, 0, 0}
+				}
+			} else {
+				static[m] = []byte{
+					byte(profileColor.Red),
+					byte(profileColor.Green),
+					byte(profileColor.Blue),
+				}
+			}
+			for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+				if d.Devices[k].IsLinkAdapter && d.Devices[k].ChannelId == channelId {
+					if enabled {
+						static[m] = []byte{byte(profileColor.Red), byte(profileColor.Green), byte(profileColor.Blue)}
+					} else {
+						static[m] = []byte{0, 0, 0}
+					}
+				} else {
+					static[m] = []byte{byte(profileColor.Red), byte(profileColor.Green), byte(profileColor.Blue)}
+				}
+				m++
+			}
+		}
+	}
+	buffer := rgb.SetColor(static)
+	d.writeColor(buffer) // Write color once
 }
 
 // setDeviceColor will activate and set device RGB
@@ -2463,15 +3119,14 @@ func (d *Device) setDeviceColor() {
 
 	// Reset color
 	color := &rgb.Color{Red: 0, Green: 0, Blue: 0, Brightness: 0}
-	for _, k := range keys {
-		for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-			reset[i] = []byte{
-				byte(color.Red),
-				byte(color.Green),
-				byte(color.Blue),
-			}
+	for i := 0; i < lightChannels; i++ {
+		reset[i] = []byte{
+			byte(color.Red),
+			byte(color.Green),
+			byte(color.Blue),
 		}
 	}
+
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
 
@@ -2497,28 +3152,74 @@ func (d *Device) setDeviceColor() {
 
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		m := 0
-
 		for _, k := range keys {
-			if d.HasLCD && d.Devices[k].AIO {
-				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-					static[m] = []byte{
-						byte(profileColor.Red),
-						byte(profileColor.Green),
-						byte(profileColor.Blue),
+			var c *rgb.Color
+			if d.Devices[k].IsLinkAdapter {
+				if adapterId, ok := d.DeviceProfile.ExternalAdapter[k]; ok {
+					adapterData := d.getLinkAdapterDevice(adapterId)
+
+					aks := make([]int, 0)
+					for ak := range adapterData.Devices {
+						aks = append(aks, ak)
 					}
-					if i > 15 && i < 20 {
-						static[m] = []byte{byte(color.Red), byte(color.Green), byte(color.Blue)}
+					sort.Ints(aks)
+
+					for adapterKey := range aks {
+						total := adapterData.Devices[adapterKey].Total
+						rgbOverride := d.getRgbOverride(k, adapterKey)
+						if rgbOverride != nil && rgbOverride.Enabled && total > 0 {
+							profileOverride := d.GetRgbProfile("static")
+							if profileOverride == nil {
+								return
+							}
+							profileOverride.StartColor = rgbOverride.RGBStartColor
+							c = rgb.ModifyBrightness(profileOverride.StartColor)
+						} else {
+							c = profileColor
+						}
+						for i := 0; i < int(total); i++ {
+							static[m] = []byte{
+								byte(c.Red),
+								byte(c.Green),
+								byte(c.Blue),
+							}
+							m++
+						}
 					}
-					m++
 				}
 			} else {
-				for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-					static[m] = []byte{
-						byte(profileColor.Red),
-						byte(profileColor.Green),
-						byte(profileColor.Blue),
+				rgbOverride := d.getRgbOverride(k, 0)
+				if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {
+					profileOverride := d.GetRgbProfile("static")
+					if profileOverride == nil {
+						return
 					}
-					m++
+					profileOverride.StartColor = rgbOverride.RGBStartColor
+					c = rgb.ModifyBrightness(profileOverride.StartColor)
+				} else {
+					c = profileColor
+				}
+				if d.HasLCD && d.Devices[k].AIO {
+					for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+						static[m] = []byte{
+							byte(c.Red),
+							byte(c.Green),
+							byte(c.Blue),
+						}
+						if i > 15 && i < 20 {
+							static[m] = []byte{0, 0, 0}
+						}
+						m++
+					}
+				} else {
+					for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+						static[m] = []byte{
+							byte(c.Red),
+							byte(c.Green),
+							byte(c.Blue),
+						}
+						m++
+					}
 				}
 			}
 		}
@@ -2527,14 +3228,13 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	go func(lightChannels int) {
+	go func() {
 		startTime := time.Now()
 		d.activeRgb = rgb.Exit()
-
-		// Generate random colors
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 		rand.New(rand.NewSource(time.Now().UnixNano()))
+
 		for {
 			select {
 			case <-d.activeRgb.Exit:
@@ -2542,168 +3242,210 @@ func (d *Device) setDeviceColor() {
 			default:
 				buff := make([]byte, 0)
 				for _, k := range keys {
-					rgbCustomColor := true
-					profile := d.GetRgbProfile(d.Devices[k].RGB)
-					if profile == nil {
-						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-							buff = append(buff, []byte{0, 0, 0}...)
-						}
-						continue
-					}
+					if d.Devices[k].IsLinkAdapter {
+						if adapterId, ok := d.DeviceProfile.ExternalAdapter[k]; ok {
+							adapterData := d.getLinkAdapterDevice(adapterId)
 
-					rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)
-					// Check if we have custom colors
-					if (rgb.Color{}) == profile.StartColor || (rgb.Color{}) == profile.EndColor {
-						rgbCustomColor = false
-					}
+							aks := make([]int, 0)
+							for ak := range adapterData.Devices {
+								aks = append(aks, ak)
+							}
+							sort.Ints(aks)
 
-					r := rgb.New(
-						int(d.Devices[k].LedChannels),
-						rgbModeSpeed,
-						nil,
-						nil,
-						profile.Brightness,
-						common.Clamp(profile.Smoothness, 1, 100),
-						time.Duration(rgbModeSpeed)*time.Second,
-						rgbCustomColor,
-					)
-					r.HasLCD = d.HasLCD
-					r.IsAIO = d.Devices[k].AIO
-
-					if rgbCustomColor {
-						r.RGBStartColor = &profile.StartColor
-						r.RGBEndColor = &profile.EndColor
-					} else {
-						r.RGBStartColor = d.activeRgb.RGBStartColor
-						r.RGBEndColor = d.activeRgb.RGBEndColor
-					}
-
-					// Brightness
-					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-					r.RGBStartColor.Brightness = r.RGBBrightness
-					r.RGBEndColor.Brightness = r.RGBBrightness
-
-					// Global override
-					if d.GlobalBrightness != 0 {
-						r.RGBBrightness = d.GlobalBrightness
-						r.RGBStartColor.Brightness = r.RGBBrightness
-						r.RGBEndColor.Brightness = r.RGBBrightness
-					}
-
-					r.MinTemp = profile.MinTemp
-					r.MaxTemp = profile.MaxTemp
-
-					switch d.Devices[k].RGB {
-					case "custom":
-						{
-							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
-								value := d.getLedProfileColor(k, n)
-								value.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-								if d.GlobalBrightness != 0 {
-									value.Brightness = d.GlobalBrightness
+							if overrides, valid := d.DeviceProfile.SubDeviceRGBProfiles[d.Devices[k].ChannelId]; valid {
+								for adapterKey := range aks {
+									if rgbProfile, found := overrides[adapterKey]; found {
+										total := adapterData.Devices[adapterKey].Total
+										buff = append(buff, d.generateRgbEffect(k, total, &startTime, rgbProfile, adapterKey)...)
+									}
 								}
-								val := rgb.ModifyBrightness(*value)
-								buff = append(buff, []byte{byte(val.Red), byte(val.Green), byte(val.Blue)}...)
 							}
 						}
-					case "off":
-						{
-							for n := 0; n < int(d.Devices[k].LedChannels); n++ {
-								buff = append(buff, []byte{0, 0, 0}...)
-							}
-						}
-					case "rainbow":
-						{
-							r.Rainbow(startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "watercolor":
-						{
-							r.Watercolor(startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "liquid-temperature":
-						{
-							r.Temperature(float64(d.getLiquidTemperature()))
-							buff = append(buff, r.Output...)
-						}
-					case "cpu-temperature":
-						{
-							r.Temperature(float64(d.CpuTemp))
-							buff = append(buff, r.Output...)
-						}
-					case "gpu-temperature":
-						{
-							r.Temperature(float64(d.GpuTemp))
-							buff = append(buff, r.Output...)
-						}
-					case "colorpulse":
-						{
-							r.Colorpulse(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "static":
-						{
-							r.Static()
-							buff = append(buff, r.Output...)
-						}
-					case "rotator":
-						{
-							r.Rotator(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "wave":
-						{
-							r.Wave(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "storm":
-						{
-							r.Storm()
-							buff = append(buff, r.Output...)
-						}
-					case "flickering":
-						{
-							r.Flickering(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "colorshift":
-						{
-							r.Colorshift(&startTime, d.activeRgb)
-							buff = append(buff, r.Output...)
-						}
-					case "circleshift":
-						{
-							r.CircleShift(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "circle":
-						{
-							r.Circle(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "spinner":
-						{
-							r.Spinner(&startTime)
-							buff = append(buff, r.Output...)
-						}
-					case "colorwarp":
-						{
-							r.Colorwarp(&startTime, d.activeRgb)
-							buff = append(buff, r.Output...)
-						}
+					} else {
+						buff = append(buff, d.generateRgbEffect(k, d.Devices[k].LedChannels, &startTime, d.Devices[k].RGB, 0)...)
 					}
 				}
-				// Send it
 				d.writeColor(buff)
-				time.Sleep(30 * time.Millisecond)
+				time.Sleep(20 * time.Millisecond)
 			}
 		}
-	}(lightChannels)
+	}()
+}
+
+// generateRgbEffect will generate RGB effect for given device index
+func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, rgbProfile string, subDeviceId int) []byte {
+	buff := make([]byte, 0)
+	rgbCustomColor := true
+
+	profile := d.GetRgbProfile(rgbProfile)
+	if profile == nil {
+		for i := 0; i < int(channels); i++ {
+			buff = []byte{0, 0, 0}
+		}
+		return buff
+	}
+	rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)
+	if (rgb.Color{}) == profile.StartColor || (rgb.Color{}) == profile.EndColor {
+		rgbCustomColor = false
+	}
+
+	r := rgb.New(
+		int(channels),
+		rgbModeSpeed,
+		nil,
+		nil,
+		profile.Brightness,
+		common.Clamp(profile.Smoothness, 1, 100),
+		time.Duration(rgbModeSpeed)*time.Second,
+		rgbCustomColor,
+	)
+	r.HasLCD = d.HasLCD
+	r.IsAIO = d.Devices[k].AIO
+	r.ChannelId = k
+
+	if rgbCustomColor {
+		r.RGBStartColor = &profile.StartColor
+		r.RGBEndColor = &profile.EndColor
+	} else {
+		r.RGBStartColor = d.activeRgb.RGBStartColor
+		r.RGBEndColor = d.activeRgb.RGBEndColor
+	}
+
+	index := 0
+	if d.Devices[k].IsLinkAdapter {
+		index = subDeviceId
+		r.ChannelId = 48 + index
+	}
+	rgbOverride := d.getRgbOverride(k, index)
+	if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {
+		r.RGBStartColor = &rgbOverride.RGBStartColor
+		r.RGBEndColor = &rgbOverride.RGBEndColor
+		r.RgbModeSpeed = common.FClamp(rgbOverride.RgbModeSpeed, 0.1, 10)
+	}
+
+	// Brightness
+	r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+	r.RGBStartColor.Brightness = r.RGBBrightness
+	r.RGBEndColor.Brightness = r.RGBBrightness
+
+	// Global override
+	if d.GlobalBrightness != 0 {
+		r.RGBBrightness = d.GlobalBrightness
+		r.RGBStartColor.Brightness = r.RGBBrightness
+		r.RGBEndColor.Brightness = r.RGBBrightness
+	}
+
+	r.MinTemp = profile.MinTemp
+	r.MaxTemp = profile.MaxTemp
+
+	switch rgbProfile {
+	case "custom":
+		{
+			for n := 0; n < int(channels); n++ {
+				value := d.getLedProfileColor(k, n)
+				value.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+				if d.GlobalBrightness != 0 {
+					value.Brightness = d.GlobalBrightness
+				}
+				val := rgb.ModifyBrightness(*value)
+				buff = []byte{byte(val.Red), byte(val.Green), byte(val.Blue)}
+			}
+		}
+	case "off":
+		{
+			for n := 0; n < int(channels); n++ {
+				buff = append(buff, []byte{0, 0, 0}...)
+			}
+		}
+	case "rainbow":
+		{
+			r.Rainbow(*startTime)
+			buff = r.Output
+		}
+	case "watercolor":
+		{
+			r.Watercolor(*startTime)
+			buff = r.Output
+		}
+	case "liquid-temperature":
+		{
+			r.Temperature(float64(d.getLiquidTemperature()))
+			buff = r.Output
+		}
+	case "cpu-temperature":
+		{
+			r.Temperature(float64(d.CpuTemp))
+			buff = r.Output
+		}
+	case "gpu-temperature":
+		{
+			r.Temperature(float64(d.GpuTemp))
+			buff = r.Output
+		}
+	case "colorpulse":
+		{
+			r.Colorpulse(startTime)
+			buff = r.Output
+		}
+	case "static":
+		{
+			r.Static()
+			buff = r.Output
+		}
+	case "rotator":
+		{
+			r.Rotator(startTime)
+			buff = r.Output
+		}
+	case "wave":
+		{
+			r.Wave(startTime)
+			buff = r.Output
+		}
+	case "storm":
+		{
+			r.Storm()
+			buff = r.Output
+		}
+	case "flickering":
+		{
+			r.Flickering(startTime)
+			buff = r.Output
+		}
+	case "colorshift":
+		{
+			r.Colorshift(startTime, d.activeRgb)
+			buff = r.Output
+		}
+	case "circleshift":
+		{
+			r.CircleShift(startTime)
+			buff = r.Output
+		}
+	case "circle":
+		{
+			r.Circle(startTime)
+			buff = r.Output
+		}
+	case "spinner":
+		{
+			r.Spinner(startTime)
+			buff = r.Output
+		}
+	case "colorwarp":
+		{
+			r.Colorwarp(startTime, d.activeRgb)
+			buff = r.Output
+		}
+	}
+	return buff
 }
 
 // setColorEndpoint will activate hub color endpoint for further usage
 func (d *Device) setColorEndpoint() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Close any RGB endpoint
 	_, err := d.transfer(cmdCloseEndpoint, modeSetColor)
 	if err != nil {
@@ -2732,6 +3474,37 @@ func (d *Device) setSoftwareMode() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+}
+
+// getLedDeviceTypes will fetch each connected device command code for LED activation
+func (d *Device) getLedDeviceTypes() {
+	buffer := d.readDeviceData(cmdDeviceCommandCodes)
+	d.LedDeviceTypes = buffer[7:]
+	d.LedDeviceTypeLength = buffer[6]
+
+	buffer = d.readDeviceData(cmdDeviceCommandLeds)
+	var leds []byte
+
+	// We have data
+	if buffer[2] == 0x08 {
+		leds = append(leds, buffer[6:8]...)
+		data := buffer[8:]
+
+		packetLen := (buffer[6] * 2) - 1
+		for i := 0; i < int(packetLen); i++ {
+			leds = append(leds, data[i])
+		}
+	}
+	d.LedDeviceTypeLed = leds
+}
+
+func (d *Device) updateLinkAdapterLeds(adapterIndex int, newValue byte) bool {
+	idx := (adapterIndex * 2) + 1
+	if idx > len(d.LedDeviceTypeLed) {
+		return false
+	}
+	d.LedDeviceTypeLed[idx] = newValue
+	return true
 }
 
 // getManufacturer will return device manufacturer
@@ -2785,6 +3558,9 @@ func (d *Device) getDeviceFirmware() {
 
 // read will read data from a device and return data as a byte array
 func (d *Device) read(endpoint, bufferType []byte) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Endpoint data
 	var buffer []byte
 
@@ -2817,6 +3593,37 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 
 	// Close specified endpoint
 	_, err = d.transfer(cmdCloseEndpoint, endpoint)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
+	}
+	return buffer
+}
+
+// readDeviceData will read data from a device and return data as a byte array
+func (d *Device) readDeviceData(endpoint []byte) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	// Endpoint data
+	var buffer []byte
+
+	buff := cmdOpenColorEndpoint
+	buff = append(buff, endpoint...)
+
+	// Open endpoint
+	_, err := d.transfer(buff, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
+	}
+
+	// Read data from endpoint
+	buffer, err = d.transfer(cmdReadColor, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
+	}
+
+	// Close specified endpoint
+	_, err = d.transfer(cmdCloseColorEndpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
@@ -2877,7 +3684,6 @@ func (d *Device) setupLCDImage() {
 												if delay > 0 {
 													time.Sleep(time.Duration(delay) * time.Millisecond)
 												} else {
-													// Single frame, static image, generate 100ms of delay
 													time.Sleep(10 * time.Millisecond)
 												}
 											}
@@ -3126,6 +3932,9 @@ func (d *Device) setupLCD() {
 
 // write will write data to the device with specific endpoint
 func (d *Device) write(endpoint, bufferType, data []byte) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Buffer
 	buffer := make([]byte, len(bufferType)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
@@ -3173,6 +3982,9 @@ func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -3252,7 +4064,6 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 

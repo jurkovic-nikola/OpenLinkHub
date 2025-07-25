@@ -1162,6 +1162,7 @@ func (d *Device) setDeviceColor(resetColor bool) {
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
+					r.ChannelId = k
 
 					switch d.Devices[k].RGB {
 					case "off":

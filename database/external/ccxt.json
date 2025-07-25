@@ -85,12 +85,12 @@
     "kit": true,
     "devices": {
       "0": {
-        "name": "XC7 RGB PRO",
-        "total": 16
-      },
-      "1": {
         "name": "XD5 Pump / Res Combo",
         "total": 10
+      },
+      "1": {
+        "name": "XC7 RGB PRO",
+        "total": 16
       }
     }
   },
@@ -102,12 +102,12 @@
     "kit": true,
     "devices": {
       "0": {
-        "name": "XC7 RGB",
-        "total": 16
-      },
-      "1": {
         "name": "XD5 Pump / Res Combo",
         "total": 10
+      },
+      "1": {
+        "name": "XC7 RGB",
+        "total": 16
       }
     }
   }

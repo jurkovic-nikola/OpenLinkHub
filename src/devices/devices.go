@@ -19,6 +19,7 @@ import (
 	"OpenLinkHub/src/devices/headsetdongle"
 	"OpenLinkHub/src/devices/hs80maxW"
 	"OpenLinkHub/src/devices/hs80maxdongle"
+	"OpenLinkHub/src/devices/hs80rgb"
 	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
@@ -65,6 +66,7 @@ import (
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/nightsabreWU"
+	"OpenLinkHub/src/devices/nightswordrgb"
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/sabrergbproW"
@@ -162,11 +164,13 @@ const (
 	productTypeM65RgbUltraWU        = 231
 	productTypeSabreRgbProWU        = 232
 	productTypeSabreRgbProW         = 233
+	productTypeNightswordRgb        = 234
 	productTypeVirtuosoXTW          = 300
 	productTypeVirtuosoXTWU         = 301
 	productTypeVirtuosoMAXW         = 302
 	productTypeHS80RGBW             = 303
 	productTypeHS80MAXW             = 304
+	productTypeHS80RGB              = 305
 	productTypeST100                = 401
 	productTypeMM700                = 402
 	productTypeLT100                = 403
@@ -199,9 +203,9 @@ var (
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7163, 7064, 7051}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7163, 7064, 7051, 7004}
 	pads                       = []uint16{7067, 7113}
-	headsets                   = []uint16{2658, 2660, 2667}
+	headsets                   = []uint16{2658, 2660, 2667, 2696}
 	headsets2                  = []uint16{10754, 2711}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
 	legacyDevices              = []uint16{3090, 3091, 3093}
@@ -465,6 +469,30 @@ func SaveMouseZoneColors(deviceId string, dpi rgb.Color, zones map[int]rgb.Color
 			var reflectArgs []reflect.Value
 			reflectArgs = append(reflectArgs, reflect.ValueOf(dpi))
 			reflectArgs = append(reflectArgs, reflect.ValueOf(zones))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// SaveMouseZoneColorsSniper will save mouse zone colors + sniper color if available
+func SaveMouseZoneColorsSniper(deviceId string, dpi rgb.Color, zones map[int]rgb.Color, sniper rgb.Color) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "SaveMouseZoneColorsSniper"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(dpi))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(zones))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(sniper))
 			results := method.Call(reflectArgs)
 			if len(results) > 0 {
 				val := results[0]
@@ -1170,10 +1198,80 @@ func UpdateRgbStrip(deviceId string, channelId int, stripId int) uint8 {
 	return 0
 }
 
+// UpdateLinkAdapter will update device LINK adapter. This is used only for iCUE Link System Hub
+func UpdateLinkAdapter(deviceId string, channelId int, stripId int) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateLinkAdapter"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(stripId))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // UpdateRgbProfile will update device RGB profile
 func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 	if device, ok := devices[deviceId]; ok {
 		methodName := "UpdateRgbProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateLinkAdapterRgbProfile will update LINK adapter RGB profile
+func UpdateLinkAdapterRgbProfile(deviceId string, channelId, adapterId int, profile string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateLinkAdapterRgbProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(adapterId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
+// UpdateLinkAdapterRgbProfileBulk will update LINK adapter bulk RGB profile
+func UpdateLinkAdapterRgbProfileBulk(deviceId string, channelId int, profile string) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "UpdateLinkAdapterRgbProfileBulk"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 		if !method.IsValid() {
 			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
@@ -1493,6 +1591,55 @@ func GetTemperatureProbes() interface{} {
 		}
 	}
 	return probes
+}
+
+// ProcessGetRgbOverride will get rgb override data
+func ProcessGetRgbOverride(deviceId string, channelId, subDeviceId int) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessGetRgbOverride"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(subDeviceId))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessSetRgbOverride will set rgb override data
+func ProcessSetRgbOverride(deviceId string, channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessSetRgbOverride"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(subDeviceId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(enabled))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(startColor))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(endColor))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(speed))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
 }
 
 // GetDevice will return a device by device serial
@@ -3085,6 +3232,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 			}(vendorId, productId, key)
 		}
+	case 7004: // CORSAIR NIGHTSWORD RGB Gaming Mouse
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := nightswordrgb.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeNightswordRgb,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
 	case 7064: // CORSAIR SABRE RGB PRO WIRELESS Gaming Mouse
 		{
 			go func(vendorId, productId uint16, key string) {
@@ -3135,6 +3299,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 					Instance:    dev,
 				}
 			}(vendorId, productId, key)
+		}
+	case 2696: // Corsair HS80 RGB USB Gaming Headset
+		{
+			go func(vendorId, productId uint16, path string) {
+				dev := hs80rgb.Init(vendorId, productId, path)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeHS80RGB,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-headphone.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, productPath)
 		}
 	case 7054: // CORSAIR iCUE NEXUS
 		{

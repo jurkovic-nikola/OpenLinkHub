@@ -1,0 +1,756 @@
+[
+  {
+    "index":   0,
+    "name":    "None",
+    "total":   0,
+    "command": 0
+  },
+  {
+    "index":   1,
+    "name":    "1x LS350 Aurora",
+    "total":   40,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS350 Aurora #1",
+        "total": 40
+      }
+    }
+  },
+  {
+    "index":   2,
+    "name":    "2x LS350 Aurora",
+    "total":   80,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS350 Aurora #1",
+        "total": 40
+      },
+      "1": {
+        "name": "LS350 Aurora #2",
+        "total": 40
+      }
+    }
+  },
+  {
+    "index":   3,
+    "name":    "3x LS350 Aurora",
+    "total":   120,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS350 Aurora #1",
+        "total": 40
+      },
+      "1": {
+        "name": "LS350 Aurora #2",
+        "total": 40
+      },
+      "2": {
+        "name": "LS350 Aurora #3",
+        "total": 40
+      }
+    }
+  },
+  {
+    "index":   4,
+    "name":    "4x LS350 Aurora",
+    "total":   160,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS350 Aurora #1",
+        "total": 40
+      },
+      "1": {
+        "name": "LS350 Aurora #2",
+        "total": 40
+      },
+      "2": {
+        "name": "LS350 Aurora #3",
+        "total": 40
+      },
+      "3": {
+        "name": "LS350 Aurora #4",
+        "total": 40
+      }
+    }
+  },
+  {
+    "index":   5,
+    "name":    "5x LS350 Aurora",
+    "total":   200,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS350 Aurora #1",
+        "total": 40
+      },
+      "1": {
+        "name": "LS350 Aurora #2",
+        "total": 40
+      },
+      "2": {
+        "name": "LS350 Aurora #3",
+        "total": 40
+      },
+      "3": {
+        "name": "LS350 Aurora #4",
+        "total": 40
+      },
+      "4": {
+        "name": "LS350 Aurora #5",
+        "total": 40
+      }
+    }
+  },
+  {
+    "index":   6,
+    "name":    "1x LS430 Aurora",
+    "total":   49,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS430 Aurora",
+        "total": 49
+      }
+    }
+  },
+  {
+    "index":   7,
+    "name":    "2x LS430 Aurora",
+    "total":   98,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS430 Aurora #1",
+        "total": 49
+      },
+      "1": {
+        "name": "LS430 Aurora #2",
+        "total": 49
+      }
+    }
+  },
+  {
+    "index":   8,
+    "name":    "3x LS430 Aurora",
+    "total":   147,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS430 Aurora #1",
+        "total": 49
+      },
+      "1": {
+        "name": "LS430 Aurora #2",
+        "total": 49
+      },
+      "2": {
+        "name": "LS430 Aurora #3",
+        "total": 49
+      }
+    }
+  },
+  {
+    "index":   9,
+    "name":    "4x LS430 Aurora",
+    "total":   196,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LS430 Aurora #1",
+        "total": 49
+      },
+      "1": {
+        "name": "LS430 Aurora #2",
+        "total": 49
+      },
+      "2": {
+        "name": "LS430 Aurora #3",
+        "total": 49
+      },
+      "3": {
+        "name": "LS430 Aurora #4",
+        "total": 49
+      }
+    }
+  },
+  {
+    "index":   10,
+    "name":    "iCUE LINK 5000T RGB",
+    "total":   204,
+    "command": 28,
+    "devices": {
+      "0": {
+        "name": "Top Left Strip",
+        "total": 32
+      },
+      "1": {
+        "name": "Front Left Strip",
+        "total": 38
+      },
+      "2": {
+        "name": "Bottom Left Strip",
+        "total": 32
+      },
+      "3": {
+        "name": "Bottom Right Strip",
+        "total": 32
+      },
+      "4": {
+        "name": "Front Right Strip",
+        "total": 38
+      },
+      "5": {
+        "name": "Top Right Strip",
+        "total": 32
+      }
+    }
+  },
+  {
+    "index":   11,
+    "name":    "1x QX Series Fans",
+    "total":   34,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 34
+      }
+    }
+  },
+  {
+    "index":   12,
+    "name":    "2x QX Series Fans",
+    "total":   68,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 34
+      },
+      "1": {
+        "name": "QX Series Fan #2",
+        "total": 34
+      }
+    }
+  },
+  {
+    "index":   13,
+    "name":    "3x QX Series Fans",
+    "total":   102,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 34
+      },
+      "1": {
+        "name": "QX Series Fan #2",
+        "total": 34
+      },
+      "2": {
+        "name": "QX Series Fan #3",
+        "total": 34
+      }
+    }
+  },
+  {
+    "index":   14,
+    "name":    "4x QX Series Fans",
+    "total":   136,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 34
+      },
+      "1": {
+        "name": "QX Series Fan #2",
+        "total": 34
+      },
+      "2": {
+        "name": "QX Series Fan #3",
+        "total": 34
+      },
+      "3": {
+        "name": "QX Series Fan #4",
+        "total": 34
+      }
+    }
+  },
+  {
+    "index":   15,
+    "name":    "5x QX Series Fans",
+    "total":   170,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 34
+      },
+      "1": {
+        "name": "QX Series Fan #2",
+        "total": 34
+      },
+      "2": {
+        "name": "QX Series Fan #3",
+        "total": 34
+      },
+      "3": {
+        "name": "QX Series Fan #4",
+        "total": 34
+      },
+      "4": {
+        "name": "QX Series Fan #5",
+        "total": 34
+      }
+    }
+  },
+  {
+    "index":   16,
+    "name":    "6x QX Series Fans",
+    "total":   204,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 34
+      },
+      "1": {
+        "name": "QX Series Fan #2",
+        "total": 34
+      },
+      "2": {
+        "name": "QX Series Fan #3",
+        "total": 34
+      },
+      "3": {
+        "name": "QX Series Fan #4",
+        "total": 34
+      },
+      "4": {
+        "name": "QX Series Fan #5",
+        "total": 34
+      },
+      "5": {
+        "name": "QX Series Fan #6",
+        "total": 34
+      }
+    }
+  },
+  {
+    "index":   17,
+    "name":    "1x LL Series Fans",
+    "total":   16,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "QX Series Fan #1",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   18,
+    "name":    "2x LL Series Fans",
+    "total":   32,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LL Series Fan #1",
+        "total": 16
+      },
+      "1": {
+        "name": "LL Series Fan #2",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   19,
+    "name":    "3x LL Series Fans",
+    "total":   48,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LL Series Fan #1",
+        "total": 16
+      },
+      "1": {
+        "name": "LL Series Fan #2",
+        "total": 16
+      },
+      "2": {
+        "name": "LL Series Fan #3",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   20,
+    "name":    "4x LL Series Fans",
+    "total":   64,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LL Series Fan #1",
+        "total": 16
+      },
+      "1": {
+        "name": "LL Series Fan #2",
+        "total": 16
+      },
+      "2": {
+        "name": "LL Series Fan #3",
+        "total": 16
+      },
+      "3": {
+        "name": "LL Series Fan #4",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   21,
+    "name":    "5x LL Series Fans",
+    "total":   80,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LL Series Fan #1",
+        "total": 16
+      },
+      "1": {
+        "name": "LL Series Fan #2",
+        "total": 16
+      },
+      "2": {
+        "name": "LL Series Fan #3",
+        "total": 16
+      },
+      "3": {
+        "name": "LL Series Fan #4",
+        "total": 16
+      },
+      "4": {
+        "name": "LL Series Fan #5",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   22,
+    "name":    "6x LL Series Fans",
+    "total":   96,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LL Series Fan #1",
+        "total": 16
+      },
+      "1": {
+        "name": "LL Series Fan #2",
+        "total": 16
+      },
+      "2": {
+        "name": "LL Series Fan #3",
+        "total": 16
+      },
+      "3": {
+        "name": "LL Series Fan #4",
+        "total": 16
+      },
+      "4": {
+        "name": "LL Series Fan #5",
+        "total": 16
+      },
+      "5": {
+        "name": "LL Series Fan #6",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   23,
+    "name":    "1x RGB LED Strip",
+    "total":   10,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "RGB LED Strip #1",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   24,
+    "name":    "2x RGB LED Strip",
+    "total":   20,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "RGB LED Strip #1",
+        "total": 10
+      },
+      "1": {
+        "name": "RGB LED Strip #2",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   25,
+    "name":    "3x RGB LED Strip",
+    "total":   30,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "RGB LED Strip #1",
+        "total": 10
+      },
+      "1": {
+        "name": "RGB LED Strip #2",
+        "total": 10
+      },
+      "2": {
+        "name": "RGB LED Strip #3",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   26,
+    "name":    "4x RGB LED Strip",
+    "total":   40,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "RGB LED Strip #1",
+        "total": 10
+      },
+      "1": {
+        "name": "RGB LED Strip #2",
+        "total": 10
+      },
+      "2": {
+        "name": "RGB LED Strip #3",
+        "total": 10
+      },
+      "3": {
+        "name": "RGB LED Strip #4",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   27,
+    "name":    "5x RGB LED Strip",
+    "total":   50,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "RGB LED Strip #1",
+        "total": 10
+      },
+      "1": {
+        "name": "RGB LED Strip #2",
+        "total": 10
+      },
+      "2": {
+        "name": "RGB LED Strip #3",
+        "total": 10
+      },
+      "3": {
+        "name": "RGB LED Strip #4",
+        "total": 10
+      },
+      "4": {
+        "name": "RGB LED Strip #5",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   28,
+    "name":    "6x RGB LED Strip",
+    "total":   60,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "RGB LED Strip #1",
+        "total": 10
+      },
+      "1": {
+        "name": "RGB LED Strip #2",
+        "total": 10
+      },
+      "2": {
+        "name": "RGB LED Strip #3",
+        "total": 10
+      },
+      "3": {
+        "name": "RGB LED Strip #4",
+        "total": 10
+      },
+      "4": {
+        "name": "RGB LED Strip #5",
+        "total": 10
+      },
+      "5": {
+        "name": "RGB LED Strip #6",
+        "total": 10
+      }
+    }
+  },
+  {
+    "index":   29,
+    "name":    "1x 8-LED Series Fans",
+    "total":   8,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "8-LED Series Fan #1",
+        "total": 8
+      }
+    }
+  },
+  {
+    "index":   30,
+    "name":    "2x 8-LED Series Fans",
+    "total":   16,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "8-LED Series Fan #1",
+        "total": 8
+      },
+      "1": {
+        "name": "8-LED Series Fan #2",
+        "total": 8
+      }
+    }
+  },
+  {
+    "index":   31,
+    "name":    "3x 8-LED Series Fans",
+    "total":   24,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "8-LED Series Fan #1",
+        "total": 8
+      },
+      "1": {
+        "name": "8-LED Series Fan #2",
+        "total": 8
+      },
+      "2": {
+        "name": "8-LED Series Fan #3",
+        "total": 8
+      }
+    }
+  },
+  {
+    "index":   32,
+    "name":    "4x 8-LED Series Fans",
+    "total":   32,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "8-LED Series Fan #1",
+        "total": 8
+      },
+      "1": {
+        "name": "8-LED Series Fan #2",
+        "total": 8
+      },
+      "2": {
+        "name": "8-LED Series Fan #3",
+        "total": 8
+      },
+      "3": {
+        "name": "8-LED Series Fan #4",
+        "total": 8
+      }
+    }
+  },
+  {
+    "index":   33,
+    "name":    "5x 8-LED Series Fans",
+    "total":   40,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "8-LED Series Fan #1",
+        "total": 8
+      },
+      "1": {
+        "name": "8-LED Series Fan #2",
+        "total": 8
+      },
+      "2": {
+        "name": "8-LED Series Fan #3",
+        "total": 8
+      },
+      "3": {
+        "name": "8-LED Series Fan #4",
+        "total": 8
+      },
+      "4": {
+        "name": "8-LED Series Fan #5",
+        "total": 8
+      }
+    }
+  },
+  {
+    "index":   34,
+    "name":    "6x 8-LED Series Fans",
+    "total":   48,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "8-LED Series Fan #1",
+        "total": 8
+      },
+      "1": {
+        "name": "8-LED Series Fan #2",
+        "total": 8
+      },
+      "2": {
+        "name": "8-LED Series Fan #3",
+        "total": 8
+      },
+      "3": {
+        "name": "8-LED Series Fan #4",
+        "total": 8
+      },
+      "4": {
+        "name": "8-LED Series Fan #5",
+        "total": 8
+      },
+      "5": {
+        "name": "8-LED Series Fan #6",
+        "total": 8
+      }
+    }
+  },
+  {
+    "index":   35,
+    "name":    "iCUE LINK 9000D RGB AIRFLOW",
+    "total":   22,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "Logo",
+        "total": 4
+      },
+      "1": {
+        "name": "I/O Panel",
+        "total": 18
+      }
+    }
+  }
+]

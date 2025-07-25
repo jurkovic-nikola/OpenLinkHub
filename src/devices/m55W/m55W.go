@@ -95,6 +95,7 @@ type Device struct {
 	KeyAssignmentData     *inputmanager.KeyAssignment
 	ModifierIndex         byte
 	SniperMode            bool
+	MacroTracker          map[int]uint16
 }
 
 var (
@@ -169,6 +170,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/m55.json",
+		MacroTracker:      make(map[int]uint16),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -1123,6 +1125,48 @@ func (d *Device) setupKeyAssignment() {
 	d.writeKeyAssignmentData(buf)
 }
 
+// addToMacroTracker adds or updates an entry in MacroTracker
+func (d *Device) addToMacroTracker(key int, value uint16) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.MacroTracker == nil {
+		d.MacroTracker = make(map[int]uint16)
+	}
+	d.MacroTracker[key] = value
+}
+
+// deleteFromMacroTracker deletes an entry from MacroTracker
+func (d *Device) deleteFromMacroTracker(key int) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
+		return
+	}
+	delete(d.MacroTracker, key)
+}
+
+// releaseMacroTracker will release current MacroTracker
+func (d *Device) releaseMacroTracker() {
+	d.mutex.Lock()
+	if d.MacroTracker == nil {
+		d.mutex.Unlock()
+		return
+	}
+	keys := make([]int, 0, len(d.MacroTracker))
+	for key := range d.MacroTracker {
+		keys = append(keys, key)
+	}
+	sort.Ints(keys)
+	d.mutex.Unlock()
+
+	for _, key := range keys {
+		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
+		d.deleteFromMacroTracker(key)
+	}
+}
+
 // TriggerKeyAssignment will trigger key assignment if defined
 func (d *Device) TriggerKeyAssignment(value byte) {
 	var bitDiff = value ^ d.ModifierIndex
@@ -1144,6 +1188,11 @@ func (d *Device) TriggerKeyAssignment(value byte) {
 		}
 
 		if isReleased {
+			// Check if we have any queue in macro tracker. If yes, release those keys
+			if len(d.MacroTracker) > 0 {
+				d.releaseMacroTracker()
+			}
+
 			if val.Default || !val.ActionHold {
 				continue
 			}
@@ -1194,11 +1243,16 @@ func (d *Device) TriggerKeyAssignment(value byte) {
 					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
 					return
 				}
-				for i := range len(macroProfile.Actions) {
+				for i := 0; i < len(macroProfile.Actions); i++ {
 					if v, valid := macroProfile.Actions[i]; valid {
+						// Add to macro tracker for easier release
+						if v.ActionHold {
+							d.addToMacroTracker(i, v.ActionCommand)
+						}
+
 						switch v.ActionType {
 						case 1, 3:
-							inputmanager.InputControlKeyboard(v.ActionCommand, false)
+							inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
 						case 9:
 							inputmanager.InputControlMouse(v.ActionCommand)
 						case 5:

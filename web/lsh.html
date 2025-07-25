@@ -17,6 +17,7 @@
         {{ $lcdModes := .Device.LCDModes }}
         {{ $positions := .Device.DeviceProfile.DevicePosition }}
         {{ $rgbStrips := .Device.RGBStrips }}
+        {{ $linkAdapters := .Device.LinkAdapter }}
         {{ $lcdRotations := .Device.LCDRotations }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
@@ -227,7 +228,11 @@
                                                 {{ end }}
 
                                                 {{ if $device.HasSpeed }}
+                                                {{ if gt $device.Temperature 0.00 }}
                                                 <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
+                                                {{ else }}
+                                                <div class="d-flex align-items-end justify-content-between mb-2">
+                                                {{ end }}
                                                     <div class="me-2">
                                                         <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
                                                     </div>
@@ -290,7 +295,11 @@
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                                     <li>
+                                                        {{ if $device.IsLinkAdapter }}
+                                                        <select class="form-select linkAdapterRgbProfileBulk" name="{{ $device.DeviceId }}">
+                                                        {{ else }}
                                                         <select class="form-select rgbProfile" name="{{ $device.DeviceId }}">
+                                                        {{ end }}
                                                             {{ range $key, $_ := $rgb }}
                                                             {{ if eq $key "stand" }}
                                                             {{ continue }}
@@ -314,6 +323,11 @@
                                                         </select>
                                                     </li>
                                                 </ul>
+                                                {{ if not $device.IsLinkAdapter }}
+                                                <button title="RGB Override" class="btn btn-secondary-empty rgbOverride" data-info="{{ $device.ChannelId }}" type="button" style="margin-left: 5px;">
+                                                    <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                </button>
+                                                {{ end }}
                                                 {{ end }}
 
 
@@ -423,12 +437,12 @@
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                                     <li>
-                                                        <select class="form-select rgbStrips" name="{{ $device.DeviceId }}">
-                                                            {{ range $key, $value := $rgbStrips }}
-                                                            {{ if eq $key $device.ExternalAdapter }}
-                                                            <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $value }}</option>
+                                                        <select class="form-select linkAdapterChange" name="{{ $device.DeviceId }}">
+                                                            {{ range $key, $value := $linkAdapters }}
+                                                            {{ if eq $value.Index $device.ExternalAdapter }}
+                                                            <option value="{{ $device.ChannelId }};{{ $value.Index }}" selected>{{ $value.Name }}</option>
                                                             {{ else }}
-                                                            <option value="{{ $device.ChannelId }};{{ $key }}">{{ $value }}</option>
+                                                            <option value="{{ $device.ChannelId }};{{ $value.Index }}">{{ $value.Name }}</option>
                                                             {{ end }}
                                                             {{ end }}
                                                         </select>
@@ -437,6 +451,54 @@
                                                 {{ end }}
                                             </div>
                                         </div>
+                                        {{ if and $device.IsLinkAdapter (gt $device.LedChannels 0) }}
+                                        {{ range $subDeviceId, $subDevice := $device.SubDevices }}
+                                        <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                            <div class="input-group link-adapter-devices">
+                                                <div style="float: left;">
+                                                    {{ $subDevice.Name }}
+                                                </div>
+                                                <div style="float: right;">
+                                                    <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
+                                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                                        <li>
+                                                            <select class="form-select linkAdapterRgbProfile" name="{{ $device.DeviceId }}">
+                                                                {{ range $key, $_ := $rgb }}
+                                                                {{ if eq $key "stand" }}
+                                                                {{ continue }}
+                                                                {{ else if eq $key "keyboard" }}
+                                                                {{ continue }}
+                                                                {{ else if eq $key "mousepad" }}
+                                                                {{ continue }}
+                                                                {{ else if eq $key "mouse" }}
+                                                                {{ continue }}
+                                                                {{ else if eq $key "headset" }}
+                                                                {{ continue }}
+                                                                {{ else if eq $key "custom" }}
+                                                                {{ continue }}
+                                                                {{ end }}
+
+                                                                {{ $adapterRgbProfileDevice := index $deviceProfile.SubDeviceRGBProfiles $device.ChannelId }}
+                                                                {{ $adapterRgbProfile := index $adapterRgbProfileDevice $subDeviceId }}
+                                                                {{ if eq $key $adapterRgbProfile }}
+                                                                <option value="{{ $device.ChannelId }};{{ $subDeviceId }};{{ $key }}" selected>{{ $key }}</option>
+                                                                {{ else }}
+                                                                <option value="{{ $device.ChannelId }};{{ $subDeviceId }};{{ $key }}">{{ $key }}</option>
+                                                                {{ end }}
+                                                                {{ end }}
+                                                            </select>
+                                                        </li>
+                                                    </ul>
+                                                    <button title="RGB Override" class="btn btn-secondary-empty rgbOverrideLinkAdapter" data-info="{{ $device.ChannelId }};{{ $subDeviceId }}" type="button" style="margin-left: 5px;">
+                                                        <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {{ end }}
+                                        {{ end }}
                                     </div>
                                 </div>
                                 {{ end }}

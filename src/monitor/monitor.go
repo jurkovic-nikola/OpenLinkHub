@@ -22,6 +22,9 @@ const (
 // exclude list of device that are not supported via USB mode
 var exclude = []uint16{10752, 2666, 2710, 2659}
 
+// longSleep list of devices that require 5+ seconds to finish booting up
+var longSleep = []uint16{7165}
+
 type USBInfo struct {
 	VendorID  uint16
 	ProductID uint16
@@ -160,6 +163,9 @@ func Init() {
 						}
 
 						time.Sleep(5000 * time.Millisecond)
+						if slices.Contains(longSleep, pid) {
+							time.Sleep(2000 * time.Millisecond)
+						}
 						logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
 						devices.InitManual(pid)
 					}

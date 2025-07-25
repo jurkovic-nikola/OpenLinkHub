@@ -26,6 +26,7 @@ import (
 	_ "golang.org/x/image/webp"
 	"image"
 	"image/color"
+	"image/gif"
 	"image/jpeg"
 	"math"
 	"os"
@@ -959,33 +960,31 @@ func loadImage(imagePath string, format uint8) {
 			}
 		}
 		break
-		/*
-			case ImageFormatGif: // Gif
-				{
-					var src *gif.GIF
-					src, err = gif.DecodeAll(file)
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Error decoding gif animation")
-						return
-					}
-					imageBuffer = make([]Frames, len(src.Image))
+	case ImageFormatGif: // Gif
+		{
+			var src *gif.GIF
+			src, err = gif.DecodeAll(file)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Error decoding gif animation")
+				return
+			}
+			imageBuffer = make([]Frames, len(src.Image))
 
-					for i, frame := range src.Image {
-						var buffer bytes.Buffer
-						resized := common.ResizeImage(frame, imgWidth, imgHeight)
-						err = jpeg.Encode(&buffer, resized, nil)
-						if err != nil {
-							logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
-							continue
-						}
-						imageBuffer[i] = Frames{
-							Buffer: buffer.Bytes(),
-							Delay:  float64(src.Delay[i]) * 10, // Multiply by 10 to get frame delay in milliseconds
-						}
-					}
+			for i, frame := range src.Image {
+				var buffer bytes.Buffer
+				resized := common.ResizeImage(frame, imgWidth, imgHeight)
+				err = jpeg.Encode(&buffer, resized, nil)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
+					continue
 				}
-				break
-		*/
+				imageBuffer[i] = Frames{
+					Buffer: buffer.Bytes(),
+					Delay:  float64(src.Delay[i]) * 10, // Multiply by 10 to get frame delay in milliseconds
+				}
+			}
+		}
+		break
 	}
 
 	imageList := &ImageData{
@@ -1068,6 +1067,7 @@ func loadLcdDevices() {
 	}
 
 	for serial, productId := range lcdDevices {
+		logger.Log(logger.Fields{"serial": serial, "vendorId": vendorId, "productId": productId}).Info("Processing LCD device")
 		lcdPanel, e := hid.Open(vendorId, productId, serial)
 		if e != nil {
 			logger.Log(logger.Fields{"error": e, "vendorId": vendorId, "productId": productId}).Error("Unable to open LCD HID device")

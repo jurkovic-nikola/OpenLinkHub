@@ -1053,7 +1053,7 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		}
 
-		if d.DeviceProfile.LCDImages == nil {
+		if d.DeviceProfile.LCDImages == nil || len(d.DeviceProfile.LCDImages) == 0 {
 			for _, device := range d.Devices {
 				if device.ContainsPump || device.AIO {
 					lcdImages[device.ChannelId] = ""
@@ -1064,7 +1064,7 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.LCDImages = d.DeviceProfile.LCDImages
 		}
 
-		if d.DeviceProfile.LCDModes == nil {
+		if d.DeviceProfile.LCDModes == nil || len(d.DeviceProfile.LCDModes) == 0 {
 			for _, device := range d.Devices {
 				if device.ContainsPump || device.AIO {
 					lcdModes[device.ChannelId] = d.DeviceProfile.LCDMode
@@ -1075,7 +1075,7 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.LCDModes = d.DeviceProfile.LCDModes
 		}
 
-		if d.DeviceProfile.LCDRotations == nil {
+		if d.DeviceProfile.LCDRotations == nil || len(d.DeviceProfile.LCDRotations) == 0 {
 			for _, device := range d.Devices {
 				if device.ContainsPump || device.AIO {
 					lcdRotations[device.ChannelId] = d.DeviceProfile.LCDRotation
@@ -1086,7 +1086,7 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.LCDRotations = d.DeviceProfile.LCDRotations
 		}
 
-		if d.DeviceProfile.LCDDevices == nil {
+		if d.DeviceProfile.LCDDevices == nil || len(d.DeviceProfile.LCDDevices) == 0 {
 			for _, device := range d.Devices {
 				if device.ContainsPump || device.AIO {
 					lcdDevices[device.ChannelId] = device.LCDSerial

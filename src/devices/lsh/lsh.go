@@ -238,34 +238,7 @@ var (
 	zeroRpmLimit                = 40
 	i2cPrefix                   = "i2c"
 	rgbProfileUpgrade           = []string{"custom"}
-	supportedDevices            = []SupportedDevice{
-		{DeviceId: 1, Model: 0, Name: "iCUE LINK QX RGB", LedChannels: 34, ContainsPump: false, Desc: "Fan", TemperatureProbe: true, HasSpeed: true},
-		{DeviceId: 2, Model: 0, Name: "iCUE LINK LX RGB", LedChannels: 18, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 3, Model: 0, Name: "iCUE LINK RX RGB MAX", LedChannels: 8, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 19, Model: 0, Name: "iCUE LINK RX", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 15, Model: 0, Name: "iCUE LINK RX RGB", LedChannels: 8, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 4, Model: 0, Name: "iCUE LINK RX MAX", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 7, Model: 2, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 7, Model: 5, Name: "iCUE LINK H150i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 7, Model: 1, Name: "iCUE LINK H115i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 7, Model: 3, Name: "iCUE LINK H170i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 7, Model: 0, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 7, Model: 4, Name: "iCUE LINK H100i", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 9, Model: 0, Name: "iCUE LINK XC7 ELITE", LedChannels: 24, ContainsPump: false, Desc: "CPU Block", TemperatureProbe: true},
-		{DeviceId: 9, Model: 1, Name: "iCUE LINK XC7 Elite", LedChannels: 24, ContainsPump: false, Desc: "CPU Block", TemperatureProbe: true},
-		{DeviceId: 10, Model: 0, Name: "iCUE LINK XG3 HYBRID", LedChannels: 22, ContainsPump: false, Desc: "GPU Block", HasSpeed: true},
-		{DeviceId: 13, Model: 0, Name: "iCUE LINK XG7 RGB", LedChannels: 16, ContainsPump: false, Desc: "GPU Hybrid Block"},
-		{DeviceId: 12, Model: 0, Name: "iCUE LINK XD5 ELITE", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
-		{DeviceId: 25, Model: 0, Name: "iCUE LINK XD6 ELITE", LedChannels: 22, ContainsPump: true, Desc: "Pump/Res", HasSpeed: true},
-		{DeviceId: 16, Model: 0, Name: "VRM Cooler Module", LedChannels: 0, ContainsPump: false, Desc: "Fan", HasSpeed: true},
-		{DeviceId: 17, Model: 0, Name: "iCUE LINK TITAN 240", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 17, Model: 4, Name: "iCUE LINK TITAN 240", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 17, Model: 2, Name: "iCUE LINK TITAN 360", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 17, Model: 5, Name: "iCUE LINK TITAN 360", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 17, Model: 1, Name: "iCUE LINK TITAN 280", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 17, Model: 3, Name: "iCUE LINK TITAN 420", LedChannels: 20, ContainsPump: true, Desc: "AIO", AIO: true, HasSpeed: true},
-		{DeviceId: 5, Model: 0, Name: "iCUE LINK ADAPTER", LedChannels: 0, ContainsPump: false, Desc: "Adapter", LinkAdapter: true},
-	}
+	supportedDevices            = make([]SupportedDevice, 0)
 )
 
 // Init will initialize a new device
@@ -336,6 +309,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
+	d.loadDeviceMetadata()  // Device metadata
 	d.loadExternalDevices() // External metadata
 	d.loadRgb()             // Load RGB
 	d.loadDeviceProfiles()  // Load all device profiles
@@ -587,6 +561,28 @@ func (d *Device) StopDirty() uint8 {
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+// loadDeviceMetadata will load device meta data
+func (d *Device) loadDeviceMetadata() {
+	deviceMetadata := pwd + "/database/external/lsh.json"
+	if common.FileExists(deviceMetadata) {
+		file, err := os.Open(deviceMetadata)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
+			return
+		}
+		if err = json.NewDecoder(file).Decode(&supportedDevices); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to decode devices metadata")
+			return
+		}
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": deviceMetadata, "serial": d.Serial}).Warn("Failed to close devices metadata")
+		}
+	} else {
+		logger.Log(logger.Fields{"serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
+	}
 }
 
 // loadExternalDevices will load external device definitions

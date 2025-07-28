@@ -186,6 +186,7 @@ type Device struct {
 	LedDeviceTypes      []byte
 	LedDeviceTypeLength byte
 	LedDeviceTypeLed    []byte
+	supportedDevices    []SupportedDevice
 }
 
 var (
@@ -238,7 +239,6 @@ var (
 	zeroRpmLimit                = 40
 	i2cPrefix                   = "i2c"
 	rgbProfileUpgrade           = []string{"custom"}
-	supportedDevices            = make([]SupportedDevice, 0)
 )
 
 // Init will initialize a new device
@@ -302,6 +302,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		timerSpeed:       &time.Ticker{},
 		lcdTimer:         &time.Ticker{},
 		lcdDevices:       make(map[string]*LCD, lcd.GetLcdAmount()),
+		supportedDevices: make([]SupportedDevice, 0),
 	}
 
 	// Bootstrap
@@ -560,7 +561,7 @@ func (d *Device) StopDirty() uint8 {
 		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // loadDeviceMetadata will load device meta data
@@ -572,7 +573,7 @@ func (d *Device) loadDeviceMetadata() {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
 			return
 		}
-		if err = json.NewDecoder(file).Decode(&supportedDevices); err != nil {
+		if err = json.NewDecoder(file).Decode(&d.supportedDevices); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to decode devices metadata")
 			return
 		}
@@ -2705,7 +2706,7 @@ func (d *Device) protectLiquidCooler() {
 
 // getSupportedDevice will return supported device or nil pointer
 func (d *Device) getSupportedDevice(deviceId byte, deviceModel byte) *SupportedDevice {
-	for _, device := range supportedDevices {
+	for _, device := range d.supportedDevices {
 		if device.DeviceId == deviceId && device.Model == deviceModel {
 			return &device
 		}

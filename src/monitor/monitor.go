@@ -167,7 +167,7 @@ func Init() {
 							time.Sleep(2000 * time.Millisecond)
 						}
 						logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
-						devices.InitManual(pid)
+						devices.InitManual(pid, serial)
 					}
 				}
 				break

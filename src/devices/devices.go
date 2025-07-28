@@ -1651,7 +1651,7 @@ func GetDevice(deviceId string) interface{} {
 }
 
 // InitManual will initialize device manually when plugged in
-func InitManual(productId uint16) {
+func InitManual(productId uint16, serial string) {
 	var product = ProductEX{
 		ProductId: 0,
 		Path:      "",
@@ -1706,7 +1706,9 @@ func InitManual(productId uint16) {
 					Serial:    info.Path,
 				}
 			} else {
-				serial := info.SerialNbr
+				if len(serial) == 0 {
+					serial = info.SerialNbr
+				}
 				if len(serial) == 0 {
 					// Devices with no serial, make serial based of productId
 					serial = strconv.Itoa(int(info.ProductID))

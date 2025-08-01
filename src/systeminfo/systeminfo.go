@@ -17,6 +17,20 @@ import (
 	"strings"
 )
 
+type AmdGfxActivity struct {
+	Value float64 `json:"value"`
+	Unit  string  `json:"unit"`
+}
+
+type AmdGpuUsage struct {
+	GfxActivity AmdGfxActivity `json:"gfx_activity"`
+}
+
+type AmdGPUInfo struct {
+	GPU   int         `json:"gpu"`
+	Usage AmdGpuUsage `json:"usage"`
+}
+
 type CpuData struct {
 	Model   string
 	Cores   int
@@ -420,19 +434,16 @@ func getAMDUtilization() float64 {
 		return 0
 	}
 
-	var result []map[string]interface{}
-	err = json.Unmarshal(jsonOutput, &result)
+	var gpus []AmdGPUInfo
+	err = json.Unmarshal(jsonOutput, &gpus)
 	if err != nil {
 		fmt.Println(err)
 		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
 		return 0
 	}
 
-	if len(result) > 0 {
-		usage := result[0]["usage"].(map[string]interface{})
-		gfxActivity := usage["gfx_activity"].(map[string]interface{})
-		value := gfxActivity["value"].(float64) // JSON numbers are parsed as float64
-		return value
+	if len(gpus) > 0 {
+		return gpus[0].Usage.GfxActivity.Value
 	}
 	return 0
 }

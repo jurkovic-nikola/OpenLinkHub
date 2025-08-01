@@ -58,6 +58,7 @@ type Payload struct {
 	HwmonDevice           string                `json:"hwmonDevice"`
 	TemperatureInputId    string                `json:"temperatureInputId"`
 	ExternalExecutable    string                `json:"externalExecutable"`
+	GpuIndex              uint8                 `json:"gpuIndex"`
 	Enabled               bool                  `json:"enabled"`
 	DeviceType            int                   `json:"deviceType"`
 	KeyOption             int                   `json:"keyOption"`
@@ -298,7 +299,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 7 || sensor < 0 {
+	if sensor > 8 || sensor < 0 {
 		return &Payload{
 			Message: language.GetValue("txtInvalidSensorValue"),
 			Code:    http.StatusOK,
@@ -391,7 +392,16 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		deviceId = req.ExternalExecutable
 	}
 
-	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId, hwmonId, temperatureInputId) {
+	gpuIndex := req.GpuIndex
+	if gpuIndex < 0 || gpuIndex > 5 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidGpuIndex"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId, hwmonId, temperatureInputId, gpuIndex) {
 		return &Payload{
 			Message: language.GetValue("txtSpeedProfileSaved"),
 			Code:    http.StatusOK,

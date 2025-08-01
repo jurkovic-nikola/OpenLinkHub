@@ -938,7 +938,7 @@ func (d *Device) saveDeviceProfile() {
 	// Create profile filename
 	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 
@@ -1670,7 +1670,7 @@ func (d *Device) updateDeviceSpeed() {
 					switch profiles.Sensor {
 					case temperatures.SensorTypeGPU:
 						{
-							temp = temperatures.GetNVIDIAGpuTemperature()
+							temp = temperatures.GetNVIDIAGpuTemperature(0)
 							if temp == 0 {
 								temp = temperatures.GetAMDGpuTemperature()
 								if temp == 0 {
@@ -1696,7 +1696,7 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeCpuGpu:
 						{
 							cpuTemp := temperatures.GetCpuTemperature()
-							gpuTemp := temperatures.GetNVIDIAGpuTemperature()
+							gpuTemp := temperatures.GetNVIDIAGpuTemperature(0)
 							if gpuTemp == 0 {
 								gpuTemp = temperatures.GetAMDGpuTemperature()
 							}
@@ -1723,6 +1723,13 @@ func (d *Device) updateDeviceSpeed() {
 							temp = temperatures.GetExternalBinaryTemperature(profiles.Device)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "binary": profiles.Device}).Warn("Unable to get temperature from binary.")
+							}
+						}
+					case temperatures.SensorTypeMultiGPU:
+						{
+							temp = temperatures.GetGpuTemperatureIndex(int(profiles.GPUIndex))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
 						}
 					}

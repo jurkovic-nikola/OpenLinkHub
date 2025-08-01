@@ -196,6 +196,8 @@ const (
 	KeyF24                  uint16 = 123
 	KeyScreenBrightnessDown uint16 = 124
 	KeyScreenBrightnessUp   uint16 = 125
+	KeyPrtSc                uint16 = 126
+	KeyPause                uint16 = 127
 )
 
 var (
@@ -326,6 +328,8 @@ var (
 	keyKpEnter              uint16 = 0x60
 	keyScreenBrightnessDown uint16 = 0xE0
 	keyScreenBrightnessUp   uint16 = 0xE1
+	keyPrtSc                uint16 = 0x63
+	keyPause                uint16 = 0x77
 	evRel                   uint16 = 0x02
 	relWheel                uint16 = 0x08
 	inputActions            map[uint16]InputAction
@@ -476,6 +480,8 @@ func buildInputActions() {
 	inputActions[KeyPgDn] = InputAction{Name: "Pg Dn", CommandCode: keyPgDn}
 	inputActions[KeyScreenBrightnessDown] = InputAction{Name: "Screen Brightness (-)", CommandCode: keyScreenBrightnessDown}
 	inputActions[KeyScreenBrightnessUp] = InputAction{Name: "Screen Brightness (+)", CommandCode: keyScreenBrightnessUp}
+	inputActions[KeyPrtSc] = InputAction{Name: "PrtSc", CommandCode: keyPrtSc}
+	inputActions[KeyPause] = InputAction{Name: "Pause", CommandCode: keyPause}
 
 	// Mouse
 	inputActions[BtnLeft] = InputAction{Name: "(Mouse) Left Click", CommandCode: btnLeft, Mouse: true}

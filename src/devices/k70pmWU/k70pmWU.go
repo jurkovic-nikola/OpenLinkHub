@@ -1,7 +1,7 @@
-package k65plusW
+package k70pmWU
 
-// Package: K65 Plus Wireless
-// This is the primary package for K65 Plus Wireless.
+// Package: K70 RGB PRO MINI
+// This is the primary package for K70 RGB PRO MINI
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -32,27 +32,28 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active          bool
-	Path            string
-	Product         string
-	Serial          string
-	LCDMode         uint8
-	LCDRotation     uint8
-	Brightness      uint8
-	RGBProfile      string
-	Label           string
-	Layout          string
-	Keyboards       map[string]*keyboards.Keyboard
-	Profile         string
-	Profiles        []string
-	ControlDial     int
-	BrightnessLevel uint16
-	SleepMode       int
-	DisableAltTab   bool
-	DisableAltF4    bool
-	DisableShiftTab bool
-	DisableWinKey   bool
-	Performance     bool
+	Active             bool
+	Path               string
+	Product            string
+	Serial             string
+	LCDMode            uint8
+	LCDRotation        uint8
+	Brightness         uint8
+	RGBProfile         string
+	BrightnessSlider   *uint8
+	SleepMode          int
+	OriginalBrightness uint8
+	Label              string
+	Layout             string
+	Keyboards          map[string]*keyboards.Keyboard
+	Profile            string
+	PollingRate        int
+	Profiles           []string
+	DisableAltTab      bool
+	DisableAltF4       bool
+	DisableShiftTab    bool
+	DisableWinKey      bool
+	Performance        bool
 }
 
 type Device struct {
@@ -63,7 +64,6 @@ type Device struct {
 	Product                string `json:"product"`
 	Serial                 string `json:"serial"`
 	Firmware               string `json:"firmware"`
-	DongleFirmware         string `json:"dongleFirmware"`
 	activeRgb              *rgb.ActiveRGB
 	UserProfiles           map[string]*DeviceProfile `json:"userProfiles"`
 	Devices                map[int]string            `json:"devices"`
@@ -71,24 +71,21 @@ type Device struct {
 	OriginalProfile        *DeviceProfile
 	Template               string
 	VendorId               uint16
+	ProductId              uint16
 	Brightness             map[int]string
+	PollingRates           map[int]string
 	LEDChannels            int
 	CpuTemp                float32
 	GpuTemp                float32
 	Layouts                []string
-	ProductId              uint16
-	ControlDialOptions     map[int]string
-	RGBModes               map[string]string
-	SleepModes             map[int]string
 	Rgb                    *rgb.RGB
 	rgbMutex               sync.RWMutex
-	Exit                   bool
 	timer                  *time.Ticker
 	timerKeepAlive         *time.Ticker
 	autoRefreshChan        chan struct{}
 	keepAliveChan          chan struct{}
 	mutex                  sync.Mutex
-	Connected              bool
+	Exit                   bool
 	UIKeyboard             string
 	UIKeyboardRow          string
 	BatteryLevel           uint16
@@ -99,58 +96,38 @@ type Device struct {
 	KeyboardKey            *keyboards.Key
 	PressLoop              bool
 	MacroTracker           map[int]uint16
+	Connected              bool
+	deviceLock             sync.Mutex
 }
 
 var (
-	pwd                     = ""
-	cmdSoftwareMode         = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode         = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdActivateLed          = []byte{0x0d, 0x01, 0x60, 0x6d}
-	cmdBrightness           = []byte{0x01, 0x02, 0x00}
-	cmdGetFirmware          = []byte{0x02, 0x13}
-	dataTypeSetColor        = []byte{0x7e, 0x20, 0x01}
-	dataTypeSubColor        = []byte{0x07, 0x01}
-	cmdWriteColor           = []byte{0x06, 0x01}
-	cmdSleep                = []byte{0x01, 0x0e, 0x00}
-	cmdKeepAlive            = []byte{0x12}
-	cmdGetDevices           = []byte{0x0d, 0x00, 0x24}
-	cmdRead                 = []byte{0x08, 0x00}
-	dataTypeGetData         = []byte{0x09, 0x00}
-	cmdCloseDingleEndpoint  = []byte{0x05, 0x01}
-	cmdBatteryLevel         = []byte{0x02, 0x0f}
-	cmdPerformance          = []byte{0x01, 0x4a, 0x00}
-	cmdWritePerformance     = []byte{0x01}
-	cmdOpenEndpoint         = []byte{0x0d, 0x01, 0x02}
-	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x01}
-	cmdKeyAssignment        = []byte{0x06, 0x01}
-	cmdKeyAssignmentNext    = []byte{0x07, 0x01}
-	cmdDongle               = 0x08
-	cmdKeyboard             = 0x09
-	deviceRefreshInterval   = 1000
-	deviceKeepAlive         = 20000
-	transferTimeout         = 500
-	bufferSize              = 64
-	bufferSizeWrite         = bufferSize + 1
-	headerSize              = 2
-	headerWriteSize         = 4
-	maxBufferSizePerRequest = 61
-	keyboardKey             = "k65plus-default"
-	defaultLayout           = "k65plus-default-US"
-	KeyAssignment           = 123
-	maxKeyAssignmentLen     = 61
-	rgbModes                = []string{
-		"watercolor",
-		"rainbowwave",
-		"colorwave",
-		"colorshift",
-		"colorpulse",
-		"spiralrainbow",
-		"tlr",
-		"tlk",
-		"rain",
-		"keyboard",
-		"off",
-	}
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdActivateLed        = []byte{0x0d, 0x01, 0x22}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	dataTypeSetColor      = []byte{0x12, 0x00}
+	cmdWriteColor         = []byte{0x06, 0x01}
+	cmdBatteryLevel       = []byte{0x02, 0x0f}
+	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
+	cmdPerformance        = []byte{0x01, 0x4a, 0x00}
+	cmdWritePerformance   = []byte{0x01}
+	cmdOpenEndpoint       = []byte{0x0d, 0x02, 0x02}
+	cmdKeyAssignment      = []byte{0x06, 0x02}
+	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x02}
+	cmdKeepAlive          = []byte{0x12}
+	cmdConnectionMode     = []byte{0x01, 0x3a}
+	cmdBrightness         = []byte{0x01, 0x02, 0x00}
+	deviceRefreshInterval = 1000
+	transferTimeout       = 500
+	bufferSize            = 1024
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	colorPacketLength     = 371
+	keyboardKey           = "k70pm-default"
+	defaultLayout         = "k70pm-default-US"
+	deviceKeepAlive       = 20000
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -166,7 +143,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
-		Template:  "k65plusW.html",
+		Template:  "k70pmWU.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Brightness: map[int]string{
@@ -175,40 +152,23 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     "K65 PLUS",
-		LEDChannels: 123,
-		Layouts:     keyboards.GetLayouts(keyboardKey),
-		ControlDialOptions: map[int]string{
-			1: "Volume Control",
-			2: "Brightness",
-			3: "Scroll",
-			4: "Zoom",
-			5: "Screen Brightness",
-		},
-		RGBModes: map[string]string{
-			"watercolor":    "Watercolor",
-			"colorpulse":    "Color Pulse",
-			"colorshift":    "Color Shift",
-			"colorwave":     "Color Wave",
-			"rain":          "Rain",
-			"rainbowwave":   "Rainbow Wave",
-			"spiralrainbow": "Spiral Rainbow",
-			"tlk":           "Type Lighting - Key",
-			"tlr":           "Type Lighting - Ripple",
-			"keyboard":      "Keyboard",
-			"off":           "Off",
-		},
-		SleepModes: map[int]string{
-			5:  "5 minutes",
-			10: "10 minutes",
-			15: "15 minutes",
-			30: "30 minutes",
-			60: "1 hour",
-		},
+		Product:         "K70 PRO MINI",
+		LEDChannels:     130,
+		Layouts:         keyboards.GetLayouts(keyboardKey),
 		autoRefreshChan: make(chan struct{}),
 		keepAliveChan:   make(chan struct{}),
-		UIKeyboard:      "keyboard-6",
-		UIKeyboardRow:   "keyboard-row-17",
+		UIKeyboard:      "keyboard-7",
+		UIKeyboardRow:   "keyboard-row-18",
+		PollingRates: map[int]string{
+			0: "Not Set",
+			1: "125 Hz / 8 msec",
+			2: "250 Hu / 4 msec",
+			3: "500 Hz / 2 msec",
+			4: "1000 Hz / 1 msec",
+			5: "2000 Hz / 0.5 msec",
+			6: "4000 Hz / 0.25 msec",
+			7: "8000 Hz / 0.125 msec",
+		},
 		KeyAssignmentTypes: map[int]string{
 			0:  "None",
 			1:  "Media Keys",
@@ -221,23 +181,20 @@ func Init(vendorId, productId uint16, key string) *Device {
 
 	d.getDebugMode()       // Debug mode
 	d.getManufacturer()    // Manufacturer
-	d.setSoftwareMode()    // Activate software mode
-	d.getDeviceSerial()    // Serial
+	d.getSerial()          // Serial
 	d.loadRgb()            // Load RGB
-	d.getDeviceFirmware()  // Firmware
-	d.getDongleFirmware()  // Dongle firmware
+	d.setSoftwareMode()    // Activate software mode
 	d.getBatterLevel()     // Battery level
+	d.initLeds()           // Init LED ports
+	d.getDeviceFirmware()  // Firmware
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	d.setAutoRefresh()     // Set auto device refresh
-	d.checkIfAlive()       // Check if alive
 	d.setKeepAlive()       // Keepalive
+	d.setBrightnessLevel() // Brightness
 	d.setDeviceColor()     // Device color
 	d.setupPerformance()   // Performance
-	d.backendListener()    // Backend listener
-	d.setBrightnessLevel() // Brightness
-	d.setSleepTimer()      // Sleep
-	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
+	d.backendListener()    // Control buttons
 	return d
 }
 
@@ -249,6 +206,7 @@ func (d *Device) GetRgbProfiles() interface{} {
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true
+	d.Connected = false
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
@@ -266,23 +224,6 @@ func (d *Device) Stop() {
 		})
 	}()
 
-	d.initLeds()
-	if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-		var buf = make([]byte, 93)
-		buf[2] = 0x01
-		buf[3] = 0xff
-		buf[4] = 0xff
-		buf[5] = 0xff
-		buf[6] = 0xff
-		dataTypeSetColor = []byte{0x22, 0x00, 0x03, 0x04}
-		d.writeColor(buf)
-	}
-
-	_, err := d.transfer(cmdCloseEndpoint, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change color")
-	}
-
 	d.setHardwareMode()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -296,6 +237,7 @@ func (d *Device) Stop() {
 // StopDirty will stop device in a dirty way
 func (d *Device) StopDirty() uint8 {
 	d.Exit = true
+	d.Connected = false
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
@@ -330,13 +272,16 @@ func (d *Device) setupKeyAssignment() {
 		return
 	}
 
-	buf := make([]byte, KeyAssignment)
+	buf := make([]byte, keyboard.KeyAssignmentLength)
 	for i := range buf {
 		buf[i] = 0x01
 	}
 
 	for _, row := range keyboard.Row {
 		for _, key := range row.Keys {
+			if key.KeyData == nil || len(key.KeyData) == 0 {
+				continue
+			}
 			if key.Default {
 				buf[key.KeyData[0]] = byte(key.KeyData[1])
 			} else {
@@ -352,6 +297,9 @@ func (d *Device) setupKeyAssignment() {
 					shift := d.getModifierKeyShift(int(key.ModifierKey))
 					if shift > 0 {
 						buf[key.KeyData[0]] = shift + 2
+						if key.BrightnessKey || key.RgbKey || key.ProfileKey || key.MacroRecordingKey || key.MediaKey || key.IsLock {
+							buf[key.KeyData[0]] = shift
+						}
 					}
 				}
 			}
@@ -492,13 +440,13 @@ func (d *Device) setupPerformance() {
 
 	buf := make([]byte, 1)
 	buf[0] = base
-	_, err := d.transfer(cmdPerformance, buf, byte(cmdKeyboard))
+	_, err := d.transfer(cmdPerformance, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 	}
 	d.setupKeyAssignment()
 
-	control := make(map[int][]byte, 1)
+	control := make(map[int][]byte, 2)
 	if d.DeviceProfile.Performance {
 		control = map[int][]byte{
 			0: {0x45, 0x00, 0x01},
@@ -510,38 +458,48 @@ func (d *Device) setupPerformance() {
 	}
 
 	for i := 0; i < len(control); i++ {
-		_, err := d.transfer(cmdWritePerformance, control[i], byte(cmdKeyboard))
+		_, err := d.transfer(cmdWritePerformance, control[i])
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 		}
 	}
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
 }
 
 // getManufacturer will return device manufacturer
 func (d *Device) getManufacturer() {
 	manufacturer, err := d.dev.GetMfrStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to get manufacturer")
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
 	}
 	d.Manufacturer = manufacturer
 }
 
+// getSerial will return device serial number
+func (d *Device) getSerial() {
+	serial, err := d.dev.GetSerialNbr()
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
+	}
+	d.Serial = serial
+}
+
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil, byte(cmdKeyboard))
+	_, err := d.transfer(cmdHardwareMode, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-	}
-
-	_, err = d.transfer(cmdHardwareMode, nil, byte(cmdDongle))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
 }
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
-	batteryLevel, err := d.transfer(cmdBatteryLevel, nil, byte(cmdKeyboard))
+	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
@@ -551,15 +509,11 @@ func (d *Device) getBatterLevel() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil, byte(cmdDongle))
+	_, err := d.transfer(cmdSoftwareMode, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-		return
-	}
-
-	_, err = d.transfer(cmdSoftwareMode, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
+	} else {
+		d.Connected = true
 	}
 }
 
@@ -568,11 +522,9 @@ func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(
 		cmdGetFirmware,
 		nil,
-		byte(cmdKeyboard),
 	)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
-		return
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
 	}
 
 	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))
@@ -581,28 +533,27 @@ func (d *Device) getDeviceFirmware() {
 
 // initLeds will initialize LED ports
 func (d *Device) initLeds() {
-	_, err := d.transfer(cmdActivateLed, nil, byte(cmdKeyboard))
+	_, err := d.transfer(cmdActivateLed, nil)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-		return
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
+	// We need to wait around 500 ms for physical ports to re-initialize
+	// After that we can grab any new connected / disconnected device values
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
-	_, err = d.transfer([]byte{0x09, 0x01}, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-		return
-	}
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 	keyboardMap := make(map[string]*keyboards.Keyboard)
 
 	deviceProfile := &DeviceProfile{
-		Product: d.Product,
-		Serial:  d.Serial,
-		Path:    profilePath,
+		Product:            d.Product,
+		Serial:             d.Serial,
+		Path:               profilePath,
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
 	}
 
 	// First save, assign saved profile to a device
@@ -616,20 +567,20 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = "default"
 		deviceProfile.Profiles = []string{"default"}
 		deviceProfile.Layout = "US"
-		deviceProfile.ControlDial = 1
-		deviceProfile.BrightnessLevel = 1000
+		deviceProfile.PollingRate = 4
 		deviceProfile.SleepMode = 15
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
 		} else {
 			deviceProfile.Layout = d.DeviceProfile.Layout
-		}
-
-		if d.DeviceProfile.SleepMode == 0 {
-			deviceProfile.SleepMode = 15
-		} else {
-			deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		}
 
 		// Upgrade process
@@ -655,19 +606,20 @@ func (d *Device) saveDeviceProfile() {
 		}
 
 		deviceProfile.Active = d.DeviceProfile.Active
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
-		deviceProfile.ControlDial = d.DeviceProfile.ControlDial
-		deviceProfile.BrightnessLevel = d.DeviceProfile.BrightnessLevel
+		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 		deviceProfile.DisableAltTab = d.DeviceProfile.DisableAltTab
 		deviceProfile.DisableAltF4 = d.DeviceProfile.DisableAltF4
 		deviceProfile.DisableShiftTab = d.DeviceProfile.DisableShiftTab
 		deviceProfile.DisableWinKey = d.DeviceProfile.DisableWinKey
 		deviceProfile.Performance = d.DeviceProfile.Performance
+		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -689,7 +641,7 @@ func (d *Device) saveDeviceProfile() {
 	// Create profile filename
 	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 
@@ -703,8 +655,7 @@ func (d *Device) saveDeviceProfile() {
 	// Close file
 	err = file.Close()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to close file handle")
-		return
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
 	}
 
 	d.loadDeviceProfiles() // Reload
@@ -717,8 +668,7 @@ func (d *Device) loadDeviceProfiles() {
 
 	files, err := os.ReadDir(userProfileDirectory)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": userProfileDirectory, "serial": d.Serial}).Error("Unable to read content of a folder")
-		return
+		logger.Log(logger.Fields{"error": err, "location": userProfileDirectory, "serial": d.Serial}).Fatal("Unable to read content of a folder")
 	}
 
 	for _, fi := range files {
@@ -787,8 +737,24 @@ func (d *Device) getDeviceProfile() {
 		for _, pf := range d.UserProfiles {
 			if pf.Active {
 				d.DeviceProfile = pf
+				if d.DeviceProfile.Keyboards["default"] == nil {
+					currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
+					layout := keyboards.GetKeyboard(currentLayout)
+					d.DeviceProfile.Keyboards["default"] = layout
+				}
 			}
 		}
+	}
+}
+
+// keepAlive will keep a device alive
+func (d *Device) keepAlive() {
+	if d.Exit {
+		return
+	}
+	_, err := d.transfer(cmdKeepAlive, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
 }
 
@@ -799,7 +765,11 @@ func (d *Device) setKeepAlive() {
 		for {
 			select {
 			case <-d.timerKeepAlive.C:
+				if d.Exit {
+					return
+				}
 				d.keepAlive()
+				d.getBatterLevel()
 			case <-d.keepAliveChan:
 				d.timerKeepAlive.Stop()
 				return
@@ -831,33 +801,6 @@ func (d *Device) setAutoRefresh() {
 func (d *Device) setTemperatures() {
 	d.CpuTemp = temperatures.GetCpuTemperature()
 	d.GpuTemp = temperatures.GetGpuTemperature()
-}
-
-// setSleepTimer will set device sleep timer
-func (d *Device) setSleepTimer() uint8 {
-	if d.DeviceProfile != nil {
-		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-		_, err := d.transfer(cmdSleep, buf, byte(cmdKeyboard))
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
-		}
-		return 1
-	}
-	return 0
-}
-
-// UpdateSleepTimer will update device sleep timer
-func (d *Device) UpdateSleepTimer(minutes int) uint8 {
-	if d.DeviceProfile != nil {
-		d.DeviceProfile.SleepMode = minutes
-		d.saveDeviceProfile()
-		d.setSleepTimer()
-		return 1
-	}
-	return 0
 }
 
 // UpdateDeviceLabel will set / update device label
@@ -904,6 +847,33 @@ func (d *Device) saveRgbProfile() {
 	}
 }
 
+// UpdatePollingRate will set device polling rate
+func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	if _, ok := d.PollingRates[pullingRate]; ok {
+		if d.DeviceProfile == nil {
+			return 0
+		}
+		d.Exit = true
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		time.Sleep(40 * time.Millisecond)
+
+		d.DeviceProfile.PollingRate = pullingRate
+		d.saveDeviceProfile()
+		buf := make([]byte, 1)
+		buf[0] = byte(pullingRate)
+		_, err := d.transfer(cmdSetPollingRate, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
+			return 0
+		}
+		return 1
+	}
+	return 0
+}
+
 // UpdateRgbProfileData will update RGB profile data
 func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
 	d.rgbMutex.Lock()
@@ -933,11 +903,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
-	if _, ok := d.RGBModes[profile]; !ok {
+	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
-
 	d.DeviceProfile.RGBProfile = profile // Set profile
 	d.saveDeviceProfile()                // Save profile
 	if d.activeRgb != nil {
@@ -952,10 +921,40 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 // ChangeDeviceBrightness will change device brightness
 func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.DeviceProfile.Brightness = mode
-	d.DeviceProfile.BrightnessLevel = 1000
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
 
-	if mode == 4 {
-		d.DeviceProfile.BrightnessLevel = 0
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
 	}
 
 	d.saveDeviceProfile()
@@ -964,12 +963,6 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
-	_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
-	}
 	return 1
 }
 
@@ -992,7 +985,6 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
-		d.setupPerformance()
 		return 1
 	}
 	return 0
@@ -1086,13 +1078,6 @@ func (d *Device) UpdateKeyboardProfile(profileName string) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor()
-	return 1
-}
-
-// UpdateControlDial will update control dial function
-func (d *Device) UpdateControlDial(value int) uint8 {
-	d.DeviceProfile.ControlDial = value
-	d.saveDeviceProfile()
 	return 1
 }
 
@@ -1295,13 +1280,6 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 				key.ActionHold = keyAssignment.ActionHold
 				key.ModifierKey = keyAssignment.ModifierKey
 				key.RetainOriginal = keyAssignment.RetainOriginal
-
-				if key.Default {
-					key.ColorOffOnFunctionKey = key.ColorOffOnFunctionKeyInternal
-				} else {
-					key.ColorOffOnFunctionKey = !d.isFunctionKey(int(keyAssignment.ModifierKey))
-				}
-
 				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowId].Keys[keyId] = key
 				d.saveDeviceProfile()
 				d.setupKeyAssignment()
@@ -1313,23 +1291,81 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 }
 
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(_ int, keyOption int, color rgb.Color) uint8 {
-	if d.DeviceProfile == nil {
-		return 0
-	}
+func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 {
 	switch keyOption {
+	case 0:
+		{
+			for rowIndex, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for keyIndex, key := range row.Keys {
+					if keyIndex == keyId {
+						key.Color = rgb.Color{
+							Red:        color.Red,
+							Green:      color.Green,
+							Blue:       color.Blue,
+							Brightness: 0,
+						}
+						d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowIndex].Keys[keyIndex] = key
+						if d.activeRgb != nil {
+							d.activeRgb.Exit <- true // Exit current RGB mode
+							d.activeRgb = nil
+						}
+						d.setDeviceColor() // Restart RGB
+						return 1
+					}
+				}
+			}
+		}
+	case 1:
+		{
+			rowId := -1
+			for rowIndex, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for keyIndex := range row.Keys {
+					if keyIndex == keyId {
+						rowId = rowIndex
+						break
+					}
+				}
+			}
+
+			if rowId < 0 {
+				return 0
+			}
+
+			for keyIndex, key := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowId].Keys {
+				key.Color = rgb.Color{
+					Red:        color.Red,
+					Green:      color.Green,
+					Blue:       color.Blue,
+					Brightness: 0,
+				}
+				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowId].Keys[keyIndex] = key
+			}
+			if d.activeRgb != nil {
+				d.activeRgb.Exit <- true // Exit current RGB mode
+				d.activeRgb = nil
+			}
+			d.setDeviceColor() // Restart RGB
+			return 1
+		}
 	case 2:
 		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Color = color
-				if d.activeRgb != nil {
-					d.activeRgb.Exit <- true // Exit current RGB mode
-					d.activeRgb = nil
+			for rowIndex, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for keyIndex, key := range row.Keys {
+					key.Color = rgb.Color{
+						Red:        color.Red,
+						Green:      color.Green,
+						Blue:       color.Blue,
+						Brightness: 0,
+					}
+					d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowIndex].Keys[keyIndex] = key
 				}
-				d.saveDeviceProfile()
-				d.setDeviceColor() // Restart RGB
-				return 1
 			}
+			if d.activeRgb != nil {
+				d.activeRgb.Exit <- true // Exit current RGB mode
+				d.activeRgb = nil
+			}
+			d.setDeviceColor() // Restart RGB
+			return 1
 		}
 	}
 	return 0
@@ -1342,176 +1378,377 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	if !slices.Contains(rgbModes, d.DeviceProfile.RGBProfile) {
+	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
 		d.DeviceProfile.RGBProfile = "keyboard"
 	}
 
-	// Init
-	d.initLeds()
-	switch d.DeviceProfile.RGBProfile {
-	case "off":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 93)
-				buf[3] = 0x01
-				buf[4] = 0xff
-				buf[5] = 0x00
-				buf[6] = 0x00
-				buf[7] = 0x00
-				dataTypeSetColor = []byte{0x7e, 0x20, 0x01}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "keyboard":
-		{
-			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 93)
-				buf[3] = 0x01
-				buf[4] = 0xff
-				buf[5] = byte(keyboard.Color.Blue)
-				buf[6] = byte(keyboard.Color.Green)
-				buf[7] = byte(keyboard.Color.Red)
-				dataTypeSetColor = []byte{0x7e, 0x20, 0x01}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "rain":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0x7e, 0xa0, 0x02, 0x04, 0x01}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "tlk":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0xf9, 0xb1, 0x02, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "tlr":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0xa2, 0x09, 0x02, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "spiralrainbow":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0x87, 0xab, 0x00, 0x04, 0x06}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "colorpulse":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0x4f, 0xad, 0x02, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "colorshift":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0xfa, 0xa5, 0x02, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "colorwave":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0xff, 0x7b, 0x02, 0x04, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "rainbowwave":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 89)
-				dataTypeSetColor = []byte{0x4c, 0xb9, 0x00, 0x04, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	case "watercolor":
-		{
-			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-				var buf = make([]byte, 93)
-				buf[2] = 0x01
-				buf[3] = 0xff
-				buf[4] = 0xff
-				buf[5] = 0xff
-				buf[6] = 0xff
-				dataTypeSetColor = []byte{0x22, 0x00, 0x03, 0x04}
-				d.writeColor(buf)
-				return
-			}
-		}
-	}
-	_, err := d.transfer(cmdCloseEndpoint, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change color")
-	}
-}
+	if d.DeviceProfile.RGBProfile == "keyboard" {
+		var buf = make([]byte, colorPacketLength)
+		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+			for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for _, key := range rows.Keys {
+					colors := key.Color
+					colors.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+					profileColor := rgb.ModifyBrightness(colors)
+					for _, packetIndex := range key.PacketIndex {
+						buf[packetIndex] = byte(profileColor.Red)
+						buf[packetIndex+1] = byte(profileColor.Green)
+						buf[packetIndex+2] = byte(profileColor.Blue)
+					}
 
-// setBrightnessLevel will set global brightness level
-func (d *Device) setBrightnessLevel() {
-	if d.Exit {
+					if d.FunctionKey && key.ColorOffOnFunctionKey {
+						for _, packetIndex := range key.PacketIndex {
+							buf[packetIndex] = 0
+							buf[packetIndex+1] = 0
+							buf[packetIndex+2] = 0
+						}
+					}
+				}
+			}
+			d.writeColor(buf) // Write color once
+			return
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. Unknown keyboard")
+			return
+		}
+	}
+
+	if d.DeviceProfile.RGBProfile == "static" {
+		profile := d.GetRgbProfile("static")
+		if profile == nil {
+			return
+		}
+
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		profileColor := rgb.ModifyBrightness(profile.StartColor)
+
+		var buf = make([]byte, colorPacketLength)
+		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+			for _, key := range rows.Keys {
+				for _, packetIndex := range key.PacketIndex {
+					buf[packetIndex] = byte(profileColor.Red)
+					buf[packetIndex+1] = byte(profileColor.Green)
+					buf[packetIndex+2] = byte(profileColor.Blue)
+				}
+
+				if d.FunctionKey && key.ColorOffOnFunctionKey {
+					for _, packetIndex := range key.PacketIndex {
+						buf[packetIndex] = 0
+						buf[packetIndex+1] = 0
+						buf[packetIndex+2] = 0
+					}
+				}
+			}
+		}
+		d.writeColor(buf) // Write color once
 		return
 	}
 
-	if d.DeviceProfile != nil {
-		buf := make([]byte, 2)
-		binary.LittleEndian.PutUint16(buf[0:2], d.DeviceProfile.BrightnessLevel)
-		_, err := d.transfer(cmdBrightness, buf, byte(cmdKeyboard))
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+	if d.DeviceProfile.RGBProfile == "off" {
+		var buf = make([]byte, colorPacketLength)
+		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+			for _, keys := range rows.Keys {
+				for _, packetIndex := range keys.PacketIndex {
+					buf[packetIndex] = byte(0)
+					buf[packetIndex] = byte(0)
+					buf[packetIndex] = byte(0)
+				}
+			}
 		}
+		d.writeColor(buf) // Write color once
+		return
 	}
+
+	go func(lightChannels int) {
+		startTime := time.Now()
+		d.activeRgb = rgb.Exit()
+
+		// Generate random colors
+		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)
+		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
+
+		for {
+			select {
+			case <-d.activeRgb.Exit:
+				return
+			default:
+				buff := make([]byte, 0)
+				var buf = make([]byte, colorPacketLength)
+
+				rgbCustomColor := true
+				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
+				if profile == nil {
+					for i := 0; i < d.LEDChannels; i++ {
+						buff = append(buff, []byte{0, 0, 0}...)
+					}
+					continue
+				}
+				rgbModeSpeed := common.FClamp(profile.Speed, 0.1, 10)
+				// Check if we have custom colors
+				if (rgb.Color{}) == profile.StartColor || (rgb.Color{}) == profile.EndColor {
+					rgbCustomColor = false
+				}
+
+				r := rgb.New(
+					d.LEDChannels,
+					rgbModeSpeed,
+					nil,
+					nil,
+					profile.Brightness,
+					common.Clamp(profile.Smoothness, 1, 100),
+					time.Duration(rgbModeSpeed)*time.Second,
+					rgbCustomColor,
+				)
+
+				if rgbCustomColor {
+					r.RGBStartColor = &profile.StartColor
+					r.RGBEndColor = &profile.EndColor
+				} else {
+					r.RGBStartColor = d.activeRgb.RGBStartColor
+					r.RGBEndColor = d.activeRgb.RGBEndColor
+				}
+
+				// Brightness
+				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+				r.RGBStartColor.Brightness = r.RGBBrightness
+				r.RGBEndColor.Brightness = r.RGBBrightness
+
+				switch d.DeviceProfile.RGBProfile {
+				case "rainbow":
+					{
+						r.Rainbow(startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "watercolor":
+					{
+						r.Watercolor(startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "cpu-temperature":
+					{
+						r.MinTemp = profile.MinTemp
+						r.MaxTemp = profile.MaxTemp
+						r.Temperature(float64(d.CpuTemp))
+						buff = append(buff, r.Output...)
+					}
+				case "gpu-temperature":
+					{
+						r.MinTemp = profile.MinTemp
+						r.MaxTemp = profile.MaxTemp
+						r.Temperature(float64(d.GpuTemp))
+						buff = append(buff, r.Output...)
+					}
+				case "colorpulse":
+					{
+						r.Colorpulse(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "static":
+					{
+						r.Static()
+						buff = append(buff, r.Output...)
+					}
+				case "rotator":
+					{
+						r.Rotator(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "wave":
+					{
+						r.Wave(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "storm":
+					{
+						r.Storm()
+						buff = append(buff, r.Output...)
+					}
+				case "flickering":
+					{
+						r.Flickering(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "colorshift":
+					{
+						r.Colorshift(&startTime, d.activeRgb)
+						buff = append(buff, r.Output...)
+					}
+				case "circleshift":
+					{
+						r.CircleShift(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "circle":
+					{
+						r.Circle(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "spinner":
+					{
+						r.Spinner(&startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "colorwarp":
+					{
+						r.Colorwarp(&startTime, d.activeRgb)
+						buff = append(buff, r.Output...)
+					}
+				}
+
+				for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+					for _, key := range rows.Keys {
+						for _, packetIndex := range key.PacketIndex {
+							buf[packetIndex] = r.Output[packetIndex]
+							buf[packetIndex+1] = r.Output[packetIndex+1]
+							buf[packetIndex+2] = r.Output[packetIndex+2]
+						}
+
+						if d.FunctionKey && key.ColorOffOnFunctionKey {
+							for _, packetIndex := range key.PacketIndex {
+								buf[packetIndex] = 0
+								buf[packetIndex+1] = 0
+								buf[packetIndex+2] = 0
+							}
+						}
+					}
+				}
+
+				// Send it
+				d.writeColor(buf)
+				time.Sleep(20 * time.Millisecond)
+			}
+		}
+	}(d.LEDChannels)
 }
 
 // writeColor will write data to the device with a specific endpoint.
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if d.DeviceProfile.Performance {
+		data[324] = 255
+		data[325] = 0
+		data[326] = 0
+	}
+
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
 
-	// Split packet into chunks
-	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
-	for i, chunk := range chunks {
-		if i == 0 {
-			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk, byte(cmdKeyboard))
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+	_, err := d.transfer(cmdWriteColor, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+	}
+}
+
+// writeKeyAssignment will write Key Assignment data
+func (d *Device) writeKeyAssignment(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+
+	// Open endpoint
+	_, err := d.transfer(cmdOpenEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open write endpoint")
+		return
+	}
+
+	_, err = d.transfer(cmdKeyAssignment, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+	}
+
+	// Close endpoint
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close write endpoint")
+		return
+	}
+}
+
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getListenerData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
+}
+
+// backendListener will listen for events from the control buttons
+func (d *Device) backendListener() {
+	go func() {
+		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+			if info.InterfaceNbr == 2 {
+				listener, err := hid.OpenPath(info.Path)
+				if err != nil {
+					return err
+				}
+				d.listener = listener
 			}
-		} else {
-			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk, byte(cmdKeyboard))
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			return nil
+		})
+
+		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+		}
+
+		// Listen loop
+		for {
+			select {
+			default:
+				if d.Exit {
+					err = d.listener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
+
+				data := d.getListenerData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
+
+				// FN color change
+				functionKey := data[17] == 0x04
+				if functionKey != d.FunctionKey {
+					d.FunctionKey = functionKey
+				}
+
+				var modifierKey uint8 = 0
+				modifierIndex := data[d.getModifierPosition()]
+				if modifierIndex > 0 {
+					modifierKey = d.getModifierKey(modifierIndex)
+				}
+				d.triggerKeyAssignment(data, functionKey, modifierKey)
+				time.Sleep(5 * time.Millisecond)
 			}
 		}
+	}()
+}
+
+// getModifierPosition will return key modifier packet position in backendListener
+func (d *Device) getModifierPosition() uint8 {
+	if d.DeviceProfile == nil {
+		return 0
 	}
+	if val, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+		return val.ModifierPosition
+	}
+	return 0
 }
 
 // getModifierPosition will return key modifier packet position in backendListener
@@ -1527,17 +1764,6 @@ func (d *Device) getModifierKey(modifierIndex uint8) uint8 {
 				}
 			}
 		}
-	}
-	return 0
-}
-
-// getModifierPosition will return key modifier packet position in backendListener
-func (d *Device) getModifierPosition() uint8 {
-	if d.DeviceProfile == nil {
-		return 0
-	}
-	if val, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
-		return val.ModifierPosition
 	}
 	return 0
 }
@@ -1581,6 +1807,30 @@ func (d *Device) releaseMacroTracker() {
 	for _, key := range keys {
 		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
 		d.deleteFromMacroTracker(key)
+	}
+}
+
+// changeConnectionMode will change device connection mode, from Slipstream to Bluetooth profiles
+func (d *Device) changeConnectionMode(mode byte) {
+	buf := make([]byte, 2)
+	buf[0] = 0x00
+	buf[1] = mode
+	_, err := d.transfer(cmdConnectionMode, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to change connection mode")
+		return
+	}
+}
+
+// setBrightnessLevel will set global brightness level
+func (d *Device) setBrightnessLevel() {
+	if d.DeviceProfile != nil {
+		buf := make([]byte, 2)
+		binary.LittleEndian.PutUint16(buf[0:2], 1000) // Full, brightness is controlled via color
+		_, err := d.transfer(cmdBrightness, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
+		}
 	}
 }
 
@@ -1629,43 +1879,53 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 			return
 		}
 
-		// Function Key
-		if functionKey {
-			switch key.ActionType {
-			case 11: // Brightness +
-				if d.DeviceProfile.BrightnessLevel+100 > 1000 {
-					d.DeviceProfile.BrightnessLevel = 1000
-				} else {
-					d.DeviceProfile.BrightnessLevel += 100
-				}
-			case 12: // Brightness -
-				if d.DeviceProfile.BrightnessLevel < 100 {
-					d.DeviceProfile.BrightnessLevel = 0
-				} else {
-					d.DeviceProfile.BrightnessLevel -= 100
-				}
+		// Lock
+		if key.IsLock && functionKey {
+			d.DeviceProfile.Performance = !d.DeviceProfile.Performance
+			d.saveDeviceProfile()
+			d.setupPerformance()
+			return
+		}
+
+		// Bluetooth profile 1
+		if key.BluetoothProfile1 && functionKey {
+			d.changeConnectionMode(2)
+			return
+		}
+
+		// Bluetooth profile 2
+		if key.BluetoothProfile2 && functionKey {
+			d.changeConnectionMode(3)
+			return
+		}
+
+		// Bluetooth profile 3
+		if key.BluetoothProfile3 && functionKey {
+			d.changeConnectionMode(8)
+			return
+		}
+
+		// Brightness
+		if key.BrightnessKey && functionKey {
+			if *d.DeviceProfile.BrightnessSlider >= 100 {
+				*d.DeviceProfile.BrightnessSlider = 0
+			} else {
+				*d.DeviceProfile.BrightnessSlider += 20
 			}
 
-			// Brightness
-			if key.ActionType == 11 || key.ActionType == 12 {
-				d.saveDeviceProfile()
-				d.setBrightnessLevel()
-				return
+			d.saveDeviceProfile()
+			if d.activeRgb != nil {
+				d.activeRgb.Exit <- true // Exit current RGB mode
+				d.activeRgb = nil
 			}
+			d.setDeviceColor() // Restart RGB
+			return
+		}
 
-			// Performance Lock
-			if key.IsLock {
-				d.DeviceProfile.Performance = !d.DeviceProfile.Performance
-				d.saveDeviceProfile()
-				d.setupPerformance()
-				return
-			}
-
-			// Media Keys, ignore any hold action
-			if key.MediaKey {
-				inputmanager.InputControlKeyboard(key.FnActionCommand, false)
-				return
-			}
+		// Sub-action keys with FN combination
+		if key.HasSubAction && functionKey {
+			inputmanager.InputControlKeyboard(key.FnActionCommand, false)
+			return
 		}
 
 		// Default action
@@ -1734,61 +1994,35 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 	}
 }
 
-// writeKeyAssignment will write Key Assignment data
-func (d *Device) writeKeyAssignment(data []byte) {
-	buffer := make([]byte, len(data)+headerWriteSize)
-	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
-	copy(buffer[headerWriteSize:], data)
+// transfer will send data to a device and retrieve device output
+func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
+	// Packet control, mandatory for this device
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
-	// Open endpoint
-	_, err := d.transfer(cmdOpenEndpoint, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to open write endpoint")
-		return
+	// Create write buffer
+	bufferW := make([]byte, bufferSizeWrite)
+	bufferW[1] = 0x08
+	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+	copy(endpointHeaderPosition, endpoint)
+	if len(buffer) > 0 {
+		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	// Split packet into chunks
-	chunks := common.ProcessMultiChunkPacket(buffer, maxKeyAssignmentLen)
-	for i, chunk := range chunks {
-		if i == 0 {
-			_, err := d.transfer(cmdKeyAssignment, chunk, byte(cmdKeyboard))
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
-			}
-		} else {
-			_, err := d.transfer(cmdKeyAssignmentNext, chunk, byte(cmdKeyboard))
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
-			}
-		}
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
+
+	// Send command to a device
+	if _, err := d.dev.Write(bufferW); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		return bufferR, err
 	}
 
-	// Close endpoint
-	_, err = d.transfer(cmdCloseEndpoint, nil, byte(cmdKeyboard))
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to close write endpoint")
-		return
+	// Get data from a device
+	if _, err := d.dev.Read(bufferR); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		return bufferR, err
 	}
-}
 
-// connect will trigger keyboard connection
-func (d *Device) setConnectionStatus(connect bool) {
-	if connect {
-		time.Sleep(100 * time.Millisecond)
-		d.Connected = true
-		_, err := d.transfer(cmdSoftwareMode, nil, byte(cmdKeyboard))
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
-			return
-		}
-		d.getDeviceFirmware()
-		d.setDeviceColor()
-		d.setupPerformance()
-	} else {
-		d.Connected = false
-		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
-			d.activeRgb = nil
-		}
-	}
+	return bufferR, nil
 }

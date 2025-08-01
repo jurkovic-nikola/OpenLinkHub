@@ -85,6 +85,10 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["externalExecutable"] = binaryPath;
         }
 
+        if (parseInt(sensor) === 8) {
+            pf["gpuIndex"] = parseInt($("#gpuIndex").val());
+        }
+
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
             url: '/api/temperatures/new',
@@ -476,26 +480,38 @@ document.addEventListener("DOMContentLoaded", function () {
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
             $("#binary-sensors-probe-data").hide();
+            $("#gpu-data").hide();
         } else if (value === "4") {
             $("#storage-data").hide();
             $("#temperature-probe-data").show();
             $("#hwmon-sensors-probe-data").hide();
             $("#binary-sensors-probe-data").hide();
+            $("#gpu-data").hide();
         } else if (value === "6") {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").show();
             $("#binary-sensors-probe-data").hide();
+            $("#gpu-data").hide();
         } else if (value === "7") {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
             $("#binary-sensors-probe-data").show();
+            $("#gpu-data").hide();
+        } else if (value === "8") {
+            $("#storage-data").hide();
+            $("#temperature-probe-data").hide();
+            $("#hwmon-sensors-probe-data").hide();
+            $("#binary-sensors-probe-data").hide();
+            $("#gpu-data").show();
         } else {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
             $("#binary-sensors-probe-data").hide();
+            $("#gpu-data").hide();
+
         }
     });
 });

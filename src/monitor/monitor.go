@@ -23,7 +23,7 @@ const (
 var exclude = []uint16{10752, 2666, 2710, 2659}
 
 // longSleep list of devices that require 5+ seconds to finish booting up
-var longSleep = []uint16{7165}
+var longSleep = []uint16{7165, 7033}
 
 type USBInfo struct {
 	VendorID  uint16

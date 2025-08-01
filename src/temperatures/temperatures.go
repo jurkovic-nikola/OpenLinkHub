@@ -26,6 +26,7 @@ const (
 	SensorTypeCpuGpu             = 5
 	SensorTypeExternalHwMon      = 6
 	SensorTypeExternalExecutable = 7
+	SensorTypeMultiGPU           = 8
 )
 
 type UpdateData struct {
@@ -65,6 +66,7 @@ type TemperatureProfileData struct {
 	TemperatureInputId string               `json:"temperatureInputId"`
 	ChannelId          int                  `json:"channelId"`
 	Linear             bool                 `json:"linear"`
+	GPUIndex           uint8                `json:"gpuIndex"`
 	Hidden             bool
 }
 
@@ -326,7 +328,7 @@ func GetMemoryTemperature(channelId int) float32 {
 }
 
 // AddTemperatureProfile will save new temperature profile
-func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear bool, sensor uint8, channelId int, hwmonDevice, temperatureInputId string) bool {
+func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear bool, sensor uint8, channelId int, hwmonDevice, temperatureInputId string, gpuIndex uint8) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -424,6 +426,10 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 			{
 				pf = profileNormal
 			}
+		case SensorTypeMultiGPU:
+			{
+				pf = profileNormal
+			}
 		}
 
 		if len(deviceId) > 0 {
@@ -442,6 +448,7 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 		pf.Sensor = sensor
 		pf.ZeroRpm = zeroRpm
 		pf.Linear = linear
+		pf.GPUIndex = gpuIndex
 
 		if pf.Points == nil {
 			pump := make([]Point, 0)
@@ -723,8 +730,8 @@ func GetAMDGpuTemperature() float32 {
 }
 
 // GetNVIDIAGpuTemperature will return NVIDIA gpu temperature
-func GetNVIDIAGpuTemperature() float32 {
-	cmd := exec.Command("nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits")
+func GetNVIDIAGpuTemperature(gpuIndex int) float32 {
+	cmd := exec.Command("nvidia-smi", "-i", strconv.Itoa(gpuIndex), "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits")
 	output, err := cmd.Output()
 	if err != nil {
 		return 0
@@ -744,7 +751,16 @@ func GetNVIDIAGpuTemperature() float32 {
 
 // GetGpuTemperature will return GPU temperature
 func GetGpuTemperature() float32 {
-	temp := GetNVIDIAGpuTemperature()
+	temp := GetNVIDIAGpuTemperature(config.GetConfig().DefaultNvidiaGPU)
+	if temp == 0 {
+		temp = GetAMDGpuTemperature()
+	}
+	return temp
+}
+
+// GetGpuTemperatureIndex will return GPU temperature via device index
+func GetGpuTemperatureIndex(index int) float32 {
+	temp := GetNVIDIAGpuTemperature(index)
 	if temp == 0 {
 		temp = GetAMDGpuTemperature()
 	}

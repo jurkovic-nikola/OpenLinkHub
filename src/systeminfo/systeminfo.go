@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/temperatures"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -23,7 +24,10 @@ type CpuData struct {
 }
 
 type GpuData struct {
-	Model string
+	Index             int
+	Model             string
+	Temperature       float32
+	TemperatureString string
 }
 
 type StorageData struct {
@@ -46,7 +50,7 @@ type MotherboardData struct {
 
 type SystemInfo struct {
 	CPU         *CpuData
-	GPU         *GpuData
+	GPU         map[int]GpuData
 	Kernel      *KernelData
 	Storage     *[]StorageData
 	Motherboard *MotherboardData
@@ -130,15 +134,34 @@ func (si *SystemInfo) getGpuData() {
 	scanner := bufio.NewScanner(&out)
 	for scanner.Scan() {
 		line := scanner.Text()
+		gpus := make(map[int]GpuData)
 		if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "NVIDIA") {
 			// NVIDIA
-			si.GPU = &GpuData{Model: GetNVIDIAGpuModel()}
+			for key := range config.GetConfig().NvidiaGpuIndex {
+				gpuModel := GetNVIDIAGpuModel(key)
+				if len(gpuModel) > 0 {
+					temp := temperatures.GetGpuTemperatureIndex(key)
+					model := &GpuData{
+						Index:             key,
+						Model:             gpuModel,
+						Temperature:       temp,
+						TemperatureString: dashboard.GetDashboard().TemperatureToString(temp),
+					}
+					gpus[key] = *model
+				}
+			}
+			si.GPU = gpus
 			return
 		} else if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "Advanced Micro Devices") {
-			model := GetAMDGpuModel()
-			if len(model) > 0 {
-				si.GPU = &GpuData{Model: model}
+			temp := temperatures.GetAMDGpuTemperature()
+			model := &GpuData{
+				Index:             0,
+				Model:             GetAMDGpuModel(),
+				Temperature:       temp,
+				TemperatureString: dashboard.GetDashboard().TemperatureToString(temp),
 			}
+			gpus[0] = *model
+			si.GPU = gpus
 			return
 		} else {
 			si.GPU = nil
@@ -210,9 +233,9 @@ func (si *SystemInfo) getCpuData() {
 }
 
 // GetNVIDIAGpuModel will return NVIDIA gpu model
-func GetNVIDIAGpuModel() string {
+func GetNVIDIAGpuModel(index int) string {
 	model := ""
-	cmd := exec.Command("nvidia-smi", "--query-gpu=gpu_name", "--format=csv,noheader,nounits")
+	cmd := exec.Command("nvidia-smi", "-i", strconv.Itoa(index), "--query-gpu=gpu_name", "--format=csv,noheader,nounits")
 	output, err := cmd.Output()
 	if err != nil {
 		return ""
@@ -239,8 +262,8 @@ func GetAMDGpuModel() string {
 }
 
 // GetNVIDIAUtilization will return NVIDIA gpu utilization
-func getNVIDIAUtilization() int {
-	cmd := exec.Command("nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits")
+func getNVIDIAUtilization(index int) int {
+	cmd := exec.Command("nvidia-smi", "-i", strconv.Itoa(index), "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits")
 	output, err := cmd.Output()
 	if err != nil {
 		return 0
@@ -417,9 +440,10 @@ func getAMDUtilization() float64 {
 func GetGPUUtilization() int {
 	utilization := 0
 	if info.GPU != nil {
-		if strings.Contains(strings.ToLower(info.GPU.Model), "nvidia") {
+		index := config.GetConfig().DefaultNvidiaGPU
+		if strings.Contains(strings.ToLower(info.GPU[index].Model), "nvidia") {
 			// NVIDIA
-			utilization = getNVIDIAUtilization()
+			utilization = getNVIDIAUtilization(index)
 		} else {
 			// AMD
 			util := getAMDUtilization()

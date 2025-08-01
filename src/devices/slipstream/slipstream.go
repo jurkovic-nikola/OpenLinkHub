@@ -16,6 +16,7 @@ import (
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k70coretklW"
+	"OpenLinkHub/src/devices/k70pmW"
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/m75W"
@@ -157,6 +158,11 @@ func (d *Device) StopDirty() uint8 {
 				dev.StopDirty()
 			}
 		}
+		if dev, found := value.(*k70pmW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
 		if dev, found := value.(*ironclawW.Device); found {
 			if dev.Connected {
 				dev.StopDirty()
@@ -247,6 +253,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*k100airW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*k70pmW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -502,6 +513,11 @@ func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16
 				device.ModifyBatteryLevel(batteryLevel)
 			}
 		}
+		if device, found := dev.(*k70pmW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
 		if device, found := dev.(*darkcorergbproW.Device); found {
 			if device.Connected {
 				device.ModifyBatteryLevel(batteryLevel)
@@ -599,6 +615,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*k70pmW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 		if device, found := dev.(*ironclawW.Device); found {
 			if !device.Connected {
 				device.Connect()
@@ -675,6 +696,11 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
+		if device, found := pairedDevice.(*k70pmW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
 		if device, found := pairedDevice.(*ironclawW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
@@ -731,6 +757,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 			{
 				// Keyboards
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*k70pmW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -825,6 +856,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
+				if device, found := pairedDevice.(*k70pmW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+					}
+				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
@@ -914,6 +951,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 			{
 				// All
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+					}
+				}
+				if device, found := pairedDevice.(*k70pmW.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
@@ -1197,6 +1240,9 @@ func (d *Device) backendListener() {
 						{
 							for _, value := range d.PairedDevices {
 								if dev, found := value.(*k100airW.Device); found {
+									dev.TriggerKeyAssignment(data)
+								}
+								if dev, found := value.(*k70pmW.Device); found {
 									dev.TriggerKeyAssignment(data)
 								}
 								if dev, found := value.(*m55W.Device); found {

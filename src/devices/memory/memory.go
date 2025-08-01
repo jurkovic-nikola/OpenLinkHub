@@ -446,7 +446,7 @@ func (d *Device) getDevices() int {
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
 		if err != nil {
-			if !slices.Contains(config.GetConfig().EnhancementKits, dimmInfoAddresses[i]) {
+			if !slices.Contains(config.GetConfig().EnhancementKits, int(dimmInfoAddresses[i])) {
 				logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Info("No such register found. Skipping...")
 				continue
 			} else {
@@ -954,7 +954,7 @@ func (d *Device) saveDeviceProfile() {
 	// Create profile filename
 	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 

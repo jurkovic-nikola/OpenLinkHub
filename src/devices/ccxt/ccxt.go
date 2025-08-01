@@ -15,8 +15,6 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
-	"bytes"
-	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -52,15 +50,10 @@ var (
 	modeGetTemperatures        = []byte{0x21}
 	modeGetFans                = []byte{0x1a}
 	modeSetColor               = []byte{0x22}
-	dataTypeGetTemperatures    = []byte{0x10, 0x00}
-	dataTypeGetSpeeds          = []byte{0x06, 0x00}
 	dataTypeSetSpeed           = []byte{0x07, 0x00}
-	dataTypeGetFans            = []byte{0x09, 0x00}
-	dataTypeGetLeds            = []byte{0x0f, 0x00}
 	dataTypeSetColor           = []byte{0x12, 0x00}
 	bufferSize                 = 384
 	bufferSizeWrite            = bufferSize + 1
-	transferTimeout            = 500
 	ledInit                    = 500
 	headerSize                 = 2
 	headerWriteSize            = 4
@@ -184,6 +177,7 @@ type Device struct {
 	timerSpeed              *time.Ticker
 	internalLedDevices      map[int]*LedChannel
 	Exit                    bool
+	deviceLock              sync.Mutex
 }
 
 // Init will initialize a new device
@@ -643,12 +637,7 @@ func (d *Device) getSerial() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
-	fw, err := d.transfer(
-		cmdGetFirmware,
-		nil,
-		nil,
-		"getDeviceFirmware",
-	)
+	fw, err := d.transfer(cmdGetFirmware, nil, "getDeviceFirmware")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
 	}
@@ -659,7 +648,7 @@ func (d *Device) getDeviceFirmware() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil, nil, "cmdHardwareMode")
+	_, err := d.transfer(cmdHardwareMode, nil, "cmdHardwareMode")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
@@ -667,7 +656,7 @@ func (d *Device) setHardwareMode() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil, nil, "setSoftwareMode")
+	_, err := d.transfer(cmdSoftwareMode, nil, "setSoftwareMode")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
@@ -680,14 +669,17 @@ func (d *Device) getDebugMode() {
 
 // setColorEndpoint will activate hub color endpoint for further usage
 func (d *Device) setColorEndpoint() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Close any RGB endpoint
-	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, nil, "setColorEndpoint")
+	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, "setColorEndpoint")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
-	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, nil, "setColorEndpoint")
+	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, "setColorEndpoint")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
 	}
@@ -1071,7 +1063,7 @@ func (d *Device) resetLEDPorts() {
 	}
 
 	// Re-init LED ports
-	_, err := d.transfer(cmdResetLedPower, nil, nil, "resetLEDPorts")
+	_, err := d.transfer(cmdResetLedPower, nil, "resetLEDPorts")
 	if err != nil {
 		return
 	}
@@ -1094,7 +1086,7 @@ func (d *Device) getDeviceData() {
 	}
 
 	// Channels
-	channels := d.read(modeGetFans, dataTypeGetFans, "getDeviceData")
+	channels := d.read(modeGetFans, "getDeviceData")
 	if channels == nil {
 		return
 	}
@@ -1105,7 +1097,7 @@ func (d *Device) getDeviceData() {
 	}
 
 	// Speed
-	response := d.read(modeGetSpeeds, dataTypeGetSpeeds, "getDeviceData")
+	response := d.read(modeGetSpeeds, "getDeviceData")
 	if response == nil {
 		return
 	}
@@ -1133,7 +1125,7 @@ func (d *Device) getDeviceData() {
 	}
 
 	// Temperature
-	response = d.read(modeGetTemperatures, dataTypeGetTemperatures, "getDeviceData")
+	response = d.read(modeGetTemperatures, "getDeviceData")
 	if response == nil {
 		return
 	}
@@ -1679,7 +1671,7 @@ func (d *Device) UpdateARGBDevice(portId, deviceType int) uint8 {
 // getLedDevices will get all connected LED data
 func (d *Device) getLedDevices() {
 	// LED channels
-	lc := d.read(modeGetLeds, dataTypeGetLeds, "getLedDevices")
+	lc := d.read(modeGetLeds, "getLedDevices")
 	ld := lc[ledStartIndex:] // Channel data starts from position 10 and 4x increments per channel
 
 	amount := 6
@@ -1973,7 +1965,7 @@ func (d *Device) getDevices() int {
 	var m = 0
 
 	// Fans
-	response := d.read(modeGetFans, dataTypeGetFans, "getDevices")
+	response := d.read(modeGetFans, "getDevices")
 	amount := d.getChannelAmount(response)
 
 	if d.Debug {
@@ -2034,7 +2026,7 @@ func (d *Device) getDevices() int {
 	}
 
 	// Temperatures
-	response = d.read(modeGetTemperatures, dataTypeGetTemperatures, "getDevices")
+	response = d.read(modeGetTemperatures, "getDevices")
 	amount = d.getChannelAmount(response)
 	sensorData := response[6:]
 	for i, s := 0, 0; i < amount; i, s = i+1, s+3 {
@@ -2233,9 +2225,9 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	// Create profile filename
-	file, err := os.Create(deviceProfile.Path)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+	file, fileErr := os.Create(deviceProfile.Path)
+	if fileErr != nil {
+		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 
@@ -2326,7 +2318,7 @@ func (d *Device) updateDeviceSpeed() {
 					switch profiles.Sensor {
 					case temperatures.SensorTypeGPU:
 						{
-							temp = temperatures.GetNVIDIAGpuTemperature()
+							temp = temperatures.GetNVIDIAGpuTemperature(0)
 							if temp == 0 {
 								temp = temperatures.GetAMDGpuTemperature()
 								if temp == 0 {
@@ -2366,7 +2358,7 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeCpuGpu:
 						{
 							cpuTemp := temperatures.GetCpuTemperature()
-							gpuTemp := temperatures.GetNVIDIAGpuTemperature()
+							gpuTemp := temperatures.GetNVIDIAGpuTemperature(0)
 							if gpuTemp == 0 {
 								gpuTemp = temperatures.GetAMDGpuTemperature()
 							}
@@ -2393,6 +2385,13 @@ func (d *Device) updateDeviceSpeed() {
 							temp = temperatures.GetExternalBinaryTemperature(profiles.Device)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "binary": profiles.Device}).Warn("Unable to get temperature from binary.")
+							}
+						}
+					case temperatures.SensorTypeMultiGPU:
+						{
+							temp = temperatures.GetGpuTemperatureIndex(int(profiles.GPUIndex))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
 						}
 					}
@@ -2704,7 +2703,7 @@ func (d *Device) UpdateDeviceMetrics() {
 func (d *Device) initLedPorts() {
 	for i := 1; i <= 6; i++ {
 		var command = []byte{0x14, byte(i), 0x01}
-		_, err := d.transfer(command, nil, nil, "initLedPorts")
+		_, err := d.transfer(command, nil, "initLedPorts")
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "port": i}).Error("Failed to initialize LED ports")
 		}
@@ -2713,7 +2712,10 @@ func (d *Device) initLedPorts() {
 }
 
 // read will read data from a device and return data as a byte array
-func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
+func (d *Device) read(endpoint []byte, caller string) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Endpoint data
 	var buffer []byte
 
@@ -2722,28 +2724,28 @@ func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
 	}
 
 	// Close specified endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return nil
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to open endpoint")
 		return nil
 	}
 
 	// Read data from endpoint
-	buffer, err = d.transfer(cmdRead, endpoint, bufferType, caller)
+	buffer, err = d.transfer(cmdRead, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read endpoint")
 		return nil
 	}
 
 	// Close specified endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return nil
@@ -2755,6 +2757,9 @@ func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
 // writeColor does not require endpoint closing and opening like normal Write requires.
 // Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Buffer
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
@@ -2764,12 +2769,12 @@ func (d *Device) writeColor(data []byte) {
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
 		if i > 0 {
-			_, err := d.transfer(cmdWriteColorNext, chunk, nil, "writeColor")
+			_, err := d.transfer(cmdWriteColorNext, chunk, "writeColor")
 			if err != nil {
 				logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
 			}
 		} else {
-			_, err := d.transfer(cmdWriteColor, chunk, nil, "writeColor")
+			_, err := d.transfer(cmdWriteColor, chunk, "writeColor")
 			if err != nil {
 				logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
 			}
@@ -2779,6 +2784,9 @@ func (d *Device) writeColor(data []byte) {
 
 // write will write data to the device with specific endpoint
 func (d *Device) write(endpoint, bufferType, data []byte, extra int, caller string) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	// Buffer
 	buffer := make([]byte, len(bufferType)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+extra))
@@ -2792,28 +2800,28 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra int, caller stri
 	}
 
 	// Close endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return bufferR
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to open endpoint")
 		return bufferR
 	}
 
 	// Send it
-	bufferR, err = d.transfer(cmdWrite, buffer, nil, caller)
+	bufferR, err = d.transfer(cmdWrite, buffer, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 		return bufferR
 	}
 
 	// Close endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint, nil, caller)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint, caller)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 		return bufferR
@@ -2823,7 +2831,7 @@ func (d *Device) write(endpoint, bufferType, data []byte, extra int, caller stri
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte, caller string) ([]byte, error) {
 	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -2865,29 +2873,6 @@ func (d *Device) transfer(endpoint, buffer, bufferType []byte, caller string) ([
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 			return bufferR, err
 		}
-
-		// Read remaining data from a device
-		if len(bufferType) == 2 {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(transferTimeout)*time.Millisecond)
-			defer cancel()
-
-			for ctx.Err() != nil && !responseMatch(bufferR, bufferType) {
-				if _, err := d.dev.Read(bufferR); err != nil {
-					logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
-					return nil, err
-				}
-			}
-			if ctx.Err() != nil {
-				logger.Log(logger.Fields{"error": ctx.Err(), "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
-				return nil, ctx.Err()
-			}
-		}
 	}
 	return bufferR, nil
-}
-
-// responseMatch will check if two byte arrays match
-func responseMatch(response, expected []byte) bool {
-	responseBuffer := response[4:6]
-	return bytes.Equal(responseBuffer, expected)
 }

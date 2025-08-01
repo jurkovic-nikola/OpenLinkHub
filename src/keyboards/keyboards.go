@@ -17,18 +17,19 @@ var (
 )
 
 type Keyboard struct {
-	Version          int           `json:"version"`
-	Key              string        `json:"key"`
-	Device           string        `json:"device"`
-	Layout           string        `json:"layout"`
-	BufferSize       int           `json:"bufferSize"`
-	Rows             int           `json:"rows"`
-	Row              map[int]Row   `json:"row"`
-	Zones            map[int]Zones `json:"zones"`
-	Color            rgb.Color     `json:"color"`
-	UppercaseClass   string        `json:"uppercaseClass"`
-	FontSize         int           `json:"fontSize"`
-	ModifierPosition uint8         `json:"modifierPosition"`
+	Version             int           `json:"version"`
+	Key                 string        `json:"key"`
+	Device              string        `json:"device"`
+	Layout              string        `json:"layout"`
+	BufferSize          int           `json:"bufferSize"`
+	KeyAssignmentLength int           `json:"keyAssignmentLength"`
+	Rows                int           `json:"rows"`
+	Row                 map[int]Row   `json:"row"`
+	Zones               map[int]Zones `json:"zones"`
+	Color               rgb.Color     `json:"color"`
+	UppercaseClass      string        `json:"uppercaseClass"`
+	FontSize            int           `json:"fontSize"`
+	ModifierPosition    uint8         `json:"modifierPosition"`
 }
 
 type Zones struct {
@@ -36,9 +37,10 @@ type Zones struct {
 }
 
 type Row struct {
-	Top  int         `json:"top"`
-	Css  string      `json:"css"`
-	Keys map[int]Key `json:"keys"`
+	Top         int         `json:"top"`
+	Css         string      `json:"css"`
+	OverrideCss string      `json:"overrideCss"`
+	Keys        map[int]Key `json:"keys"`
 }
 
 type Key struct {
@@ -80,12 +82,17 @@ type Key struct {
 	ProfileKey                    bool      `json:"profileKey"`
 	MacroRecordingKey             bool      `json:"macroRecordingKey"`
 	MediaKey                      bool      `json:"mediaKey"`
+	HasSubAction                  bool      `json:"hasSubAction"`
 	RgbKey                        bool      `json:"rgbKey"`
 	FnActionType                  uint8     `json:"fnActionType"`
 	FnActionCommand               uint16    `json:"fnActionCommand"`
 	ModifierPacketValue           uint8     `json:"modifierPacketValue"`
 	ModifierShift                 byte      `json:"modifierShift"`
 	RetainOriginal                bool      `json:"retainOriginal"`
+	OverrideBackground            bool      `json:"overrideBackground"`
+	BluetoothProfile1             bool      `json:"bluetoothProfile1"`
+	BluetoothProfile2             bool      `json:"bluetoothProfile2"`
+	BluetoothProfile3             bool      `json:"bluetoothProfile3"`
 }
 
 // Init will load and initialize keyboard data

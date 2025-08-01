@@ -174,7 +174,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	if systeminfo.GetInfo().GPU != nil {
-		d.GPUModel = systeminfo.GetInfo().GPU.Model
+		d.GPUModel = systeminfo.GetInfo().GPU[0].Model
 	}
 
 	// Bootstrap
@@ -666,7 +666,7 @@ func (d *Device) saveDeviceProfile() {
 	// Create profile filename
 	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 

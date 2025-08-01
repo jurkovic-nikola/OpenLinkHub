@@ -35,10 +35,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
             $.ajax({
-                url:'/api/gpuTemp',
+                url:'/api/gpuTemps',
                 type:'get',
                 success:function(result){
-                    $("#gpu_temp").html(result.data);
+                    $.each(result.data, function( index, value ) {
+                        $("#gpu_temp_" + index).html(value);
+                    });
                 }
             });
 

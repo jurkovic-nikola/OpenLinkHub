@@ -633,7 +633,7 @@ func (d *Device) saveDeviceProfile() {
 	// Create profile filename
 	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 
@@ -1185,7 +1185,7 @@ func (d *Device) setDeviceColor(resetColor bool) {
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
 					r.ChannelId = k
-					
+
 					switch d.Devices[k].RGB {
 					case "off":
 						{

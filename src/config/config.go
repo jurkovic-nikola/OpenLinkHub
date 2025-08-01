@@ -24,7 +24,7 @@ type Configuration struct {
 	ResumeDelay           int      `json:"resumeDelay"`
 	LogFile               string   `json:"logFile"`
 	LogLevel              string   `json:"logLevel"`
-	EnhancementKits       []byte   `json:"enhancementKits"`
+	EnhancementKits       []int    `json:"enhancementKits"`
 	TemperatureOffset     int      `json:"temperatureOffset"`
 	AMDGpuIndex           int      `json:"amdGpuIndex"`
 	AMDSmiPath            string   `json:"amdsmiPath"`
@@ -32,6 +32,8 @@ type Configuration struct {
 	GraphProfiles         bool     `json:"graphProfiles"`
 	CpuTempFile           string   `json:"cpuTempFile"`
 	RamTempViaHwmon       bool     `json:"ramTempViaHwmon"`
+	NvidiaGpuIndex        []int    `json:"nvidiaGpuIndex"`
+	DefaultNvidiaGPU      int      `json:"defaultNvidiaGPU"`
 }
 
 var (
@@ -43,7 +45,7 @@ var (
 		"resumeDelay":           15000,
 		"logLevel":              "info",
 		"logFile":               "",
-		"enhancementKits":       make([]byte, 0),
+		"enhancementKits":       make([]int, 0),
 		"temperatureOffset":     0,
 		"amdGpuIndex":           0,
 		"amdsmiPath":            "",
@@ -51,6 +53,8 @@ var (
 		"cpuTempFile":           "",
 		"graphProfiles":         false,
 		"ramTempViaHwmon":       false,
+		"nvidiaGpuIndex":        []int{0},
+		"defaultNvidiaGPU":      0,
 	}
 )
 
@@ -101,7 +105,7 @@ func upgradeFile(cfg string) {
 			ResumeDelay:           15000,
 			LogLevel:              "info",
 			LogFile:               "",
-			EnhancementKits:       make([]byte, 0),
+			EnhancementKits:       make([]int, 0),
 			TemperatureOffset:     0,
 			AMDGpuIndex:           0,
 			AMDSmiPath:            "",
@@ -109,6 +113,8 @@ func upgradeFile(cfg string) {
 			CpuTempFile:           "",
 			GraphProfiles:         false,
 			RamTempViaHwmon:       false,
+			NvidiaGpuIndex:        []int{0},
+			DefaultNvidiaGPU:      0,
 		}
 		saveConfigSettings(value)
 	} else {
@@ -145,7 +151,7 @@ func upgradeFile(cfg string) {
 // SaveConfigSettings will save dashboard settings
 func saveConfigSettings(data any) {
 	// Convert to JSON
-	buffer, err := json.MarshalIndent(data, "", "    ")
+	buffer, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		panic(err.Error())
 	}

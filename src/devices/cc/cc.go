@@ -51,11 +51,7 @@ var (
 	modeGetTemperatures        = []byte{0x21}
 	modeGetFans                = []byte{0x1a}
 	modeSetColor               = []byte{0x22}
-	dataTypeGetTemperatures    = []byte{0x10, 0x00}
-	dataTypeGetSpeeds          = []byte{0x06, 0x00}
 	dataTypeSetSpeed           = []byte{0x07, 0x00}
-	dataTypeGetFans            = []byte{0x09, 0x00}
-	dataTypeGetLeds            = []byte{0x0f, 0x00}
 	dataTypeSetColor           = []byte{0x12, 0x00}
 	dataTypeSubColor           = []byte{0x07, 0x00}
 	bufferSize                 = 64
@@ -790,7 +786,7 @@ func (d *Device) getDeviceFirmware() {
 func (d *Device) getLedDevices() {
 	m := 0
 	// LED channels
-	lc := d.read(modeGetLeds, dataTypeGetLeds, "getLedDevices")
+	lc := d.read(modeGetLeds, "getLedDevices")
 	ld := lc[ledStartIndex:] // Channel data starts from position 6 and 4x increments per channel
 
 	amount := 7
@@ -1289,7 +1285,7 @@ func (d *Device) getDevices() int {
 	var m = 0
 
 	// Fans
-	response := d.read(modeGetFans, dataTypeGetFans, "getDevices")
+	response := d.read(modeGetFans, "getDevices")
 	amount := d.getChannelAmount(response)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "amount": amount, "device": d.Product}).Info("getDevices() - Speed")
@@ -1355,7 +1351,7 @@ func (d *Device) getDevices() int {
 	}
 
 	// Temperature probe
-	response = d.read(modeGetTemperatures, dataTypeGetTemperatures, "getDevices")
+	response = d.read(modeGetTemperatures, "getDevices")
 	sensorData := response[9:]
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response)}).Info("getDevices() - Temperature")
@@ -1534,7 +1530,7 @@ func (d *Device) updateDeviceSpeed() {
 					switch profiles.Sensor {
 					case temperatures.SensorTypeGPU:
 						{
-							temp = temperatures.GetNVIDIAGpuTemperature()
+							temp = temperatures.GetNVIDIAGpuTemperature(0)
 							if temp == 0 {
 								temp = temperatures.GetAMDGpuTemperature()
 								if temp == 0 {
@@ -1577,7 +1573,7 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeCpuGpu:
 						{
 							cpuTemp := temperatures.GetCpuTemperature()
-							gpuTemp := temperatures.GetNVIDIAGpuTemperature()
+							gpuTemp := temperatures.GetNVIDIAGpuTemperature(0)
 							if gpuTemp == 0 {
 								gpuTemp = temperatures.GetAMDGpuTemperature()
 							}
@@ -1604,6 +1600,13 @@ func (d *Device) updateDeviceSpeed() {
 							temp = temperatures.GetExternalBinaryTemperature(profiles.Device)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "binary": profiles.Device}).Warn("Unable to get temperature from binary.")
+							}
+						}
+					case temperatures.SensorTypeMultiGPU:
+						{
+							temp = temperatures.GetGpuTemperatureIndex(int(profiles.GPUIndex))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
 						}
 					}
@@ -1787,14 +1790,14 @@ func (d *Device) getDeviceData() {
 	}
 
 	// Channels
-	channels := d.read(modeGetFans, dataTypeGetFans, "getDeviceData")
+	channels := d.read(modeGetFans, "getDeviceData")
 	if channels == nil {
 		return
 	}
 	var m = 0
 
 	// Speed
-	response := d.read(modeGetSpeeds, dataTypeGetSpeeds, "getDeviceData")
+	response := d.read(modeGetSpeeds, "getDeviceData")
 	if response == nil {
 		return
 	}
@@ -1824,7 +1827,7 @@ func (d *Device) getDeviceData() {
 	}
 
 	// Temperature
-	response = d.read(modeGetTemperatures, dataTypeGetTemperatures, "getDeviceData")
+	response = d.read(modeGetTemperatures, "getDeviceData")
 	if response == nil {
 		return
 	}
@@ -2785,7 +2788,7 @@ func (d *Device) saveDeviceProfile() {
 	// Create profile filename
 	file, fileErr := os.Create(deviceProfile.Path)
 	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to create new device profile")
+		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
 		return
 	}
 
@@ -2806,7 +2809,7 @@ func (d *Device) saveDeviceProfile() {
 }
 
 // read will read data from a device and return data as a byte array
-func (d *Device) read(endpoint, bufferType []byte, caller string) []byte {
+func (d *Device) read(endpoint []byte, caller string) []byte {
 	// Lock it
 	d.deviceLock.Lock()
 	defer d.deviceLock.Unlock()

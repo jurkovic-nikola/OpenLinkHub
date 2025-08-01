@@ -53,6 +53,7 @@
                                                     <option value="4">Temperature Probe</option>
                                                     <option value="5">CPU + GPU</option>
                                                     <option value="6">External HWMON</option>
+                                                    <option value="8">Multi GPU</option>
                                                 </select>
 
                                                 {{ if .TemperatureProbes }}
@@ -92,6 +93,17 @@
                                                     <select class="form-select mb-1 tempProfile" id="hwmonDeviceId">
                                                         {{ range .SystemInfo.Storage }}
                                                         <option value="{{ .Key }}">{{ .Model }}</option>
+                                                        {{ end }}
+                                                    </select>
+                                                </div>
+                                                {{ end }}
+
+                                                {{ if .SystemInfo.GPU }}
+                                                <div id="gpu-data" style="display: none;">
+                                                    <label class="form-label" for="gpuIndex">{{ .Lang "txtGpuDevice" }}:</label>
+                                                    <select class="form-select mb-1 tempProfile" id="gpuIndex">
+                                                        {{ range .SystemInfo.GPU }}
+                                                        <option value="{{ .Index }}">{{ .Model }} - {{ .TemperatureString }}</option>
                                                         {{ end }}
                                                     </select>
                                                 </div>
@@ -176,6 +188,8 @@
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Hwmon</p>
                                                 {{ else if eq $value.Sensor 7 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Binary</p>
+                                                {{ else if eq $value.Sensor 8 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Multi GPU</p>
                                                 {{ end }}
 
                                                 <!--

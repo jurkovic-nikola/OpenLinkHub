@@ -110,6 +110,20 @@ func getGpuTemperature(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getGpuTemperatures will return current gpu temperature in string format
+func getGpuTemperatures(w http.ResponseWriter, _ *http.Request) {
+	data := make(map[int]interface{})
+	for key, val := range systeminfo.GetInfo().GPU {
+		data[key] = dashboard.GetDashboard().TemperatureToString(val.Temperature)
+	}
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   data,
+	}
+	resp.Send(w)
+}
+
 // getGpuTemperatureClean will return current gpu temperature in float value
 func getGpuTemperatureClean(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
@@ -1464,6 +1478,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/cpuTemp", http.MethodGet, getCpuTemperature)
 	handleFunc(r, "/api/cpuTemp/clean", http.MethodGet, getCpuTemperatureClean)
 	handleFunc(r, "/api/gpuTemp", http.MethodGet, getGpuTemperature)
+	handleFunc(r, "/api/gpuTemps", http.MethodGet, getGpuTemperatures)
 	handleFunc(r, "/api/gpuTemp/clean", http.MethodGet, getGpuTemperatureClean)
 	handleFunc(r, "/api/storageTemp", http.MethodGet, getStorageTemperature)
 	handleFunc(r, "/api/batteryStats", http.MethodGet, getBatteryStats)

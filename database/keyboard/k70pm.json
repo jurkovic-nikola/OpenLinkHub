@@ -1,0 +1,1673 @@
+{
+  "version": 3,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
+  "key": "k70pm-default",
+  "device": "K70 Pro Mini",
+  "layout": "US",
+  "rows": 5,
+  "modifierPosition": 15,
+  "keyAssignmentLength": 123,
+  "bufferSize": 103,
+  "color": {
+    "red": 0,
+    "green": 255,
+    "blue": 255
+  },
+  "row": {
+    "0": {
+      "overrideCss": "display:flex",
+      "keys": {
+        "1": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [204],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "2": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [177],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "3": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [180],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "4": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [183],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "5": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [186],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "6": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [189],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "7": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [192],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "8": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [195],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "9": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [198],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "10": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [201],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "11": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [204],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        }
+      }
+    },
+    "1": {
+      "keys": {
+        "12": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [255],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "13": {
+          "keyName": "ESC",
+          "subKeyName": "` ~",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [123],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [41, 57, 56],
+          "keyHash": ["2199023255552"]
+        },
+        "14": {
+          "keyName": "1",
+          "subKeyName": "F1",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [90],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [30, 57, 56],
+          "keyHash": ["1073741824"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 46
+        },
+        "15": {
+          "keyName": "2",
+          "subKeyName": "F2",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [93],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [31, 57, 56],
+          "keyHash": ["2147483648"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 47
+        },
+        "16": {
+          "keyName": "3",
+          "subKeyName": "F3",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [96],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [32, 57, 56],
+          "keyHash": ["4294967296"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 48
+        },
+        "17": {
+          "keyName": "4",
+          "subKeyName": "F4",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [99],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [33, 57, 56],
+          "keyHash": ["8589934592"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 49
+        },
+        "18": {
+          "keyName": "5",
+          "subKeyName": "F5",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [102],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [34, 57, 56],
+          "keyHash": ["17179869184"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 50
+        },
+        "19": {
+          "keyName": "6",
+          "subKeyName": "F6",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [105],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [35, 57, 56],
+          "keyHash": ["34359738368"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 51
+        },
+        "20": {
+          "keyName": "7",
+          "subKeyName": "F7",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [108],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [36, 57, 56],
+          "keyHash": ["68719476736"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 52
+        },
+        "21": {
+          "keyName": "8",
+          "subKeyName": "F8",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [111],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [37, 57, 56],
+          "keyHash": ["137438953472"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 53
+        },
+        "22": {
+          "keyName": "9",
+          "subKeyName": "F9",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [114],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [38, 57, 56],
+          "keyHash": ["274877906944"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 54
+        },
+        "23": {
+          "keyName": "0",
+          "subKeyName": "F10",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [117],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [39, 57, 56],
+          "keyHash": ["549755813888"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 55
+        },
+        "24": {
+          "keyName": "-",
+          "subKeyName": "F11",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [135],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [45, 57, 56],
+          "keyHash": ["35184372088832"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 56
+        },
+        "25": {
+          "keyName": "=",
+          "subKeyName": "F12",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [138],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [46, 57, 56],
+          "keyHash": ["70368744177664"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 57
+        },
+        "26": {
+          "keyName": "<---",
+          "width": 140,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [126],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide3",
+          "default": true,
+          "keyData": [42, 57, 56],
+          "keyHash": ["4398046511104"]
+        },
+        "27": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [207],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125topright",
+          "overrideBackground": true,
+          "onlyColor": true
+        }
+      }
+    },
+    "2": {
+      "keys": {
+        "28": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [252],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125top20",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "29": {
+          "keyName": "",
+          "width": 90,
+          "height": 70,
+          "left": 75,
+          "top": 15,
+          "color": {
+            "red": 0,
+            "green": 0,
+            "blue": 0
+          },
+          "css": "keyboard-key empty",
+          "overrideBackground": true
+        },
+        "30": {
+          "keyName": "TAB",
+          "width": 100,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [129],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [43, 57, 56],
+          "keyHash": ["8796093022208"]
+        },
+        "31": {
+          "keyName": "Q",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [60],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [20, 59, 58],
+          "keyHash": ["1048576"]
+        },
+        "32": {
+          "keyName": "W",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [78],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [26, 59, 58],
+          "keyHash": ["67108864"]
+        },
+        "33": {
+          "keyName": "E",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [24],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [8, 59, 58],
+          "keyHash": ["256"]
+        },
+        "34": {
+          "keyName": "R",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [63],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [21, 59, 58],
+          "keyHash": ["2097152"]
+        },
+        "35": {
+          "keyName": "T",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [69],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [23, 57, 56],
+          "keyHash": ["8388608"],
+          "bluetoothProfile1": true
+        },
+        "36": {
+          "keyName": "Y",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [84],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [28, 57, 56],
+          "keyHash": ["268435456"],
+          "bluetoothProfile2": true
+        },
+        "37": {
+          "keyName": "U",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [72],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [24, 57, 56],
+          "keyHash": ["16777216"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 126
+        },
+        "38": {
+          "keyName": "I",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [36],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [12, 57, 56],
+          "keyHash": ["4096"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 74
+        },
+        "39": {
+          "keyName": "O",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [54],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [18, 57, 56],
+          "keyHash": ["262144"],
+          "hasSubAction": true,
+          "fnActionType": 1,
+          "fnActionCommand": 5
+        },
+        "40": {
+          "keyName": "P",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [57],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [19, 57, 56],
+          "keyHash": ["524288"],
+          "hasSubAction": true,
+          "fnActionType": 1,
+          "fnActionCommand": 6
+        },
+        "41": {
+          "keyName": "[ {",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [141],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [47, 57, 56],
+          "keyHash": ["140737488355328"],
+          "hasSubAction": true,
+          "fnActionType": 1,
+          "fnActionCommand": 7
+        },
+        "42": {
+          "keyName": "] }",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [144],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [48, 57, 56],
+          "keyHash": ["281474976710656"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 85
+        },
+        "43": {
+          "keyName": "\\ |",
+          "width": 110,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [147],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [49, 57, 56],
+          "macroRecordingKey": true,
+          "keyHash": ["562949953421312"]
+        },
+        "44": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [210],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125top20right",
+          "overrideBackground": true,
+          "onlyColor": true
+        }
+      }
+    },
+    "3": {
+      "keys": {
+        "45": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [249],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125top40",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "46": {
+          "keyName": "",
+          "width": 90,
+          "height": 70,
+          "left": 75,
+          "top": 15,
+          "color": {
+            "red": 0,
+            "green": 0,
+            "blue": 0
+          },
+          "css": "keyboard-key empty",
+          "overrideBackground": true
+        },
+        "47": {
+          "keyName": "CAPS",
+          "width": 120,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [171],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [57, 57, 56],
+          "keyHash": ["144115188075855872"]
+        },
+        "48": {
+          "keyName": "A",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [12],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [4, 59, 58],
+          "keyHash": ["16"]
+        },
+        "49": {
+          "keyName": "S",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [66],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [22, 59, 58],
+          "keyHash": ["4194304"]
+        },
+        "50": {
+          "keyName": "D",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [21],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [7, 59, 58],
+          "keyHash": ["128"]
+        },
+        "51": {
+          "keyName": "F",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [27],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [9, 59, 58],
+          "keyHash": ["512"]
+        },
+        "52": {
+          "keyName": "G",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [30],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [10, 57, 56],
+          "keyHash": ["1024"],
+          "bluetoothProfile3": true
+        },
+        "53": {
+          "keyName": "H",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [33],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [11, 57, 56],
+          "keyHash": ["2048"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 127
+        },
+        "54": {
+          "keyName": "J",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [39],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [13, 57, 56],
+          "keyHash": ["8192"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 82
+        },
+        "55": {
+          "keyName": "K",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [42],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [14, 57, 56],
+          "keyHash": ["16384"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 83
+        },
+        "56": {
+          "keyName": "L",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [45],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [15, 57, 56],
+          "keyHash": ["32768"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 84
+        },
+        "57": {
+          "keyName": "; :",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [153],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [51, 57, 56],
+          "keyHash": ["2251799813685248"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 90
+        },
+        "58": {
+          "keyName": "' ''",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [156],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [52, 57, 56],
+          "keyHash": ["4503599627370496"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 87
+        },
+        "59": {
+          "keyName": "ENTER",
+          "width": 175,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [120],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide3",
+          "default": true,
+          "keyData": [40, 57, 56],
+          "keyHash": ["1099511627776"]
+        },
+        "60": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [213],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125top40right",
+          "overrideBackground": true,
+          "onlyColor": true
+        }
+      }
+    },
+    "4": {
+      "keys": {
+        "61": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [246],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125top60",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "62": {
+          "keyName": "",
+          "width": 90,
+          "height": 70,
+          "left": 75,
+          "top": 15,
+          "color": {
+            "red": 0,
+            "green": 0,
+            "blue": 0
+          },
+          "css": "keyboard-key empty",
+          "overrideBackground": true
+        },
+        "63": {
+          "keyName": "SHIFT",
+          "keyNameInternal": "L SHIFT",
+          "width": 175,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [318],
+          "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          },
+          "css": "keyboard-key wide3",
+          "modifier": true,
+          "default": true,
+          "keyData": [106, 63, 62],
+          "modifierPacketValue": 4,
+          "keyHash": ["81129638414606681695789005144064"],
+          "modifierShift": 25
+        },
+        "64": {
+          "keyName": "Z",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [87],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [29, 57, 56],
+          "profileKey": true,
+          "keyHash": ["536870912"]
+        },
+        "65": {
+          "keyName": "X",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [81],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [27, 57, 56],
+          "brightnessKey": true,
+          "keyHash": ["134217728"]
+        },
+        "66": {
+          "keyName": "C",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [18],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [6, 57, 56],
+          "keyHash": ["64"]
+        },
+        "67": {
+          "keyName": "V",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [75],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [25, 57, 56],
+          "keyHash": ["33554432"]
+        },
+        "68": {
+          "keyName": "B",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [15],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [5, 57, 56],
+          "rgbKey": true,
+          "keyHash": ["32"]
+        },
+        "69": {
+          "keyName": "N",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [51],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [17, 57, 56],
+          "keyHash": ["131072"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 86
+        },
+        "70": {
+          "keyName": "M",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [48],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [16, 57, 56],
+          "keyHash": ["65536"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 89
+        },
+        "71": {
+          "keyName": ", <",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [162],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "hasSubAction": true,
+          "keyData": [54, 57, 56],
+          "keyHash": ["18014398509481984"],
+          "fnActionType": 1,
+          "fnActionCommand": 3
+        },
+        "72": {
+          "keyName": ". >",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [165],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [55, 57, 56],
+          "hasSubAction": true,
+          "keyHash": ["36028797018963968"],
+          "fnActionType": 1,
+          "fnActionCommand": 2
+        },
+        "73": {
+          "keyName": "/ ?",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [168],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [56, 57, 56],
+          "hasSubAction": true,
+          "keyHash": ["72057594037927936"],
+          "fnActionType": 1,
+          "fnActionCommand": 1
+        },
+        "74": {
+          "keyName": "SHIFT",
+          "keyNameInternal": "R SHIFT",
+          "width": 120,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [330],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide3",
+          "modifier": true,
+          "default": true,
+          "keyData": [110, 63, 62],
+          "modifierPacketValue": 64,
+          "modifierShift": 25,
+          "keyHash": ["1298074214633706907132624082305024"]
+        },
+        "75": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [216],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key height125top60right",
+          "overrideBackground": true,
+          "onlyColor": true
+        }
+      }
+    },
+    "5": {
+      "keys": {
+        "76": {
+          "keyName": "",
+          "width": 90,
+          "height": 70,
+          "left": 75,
+          "top": 15,
+          "color": {
+            "red": 0,
+            "green": 0,
+            "blue": 0
+          },
+          "css": "keyboard-key empty",
+          "overrideBackground": true
+        },
+        "77": {
+          "keyName": "CTRL",
+          "width": 90,
+          "height": 70,
+          "left": 75,
+          "top": 15,
+          "packetIndex": [315],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "modifier": true,
+          "default": true,
+          "keyData": [105, 63, 62],
+          "modifierPacketValue": 2,
+          "modifierShift": 49,
+          "keyHash": ["40564819207303340847894502572032"]
+        },
+        "78": {
+          "keyName": "WIN",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [324],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "isLock": true,
+          "keyData": [108, 57, 56],
+          "keyHash": ["324518553658426726783156020576256"]
+        },
+        "79": {
+          "keyName": "ALT",
+          "keyNameInternal": "L ALT",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [321],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "modifier": true,
+          "default": true,
+          "keyData": [107, 63, 62],
+          "modifierPacketValue": 8,
+          "modifierShift": 41,
+          "keyHash": ["162259276829213363391578010288128"]
+        },
+        "80": {
+          "keyName": "SPACE",
+          "width": 520,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [0, 3, 132],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide7",
+          "default": true,
+          "keyData": [44, 57, 56],
+          "keyHash": ["17592186044416"]
+        },
+        "81": {
+          "keyName": "ALT",
+          "keyNameInternal": "R ALT",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [333],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "modifier": true,
+          "default": true,
+          "keyData": [111, 63, 62],
+          "modifierPacketValue": 128,
+          "modifierShift": 41,
+          "keyHash": ["2596148429267413814265248164610048"]
+        },
+        "82": {
+          "keyName": "FN",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [366],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "functionKey": true,
+          "modifier": true,
+          "default": true,
+          "keyData": [122, 63, 62],
+          "modifierShift": 41,
+          "keyHash": ["5316911983139663491615228241121378304"]
+        },
+        "83": {
+          "keyName": "MENU",
+          "width": 70,
+          "height": 70,
+          "left": 45,
+          "top": 15,
+          "packetIndex": [303],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [101, 63, 62],
+          "keyHash": ["1208925819614629174706176"]
+        },
+        "84": {
+          "keyName": "CTRL",
+          "keyNameInternal": "R CTRL",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [327],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "modifier": true,
+          "keyData": [109, 63, 62],
+          "modifierPacketValue": 2,
+          "modifierShift": 49,
+          "keyHash": ["649037107316853453566312041152512"]
+        }
+      }
+    },
+    "6": {
+      "overrideCss": "display:flex",
+      "keys": {
+        "85": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [243],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "86": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [240],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "87": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [237],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "88": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [234],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "89": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [231],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "90": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [228],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "91": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [225],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "92": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [222],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        },
+        "93": {
+          "keyName": "",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [219],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide100",
+          "overrideBackground": true,
+          "onlyColor": true
+        }
+      }
+    }
+  }
+}

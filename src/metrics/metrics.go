@@ -64,16 +64,16 @@ func Init() {
 // PopulateDefault adds default temperature metrics (e.g., CPU, GPU)
 func PopulateDefault() {
 	cpu := systeminfo.GetInfo().CPU.Model
-	gpu := systeminfo.GetInfo().GPU.Model
-
 	mu.Lock()
 	defaultMetrics[cpu] = DefaultTemp{
 		Model:       cpu,
 		Temperature: float64(temperatures.GetCpuTemperature()),
 	}
-	defaultMetrics[gpu] = DefaultTemp{
-		Model:       gpu,
-		Temperature: float64(temperatures.GetGpuTemperature()),
+	for key, val := range systeminfo.GetInfo().GPU {
+		defaultMetrics[val.Model] = DefaultTemp{
+			Model:       val.Model,
+			Temperature: float64(temperatures.GetGpuTemperatureIndex(key)),
+		}
 	}
 	mu.Unlock()
 }

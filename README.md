@@ -215,7 +215,9 @@ $ systemctl reboot
   "amdsmiPath": "",
   "cpuTempFile": "",
   "graphProfiles": false,
-  "ramTempViaHwmon": false
+  "ramTempViaHwmon": false,
+  "nvidiaGpuIndex": [0],
+  "defaultNvidiaGPU": 0
 }
 ```
 - listenPort: HTTP server port.
@@ -245,6 +247,9 @@ $ systemctl reboot
 - cpuTempFile: custom hwmon temperature input file, e.g. tempX_input. Use in combination with `cpuSensorChip`.
 - graphProfiles: Setting this value to `true` will enable graph based temperature profiles on `/temperature` endpoint and enable temperature interpolation.
 - ramTempViaHwmon: Switch to true if you want to monitor RAM temperature via hwmon system. With this option, you don't have to unload modules to get temperature. (Require 6.11+ kernel)
+- nvidiaGpuIndex: NVIDIA multi gpu setup. 
+- defaultNvidiaGPU: default index of NVIDIA gpu, default is 0.
+
 ### 6. Progressive Web App (PWA) UI
 The web UI supports installation as a progressive web app (PWA). With a supported browser, this allows the UI to appear as a standalone application.
 Chromium-based based browsers support PWAs, Firefox currently does not.

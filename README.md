@@ -21,7 +21,6 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, hea
 - I take no responsibility for this code at all. Use this at your own risk. 
 - Most of the devices are actually tested on live hardware.
 - Take care and have fun!
-- This project does not accept any donations.
 - This project is not an official Corsair product.
 
 ## Supported devices

@@ -446,7 +446,7 @@ func (d *Device) getDevices() int {
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
 		if err != nil {
-			if !slices.Contains(config.GetConfig().EnhancementKits, int(dimmInfoAddresses[i])) {
+			if !slices.Contains(config.GetConfig().EnhancementKits, dimmInfoAddresses[i]) {
 				logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Info("No such register found. Skipping...")
 				continue
 			} else {

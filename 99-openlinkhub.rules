@@ -24,6 +24,7 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bfd", MODE="0660
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bc6", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bb3", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="2b10", MODE="0660", OWNER="openlinkhub"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="2b11", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="2b07", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bab", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bc5", MODE="0660", OWNER="openlinkhub"

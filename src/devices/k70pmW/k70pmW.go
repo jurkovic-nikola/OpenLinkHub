@@ -237,14 +237,16 @@ func (d *Device) StopInternal() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
-// StopDirty will stop device in a dirty way
+// StopDirty will stop all device operations in dirty way
 func (d *Device) StopDirty() uint8 {
 	d.Exit = true
-	d.Connected = false
-	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
+
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
+
+	d.Connected = false
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
 }
@@ -259,7 +261,23 @@ func (d *Device) SetConnected(value bool) {
 
 // Connect will connect to a device
 func (d *Device) Connect() {
-	if !d.Connected {
+	found := false
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		found = true
+		return nil
+	})
+
+	// Enumerate all Corsair devices
+	err := hid.Enumerate(d.VendorId, d.ProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Warn("Unable to enumerate devices")
+	}
+
+	if found {
+		logger.Log(logger.Fields{"vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Warn("Connect() not allowed while in USB protocol")
+	}
+
+	if !d.Connected && !found {
 		d.Connected = true
 		d.setSoftwareMode()    // Activate software mode
 		d.getBatterLevel()     // Battery level

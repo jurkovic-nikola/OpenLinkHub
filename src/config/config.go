@@ -24,7 +24,7 @@ type Configuration struct {
 	ResumeDelay           int      `json:"resumeDelay"`
 	LogFile               string   `json:"logFile"`
 	LogLevel              string   `json:"logLevel"`
-	EnhancementKits       []int    `json:"enhancementKits"`
+	EnhancementKits       []byte   `json:"enhancementKits"`
 	TemperatureOffset     int      `json:"temperatureOffset"`
 	AMDGpuIndex           int      `json:"amdGpuIndex"`
 	AMDSmiPath            string   `json:"amdsmiPath"`
@@ -45,7 +45,7 @@ var (
 		"resumeDelay":           15000,
 		"logLevel":              "info",
 		"logFile":               "",
-		"enhancementKits":       make([]int, 0),
+		"enhancementKits":       make([]byte, 0),
 		"temperatureOffset":     0,
 		"amdGpuIndex":           0,
 		"amdsmiPath":            "",
@@ -98,20 +98,20 @@ func upgradeFile(cfg string) {
 			Metrics:               false,
 			Memory:                false,
 			MemorySmBus:           "i2c-0",
-			MemoryType:            4,
+			MemoryType:            5,
 			Exclude:               make([]uint16, 0),
 			DecodeMemorySku:       true,
 			MemorySku:             "",
 			ResumeDelay:           15000,
 			LogLevel:              "info",
 			LogFile:               "",
-			EnhancementKits:       make([]int, 0),
+			EnhancementKits:       make([]byte, 0),
 			TemperatureOffset:     0,
 			AMDGpuIndex:           0,
 			AMDSmiPath:            "",
 			CheckDevicePermission: true,
 			CpuTempFile:           "",
-			GraphProfiles:         false,
+			GraphProfiles:         true,
 			RamTempViaHwmon:       false,
 			NvidiaGpuIndex:        []int{0},
 			DefaultNvidiaGPU:      0,

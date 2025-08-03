@@ -336,5 +336,31 @@
     "linkAdapter": true,
     "cpuBlock": false,
     "hasSpeed": false
+  },
+  {
+    "deviceId": 5,
+    "deviceModel": 1,
+    "deviceName": "iCUE LINK ADAPTER",
+    "ledChannels": 0,
+    "containsPump": false,
+    "desc": "Adapter",
+    "aio": false,
+    "temperatureProbe": false,
+    "linkAdapter": true,
+    "cpuBlock": false,
+    "hasSpeed": false
+  },
+  {
+    "deviceId": 5,
+    "deviceModel": 2,
+    "deviceName": "iCUE LINK ADAPTER",
+    "ledChannels": 0,
+    "containsPump": false,
+    "desc": "Adapter",
+    "aio": false,
+    "temperatureProbe": false,
+    "linkAdapter": true,
+    "cpuBlock": false,
+    "hasSpeed": false
   }
 ]

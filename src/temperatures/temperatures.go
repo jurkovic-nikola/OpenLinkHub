@@ -731,6 +731,10 @@ func GetAMDGpuTemperature() float32 {
 
 // GetNVIDIAGpuTemperature will return NVIDIA gpu temperature
 func GetNVIDIAGpuTemperature(gpuIndex int) float32 {
+	if config.GetConfig().DefaultNvidiaGPU == -1 {
+		return 0
+	}
+
 	cmd := exec.Command("nvidia-smi", "-i", strconv.Itoa(gpuIndex), "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits")
 	output, err := cmd.Output()
 	if err != nil {

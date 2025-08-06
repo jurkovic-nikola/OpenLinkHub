@@ -248,6 +248,7 @@ $ systemctl reboot
 - ramTempViaHwmon: Switch to true if you want to monitor RAM temperature via hwmon system. With this option, you don't have to unload modules to get temperature. (Require 6.11+ kernel)
 - nvidiaGpuIndex: NVIDIA multi gpu setup. 
 - defaultNvidiaGPU: default index of NVIDIA gpu, default is 0.
+  - If you use vfio-pci/pass-through, you have to set it to -1 to avoid conflits with nvidia modules.
 
 ### 6. Progressive Web App (PWA) UI
 The web UI supports installation as a progressive web app (PWA). With a supported browser, this allows the UI to appear as a standalone application.

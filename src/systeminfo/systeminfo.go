@@ -167,10 +167,26 @@ func (si *SystemInfo) getGpuData() {
 			si.GPU = gpus
 			return
 		} else if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "Advanced Micro Devices") {
+			gpuModel := GetAMDGpuModel()
+			if len(gpuModel) == 0 {
+				lineSplit := strings.Split(line, "[")
+				// if lspci gives [my]i[gpu]... return "myigpu"
+				// otherwise if gives [my gpu] returns "my gpu"
+				if len(lineSplit) >= 3 {
+					before, after, found := strings.Cut(lineSplit[1], "]")
+					if !found {
+						continue
+					}
+					gpuModel = before + after + lineSplit[2]
+				} else {
+					gpuModel = lineSplit[1]
+				}
+				gpuModel = strings.Split(gpuModel, "]")[0]
+			}
 			temp := temperatures.GetAMDGpuTemperature()
 			model := &GpuData{
 				Index:             0,
-				Model:             GetAMDGpuModel(),
+				Model:             gpuModel,
 				Temperature:       temp,
 				TemperatureString: dashboard.GetDashboard().TemperatureToString(temp),
 			}

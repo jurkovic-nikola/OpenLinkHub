@@ -468,7 +468,7 @@ func GetGPUUtilization() int {
 	utilization := 0
 	if info.GPU != nil {
 		index := config.GetConfig().DefaultNvidiaGPU
-		if strings.Contains(strings.ToLower(info.GPU[index].Model), "nvidia") {
+		if index != -1 && strings.Contains(strings.ToLower(info.GPU[index].Model), "nvidia") {
 			// NVIDIA
 			utilization = getNVIDIAUtilization(index)
 		} else {

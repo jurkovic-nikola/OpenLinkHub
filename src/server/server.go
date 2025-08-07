@@ -114,7 +114,7 @@ func getGpuTemperature(w http.ResponseWriter, _ *http.Request) {
 func getGpuTemperatures(w http.ResponseWriter, _ *http.Request) {
 	data := make(map[int]interface{})
 	for key, val := range systeminfo.GetInfo().GPU {
-		data[key] = dashboard.GetDashboard().TemperatureToString(val.Temperature)
+		data[key] = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperatureIndex(val.Index))
 	}
 	resp := &Response{
 		Code:   http.StatusOK,

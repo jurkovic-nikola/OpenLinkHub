@@ -153,7 +153,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
-		Template:  "m75WU.html",
+		Template:  "m75AirWU.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Firmware:  "n/a",

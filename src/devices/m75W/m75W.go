@@ -97,8 +97,6 @@ type Device struct {
 	SleepModes            map[int]string
 	Connected             bool
 	mutex                 sync.Mutex
-	timerKeepAlive        *time.Ticker
-	keepAliveChan         chan struct{}
 	timer                 *time.Ticker
 	autoRefreshChan       chan struct{}
 	Exit                  bool
@@ -123,7 +121,6 @@ var (
 	cmdOpenEndpoint           = []byte{0x0d, 0x00, 0x01}
 	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
 	cmdSetDpi                 = map[int][]byte{0: {0x01, 0x21, 0x00}, 1: {0x01, 0x22, 0x00}}
-	cmdHeartbeat              = []byte{0x12}
 	cmdSleep                  = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
 	cmdSetPollingRate         = []byte{0x01, 0x01, 0x00}
 	cmdWrite                  = []byte{0x06, 0x01}
@@ -139,7 +136,6 @@ var (
 	keyAmount                 = 8
 	minDpiValue               = 100
 	maxDpiValue               = 26000
-	deviceKeepAlive           = 20000
 	deviceRefreshInterval     = 1000
 )
 
@@ -149,14 +145,14 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:       dev,
-		Template:  "m75W.html",
-		VendorId:  vendorId,
-		ProductId: productId,
+		dev:          dev,
+		Template:     "m75W.html",
+		VendorId:     vendorId,
+		ProductId:    productId,
 		SlipstreamId: slipstreamId,
 		Serial:       serial,
 		Endpoint:     endpoint,
-		Firmware:  "n/a",
+		Firmware:     "n/a",
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -174,8 +170,6 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		},
 		LEDChannels:           2,
 		ChangeableLedChannels: 2,
-		keepAliveChan:         make(chan struct{}),
-		timerKeepAlive:        &time.Ticker{},
 		autoRefreshChan:       make(chan struct{}),
 		timer:                 &time.Ticker{},
 		PollingRates: map[int]string{
@@ -206,24 +200,11 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		MacroTracker:      make(map[int]uint16),
 	}
 
-	d.getDebugMode()          // Debug mode
-	d.getManufacturer()       // Manufacturer
-	d.getSerial()             // Serial
-	d.loadRgb()               // Load RGB
-	d.loadDeviceProfiles()    // Load all device profiles
-	d.saveDeviceProfile()     // Save profile
-	d.getDeviceFirmware()     // Firmware
-	d.setSoftwareMode()       // Activate software mode
-	d.setAngleSnapping()      // Angle snapping
-	d.setButtonOptimization() // Button optimization
-	d.initLeds()              // Init LED ports
-	d.setDeviceColor(false)   // Device color
-	d.toggleDPI(false)        // DPI
-	d.setKeepAlive()          // Keepalive
-	d.setAutoRefresh()        // Set auto device refresh
-	d.loadKeyAssignments()    // Key Assignments
-	d.setupKeyAssignment()    // Setup key assignments
-	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
+	d.getDebugMode()       // Debug mode
+	d.loadRgb()            // Load RGB
+	d.loadDeviceProfiles() // Load all device profiles
+	d.saveDeviceProfile()  // Save profile
+	d.loadKeyAssignments() // Key Assignments
 	return d
 }
 
@@ -245,14 +226,10 @@ func (d *Device) StopInternal() {
 		d.activeRgb.Stop()
 	}
 
-	d.timerKeepAlive.Stop()
 	d.timer.Stop()
 	var once sync.Once
 	go func() {
 		once.Do(func() {
-			if d.keepAliveChan != nil {
-				close(d.keepAliveChan)
-			}
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
@@ -278,14 +255,10 @@ func (d *Device) StopDirty() uint8 {
 	}
 
 	d.Connected = false
-	d.timerKeepAlive.Stop()
 	d.timer.Stop()
 	var once sync.Once
 	go func() {
 		once.Do(func() {
-			if d.keepAliveChan != nil {
-				close(d.keepAliveChan)
-			}
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
@@ -313,6 +286,7 @@ func (d *Device) Connect() {
 		d.toggleDPI(true)      // DPI
 		d.setSleepTimer()      // Sleep
 		d.setupKeyAssignment() // Setup key assignments
+		d.setAutoRefresh()     // Auto refresh
 	}
 }
 
@@ -1740,7 +1714,6 @@ func (d *Device) getDeviceProfile() {
 	}
 }
 
-
 func (d *Device) ModifyDpi(color bool) {
 	if d.DeviceProfile.Profile >= 4 {
 		d.DeviceProfile.Profile = 0
@@ -1995,36 +1968,6 @@ func (d *Device) toggleDPI(color bool) {
 	}
 }
 
-// keepAlive will keep a device alive
-func (d *Device) keepAlive() {
-	if d.Exit {
-		return
-	}
-	_, err := d.transfer(cmdHeartbeat, nil)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-	}
-}
-
-// setKeepAlive will keep a device alive
-func (d *Device) setKeepAlive() {
-	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	go func() {
-		for {
-			select {
-			case <-d.timerKeepAlive.C:
-				if d.Exit {
-					return
-				}
-				d.keepAlive()
-			case <-d.keepAliveChan:
-				d.timerKeepAlive.Stop()
-				return
-			}
-		}
-	}()
-}
-
 // writeKeyAssignmentData will write key assignment to the device.
 func (d *Device) writeKeyAssignmentData(data []byte) {
 	if d.Exit {
@@ -2091,15 +2034,4 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
 	d.BatteryLevel = batteryLevel
 	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 1)
-}
-
-// getListenerData will listen for keyboard events and return data on success or nil on failure.
-// ReadWithTimeout is mandatory due to the nature of listening for events
-func (d *Device) getListenerData() []byte {
-	data := make([]byte, bufferSize)
-	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
-	if err != nil || n == 0 {
-		return nil
-	}
-	return data
 }

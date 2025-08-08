@@ -144,57 +144,64 @@
                                     {{ end }}
                                 </div>
                                 <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                    {{ if $device.HasSpeed }}
+                                    <div class="input-group">
+                                        {{ if $device.HasSpeed }}
+                                        <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                            <li>
+                                                <select id="tempProfile" class="form-select tempProfile" name="{{ $device.DeviceId }}">
+                                                    {{ if $device.PumpModes }}
+                                                    {{ range $key, $value := $device.PumpModes }}
+                                                    {{ if eq $device.Profile $value }}
+                                                    <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                    {{ else }}
+                                                    {{ range $key, $pf := $temperatures }}
+                                                    {{ if $pf.Hidden }}
+                                                    {{ continue }}
+                                                    {{ end }}
+                                                    {{ if eq $device.Profile $key }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                            </li>
+                                        </ul>
+                                        {{ end }}
 
-                                    <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select id="tempProfile" class="form-select tempProfile" name="{{ $device.DeviceId }}">
-                                                {{ if $device.PumpModes }}
-                                                {{ range $key, $value := $device.PumpModes }}
-                                                {{ if eq $device.Profile $value }}
-                                                <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
-                                                {{ else }}
-                                                <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                                {{ else }}
-                                                {{ range $key, $pf := $temperatures }}
-                                                {{ if $pf.Hidden }}
-                                                {{ continue }}
-                                                {{ end }}
-                                                {{ if eq $device.Profile $key }}
-                                                <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
-                                                {{ else }}
-                                                <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    {{ end }}
-
-                                    {{ if gt $device.LedChannels 0 }}
-                                    <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
-                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select rgbProfile" name="{{ $device.DeviceId }}">
-                                                {{ range $key, $mode := $rgbModes }}
-                                                {{ if eq $mode $device.RGB }}
-                                                <option value="{{ $device.ChannelId }};{{ $mode }}" selected>{{ $mode }}</option>
-                                                {{ else }}
-                                                <option value="{{ $device.ChannelId }};{{ $mode }}">{{ $mode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    {{ end }}
+                                        {{ if gt $device.LedChannels 0 }}
+                                        <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
+                                            <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                            <li>
+                                                <select class="form-select rgbProfile" name="{{ $device.DeviceId }}">
+                                                    {{ range $key, $mode := $rgbModes }}
+                                                    {{ if eq $mode $device.RGB }}
+                                                    <option value="{{ $device.ChannelId }};{{ $mode }}" selected>{{ $mode }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $mode }}">{{ $mode }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                            </li>
+                                        </ul>
+                                        <button title="RGB Override" class="btn btn-secondary-empty rgbOverride" data-info="{{ $device.ChannelId }}" type="button" style="margin-left: 5px;">
+                                            <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </button>
+                                        <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;lsh" type="button" style="margin-left: 5px;">
+                                            <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </button>
+                                        {{ end }}
+                                    </div>
                                 </div>
                             </div>
                         </div>

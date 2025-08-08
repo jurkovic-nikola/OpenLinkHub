@@ -198,7 +198,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			10: "Macro",
 		},
 		InputActions:      inputmanager.GetInputActions(),
-		keyAssignmentFile: "/database/key-assignments/m75W.json",
+		keyAssignmentFile: "/database/key-assignments/m75AirW.json",
 		MacroTracker:      make(map[int]uint16),
 	}
 

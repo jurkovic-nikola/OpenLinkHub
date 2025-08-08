@@ -63,6 +63,7 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1b7e", MODE="0660
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1b80", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bf0", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1bf2", MODE="0660", OWNER="openlinkhub"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="2b08", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1b9e", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1b75", MODE="0660", OWNER="openlinkhub"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="1b5e", MODE="0660", OWNER="openlinkhub"

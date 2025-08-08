@@ -219,7 +219,6 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	d.initLeds()              // Init LED ports
 	d.setDeviceColor(false)   // Device color
 	d.toggleDPI(false)        // DPI
-	d.backendListener()       // Control listener
 	d.setKeepAlive()          // Keepalive
 	d.setAutoRefresh()        // Set auto device refresh
 	d.loadKeyAssignments()    // Key Assignments
@@ -2064,7 +2063,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = 0x08
+	bufferW[1] = d.Endpoint
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {
@@ -2104,48 +2103,3 @@ func (d *Device) getListenerData() []byte {
 	}
 	return data
 }
-
-// backendListener will listen for events from the device
-func (d *Device) backendListener() {
-	go func() {
-		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 2 {
-				listener, err := hid.OpenPath(info.Path)
-				if err != nil {
-					return err
-				}
-				d.listener = listener
-			}
-			return nil
-		})
-
-		err := hid.Enumerate(d.VendorId, d.ProductId, enum)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
-		}
-
-		for {
-			select {
-			default:
-				if d.Exit {
-					err = d.listener.Close()
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
-						return
-					}
-					return
-				}
-
-				data := d.getListenerData()
-				if len(data) == 0 || data == nil {
-					continue
-				}
-
-				if data[1] == 0x02 {
-					d.TriggerKeyAssignment(data[2])
-				}
-			}
-		}
-	}()
-}
-

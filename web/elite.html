@@ -197,9 +197,15 @@
                                         <button title="RGB Override" class="btn btn-secondary-empty rgbOverride" data-info="{{ $device.ChannelId }}" type="button" style="margin-left: 5px;">
                                             <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                         </button>
-                                        <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;lsh" type="button" style="margin-left: 5px;">
+                                        {{ if $device.ContainsPump }}
+                                        <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;elite" type="button" style="margin-left: 5px;">
                                             <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
                                         </button>
+                                        {{ else }}
+                                        <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;1;elite" type="button" style="margin-left: 5px;">
+                                            <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        </button>
+                                        {{ end }}
                                         {{ end }}
                                     </div>
                                 </div>

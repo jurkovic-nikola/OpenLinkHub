@@ -2359,8 +2359,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     } break;
                 }
-            }
-            break;
+            } break;
             case "memory": {
                 // Memory
                 switch (ledAmount) {
@@ -2383,7 +2382,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 const container = wrapperDiv.querySelector('#container');
                 createLinearLEDs(container, frontOuter, 15, data, 10, 9);
-            }break;
+            } break;
+            case "elite": {
+                // Elite coolers
+                switch (ledAmount) {
+                    case 16: {
+                        if (subDevice) {
+                            frontInner = [0,1,2,3];
+                            frontOuter = [4,5,6,7,8,9,10,11,12,13,14,15];
+                            wrapperDiv.innerHTML = `<div class="device-container" id="container"><div class="center-circle"></div></div>`;
+                            const container = wrapperDiv.querySelector('#container');
+                            createRingLEDs(container, frontInner, 45, data, 100);
+                            createRingLEDs(container, frontOuter, 80, data, 100);
+                        } else {
+                            frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+                            wrapperDiv.innerHTML = `<div class="device-container-block" id="container"><div class="center-circle"></div></div>`;
+                            const container = wrapperDiv.querySelector('#container');
+                            createRingLEDs(container, frontOuter, 120, data, 150);
+                        }
+                    } break;
+                }
+            } break;
         }
         result = wrapperDiv.innerHTML
         return result

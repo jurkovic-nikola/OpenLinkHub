@@ -747,6 +747,28 @@ func setRgbOverride(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getLedData return RGB LED data
+func getLedData(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetLedData(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// setLedData saves RGB LED data
+func setLedData(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetLedData(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
 // setDeviceHardwareColor handles device hardware color changes
 func setDeviceHardwareColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessHardwareChangeColor(r)
@@ -1507,6 +1529,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/linkAdapter/bulk", http.MethodPost, setLinkAdapterBulkColor)
 	handleFunc(r, "/api/color/getOverride", http.MethodPost, getRgbOverride)
 	handleFunc(r, "/api/color/setOverride", http.MethodPost, setRgbOverride)
+	handleFunc(r, "/api/color/getLedData", http.MethodPost, getLedData)
+	handleFunc(r, "/api/color/setLedData", http.MethodPost, setLedData)
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
 	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
 	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)

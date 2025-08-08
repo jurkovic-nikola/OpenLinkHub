@@ -41,6 +41,7 @@
     "txtInvalidGpuIndex": "Unable to validate your request. Invalid gpu selected",
     "txtManualFlag": "Manual flag in config.json is set to true",
     "txtNonExistingChannelId": "Non-existing channelId",
+    "txtInvalidColors": "Invalid colors specified",
     "txtNonExistingSpeedProfileSelected": "Unable to apply speed profile. Non-existing profile selected",
     "txtDeviceSpeedProfileUpdated": "Device speed profile is successfully applied",
     "txtSpeedProfileNoPump": "Liquid temperature profile require pump device with temperature sensor",
@@ -300,8 +301,11 @@
     "txtUnableToChangeDevicePosition": "Unable to change device position",
     "txtDevicePositionChanged": "Device position is successfully changed",
     "txtNoRgbOverride": "No RGB override found",
+    "txtInvalidRgbPerLed": "Unable to save RGB data",
     "txtInvalidSpeedValue": "Invalid speed value",
     "txtRgbOverrideUpdated": "RGB override successfully updated",
-    "txtRgbOverrideFailed": "Unable to update RGB override"
+    "txtRgbOverrideFailed": "Unable to update RGB override",
+    "txtRgbPerLedUpdated": "Device RGB is successfully changed",
+    "txtNoLedData": "No LED data found"
   }
 }

@@ -7,6 +7,7 @@
         {{ $devs := .Devices }}
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
+        {{ $rgbModes := .Device.RGBModes }}
         {{ $lcdDeviceAmount := .Device.XD5LCDs }}
         {{ $lcdDevices := .Lcd }}
         {{ $lcdImages := .LCDImages }}
@@ -110,25 +111,11 @@
                                                 </div>
                                                 <div class="custom-float-80-right">
                                                     <select class="form-select globalRgb" style="line-height: 1;margin-top: 10px;">
-                                                        {{ range $key, $_ := $rgb }}
-                                                        {{ if eq $key "stand" }}
-                                                        {{ continue }}
-                                                        {{ else if eq $key "keyboard" }}
-                                                        {{ continue }}
-                                                        {{ else if eq $key "mousepad" }}
-                                                        {{ continue }}
-                                                        {{ else if eq $key "mouse" }}
-                                                        {{ continue }}
-                                                        {{ else if eq $key "headset" }}
-                                                        {{ continue }}
-                                                        {{ else if eq $key "custom" }}
-                                                        {{ continue }}
-                                                        {{ end }}
-
-                                                        {{ if eq $deviceProfile.MultiRGB $key }}
-                                                        <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                        {{ range $key, $mode := $rgbModes }}
+                                                        {{ if eq $mode $deviceProfile.MultiRGB }}
+                                                        <option value="{{ $mode }}" selected>{{ $mode }}</option>
                                                         {{ else }}
-                                                        <option value="{{ $key }}">{{ $key }}</option>
+                                                        <option value="{{ $mode }}">{{ $mode }}</option>
                                                         {{ end }}
                                                         {{ end }}
                                                     </select>
@@ -264,6 +251,30 @@
                                                 {{ end }}
                                             </div>
                                         </div>
+                                        {{ else }}
+                                        {{ if $device.HasTemps }}
+                                        {{ if gt $device.Temperature 0.00 }}
+                                        <div class="card-body" style="padding: 1rem 1rem;">
+                                            <div style="text-align: center;">
+                                                <div class="d-flex align-items-end justify-content-between mb-2">
+                                                    <div class="me-2">
+                                                        {{ if $device.ContainsPump }}
+                                                        <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                                                        {{ else if $device.IsCpuBlock }}
+                                                        <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Liquid Temp</p>
+                                                        {{ else }}
+                                                        <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Temp</p>
+                                                        {{ end }}
+                                                    </div>
+                                                    <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ $device.DeviceId }}">{{ $device.TemperatureString }}</p>
+                                                </div>
+                                                <div class="progress" style="height: 3px">
+                                                    <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {{ end }}
+                                        {{ end }}
                                         {{ end }}
                                         <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
                                             <div class="input-group">
@@ -290,7 +301,7 @@
                                                 {{ end }}
 
                                                 {{ if gt $device.LedChannels 0 }}
-                                                <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
+                                                <button title="RGB Profiles" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
                                                     <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
@@ -300,24 +311,11 @@
                                                         {{ else }}
                                                         <select class="form-select rgbProfile" name="{{ $device.DeviceId }}">
                                                         {{ end }}
-                                                            {{ range $key, $_ := $rgb }}
-                                                            {{ if eq $key "stand" }}
-                                                            {{ continue }}
-                                                            {{ else if eq $key "keyboard" }}
-                                                            {{ continue }}
-                                                            {{ else if eq $key "mousepad" }}
-                                                            {{ continue }}
-                                                            {{ else if eq $key "mouse" }}
-                                                            {{ continue }}
-                                                            {{ else if eq $key "headset" }}
-                                                            {{ continue }}
-                                                            {{ else if eq $key "custom" }}
-                                                            {{ continue }}
-                                                            {{ end }}
-                                                            {{ if eq $key $device.RGB }}
-                                                            <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                            {{ range $key, $mode := $rgbModes }}
+                                                            {{ if eq $mode $device.RGB }}
+                                                            <option value="{{ $device.ChannelId }};{{ $mode }}" selected>{{ $mode }}</option>
                                                             {{ else }}
-                                                            <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                            <option value="{{ $device.ChannelId }};{{ $mode }}">{{ $mode }}</option>
                                                             {{ end }}
                                                             {{ end }}
                                                         </select>
@@ -327,9 +325,12 @@
                                                 <button title="RGB Override" class="btn btn-secondary-empty rgbOverride" data-info="{{ $device.ChannelId }}" type="button" style="margin-left: 5px;">
                                                     <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                                 </button>
-                                                {{ end }}
-                                                {{ end }}
 
+                                                <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;lsh" type="button" style="margin-left: 5px;">
+                                                    <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                </button>
+                                                {{ end }}
+                                                {{ end }}
 
                                                 {{ if and $lcd $device.ContainsPump }}
                                                 {{ $lcdMode := index $deviceProfile.LCDModes $device.ChannelId }}
@@ -459,33 +460,20 @@
                                                     {{ $subDevice.Name }}
                                                 </div>
                                                 <div style="float: right;">
-                                                    <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
+                                                    <button title="RGB Profiles" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
                                                         <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                                     </button>
                                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                                         <li>
                                                             <select class="form-select linkAdapterRgbProfile" name="{{ $device.DeviceId }}">
-                                                                {{ range $key, $_ := $rgb }}
-                                                                {{ if eq $key "stand" }}
-                                                                {{ continue }}
-                                                                {{ else if eq $key "keyboard" }}
-                                                                {{ continue }}
-                                                                {{ else if eq $key "mousepad" }}
-                                                                {{ continue }}
-                                                                {{ else if eq $key "mouse" }}
-                                                                {{ continue }}
-                                                                {{ else if eq $key "headset" }}
-                                                                {{ continue }}
-                                                                {{ else if eq $key "custom" }}
-                                                                {{ continue }}
-                                                                {{ end }}
-
+                                                                {{ range $key, $mode := $rgbModes }}
                                                                 {{ $adapterRgbProfileDevice := index $deviceProfile.SubDeviceRGBProfiles $device.ChannelId }}
                                                                 {{ $adapterRgbProfile := index $adapterRgbProfileDevice $subDeviceId }}
-                                                                {{ if eq $key $adapterRgbProfile }}
-                                                                <option value="{{ $device.ChannelId }};{{ $subDeviceId }};{{ $key }}" selected>{{ $key }}</option>
+
+                                                                {{ if eq $mode $adapterRgbProfile }}
+                                                                <option value="{{ $device.ChannelId }};{{ $subDeviceId }};{{ $mode }}" selected>{{ $mode }}</option>
                                                                 {{ else }}
-                                                                <option value="{{ $device.ChannelId }};{{ $subDeviceId }};{{ $key }}">{{ $key }}</option>
+                                                                <option value="{{ $device.ChannelId }};{{ $subDeviceId }};{{ $mode }}">{{ $mode }}</option>
                                                                 {{ end }}
                                                                 {{ end }}
                                                             </select>
@@ -493,6 +481,9 @@
                                                     </ul>
                                                     <button title="RGB Override" class="btn btn-secondary-empty rgbOverrideLinkAdapter" data-info="{{ $device.ChannelId }};{{ $subDeviceId }}" type="button" style="margin-left: 5px;">
                                                         <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                                    </button>
+                                                    <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $subDevice.Name }};{{ $device.ChannelId }};{{ $subDevice.Total }};{{ $subDeviceId }};1;lsh" type="button" style="margin-left: 5px;">
+                                                        <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
                                                     </button>
                                                 </div>
                                             </div>

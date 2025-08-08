@@ -14,9 +14,10 @@ import (
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {
@@ -169,7 +170,7 @@ func (d *Device) StopDirty() uint8 {
 	}
 
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // getManufacturer will return device manufacturer

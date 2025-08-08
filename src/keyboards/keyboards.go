@@ -93,6 +93,7 @@ type Key struct {
 	BluetoothProfile1             bool      `json:"bluetoothProfile1"`
 	BluetoothProfile2             bool      `json:"bluetoothProfile2"`
 	BluetoothProfile3             bool      `json:"bluetoothProfile3"`
+	SlipstreamProfile             bool      `json:"slipstreamProfile"`
 }
 
 // Init will load and initialize keyboard data

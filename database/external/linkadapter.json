@@ -348,7 +348,7 @@
     "command": 1,
     "devices": {
       "0": {
-        "name": "QX Series Fan #1",
+        "name": "LL Series Fan #1",
         "total": 16
       }
     }

@@ -127,6 +127,7 @@ type Device struct {
 	timer             *time.Ticker
 	timerSpeed        *time.Ticker
 	Exit              bool
+	RGBModes          []string
 }
 
 var (
@@ -144,7 +145,21 @@ var (
 	BufferSize                 = 64
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
-	supportedDevices           = []SupportedDevice{
+	rgbModes                   = []string{
+		"circle",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"gpu-temperature",
+		"liquid-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"static",
+		"watercolor",
+	}
+	supportedDevices = []SupportedDevice{
 		{ProductId: 3090, Product: "H150i PLATINUM", Fans: 3, FanLeds: 0, PumpLeds: 1},
 		{ProductId: 3091, Product: "H115i PLATINUM", Fans: 2, FanLeds: 0, PumpLeds: 1},
 		{ProductId: 3093, Product: "H100i PLATINUM", Fans: 2, FanLeds: 0, PumpLeds: 1},
@@ -222,6 +237,7 @@ func Init(vendorId, productId uint16, path string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:         rgbModes,
 		autoRefreshChan:  make(chan struct{}),
 		speedRefreshChan: make(chan struct{}),
 		timer:            &time.Ticker{},
@@ -407,6 +423,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -588,6 +608,9 @@ func (d *Device) setDeviceColor() {
 	if s > 0 || l > 0 { // We have some values
 		if s == l { // number of devices matches number of devices with static profile
 			profile := d.GetRgbProfile("static")
+			if profile == nil {
+				return
+			}
 			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
 			for i := 0; i < lightChannels; i++ {
@@ -1039,11 +1062,15 @@ func (d *Device) getDevices() int {
 		var ledChannels uint8 = 0
 		// LED channels
 		supportedDevice := d.getSupportedDevice(d.ProductId)
-		if deviceList[device].Pump {
-			speedMode.Value = 1
-			ledChannels = supportedDevice.PumpLeds
+		if supportedDevice != nil {
+			if deviceList[device].Pump {
+				speedMode.Value = 1
+				ledChannels = supportedDevice.PumpLeds
+			} else {
+				ledChannels = supportedDevice.FanLeds
+			}
 		} else {
-			ledChannels = supportedDevice.FanLeds
+			ledChannels = 1
 		}
 
 		if ledChannels > 0 {

@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/big"
 	"os"
 	"regexp"
@@ -27,6 +26,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -90,6 +91,7 @@ type Device struct {
 	ModifierIndex      *big.Int
 	KeyAssignmentTypes map[int]string
 	MacroTracker       map[int]uint16
+	RGBModes           []string
 }
 
 var (
@@ -125,6 +127,25 @@ var (
 	lockLedIndex            = 133
 	KeyAssignment           = 137
 	maxKeyAssignmentLen     = 61
+	rgbModes                = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"keyboard",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -157,6 +178,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		listener:        nil,
 		UIKeyboard:      "keyboard-7",
 		UIKeyboardRow:   "keyboard-row-26",
+		RGBModes:        rgbModes,
 		PollingRates: map[int]string{
 			0: "Not Set",
 			1: "125 Hz / 8 msec",
@@ -522,6 +544,9 @@ func (d *Device) saveDeviceProfile() {
 		// Upgrade process
 		currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
 		layout := keyboards.GetKeyboard(currentLayout)
+		if layout == nil {
+			return
+		}
 		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
@@ -811,6 +836,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -1269,6 +1297,9 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "static" {
 		profile := d.GetRgbProfile("static")
+		if profile == nil {
+			return
+		}
 		if d.DeviceProfile.Brightness != 0 {
 			profile.StartColor.Brightness = rgb.GetBrightnessValue(d.DeviceProfile.Brightness)
 		}

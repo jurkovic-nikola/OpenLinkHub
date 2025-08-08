@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
@@ -29,6 +28,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 var (
@@ -2391,6 +2392,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -2600,9 +2604,13 @@ func (d *Device) resetLEDPorts() {
 				if deviceType, valid := d.DeviceProfile.CustomLEDs[i]; valid {
 					if deviceType > 0 {
 						externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.CustomLEDs[i])
-						// Channel activation
-						buf = append(buf, 0x01)
-						buf = append(buf, externalDeviceType.Command)
+						if externalDeviceType == nil {
+							buf = append(buf, 0x00)
+						} else {
+							// Channel activation
+							buf = append(buf, 0x01)
+							buf = append(buf, externalDeviceType.Command)
+						}
 					} else {
 						// Port is not configured for ARGB
 						buf = append(buf, 0x00)

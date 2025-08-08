@@ -165,7 +165,7 @@
     "aio": false,
     "temperatureProbe": true,
     "linkAdapter": false,
-    "cpuBlock": false,
+    "cpuBlock": true,
     "hasSpeed": false
   },
   {
@@ -178,7 +178,7 @@
     "aio": false,
     "temperatureProbe": true,
     "linkAdapter": false,
-    "cpuBlock": false,
+    "cpuBlock": true,
     "hasSpeed": false
   },
   {

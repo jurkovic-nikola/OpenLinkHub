@@ -50,6 +50,8 @@ type Payload struct {
 	Profile               string                `json:"profile"`
 	Label                 string                `json:"label"`
 	Static                bool                  `json:"static"`
+	AlternateColors       bool                  `json:"alternateColors"`
+	RgbDirection          byte                  `json:"rgbDirection"`
 	Sensor                uint8                 `json:"sensor"`
 	HardwareLight         int                   `json:"hardwareLight"`
 	ZeroRpm               bool                  `json:"zeroRpm"`
@@ -114,6 +116,7 @@ type Payload struct {
 	PerfShiftTab          bool                  `json:"perf_shiftTab"`
 	PerfAltTab            bool                  `json:"perf_altTab"`
 	PerfAltF4             bool                  `json:"perf_altF4"`
+	Save                  bool                  `json:"save"`
 	Status                int
 	Code                  int
 	Message               string
@@ -550,13 +553,15 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 	endColor.Brightness = 1
 
 	rgbProfile := rgb.Profile{
-		Speed:       req.Speed,
-		Brightness:  1,
-		StartColor:  startColor,
-		MiddleColor: rgb.Color{},
-		EndColor:    endColor,
-		MinTemp:     0,
-		MaxTemp:     0,
+		Speed:           req.Speed,
+		Brightness:      1,
+		StartColor:      startColor,
+		MiddleColor:     rgb.Color{},
+		EndColor:        endColor,
+		MinTemp:         0,
+		MaxTemp:         0,
+		AlternateColors: req.AlternateColors,
+		RgbDirection:    req.RgbDirection,
 	}
 
 	// Run it
@@ -2855,4 +2860,98 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtRgbOverrideUpdated"), Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessGetLedData will process getting data for LED channels
+func ProcessGetLedData(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.SubDeviceId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	data := devices.ProcessGetLedData(req.DeviceId, req.ChannelId, req.SubDeviceId)
+	if data != nil {
+		return &Payload{
+			Data:   data,
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNoLedData"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
+// ProcessSetLedData will process setting data for LED channels
+func ProcessSetLedData(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.SubDeviceId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.ColorZones) < 1 {
+		return &Payload{Message: language.GetValue("txtInvalidColors"), Code: http.StatusOK, Status: 0}
+	}
+
+	status := devices.ProcessSetLedData(req.DeviceId, req.ChannelId, req.SubDeviceId, req.ColorZones, req.Save)
+	switch status {
+	case 1:
+		return &Payload{Message: language.GetValue("txtRgbPerLedUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtInvalidRgbPerLed"), Code: http.StatusOK, Status: 0}
 }

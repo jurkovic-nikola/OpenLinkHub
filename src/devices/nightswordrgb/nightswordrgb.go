@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -25,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -108,6 +109,7 @@ type Device struct {
 	ModifierIndex         uint16
 	SniperMode            bool
 	MacroTracker          map[int]uint16
+	RGBModes              []string
 }
 
 var (
@@ -132,6 +134,22 @@ var (
 	maxDpiValue           = 18000
 	deviceRefreshInterval = 1000
 	LEDPacketLength       = 16
+	rgbModes              = []string{
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"mouse",
+		"off",
+		"rainbow",
+		"rotator",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -166,6 +184,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
+		RGBModes:              rgbModes,
 		LEDChannels:           5,
 		ChangeableLedChannels: 4,
 		keepAliveChan:         make(chan struct{}),
@@ -470,6 +489,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

@@ -21,14 +21,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
-	"github.com/sstallion/go-hid"
-	"golang.org/x/image/draw"
-	"golang.org/x/image/font"
-	_ "golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-	_ "golang.org/x/image/webp"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -39,6 +31,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
+	"github.com/sstallion/go-hid"
+	"golang.org/x/image/draw"
+	"golang.org/x/image/font"
+	_ "golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
+	_ "golang.org/x/image/webp"
 )
 
 type DeviceProfile struct {

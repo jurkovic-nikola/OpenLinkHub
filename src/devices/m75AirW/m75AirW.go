@@ -1,4 +1,4 @@
-package m75W
+package m75AirW
 
 // Package: CORSAIR M75 AIR WIRELESS Gaming Mouse
 // This is the primary package for CORSAIR IRONCLAW RGB Wireless.
@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -26,6 +25,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -140,7 +141,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	// Init new struct with HID device
 	d := &Device{
 		dev:          dev,
-		Template:     "m75W.html",
+		Template:     "m75AirW.html",
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
@@ -412,6 +413,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

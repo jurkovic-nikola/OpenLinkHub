@@ -6,7 +6,6 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"encoding/json"
-	"golang.org/x/image/draw"
 	"image"
 	"image/gif"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"golang.org/x/image/draw"
 )
 
 type Animation struct {

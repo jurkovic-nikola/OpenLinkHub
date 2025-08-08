@@ -16,12 +16,13 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type Device struct {
@@ -48,6 +49,7 @@ type Device struct {
 	timer           *time.Ticker
 	autoRefreshChan chan struct{}
 	mutex           sync.Mutex
+	RGBModes        []string
 }
 
 type ZoneColor struct {
@@ -102,6 +104,25 @@ var (
 	cmdWriteColor         = []byte{0x22, 0x14}
 	colorPacketLength     = 28
 	rgbProfileUpgrade     = []string{"custom"}
+	rgbModes              = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"stand",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, serial string) *Device {
@@ -128,6 +149,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:        rgbModes,
 		LEDChannels:     9,
 		autoRefreshChan: make(chan struct{}),
 		timer:           &time.Ticker{},
@@ -698,6 +720,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

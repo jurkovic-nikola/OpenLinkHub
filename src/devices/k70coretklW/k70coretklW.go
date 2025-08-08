@@ -17,13 +17,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -479,6 +480,9 @@ func (d *Device) saveDeviceProfile() {
 		// Upgrade process
 		currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
 		layout := keyboards.GetKeyboard(currentLayout)
+		if layout == nil {
+			return
+		}
 		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
@@ -721,6 +725,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

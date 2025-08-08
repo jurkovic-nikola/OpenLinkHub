@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -25,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -103,6 +104,7 @@ type Device struct {
 	ModifierIndex         byte
 	SniperMode            bool
 	MacroTracker          map[int]uint16
+	RGBModes              []string
 }
 
 var (
@@ -125,6 +127,22 @@ var (
 	minDpiValue           = 200
 	maxDpiValue           = 12000
 	deviceRefreshInterval = 1000
+	rgbModes              = []string{
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"mouse",
+		"off",
+		"rainbow",
+		"rotator",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -159,6 +177,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
+		RGBModes:              rgbModes,
 		LEDChannels:           1,
 		ChangeableLedChannels: 1,
 		keepAliveChan:         make(chan struct{}),
@@ -459,6 +478,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -1303,6 +1325,11 @@ func (d *Device) setDeviceColor(dpi bool) {
 		if d.SniperMode {
 			dpiColor = d.getSniperColor()
 		}
+
+		if dpiColor == nil {
+			return
+		}
+		
 		dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 		dpiColor = rgb.ModifyBrightness(*dpiColor)
 

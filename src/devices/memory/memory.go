@@ -79,6 +79,7 @@ type DeviceProfile struct {
 	Labels             map[int]string
 	MultiRGB           string
 	RGBOverride        map[int]map[int]RGBOverride
+	RGBPerLed          map[int]map[int]map[int]rgb.Color
 }
 
 type Device struct {
@@ -107,6 +108,7 @@ type Device struct {
 	mutex             sync.Mutex
 	autoRefreshChan   chan struct{}
 	enhancementKits   map[byte]bool
+	RGBModes          []string
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -144,6 +146,26 @@ var (
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
 	temperatureRegister   = byte(0x05)
 	basePath              = "/sys/bus/i2c/drivers/spd5118/"
+	rgbProfileUpgrade     = []string{"led"}
+	rgbModes              = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"led",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(device, product string) *Device {
@@ -172,6 +194,7 @@ func Init(device, product string) *Device {
 	d := &Device{
 		dev:      dev,
 		Template: "memory.html",
+		RGBModes: rgbModes,
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -205,6 +228,16 @@ func Init(device, product string) *Device {
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
 	return d.Rgb
+}
+
+// getLedProfileColor will get RGB color based on channelId and ledId
+func (d *Device) getLedProfileColor(channelId, deviceIndex int) map[int]rgb.Color {
+	if ledChannel, ok := d.DeviceProfile.RGBPerLed[channelId]; ok {
+		if ledIndex, found := ledChannel[deviceIndex]; found {
+			return ledIndex
+		}
+	}
+	return nil
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -349,6 +382,44 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			template := rgb.GetRgbProfile(profile)
+			if template == nil {
+				d.Rgb.Profiles[profile] = rgb.Profile{}
+			} else {
+				d.Rgb.Profiles[profile] = *template
+			}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -841,20 +912,54 @@ func (d *Device) loadDeviceProfiles() {
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	noOverride := false
+	noRgbPerLed := false
+
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	rgbProfiles := make(map[int]string, len(d.Devices))
 	labels := make(map[int]string, len(d.Devices))
 	rgbOverride := make(map[int]map[int]RGBOverride, len(d.Devices))
+	rgbPerLed := make(map[int]map[int]map[int]rgb.Color, len(d.Devices))
 
 	if d.DeviceProfile == nil || d.DeviceProfile.RGBOverride == nil {
 		noOverride = true
 	}
 
+	if d.DeviceProfile == nil || d.DeviceProfile.RGBPerLed == nil {
+		noRgbPerLed = true
+	}
+
 	for _, device := range d.Devices {
 		rgbProfiles[device.ChannelId] = device.RGB
 		labels[device.ChannelId] = device.Label
+
+		deviceIndex := 0
+		if noRgbPerLed {
+			rgbPerLed[device.ChannelId] = map[int]map[int]rgb.Color{
+				deviceIndex: d.generateLedObject(device.LedChannels),
+			}
+		} else {
+			if val, ok := d.DeviceProfile.RGBPerLed[device.ChannelId]; !ok {
+				rgbPerLed[device.ChannelId] = map[int]map[int]rgb.Color{
+					deviceIndex: d.generateLedObject(device.LedChannels),
+				}
+			} else {
+				if count, found := val[0]; !found {
+					rgbPerLed[device.ChannelId] = map[int]map[int]rgb.Color{
+						deviceIndex: d.generateLedObject(device.LedChannels),
+					}
+				} else {
+					if int(device.LedChannels) != len(count) {
+						rgbPerLed[device.ChannelId] = map[int]map[int]rgb.Color{
+							deviceIndex: d.generateLedObject(device.LedChannels),
+						}
+					} else {
+						rgbPerLed[device.ChannelId] = d.DeviceProfile.RGBPerLed[device.ChannelId]
+					}
+				}
+			}
+		}
 
 		if noOverride {
 			rgbOverride[device.ChannelId] = map[int]RGBOverride{
@@ -914,6 +1019,7 @@ func (d *Device) saveDeviceProfile() {
 		BrightnessSlider:   &defaultBrightness,
 		OriginalBrightness: 100,
 		RGBOverride:        rgbOverride,
+		RGBPerLed:          rgbPerLed,
 	}
 
 	// First save, assign saved profile to a device
@@ -986,6 +1092,22 @@ func (d *Device) getDeviceProfile() {
 	}
 }
 
+// generateLedObject will generate LED object with given LED amount
+func (d *Device) generateLedObject(amount uint8) map[int]rgb.Color {
+	// Device doesnt exists
+	colors := make(map[int]rgb.Color, amount)
+	for i := 0; i < int(amount); i++ {
+		colors[i] = rgb.Color{
+			Red:        0,
+			Green:      255,
+			Blue:       255,
+			Brightness: 1,
+			Hex:        "",
+		}
+	}
+	return colors
+}
+
 // getTemperatureProbe will return all devices with a temperature probe
 func (d *Device) getTemperatureProbe() {
 	var probes []TemperatureProbe
@@ -1026,6 +1148,16 @@ func (d *Device) setRgbOverride(deviceId, subDeviceId int, rgbOverride RGBOverri
 		value[subDeviceId] = rgbOverride
 		d.DeviceProfile.RGBOverride[deviceId] = value
 	}
+}
+
+// getLedData will return LED objects
+func (d *Device) getLedData(deviceId, subDeviceId int) *map[int]rgb.Color {
+	if value, ok := d.DeviceProfile.RGBPerLed[deviceId]; ok {
+		if val, found := value[subDeviceId]; found {
+			return &val
+		}
+	}
+	return nil
 }
 
 // isRgbStatic will return true or false if all devices are set to static RGB mode
@@ -1089,6 +1221,9 @@ func (d *Device) setDeviceColor() {
 
 	if d.isRgbStatic() {
 		profile := d.GetRgbProfile("static")
+		if profile == nil {
+			return
+		}
 		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 
 		// Global override
@@ -1197,6 +1332,27 @@ func (d *Device) setDeviceColor() {
 					r.ChannelId = k
 
 					switch d.Devices[k].RGB {
+					case "led":
+						{
+							led := map[int][]byte{}
+							value := d.getLedProfileColor(k, index)
+							if value == nil {
+								for n := 0; n < int(d.Devices[k].LedChannels); n++ {
+									led[n] = []byte{0, 0, 0}
+								}
+							} else {
+								for n := 0; n < len(value); n++ {
+									color := value[n]
+									color.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+									if d.GlobalBrightness != 0 {
+										color.Brightness = d.GlobalBrightness
+									}
+									val := rgb.ModifyBrightness(color)
+									led[n] = []byte{byte(val.Red), byte(val.Green), byte(val.Blue)}
+								}
+							}
+							buff = rgb.SetColor(led)
+						}
 					case "off":
 						{
 							off := map[int][]byte{}
@@ -1425,6 +1581,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -1509,6 +1668,31 @@ func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool,
 	}
 	d.setDeviceColor() // Restart RGB
 	return 1
+}
+
+// ProcessGetLedData will get led data
+func (d *Device) ProcessGetLedData(channelId, subDeviceId int) interface{} {
+	return d.getLedData(channelId, subDeviceId)
+}
+
+// ProcessSetLedData will set led data
+func (d *Device) ProcessSetLedData(channelId, subDeviceId int, zoneColors map[int]rgb.Color, save bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if _, ok := d.Devices[channelId]; ok {
+		if rgbPerLed, found := d.DeviceProfile.RGBPerLed[channelId]; found {
+			if _, valid := rgbPerLed[subDeviceId]; valid {
+				rgbPerLed[subDeviceId] = zoneColors
+				d.DeviceProfile.RGBPerLed[channelId] = rgbPerLed
+				if save {
+					d.saveDeviceProfile()
+				}
+				return 1
+			}
+		}
+	}
+	return 0
 }
 
 // HasTemperatures will return true if DIMM has temperature value

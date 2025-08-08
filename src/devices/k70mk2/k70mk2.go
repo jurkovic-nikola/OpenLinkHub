@@ -15,13 +15,14 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -73,6 +74,7 @@ type Device struct {
 	mutex           sync.Mutex
 	UIKeyboard      string
 	UIKeyboardRow   string
+	RGBModes        []string
 }
 
 var (
@@ -93,6 +95,25 @@ var (
 	colorPacketLength       = 168
 	keyboardKey             = "k70mk2-default"
 	defaultLayout           = "k70mk2-default-US"
+	rgbModes                = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"keyboard",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -124,6 +145,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 		listener:        nil,
 		UIKeyboard:      "keyboard-7",
 		UIKeyboardRow:   "keyboard-row-25",
+		RGBModes:        rgbModes,
 		PollingRates: map[int]string{
 			0: "Not Set",
 			8: "125 Hz / 8 msec",
@@ -638,6 +660,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -1001,6 +1026,9 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "static" {
 		profile := d.GetRgbProfile("static")
+		if profile == nil {
+			return
+		}
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 			for _, keys := range rows.Keys {

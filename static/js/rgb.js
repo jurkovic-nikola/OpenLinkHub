@@ -67,136 +67,293 @@ document.addEventListener("DOMContentLoaded", function () {
                         const startColor = rgbToHex(value.start.red, value.start.green, value.start.blue);
                         const endColor = rgbToHex(value.end.red, value.end.green, value.end.blue);
 
-                        let sc = '';
-                        let ec = '';
-                        let sp = '';
-                        let sm = '';
+                        let alternateColorsHtml = '';
+                        let rgbDirectionHtml = '';
+                        let keyboardOnlyText = '';
+                        let startColorHtml = '';
+                        let endColorHtml = '';
+                        let speedHtml = '';
+                        let profileName = index;
 
-                        sc = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '">';
-                        ec = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '">';
-                        sp = '<div style="display: flex; align-items: center; width: 250px;">' +
+                        if (value.profileName.length > 0) {
+                            profileName = value.profileName;
+                        }
+
+                        startColorHtml = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '">';
+                        endColorHtml = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '">';
+                        speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
                             '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
                             '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" /></div>' +
                             '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
                             '</div>';
 
+                        let alternateColors = '';
+                        if (value.alternateColors === true) {
+                            alternateColors = '<input id="alternateColors_' + index + '" type="checkbox" checked/>';
+                        } else {
+                            alternateColors = '<input id="alternateColors_' + index + '" type="checkbox"/>';
+                        }
 
+                        if (parseInt(value.rgbDirection) > 0) {
+                            const directions = {
+                                1: "Top to Bottom",
+                                2: "Bottom to Top",
+                                4: "Left to Right",
+                                5: "Right to Left"
+                            };
+
+                            let selectHtml = `<select id="rgbDirection_${index}" class="form-select keyLayout">`;
+                            for (const [val, label] of Object.entries(directions)) {
+                                if (parseInt(value.rgbDirection) === parseInt(val)) {
+                                    selectHtml += `<option value="${val}" selected>${label}</option>`;
+                                } else {
+                                    selectHtml += `<option value="${val}">${label}</option>`;
+                                }
+                            }
+                            selectHtml += `</select>`;
+
+                            rgbDirectionHtml = `
+                                <div class="d-flex align-items-center justify-content-between mb-2" style="margin-top: 10px;">
+                                    <div class="me-2">
+                                        <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Direction</p>
+                                    </div>
+                                    <p class="text-sm lh-1 mb-0 text-dash-color-2">${selectHtml}</p>
+                                </div>
+                                <div class="progress" style="height: 3px">
+                                    <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            `;
+                        }
                         switch (index) {
-                            case "colorwarp": {
-                                sc = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '" disabled>'
-                                ec = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '" disabled>';
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "rainbow": {
-                                sc = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '" disabled>'
-                                ec = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '" disabled>';
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "watercolor": {
-                                sc = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '" disabled>'
-                                ec = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '" disabled>';
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "cpu-temperature": {
-                                sp = '<div style="display: flex; align-items: center; width: 250px;">' +
-                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
-                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
-                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
-                                    '</div>';
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "gpu-temperature": {
-                                sp = '<div style="display: flex; align-items: center; width: 250px;">' +
-                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
-                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
-                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
-                                    '</div>';
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "liquid-temperature": {
-                                sp = '<div style="display: flex; align-items: center; width: 250px;">' +
-                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
-                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
-                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
-                                    '</div>';
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "circle": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
-                            case "circleshift": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                            }
-                                break;
                             case "colorpulse": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard + Other Devices</span></p>';
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
                             }
-                                break;
+                            break;
                             case "colorshift": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard + Other Devices</span></p>';
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
                             }
-                                break;
-                            case "flickering": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
+                            break;
+                            case "colorwarp": {
+                                startColorHtml = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '" disabled>'
+                                endColorHtml = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '" disabled>';
                             }
-                                break;
-                            case "rotator": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
+                            break;
+                            case "rainbow": {
+                                startColorHtml = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '" disabled>'
+                                endColorHtml = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '" disabled>';
                             }
-                                break;
-                            case "spinner": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
+                            break;
+                            case "watercolor": {
+                                startColorHtml = '<input type="color" id="startColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + startColor + '" disabled>'
+                                endColorHtml = '<input type="color" id="endColor_' + index + '" style="width: 100px;height: 38px;padding: 0;float: left;margin-top: 2px;" value="' + endColor + '" disabled>';
                             }
-                                break;
+                            break;
+                            case "cpu-temperature": {
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
+                            case "gpu-temperature": {
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
+                            case "liquid-temperature": {
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
                             case "static": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                                sp = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
                                     '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
                                     '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
                                     '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
                                     '</div>';
                             }
-                                break;
+                            break;
                             case "storm": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
-                                sp = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
                                     '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
                                     '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="10" value="' + value.speed + '" step="0.1" disabled /></div>' +
                                     '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
                                     '</div>';
                             }
-                                break;
-                            case "wave": {
-                                sm = '<p class="text-md-start fw-normal mb-0" style="margin-top: 10px;"></p>'
+                            break;
+                            case "tlk": {
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
                             }
-                                break;
+                            break;
+                            case "tlr": {
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
+                            }
+                            break
+                            case "spiralrainbow": {
+                                startColorHtml = 'N/A';
+                                endColorHtml = 'N/A';
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
+                            case "rainbowwave": {
+                                startColorHtml = 'N/A';
+                                endColorHtml = 'N/A';
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
+                            case "rain": {
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
+                            case "visor": {
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
+                            case "colorwave": {
+                                alternateColorsHtml = `
+                                    <div class="d-flex align-items-center justify-content-between" style="margin-bottom: 10px;">
+                                        <div class="me-2">
+                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Alternating</p>
+                                        </div>
+                                        <p class="text-sm lh-1 mb-0 text-dash-color-2">${alternateColors}</p>
+                                    </div>
+                                    <div class="progress" style="height: 3px;margin-bottom: 10px;">
+                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                `;
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
+                                    '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
+                                    '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +
+                                    '<div style="float: right;width: 15%;text-align: right;"><img src="/static/img/icons/icon-slow.svg" width="30" height="30" alt="Sloe" /></div>' +
+                                    '</div>';
+                            }
+                            break;
                         }
 
                         const html = `
                             <div style="width: auto;">
                                 <div class="card mb-4">
                                     <div class="card-header border-bottom border-dash-dark-1">
-                                        <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
+                                        <div class="ds-svg-placeholder-left">
                                             <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Device" />
                                         </div>
-                                        <div class="ds-svg-placeholder-right2">
-                                            <span>${index}</span><br />
+                                        <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                            <span>${profileName}</span><br />
+                                            ${keyboardOnlyText}
                                         </div>
                                     </div>
                                     <div class="card-body" style="padding: 1rem 1rem;">
                                         <div style="text-align: center;">
+                                            ${alternateColorsHtml}
                                             <div class="d-flex align-items-center justify-content-between mb-2">
                                                 <div class="me-2">
                                                     <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Start</p>
                                                 </div>
-                                                <p class="text-sm lh-1 mb-0 text-dash-color-2">${sc}</p>
+                                                <p class="text-sm lh-1 mb-0 text-dash-color-2">${startColorHtml}</p>
                                             </div>
                                             <div class="progress" style="height: 3px">
                                                 <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
@@ -206,7 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <div class="me-2">
                                                     <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">End</p>
                                                 </div>
-                                                <p class="text-sm lh-1 mb-0 text-dash-color-2">${ec}</p>
+                                                <p class="text-sm lh-1 mb-0 text-dash-color-2">${endColorHtml}</p>
                                             </div>
                                             <div class="progress" style="height: 3px">
                                                 <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
@@ -216,11 +373,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <div class="me-2">
                                                     <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Speed</p>
                                                 </div>
-                                                <p class="text-sm lh-1 mb-0 text-dash-color-2">${sp}</p>
+                                                <p class="text-sm lh-1 mb-0 text-dash-color-2">${speedHtml}</p>
                                             </div>
                                             <div class="progress" style="height: 3px">
                                                 <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                             </div>
+                                            ${rgbDirectionHtml}
                                             <span class="btn btn-secondary saveRgbProfile" id="${index}" style="width: 100%;margin-top:10px;">
                                                 Save
                                             </span>
@@ -239,6 +397,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         const deviceId = $("#deviceId").val();
                         const profile = $(this).attr('id');
                         let speed = $("#speed_" + profile).val();
+                        let rgbDirection = $("#rgbDirection_" + profile).val();
+                        let alternateColors = $("#alternateColors_" + profile).is(':checked');
                         const startColorVal = $("#startColor_" + profile).val();
                         const endColorVal = $("#endColor_" + profile).val();
 
@@ -259,12 +419,24 @@ document.addEventListener("DOMContentLoaded", function () {
                             speed = 1
                         }
 
+                        if (alternateColors == null) {
+                            alternateColors = false;
+                        }
+
+                        if (rgbDirection == null) {
+                            rgbDirection = 0;
+                        }
+
+                        console.log(rgbDirection);
+
                         const pf = {};
                         pf["deviceId"] = deviceId;
                         pf["profile"] = profile;
                         pf["startColor"] = startColorRgb;
                         pf["endColor"] = endColorRgb;
                         pf["speed"] = parseFloat(speed);
+                        pf["alternateColors"] = alternateColors;
+                        pf["rgbDirection"] = parseInt(rgbDirection);
 
                         const json = JSON.stringify(pf, null, 2);
 

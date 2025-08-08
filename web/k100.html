@@ -7,6 +7,7 @@
         {{ $devs := .Devices }}
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
+        {{ $rgbModes := .Device.RGBModes }}
         {{ $rgb := .Rgb }}
         {{ $profile := $device.DeviceProfile.Profile }}
         {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}

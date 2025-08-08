@@ -14,13 +14,14 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // ExternalLedDevice contains a list of supported external-LED devices connected to a HUB
@@ -87,6 +88,7 @@ type Device struct {
 	autoRefreshChan         chan struct{}
 	timer                   *time.Ticker
 	HardwareModes           map[int]string
+	RGBModes                []string
 }
 
 var (
@@ -104,7 +106,25 @@ var (
 	bufferSizeWrite         = bufferSize + 1
 	maxBufferSizePerRequest = 50
 	deviceUpdateDelay       = 5
-	externalLedDevices      = []ExternalLedDevice{
+	rgbModes                = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
+	externalLedDevices = []ExternalLedDevice{
 		{
 			Index: 1,
 			Name:  "HD RGB Series Fan",
@@ -194,6 +214,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			7: "Strobing",
 			8: "Visor",
 		},
+		RGBModes: rgbModes,
 	}
 
 	// Bootstrap
@@ -741,6 +762,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

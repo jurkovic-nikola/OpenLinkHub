@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -25,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -105,6 +106,7 @@ type Device struct {
 	ModifierIndex         uint32
 	SniperMode            bool
 	MacroTracker          map[int]uint16
+	RGBModes              []string
 }
 
 var (
@@ -123,6 +125,7 @@ var (
 	cmdOpenWriteEndpoint  = []byte{0x0d, 0x01, 0x02}
 	cmdWrite              = []byte{0x06, 0x01}
 	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x01}
+	cmdStart              = []byte{0x02, 0x03}
 	bufferSize            = 64
 	bufferSizeWrite       = bufferSize + 1
 	headerSize            = 2
@@ -132,6 +135,22 @@ var (
 	maxDpiValue           = 18000
 	deviceRefreshInterval = 1000
 	deviceKeepAlive       = 20000
+	rgbModes              = []string{
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"mouse",
+		"off",
+		"rainbow",
+		"rotator",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -166,6 +185,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
+		RGBModes:              rgbModes,
 		LEDChannels:           5,
 		ChangeableLedChannels: 2,
 		PollingRates: map[int]string{
@@ -278,7 +298,7 @@ func (d *Device) StopDirty() uint8 {
 		})
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // getSerial will return device serial number
@@ -445,6 +465,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -700,7 +723,7 @@ func (d *Device) getDebugMode() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil)
+	_, err := d.transfer(cmdHardwareMode, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -708,7 +731,28 @@ func (d *Device) setHardwareMode() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil)
+	i := 0
+	_, err := d.transfer(cmdStart, nil, true)
+	if err != nil {
+		for {
+			if i >= 20 {
+				break
+			}
+			_, err = d.transfer(cmdStart, nil, true)
+			if err == nil {
+				break
+			}
+			time.Sleep(2 * time.Second)
+			i++
+		}
+	}
+
+	if i == 20 {
+		logger.Log(logger.Fields{"error": "failed to read data from device"}).Error("Unable to read device data after 20 attempts")
+		return
+	}
+
+	_, err = d.transfer(cmdSoftwareMode, nil, true)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -719,6 +763,7 @@ func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(
 		cmdGetFirmware,
 		nil,
+		false,
 	)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
@@ -740,7 +785,7 @@ func (d *Device) setAngleSnapping() {
 
 	buf := make([]byte, 1)
 	buf[0] = byte(d.DeviceProfile.AngleSnapping)
-	_, _ = d.transfer(cmdAngleSnapping, buf)
+	_, _ = d.transfer(cmdAngleSnapping, buf, false)
 }
 
 // setButtonOptimization will change Button Response Optimization mode
@@ -755,7 +800,7 @@ func (d *Device) setButtonOptimization() {
 
 	buf := make([]byte, 1)
 	buf[0] = byte(d.DeviceProfile.ButtonOptimization)
-	_, _ = d.transfer(cmdButtonOptimization, buf)
+	_, _ = d.transfer(cmdButtonOptimization, buf, false)
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -1208,7 +1253,7 @@ func (d *Device) getDeviceProfile() {
 
 // initLeds will initialize LED endpoint
 func (d *Device) initLeds() {
-	_, err := d.transfer(cmdOpenEndpoint, nil)
+	_, err := d.transfer(cmdOpenEndpoint, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -1499,7 +1544,7 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 		d.saveDeviceProfile()
 		buf := make([]byte, 1)
 		buf[0] = byte(pullingRate)
-		_, err := d.transfer(cmdSetPollingRate, buf)
+		_, err := d.transfer(cmdSetPollingRate, buf, false)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
 			return 0
@@ -1572,7 +1617,7 @@ func (d *Device) sniperMode(active bool) {
 					buf[0] = dpiCode
 					buf[1] = 0x00
 					binary.LittleEndian.PutUint16(buf[2:4], value)
-					_, err := d.transfer(cmdSetDpi, buf)
+					_, err := d.transfer(cmdSetDpi, buf, false)
 					if err != nil {
 						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 					}
@@ -1612,7 +1657,7 @@ func (d *Device) toggleDPI() {
 			buf[0] = dpiCode
 			buf[1] = 0x00
 			binary.LittleEndian.PutUint16(buf[2:4], value)
-			_, err := d.transfer(cmdSetDpi, buf)
+			_, err := d.transfer(cmdSetDpi, buf, false)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 			}
@@ -1630,7 +1675,7 @@ func (d *Device) keepAlive() {
 	if d.Exit {
 		return
 	}
-	_, err := d.transfer(cmdHeartbeat, nil)
+	_, err := d.transfer(cmdHeartbeat, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write heartbeat to a device")
 	}
@@ -1661,7 +1706,7 @@ func (d *Device) writeColor(data []byte) {
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
 
-	_, err := d.transfer(cmdWriteColor, buffer)
+	_, err := d.transfer(cmdWriteColor, buffer, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 	}
@@ -1674,7 +1719,7 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 	}
 
 	// Open endpoint
-	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	_, err := d.transfer(cmdOpenWriteEndpoint, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
 		return
@@ -1684,13 +1729,13 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
-	_, err = d.transfer(cmdWrite, buffer)
+	_, err = d.transfer(cmdWrite, buffer, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to data endpoint")
 	}
 
 	// Close endpoint
-	_, err = d.transfer(cmdCloseEndpoint, nil)
+	_, err = d.transfer(cmdCloseEndpoint, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to close endpoint")
 		return
@@ -1925,7 +1970,7 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte, timeout bool) ([]byte, error) {
 	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -1948,10 +1993,18 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
+	if timeout {
+		// Get data from a device
+		if _, err := d.dev.ReadWithTimeout(bufferR, 100*time.Millisecond); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return bufferR, err
+		}
+	} else {
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return bufferR, err
+		}
 	}
 	return bufferR, nil
 }

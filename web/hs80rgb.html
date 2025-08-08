@@ -7,6 +7,7 @@
         {{ $devs := .Devices }}
         {{ $temperatures := .Temperatures }}
         {{ $device := .Device }}
+        {{ $rgbModes := .Device.RGBModes }}
         {{ $rgb := .Rgb }}
         {{ $deviceProfile := .Device.DeviceProfile }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
@@ -66,30 +67,11 @@
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                         <li>
                                             <select class="form-select headsetRgbProfile" name="headsetRgbProfile">
-                                                {{ range $key, $_ := $rgb }}
-                                                {{ if eq $key "stand" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "liquid-temperature" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "mousepad" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "keyboard" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "circle" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "circleshift" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "spinner" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "mouse" }}
-                                                {{ continue }}
-                                                {{ else if eq $key "custom" }}
-                                                {{ continue }}
-                                                {{ end }}
-                                                {{ if eq $key $device.DeviceProfile.RGBProfile }}
-                                                <option value="0;{{ $key }}" selected>{{ $key }}</option>
+                                                {{ range $key, $mode := $rgbModes }}
+                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
                                                 {{ else }}
-                                                <option value="0;{{ $key }}">{{ $key }}</option>
+                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
                                                 {{ end }}
                                                 {{ end }}
                                             </select>

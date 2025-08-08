@@ -60,8 +60,8 @@ import (
 	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/m65rgbultraWU"
 	"OpenLinkHub/src/devices/m75"
-	"OpenLinkHub/src/devices/m75W"
-	"OpenLinkHub/src/devices/m75WU"
+	"OpenLinkHub/src/devices/m75AirW"
+	"OpenLinkHub/src/devices/m75AirWU"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/mm800"
@@ -94,12 +94,13 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
-	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
+
+	"github.com/sstallion/go-hid"
 )
 
 const (
@@ -134,7 +135,8 @@ const (
 	productTypeK55                  = 118
 	productTypeK95Platinum          = 119
 	productTypeK60RgbPro            = 120
-	productTypeK70PM                = 121
+	productTypeK70PMW               = 121
+	productTypeK70PMWU              = 122
 	productTypeKatarPro             = 201
 	productTypeIronClawRgb          = 202
 	productTypeIronClawRgbW         = 203
@@ -153,8 +155,8 @@ const (
 	productTypeDarkCoreRgbProW      = 216
 	productTypeDarkCoreRgbProWU     = 217
 	productTypeM75                  = 218
-	productTypeM75W                 = 219
-	productTypeM75WU                = 220
+	productTypeM75AirW              = 219
+	productTypeM75AirWU             = 220
 	productTypeM65RgbUltra          = 221
 	productTypeHarpoonRgbPro        = 222
 	productTypeHarpoonRgbW          = 223
@@ -1620,6 +1622,52 @@ func ProcessGetRgbOverride(deviceId string, channelId, subDeviceId int) interfac
 	return nil
 }
 
+// ProcessGetLedData will get led data
+func ProcessGetLedData(deviceId string, channelId, subDeviceId int) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessGetLedData"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(subDeviceId))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessSetLedData will set led data
+func ProcessSetLedData(deviceId string, channelId, subDeviceId int, zoneColors map[int]rgb.Color, save bool) interface{} {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessSetLedData"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return nil
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(subDeviceId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(zoneColors))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(save))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				return val.Interface()
+			}
+		}
+	}
+	return nil
+}
+
 // ProcessSetRgbOverride will set rgb override data
 func ProcessSetRgbOverride(deviceId string, channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -2060,7 +2108,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70PM,
+					ProductType: productTypeK70PMWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2694,7 +2742,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 						}
 					case 7154: // M75 AIR WIRELESS
 						{
-							d := m75W.Init(
+							d := m75AirW.Init(
 								value.VendorId,
 								productId,
 								value.ProductId,
@@ -2703,7 +2751,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeM75W,
+								ProductType: productTypeM75AirW,
 								Product:     "M75 AIR",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -2824,7 +2872,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeSabreRgbProW,
+								ProductType: productTypeK70PMW,
 								Product:     "K70 PRO MINI",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -3194,12 +3242,12 @@ func initializeDevice(productId uint16, key, productPath string) {
 	case 7154: // CORSAIR M75 AIR WIRELESS Gaming Mouse
 		{
 			go func(vendorId, productId uint16, key string) {
-				dev := m75WU.Init(vendorId, productId, key)
+				dev := m75AirWU.Init(vendorId, productId, key)
 				if dev == nil {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM75WU,
+					ProductType: productTypeM75AirWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,

@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -25,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -102,6 +103,7 @@ type Device struct {
 	ModifierIndex         byte
 	SniperMode            bool
 	MacroTracker          map[int]uint16
+	RGBModes              []string
 }
 
 var (
@@ -127,6 +129,21 @@ var (
 	headerWriteSize              = 4
 	minDpiValue           uint16 = 200
 	maxDpiValue           uint16 = 12400
+	rgbModes                     = []string{
+		"colorpulse",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"mouse",
+		"off",
+		"rainbow",
+		"rotator",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -162,6 +179,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			0: "Disabled",
 			1: "Enabled",
 		},
+		RGBModes:              rgbModes,
 		Product:               "KATAR PRO",
 		LEDChannels:           1,
 		ChangeableLedChannels: 1,
@@ -1165,6 +1183,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

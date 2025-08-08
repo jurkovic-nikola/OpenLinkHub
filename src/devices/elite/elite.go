@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
@@ -27,6 +26,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type Shutdown struct {
@@ -128,6 +129,7 @@ type Device struct {
 	timer             *time.Ticker
 	timerSpeed        *time.Ticker
 	Exit              bool
+	RGBModes          []string
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -211,7 +213,26 @@ var (
 	temperaturePullingInterval = 3000
 	manualSpeedModes           = map[int]*SpeedMode{}
 	rgbProfileUpgrade          = []string{"custom"}
-	supportedDevices           = []SupportedDevice{
+	rgbModes                   = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"liquid-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
+	supportedDevices = []SupportedDevice{
 		{ProductId: 3095, Product: "H115i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
 		{ProductId: 3096, Product: "H100i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
 		{ProductId: 3097, Product: "H100i RGB PLATINUM SE", Fans: 2, FanLeds: 16, PumpLeds: 16},
@@ -295,6 +316,7 @@ func Init(vendorId, productId uint16) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:         rgbModes,
 		InvertRgb:        true,
 		autoRefreshChan:  make(chan struct{}),
 		speedRefreshChan: make(chan struct{}),
@@ -677,6 +699,10 @@ func (d *Device) setDeviceColor() {
 	if s > 0 || l > 0 { // We have some values
 		if s == l { // number of devices matches number of devices with static profile
 			profile := d.GetRgbProfile("static")
+			if profile == nil {
+				return
+			}
+
 			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 			profileColor := rgb.ModifyBrightness(profile.StartColor)
 			for i := 0; i < lightChannels; i++ {
@@ -1177,6 +1203,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -1316,11 +1345,13 @@ func (d *Device) getDevices() int {
 		var ledChannels uint8 = 0
 		// LED channels
 		supportedDevice := d.getSupportedDevice(d.ProductId)
-		if deviceList[device].Pump {
-			speedMode.Value = 1
-			ledChannels = supportedDevice.PumpLeds
-		} else {
-			ledChannels = supportedDevice.FanLeds
+		if supportedDevice != nil {
+			if deviceList[device].Pump {
+				speedMode.Value = 1
+				ledChannels = supportedDevice.PumpLeds
+			} else {
+				ledChannels = supportedDevice.FanLeds
+			}
 		}
 
 		if ledChannels > 0 {

@@ -378,19 +378,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                 case 1: {
                                     url = '/api/input/media';
                                 }
-                                break;
+                                    break;
                                 case 3: {
                                     url = '/api/input/keyboard';
                                 }
-                                break;
+                                    break;
                                 case 9: {
                                     url = '/api/input/mouse';
                                 }
-                                break;
+                                    break;
                                 case 10: {
                                     url = '/api/macro/';
                                 }
-                                break;
+                                    break;
                             }
 
                             $.ajax({
@@ -413,7 +413,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     $(keyAssignmentValue).empty();
                                     $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                                 }
-                                break;
+                                    break;
                                 case 1: { // Media keys
                                     $.ajax({
                                         url:'/api/input/media',
@@ -426,7 +426,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         }
                                     });
                                 }
-                                break;
+                                    break;
                                 case 3: { // Keyboard
                                     $.ajax({
                                         url:'/api/input/keyboard',
@@ -439,7 +439,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         }
                                     });
                                 }
-                                break;
+                                    break;
                                 case 9: { // Mouse
                                     $.ajax({
                                         url:'/api/input/mouse',
@@ -452,7 +452,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         }
                                     });
                                 }
-                                break;
+                                    break;
                                 case 10: { // Macro
                                     $.ajax({
                                         url:'/api/macro/',
@@ -465,7 +465,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         }
                                     });
                                 }
-                                break;
+                                    break;
                             }
                         });
 
@@ -2143,6 +2143,330 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const json = JSON.stringify(pf, null, 2);
                                 $.ajax({
                                     url: '/api/color/setOverride',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    function createLinearLEDs(cnt, leds, spacing, data, startX = 0, startY = 0) {
+        let count = leds.length;
+        cnt.style.width = `${startX + count * spacing + spacing/2}px`;
+        for (let i = 0; i < count; i++) {
+            const x = startX + i * spacing;
+            const y = startY;
+
+            let c = data[leds[i]];
+            const ledColor = rgbToHex(c.red, c.green, c.blue);
+
+            const $led = $('<input>', {
+                type: 'color',
+                value: ledColor,
+                id: 'ledId_' + leds[i],
+                class: 'led',
+                'data-info': 'ledId_' + leds[i],
+                css: {
+                    position: 'absolute',
+                    left: `${x}px`,
+                    top: `${y}px`,
+                    border: '1px solid #121212'
+                }
+            });
+            $(cnt).append($led);
+        }
+    }
+
+    function createRingLEDs(cnt, leds, radius, data, center) {
+        let count = leds.length;
+        for (let i = 0; i < count; i++) {
+            const angle = (i / count) * 2 * Math.PI;
+            const x = Math.cos(angle) * radius + center - 6;
+            const y = Math.sin(angle) * radius + center - 6;
+
+            let c = data[leds[i]];
+            const ledColor = rgbToHex(c.red, c.green, c.blue);
+
+            const $led = $('<input>', {
+                type: 'color',
+                value: ledColor,
+                id: 'ledId_' + leds[i],
+                class: 'led',
+                'data-info': 'ledId_' + leds[i],
+                css: {
+                    position: 'absolute',
+                    left: `${x}px`,
+                    top: `${y}px`,
+                    border: '1px solid #121212'
+                }
+            });
+            $(cnt).append($led);
+        }
+    }
+
+    function generateLedDataPerDevice(ledAmount, subDevice, device, data) {
+        const wrapperDiv = document.createElement('div');
+        let result = [];
+
+        let frontOuter = [];
+        let frontInner = [];
+        let backOuter = [];
+        let backInner = [];
+        let containerHtml = '';
+
+        switch (device) {
+            case "lsh": {
+                // LINK System Hub
+                switch (ledAmount) {
+                    case 34: {
+                        if (subDevice) {
+                            frontOuter = [10,11,12,13,14,15,16,17,18,19,20,21];
+                            frontInner = [0,1,2,3];
+                            backOuter = [22,23,24,25,26,27,28,29,30,31,32,33];
+                            backInner = [4,5,6,7,8,9];
+                        } else {
+                            frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11];
+                            frontInner = [24,25,26,27,28,29];
+                            backOuter = [12,13,14,15,16,17,18,19,20,21,22,23];
+                            backInner = [30,31,32,33];
+                        }
+                        wrapperDiv.innerHTML = `
+                            <div style="">
+                                <div style="text-align: center;">FRONT</div>
+                                <div class="device-container" id="container">
+                                    <div class="center-circle"></div>
+                                </div>
+                            </div>
+                            <div style="">
+                                <div style="text-align: center;">BACK</div>
+                                <div class="device-container" id="container1" style="margin-left: 10px;">
+                                    <div class="center-circle"></div>
+                                </div>
+                            </div>
+                        `;
+                        const container = wrapperDiv.querySelector('#container');
+                        const container1 = wrapperDiv.querySelector('#container1');
+                        createRingLEDs(container, frontInner, 45, data, 100);
+                        createRingLEDs(container, frontOuter, 80, data, 100);
+                        createRingLEDs(container1, backInner, 45, data, 100);
+                        createRingLEDs(container1, backOuter, 80, data, 100);
+                    } break;
+                    case 8: {
+                        frontInner = [0,1,2,3,4,5,6,7];
+                        wrapperDiv.innerHTML = `<div class="device-container" id="container"><div class="center-circle"></div></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createRingLEDs(container, frontInner, 45, data, 100);
+                    } break;
+                    case 10: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 18: {
+                        frontInner = [0,1,2,3,4,5];
+                        frontOuter = [6,7,8,9,10,11,12,13,14,15,16,17];
+                        wrapperDiv.innerHTML = `<div class="device-container" id="container"><div class="center-circle"></div></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createRingLEDs(container, frontInner, 45, data, 100);
+                        createRingLEDs(container, frontOuter, 80, data, 100);
+                    } break;
+                    case 40: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 49: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 38: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 32: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 24: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+                        wrapperDiv.innerHTML = `<div class="device-container-block" id="container"><div class="center-circle"></div></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 22: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21];
+                        wrapperDiv.innerHTML = `<div class="device-container-pump" id="container"><div class="center-circle"></div></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
+                    case 44: {
+                        frontInner = [20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43];
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
+                        wrapperDiv.innerHTML = `<div class="device-container-pump" id="container"><div class="center-circle"></div></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createRingLEDs(container, frontOuter, 120, data, 150);
+                        createRingLEDs(container, frontInner, 90, data, 150);
+                    } break;
+                    case 20: {
+                        frontInner = [16,17,18,19];
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+                        wrapperDiv.innerHTML = `<div class="device-container-pump" id="container"><div class="center-circle"></div></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createRingLEDs(container, frontOuter, 120, data, 150);
+                        createRingLEDs(container, frontInner, 45, data, 150);
+                    } break;
+                    case 16: {
+                        if (subDevice) {
+                            frontInner = [0,1,2,3];
+                            frontOuter = [4,5,6,7,8,9,10,11,12,13,14,15];
+                            wrapperDiv.innerHTML = `<div class="device-container" id="container"><div class="center-circle"></div></div>`;
+                            const container = wrapperDiv.querySelector('#container');
+                            createRingLEDs(container, frontInner, 45, data, 100);
+                            createRingLEDs(container, frontOuter, 80, data, 100);
+                        } else {
+                            frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+                            wrapperDiv.innerHTML = `<div class="device-container-block" id="container"><div class="center-circle"></div></div>`;
+                            const container = wrapperDiv.querySelector('#container');
+                            createRingLEDs(container, frontOuter, 120, data, 150);
+                        }
+                    } break;
+                }
+            }
+            break;
+            case "memory": {
+                // Memory
+                switch (ledAmount) {
+                    case 6: {
+                        frontOuter = [0,1,2,3,4,5];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                    } break;
+                    case 10: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                    } break;
+                    case 11: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                    } break;
+                    case 12: {
+                        frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                    } break;
+                }
+                const container = wrapperDiv.querySelector('#container');
+                createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+            }break;
+        }
+        result = wrapperDiv.innerHTML
+        return result
+    }
+
+    $('.rgbPerLed').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const channelData = $(this).attr("data-info").split(';');
+        const channelName = channelData[0];
+        const channelId = parseInt(channelData[1]);
+        const ledAmount = parseInt(channelData[2]);
+        const subDeviceId = parseInt(channelData[3]);
+        const subDevice = parseInt(channelData[4]) === 1;
+        const deviceType = channelData[5];
+        let containerHtml = '';
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = channelId;
+        pf["subDeviceId"] = subDeviceId;
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/color/getLedData',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        const data = response.data;
+                        const count = Object.keys(data).length;
+                        containerHtml = generateLedDataPerDevice(ledAmount, subDevice, deviceType, data)
+
+                        let modalElement = `
+                          <div class="modal fade text-start" id="rgbPerLedModel" tabindex="-1" aria-labelledby="rgbPerLedModel">
+                            <div class="modal-dialog modal-dialog-800">
+                              <div class="modal-content" style="width: 800px;">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="rgbPerLedModel">${channelName}</h5>
+                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body" style="display: flex;margin: 0 auto;">
+                                  ${containerHtml}
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveLedData">Save</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveLedData').on('click', function () {
+                                let ledColors = {};
+
+                                for (let i = 0; i < count; i++) {
+                                    let ledColor = modal.find('#ledId_' + i).val();
+                                    console.log(i, ledColor)
+
+                                    const colorRgb = hexToRgb(ledColor)
+                                    ledColors[i] = {red: colorRgb.r, green: colorRgb.g, blue: colorRgb.b};
+                                }
+                                const pf = {};
+
+                                pf["deviceId"] = deviceId;
+                                pf["channelId"] = channelId;
+                                pf["subDeviceId"] = subDeviceId;
+                                pf["colorZones"] = ledColors;
+                                pf["save"] = true;
+
+                                const json = JSON.stringify(pf, null, 2);
+
+                                console.log(json)
+                                $.ajax({
+                                    url: '/api/color/setLedData',
                                     type: 'POST',
                                     data: json,
                                     cache: false,

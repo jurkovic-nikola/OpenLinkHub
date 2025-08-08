@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
@@ -27,6 +26,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // ExternalLedDevice contains a list of supported external-LED devices connected to a HUB
@@ -91,6 +92,7 @@ type Device struct {
 	timer                   *time.Ticker
 	timerSpeed              *time.Ticker
 	mutex                   sync.Mutex
+	RGBModes                []string
 }
 
 type Devices struct {
@@ -145,7 +147,25 @@ var (
 	defaultSpeedValue          = 100
 	maximumLedAmount           = 408
 	i2cPrefix                  = "i2c"
-	externalLedDevices         = []ExternalLedDevice{
+	rgbModes                   = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
+	externalLedDevices = []ExternalLedDevice{
 		{
 			Index: 1,
 			Name:  "HD RGB Series Fan",
@@ -212,6 +232,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:         rgbModes,
 		autoRefreshChan:  make(chan struct{}),
 		speedRefreshChan: make(chan struct{}),
 		timer:            &time.Ticker{},
@@ -648,6 +669,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

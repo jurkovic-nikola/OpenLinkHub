@@ -850,7 +850,8 @@
           "css": "keyboard-key wide",
           "default": true,
           "keyData": [57, 57, 56],
-          "keyHash": ["144115188075855872"]
+          "keyHash": ["144115188075855872"],
+          "slipstreamProfile": true
         },
         "48": {
           "keyName": "A",

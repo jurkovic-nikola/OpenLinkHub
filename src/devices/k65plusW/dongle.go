@@ -6,8 +6,9 @@ import (
 	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // getDeviceSerial will get device serial

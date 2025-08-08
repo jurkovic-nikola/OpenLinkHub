@@ -19,12 +19,13 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -90,6 +91,7 @@ type Device struct {
 	lcdImageChan      chan struct{}
 	timer             *time.Ticker
 	lcdTimer          *time.Ticker
+	RGBModes          []string
 }
 
 var (
@@ -105,6 +107,25 @@ var (
 	featureReportSize          = 32
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 	rgbProfileUpgrade          = []string{"custom"}
+	rgbModes                   = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"liquid-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 // Init will initialize a new device
@@ -151,6 +172,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:        rgbModes,
 		autoRefreshChan: make(chan struct{}),
 		lcdRefreshChan:  make(chan struct{}),
 		lcdImageChan:    make(chan struct{}),
@@ -1173,6 +1195,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

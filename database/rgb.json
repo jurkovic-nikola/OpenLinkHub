@@ -6,17 +6,118 @@
     "brightness": 1
   },
   "profiles": {
+    "tlk": {
+      "profileName": "Type Lighting - Key",
+      "alternateColors": false,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "end": {
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "speed": 2
+    },
+    "tlr": {
+      "profileName": "Type Lighting - Ripple",
+      "alternateColors": false,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "end": {
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "speed": 2
+    },
+    "spiralrainbow": {
+      "profileName": "Spiral Rainbow",
+      "speed": 2
+    },
+    "rainbowwave": {
+      "profileName": "Rainbow Wave",
+      "speed": 2
+    },
+    "rain": {
+      "profileName": "Rain",
+      "alternateColors": false,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "end": {
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "speed": 2
+    },
+    "visor": {
+      "profileName": "Visor",
+      "alternateColors": false,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "end": {
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "speed": 2
+    },
+    "colorwave": {
+      "profileName": "Color Wave",
+      "alternateColors": false,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "end": {
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "speed": 2,
+      "rgbDirection": 4
+    },
     "custom": {},
     "keyboard": {},
     "stand": {},
     "mousepad": {},
     "mouse": {},
     "headset": {},
+    "led": {
+      "profileName": "Per LED",
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "perLed": true
+    },
     "rainbow": {
+      "profileName": "Rainbow",
       "speed": 4,
       "brightness": 1
     },
     "liquid-temperature": {
+      "profileName": "Liquid Temperature",
       "speed": 4,
       "brightness": 1,
       "smoothness": 40,
@@ -36,6 +137,7 @@
       "maxTemp": 60
     },
     "cpu-temperature": {
+      "profileName": "CPU Temperature",
       "speed": 4,
       "brightness": 1,
       "smoothness": 40,
@@ -55,6 +157,7 @@
       "maxTemp": 95
     },
     "gpu-temperature": {
+      "profileName": "GPU Temperature",
       "speed": 4,
       "brightness": 1,
       "smoothness": 40,
@@ -74,6 +177,7 @@
       "maxTemp": 80
     },
     "static": {
+      "profileName": "Static",
       "speed": 4,
       "brightness": 1,
       "smoothness": 20,
@@ -91,6 +195,7 @@
       }
     },
     "storm": {
+      "profileName": "Storm",
       "speed": 4,
       "brightness": 1,
       "smoothness": 20,
@@ -101,17 +206,19 @@
         "brightness": 0.5
       },
       "end": {
-        "red": 32,
-        "green": 62,
-        "blue": 77,
+        "red": 255,
+        "green": 255,
+        "blue": 255,
         "brightness": 0.5
       }
     },
     "watercolor": {
+      "profileName": "Water Color",
       "speed": 4,
       "brightness": 1
     },
     "colorshift": {
+      "profileName": "Color Shift",
       "speed": 4,
       "brightness": 1,
       "smoothness": 50,
@@ -129,6 +236,7 @@
       }
     },
     "rotator": {
+      "profileName": "Rotator",
       "speed": 5,
       "brightness": 1,
       "start": {
@@ -145,7 +253,8 @@
       }
     },
     "wave": {
-      "speed": 20,
+      "profileName": "Wave",
+      "speed": 5,
       "brightness": 1,
       "smoothness": 10,
       "start": {
@@ -155,13 +264,14 @@
         "brightness": 1
       },
       "end": {
-        "red": 65,
-        "green": 143,
-        "blue": 232,
+        "red": 130,
+        "green": 130,
+        "blue": 130,
         "brightness": 1
       }
     },
     "colorpulse": {
+      "profileName": "Color Pulse",
       "speed": 1,
       "brightness": 1,
       "smoothness": 40,
@@ -179,6 +289,7 @@
       }
     },
     "circle": {
+      "profileName": "Circle",
       "speed": 1,
       "brightness": 1,
       "smoothness": 20,
@@ -196,6 +307,7 @@
       }
     },
     "circleshift": {
+      "profileName": "Circle Shift",
       "speed": 1,
       "brightness": 1,
       "smoothness": 100,
@@ -213,6 +325,7 @@
       }
     },
     "flickering": {
+      "profileName": "Flickering",
       "speed": 1,
       "brightness": 1,
       "smoothness": 40,
@@ -230,6 +343,7 @@
       }
     },
     "colorwarp": {
+      "profileName": "Color Warp",
       "speed": 1,
       "brightness": 1,
       "smoothness": 20,
@@ -237,6 +351,7 @@
       "end": {}
     },
     "spinner": {
+      "profileName": "Spinner",
       "speed": 1,
       "brightness": 1,
       "smoothness": 20,

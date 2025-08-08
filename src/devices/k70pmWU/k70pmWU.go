@@ -19,7 +19,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/big"
 	"os"
 	"regexp"
@@ -28,32 +27,35 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active             bool
-	Path               string
-	Product            string
-	Serial             string
-	LCDMode            uint8
-	LCDRotation        uint8
-	Brightness         uint8
-	RGBProfile         string
-	BrightnessSlider   *uint8
-	SleepMode          int
-	OriginalBrightness uint8
-	Label              string
-	Layout             string
-	Keyboards          map[string]*keyboards.Keyboard
-	Profile            string
-	PollingRate        int
-	Profiles           []string
-	DisableAltTab      bool
-	DisableAltF4       bool
-	DisableShiftTab    bool
-	DisableWinKey      bool
-	Performance        bool
+	Active               bool
+	Path                 string
+	Product              string
+	Serial               string
+	LCDMode              uint8
+	LCDRotation          uint8
+	Brightness           uint8
+	RGBProfile           string
+	SlipstreamRGBProfile string
+	BrightnessSlider     *uint8
+	SleepMode            int
+	OriginalBrightness   uint8
+	Label                string
+	Layout               string
+	Keyboards            map[string]*keyboards.Keyboard
+	Profile              string
+	PollingRate          int
+	Profiles             []string
+	DisableAltTab        bool
+	DisableAltF4         bool
+	DisableShiftTab      bool
+	DisableWinKey        bool
+	Performance          bool
 }
 
 type Device struct {
@@ -98,6 +100,7 @@ type Device struct {
 	MacroTracker           map[int]uint16
 	Connected              bool
 	deviceLock             sync.Mutex
+	RGBModes               []string
 }
 
 var (
@@ -128,6 +131,26 @@ var (
 	keyboardKey           = "k70pm-default"
 	defaultLayout         = "k70pm-default-US"
 	deviceKeepAlive       = 20000
+	rgbProfileUpgrade     = []string{"tlk", "tlr", "spiralrainbow", "rainbowwave", "rain", "visor", "colorwave"}
+	rgbModes              = []string{
+		"keyboard",
+		"rainbow",
+		"cpu-temperature",
+		"gpu-temperature",
+		"static",
+		"storm",
+		"watercolor",
+		"colorshift",
+		"rotator",
+		"wave",
+		"colorpulse",
+		"circle",
+		"circleshift",
+		"flickering",
+		"colorwarp",
+		"spinner",
+		"off",
+	}
 )
 
 func Init(vendorId, productId uint16, key string) *Device {
@@ -169,6 +192,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			6: "4000 Hz / 0.25 msec",
 			7: "8000 Hz / 0.125 msec",
 		},
+		RGBModes: rgbModes,
 		KeyAssignmentTypes: map[int]string{
 			0:  "None",
 			1:  "Media Keys",
@@ -389,6 +413,39 @@ func (d *Device) loadRgb() {
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
 	}
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			d.Rgb.Profiles[profile] = rgb.Profile{}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
+	}
 }
 
 // GetRgbProfile will return rgb.Profile struct
@@ -560,6 +617,7 @@ func (d *Device) saveDeviceProfile() {
 	if d.DeviceProfile == nil {
 		// RGB, Label
 		deviceProfile.RGBProfile = "keyboard"
+		deviceProfile.SlipstreamRGBProfile = "keyboard"
 		deviceProfile.Label = "Keyboard"
 		deviceProfile.Active = true
 		keyboardMap["default"] = keyboards.GetKeyboard(defaultLayout)
@@ -586,6 +644,9 @@ func (d *Device) saveDeviceProfile() {
 		// Upgrade process
 		currentLayout := fmt.Sprintf("%s-%s", keyboardKey, d.DeviceProfile.Layout)
 		layout := keyboards.GetKeyboard(currentLayout)
+		if layout == nil {
+			return
+		}
 		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
@@ -609,6 +670,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
+		deviceProfile.SlipstreamRGBProfile = d.DeviceProfile.SlipstreamRGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
@@ -885,6 +947,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor
@@ -1378,7 +1443,7 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
+	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil || !slices.Contains(rgbModes, d.DeviceProfile.RGBProfile) {
 		d.DeviceProfile.RGBProfile = "keyboard"
 	}
 
@@ -1905,6 +1970,12 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 			return
 		}
 
+		// Slipstream protocol
+		if key.SlipstreamProfile && functionKey {
+			d.changeConnectionMode(1)
+			return
+		}
+
 		// Brightness
 		if key.BrightnessKey && functionKey {
 			if *d.DeviceProfile.BrightnessSlider >= 100 {
@@ -1923,8 +1994,9 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 		}
 
 		// Sub-action keys with FN combination
-		if key.HasSubAction && functionKey {
-			inputmanager.InputControlKeyboard(key.FnActionCommand, false)
+		if key.HasSubAction && functionKey && key.FnActionCommand > 0 && key.Default {
+			d.addToMacroTracker(0, key.FnActionCommand)
+			inputmanager.InputControlKeyboard(key.FnActionCommand, true)
 			return
 		}
 
@@ -2018,10 +2090,12 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
+	if !d.Exit {
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return bufferR, err
+		}
 	}
 
 	return bufferR, nil

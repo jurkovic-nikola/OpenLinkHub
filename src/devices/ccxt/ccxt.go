@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
@@ -27,6 +26,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 var (
@@ -64,6 +65,24 @@ var (
 	maxBufferSizePerRequest    = 381
 	i2cPrefix                  = "i2c"
 	rgbProfileUpgrade          = []string{"custom"}
+	rgbModes                   = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 type RGBOverride struct {
@@ -178,6 +197,7 @@ type Device struct {
 	internalLedDevices      map[int]*LedChannel
 	Exit                    bool
 	deviceLock              sync.Mutex
+	RGBModes                []string
 }
 
 // Init will initialize a new device
@@ -212,6 +232,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:           rgbModes,
 		FreeLedPorts:       make(map[int]string, 6),
 		FreeLedPortLEDs:    make(map[int]string, 34),
 		internalLedDevices: make(map[int]*LedChannel, 6),
@@ -1032,9 +1053,13 @@ func (d *Device) resetLEDPorts() {
 				if deviceType, customOK := d.DeviceProfile.CustomLEDs[i]; customOK {
 					if deviceType > 0 {
 						externalDeviceType := d.getExternalLedDevice(d.DeviceProfile.CustomLEDs[i])
-						// Channel activation
-						buf = append(buf, 0x01)
-						buf = append(buf, externalDeviceType.Command)
+						if externalDeviceType == nil {
+							buf = append(buf, 0x00)
+						} else {
+							// Channel activation
+							buf = append(buf, 0x01)
+							buf = append(buf, externalDeviceType.Command)
+						}
 					} else {
 						// Port is not configured for ARGB
 						buf = append(buf, 0x00)
@@ -1427,6 +1452,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

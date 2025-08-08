@@ -19,7 +19,7 @@ import (
 	"OpenLinkHub/src/devices/k70pmW"
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m65rgbultraW"
-	"OpenLinkHub/src/devices/m75W"
+	"OpenLinkHub/src/devices/m75AirW"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/sabrergbproW"
 	"OpenLinkHub/src/devices/scimitarSEW"
@@ -27,10 +27,11 @@ import (
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {
@@ -83,7 +84,7 @@ var (
 	cmdBatteryLevel  = []byte{0x02, 0x0f}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 100
-	connectDelay     = 3000
+	connectDelay     = 5000
 )
 
 func Init(vendorId, productId uint16, key string, devices map[string]*common.Device) *Device {
@@ -188,7 +189,7 @@ func (d *Device) StopDirty() uint8 {
 				dev.StopDirty()
 			}
 		}
-		if dev, found := value.(*m75W.Device); found {
+		if dev, found := value.(*m75AirW.Device); found {
 			if dev.Connected {
 				dev.StopDirty()
 			}
@@ -219,7 +220,8 @@ func (d *Device) StopDirty() uint8 {
 			}
 		}
 	}
-	return 1
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	return 2
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -287,7 +289,7 @@ func (d *Device) Stop() {
 				dev.StopInternal()
 			}
 		}
-		if dev, found := value.(*m75W.Device); found {
+		if dev, found := value.(*m75AirW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -553,7 +555,7 @@ func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16
 				device.ModifyBatteryLevel(batteryLevel)
 			}
 		}
-		if device, found := dev.(*m75W.Device); found {
+		if device, found := dev.(*m75AirW.Device); found {
 			if device.Connected {
 				device.ModifyBatteryLevel(batteryLevel)
 			}
@@ -635,7 +637,7 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
-		if device, found := dev.(*m75W.Device); found {
+		if device, found := dev.(*m75AirW.Device); found {
 			if !device.Connected {
 				device.Connect()
 			}
@@ -716,7 +718,7 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
-		if device, found := pairedDevice.(*m75W.Device); found {
+		if device, found := pairedDevice.(*m75AirW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -811,7 +813,7 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 						device.SetConnected(false)
 					}
 				}
-				if device, found := pairedDevice.(*m75W.Device); found {
+				if device, found := pairedDevice.(*m75AirW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -915,7 +917,7 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
-				if device, found := pairedDevice.(*m75W.Device); found {
+				if device, found := pairedDevice.(*m75AirW.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
@@ -1004,7 +1006,7 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
 					}
 				}
-				if device, found := pairedDevice.(*m75W.Device); found {
+				if device, found := pairedDevice.(*m75AirW.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
@@ -1250,7 +1252,7 @@ func (d *Device) backendListener() {
 										dev.TriggerKeyAssignment(data[2])
 									}
 								}
-								if dev, found := value.(*m75W.Device); found {
+								if dev, found := value.(*m75AirW.Device); found {
 									if data[1] == 0x02 {
 										dev.TriggerKeyAssignment(data[2])
 									}

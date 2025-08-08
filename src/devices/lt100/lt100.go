@@ -15,7 +15,6 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/rand"
 	"os"
 	"regexp"
@@ -23,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceInfo represents a USB device
@@ -93,6 +94,7 @@ type Device struct {
 	keepAliveChan           chan struct{}
 	timer                   *time.Ticker
 	timerKeepAlive          *time.Ticker
+	RGBModes                []string
 }
 
 var (
@@ -117,6 +119,24 @@ var (
 	ledsPerTower            = 27
 	deviceKeepAlive         = 2000
 	rgbProfileUpgrade       = []string{"custom"}
+	rgbModes                = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 )
 
 // Init will initialize a new device
@@ -147,6 +167,7 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 		ProductId:       productId,
 		keepAliveChan:   make(chan struct{}),
 		autoRefreshChan: make(chan struct{}),
+		RGBModes:        rgbModes,
 	}
 
 	// Bootstrap
@@ -827,6 +848,9 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	}
 
 	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
 	pf.StartColor = profile.StartColor

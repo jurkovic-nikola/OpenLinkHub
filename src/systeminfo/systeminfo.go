@@ -87,6 +87,7 @@ var (
 	prevIdle  = 0
 	gpuIndex  = 0
 	amdsmi    = "amd-smi"
+	isAmdsmiFound = true
 )
 
 // Init will initialize and store system info
@@ -94,6 +95,17 @@ func Init() {
 	gpuIndex = config.GetConfig().AMDGpuIndex
 	if len(config.GetConfig().AMDSmiPath) > 0 {
 		amdsmi = config.GetConfig().AMDSmiPath
+	}
+
+	_, err := exec.LookPath(amdsmi)
+	if err != nil {
+		isAmdsmiFound = false
+		logger.Log(logger.Fields{"warn": err}).Warn("amd-smi not found")
+	}
+
+	_, err = exec.LookPath("nvidia-smi")
+	if err != nil {
+		logger.Log(logger.Fields{"warn": err}).Warn("nvidia-smi not found")
 	}
 
 	info = &SystemInfo{}
@@ -275,6 +287,9 @@ func GetNVIDIAGpuModel(index int) string {
 }
 
 func GetAMDGpuModel() string {
+	if !isAmdsmiFound {
+		return ""
+	}
 	cmd := exec.Command(amdsmi, "static", "-g", strconv.Itoa(gpuIndex), "--asic", "--json")
 	jsonOutput, err := cmd.Output()
 	if err != nil {
@@ -443,6 +458,9 @@ func GetCpuUtilization() float64 {
 
 // getAMDUtilization fetches the GPU utilization using amd-smi
 func getAMDUtilization() float64 {
+	if !isAmdsmiFound {
+		return 0
+	}
 	cmd := exec.Command(amdsmi, "metric", "-g", strconv.Itoa(gpuIndex), "-u", "--json")
 	jsonOutput, err := cmd.Output()
 	if err != nil {

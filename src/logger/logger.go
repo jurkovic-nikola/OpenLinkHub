@@ -65,6 +65,8 @@ func levelFromString(level string) common.LogLevel {
 		return common.LogError
 	case "fatal":
 		return common.LogFatal
+	case "silent":
+		return common.LogSilent
 	default:
 		return common.LogInfo
 	}

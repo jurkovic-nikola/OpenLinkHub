@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"OpenLinkHub/src/openrgb"
 	"github.com/godbus/dbus/v5"
 )
 
@@ -185,6 +186,7 @@ func Init() {
 						logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": info.Serial}).Info("Dirty USB removal...")
 						devices.StopDirty(info.Serial)
 						delete(cache, devPath)
+						openrgb.NotifyControllerChange(info.Serial)
 					}
 				}
 				break

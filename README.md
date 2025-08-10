@@ -256,6 +256,9 @@ The web UI supports installation as a progressive web app (PWA). With a supporte
 Chromium-based based browsers support PWAs, Firefox currently does not.
 GNOME 'Web,' also known as 'Epiphany' is a good option for PWAs on GNOME systems.
 
+### 7. OpenRGB Integration
+[See details](openrgb/README.md)
+
 ## Uninstall
 ```bash
 # Stop service

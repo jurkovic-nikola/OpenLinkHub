@@ -255,6 +255,17 @@ func ModifyBrightness(c Color) *Color {
 	return &Color{Red: float64(newR), Green: float64(newG), Blue: float64(newB)}
 }
 
+// ModifyBrightnessSlice will modify color brightness with given byte array
+func ModifyBrightnessSlice(data []byte, factor float64) {
+	for i := 0; i < len(data); i++ {
+		v := int(float64(data[i]) * factor)
+		if v > 255 {
+			v = 255
+		}
+		data[i] = byte(v)
+	}
+}
+
 // SetColor will generate byte output for RGB data
 func SetColor(data map[int][]byte) []byte {
 	buffer := make([]byte, len(data)*3)

@@ -45,6 +45,62 @@ type KeyboardPerformanceData struct {
 	AltF4    bool
 }
 
+type DeviceType uint32
+
+const (
+	DeviceTypeMotherboard = uint32(iota)
+	DeviceTypeDram
+	DeviceTypeGpu
+	DeviceTypeCooler
+	DeviceTypeLedstrip
+	DeviceTypeKeyboard
+	DeviceTypeMouse
+	DeviceTypeMousemat
+	DeviceTypeHeadset
+	DeviceTypeHeadsetStand
+	DeviceTypeGamepad
+	DeviceTypeLight
+	DeviceTypeSpeaker
+	DeviceTypeVirtual
+	DeviceTypeStorage
+	DeviceTypeCase
+	DeviceTypeMicrophone
+	DeviceTypeAccessory
+	DeviceTypeKeypad
+	DeviceTypeLaptop
+	DeviceTypeMonitor
+	DeviceTypeUnknown
+)
+
+type ZoneTypes uint32
+
+const (
+	ZoneTypeSingle ZoneTypes = iota
+	ZoneTypeLinear
+	ZoneTypeMatrix
+)
+
+type OpenRGBZone struct {
+	Name     string
+	NumLEDs  uint32
+	ZoneType uint32
+}
+
+type OpenRGBController struct {
+	Name         string
+	Vendor       string
+	Description  string
+	FwVersion    string
+	Serial       string
+	Location     string
+	Zones        []OpenRGBZone
+	Colors       []byte
+	ActiveMode   int32
+	WriteColorEx func([]byte, int)
+	ChannelId    int
+	DeviceType   uint32
+}
+
 type LogLevel int
 
 const (

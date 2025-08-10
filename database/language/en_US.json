@@ -306,6 +306,8 @@
     "txtRgbOverrideUpdated": "RGB override successfully updated",
     "txtRgbOverrideFailed": "Unable to update RGB override",
     "txtRgbPerLedUpdated": "Device RGB is successfully changed",
-    "txtNoLedData": "No LED data found"
+    "txtNoLedData": "No LED data found",
+    "txtUnableToChangeRgbProfileOpenRgb": "Unable to change RGB profile while OpenRGB Integration is enabled",
+    "txtOpenRGBIntegration": "OpenRGB Integration"
   }
 }

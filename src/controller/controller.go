@@ -12,6 +12,7 @@ import (
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/monitor"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server"
@@ -40,6 +41,7 @@ func Start() {
 	monitor.Init()      // Monitor
 	language.Init()     // Language
 	scheduler.Init()    // Scheduler
+	openrgb.Init()      // OpenRGB
 	server.Init()       // REST & WebUI
 }
 

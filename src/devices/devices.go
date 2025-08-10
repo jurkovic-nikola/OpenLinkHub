@@ -1672,6 +1672,28 @@ func ProcessSetLedData(deviceId string, channelId, subDeviceId int, zoneColors m
 	return nil
 }
 
+// ProcessSetOpenRgbIntegration will set OpenRGB integration
+func ProcessSetOpenRgbIntegration(deviceId string, enabled bool) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessSetOpenRgbIntegration"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(enabled))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // ProcessSetRgbOverride will set rgb override data
 func ProcessSetRgbOverride(deviceId string, channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -1915,8 +1937,8 @@ func initializeDevice(productId uint16, key, productPath string) {
 	switch productId {
 	case 3135: // CORSAIR iCUE Link System Hub
 		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := lsh.Init(vendorId, productId, serialId)
+			go func(vendorId, productId uint16, serialId, productPath string) {
+				dev := lsh.Init(vendorId, productId, serialId, productPath)
 				if dev == nil {
 					return
 				}
@@ -1929,7 +1951,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					Instance:    dev,
 				}
 				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key)
+			}(vendorId, productId, key, productPath)
 		}
 	case 3122, 3100: // CORSAIR iCUE COMMANDER Core
 		{

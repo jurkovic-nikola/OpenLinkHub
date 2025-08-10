@@ -1763,6 +1763,8 @@ func ProcessChangeColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
 	case 3:
 		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
+	case 4:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileOpenRgb"), Code: http.StatusOK, Status: 0}
 	case 1:
 		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
 	}
@@ -2949,6 +2951,41 @@ func ProcessSetLedData(r *http.Request) *Payload {
 	}
 
 	status := devices.ProcessSetLedData(req.DeviceId, req.ChannelId, req.SubDeviceId, req.ColorZones, req.Save)
+	switch status {
+	case 1:
+		return &Payload{Message: language.GetValue("txtRgbPerLedUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtInvalidRgbPerLed"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetOpenRgbIntegration will process setting data for OpenRGB integration
+func ProcessSetOpenRgbIntegration(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	enabled := req.Mode == 1
+
+	status := devices.ProcessSetOpenRgbIntegration(req.DeviceId, enabled)
 	switch status {
 	case 1:
 		return &Payload{Message: language.GetValue("txtRgbPerLedUpdated"), Code: http.StatusOK, Status: 1}

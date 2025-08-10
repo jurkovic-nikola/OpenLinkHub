@@ -32,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/openrgb"
 	"github.com/sstallion/go-hid"
 )
 
@@ -66,6 +67,7 @@ type DeviceProfile struct {
 	SubDeviceRGBProfiles map[int]map[int]string
 	RGBOverride          map[int]map[int]RGBOverride
 	RGBPerLed            map[int]map[int]map[int]rgb.Color
+	OpenRGBIntegration   bool
 }
 
 // LinkAdapter contains a list of supported external-LED devices connected to a LINK adapter
@@ -139,57 +141,59 @@ type Devices struct {
 }
 
 type Device struct {
-	Debug               bool
-	dev                 *hid.Device
-	Manufacturer        string                    `json:"manufacturer"`
-	Product             string                    `json:"product"`
-	Serial              string                    `json:"serial"`
-	Firmware            string                    `json:"firmware"`
-	AIO                 bool                      `json:"aio"`
-	Devices             map[int]*Devices          `json:"devices"`
-	UserProfiles        map[string]*DeviceProfile `json:"userProfiles"`
-	DeviceProfile       *DeviceProfile
-	OriginalProfile     *DeviceProfile
-	TemperatureProbes   *[]TemperatureProbe
-	activeRgb           *rgb.ActiveRGB
-	ledProfile          *led.Device
-	Template            string
-	HasLCD              bool
-	VendorId            uint16
-	ProductId           uint16
-	LCDModes            map[int]string
-	LCDRotations        map[int]string
-	Brightness          map[int]string
-	RGBStrips           map[int]string
-	PortProtection      map[uint8]int
-	GlobalBrightness    float64
-	IsCritical          bool
-	FirmwareInternal    []int
-	CpuTemp             float32
-	GpuTemp             float32
-	XD5LCDs             int
-	Rgb                 *rgb.RGB
-	rgbMutex            sync.RWMutex
-	Exit                bool
-	LCDImage            map[int]*lcd.ImageData
-	lcdRefreshChan      chan struct{}
-	lcdImageChan        chan struct{}
-	autoRefreshChan     chan struct{}
-	speedRefreshChan    chan struct{}
-	timer               *time.Ticker
-	timerSpeed          *time.Ticker
-	lcdTimer            *time.Ticker
-	mutex               sync.Mutex
-	mutexLcd            sync.Mutex
-	deviceLock          sync.Mutex
-	lcdDevices          map[string]*LCD
-	LinkAdapter         []LinkAdapter
-	HasLinkAdapter      bool
-	LedDeviceTypes      []byte
-	LedDeviceTypeLength byte
-	LedDeviceTypeLed    []byte
-	supportedDevices    []SupportedDevice
-	RGBModes            []string
+	Debug                  bool
+	dev                    *hid.Device
+	Manufacturer           string                    `json:"manufacturer"`
+	Product                string                    `json:"product"`
+	Serial                 string                    `json:"serial"`
+	Path                   string                    `json:"path"`
+	Firmware               string                    `json:"firmware"`
+	AIO                    bool                      `json:"aio"`
+	Devices                map[int]*Devices          `json:"devices"`
+	UserProfiles           map[string]*DeviceProfile `json:"userProfiles"`
+	DeviceProfile          *DeviceProfile
+	OriginalProfile        *DeviceProfile
+	TemperatureProbes      *[]TemperatureProbe
+	activeRgb              *rgb.ActiveRGB
+	ledProfile             *led.Device
+	Template               string
+	HasLCD                 bool
+	VendorId               uint16
+	ProductId              uint16
+	LCDModes               map[int]string
+	LCDRotations           map[int]string
+	Brightness             map[int]string
+	RGBStrips              map[int]string
+	PortProtection         map[uint8]int
+	GlobalBrightness       float64
+	IsCritical             bool
+	FirmwareInternal       []int
+	CpuTemp                float32
+	GpuTemp                float32
+	XD5LCDs                int
+	Rgb                    *rgb.RGB
+	rgbMutex               sync.RWMutex
+	Exit                   bool
+	LCDImage               map[int]*lcd.ImageData
+	lcdRefreshChan         chan struct{}
+	lcdImageChan           chan struct{}
+	autoRefreshChan        chan struct{}
+	speedRefreshChan       chan struct{}
+	timer                  *time.Ticker
+	timerSpeed             *time.Ticker
+	lcdTimer               *time.Ticker
+	mutex                  sync.Mutex
+	mutexLcd               sync.Mutex
+	deviceLock             sync.Mutex
+	lcdDevices             map[string]*LCD
+	LinkAdapter            []LinkAdapter
+	HasLinkAdapter         bool
+	LedDeviceTypes         []byte
+	LedDeviceTypeLength    byte
+	LedDeviceTypeLed       []byte
+	supportedDevices       []SupportedDevice
+	RGBModes               []string
+	pumpInnerLedStartIndex int
 }
 
 var (
@@ -265,7 +269,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -282,6 +286,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		Template:  "lsh.html",
 		VendorId:  vendorId,
 		ProductId: productId,
+		Path:      path,
 		LCDModes: map[int]string{
 			0:   "Liquid Temperature",
 			1:   "Pump Speed",
@@ -330,26 +335,27 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	}
 
 	// Bootstrap
-	d.getDebugMode()        // Debug mode
-	d.getManufacturer()     // Manufacturer
-	d.getProduct()          // Product
-	d.getSerial()           // Serial
-	d.loadDeviceMetadata()  // Device metadata
-	d.loadExternalDevices() // External metadata
-	d.loadRgb()             // Load RGB
-	d.loadDeviceProfiles()  // Load all device profiles
-	d.getDeviceLcd()        // Check for LCDs
-	d.getDeviceFirmware()   // Firmware
-	d.setSoftwareMode()     // Activate software mode
-	d.getLedDeviceTypes()   // Device led types
-	d.getDevices()          // Get devices connected to a hub
-	d.setColorEndpoint()    // Set device color endpoint
-	d.setDeviceProtection() // Protect device
-	d.setDefaults()         // Set default speed and color values for fans and pumps
-	d.setAutoRefresh()      // Set auto device refresh
-	d.saveDeviceProfile()   // Save profile
-	d.setupLedProfile()     // LED profile
-	d.getTemperatureProbe() // Devices with temperature probes
+	d.getDebugMode()         // Debug mode
+	d.getManufacturer()      // Manufacturer
+	d.getProduct()           // Product
+	d.getSerial()            // Serial
+	d.loadDeviceMetadata()   // Device metadata
+	d.loadExternalDevices()  // External metadata
+	d.loadRgb()              // Load RGB
+	d.loadDeviceProfiles()   // Load all device profiles
+	d.getDeviceLcd()         // Check for LCDs
+	d.getDeviceFirmware()    // Firmware
+	d.setSoftwareMode()      // Activate software mode
+	d.getLedDeviceTypes()    // Device led types
+	d.getDevices()           // Get devices connected to a hub
+	d.setColorEndpoint()     // Set device color endpoint
+	d.setDeviceProtection()  // Protect device
+	d.setDefaults()          // Set default speed and color values for fans and pumps
+	d.setAutoRefresh()       // Set auto device refresh
+	d.saveDeviceProfile()    // Save profile
+	d.setupLedProfile()      // LED profile
+	d.getTemperatureProbe()  // Devices with temperature probes
+	d.pumpInnerLedPosition() // Pump inner LEDs
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
@@ -365,7 +371,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		d.setupLCD()       // LCD
 		d.setupLCDImage()  // LCD images
 	}
-
+	d.setupOpenRGBController() // OpenRGB Controller
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -1270,6 +1276,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.MultiProfile = d.DeviceProfile.MultiProfile
 		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
 		deviceProfile.SubDeviceRGBProfiles = d.DeviceProfile.SubDeviceRGBProfiles
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 	}
 
 	keys := make([]int, 0, len(deviceProfile.DevicePosition))
@@ -1989,6 +1996,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
 	pf := d.GetRgbProfile(profile)
 	if pf == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
@@ -2202,6 +2213,21 @@ func (d *Device) UpdateRgbProfileBulk(channelIds []int, profile string) uint8 {
 // ProcessGetRgbOverride will get rgb override data
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // ProcessSetRgbOverride will update RGB override settings
@@ -2568,7 +2594,6 @@ func (d *Device) updateDeviceSpeed() {
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
-							fmt.Println(temp, d.Devices[k].Name, profiles.GPUIndex)
 						}
 					}
 
@@ -3281,6 +3306,87 @@ func (d *Device) setupLinkAdapterRgb(enabled bool, channelId int) {
 	d.writeColor(buffer) // Write color once
 }
 
+// pumpInnerLedPosition will calculate pump inner LED position when LCD is installed
+func (d *Device) pumpInnerLedPosition() {
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	pos := 0
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			if d.Devices[k].AIO && d.HasLCD {
+				for j := 0; j < int(d.Devices[k].LedChannels); j++ {
+					if j > 15 && j < 20 {
+						d.pumpInnerLedStartIndex = pos
+						break
+					}
+					pos += 3
+				}
+			} else {
+				pos += int(d.Devices[k].LedChannels * 3)
+			}
+		}
+	}
+}
+
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	lightChannels := 0
+	keys := make([]int, 0)
+
+	// For proper packet positioning
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	controller := &common.OpenRGBController{
+		Name:         d.Product,
+		Vendor:       "Corsair", // Static value
+		Description:  "OpenLinkHub Backend Device",
+		FwVersion:    d.Firmware,
+		Serial:       d.Serial,
+		Location:     d.Path,
+		Zones:        nil,
+		Colors:       make([]byte, lightChannels*3),
+		ActiveMode:   0,
+		WriteColorEx: d.writeColorEx,
+		DeviceType:   common.DeviceTypeCooler,
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].IsLinkAdapter {
+			if adapterId, ok := d.DeviceProfile.ExternalAdapter[k]; ok {
+				adapterData := d.getLinkAdapterDevice(adapterId)
+				aks := make([]int, 0)
+				for ak := range adapterData.Devices {
+					aks = append(aks, ak)
+				}
+				sort.Ints(aks)
+				for _, ak := range aks {
+					zone := common.OpenRGBZone{
+						Name:     adapterData.Devices[ak].Name,
+						NumLEDs:  uint32(adapterData.Devices[ak].Total),
+						ZoneType: uint32(common.ZoneTypeLinear),
+					}
+					controller.Zones = append(controller.Zones, zone)
+				}
+			}
+		} else {
+			zone := common.OpenRGBZone{
+				Name:    d.Devices[k].Name,
+				NumLEDs: uint32(d.Devices[k].LedChannels),
+			}
+			controller.Zones = append(controller.Zones, zone)
+		}
+	}
+	// Send it
+	openrgb.AddDeviceController(controller)
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -3313,6 +3419,12 @@ func (d *Device) setDeviceColor() {
 
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
+
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
 
 	// When do we have a combination of QX and RX fans in the chain, QX fan lighting randomly won't turn on.
 	// I'm not able to figure out why this is happening, could be related to fans being daisy-chained and how data is
@@ -4187,6 +4299,66 @@ func (d *Device) writeColor(data []byte) {
 
 	if d.Exit {
 		return
+	}
+
+	// Buffer
+	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
+	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
+	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
+
+	// Process buffer and create a chunked array if needed
+	writeColorEp := cmdWriteColor
+	colorEp := make([]byte, len(writeColorEp))
+	copy(colorEp, writeColorEp)
+
+	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if d.Exit {
+			break
+		}
+		if i == 0 {
+			// Initial packet is using cmdWriteColor
+			_, err := d.transfer(cmdWriteColor, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+		} else {
+			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+			_, err := d.transfer(dataTypeSubColor, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
+	}
+}
+
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, _ int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if d.Exit {
+		return
+	}
+
+	// Disable pump inner 4 LEDs when LCD is installed
+	if d.pumpInnerLedStartIndex > 0 {
+		for i := d.pumpInnerLedStartIndex; i < d.pumpInnerLedStartIndex+12; i++ {
+			data[i] = byte(0)
+		}
+	}
+
+	// Protect device
+	// When a specific number of LEDs exceeds the maximum LEDs per controller channel, brightness needs to be reduced
+	// to avoid device damage. Brightness reduction is implemented in 3 stages, and each stage reduces brightness
+	// by 33 %.
+	if d.GlobalBrightness != 0 {
+		rgb.ModifyBrightnessSlice(data, d.GlobalBrightness)
 	}
 
 	// Buffer

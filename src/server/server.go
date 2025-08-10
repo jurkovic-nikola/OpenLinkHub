@@ -769,6 +769,17 @@ func setLedData(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setOpenRgbIntegration saves OpenRGB integration state
+func setOpenRgbIntegration(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetOpenRgbIntegration(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
 // setDeviceHardwareColor handles device hardware color changes
 func setDeviceHardwareColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessHardwareChangeColor(r)
@@ -1531,6 +1542,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/setOverride", http.MethodPost, setRgbOverride)
 	handleFunc(r, "/api/color/getLedData", http.MethodPost, getLedData)
 	handleFunc(r, "/api/color/setLedData", http.MethodPost, setLedData)
+	handleFunc(r, "/api/color/setOpenRgbIntegration", http.MethodPost, setOpenRgbIntegration)
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
 	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
 	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)

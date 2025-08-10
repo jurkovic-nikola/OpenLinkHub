@@ -1428,6 +1428,34 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.openRgbIntegration').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const mode = parseInt($(this).val());
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["mode"] = mode;
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/color/setOpenRgbIntegration',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.globalRgb').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val();

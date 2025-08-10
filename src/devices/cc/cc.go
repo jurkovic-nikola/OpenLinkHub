@@ -71,7 +71,27 @@ var (
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 	i2cPrefix                  = "i2c"
 	rgbProfileUpgrade          = []string{"custom"}
-	aioList                    = []AIOList{
+	rgbModes                   = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"liquid-temperature",
+		"led",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
+	aioList = []AIOList{
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 240},
 		{Name: "H100i ELITE CAPELLIX", PumpVersion: 2, RadiatorSize: 240},
 		{Name: "H115i ELITE CAPELLIX", PumpVersion: 1, RadiatorSize: 280},
@@ -268,6 +288,7 @@ type Device struct {
 	timerSpeed         *time.Ticker
 	lcdTimer           *time.Ticker
 	internalLedDevices map[int]*LedChannel
+	RGBModes           []string
 }
 
 /*
@@ -335,6 +356,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		RGBModes:           rgbModes,
 		FreeLedPorts:       make(map[int]string, 6),
 		FreeLedPortLEDs:    make(map[int]string, 34),
 		internalLedDevices: make(map[int]*LedChannel, 7),
@@ -1610,6 +1632,13 @@ func (d *Device) updateDeviceSpeed() {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
 						}
+					case temperatures.SensorTypeGlobalTemperature:
+						{
+							temp = stats.GetDeviceTemperature(profiles.Device, profiles.ChannelId)
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
+							}
+						}
 					}
 
 					// All temps failed, default to 50
@@ -1872,7 +1901,7 @@ func (d *Device) getDeviceData() {
 			if value.Rpm > 0 {
 				rpmString = fmt.Sprintf("%v RPM", value.Rpm)
 			}
-			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key)
+			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
 		}
 	}
 }
@@ -2322,7 +2351,7 @@ func (d *Device) getTemperatureProbe() {
 	}
 
 	for _, k := range keys {
-		if d.Devices[k].IsTemperatureProbe {
+		if d.Devices[k].IsTemperatureProbe || d.Devices[k].HasTemps {
 			probe := TemperatureProbe{
 				ChannelId: d.Devices[k].ChannelId,
 				Name:      d.Devices[k].Name,

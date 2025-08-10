@@ -1912,7 +1912,7 @@ func (d *Device) getTemperatureProbe() {
 	}
 
 	for _, k := range keys {
-		if d.Devices[k].IsTemperatureProbe {
+		if d.Devices[k].IsTemperatureProbe || d.Devices[k].HasTemps {
 			probe := TemperatureProbe{
 				ChannelId: d.Devices[k].ChannelId,
 				Name:      d.Devices[k].Name,
@@ -2595,6 +2595,14 @@ func (d *Device) updateDeviceSpeed() {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
 						}
+					case temperatures.SensorTypeGlobalTemperature:
+						{
+							temp = stats.GetDeviceTemperature(profiles.Device, profiles.ChannelId)
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
+							}
+							fmt.Println(temp)
+						}
 					}
 
 					// All temps failed, default to 50
@@ -2865,7 +2873,7 @@ func (d *Device) getDeviceData() {
 		if value.Rpm > 0 || value.Temperature > 0 {
 			rpmString := fmt.Sprintf("%v RPM", value.Rpm)
 			temperatureString := dashboard.GetDashboard().TemperatureToString(value.Temperature)
-			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key)
+			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
 		}
 	}
 	d.protectLiquidCooler()

@@ -302,7 +302,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 8 || sensor < 0 {
+	if sensor > 9 || sensor < 0 {
 		return &Payload{
 			Message: language.GetValue("txtInvalidSensorValue"),
 			Code:    http.StatusOK,
@@ -315,10 +315,11 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		deviceId = req.HwmonDeviceId
 	}
 
-	if sensor == temperatures.SensorTypeTemperatureProbe {
+	if sensor == temperatures.SensorTypeTemperatureProbe || sensor == temperatures.SensorTypeGlobalTemperature {
 		deviceId = req.DeviceId
 		channelId = req.ChannelId
 
+		fmt.Println(deviceId, channelId)
 		if len(deviceId) < 1 {
 			return &Payload{
 				Message: language.GetValue("txtInvalidSensorValue"),
@@ -327,7 +328,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 			}
 		}
 
-		if channelId < 1 {
+		if channelId < 0 {
 			return &Payload{
 				Message: language.GetValue("txtInvalidSensorValue"),
 				Code:    http.StatusOK,

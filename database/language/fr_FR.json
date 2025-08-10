@@ -309,6 +309,7 @@
         "txtNoLedData": "Aucune donnée de LED trouvée",
         "txtUnableToChangeRgbProfileOpenRgb": "Impossible de change le profil RGB quand l'intégration OpenRGB est active",
         "txtOpenRGBIntegration": "Integration OpenRGB",
-        "txtKeyboardLayout": "Disposition du clavier"
+        "txtKeyboardLayout": "Disposition du clavier",
+        "txtDevice": "Appareil"
     }
 }

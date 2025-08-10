@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["hwmonDeviceId"] = $("#hwmonDeviceId").val();
         }
 
-        if (parseInt(sensor) === 4) {
+        if (parseInt(sensor) === 4 || parseInt(sensor) === 9) {
             const probeData = $("#probeData").val().split(';')
             pf["deviceId"] = probeData[0];
             pf["channelId"] = parseInt(probeData[1]);
@@ -505,6 +505,12 @@ document.addEventListener("DOMContentLoaded", function () {
             $("#hwmon-sensors-probe-data").hide();
             $("#binary-sensors-probe-data").hide();
             $("#gpu-data").show();
+        } else if (value === "9") {
+            $("#storage-data").hide();
+            $("#temperature-probe-data").show();
+            $("#hwmon-sensors-probe-data").hide();
+            $("#binary-sensors-probe-data").hide();
+            $("#gpu-data").hide();
         } else {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();

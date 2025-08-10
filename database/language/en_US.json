@@ -309,6 +309,7 @@
     "txtNoLedData": "No LED data found",
     "txtUnableToChangeRgbProfileOpenRgb": "Unable to change RGB profile while OpenRGB Integration is enabled",
     "txtOpenRGBIntegration": "OpenRGB Integration",
-    "txtKeyboardLayout": "Keyboard Layout"
+    "txtKeyboardLayout": "Keyboard Layout",
+    "txtDevice": "Device"
   }
 }

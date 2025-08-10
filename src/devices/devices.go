@@ -1585,12 +1585,15 @@ func GetTemperatureProbes() interface{} {
 			device.ProductType == productTypeCC ||
 			device.ProductType == productTypeCCXT ||
 			device.ProductType == productTypeMemory ||
-			device.ProductType == productTypeCPro {
+			device.ProductType == productTypeCPro ||
+			device.ProductType == productTypeElite ||
+			device.ProductType == productTypeXC7 ||
+			device.ProductType == productTypePlatinum {
 			methodName := "GetTemperatureProbes"
 			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 			if !method.IsValid() {
 				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-				return 0
+				continue
 			} else {
 				results := method.Call(nil)
 				if len(results) > 0 {

@@ -5,6 +5,7 @@ import "sync"
 type Device struct {
 	Device            string
 	TemperatureString string
+	Temperature       float32
 	Speed             string
 	Label             string
 }
@@ -55,7 +56,7 @@ func UpdateBatteryStats(serial, device string, level uint16, deviceType uint8) {
 }
 
 // UpdateAIOStats will update AIO stats
-func UpdateAIOStats(serial, name, temp, speed, label string, channelId int) {
+func UpdateAIOStats(serial, name, temp, speed, label string, channelId int, temperature float32) {
 	statsMutex.Lock()
 	defer statsMutex.Unlock()
 
@@ -63,6 +64,7 @@ func UpdateAIOStats(serial, name, temp, speed, label string, channelId int) {
 		data.Devices[channelId] = Device{
 			Device:            name,
 			TemperatureString: temp,
+			Temperature:       temperature,
 			Speed:             speed,
 		}
 		stats[serial] = data
@@ -72,11 +74,25 @@ func UpdateAIOStats(serial, name, temp, speed, label string, channelId int) {
 				channelId: {
 					Device:            name,
 					TemperatureString: temp,
+					Temperature:       temperature,
 					Speed:             speed,
 				},
 			},
 		}
 	}
+}
+
+// GetDeviceTemperature will return temperature for given device and channel
+func GetDeviceTemperature(serial string, channelId int) float32 {
+	statsMutex.RLock()
+	defer statsMutex.RUnlock()
+	
+	if data, ok := stats[serial]; ok {
+		if value, found := data.Devices[channelId]; found {
+			return value.Temperature
+		}
+	}
+	return 0
 }
 
 // GetAIOStats will return AIO stats

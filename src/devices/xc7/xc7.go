@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/stats"
 	"github.com/sstallion/go-hid"
 )
 
@@ -710,6 +711,7 @@ func (d *Device) getTemperatureProbeData() {
 
 	d.Temperature = temp
 	d.TemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
+	stats.UpdateAIOStats(d.Serial, d.Product, d.TemperatureString, "", d.DeviceProfile.Label, 0, d.Temperature)
 }
 
 // getDeviceFirmware will get device firmware
@@ -1243,6 +1245,11 @@ func (d *Device) getTemperatureProbe() {
 	}
 	probes = append(probes, probe)
 	d.TemperatureProbes = &probes
+}
+
+// GetTemperatureProbes will return a list of temperature probes
+func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
+	return d.TemperatureProbes
 }
 
 // setLcdRotation will change LCD rotation

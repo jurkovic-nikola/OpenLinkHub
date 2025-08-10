@@ -27,6 +27,7 @@ const (
 	SensorTypeExternalHwMon      = 6
 	SensorTypeExternalExecutable = 7
 	SensorTypeMultiGPU           = 8
+	SensorTypeGlobalTemperature  = 9
 )
 
 type UpdateData struct {
@@ -430,13 +431,17 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 			{
 				pf = profileNormal
 			}
+		case SensorTypeGlobalTemperature:
+			{
+				pf = profileNormal
+			}
 		}
 
 		if len(deviceId) > 0 {
 			pf.Device = deviceId
 		}
 
-		if sensor == 4 {
+		if sensor == 4 || sensor == 9 {
 			pf.ChannelId = channelId
 		}
 

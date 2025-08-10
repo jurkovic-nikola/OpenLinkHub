@@ -1191,7 +1191,7 @@ func (d *Device) getDeviceData() {
 			if value.Rpm > 0 {
 				rpmString = fmt.Sprintf("%v RPM", value.Rpm)
 			}
-			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key)
+			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
 		}
 	}
 }
@@ -2418,6 +2418,13 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeMultiGPU:
 						{
 							temp = temperatures.GetGpuTemperatureIndex(int(profiles.GPUIndex))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
+							}
+						}
+					case temperatures.SensorTypeGlobalTemperature:
+						{
+							temp = stats.GetDeviceTemperature(profiles.Device, profiles.ChannelId)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}

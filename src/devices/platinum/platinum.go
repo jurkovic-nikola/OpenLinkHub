@@ -94,6 +94,14 @@ type Devices struct {
 	IsTemperatureProbe bool
 }
 
+type TemperatureProbe struct {
+	ChannelId int
+	Name      string
+	Label     string
+	Serial    string
+	Product   string
+}
+
 type Device struct {
 	dev               *usb.Device
 	ProductId         uint16
@@ -111,6 +119,7 @@ type Device struct {
 	activeRgb         *rgb.ActiveRGB
 	sequence          byte
 	DeviceProfile     *DeviceProfile
+	TemperatureProbes *[]TemperatureProbe
 	ExternalHub       bool
 	RGBDeviceOnly     bool
 	Template          string
@@ -255,12 +264,12 @@ func Init(vendorId, productId uint16, path string) *Device {
 	d.loadDeviceProfiles() // Load all device profiles
 	d.getDeviceFirmware()  // Firmware
 	d.getPumpSpeed()
-	d.getDevices()        // Get devices
-	d.setAutoRefresh()    // Set auto device refresh
-	d.saveDeviceProfile() // Save profile
-	d.initLeds()          // Init LED
-	d.setDeviceColor()    // Device color
-
+	d.getDevices()          // Get devices
+	d.setAutoRefresh()      // Set auto device refresh
+	d.getTemperatureProbe() // Devices with temperature probes
+	d.saveDeviceProfile()   // Save profile
+	d.initLeds()            // Init LED
+	d.setDeviceColor()      // Device color
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
@@ -518,6 +527,30 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 	return 1
 }
 
+// getTemperatureProbe will return all devices with a temperature probe
+func (d *Device) getTemperatureProbe() {
+	var probes []TemperatureProbe
+
+	keys := make([]int, 0)
+	for k := range d.Devices {
+		keys = append(keys, k)
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].IsTemperatureProbe || d.Devices[k].HasTemps || d.Devices[k].ContainsPump {
+			probe := TemperatureProbe{
+				ChannelId: d.Devices[k].ChannelId,
+				Name:      d.Devices[k].Name,
+				Label:     d.Devices[k].Label,
+				Serial:    d.Serial,
+				Product:   d.Product,
+			}
+			probes = append(probes, probe)
+		}
+	}
+	d.TemperatureProbes = &probes
+}
+
 // saveRgbProfile will save rgb profile data
 func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -550,6 +583,11 @@ func (d *Device) saveRgbProfile() {
 			return
 		}
 	}
+}
+
+// GetTemperatureProbes will return a list of temperature probes
+func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
+	return d.TemperatureProbes
 }
 
 // setDeviceColor will activate and set device RGB
@@ -1267,6 +1305,7 @@ func (d *Device) getDeviceData() {
 				rpmString,
 				d.Devices[deviceList[device].Index].Label,
 				deviceList[device].Index,
+				float32(d.Devices[deviceList[device].Index].Temperature),
 			)
 		}
 	}
@@ -1416,6 +1455,13 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeMultiGPU:
 						{
 							temp = temperatures.GetGpuTemperatureIndex(int(profiles.GPUIndex))
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
+							}
+						}
+					case temperatures.SensorTypeGlobalTemperature:
+						{
+							temp = stats.GetDeviceTemperature(profiles.Device, profiles.ChannelId)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}

@@ -80,7 +80,7 @@ func GetSmBus() (*SmBus, error) {
 
 // ioctl is a linux implementation of ioctl
 func ioctl(fd, cmd, arg uintptr) (err error) {
-	_, _, e1 := syscall.Syscall6(syscall.SYS_IOCTL, fd, cmd, arg, 0, 0, 0)
+	_, _, e1 := syscall.Syscall(syscall.SYS_IOCTL, fd, cmd, arg)
 	if e1 != 0 {
 		err = e1
 	}

@@ -1183,6 +1183,13 @@ func (d *Device) saveDeviceProfile() {
 			}
 			deviceProfile.LCDImages = lcdImages
 		} else {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					if _, ok := d.DeviceProfile.LCDImages[device.ChannelId]; !ok {
+						d.DeviceProfile.LCDImages[device.ChannelId] = ""
+					}
+				}
+			}
 			deviceProfile.LCDImages = d.DeviceProfile.LCDImages
 		}
 
@@ -1194,6 +1201,13 @@ func (d *Device) saveDeviceProfile() {
 			}
 			deviceProfile.LCDModes = lcdModes
 		} else {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					if _, ok := d.DeviceProfile.LCDModes[device.ChannelId]; !ok {
+						d.DeviceProfile.LCDModes[device.ChannelId] = 0
+					}
+				}
+			}
 			deviceProfile.LCDModes = d.DeviceProfile.LCDModes
 		}
 
@@ -1205,6 +1219,13 @@ func (d *Device) saveDeviceProfile() {
 			}
 			deviceProfile.LCDRotations = lcdRotations
 		} else {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					if _, ok := d.DeviceProfile.LCDRotations[device.ChannelId]; !ok {
+						d.DeviceProfile.LCDRotations[device.ChannelId] = 0
+					}
+				}
+			}
 			deviceProfile.LCDRotations = d.DeviceProfile.LCDRotations
 		}
 
@@ -1216,6 +1237,13 @@ func (d *Device) saveDeviceProfile() {
 			}
 			deviceProfile.LCDDevices = lcdDevices
 		} else {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					if _, ok := d.DeviceProfile.LCDDevices[device.ChannelId]; !ok {
+						d.DeviceProfile.LCDDevices[device.ChannelId] = device.LCDSerial
+					}
+				}
+			}
 			deviceProfile.LCDDevices = d.DeviceProfile.LCDDevices
 		}
 

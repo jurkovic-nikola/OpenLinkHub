@@ -52,6 +52,7 @@ const (
 	LogWarn
 	LogError
 	LogFatal
+	LogSilent
 )
 
 // runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.

@@ -113,9 +113,9 @@
                                     {{ end }}
 
                                     {{ if gt (len $keys.Css) 0 }}
-                                    <div class="{{ $keys.Css }} keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="{{ $keys.Css }} keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;text-align: center;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                     {{ else }}
-                                    <div class="keyboard-key keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="keyboard-key keyboardColor" style="font-size: {{ $keyboard.FontSize }}px;text-align: center;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                     {{ end }}
 
                                     {{ if $keys.Svg }}

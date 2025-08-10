@@ -2,16 +2,16 @@
 {{ $dev := .Device }}
 
 {{ if eq .Page "index" }}
-<div class="row btn btn-secondary active-nav-link navigation-left-small">
-    <a href="/" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
+<div class="row btn btn-secondary active-nav-link navigation-left-small" style="width: auto;">
+    <a style="color: #a1a1a1;" href="/">
+        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Dashboard" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtDashboard" }}</span>
     </a>
 </div>
 {{ else }}
-<div class="row btn btn-secondary navigation-left-small">
-    <a href="/" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
+<div class="row btn btn-secondary navigation-left-small" style="width: auto;">
+    <a style="color: #a1a1a1;" href="/">
+        <img src="/static/img/icons/icon-dashboard.svg" width="46" height="46" alt="Dashboard" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtDashboard" }}</span>
     </a>
 </div>
@@ -66,16 +66,16 @@
 
 <!-- Profiles -->
 {{ if eq .Page "temperature" }}
-<div class="row btn btn-secondary active-nav-link navigation-right-small">
-    <a href="/temperature" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+<div class="row btn btn-secondary active-nav-link navigation-right-big">
+    <a style="color: #a1a1a1;" href="/temperature">
+        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtProfiles" }}</span>
     </a>
 </div>
 {{ else }}
-<div class="row btn btn-secondary navigation-right-small">
-    <a href="/temperature" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" />
+<div class="row btn btn-secondary navigation-right-big">
+    <a style="color: #a1a1a1;" href="/temperature">
+        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Temperature Profiles" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtProfiles" }}</span>
     </a>
 </div>
@@ -83,16 +83,16 @@
 
 <!-- Scheduler -->
 {{ if eq .Page "scheduler" }}
-<div class="row btn btn-secondary active-nav-link navigation-right-small">
-    <a href="/scheduler" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary active-nav-link navigation-right-big">
+    <a style="color: #a1a1a1;" href="/scheduler">
+        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Scheduler" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtScheduler" }}</span>
     </a>
 </div>
 {{ else }}
-<div class="row btn btn-secondary navigation-right-small">
-    <a href="/scheduler" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary navigation-right-big">
+    <a style="color: #a1a1a1;" href="/scheduler">
+        <img src="/static/img/icons/icon-schedule.svg" width="46" height="46" alt="Scheduler" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtScheduler" }}</span>
     </a>
 </div>
@@ -100,16 +100,16 @@
 
 <!-- Rgb -->
 {{ if eq .Page "rgb" }}
-<div class="row btn btn-secondary active-nav-link navigation-right-small">
-    <a href="/rgb" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary active-nav-link navigation-right-big">
+    <a style="color: #a1a1a1;" href="/rgb">
+        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="RGB Editor" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtRgbEditor" }}</span>
     </a>
 </div>
 {{ else }}
-<div class="row btn btn-secondary navigation-right-small">
-    <a href="/rgb" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary navigation-right-big">
+    <a style="color: #a1a1a1;" href="/rgb">
+        <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="RGB Editor" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtRgbEditor" }}</span>
     </a>
 </div>
@@ -117,16 +117,16 @@
 
 <!-- Macros -->
 {{ if eq .Page "macros" }}
-<div class="row btn btn-secondary active-nav-link navigation-right-small">
-    <a href="/macros" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary active-nav-link navigation-right-big">
+    <a style="color: #a1a1a1;" href="/macros">
+        <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Macros" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtMacros" }}</span>
     </a>
 </div>
 {{ else }}
-<div class="row btn btn-secondary navigation-right-small">
-    <a href="/macros" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary navigation-right-big">
+    <a style="color: #a1a1a1;" href="/macros">
+        <img src="/static/img/icons/icon-macro.svg" width="46" height="46" alt="Macros" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtMacros" }}</span>
     </a>
 </div>
@@ -134,16 +134,16 @@
 
 <!-- LCD -->
 {{ if eq .Page "lcd" }}
-<div class="row btn btn-secondary active-nav-link navigation-right-small">
-    <a href="/lcd" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary active-nav-link navigation-right-big">
+    <a style="color: #a1a1a1;" href="/lcd">
+        <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="LCD" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtLcd" }}</span>
     </a>
 </div>
 {{ else }}
-<div class="row btn btn-secondary navigation-right-small">
-    <a href="/lcd" style="color: #a1a1a1;">
-        <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="Settings" class="top-px" />
+<div class="row btn btn-secondary navigation-right-big">
+    <a style="color: #a1a1a1;" href="/lcd">
+        <img src="/static/img/icons/icon-lcd.svg" width="46" height="46" alt="LCD" class="top-px" /><br />
         <span style="font-size: 13px;">{{ .Lang "txtLcd" }}</span>
     </a>
 </div>

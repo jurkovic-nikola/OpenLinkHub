@@ -465,7 +465,7 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 		}
 		return []byte{}
 	}
-	err = binary.Write(modeBuf, binary.LittleEndian, uint32(0)) // color_mode
+	err = binary.Write(modeBuf, binary.LittleEndian, ctrl.ColorMode) // color_mode
 	if err != nil {
 		if debug {
 			logger.Log(logger.Fields{"error": err}).Error("modeBuf::color_mode write error")

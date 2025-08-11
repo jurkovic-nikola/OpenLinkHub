@@ -80,6 +80,13 @@ const (
 	ZoneTypeMatrix
 )
 
+const (
+	ColorModeNone = uint32(iota)
+	ColorModePerLed
+	ColorModeSpecific
+	ColorModeRandom
+)
+
 type OpenRGBZone struct {
 	Name     string
 	NumLEDs  uint32
@@ -99,6 +106,7 @@ type OpenRGBController struct {
 	WriteColorEx func([]byte, int)
 	ChannelId    int
 	DeviceType   uint32
+	ColorMode    uint32
 }
 
 type LogLevel int

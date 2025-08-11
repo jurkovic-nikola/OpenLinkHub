@@ -3391,6 +3391,7 @@ func (d *Device) setupOpenRGBController() {
 		ActiveMode:   0,
 		WriteColorEx: d.writeColorEx,
 		DeviceType:   common.DeviceTypeCooler,
+		ColorMode:    common.ColorModePerLed,
 	}
 
 	for _, k := range keys {

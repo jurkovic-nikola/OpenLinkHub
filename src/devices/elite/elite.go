@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/openrgb"
 	"github.com/sstallion/go-hid"
 )
 
@@ -61,6 +62,7 @@ type DeviceProfile struct {
 	Labels             map[int]string
 	RGBOverride        map[int]map[int]RGBOverride
 	RGBPerLed          map[int]map[int]map[int]rgb.Color
+	OpenRGBIntegration bool
 }
 
 type DeviceList struct {
@@ -118,6 +120,7 @@ type Device struct {
 	Manufacturer      string                    `json:"manufacturer"`
 	Product           string                    `json:"product"`
 	Serial            string                    `json:"serial"`
+	Path              string                    `json:"path"`
 	Firmware          string                    `json:"firmware"`
 	RGB               string                    `json:"rgb"`
 	Fans              int                       `json:"fans"`
@@ -141,6 +144,7 @@ type Device struct {
 	rgbMutex          sync.RWMutex
 	InvertRgb         bool
 	mutex             sync.Mutex
+	deviceLock        sync.Mutex
 	sequenceMutex     sync.Mutex
 	autoRefreshChan   chan struct{}
 	speedRefreshChan  chan struct{}
@@ -148,6 +152,7 @@ type Device struct {
 	timerSpeed        *time.Ticker
 	Exit              bool
 	RGBModes          []string
+	queue             chan []byte
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -313,7 +318,7 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16) *Device {
+func Init(vendorId, productId uint16, path string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -328,6 +333,7 @@ func Init(vendorId, productId uint16) *Device {
 	d := &Device{
 		dev:      dev,
 		AIO:      true,
+		Path:     path,
 		Template: "elite.html",
 		Brightness: map[int]string{
 			0: "RGB Profile",
@@ -366,6 +372,8 @@ func Init(vendorId, productId uint16) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
+	d.setupOpenRGBController() // OpenRGB Controller
+	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -407,6 +415,10 @@ func (d *Device) Stop() {
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
+
+			if d.queue != nil {
+				close(d.queue)
+			}
 		})
 	}()
 
@@ -441,6 +453,10 @@ func (d *Device) StopDirty() uint8 {
 
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
+			}
+
+			if d.queue != nil {
+				close(d.queue)
 			}
 		})
 	}()
@@ -569,21 +585,9 @@ func (d *Device) lightingControl() []byte {
 
 // setHardwareMode will put a device back to hardware mode
 func (d *Device) setHardwareMode() {
-	indexes := d.lightingControl()
-	chunks := common.ProcessMultiChunkPacket(indexes, 40)
-	for i, chunk := range chunks {
-		buf := make([]byte, 61)
-		copy(buf[0:], chunk)
-		for m := len(chunk); m < 61; m++ {
-			buf[m] = byte(0xff)
-		}
-		command := cmdActivateChannels + byte(i)
-		d.transfer(command, buf)
-		time.Sleep(100 * time.Millisecond)
-	}
-
 	for i := 0; i < len(shutdown); i++ {
 		value := shutdown[i]
+		fmt.Println("Sending", value.command, value.data)
 		d.transfer(value.command, value.data)
 	}
 }
@@ -678,8 +682,51 @@ func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
 	return d.TemperatureProbes
 }
 
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	lightChannels := 0
+	keys := make([]int, 0)
+
+	// For proper packet positioning
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	controller := &common.OpenRGBController{
+		Name:         d.Product,
+		Vendor:       "Corsair", // Static value
+		Description:  "OpenLinkHub Backend Device",
+		FwVersion:    d.Firmware,
+		Serial:       d.Serial,
+		Location:     d.Path,
+		Zones:        nil,
+		Colors:       make([]byte, lightChannels*3),
+		ActiveMode:   0,
+		WriteColorEx: d.writeColorEx,
+		DeviceType:   common.DeviceTypeCooler,
+		ColorMode:    common.ColorModePerLed,
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			zone := common.OpenRGBZone{
+				Name:    d.Devices[k].Name,
+				NumLEDs: uint32(d.Devices[k].LedChannels),
+			}
+			controller.Zones = append(controller.Zones, zone)
+		}
+	}
+	// Send it
+	openrgb.AddDeviceController(controller)
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
+	// Release existing queue
+	d.clearQueue()
+
 	// Reset
 	reset := map[int][]byte{}
 	var buffer []byte
@@ -718,6 +765,12 @@ func (d *Device) setDeviceColor() {
 
 	buffer = rgb.SetColorInverted(reset)
 	d.writeColor(buffer)
+
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
 
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
@@ -939,7 +992,7 @@ func (d *Device) setDeviceColor() {
 
 				// Send it
 				d.writeColor(buff)
-				time.Sleep(20 * time.Millisecond)
+				time.Sleep(5 * time.Millisecond)
 			}
 		}
 	}(lightChannels)
@@ -1147,6 +1200,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 	}
 
 	// Convert to JSON
@@ -1443,6 +1497,14 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -1492,6 +1554,21 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 // ProcessGetRgbOverride will get rgb override data
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // ProcessSetRgbOverride will update RGB override settings
@@ -1930,6 +2007,9 @@ func (d *Device) deviceSpeedPacket(values map[int]*SpeedMode) []byte {
 
 // setSpeed will modify device speed
 func (d *Device) setSpeed(data map[int]*SpeedMode) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -2159,6 +2239,9 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 
 // read will read data from a device and return data as a byte array
 func (d *Device) read(command byte, data []byte) []byte {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	bufferR := d.transfer(command, data)
 	crc := bufferR[len(bufferR)-1]
 	crcForCalc := d.calculateChecksum(bufferR[1 : len(bufferR)-1])
@@ -2167,20 +2250,84 @@ func (d *Device) read(command byte, data []byte) []byte {
 		logger.Log(logger.Fields{"crc": crc, "calc": crcForCalc}).Error("Invalid CRC checksum")
 	}
 
-	d.setSequence(bufferR[1])
+	//d.setSequence(bufferR[1])
 	return bufferR
 }
 
+// writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
 	}
+
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
 
 	chunks := common.ProcessMultiChunkPacket(data, 60)
 	for i, chunk := range chunks {
 		command := cmdWriteColor + byte(i)
 		d.transfer(command, chunk)
 	}
+}
+
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, _ int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Reverse RGB to BGR
+	for i := 0; i+2 < len(data); i += 3 {
+		data[i], data[i+2] = data[i+2], data[i]
+	}
+
+	// Copy data to avoid race conditions, since the caller might reuse the slice
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	select {
+	case d.queue <- copyData:
+	default:
+	}
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan []byte, 10)
+
+	go func() {
+		for data := range d.queue {
+			d.deviceLock.Lock()
+
+			if d.Exit {
+				d.deviceLock.Unlock()
+				return
+			}
+
+			chunks := common.ProcessMultiChunkPacket(data, 60)
+			for i, chunk := range chunks {
+				command := cmdWriteColor + byte(i)
+				d.transfer(command, chunk)
+				time.Sleep(5 * time.Millisecond)
+			}
+
+			d.deviceLock.Unlock()
+		}
+	}()
 }
 
 // transfer will send data to a device and retrieve device output
@@ -2206,7 +2353,7 @@ func (d *Device) transfer(command byte, data []byte) []byte {
 	reports := make([]byte, 1)
 	bufferW := d.newHidPacket(buffer)
 
-	// Every now and often, we get a HUD_REPORT that break sequence chain.
+	// Every now and often, we get a HID_REPORT that breaks everything.
 	err := d.dev.SetNonblock(true)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")

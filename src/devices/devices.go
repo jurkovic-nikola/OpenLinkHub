@@ -2026,8 +2026,8 @@ func initializeDevice(productId uint16, key, productPath string) {
 		// H100i RGB PLATINUM
 		// H100i RGB PLATINUM SE
 		{
-			go func(vendorId, productId uint16) {
-				dev := elite.Init(vendorId, productId)
+			go func(vendorId, productId uint16, path string) {
+				dev := elite.Init(vendorId, productId, path)
 				if dev == nil {
 					return
 				}
@@ -2040,7 +2040,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					Instance:    dev,
 				}
 				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId)
+			}(vendorId, productId, productPath)
 		}
 	case 3098: // CORSAIR Lighting Node CORE
 		{

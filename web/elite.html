@@ -83,6 +83,22 @@
                                                 </select>
                                             </div>
                                         </div>
+                                        <div class="custom-device-block">
+                                            <div title="OpenRGB Integration" class="custom-float-20-left">
+                                                <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                            </div>
+                                            <div class="custom-float-80-right">
+                                                <select class="form-select openRgbIntegration" style="line-height: 1;margin-top: 10px;">
+                                                    {{ if $deviceProfile.OpenRGBIntegration }}
+                                                    <option value="1" selected>Enabled</option>
+                                                    <option value="0">Disabled</option>
+                                                    {{ else }}
+                                                    <option value="1">Enabled</option>
+                                                    <option value="0" selected>Disabled</option>
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                        </div>
                                         <div style="overflow: hidden; margin-top: 10px;">
                                             <button class="btn btn-secondary saveUserProfile">
                                                 <span>{{ .Lang "txtSaveAs" }}</span>

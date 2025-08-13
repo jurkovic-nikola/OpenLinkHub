@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
@@ -50,6 +51,7 @@ type DeviceProfile struct {
 	RGBProfiles        map[int]string
 	SpeedProfiles      map[int]string
 	Labels             map[int]string
+	OpenRGBIntegration bool
 }
 
 type DeviceList struct {
@@ -108,6 +110,7 @@ type Device struct {
 	Manufacturer      string                    `json:"manufacturer"`
 	Product           string                    `json:"product"`
 	Serial            string                    `json:"serial"`
+	Path              string                    `json:"path"`
 	Firmware          string                    `json:"firmware"`
 	RGB               string                    `json:"rgb"`
 	Fans              int                       `json:"fans"`
@@ -130,13 +133,14 @@ type Device struct {
 	Rgb               *rgb.RGB
 	rgbMutex          sync.RWMutex
 	mutex             sync.Mutex
-	sequenceMutex     sync.Mutex
+	deviceLock        sync.Mutex
 	autoRefreshChan   chan struct{}
 	speedRefreshChan  chan struct{}
 	timer             *time.Ticker
 	timerSpeed        *time.Ticker
 	Exit              bool
 	RGBModes          []string
+	queue             chan []byte
 }
 
 var (
@@ -239,6 +243,7 @@ func Init(vendorId, productId uint16, path string) *Device {
 	d := &Device{
 		dev:      dev,
 		AIO:      true,
+		Path:     path,
 		Template: "platinum.html",
 		Brightness: map[int]string{
 			0: "RGB Profile",
@@ -277,6 +282,8 @@ func Init(vendorId, productId uint16, path string) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
+	d.setupOpenRGBController() // OpenRGB Controller
+	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -313,6 +320,10 @@ func (d *Device) Stop() {
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
+
+			if d.queue != nil {
+				close(d.queue)
+			}
 		})
 	}()
 
@@ -347,6 +358,10 @@ func (d *Device) StopDirty() uint8 {
 
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
+			}
+
+			if d.queue != nil {
+				close(d.queue)
 			}
 		})
 	}()
@@ -590,8 +605,51 @@ func (d *Device) GetTemperatureProbes() *[]TemperatureProbe {
 	return d.TemperatureProbes
 }
 
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	lightChannels := 0
+	keys := make([]int, 0)
+
+	// For proper packet positioning
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	controller := &common.OpenRGBController{
+		Name:         d.Product,
+		Vendor:       "Corsair", // Static value
+		Description:  "OpenLinkHub Backend Device",
+		FwVersion:    d.Firmware,
+		Serial:       d.Serial,
+		Location:     d.Path,
+		Zones:        nil,
+		Colors:       make([]byte, lightChannels*3),
+		ActiveMode:   0,
+		WriteColorEx: d.writeColorEx,
+		DeviceType:   common.DeviceTypeCooler,
+		ColorMode:    common.ColorModePerLed,
+	}
+
+	for _, k := range keys {
+		if d.Devices[k].LedChannels > 0 {
+			zone := common.OpenRGBZone{
+				Name:    d.Devices[k].Name,
+				NumLEDs: uint32(d.Devices[k].LedChannels),
+			}
+			controller.Zones = append(controller.Zones, zone)
+		}
+	}
+	// Send it
+	openrgb.AddDeviceController(controller)
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
+	// Release existing queue
+	d.clearQueue()
+
 	// Reset
 	reset := map[int][]byte{}
 	var buffer []byte
@@ -630,6 +688,12 @@ func (d *Device) setDeviceColor() {
 
 	buffer = rgb.SetColor(reset)
 	d.transfer(cmdSetColor, buffer)
+
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
 
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
@@ -823,11 +887,36 @@ func (d *Device) setDeviceColor() {
 				}
 
 				// Send it
-				d.transfer(cmdSetColor, buff)
+				d.writeColor(buff)
 				time.Sleep(20 * time.Millisecond)
 			}
 		}
 	}(lightChannels)
+}
+
+func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	d.transfer(cmdSetColor, data)
+}
+
+func (d *Device) writeColorEx(data []byte, _ int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions, since the caller might reuse the slice
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	select {
+	case d.queue <- copyData:
+	default:
+	}
 }
 
 // getSupportedDevice will return supported device or nil pointer
@@ -1023,6 +1112,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 	}
 
 	// Convert to JSON
@@ -1271,6 +1361,9 @@ func (d *Device) getTemperature() float64 {
 
 // getDeviceData will get device data
 func (d *Device) getDeviceData() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1339,6 +1432,9 @@ func (d *Device) setAutoRefresh() {
 
 // setSpeed will modify device speed
 func (d *Device) setSpeed(data map[int]*SpeedMode) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1373,6 +1469,21 @@ func (d *Device) getPumpMode(index int, profile string) byte {
 		}
 	}
 	return 0
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // updateDeviceSpeed will update device speed based on a temperature reading
@@ -1565,6 +1676,38 @@ func (d *Device) updateDeviceSpeed() {
 				d.timerSpeed.Stop()
 				return
 			}
+		}
+	}()
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan []byte, 10)
+
+	go func() {
+		for data := range d.queue {
+			d.deviceLock.Lock()
+
+			if d.Exit {
+				d.deviceLock.Unlock()
+				return
+			}
+
+			d.transfer(cmdSetColor, data)
+			time.Sleep(5 * time.Millisecond)
+
+			d.deviceLock.Unlock()
 		}
 	}()
 }

@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/temperatures"
@@ -80,6 +81,7 @@ type DeviceProfile struct {
 	MultiRGB           string
 	RGBOverride        map[int]map[int]RGBOverride
 	RGBPerLed          map[int]map[int]map[int]rgb.Color
+	OpenRGBIntegration bool
 }
 
 type Device struct {
@@ -106,9 +108,12 @@ type Device struct {
 	Exit              bool
 	timer             *time.Ticker
 	mutex             sync.Mutex
+	deviceLock        sync.Mutex
 	autoRefreshChan   chan struct{}
 	enhancementKits   map[byte]bool
 	RGBModes          []string
+	Path              string
+	queue             chan map[int][]byte
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -207,6 +212,7 @@ func Init(device, product string) *Device {
 		timer:           &time.Ticker{},
 		autoRefreshChan: make(chan struct{}),
 		enhancementKits: make(map[byte]bool, 8),
+		Path:            device,
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -217,11 +223,13 @@ func Init(device, product string) *Device {
 		return nil // Nothing found
 	}
 
-	d.setAutoRefresh()      // Set auto device refresh
-	d.saveDeviceProfile()   // Save profile
-	d.setDeviceColor()      // Device color
-	d.setTemperatures()     // Initial temp
-	d.getTemperatureProbe() // Devices with temperature value
+	d.setAutoRefresh()         // Set auto device refresh
+	d.saveDeviceProfile()      // Save profile
+	d.setDeviceColor()         // Device color
+	d.setTemperatures()        // Initial temp
+	d.getTemperatureProbe()    // Devices with temperature value
+	d.setupOpenRGBController() // OpenRGB Controller
+	d.startQueueWorker()       // Queue
 	return d
 }
 
@@ -1042,6 +1050,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -1189,6 +1198,9 @@ func (d *Device) isRgbStatic() bool {
 
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
+	// Release existing queue
+	d.clearQueue()
+
 	// Reset
 	var buffer []byte
 	lightChannels := 0
@@ -1217,6 +1229,12 @@ func (d *Device) setDeviceColor() {
 		buffer = rgb.SetColor(static)
 		d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
 		time.Sleep(5 * time.Millisecond)
+	}
+
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
 	}
 
 	if d.isRgbStatic() {
@@ -1442,12 +1460,128 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 					// Send it
-					d.transfer(buff, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
-					time.Sleep(15 * time.Millisecond)
+					d.writeColor(buff, k)
 				}
 			}
 		}
 	}(lightChannels)
+}
+
+// writeColor will write data to the device
+func (d *Device) writeColor(data []byte, deviceId int) {
+	if d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	d.transfer(data, colorAddresses[deviceId], d.Devices[deviceId].LedChannels, d.Devices[deviceId].ColorRegister, transferTypeColor)
+	time.Sleep(15 * time.Millisecond)
+}
+
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, index int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	// Create a map with the index as the key
+	packetMap := map[int][]byte{
+		index: copyData,
+	}
+
+	// Try to queue it without blocking
+	select {
+	case d.queue <- packetMap:
+	default:
+		// Queue full — drop packet silently (same as your original)
+	}
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan map[int][]byte, 8)
+
+	go func() {
+		for packetMap := range d.queue {
+			d.deviceLock.Lock()
+
+			if d.Exit {
+				d.deviceLock.Unlock()
+				return
+			}
+
+			keys := make([]int, 0, len(packetMap))
+			for k := range packetMap {
+				keys = append(keys, k)
+			}
+			sort.Ints(keys)
+
+			for _, channelId := range keys {
+				data := packetMap[channelId]
+				d.transfer(data, colorAddresses[channelId], d.Devices[channelId].LedChannels, d.Devices[channelId].ColorRegister, transferTypeColor)
+				_ = channelId
+			}
+			d.deviceLock.Unlock()
+		}
+	}()
+}
+
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	lightChannels := 0
+	zones := 0
+	keys := make([]int, 0)
+
+	// For proper packet positioning
+	for k := range d.Devices {
+		if d.Devices[k].LedChannels > 0 {
+			lightChannels += int(d.Devices[k].LedChannels)
+			keys = append(keys, k)
+			zones++
+		}
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+		controller := &common.OpenRGBController{
+			Name:         d.Devices[k].Name,
+			Vendor:       "Corsair", // Static value
+			Description:  "OpenLinkHub Backend Device",
+			FwVersion:    "0",
+			Serial:       "",
+			Location:     d.Path,
+			Zones:        nil,
+			Colors:       make([]byte, d.Devices[k].LedChannels*3),
+			ActiveMode:   0,
+			WriteColorEx: d.writeColorEx,
+			ChannelId:    d.Devices[k].ChannelId,
+			DeviceType:   common.DeviceTypeDram,
+			ColorMode:    common.ColorModePerLed,
+		}
+		zone := common.OpenRGBZone{
+			Name:     d.Devices[k].Name,
+			NumLEDs:  uint32(d.Devices[k].LedChannels),
+			ZoneType: uint32(common.ZoneTypeLinear),
+		}
+		controller.Zones = append(controller.Zones, zone)
+		openrgb.AddDeviceController(controller)
+	}
 }
 
 // ChangeDeviceBrightness will change device brightness
@@ -1602,6 +1736,14 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -1636,6 +1778,21 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 // ProcessGetRgbOverride will get rgb override data
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // ProcessSetRgbOverride will update RGB override settings

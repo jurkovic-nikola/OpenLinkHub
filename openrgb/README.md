@@ -26,10 +26,14 @@ When you toggle the integration, your RGB will go off, and it's ready to receive
 
 
 ## Supported devices for 0.6.2 release
-| Device                        |
-|-------------------------------|
-| iCUE LINK System Hub          | 
-| iCUE COMMANDER Core           |
-| iCUE COMMANDER Core XT        |
+| Device                 |
+|------------------------|
+| iCUE LINK System Hub   | 
+| iCUE COMMANDER Core    |
+| iCUE COMMANDER Core XT |
+| ELITE AIOs             |
+| PLATINUM AIOs          |
+| HYDRO AIOs             |
+| Memory                 |
 
 As new releases are rolled out, more devices will be added to the integration.

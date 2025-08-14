@@ -102,6 +102,7 @@ import (
 	"slices"
 	"strconv"
 
+	"OpenLinkHub/src/devices/scimitarprorgb"
 	"github.com/sstallion/go-hid"
 )
 
@@ -176,6 +177,7 @@ const (
 	productTypeSabreRgbProW         = 235
 	productTypeNightswordRgb        = 236
 	productTypeSabreRgbPro          = 237
+	productTypeScimitarProRgb       = 238
 	productTypeVirtuosoXTW          = 300
 	productTypeVirtuosoXTWU         = 301
 	productTypeVirtuosoMAXW         = 302
@@ -214,7 +216,7 @@ var (
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033, 6974}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667, 2696}
 	headsets2                  = []uint16{10754, 2711}
@@ -3127,6 +3129,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				devices[dev.Serial] = &common.Device{
 					ProductType: productTypeScimitarRgbElite,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 6974:
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := scimitarprorgb.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: productTypeScimitarProRgb,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,

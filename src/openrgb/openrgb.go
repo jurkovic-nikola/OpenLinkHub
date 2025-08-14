@@ -54,6 +54,30 @@ func AddDeviceController(controller *common.OpenRGBController) {
 	}
 }
 
+// UpdateDeviceController will update existing OpenRGB Controller
+func UpdateDeviceController(serial string, ctrl *common.OpenRGBController) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	for key, controller := range controllers {
+		if controller.Serial == serial {
+			controllers[key] = ctrl
+		}
+	}
+	sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+}
+
+// GetDeviceController will return existing OpenRGB Controller
+func GetDeviceController(serial string) *common.OpenRGBController {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	for _, controller := range controllers {
+		if controller.Serial == serial {
+			return controller
+		}
+	}
+	return nil
+}
+
 // NotifyControllerChange will notify OpenRGB about controller change
 func NotifyControllerChange(serial string) {
 	mutex.Lock()
@@ -544,12 +568,75 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 			return []byte{}
 		}
 
-		err = binary.Write(zonesPacked, binary.LittleEndian, uint16(0)) // matrix size = 0
-		if err != nil {
-			if debug {
-				logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrix size write error")
+		if ctrl.Zones[z].ZoneType == common.ZoneTypeMatrix {
+			matrix, ok := common.MatrixMaps[ctrl.Zones[z].NumLEDs]
+			if !ok || len(matrix) == 0 || len(matrix[0]) == 0 {
+				err = binary.Write(zonesPacked, binary.LittleEndian, uint16(0)) // matrix size = 0
+				if err != nil {
+					if debug {
+						logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrix size write error")
+					}
+					return []byte{}
+				}
+			} else {
+				height := uint32(len(matrix))
+				width := uint32(len(matrix[0]))
+
+				// byte length of matrix payload (entries + height + width)
+				matrixLen := width*height*4 + 8
+				if matrixLen > 0xFFFF {
+					if debug {
+						logger.Log(logger.Fields{"matrixLen": matrixLen, "zone": ctrl.Zones[z].Name}).Error("matrix too large for uint16 length")
+					}
+					return []byte{}
+				}
+
+				// write length (uint16, in BYTES), then height & width (uint32 each)
+				if err = binary.Write(zonesPacked, binary.LittleEndian, uint16(matrixLen)); err != nil {
+					if debug {
+						logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrixLen write error")
+					}
+					return []byte{}
+				}
+				if err = binary.Write(zonesPacked, binary.LittleEndian, height); err != nil {
+					if debug {
+						logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrixHeight write error")
+					}
+					return []byte{}
+				}
+				if err = binary.Write(zonesPacked, binary.LittleEndian, width); err != nil {
+					if debug {
+						logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrixWidth write error")
+					}
+					return []byte{}
+				}
+
+				// write map data row-major (y, then x)
+				for y := 0; y < int(height); y++ {
+					if len(matrix[y]) != int(width) {
+						if debug {
+							logger.Log(logger.Fields{"zone": ctrl.Zones[z].Name, "row": y}).Error("matrix row width mismatch")
+						}
+						return []byte{}
+					}
+					for x := 0; x < int(width); x++ {
+						if err = binary.Write(zonesPacked, binary.LittleEndian, matrix[y][x]); err != nil {
+							if debug {
+								logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrix write error")
+							}
+							return []byte{}
+						}
+					}
+				}
 			}
-			return []byte{}
+		} else {
+			err = binary.Write(zonesPacked, binary.LittleEndian, uint16(0)) // matrix size = 0
+			if err != nil {
+				if debug {
+					logger.Log(logger.Fields{"error": err}).Error("zonesPacked::matrix size write error")
+				}
+				return []byte{}
+			}
 		}
 
 		err = binary.Write(zonesPacked, binary.LittleEndian, uint16(0)) // zero segments

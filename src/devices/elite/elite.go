@@ -712,8 +712,12 @@ func (d *Device) setupOpenRGBController() {
 	for _, k := range keys {
 		if d.Devices[k].LedChannels > 0 {
 			zone := common.OpenRGBZone{
-				Name:    d.Devices[k].Name,
-				NumLEDs: uint32(d.Devices[k].LedChannels),
+				Name:     d.Devices[k].Name,
+				NumLEDs:  uint32(d.Devices[k].LedChannels),
+				ZoneType: common.ZoneTypeLinear,
+			}
+			if d.Devices[k].ContainsPump {
+				zone.ZoneType = common.ZoneTypeMatrix
 			}
 			controller.Zones = append(controller.Zones, zone)
 		}

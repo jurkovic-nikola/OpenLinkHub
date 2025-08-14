@@ -72,10 +72,8 @@ const (
 	DeviceTypeUnknown
 )
 
-type ZoneTypes uint32
-
 const (
-	ZoneTypeSingle ZoneTypes = iota
+	ZoneTypeSingle = uint32(iota)
 	ZoneTypeLinear
 	ZoneTypeMatrix
 )
@@ -118,6 +116,40 @@ const (
 	LogFatal
 	LogSilent
 )
+
+const NA = 0xFFFFFFFF
+
+var MatrixMaps = map[uint32][][]uint32{
+	29: { // iCUE Commander Core AIOs
+		{28, NA, 27, NA, 26, NA, 25},
+		{NA, 16, NA, 15, NA, 14, NA},
+		{17, NA, 0, 5, 3, NA, 24},
+		{NA, 9, 4, 8, 6, 13, NA},
+		{18, NA, 1, 7, 2, NA, 23},
+		{NA, 10, NA, 11, NA, 12, NA},
+		{19, NA, 20, NA, 21, NA, 22},
+	},
+	24: { // iCUE Commander Core AIOs
+		{NA, NA, NA, NA, NA, 6, NA, NA, NA, NA, NA},
+		{NA, NA, NA, 4, 5, NA, 7, 8, NA, NA, NA},
+		{NA, NA, 3, NA, NA, NA, NA, NA, 9, NA, NA},
+		{NA, 2, NA, NA, NA, NA, NA, NA, NA, 10, NA},
+		{NA, 1, NA, NA, NA, NA, NA, NA, NA, 11, NA},
+		{0, NA, NA, NA, NA, NA, NA, NA, NA, NA, 12},
+		{NA, 23, NA, NA, NA, NA, NA, NA, NA, 13, NA},
+		{NA, 22, NA, NA, NA, NA, NA, NA, NA, 14, NA},
+		{NA, NA, 21, NA, NA, NA, NA, NA, 15, NA, NA},
+		{NA, NA, NA, 20, 19, NA, 17, 16, NA, NA, NA},
+		{NA, NA, NA, NA, NA, 18, NA, NA, NA, NA, NA},
+	},
+	16: { // ELITE, PLATINUM AIOs
+		{NA, 11, 12, 13, NA},
+		{10, NA, 1, NA, 14},
+		{9, 0, NA, 2, 15},
+		{8, NA, 3, NA, 4},
+		{NA, 7, 6, 5, NA},
+	},
+}
 
 // runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.
 func runUdevadmInfo(devicePath string) (string, error) {

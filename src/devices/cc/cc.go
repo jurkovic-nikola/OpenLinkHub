@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/openrgb"
 	"github.com/sstallion/go-hid"
 )
 
@@ -212,6 +213,7 @@ type DeviceProfile struct {
 	MultiRGB           string
 	MultiProfile       string
 	RGBOverride        map[int]map[int]RGBOverride
+	OpenRGBIntegration bool
 }
 
 type TemperatureProbe struct {
@@ -254,6 +256,7 @@ type Device struct {
 	Manufacturer       string                    `json:"manufacturer"`
 	Product            string                    `json:"product"`
 	Serial             string                    `json:"serial"`
+	Path               string                    `json:"path"`
 	Firmware           string                    `json:"firmware"`
 	AIOType            string                    `json:"-"`
 	Devices            map[int]*Devices          `json:"devices"`
@@ -289,6 +292,7 @@ type Device struct {
 	lcdTimer           *time.Ticker
 	internalLedDevices map[int]*LedChannel
 	RGBModes           []string
+	queue              chan []byte
 }
 
 /*
@@ -312,7 +316,7 @@ func (d *Device) hardLedReset() {
 */
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -328,6 +332,7 @@ func Init(vendorId, productId uint16, serial string) *Device {
 		dev:               dev,
 		Template:          "cc.html",
 		VendorId:          vendorId,
+		Path:              path,
 		ExternalLedDevice: externalLedDevices,
 		LCDModes: map[int]string{
 			0:   "Liquid Temperature",
@@ -425,6 +430,8 @@ func Init(vendorId, productId uint16, serial string) *Device {
 			d.setupLCD(false)
 		}
 	}
+	d.setupOpenRGBController() // OpenRGB Controller
+	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -931,6 +938,79 @@ func (d *Device) isRgbStatic() bool {
 	return false
 }
 
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	lightChannels := 0
+	keys := make([]int, 0)
+
+	// For proper packet positioning
+	for k := range d.RgbDevices {
+		lightChannels += int(d.RgbDevices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	controller := &common.OpenRGBController{
+		Name:         d.Product,
+		Vendor:       "Corsair", // Static value
+		Description:  "OpenLinkHub Backend Device",
+		FwVersion:    d.Firmware,
+		Serial:       d.Serial,
+		Location:     fmt.Sprintf("HID: %s", d.Path),
+		Zones:        nil,
+		Colors:       make([]byte, lightChannels*3),
+		ActiveMode:   0,
+		WriteColorEx: d.writeColorEx,
+		DeviceType:   common.DeviceTypeCooler,
+		ColorMode:    common.ColorModePerLed,
+	}
+
+	for _, k := range keys {
+		zone := common.OpenRGBZone{
+			Name:     d.RgbDevices[k].Name,
+			NumLEDs:  uint32(d.RgbDevices[k].LedChannels),
+			ZoneType: common.ZoneTypeLinear,
+		}
+		if d.RgbDevices[k].ContainsPump {
+			zone.ZoneType = common.ZoneTypeMatrix
+		}
+		controller.Zones = append(controller.Zones, zone)
+	}
+	// Send it
+	openrgb.AddDeviceController(controller)
+}
+
+// modifyOpenRGBController will modify existing controller
+func (d *Device) modifyOpenRGBController() {
+	ctrl := openrgb.GetDeviceController(d.Serial)
+	if ctrl == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No such controller found")
+		return
+	}
+
+	lightChannels := 0
+	keys := make([]int, 0)
+
+	// For proper packet positioning
+	for k := range d.RgbDevices {
+		lightChannels += int(d.RgbDevices[k].LedChannels)
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	ctrl.Colors = make([]byte, lightChannels*3)
+	ctrl.Zones = nil
+
+	for _, k := range keys {
+		zone := common.OpenRGBZone{
+			Name:    d.RgbDevices[k].Name,
+			NumLEDs: uint32(d.RgbDevices[k].LedChannels),
+		}
+		ctrl.Zones = append(ctrl.Zones, zone)
+	}
+	openrgb.UpdateDeviceController(d.Serial, ctrl)
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -968,6 +1048,12 @@ func (d *Device) setDeviceColor() {
 
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
+
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
 
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
@@ -2442,6 +2528,14 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -2491,6 +2585,21 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 // ProcessGetRgbOverride will get rgb override data
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	return d.getRgbOverride(channelId, subDeviceId)
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // ProcessSetRgbOverride will update RGB override settings
@@ -2565,9 +2674,10 @@ func (d *Device) UpdateARGBDevice(portId, deviceType int) uint8 {
 			}
 		}
 
-		d.resetLEDPorts()     // Reset LED ports
-		d.saveDeviceProfile() // Save profile
-		d.setDeviceColor()    // Restart RGB
+		d.resetLEDPorts()           // Reset LED ports
+		d.saveDeviceProfile()       // Save profile
+		d.setDeviceColor()          // Restart RGB
+		d.modifyOpenRGBController() // Notify OpenRGB
 		return 1
 	} else {
 		return 2 // No such free port
@@ -2813,6 +2923,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDImage = d.DeviceProfile.LCDImage
 		deviceProfile.MultiProfile = d.DeviceProfile.MultiProfile
 		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 	}
 
 	// Convert to JSON
@@ -2922,6 +3033,85 @@ func (d *Device) writeColor(data []byte) {
 			}
 		}
 	}
+}
+
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, _ int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions, since the caller might reuse the slice
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	select {
+	case d.queue <- copyData:
+	default:
+	}
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan []byte, 10)
+
+	go func() {
+		for data := range d.queue {
+			d.deviceLock.Lock()
+
+			if d.Exit {
+				d.deviceLock.Unlock()
+				return
+			}
+
+			// Buffer
+			buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
+			binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
+			copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
+			copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
+
+			// Process buffer and create a chunked array if needed
+			writeColorEp := cmdWriteColor
+			colorEp := make([]byte, len(writeColorEp))
+			copy(colorEp, writeColorEp)
+
+			chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+			for i, chunk := range chunks {
+				if d.Exit {
+					break
+				}
+				if i == 0 {
+					// Initial packet is using cmdWriteColor
+					_, err := d.transfer(cmdWriteColor, chunk, "writeColor")
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+					}
+				} else {
+					// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+					_, err := d.transfer(dataTypeSubColor, chunk, "writeColor")
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+					}
+				}
+			}
+
+			d.deviceLock.Unlock()
+		}
+	}()
 }
 
 // write will write data to the device with specific endpoint

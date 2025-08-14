@@ -1958,8 +1958,8 @@ func initializeDevice(productId uint16, key, productPath string) {
 		}
 	case 3122, 3100: // CORSAIR iCUE COMMANDER Core
 		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := cc.Init(vendorId, productId, serialId)
+			go func(vendorId, productId uint16, serialId, path string) {
+				dev := cc.Init(vendorId, productId, serialId, path)
 				if dev == nil {
 					return
 				}
@@ -1972,7 +1972,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					Instance:    dev,
 				}
 				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key)
+			}(vendorId, productId, key, productPath)
 		}
 	case 3114: // CORSAIR iCUE COMMANDER CORE XT
 		{

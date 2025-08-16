@@ -3385,7 +3385,7 @@ func (d *Device) setupOpenRGBController() {
 		Description:  "OpenLinkHub Backend Device",
 		FwVersion:    d.Firmware,
 		Serial:       d.Serial,
-		Location:     d.Path,
+		Location:     fmt.Sprintf("HID: %s", d.Path),
 		Zones:        nil,
 		Colors:       make([]byte, lightChannels*3),
 		ActiveMode:   0,
@@ -3407,7 +3407,7 @@ func (d *Device) setupOpenRGBController() {
 					zone := common.OpenRGBZone{
 						Name:     adapterData.Devices[ak].Name,
 						NumLEDs:  uint32(adapterData.Devices[ak].Total),
-						ZoneType: uint32(common.ZoneTypeLinear),
+						ZoneType: common.ZoneTypeLinear,
 					}
 					controller.Zones = append(controller.Zones, zone)
 				}
@@ -3417,7 +3417,27 @@ func (d *Device) setupOpenRGBController() {
 				Name:    d.Devices[k].Name,
 				NumLEDs: uint32(d.Devices[k].LedChannels),
 			}
-			controller.Zones = append(controller.Zones, zone)
+
+			if d.Devices[k].ContainsPump && d.Devices[k].AIO {
+				zone.ZoneType = common.ZoneTypeMatrix
+				zone.NumLEDs = uint32(20)
+				if d.HasLCD {
+					// If there is LCD installed, 4 inner LEDs are disabled, make zone linear
+					zone.ZoneType = common.ZoneTypeLinear
+					controller.Zones = append(controller.Zones, zone)
+
+					// LCD
+					lcdZone := common.OpenRGBZone{
+						Name:    "iCUE LINK COOLER PUMP LCD",
+						NumLEDs: uint32(lcdLedChannels),
+					}
+					controller.Zones = append(controller.Zones, lcdZone)
+				} else {
+					controller.Zones = append(controller.Zones, zone)
+				}
+			} else {
+				controller.Zones = append(controller.Zones, zone)
+			}
 		}
 	}
 	// Send it

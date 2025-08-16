@@ -33,6 +33,8 @@ type USBInfo struct {
 	Serial    string
 }
 
+var sleep bool
+
 func Init() {
 	go func() {
 		// Connect to the session bus
@@ -61,6 +63,7 @@ func Init() {
 		for signal := range ch {
 			if len(signal.Body) > 0 {
 				if isSleeping, ok := signal.Body[0].(bool); ok {
+					sleep = isSleeping
 					if isSleeping {
 						logger.Log(logger.Fields{}).Info("Suspend detected. Sending Stop() to all devices")
 
@@ -76,6 +79,8 @@ func Init() {
 						// Init devices
 						devices.Init()
 					}
+				} else {
+					sleep = false
 				}
 			}
 		}
@@ -147,6 +152,9 @@ func Init() {
 			switch action {
 			case "add":
 				{
+					if sleep {
+						break
+					}
 					basePath := sysRoot + devPath
 					vendor := common.ReadFile(basePath + "/idVendor")
 					vid := common.PidVidToUint16(vendor)
@@ -175,18 +183,20 @@ func Init() {
 				break
 			case "remove":
 				{
-					time.Sleep(100 * time.Millisecond)
-					info, ok := cache[devPath]
-					if !ok {
-						logger.Log(logger.Fields{"path": devPath}).Info("Trying to remove non-existing device")
-						continue
-					}
+					if !sleep {
+						time.Sleep(100 * time.Millisecond)
+						info, ok := cache[devPath]
+						if !ok {
+							logger.Log(logger.Fields{"path": devPath}).Info("Trying to remove non-existing device")
+							continue
+						}
 
-					if info.VendorID == vendorId {
-						logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": info.Serial}).Info("Dirty USB removal...")
-						devices.StopDirty(info.Serial)
-						delete(cache, devPath)
-						openrgb.NotifyControllerChange(info.Serial)
+						if info.VendorID == vendorId {
+							logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": info.Serial}).Info("Dirty USB removal...")
+							devices.StopDirty(info.Serial)
+							delete(cache, devPath)
+							openrgb.NotifyControllerChange(info.Serial)
+						}
 					}
 				}
 				break

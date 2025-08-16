@@ -149,6 +149,15 @@ var MatrixMaps = map[uint32][][]uint32{
 		{8, NA, 3, NA, 4},
 		{NA, 7, 6, 5, NA},
 	},
+	20: { // LINK AIOs
+		{NA, NA, 10, 11, 12, NA, NA},
+		{NA, 9, NA, NA, NA, 13, NA},
+		{8, NA, NA, 16, NA, NA, 14},
+		{7, NA, 19, NA, 17, NA, 15},
+		{6, NA, NA, 18, NA, NA, 0},
+		{NA, 5, NA, NA, NA, 1, NA},
+		{NA, NA, 4, 3, 2, NA, NA},
+	},
 }
 
 // runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.

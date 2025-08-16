@@ -536,7 +536,7 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 	for z := 0; z < zoneCount; z++ {
 		zoneName := ctrl.Zones[z].Name
 		writeString(zonesPacked, zoneName)
-		err = binary.Write(zonesPacked, binary.LittleEndian, int32(ctrl.Zones[z].ZoneType)) // 0 = SINGLE, LINEAR = 1
+		err = binary.Write(zonesPacked, binary.LittleEndian, int32(ctrl.Zones[z].ZoneType))
 		if err != nil {
 			if debug {
 				logger.Log(logger.Fields{"error": err}).Error("zonesPacked::mode write error")

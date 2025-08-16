@@ -462,6 +462,9 @@ func (d *Device) Stop() {
 					close(d.speedRefreshChan)
 				}
 			}
+			if d.queue != nil {
+				close(d.queue)
+			}
 		})
 	}()
 
@@ -521,6 +524,9 @@ func (d *Device) StopDirty() uint8 {
 				if d.speedRefreshChan != nil {
 					close(d.speedRefreshChan)
 				}
+			}
+			if d.queue != nil {
+				close(d.queue)
 			}
 		})
 	}()

@@ -263,6 +263,9 @@ func (d *Device) Stop() {
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
+			if d.queue != nil {
+				close(d.queue)
+			}
 		})
 	}()
 

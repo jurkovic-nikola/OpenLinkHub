@@ -3419,21 +3419,15 @@ func (d *Device) setupOpenRGBController() {
 			}
 
 			if d.Devices[k].ContainsPump && d.Devices[k].AIO {
-				zone.ZoneType = common.ZoneTypeMatrix
-				zone.NumLEDs = uint32(20)
-				if d.HasLCD {
-					// If there is LCD installed, 4 inner LEDs are disabled, make zone linear
-					zone.ZoneType = common.ZoneTypeLinear
+				if d.Devices[k].LedChannels > 20 {
+					zone.NumLEDs = uint32(20)
 					controller.Zones = append(controller.Zones, zone)
 
-					// LCD
 					lcdZone := common.OpenRGBZone{
 						Name:    "iCUE LINK COOLER PUMP LCD",
 						NumLEDs: uint32(lcdLedChannels),
 					}
 					controller.Zones = append(controller.Zones, lcdZone)
-				} else {
-					controller.Zones = append(controller.Zones, zone)
 				}
 			} else {
 				controller.Zones = append(controller.Zones, zone)

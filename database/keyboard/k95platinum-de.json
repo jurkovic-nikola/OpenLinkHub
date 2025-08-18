@@ -283,7 +283,7 @@
     "1": {
       "keys": {
         "20": {
-          "keyName": "P",
+          "keyName": "Profil",
           "width": 65,
           "height": 70,
           "left": 0,
@@ -305,7 +305,7 @@
           }
         },
         "21": {
-          "keyName": "BTS",
+          "keyName": "Licht",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -324,7 +324,7 @@
           }
         },
         "22": {
-          "keyName": "LOCK",
+          "keyName": "Schloss",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -341,7 +341,7 @@
           "isLock": true
         },
         "23": {
-          "keyName": "MUTE",
+          "keyName": "🔈🛇",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -376,7 +376,7 @@
           }
         },
         "24": {
-          "keyName": "W +",
+          "keyName": "Rad +",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -387,7 +387,7 @@
           "keyHash": ["1361129467683753853853498429727072845824"]
         },
         "25": {
-          "keyName": "W -",
+          "keyName": "Rad -",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -629,7 +629,7 @@
           }
         },
         "40": {
-          "keyName": "PrtSc",
+          "keyName": "Druck",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -646,7 +646,7 @@
           }
         },
         "41": {
-          "keyName": "ScrLk",
+          "keyName": "Rollen",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -662,7 +662,7 @@
           }
         },
         "42": {
-          "keyName": "Pause",
+          "keyName": "Pause Untbr",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -695,7 +695,7 @@
           }
         },
         "44": {
-          "keyName": "Prev",
+          "keyName": "⏮",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -711,7 +711,7 @@
           }
         },
         "45": {
-          "keyName": "Play",
+          "keyName": "⏯",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -727,7 +727,7 @@
           }
         },
         "46": {
-          "keyName": "Next",
+          "keyName": "⏭",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -763,7 +763,7 @@
           }
         },
         "48": {
-          "keyName": "^ °",
+          "keyName": "^",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -955,7 +955,7 @@
           }
         },
         "60": {
-          "keyName": "´ `",
+          "keyName": "'",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -988,7 +988,7 @@
           }
         },
         "62": {
-          "keyName": "Ins",
+          "keyName": "Einfg",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1005,7 +1005,7 @@
           }
         },
         "63": {
-          "keyName": "Home",
+          "keyName": "Pos1",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1021,7 +1021,7 @@
           }
         },
         "64": {
-          "keyName": "PgUp",
+          "keyName": "Bild↑",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1316,7 +1316,7 @@
           }
         },
         "82": {
-          "keyName": "+ *",
+          "keyName": "+",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1349,7 +1349,7 @@
           }
         },
         "84": {
-          "keyName": "Del",
+          "keyName": "Entf",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1366,7 +1366,7 @@
           }
         },
         "85": {
-          "keyName": "End",
+          "keyName": "Ende",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1382,7 +1382,7 @@
           }
         },
         "86": {
-          "keyName": "PgDn",
+          "keyName": "Bild↓",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1485,7 +1485,7 @@
           }
         },
         "92": {
-          "keyName": "CAPS",
+          "keyName": "Feststell",
           "width": 131,
           "height": 70,
           "left": 15,
@@ -1678,7 +1678,7 @@
           }
         },
         "104": {
-          "keyName": "# '",
+          "keyName": "#",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1764,7 +1764,7 @@
           }
         },
         "109": {
-          "keyName": "Shift",
+          "keyName": "Umschalt",
           "width": 131,
           "height": 70,
           "left": 15,
@@ -1781,7 +1781,7 @@
           }
         },
         "110": {
-          "keyName": "< >",
+          "keyName": "<",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1909,7 +1909,7 @@
           }
         },
         "118": {
-          "keyName": ", ;",
+          "keyName": ",",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1925,7 +1925,7 @@
           }
         },
         "119": {
-          "keyName": ". :",
+          "keyName": ".",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1941,7 +1941,7 @@
           }
         },
         "120": {
-          "keyName": "- _",
+          "keyName": "-",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1957,7 +1957,7 @@
           }
         },
         "121": {
-          "keyName": "Shift",
+          "keyName": "Umschalt",
           "width": 205,
           "height": 70,
           "left": 15,
@@ -2077,7 +2077,7 @@
           }
         },
         "128": {
-          "keyName": "Ctrl",
+          "keyName": "Strg",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -2144,7 +2144,7 @@
           }
         },
         "132": {
-          "keyName": "Alt",
+          "keyName": "Alt Gr",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -2192,7 +2192,7 @@
           }
         },
         "135": {
-          "keyName": "Ctrl",
+          "keyName": "Strg",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -2276,7 +2276,7 @@
           }
         },
         "140": {
-          "keyName": ".",
+          "keyName": ",",
           "width": 65,
           "height": 70,
           "left": 15,

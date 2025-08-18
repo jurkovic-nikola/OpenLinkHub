@@ -290,6 +290,7 @@ func (d *Device) setupKeyAssignment() {
 
 	chunks := common.ProcessMultiChunkPacket(buf, 60)
 	for i, chunk := range chunks {
+		cmdKeyAssignment[1] = byte(len(chunk) / 2)
 		err := d.transfer(cmdWrite, cmdKeyAssignment, chunk)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "index": i, "packet": fmt.Sprintf("%2x", chunks)}).Error("Unable to send key assignment packet")

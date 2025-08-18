@@ -283,7 +283,7 @@
     "1": {
       "keys": {
         "20": {
-          "keyName": "Profil",
+          "keyName": "👤",
           "width": 65,
           "height": 70,
           "left": 0,
@@ -305,7 +305,7 @@
           }
         },
         "21": {
-          "keyName": "Licht",
+          "keyName": "🔆",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -324,7 +324,7 @@
           }
         },
         "22": {
-          "keyName": "Schloss",
+          "keyName": "🔒",
           "width": 65,
           "height": 70,
           "left": 15,

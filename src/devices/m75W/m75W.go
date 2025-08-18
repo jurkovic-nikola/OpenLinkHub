@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/sstallion/go-hid"
 )
 
@@ -186,7 +186,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		RGBModes: rgbModes,
+		RGBModes:              rgbModes,
 		LEDChannels:           2,
 		ChangeableLedChannels: 2,
 		autoRefreshChan:       make(chan struct{}),
@@ -255,12 +255,8 @@ func (d *Device) StopInternal() {
 		})
 	}()
 
-	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			return
-		}
+	if d.Connected {
+		d.setHardwareMode()
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
@@ -296,7 +292,6 @@ func (d *Device) SetConnected(value bool) {
 func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
-		d.setHardwareMode()    // Activate hardware mode
 		d.setSoftwareMode()    // Activate software mode
 		d.getBatterLevel()     // Battery level
 		d.getDeviceFirmware()  // Firmware
@@ -1234,28 +1229,28 @@ func (d *Device) loadKeyAssignments() {
 				ActionHold:    false,
 			},
 			64: {
-				Name:          "Right Forward",
-				Default:       true,
-				ActionType:    0,
-				ActionCommand: 0,
-				ActionHold:    false,
-			},
-			32: {
 				Name:          "Right Back",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
+			32: {
+				Name:          "Right Forward",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
 			16: {
-				Name:          "Left Forward",
+				Name:          "Left Back",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			8: {
-				Name:          "Left Back",
+				Name:          "Left Forward",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,

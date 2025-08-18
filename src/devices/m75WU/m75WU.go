@@ -109,7 +109,7 @@ type Device struct {
 	ModifierIndex         byte
 	SniperMode            bool
 	MacroTracker          map[int]uint16
-	RGBModes []string
+	RGBModes              []string
 }
 
 var (
@@ -139,7 +139,7 @@ var (
 	maxDpiValue               = 26000
 	deviceKeepAlive           = 20000
 	deviceRefreshInterval     = 1000
-	rgbModes          = []string{
+	rgbModes                  = []string{
 		"colorpulse",
 		"colorshift",
 		"colorwarp",
@@ -189,7 +189,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			30: "30 minutes",
 			60: "1 hour",
 		},
-		RGBModes: rgbModes,
+		RGBModes:              rgbModes,
 		LEDChannels:           2,
 		ChangeableLedChannels: 2,
 		keepAliveChan:         make(chan struct{}),
@@ -1217,28 +1217,28 @@ func (d *Device) loadKeyAssignments() {
 				ActionHold:    false,
 			},
 			64: {
-				Name:          "Right Forward",
-				Default:       true,
-				ActionType:    0,
-				ActionCommand: 0,
-				ActionHold:    false,
-			},
-			32: {
 				Name:          "Right Back",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
+			32: {
+				Name:          "Right Forward",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
 			16: {
-				Name:          "Left Forward",
+				Name:          "Left Back",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
 				ActionHold:    false,
 			},
 			8: {
-				Name:          "Left Back",
+				Name:          "Left Forward",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,

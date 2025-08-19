@@ -2,7 +2,7 @@
   "version": 5,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
-  "key": "k95platinum-default",
+  "key": "k95platinum-es",
   "device": "K95 PLATINUM",
   "layout": "ES",
   "rows": 8,
@@ -1797,7 +1797,7 @@
           }
         },
         "111": {
-          "keyName": "C",
+          "keyName": "Z",
           "width": 65,
           "height": 70,
           "left": 15,

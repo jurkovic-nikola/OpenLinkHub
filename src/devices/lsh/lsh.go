@@ -3414,13 +3414,15 @@ func (d *Device) setupOpenRGBController() {
 			}
 		} else {
 			zone := common.OpenRGBZone{
-				Name:    d.Devices[k].Name,
-				NumLEDs: uint32(d.Devices[k].LedChannels),
+				Name:     d.Devices[k].Name,
+				NumLEDs:  uint32(d.Devices[k].LedChannels),
+				ZoneType: common.ZoneTypeMatrix,
 			}
 
 			if d.Devices[k].ContainsPump && d.Devices[k].AIO {
 				if d.Devices[k].LedChannels > 20 {
 					zone.NumLEDs = uint32(20)
+					zone.ZoneType = common.ZoneTypeLinear
 					controller.Zones = append(controller.Zones, zone)
 
 					lcdZone := common.OpenRGBZone{

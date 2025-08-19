@@ -97,7 +97,7 @@
                                         <li>
                                             <select class="form-select keyboardRgbProfile" name="keyboardRgbProfile">
                                                 {{ range $key, $mode := $device.RGBModes }}
-                                                {{ if eq $key $device.DeviceProfile.RGBProfile }}
+                                                {{ if eq $key $device.DeviceProfile.SlipstreamRGBProfile }}
                                                 <option value="0;{{ $key }}" selected>{{ $mode }}</option>
                                                 {{ else }}
                                                 <option value="0;{{ $key }}">{{ $mode }}</option>

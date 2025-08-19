@@ -85,10 +85,18 @@ const (
 	ColorModeRandom
 )
 
+type OpenRGBSegment struct {
+	Name     string
+	Type     int32
+	StartIdx uint32
+	LedCount uint32
+}
+
 type OpenRGBZone struct {
 	Name     string
 	NumLEDs  uint32
 	ZoneType uint32
+	Segments []OpenRGBSegment
 }
 
 type OpenRGBController struct {

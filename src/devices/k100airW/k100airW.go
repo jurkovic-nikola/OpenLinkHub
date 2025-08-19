@@ -29,22 +29,23 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active          bool
-	Path            string
-	Product         string
-	Serial          string
-	LCDMode         uint8
-	LCDRotation     uint8
-	Brightness      uint8
-	RGBProfile      string
-	Label           string
-	Layout          string
-	Keyboards       map[string]*keyboards.Keyboard
-	Profile         string
-	Profiles        []string
-	ControlDial     int
-	BrightnessLevel uint16
-	SleepMode       int
+	Active               bool
+	Path                 string
+	Product              string
+	Serial               string
+	LCDMode              uint8
+	LCDRotation          uint8
+	Brightness           uint8
+	RGBProfile           string
+	SlipstreamRGBProfile string
+	Label                string
+	Layout               string
+	Keyboards            map[string]*keyboards.Keyboard
+	Profile              string
+	Profiles             []string
+	ControlDial          int
+	BrightnessLevel      uint16
+	SleepMode            int
 }
 
 type Device struct {
@@ -511,6 +512,7 @@ func (d *Device) saveDeviceProfile() {
 	if d.DeviceProfile == nil {
 		// RGB, Label
 		deviceProfile.RGBProfile = "keyboard"
+		deviceProfile.SlipstreamRGBProfile = "keyboard"
 		deviceProfile.Label = "Keyboard"
 		deviceProfile.Active = true
 		keyboardMap["default"] = keyboards.GetKeyboard(defaultLayout)
@@ -563,6 +565,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
+		deviceProfile.SlipstreamRGBProfile = d.DeviceProfile.SlipstreamRGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
@@ -785,6 +788,8 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
 	pf.Speed = profile.Speed
+	pf.AlternateColors = profile.AlternateColors
+	pf.RgbDirection = profile.RgbDirection
 
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
@@ -803,8 +808,8 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		return 0
 	}
 
-	d.DeviceProfile.RGBProfile = profile // Set profile
-	d.saveDeviceProfile()                // Save profile
+	d.DeviceProfile.SlipstreamRGBProfile = profile // Set profile
+	d.saveDeviceProfile()                          // Save profile
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
@@ -1092,11 +1097,11 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	if !slices.Contains(rgbModes, d.DeviceProfile.RGBProfile) {
-		d.DeviceProfile.RGBProfile = "keyboard"
+	if !slices.Contains(rgbModes, d.DeviceProfile.SlipstreamRGBProfile) {
+		d.DeviceProfile.SlipstreamRGBProfile = "keyboard"
 	}
 
-	switch d.DeviceProfile.RGBProfile {
+	switch d.DeviceProfile.SlipstreamRGBProfile {
 	case "off":
 		{
 			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
@@ -1156,8 +1161,48 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[2] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0x7e, 0xa0, 0x02, 0x04, 0x01}
 				start := 3
+
+				rain := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if rain == nil {
+					buf[2] = byte(d.KeyAmount)
+					start = 3
+				} else {
+					var speed = byte(0x04)
+					switch rain.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Medium
+						break
+					case 3:
+						speed = 0x03 // Slow
+						break
+					}
+
+					if rain.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0x7e, 0xa0, 0x01, speed, 0x01} // Custom colors
+						buf[1] = 0x02                                            // 2 colors
+						buf[2] = 0xff                                            // Marker
+						buf[3] = byte(rain.StartColor.Blue)                      // Color 1 Blue
+						buf[4] = byte(rain.StartColor.Green)                     // Color 1 Green
+						buf[5] = byte(rain.StartColor.Red)                       // Color 1 Red
+						buf[6] = 0xff                                            // Marker
+						buf[7] = byte(rain.EndColor.Blue)                        // Color 2 Blue
+						buf[8] = byte(rain.EndColor.Green)                       // Color 2 Green
+						buf[9] = byte(rain.EndColor.Red)                         // Color 2 Red
+						buf[10] = byte(d.KeyAmount)                              // Key amount
+						start = 11                                               // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0x7e, 0xa0, 0x02, speed, 0x01} // Random colors
+						start = 3
+						buf[2] = byte(d.KeyAmount)
+					}
+				}
+
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1167,7 +1212,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0x7e, 0xa0, 0x02, 0x04, 0x01}
 				d.writeColor(buf)
 				return
 			}
@@ -1176,8 +1220,48 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[3] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0xf9, 0xb1, 0x02, 0x04} // Random colors
 				start := 4
+
+				tlk := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if tlk == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to find tlk rgb profile definition. Using device defaults")
+					start = 4
+					buf[3] = byte(d.KeyAmount)
+				} else {
+					var speed = byte(0x04)
+					switch tlk.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Medium
+						break
+					case 3:
+						speed = 0x03 // Slow
+						break
+					}
+					if tlk.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0xf9, 0xb1, 0x01, speed} // Custom colors
+						buf[2] = 0x02                                      // 2 colors
+						buf[3] = 0xff                                      // Marker
+						buf[4] = byte(tlk.StartColor.Blue)                 // Color 1 Blue
+						buf[5] = byte(tlk.StartColor.Green)                // Color 1 Green
+						buf[6] = byte(tlk.StartColor.Red)                  // Color 1 Red
+						buf[7] = 0xff                                      // Marker
+						buf[8] = byte(tlk.EndColor.Blue)                   // Color 2 Blue
+						buf[9] = byte(tlk.EndColor.Green)                  // Color 2 Green
+						buf[10] = byte(tlk.EndColor.Red)                   // Color 2 Red
+						buf[11] = byte(d.KeyAmount)                        // Key amount
+						start = 12                                         // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0xf9, 0xb1, 0x02, speed} // Random colors
+						start = 4
+						buf[3] = byte(d.KeyAmount)
+					}
+				}
+
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1187,7 +1271,7 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0xf9, 0xb1, 0x02, 0x04}
+
 				d.writeColor(buf)
 				return
 			}
@@ -1196,8 +1280,48 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[3] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0xa2, 0x09, 0x02, 0x04}
 				start := 4
+				tlk := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if tlk == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to find tlk rgb profile definition. Using device defaults")
+					start = 4
+					buf[3] = byte(d.KeyAmount)
+				} else {
+					var speed = byte(0x04)
+					switch tlk.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Medium
+						break
+					case 3:
+						speed = 0x03 // Slow
+						break
+					}
+
+					if tlk.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0xa2, 0x09, 0x01, speed} // Custom colors
+						buf[2] = 0x02                                      // 2 colors
+						buf[3] = 0xff                                      // Marker
+						buf[4] = byte(tlk.StartColor.Blue)                 // Color 1 Blue
+						buf[5] = byte(tlk.StartColor.Green)                // Color 1 Green
+						buf[6] = byte(tlk.StartColor.Red)                  // Color 1 Red
+						buf[7] = 0xff                                      // Marker
+						buf[8] = byte(tlk.EndColor.Blue)                   // Color 2 Blue
+						buf[9] = byte(tlk.EndColor.Green)                  // Color 2 Green
+						buf[10] = byte(tlk.EndColor.Red)                   // Color 2 Red
+						buf[11] = byte(d.KeyAmount)                        // Key amount
+						start = 12                                         // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0xa2, 0x09, 0x02, speed} // Random colors
+						start = 4
+						buf[3] = byte(d.KeyAmount)
+					}
+
+				}
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1207,7 +1331,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0xa2, 0x09, 0x02, 0x04}
 				d.writeColor(buf)
 				return
 			}
@@ -1215,6 +1338,23 @@ func (d *Device) setDeviceColor() {
 	case "spiralrainbow":
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+				spiralrainbow := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				var speed = byte(0x04)
+				if spiralrainbow != nil {
+					switch spiralrainbow.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Medium
+						break
+					case 3:
+						speed = 0x03 // Slow
+						break
+					}
+				}
+				dataTypeSetColor = []byte{0x87, 0xab, 0x00, speed, 0x06}
+
 				var buf = make([]byte, 125)
 				buf[2] = byte(d.KeyAmount)
 				start := 3
@@ -1227,7 +1367,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0x87, 0xab, 0x00, 0x04, 0x06}
 				d.writeColor(buf)
 				return
 			}
@@ -1236,8 +1375,46 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[3] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0x4f, 0xad, 0x02, 0x04}
 				start := 4
+				colorpulse := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if colorpulse == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to find tlk rgb profile definition. Using device defaults")
+					start = 4
+					buf[3] = byte(d.KeyAmount)
+				} else {
+					var speed = byte(0x04)
+					if colorpulse.Speed == 1 {
+						speed = 0x05 // Fast
+					}
+					if colorpulse.Speed > 1 {
+						speed = 0x04 // Medium
+					}
+					if colorpulse.Speed > 5 {
+						speed = 0x03 // Slow
+					}
+
+					if colorpulse.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0x4f, 0xad, 0x01, speed} // Custom colors
+						buf[2] = 0x02                                      // 2 colors
+						buf[3] = 0xff                                      // Marker
+						buf[4] = byte(colorpulse.StartColor.Blue)          // Color 1 Blue
+						buf[5] = byte(colorpulse.StartColor.Green)         // Color 1 Green
+						buf[6] = byte(colorpulse.StartColor.Red)           // Color 1 Red
+						buf[7] = 0xff                                      // Marker
+						buf[8] = byte(colorpulse.EndColor.Blue)            // Color 2 Blue
+						buf[9] = byte(colorpulse.EndColor.Green)           // Color 2 Green
+						buf[10] = byte(colorpulse.EndColor.Red)            // Color 2 Red
+						buf[11] = byte(d.KeyAmount)                        // Key amount
+						start = 12                                         // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0x4f, 0xad, 0x02, speed} // Random colors
+						start = 4
+						buf[3] = byte(d.KeyAmount)
+					}
+
+				}
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1247,7 +1424,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0x4f, 0xad, 0x02, 0x04}
 				d.writeColor(buf)
 				return
 			}
@@ -1256,8 +1432,46 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[3] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0xfa, 0xa5, 0x02, 0x04}
 				start := 4
+				colorpulse := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if colorpulse == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to find tlk rgb profile definition. Using device defaults")
+					start = 4
+					buf[3] = byte(d.KeyAmount)
+				} else {
+					var speed = byte(0x04)
+					if colorpulse.Speed == 1 {
+						speed = 0x05 // Fast
+					}
+					if colorpulse.Speed > 1 {
+						speed = 0x04 // Medium
+					}
+					if colorpulse.Speed > 5 {
+						speed = 0x03 // Slow
+					}
+
+					if colorpulse.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0xfa, 0xa5, 0x01, speed} // Custom colors
+						buf[2] = 0x02                                      // 2 colors
+						buf[3] = 0xff                                      // Marker
+						buf[4] = byte(colorpulse.StartColor.Blue)          // Color 1 Blue
+						buf[5] = byte(colorpulse.StartColor.Green)         // Color 1 Green
+						buf[6] = byte(colorpulse.StartColor.Red)           // Color 1 Red
+						buf[7] = 0xff                                      // Marker
+						buf[8] = byte(colorpulse.EndColor.Blue)            // Color 2 Blue
+						buf[9] = byte(colorpulse.EndColor.Green)           // Color 2 Green
+						buf[10] = byte(colorpulse.EndColor.Red)            // Color 2 Red
+						buf[11] = byte(d.KeyAmount)                        // Key amount
+						start = 12                                         // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0xfa, 0xa5, 0x02, speed} // Random colors
+						start = 4
+						buf[3] = byte(d.KeyAmount)
+					}
+
+				}
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1267,7 +1481,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0xfa, 0xa5, 0x02, 0x04}
 				d.writeColor(buf)
 				return
 			}
@@ -1276,8 +1489,53 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[2] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0xff, 0x7b, 0x02, 0x04, 0x04}
 				start := 3
+
+				colorwave := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if colorwave == nil {
+					buf[2] = byte(d.KeyAmount)
+					start = 3
+				} else {
+					var speed = byte(0x04)
+					switch colorwave.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Medium
+						break
+					case 3:
+						speed = 0x03 // Slow
+						break
+					}
+
+					direction := byte(0x04)
+					if colorwave.RgbDirection > 0 && colorwave.RgbDirection < 6 {
+						direction = colorwave.RgbDirection
+					}
+
+					if colorwave.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0xff, 0x7b, 0x01, speed, direction} // Custom colors
+						buf[1] = 0x02                                                 // 2 colors
+						buf[2] = 0xff                                                 // Marker
+						buf[3] = byte(colorwave.StartColor.Blue)                      // Color 1 Blue
+						buf[4] = byte(colorwave.StartColor.Green)                     // Color 1 Green
+						buf[5] = byte(colorwave.StartColor.Red)                       // Color 1 Red
+						buf[6] = 0xff                                                 // Marker
+						buf[7] = byte(colorwave.EndColor.Blue)                        // Color 2 Blue
+						buf[8] = byte(colorwave.EndColor.Green)                       // Color 2 Green
+						buf[9] = byte(colorwave.EndColor.Red)                         // Color 2 Red
+						buf[10] = byte(d.KeyAmount)                                   // Key amount
+						start = 11                                                    // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0xff, 0x7b, 0x02, speed, direction} // Random colors
+						start = 3
+						buf[2] = byte(d.KeyAmount)
+					}
+				}
+
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1287,7 +1545,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0xff, 0x7b, 0x02, 0x04, 0x04}
 				d.writeColor(buf)
 				return
 			}
@@ -1295,6 +1552,23 @@ func (d *Device) setDeviceColor() {
 	case "rainbowwave":
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+				spiralrainbow := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				var speed = byte(0x04)
+				if spiralrainbow != nil {
+					switch spiralrainbow.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Fast
+						break
+					case 3:
+						speed = 0x03 // Fast
+						break
+					}
+				}
+
+				dataTypeSetColor = []byte{0x4c, 0xb9, 0x00, speed, 0x04}
 				var buf = make([]byte, 125)
 				buf[2] = byte(d.KeyAmount)
 				start := 3
@@ -1307,7 +1581,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0x4c, 0xb9, 0x00, 0x04, 0x04}
 				d.writeColor(buf)
 				return
 			}
@@ -1316,8 +1589,48 @@ func (d *Device) setDeviceColor() {
 		{
 			if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, 125)
-				buf[2] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0xc0, 0x90, 0x02, 0x04, 0x04}
 				start := 3
+
+				visor := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if visor == nil {
+					buf[2] = byte(d.KeyAmount)
+					start = 3
+				} else {
+					var speed = byte(0x04)
+					switch visor.Speed {
+					case 1:
+						speed = 0x05 // Fast
+						break
+					case 2:
+						speed = 0x04 // Medium
+						break
+					case 3:
+						speed = 0x03 // Slow
+						break
+					}
+
+					if visor.AlternateColors {
+						buf = make([]byte, 125+8)
+						dataTypeSetColor = []byte{0xc0, 0x90, 0x01, speed, 0x04} // Custom colors
+						buf[1] = 0x02                                            // 2 colors
+						buf[2] = 0xff                                            // Marker
+						buf[3] = byte(visor.StartColor.Blue)                     // Color 1 Blue
+						buf[4] = byte(visor.StartColor.Green)                    // Color 1 Green
+						buf[5] = byte(visor.StartColor.Red)                      // Color 1 Red
+						buf[6] = 0xff                                            // Marker
+						buf[7] = byte(visor.EndColor.Blue)                       // Color 2 Blue
+						buf[8] = byte(visor.EndColor.Green)                      // Color 2 Green
+						buf[9] = byte(visor.EndColor.Red)                        // Color 2 Red
+						buf[10] = byte(d.KeyAmount)                              // Key amount
+						start = 11                                               // Keyboard data start position
+					} else {
+						dataTypeSetColor = []byte{0xc0, 0x90, 0x02, speed, 0x04} // Random colors
+						start = 3
+						buf[2] = byte(d.KeyAmount)
+					}
+				}
+
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						for packet := range key.PacketIndex {
@@ -1327,7 +1640,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0xc0, 0x90, 0x02, 0x04, 0x04}
 				d.writeColor(buf)
 				return
 			}

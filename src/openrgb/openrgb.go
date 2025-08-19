@@ -639,12 +639,47 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 			}
 		}
 
-		err = binary.Write(zonesPacked, binary.LittleEndian, uint16(0)) // zero segments
+		segCount := len(ctrl.Zones[z].Segments)
+		err = binary.Write(zonesPacked, binary.LittleEndian, uint16(segCount)) // count segments
 		if err != nil {
 			if debug {
-				logger.Log(logger.Fields{"error": err}).Error("zonesPacked::zero segments write error")
+				logger.Log(logger.Fields{"error": err}).Error("zonesPacked::segments write error")
 			}
 			return []byte{}
+		}
+
+		for s := 0; s < segCount; s++ {
+			seg := ctrl.Zones[z].Segments[s]
+
+			// segment_name
+			writeString(zonesPacked, seg.Name)
+
+			// segment_type
+			err = binary.Write(zonesPacked, binary.LittleEndian, seg.Type)
+			if err != nil {
+				if debug {
+					logger.Log(logger.Fields{"error": err}).Error("zonesPacked::segment_type write error")
+				}
+				return []byte{}
+			}
+
+			// segment_start_idx
+			err = binary.Write(zonesPacked, binary.LittleEndian, seg.StartIdx)
+			if err != nil {
+				if debug {
+					logger.Log(logger.Fields{"error": err}).Error("zonesPacked::segment_start_idx write error")
+				}
+				return []byte{}
+			}
+
+			// segment_leds_count
+			err = binary.Write(zonesPacked, binary.LittleEndian, seg.LedCount)
+			if err != nil {
+				if debug {
+					logger.Log(logger.Fields{"error": err}).Error("zonesPacked::segment_leds_count write error")
+				}
+				return []byte{}
+			}
 		}
 	}
 	controllerBuf.Write(zonesPacked.Bytes())

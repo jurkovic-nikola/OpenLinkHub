@@ -165,9 +165,9 @@
                                     {{ end }}
 
                                     {{ if gt (len $keys.KeySpace) 0 }}
-                                    <div class="{{ $keys.KeySpace }} keyboardColor keySelector" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
+                                    <div class="{{ $keys.KeySpace }} keyboardColor keySelector {{ $keys.Css }}" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
                                     {{ else }}
-                                    <div class="keyboard-key keyboardColor keySelector" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
+                                    <div class="keyboard-key keyboardColor keySelector {{ $keys.Css }}" data-info="{{ $index }};{{ $keyboard.Color.Red }};{{ $keyboard.Color.Green }};{{ $keyboard.Color.Blue }}">
                                     {{ end }}
                                         {{ if $keys.NoColor }}
                                         <span class="key-uppercase" style="color: rgba(255,255,255,1);text-align: center;align-items: center;justify-content: center;display: flex;">

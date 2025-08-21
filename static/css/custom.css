@@ -1141,3 +1141,8 @@ canvas {
     background: lime;
     box-shadow: 0 0 6px lime;
 }
+
+.enter-custom {
+    margin-top:-65px;
+    height:125px;
+}

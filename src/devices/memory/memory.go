@@ -825,15 +825,18 @@ func (d *Device) getDevices() int {
 					}
 
 					if config.GetConfig().RamTempViaHwmon {
-						hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice)
-						if len(hwmonTemperatureFile) > 0 {
-							device.HwmonPath = hwmonTemperatureFile
-							hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
-							if err == nil {
-								device.Temperature = hwmonTemp
-								device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
-								device.HasTemps = true
+						if !d.getEnhancementKit(dimmInfoAddresses[i]) {
+							hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice)
+							if len(hwmonTemperatureFile) > 0 {
+								device.HwmonPath = hwmonTemperatureFile
+								hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
+								if err == nil {
+									device.Temperature = hwmonTemp
+									device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
+									device.HasTemps = true
+								}
 							}
+							baseDevice += i + 1
 						}
 					}
 
@@ -842,7 +845,6 @@ func (d *Device) getDevices() int {
 					}
 					devices[i] = device
 					d.LEDChannels += ledChannels
-					baseDevice += i + 1
 				}
 			}
 		}

@@ -50,6 +50,7 @@ type Web struct {
 	Languages         map[string]language.Language
 	LanguageCode      string
 	BatteryStats      interface{}
+	RGBModes          []string
 }
 
 // Lang is called from template files

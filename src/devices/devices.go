@@ -81,6 +81,7 @@ import (
 	"OpenLinkHub/src/devices/scimitarSEWU"
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/devices/scimitarWU"
+	"OpenLinkHub/src/devices/scimitarprorgb"
 	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
@@ -96,14 +97,13 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
+
+	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
-
-	"OpenLinkHub/src/devices/scimitarprorgb"
-	"github.com/sstallion/go-hid"
 )
 
 const (
@@ -140,6 +140,7 @@ const (
 	productTypeK60RgbPro            = 120
 	productTypeK70PMW               = 121
 	productTypeK70PMWU              = 122
+	productTypeK70Max               = 123
 	productTypeKatarPro             = 201
 	productTypeIronClawRgb          = 202
 	productTypeIronClawRgbW         = 203
@@ -215,7 +216,7 @@ var (
 	interfaceId                = 0
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094}
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094, 7104}
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033, 6974}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667, 2696}
@@ -1255,6 +1256,25 @@ func UpdateRgbProfile(deviceId string, channelId int, profile string) uint8 {
 		}
 	}
 	return 0
+}
+
+// UpdateGlobalRgbProfile will update device RGB profile
+func UpdateGlobalRgbProfile(profile string) uint8 {
+	channelId := -1
+	for _, device := range devices {
+		methodName := "UpdateRgbProfile"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			continue
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
+			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
+			method.Call(reflectArgs)
+		}
+	}
+	return 1
 }
 
 // UpdateLinkAdapterRgbProfile will update LINK adapter RGB profile

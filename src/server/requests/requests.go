@@ -1772,6 +1772,26 @@ func ProcessChangeColor(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
 }
 
+// ProcessGlobalChangeColor will process POST request from a client for global RGB profile change
+func ProcessGlobalChangeColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.Profile) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
+	}
+	devices.UpdateGlobalRgbProfile(req.Profile)
+	return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+}
+
 // ProcessChangeLinkAdapterColor will process POST request from a client for RGB LINK adapter profile change
 func ProcessChangeLinkAdapterColor(r *http.Request) *Payload {
 	req := &Payload{}

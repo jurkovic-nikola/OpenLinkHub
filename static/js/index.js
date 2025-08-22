@@ -146,4 +146,35 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    $('.allDevicesRgb').on('change', function () {
+        const profile = $(this).val();
+        if (profile === "none") {
+            return false;
+        }
+        
+        const pf = {
+            "profile": profile
+        };
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/global',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

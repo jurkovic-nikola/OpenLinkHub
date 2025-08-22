@@ -703,6 +703,17 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setGlobalDeviceColor handles global color changes
+func setGlobalDeviceColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGlobalChangeColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setLinkAdapterColor handles LINK adapter color changes
 func setLinkAdapterColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeLinkAdapterColor(r)
@@ -1231,6 +1242,24 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Dashboard = dashboard.GetDashboard()
 	web.BatteryStats = stats.GetBatteryStats()
+	web.RGBModes = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 	web.Page = "index"
 
 	// Add all devices to the list
@@ -1536,6 +1565,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
 	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)
 	handleFunc(r, "/api/color", http.MethodPost, setDeviceColor)
+	handleFunc(r, "/api/color/global", http.MethodPost, setGlobalDeviceColor)
 	handleFunc(r, "/api/color/linkAdapter", http.MethodPost, setLinkAdapterColor)
 	handleFunc(r, "/api/color/linkAdapter/bulk", http.MethodPost, setLinkAdapterBulkColor)
 	handleFunc(r, "/api/color/getOverride", http.MethodPost, getRgbOverride)

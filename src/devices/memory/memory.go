@@ -114,6 +114,7 @@ type Device struct {
 	RGBModes          []string
 	Path              string
 	queue             chan map[int][]byte
+	SkuLine           string
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -815,6 +816,9 @@ func (d *Device) getDevices() int {
 						HasTemps:          hasTemp,
 					}
 
+					if len(d.SkuLine) < 1 {
+						d.SkuLine = skuLine
+					}
 					if d.getEnhancementKit(dimmInfoAddresses[i]) {
 						device.Size = 0
 						device.Latency = 0

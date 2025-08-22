@@ -11,7 +11,6 @@
         {{ $devices := $device.Devices }}
         {{ $rgb := .Rgb }}
         {{ $deviceProfile := .Device.DeviceProfile }}
-        {{ $stick := index $devices 1 }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <input type="hidden" id="zones" name="zones" value="6">
         <div class="bg-dash-dark-2 py-4">
@@ -32,7 +31,7 @@
                                 <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
                                     <span>{{ .Device.Product }}</span><br />
                                     <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ $stick.Name }}</span>
+                                        <span style="color: #37929d !important;">{{ $device.SkuLine }}</span>
                                     </p>
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">

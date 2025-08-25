@@ -310,6 +310,13 @@
     "txtUnableToChangeRgbProfileOpenRgb": "Unable to change RGB profile while OpenRGB Integration is enabled",
     "txtOpenRGBIntegration": "OpenRGB Integration",
     "txtKeyboardLayout": "Keyboard Layout",
-    "txtDevice": "Device"
+    "txtDevice": "Device",
+    "txtRgbClusterORGB": "RGB Cluster can not be used with OpenRGB Integration enabled",
+    "txtRgbClusterAdded": "RGB Cluster device successfully added",
+    "txtOpenRGBIntegrationEnabled": "OpenRGB Integration is successfully updated",
+    "txtOpenRGBIntegrationError": "Unable to enabled OpenRGB Integration",
+    "txtOpenRGBClusterEnabled": "OpenRGB Integration can not be enabled while RGB Cluster is enabled",
+    "txtRgbClusterError": "Unable to add RGB Cluster object",
+    "txtRgbCluster": "RGB Cluster"
   }
 }

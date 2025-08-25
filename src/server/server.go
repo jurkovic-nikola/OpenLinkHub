@@ -329,6 +329,7 @@ func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 func getColor(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
 	deviceId, valid := getVar("/api/color/", r)
+
 	if !valid {
 		resp = &Response{
 			Code:   http.StatusOK,
@@ -784,9 +785,20 @@ func setLedData(w http.ResponseWriter, r *http.Request) {
 func setOpenRgbIntegration(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetOpenRgbIntegration(r)
 	resp := &Response{
-		Code:   request.Code,
-		Status: request.Status,
-		Data:   request.Data,
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setRgbCluster saves RGB cluster state
+func setRgbCluster(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetRgbCluster(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
 	}
 	resp.Send(w)
 }
@@ -1394,6 +1406,33 @@ func uiRgbEditor(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// uiRgbCluster handles overview of RGB Cluster
+func uiRgbCluster(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = "Device Dashboard"
+	web.Devices = devices.GetDevices()
+	web.Device = devices.GetDevice("cluster")
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Page = "rgbCluster"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "cluster.html", web)
+	if err != nil {
+		fmt.Println(err)
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: language.GetValue("txtUnableToServeWebContent"),
+		}
+		resp.Send(w)
+	}
+}
+
 // uiColorOverview handles overview or RGB profiles
 func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
@@ -1573,6 +1612,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/getLedData", http.MethodPost, getLedData)
 	handleFunc(r, "/api/color/setLedData", http.MethodPost, setLedData)
 	handleFunc(r, "/api/color/setOpenRgbIntegration", http.MethodPost, setOpenRgbIntegration)
+	handleFunc(r, "/api/color/setCluster", http.MethodPost, setRgbCluster)
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
 	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
 	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)
@@ -1647,6 +1687,7 @@ func setRoutes() http.Handler {
 		handleFunc(r, "/color", http.MethodGet, uiColorOverview)
 		handleFunc(r, "/scheduler", http.MethodGet, uiSchedulerOverview)
 		handleFunc(r, "/rgb", http.MethodGet, uiRgbEditor)
+		handleFunc(r, "/rgbCluster", http.MethodGet, uiRgbCluster)
 		handleFunc(r, "/macros", http.MethodGet, uiMacrosOverview)
 		handleFunc(r, "/lcd", http.MethodGet, uiLcdOverview)
 		handleFunc(r, "/settings", http.MethodGet, uiSettings)

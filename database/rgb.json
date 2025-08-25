@@ -214,7 +214,7 @@
     },
     "watercolor": {
       "profileName": "Water Color",
-      "speed": 4,
+      "speed": 8,
       "brightness": 1
     },
     "colorshift": {
@@ -308,7 +308,7 @@
     },
     "circleshift": {
       "profileName": "Circle Shift",
-      "speed": 1,
+      "speed": 5,
       "brightness": 1,
       "smoothness": 100,
       "start": {

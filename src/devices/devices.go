@@ -97,7 +97,8 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
-
+	"OpenLinkHub/src/cluster"
+	
 	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
@@ -190,6 +191,7 @@ const (
 	productTypeLT100                = 403
 	productTypeMM800                = 404
 	productTypePSUHid               = 501
+	productTypeCluster              = 999
 )
 
 type AIOData struct {
@@ -1719,6 +1721,28 @@ func ProcessSetOpenRgbIntegration(deviceId string, enabled bool) uint8 {
 	return 0
 }
 
+// ProcessSetRgbCluster will set OpenRGB integration
+func ProcessSetRgbCluster(deviceId string, enabled bool) uint8 {
+	if device, ok := devices[deviceId]; ok {
+		methodName := "ProcessSetRgbCluster"
+		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+		if !method.IsValid() {
+			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+			return 0
+		} else {
+			var reflectArgs []reflect.Value
+			reflectArgs = append(reflectArgs, reflect.ValueOf(enabled))
+			results := method.Call(reflectArgs)
+			if len(results) > 0 {
+				val := results[0]
+				uintResult := val.Uint()
+				return uint8(uintResult)
+			}
+		}
+	}
+	return 0
+}
+
 // ProcessSetRgbOverride will set rgb override data
 func ProcessSetRgbOverride(deviceId string, channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
 	if device, ok := devices[deviceId]; ok {
@@ -1932,6 +1956,16 @@ func Init() {
 		} else {
 			logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
 		}
+	}
+
+	// Create dummy cluster object before any other object
+	cls := cluster.Init()
+	devices["cluster"] = &common.Device{
+		ProductType: productTypeCluster,
+		Product:     "Cluster",
+		Serial:      "cluster",
+		Hidden:      true,
+		Instance:    cls,
 	}
 
 	// Legacy devices

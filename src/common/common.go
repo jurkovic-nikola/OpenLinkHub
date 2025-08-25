@@ -115,6 +115,14 @@ type OpenRGBController struct {
 	ColorMode    uint32
 }
 
+type ClusterController struct {
+	Product      string
+	Serial       string
+	LedChannels  uint32
+	ChannelId    int
+	WriteColorEx func([]byte, int)
+}
+
 type LogLevel int
 
 const (

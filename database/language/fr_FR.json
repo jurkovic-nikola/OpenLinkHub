@@ -310,6 +310,13 @@
         "txtUnableToChangeRgbProfileOpenRgb": "Impossible de change le profil RGB quand l'intégration OpenRGB est active",
         "txtOpenRGBIntegration": "Integration OpenRGB",
         "txtKeyboardLayout": "Disposition du clavier",
-        "txtDevice": "Appareil"
+        "txtDevice": "Appareil",
+        "txtRgbClusterORGB": "RGB Cluster ne peut pas être utilisé avec l’intégration OpenRGB activée",
+        "txtRgbClusterAdded": "Périphérique RGB Cluster ajouté avec succès",
+        "txtOpenRGBIntegrationEnabled": "L’intégration OpenRGB a été mise à jour avec succès",
+        "txtOpenRGBIntegrationError": "Impossible d’activer l’intégration OpenRGB",
+        "txtOpenRGBClusterEnabled": "L’intégration OpenRGB ne peut pas être activée tant que RGB Cluster est activé",
+        "txtRgbClusterError": "Impossible d’ajouter l’objet RGB Cluster",
+        "txtRgbCluster": "RGB Cluster"
     }
 }

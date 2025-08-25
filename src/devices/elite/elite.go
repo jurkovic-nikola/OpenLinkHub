@@ -587,7 +587,6 @@ func (d *Device) lightingControl() []byte {
 func (d *Device) setHardwareMode() {
 	for i := 0; i < len(shutdown); i++ {
 		value := shutdown[i]
-		fmt.Println("Sending", value.command, value.data)
 		d.transfer(value.command, value.data)
 	}
 }

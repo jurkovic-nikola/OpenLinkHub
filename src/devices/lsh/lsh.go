@@ -32,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/openrgb"
 	"github.com/sstallion/go-hid"
 )
@@ -68,6 +69,7 @@ type DeviceProfile struct {
 	RGBOverride          map[int]map[int]RGBOverride
 	RGBPerLed            map[int]map[int]map[int]rgb.Color
 	OpenRGBIntegration   bool
+	RGBCluster           bool
 }
 
 // LinkAdapter contains a list of supported external-LED devices connected to a LINK adapter
@@ -372,6 +374,8 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 		d.setupLCDImage()  // LCD images
 	}
 	d.setupOpenRGBController() // OpenRGB Controller
+	d.setupClusterController() // RGB Cluster
+
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d
 }
@@ -1305,6 +1309,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
 		deviceProfile.SubDeviceRGBProfiles = d.DeviceProfile.SubDeviceRGBProfiles
 		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 	}
 
 	keys := make([]int, 0, len(deviceProfile.DevicePosition))
@@ -2028,6 +2033,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 4
 	}
 
+	if d.DeviceProfile.RGBCluster {
+		return 4
+	}
+
 	pf := d.GetRgbProfile(profile)
 	if pf == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
@@ -2248,6 +2257,9 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}
+	if d.DeviceProfile.RGBCluster {
+		return 2
+	}
 	d.DeviceProfile.OpenRGBIntegration = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
@@ -2255,6 +2267,43 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 2
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
+	if enabled {
+		lightChannels := 0
+		for k := range d.Devices {
+			lightChannels += int(d.Devices[k].LedChannels)
+		}
+
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       d.Serial,
+			LedChannels:  uint32(lightChannels),
+			WriteColorEx: d.writeColorCluster,
+		}
+
+		cluster.Get().AddDeviceController(clusterController)
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
 	return 1
 }
 
@@ -3367,6 +3416,30 @@ func (d *Device) pumpInnerLedPosition() {
 	}
 }
 
+// setupOpenRGBController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	lightChannels := 0
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+	}
+	clusterController := &common.ClusterController{
+		Product:      d.Product,
+		Serial:       d.Serial,
+		LedChannels:  uint32(lightChannels),
+		WriteColorEx: d.writeColorCluster,
+	}
+
+	cluster.Get().AddDeviceController(clusterController)
+}
+
 // setupOpenRGBController will create RGBController object for OpenRGB Client Integration
 func (d *Device) setupOpenRGBController() {
 	lightChannels := 0
@@ -3421,17 +3494,17 @@ func (d *Device) setupOpenRGBController() {
 
 			if d.Devices[k].ContainsPump && d.Devices[k].AIO {
 				if d.Devices[k].LedChannels > 20 {
-					zone.NumLEDs = uint32(20)
-					zone.ZoneType = common.ZoneTypeLinear
+					zone.NumLEDs = 20
 					controller.Zones = append(controller.Zones, zone)
 
-					lcdZone := common.OpenRGBZone{
-						Name:    "iCUE LINK COOLER PUMP LCD",
-						NumLEDs: uint32(lcdLedChannels),
-					}
-					controller.Zones = append(controller.Zones, lcdZone)
+					controller.Zones = append(controller.Zones, common.OpenRGBZone{
+						Name:     "iCUE LINK COOLER PUMP LCD",
+						NumLEDs:  uint32(lcdLedChannels),
+						ZoneType: common.ZoneTypeLinear,
+					})
 				} else {
 					zone.ZoneType = common.ZoneTypeMatrix
+					controller.Zones = append(controller.Zones, zone)
 				}
 			} else {
 				controller.Zones = append(controller.Zones, zone)
@@ -3478,6 +3551,12 @@ func (d *Device) setDeviceColor() {
 	// OpenRGB
 	if d.DeviceProfile.OpenRGBIntegration {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
+
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
 		return
 	}
 
@@ -4391,6 +4470,66 @@ func (d *Device) writeColor(data []byte) {
 // writeColorEx will write data to the device from OpenRGB client
 func (d *Device) writeColorEx(data []byte, _ int) {
 	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if d.Exit {
+		return
+	}
+
+	// Disable pump inner 4 LEDs when LCD is installed
+	if d.pumpInnerLedStartIndex > 0 {
+		for i := d.pumpInnerLedStartIndex; i < d.pumpInnerLedStartIndex+12; i++ {
+			data[i] = byte(0)
+		}
+	}
+
+	// Protect device
+	// When a specific number of LEDs exceeds the maximum LEDs per controller channel, brightness needs to be reduced
+	// to avoid device damage. Brightness reduction is implemented in 3 stages, and each stage reduces brightness
+	// by 33 %.
+	if d.GlobalBrightness != 0 {
+		rgb.ModifyBrightnessSlice(data, d.GlobalBrightness)
+	}
+
+	// Buffer
+	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
+	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
+	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
+
+	// Process buffer and create a chunked array if needed
+	writeColorEp := cmdWriteColor
+	colorEp := make([]byte, len(writeColorEp))
+	copy(colorEp, writeColorEp)
+
+	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if d.Exit {
+			break
+		}
+		if i == 0 {
+			// Initial packet is using cmdWriteColor
+			_, err := d.transfer(cmdWriteColor, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+		} else {
+			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+			_, err := d.transfer(dataTypeSubColor, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
+	}
+}
+
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, _ int) {
+	if !d.DeviceProfile.RGBCluster {
 		return
 	}
 

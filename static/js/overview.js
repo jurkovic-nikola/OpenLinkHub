@@ -1456,6 +1456,34 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.rgbCluster').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const mode = parseInt($(this).val());
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["mode"] = mode;
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/color/setCluster',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.globalRgb').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val();
@@ -2455,10 +2483,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             createRingLEDs(container, frontInner, 45, data, 100);
                             createRingLEDs(container, frontOuter, 80, data, 100);
                         } else {
-                            frontOuter = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+                            frontInner = [0,1,2,3];
+                            frontOuter = [4,5,6,7,8,9,10,11,12,13,14,15];
                             wrapperDiv.innerHTML = `<div class="device-container-block" id="container"><div class="center-circle"></div></div>`;
                             const container = wrapperDiv.querySelector('#container');
                             createRingLEDs(container, frontOuter, 120, data, 150);
+                            createRingLEDs(container, frontInner, 45, data, 150);
                         }
                     } break;
                 }

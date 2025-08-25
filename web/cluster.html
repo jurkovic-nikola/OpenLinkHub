@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $device := .Device }}
+        {{ $rgbModes := .Device.RGBModes }}
+        {{ $controllers := .Device.Controllers }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-cluster.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">Run a single RGB Effect spanned across multiple devices</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select clusterRgbProfile" name="clusterRgbProfile">
+                                                {{ range $key, $mode := $rgbModes }}
+                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
+                                                {{ else }}
+                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
+                                <div class="mouse">
+                                    <div class="row">
+                                        <table class="table mb-0">
+                                            <thead>
+                                            <tr>
+                                                <th style="text-align: left;">Device</th>
+                                                <th>Serial</th>
+                                                <th>RGB Effect</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {{ range $key, $value := $device.Controllers }}
+                                            <tr>
+                                                <th scope="row" style="text-align: left;">{{ $value.Product }}</th>
+                                                <td>{{ $value.Serial }}</td>
+                                                <td>{{ $device.DeviceProfile.RGBProfile }}</td>
+                                            </tr>
+                                            {{ end }}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/cluster.js"></script>
+</body>
+</html>

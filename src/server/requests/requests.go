@@ -319,7 +319,6 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		deviceId = req.DeviceId
 		channelId = req.ChannelId
 
-		fmt.Println(deviceId, channelId)
 		if len(deviceId) < 1 {
 			return &Payload{
 				Message: language.GetValue("txtInvalidSensorValue"),
@@ -3009,7 +3008,46 @@ func ProcessSetOpenRgbIntegration(r *http.Request) *Payload {
 	status := devices.ProcessSetOpenRgbIntegration(req.DeviceId, enabled)
 	switch status {
 	case 1:
-		return &Payload{Message: language.GetValue("txtRgbPerLedUpdated"), Code: http.StatusOK, Status: 1}
+		return &Payload{Message: language.GetValue("txtOpenRGBIntegrationEnabled"), Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: language.GetValue("txtOpenRGBClusterEnabled"), Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: language.GetValue("txtInvalidRgbPerLed"), Code: http.StatusOK, Status: 0}
+	return &Payload{Message: language.GetValue("txtOpenRGBIntegrationError"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetRgbCluster will process setting data for RGB cluster
+func ProcessSetRgbCluster(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	enabled := req.Mode == 1
+
+	status := devices.ProcessSetRgbCluster(req.DeviceId, enabled)
+	switch status {
+	case 1:
+		return &Payload{Message: language.GetValue("txtRgbClusterAdded"), Code: http.StatusOK, Status: 1}
+	case 2:
+		return &Payload{Message: language.GetValue("txtRgbClusterORGB"), Code: http.StatusOK, Status: 0}
+	}
+	return &Payload{Message: language.GetValue("txtRgbClusterError"), Code: http.StatusOK, Status: 0}
 }

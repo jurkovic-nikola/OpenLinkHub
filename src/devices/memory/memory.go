@@ -7,6 +7,7 @@ package memory
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
@@ -82,6 +83,7 @@ type DeviceProfile struct {
 	RGBOverride        map[int]map[int]RGBOverride
 	RGBPerLed          map[int]map[int]map[int]rgb.Color
 	OpenRGBIntegration bool
+	RGBCluster         bool
 }
 
 type Device struct {
@@ -230,6 +232,7 @@ func Init(device, product string) *Device {
 	d.setTemperatures()        // Initial temp
 	d.getTemperatureProbe()    // Devices with temperature value
 	d.setupOpenRGBController() // OpenRGB Controller
+	d.setupClusterController() // RGB Cluster
 	d.startQueueWorker()       // Queue
 	return d
 }
@@ -1060,6 +1063,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.MultiRGB = d.DeviceProfile.MultiRGB
 		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -1243,6 +1247,12 @@ func (d *Device) setDeviceColor() {
 	// OpenRGB
 	if d.DeviceProfile.OpenRGBIntegration {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
+
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
 		return
 	}
 
@@ -1471,6 +1481,7 @@ func (d *Device) setDeviceColor() {
 					// Send it
 					d.writeColor(buff, k)
 				}
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 	}(lightChannels)
@@ -1482,7 +1493,6 @@ func (d *Device) writeColor(data []byte, deviceId int) {
 		return
 	}
 	d.transfer(data, colorAddresses[deviceId], d.Devices[deviceId].LedChannels, d.Devices[deviceId].ColorRegister, transferTypeColor)
-	time.Sleep(15 * time.Millisecond)
 }
 
 // writeColorEx will write data to the device from OpenRGB client
@@ -1490,6 +1500,33 @@ func (d *Device) writeColorEx(data []byte, index int) {
 	if !d.DeviceProfile.OpenRGBIntegration {
 		return
 	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	// Create a map with the index as the key
+	packetMap := map[int][]byte{
+		index: copyData,
+	}
+
+	// Try to queue it without blocking
+	select {
+	case d.queue <- packetMap:
+	default:
+		// Queue full — drop packet silently (same as your original)
+	}
+}
+
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, index int) {
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
 	if d.Exit {
 		return
 	}
@@ -1551,10 +1588,31 @@ func (d *Device) startQueueWorker() {
 	}()
 }
 
+// setupOpenRGBController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	for k, device := range d.Devices {
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       fmt.Sprintf("%s-%d", d.Serial, k),
+			LedChannels:  uint32(device.LedChannels),
+			WriteColorEx: d.writeColorCluster,
+			ChannelId:    device.ChannelId,
+		}
+		cluster.Get().AddDeviceController(clusterController)
+	}
+}
+
 // setupOpenRGBController will create RGBController object for OpenRGB Client Integration
 func (d *Device) setupOpenRGBController() {
 	lightChannels := 0
-	zones := 0
 	keys := make([]int, 0)
 
 	// For proper packet positioning
@@ -1562,7 +1620,6 @@ func (d *Device) setupOpenRGBController() {
 		if d.Devices[k].LedChannels > 0 {
 			lightChannels += int(d.Devices[k].LedChannels)
 			keys = append(keys, k)
-			zones++
 		}
 	}
 	sort.Ints(keys)
@@ -1586,7 +1643,7 @@ func (d *Device) setupOpenRGBController() {
 		zone := common.OpenRGBZone{
 			Name:     d.Devices[k].Name,
 			NumLEDs:  uint32(d.Devices[k].LedChannels),
-			ZoneType: uint32(common.ZoneTypeLinear),
+			ZoneType: common.ZoneTypeLinear,
 		}
 		controller.Zones = append(controller.Zones, zone)
 		openrgb.AddDeviceController(controller)
@@ -1794,6 +1851,11 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 2
+	}
+
 	d.DeviceProfile.OpenRGBIntegration = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
@@ -1801,6 +1863,45 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 2
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
+	// For proper packet positioning
+	for k, device := range d.Devices {
+		if enabled {
+			if device.LedChannels > 0 {
+				clusterController := &common.ClusterController{
+					Product:      d.Product,
+					Serial:       fmt.Sprintf("%s-%d", d.Serial, k),
+					LedChannels:  uint32(device.LedChannels),
+					WriteColorEx: d.writeColorCluster,
+					ChannelId:    device.ChannelId,
+				}
+				cluster.Get().AddDeviceController(clusterController)
+			}
+		} else {
+			cluster.Get().RemoveDeviceControllerBySerial(
+				fmt.Sprintf("%s-%d", d.Serial, k),
+			)
+		}
+	}
 	return 1
 }
 
@@ -2054,7 +2155,6 @@ func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister
 						logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")
 					}
 					colorRegister += 1
-					time.Sleep(1 * time.Millisecond)
 				}
 			} else {
 				err := smbus.WriteBlockData(d.dev.File, address, colorRegister, buf)

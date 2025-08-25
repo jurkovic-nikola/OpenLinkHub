@@ -486,7 +486,10 @@
           "css": "keyboard-key wide3",
           "default": true,
           "keyData": [42, 57, 56],
-          "keyHash": ["4398046511104"]
+          "keyHash": ["4398046511104"],
+          "hasSubAction": true,
+          "fnActionType": 3,
+          "fnActionCommand": 88
         },
         "27": {
           "keyName": "",

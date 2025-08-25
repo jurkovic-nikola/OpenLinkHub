@@ -154,7 +154,7 @@ var (
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
 	temperatureRegister   = byte(0x05)
 	basePath              = "/sys/bus/i2c/drivers/spd5118/"
-	rgbProfileUpgrade     = []string{"led"}
+	rgbProfileUpgrade     = []string{"led", "nebula"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -165,6 +165,7 @@ var (
 		"flickering",
 		"gpu-temperature",
 		"led",
+		"nebula",
 		"off",
 		"rainbow",
 		"rotator",
@@ -1475,6 +1476,11 @@ func (d *Device) setDeviceColor() {
 					case "colorwarp":
 						{
 							r.Colorwarp(&startTime, d.activeRgb)
+							buff = r.Output
+						}
+					case "nebula":
+						{
+							r.Nebula(&startTime)
 							buff = r.Output
 						}
 					}

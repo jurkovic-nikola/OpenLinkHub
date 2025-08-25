@@ -87,6 +87,7 @@ var (
 		MiddleColor: Color{Red: 0, Green: 0, Blue: 0, Brightness: 0},
 		EndColor:    Color{Red: 0, Green: 0, Blue: 0, Brightness: 0},
 	}
+	globalRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
 // GetRGB will return RGB
@@ -218,6 +219,22 @@ func GenerateRandomColor(bts float64) *Color {
 	r := rand.Intn(256) // Random value between 0 and 255
 	g := rand.Intn(256) // Random value between 0 and 255
 	b := rand.Intn(256) // Random value between 0 and 255
+
+	color := &Color{
+		Red:        float64(r),
+		Green:      float64(g),
+		Blue:       float64(b),
+		Brightness: bts,
+	}
+	return ModifyBrightness(*color)
+}
+
+// GenerateRandomColorSeeded will generate a random color based on a seed
+func GenerateRandomColorSeeded(seed int64, bts float64) *Color {
+	rnd := rand.New(rand.NewSource(seed)) // Create a deterministic RNG with seed
+	r := rnd.Intn(256)
+	g := rnd.Intn(256)
+	b := rnd.Intn(256)
 
 	color := &Color{
 		Red:        float64(r),

@@ -247,7 +247,7 @@ var (
 	criticalAioCoolantTemp      = 57.0
 	zeroRpmLimit                = 40
 	i2cPrefix                   = "i2c"
-	rgbProfileUpgrade           = []string{"led"}
+	rgbProfileUpgrade           = []string{"led", "nebula", "marquee", "rotarystack", "sequential"}
 	rgbModes                    = []string{
 		"circle",
 		"circleshift",
@@ -259,9 +259,13 @@ var (
 		"gpu-temperature",
 		"liquid-temperature",
 		"led",
+		"marquee",
+		"nebula",
 		"off",
 		"rainbow",
+		"rotarystack",
 		"rotator",
+		"sequential",
 		"spinner",
 		"static",
 		"storm",
@@ -3881,6 +3885,26 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 	case "colorwarp":
 		{
 			r.Colorwarp(startTime, d.activeRgb)
+			buff = r.Output
+		}
+	case "nebula":
+		{
+			r.Nebula(startTime)
+			buff = r.Output
+		}
+	case "marquee":
+		{
+			r.Marquee(startTime)
+			buff = r.Output
+		}
+	case "rotarystack":
+		{
+			r.RotaryStack(startTime)
+			buff = r.Output
+		}
+	case "sequential":
+		{
+			r.Sequential(startTime)
 			buff = r.Output
 		}
 	}

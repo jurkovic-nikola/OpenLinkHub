@@ -60,11 +60,15 @@ func Init() *Device {
 			"cpu-temperature",
 			"flickering",
 			"gpu-temperature",
+			"marquee",
+			"nebula",
 			"rainbow",
 			"rotator",
+			"sequential",
 			"spinner",
 			"static",
 			"storm",
+			"visor",
 			"watercolor",
 			"wave",
 		},
@@ -479,6 +483,26 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 	case "colorwarp":
 		{
 			r.Colorwarp(startTime, d.activeRgb)
+			buff = r.Output
+		}
+	case "nebula":
+		{
+			r.Nebula(startTime)
+			buff = r.Output
+		}
+	case "visor":
+		{
+			r.Visor(startTime)
+			buff = r.Output
+		}
+	case "marquee":
+		{
+			r.Marquee(startTime)
+			buff = r.Output
+		}
+	case "sequential":
+		{
+			r.Sequential(startTime)
 			buff = r.Output
 		}
 	}

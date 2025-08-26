@@ -23,3 +23,5 @@ org.openlinkhub.OpenLinkHub.json
 .flatpak-builder/
 flatpak/
 flatpak-build/
+copr/
+OpenLinkHub.spec.template

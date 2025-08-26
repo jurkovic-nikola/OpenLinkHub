@@ -136,7 +136,7 @@ var (
 	cmdRefresh                 = byte(0x33)
 	cmdRefresh2                = byte(0x34)
 	cmdPortState               = byte(0x38)
-	fanModePwm                 = byte(0x02)
+	fanModeAuto                = byte(0x00)
 	deviceRefreshInterval      = 1500
 	temperaturePullingInterval = 3000
 	bufferSize                 = 64
@@ -556,7 +556,8 @@ func (d *Device) getDeviceFirmware() {
 func (d *Device) setFanMode() {
 	for device := range d.Devices {
 		if d.Devices[device].HasSpeed {
-			_, err := d.transfer(cmdFanMode, []byte{0x02, byte(device), fanModePwm})
+			// fanModePwm := byte(0x02)
+			_, err := d.transfer(cmdFanMode, []byte{0x02, byte(device), fanModeAuto})
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set device mode")
 				continue

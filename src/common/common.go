@@ -95,6 +95,7 @@ type OpenRGBSegment struct {
 type OpenRGBZone struct {
 	Name     string
 	NumLEDs  uint32
+	MinLeds  uint32
 	ZoneType uint32
 	Segments []OpenRGBSegment
 }

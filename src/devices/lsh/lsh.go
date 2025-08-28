@@ -3496,6 +3496,51 @@ func (d *Device) setupOpenRGBController() {
 				ZoneType: common.ZoneTypeLinear,
 			}
 
+			switch d.Devices[k].LedChannels {
+			case 34: // QX
+				{
+					segments := []common.OpenRGBSegment{
+						{
+							Name:     "Front Outer Ring",
+							LedCount: 12,
+						},
+						{
+							Name:     "Back Outer Ring",
+							LedCount: 12,
+							StartIdx: 12,
+						},
+						{
+							Name:     "Front Inner Ring",
+							LedCount: 6,
+							StartIdx: 24,
+						},
+						{
+							Name:     "Back Outer Ring",
+							LedCount: 4,
+							StartIdx: 30,
+						},
+					}
+					zone.Segments = segments
+				}
+				break
+			case 18: // LX
+				{
+					segments := []common.OpenRGBSegment{
+						{
+							Name:     "Outer Ring",
+							LedCount: 12,
+						},
+						{
+							Name:     "Inner Ring",
+							LedCount: 6,
+							StartIdx: 12,
+						},
+					}
+					zone.Segments = segments
+				}
+				break
+			}
+
 			if d.Devices[k].ContainsPump && d.Devices[k].AIO {
 				if d.Devices[k].LedChannels > 20 {
 					zone.NumLEDs = 20

@@ -137,6 +137,12 @@ $ sudo apt update
 $ sudo apt-get install openlinkhub
 ```
 
+## Installation (Copr)
+```bash
+$ sudo dnf copr enable jurkovic-nikola/OpenLinkHub
+$ sudo dnf install OpenLinkHub
+```
+
 ## Installation (manual)
 ### 1. Requirements
 - libudev-dev

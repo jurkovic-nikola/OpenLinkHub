@@ -2038,7 +2038,7 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	if d.DeviceProfile.RGBCluster {
-		return 4
+		return 5
 	}
 
 	pf := d.GetRgbProfile(profile)

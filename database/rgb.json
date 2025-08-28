@@ -115,11 +115,11 @@
         "blue": 255,
         "brightness": 0.5
       },
-      "speed": 2
+      "speed": 5
     },
     "nebula": {
       "profileName": "Nebula",
-      "speed": 4,
+      "speed": 5,
       "brightness": 1
     },
     "led": {

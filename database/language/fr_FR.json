@@ -308,6 +308,7 @@
         "txtRgbPerLedUpdated": "Périphérique RGB mis à jour avec succès",
         "txtNoLedData": "Aucune donnée de LED trouvée",
         "txtUnableToChangeRgbProfileOpenRgb": "Impossible de change le profil RGB quand l'intégration OpenRGB est active",
+        "txtUnableToChangeRgbProfileCluster": "Impossible de modifier le profil RVB lorsque le cluster RGB est activé.",
         "txtOpenRGBIntegration": "Integration OpenRGB",
         "txtKeyboardLayout": "Disposition du clavier",
         "txtDevice": "Appareil",

@@ -1765,6 +1765,8 @@ func ProcessChangeColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
 	case 4:
 		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileOpenRgb"), Code: http.StatusOK, Status: 0}
+	case 5:
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileCluster"), Code: http.StatusOK, Status: 0}
 	case 1:
 		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
 	}

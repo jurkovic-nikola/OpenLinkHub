@@ -92,6 +92,7 @@ type Device struct {
 	timer                   *time.Ticker
 	timerSpeed              *time.Ticker
 	mutex                   sync.Mutex
+	deviceLock              sync.Mutex
 	RGBModes                []string
 }
 
@@ -195,6 +196,11 @@ var (
 			Index: 6,
 			Name:  "SP RGB Series Fan (1 LED)",
 			Total: 1,
+		},
+		{
+			Index: 7,
+			Name:  "HD LED Strip",
+			Total: 10,
 		},
 	}
 )
@@ -586,6 +592,9 @@ func (d *Device) setDefaults() {
 
 // setSpeed will generate a speed buffer and send it to a device
 func (d *Device) setSpeed(data map[int]byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1102,6 +1111,9 @@ func (d *Device) saveDeviceProfile() {
 
 // getDeviceData will fetch device data
 func (d *Device) getDeviceData() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1876,93 +1888,48 @@ func (d *Device) updateDeviceSpeed() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
 
-	r := make([]byte, lightChannels)
-	g := make([]byte, lightChannels)
-	b := make([]byte, lightChannels)
-	m := 0
+	channels := [][]byte{
+		make([]byte, lightChannels),
+		make([]byte, lightChannels),
+		make([]byte, lightChannels),
+	}
 
 	for i := 0; i < lightChannels; i++ {
-		// Red
-		r[i] = data[m]
-		m++
-
-		// Green
-		g[i] = data[m]
-		m++
-
-		// Blue
-		b[i] = data[m]
-		m++
+		base := i * 3
+		channels[0][i] = data[base]
+		channels[1][i] = data[base+1]
+		channels[2][i] = data[base+2]
 	}
 
-	chunksR := common.ProcessMultiChunkPacket(r, maxBufferSizePerRequest)
-	chunksG := common.ProcessMultiChunkPacket(g, maxBufferSizePerRequest)
-	chunksB := common.ProcessMultiChunkPacket(b, maxBufferSizePerRequest)
+	colorNames := []string{"red", "green", "blue"}
 
-	packetsR := make(map[int][]byte, len(chunksR))
-	for i, chunk := range chunksR {
-		chunkLen := len(chunk)
-		chunkPacket := make([]byte, chunkLen+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(i * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(chunkLen)
-		chunkPacket[3] = 0x00 // R
-		copy(chunkPacket[4:], chunk)
-		packetsR[i] = chunkPacket
-	}
+	for c, channelData := range channels {
+		chunks := common.ProcessMultiChunkPacket(channelData, maxBufferSizePerRequest)
 
-	packetsG := make(map[int][]byte, len(chunksR))
-	for i, chunk := range chunksG {
-		chunkLen := len(chunk)
-		chunkPacket := make([]byte, chunkLen+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(i * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(chunkLen)
-		chunkPacket[3] = 0x01 // G
-		copy(chunkPacket[4:], chunk)
-		packetsG[i] = chunkPacket
-	}
+		for i, chunk := range chunks {
+			packet := make([]byte, len(chunk)+4)
+			packet[0] = portId
+			packet[1] = byte(i * maxBufferSizePerRequest)
+			packet[2] = byte(len(chunk))
+			packet[3] = byte(c)
+			copy(packet[4:], chunk)
 
-	packetsB := make(map[int][]byte, len(chunksB))
-	for i, chunk := range chunksB {
-		chunkLen := len(chunk)
-		chunkPacket := make([]byte, chunkLen+4)
-		chunkPacket[0] = portId
-		chunkPacket[1] = byte(i * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(chunkLen)
-		chunkPacket[3] = 0x02 // B
-		copy(chunkPacket[4:], chunk)
-		packetsB[i] = chunkPacket
-	}
-
-	for z := 0; z < len(chunksR); z++ {
-		_, err := d.transfer(cmdWriteColor, packetsR[z])
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
-		}
-
-		_, err = d.transfer(cmdWriteColor, packetsG[z])
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write green color to device")
-		}
-
-		_, err = d.transfer(cmdWriteColor, packetsB[z])
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
+			if _, err := d.transfer(cmdWriteColor, packet); err != nil {
+				logger.Log(logger.Fields{"error": err}).Errorf("Unable to write %s color to device", colorNames[c])
+			}
 		}
 	}
-
-	_, err := d.transfer(cmdRefresh, []byte{0xff})
-	if err != nil {
+	if _, err := d.transfer(cmdRefresh, []byte{0xff}); err != nil {
 		return
 	}
-
-	_, err = d.transfer(cmdPortState, []byte{portId, 0x02})
-	if err != nil {
+	if _, err := d.transfer(cmdPortState, []byte{portId, 0x02}); err != nil {
 		return
 	}
 }

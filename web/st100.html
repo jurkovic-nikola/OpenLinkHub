@@ -74,6 +74,22 @@
                                             </select>
                                         </li>
                                     </ul>
+                                    <button title="{{ .Lang "txtRgbCluster" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-exposure svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select rgbCluster">
+                                                {{ if $device.DeviceProfile.RGBCluster }}
+                                                <option value="1" selected>Enabled</option>
+                                                <option value="0">Disabled</option>
+                                                {{ else }}
+                                                <option value="1">Enabled</option>
+                                                <option value="0" selected>Disabled</option>
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
                                     <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

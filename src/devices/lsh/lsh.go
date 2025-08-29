@@ -3503,21 +3503,25 @@ func (d *Device) setupOpenRGBController() {
 						{
 							Name:     "Front Outer Ring",
 							LedCount: 12,
+							Type:     int32(common.ZoneTypeLinear),
 						},
 						{
 							Name:     "Back Outer Ring",
 							LedCount: 12,
 							StartIdx: 12,
+							Type:     int32(common.ZoneTypeLinear),
 						},
 						{
 							Name:     "Front Inner Ring",
 							LedCount: 6,
 							StartIdx: 24,
+							Type:     int32(common.ZoneTypeLinear),
 						},
 						{
 							Name:     "Back Outer Ring",
 							LedCount: 4,
 							StartIdx: 30,
+							Type:     int32(common.ZoneTypeLinear),
 						},
 					}
 					zone.Segments = segments
@@ -3529,11 +3533,13 @@ func (d *Device) setupOpenRGBController() {
 						{
 							Name:     "Outer Ring",
 							LedCount: 12,
+							Type:     int32(common.ZoneTypeLinear),
 						},
 						{
 							Name:     "Inner Ring",
 							LedCount: 6,
 							StartIdx: 12,
+							Type:     int32(common.ZoneTypeLinear),
 						},
 					}
 					zone.Segments = segments

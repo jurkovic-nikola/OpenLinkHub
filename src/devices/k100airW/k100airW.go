@@ -46,6 +46,7 @@ type DeviceProfile struct {
 	ControlDial          int
 	BrightnessLevel      uint16
 	SleepMode            int
+	RGBCluster           bool
 }
 
 type Device struct {
@@ -581,6 +582,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 	}
 
 	// Convert to JSON

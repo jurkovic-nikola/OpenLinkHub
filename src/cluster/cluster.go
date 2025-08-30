@@ -26,7 +26,9 @@ var (
 )
 
 type DeviceProfile struct {
-	RGBProfile string
+	RGBProfile         string
+	BrightnessSlider   *uint8
+	OriginalBrightness uint8
 }
 
 type Device struct {
@@ -191,6 +193,28 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = &value
+	d.saveDeviceProfile()
+	return 1
+}
+
+// SchedulerBrightness will change device brightness via scheduler
+func (d *Device) SchedulerBrightness(value uint8) uint8 {
+	if value == 0 {
+		d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		d.DeviceProfile.BrightnessSlider = &value
+	} else {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
 	return 1
 }
 
@@ -396,7 +420,7 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 	}
 
 	// Brightness
-	r.RGBBrightness = 1 //rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+	r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 	r.RGBStartColor.Brightness = r.RGBBrightness
 	r.RGBEndColor.Brightness = r.RGBBrightness
 
@@ -511,14 +535,26 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	var defaultBrightness = uint8(100)
+
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
-	deviceProfile := &DeviceProfile{}
+	deviceProfile := &DeviceProfile{
+		BrightnessSlider:   &defaultBrightness,
+		OriginalBrightness: 100,
+	}
 
 	if d.DeviceProfile == nil {
 		deviceProfile.RGBProfile = "rainbow"
 		d.DeviceProfile = deviceProfile
 	} else {
+		if d.DeviceProfile.BrightnessSlider == nil {
+			deviceProfile.BrightnessSlider = &defaultBrightness
+			d.DeviceProfile.BrightnessSlider = &defaultBrightness
+		} else {
+			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
+		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 	}
 
 	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")

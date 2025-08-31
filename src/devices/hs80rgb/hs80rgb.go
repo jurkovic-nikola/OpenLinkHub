@@ -217,7 +217,7 @@ func (d *Device) StopDirty() uint8 {
 		})
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // getManufacturer will return device manufacturer
@@ -1016,6 +1016,7 @@ func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
 	}
+
 	m := 1
 	buffer := make([]byte, len(data)+4)
 	buffer[0] = 0x03 // Header len
@@ -1115,6 +1116,7 @@ func (d *Device) backendListener() {
 						d.NotifyMuteChanged()
 					}
 				}
+				time.Sleep(5 * time.Millisecond)
 			}
 		}
 	}()

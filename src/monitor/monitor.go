@@ -12,6 +12,7 @@ import (
 
 	"OpenLinkHub/src/openrgb"
 	"github.com/godbus/dbus/v5"
+	"strconv"
 )
 
 const (
@@ -192,10 +193,15 @@ func Init() {
 						}
 
 						if info.VendorID == vendorId {
-							logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": info.Serial}).Info("Dirty USB removal...")
-							devices.StopDirty(info.Serial)
+							serial := info.Serial
+							if len(serial) < 1 {
+								serial = strconv.Itoa(int(info.ProductID))
+							}
+							logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": serial}).Info("Dirty USB removal...")
+
+							devices.StopDirty(serial)
 							delete(cache, devPath)
-							openrgb.NotifyControllerChange(info.Serial)
+							openrgb.NotifyControllerChange(serial)
 						}
 					}
 				}

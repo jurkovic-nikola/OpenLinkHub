@@ -154,7 +154,7 @@ var (
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
 	temperatureRegister   = byte(0x05)
 	basePath              = "/sys/bus/i2c/drivers/spd5118/"
-	rgbProfileUpgrade     = []string{"led", "nebula"}
+	rgbProfileUpgrade     = []string{"led", "nebula", "marquee"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -165,6 +165,7 @@ var (
 		"flickering",
 		"gpu-temperature",
 		"led",
+		"marquee",
 		"nebula",
 		"off",
 		"rainbow",
@@ -932,6 +933,9 @@ func (d *Device) loadDeviceProfiles() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	noOverride := false
 	noRgbPerLed := false
 
@@ -1481,6 +1485,11 @@ func (d *Device) setDeviceColor() {
 					case "nebula":
 						{
 							r.Nebula(&startTime)
+							buff = r.Output
+						}
+					case "marquee":
+						{
+							r.Marquee(&startTime)
 							buff = r.Output
 						}
 					}

@@ -2883,6 +2883,9 @@ func (d *Device) resetLEDPorts() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+	
 	noOverride := false
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"

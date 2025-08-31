@@ -1060,6 +1060,9 @@ func (d *Device) generateLedObject(amount uint8) map[int]rgb.Color {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	noOverride := false
 	noRgbPerLed := false
 

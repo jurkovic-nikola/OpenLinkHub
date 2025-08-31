@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 )
 
@@ -465,26 +466,29 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 	}
 
 	// Run it
-	var status uint8 = 0
+	var results []reflect.Value
 	if len(req.ChannelIds) > 0 {
-		status = devices.UpdateSpeedProfileBulk(req.DeviceId, req.ChannelIds, req.Profile)
+		results = devices.CallDeviceMethod(req.DeviceId, "UpdateSpeedProfileBulk", req.ChannelIds, req.Profile)
 	} else {
-		status = devices.UpdateSpeedProfile(req.DeviceId, req.ChannelId, req.Profile)
+		results = devices.CallDeviceMethod(req.DeviceId, "UpdateSpeedProfile", req.ChannelId, req.Profile)
+
 	}
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfileSelected"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceSpeedProfileUpdated"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtSpeedProfileNoPump"), Code: http.StatusOK, Status: 0}
-	case 3:
-		return &Payload{Message: language.GetValue("txtDeviceProfileMismatch"), Code: http.StatusOK, Status: 0}
-	case 4:
-		return &Payload{Message: language.GetValue("txtSpeedProfileNonExistingDevice"), Code: http.StatusOK, Status: 0}
-	case 5:
-		return &Payload{Message: language.GetValue("txtSpeedProfileNoTemperatureData"), Code: http.StatusOK, Status: 0}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtNonExistingSpeedProfileSelected"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceSpeedProfileUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtSpeedProfileNoPump"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtDeviceProfileMismatch"), Code: http.StatusOK, Status: 0}
+		case 4:
+			return &Payload{Message: language.GetValue("txtSpeedProfileNonExistingDevice"), Code: http.StatusOK, Status: 0}
+		case 5:
+			return &Payload{Message: language.GetValue("txtSpeedProfileNoTemperatureData"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToApplySpeedProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -564,13 +568,20 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 		RgbDirection:    req.RgbDirection,
 	}
 
-	// Run it
-	status := devices.UpdateRgbProfileData(deviceId, profile, rgbProfile)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtRgbProfileNotUpdated"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtRgbProfileUpdated"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		deviceId,
+		"UpdateRgbProfileData",
+		profile,
+		rgbProfile,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtRgbProfileNotUpdated"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtRgbProfileUpdated"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtRgbProfileNotUpdated"), Code: http.StatusOK, Status: 0}
 }
@@ -608,13 +619,20 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDeviceLcd(req.DeviceId, req.ChannelId, req.Mode)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtLcdModeChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtInvalidLcdModeDevice"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceLcd",
+		req.ChannelId,
+		req.Mode,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLcdModeChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtInvalidLcdModeDevice"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdMode"), Code: http.StatusOK, Status: 0}
 }
@@ -648,13 +666,19 @@ func ProcessLcdProfileChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidLcdMode"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDeviceLcdProfile(req.DeviceId, req.Profile)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtLcdProfileChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtSameLcdProfile"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceLcdProfile",
+		req.Profile,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLcdProfileChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtSameLcdProfile"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -692,13 +716,20 @@ func ProcessLcdDeviceChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceLcd(req.DeviceId, req.ChannelId, req.LcdSerial)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtLcdDeviceChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtInvalidLcdDevice"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceLcd",
+		req.ChannelId,
+		req.LcdSerial,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLcdDeviceChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtInvalidLcdDevice"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdDevice"), Code: http.StatusOK, Status: 0}
 }
@@ -736,13 +767,20 @@ func ProcessLcdRotationChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDeviceLcdRotation(req.DeviceId, req.ChannelId, req.Rotation)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtLcdRotationChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtInvalidLcdRotationDevice"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceLcdRotation",
+		req.ChannelId,
+		req.Rotation,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLcdRotationChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtInvalidLcdRotationDevice"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdRotation"), Code: http.StatusOK, Status: 0}
 }
@@ -784,13 +822,20 @@ func ProcessLcdImageChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDeviceLcdImage(req.DeviceId, req.ChannelId, req.Image)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtLcdImageChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeLcdImage"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceLcdImage",
+		req.ChannelId,
+		req.Image,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLcdImageChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeLcdImage"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdImage"), Code: http.StatusOK, Status: 0}
 }
@@ -982,13 +1027,19 @@ func ProcessSaveUserProfile(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.SaveUserProfile(req.DeviceId, req.UserProfileName)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtUserProfileSaved"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToSaveUserProfile"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveUserProfile",
+		req.UserProfileName,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtUserProfileSaved"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToSaveUserProfile"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveUserProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1026,13 +1077,20 @@ func ProcessSaveDeviceProfile(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.SaveDeviceProfile(req.DeviceId, req.KeyboardProfileName, req.New)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtKeyboardProfileSaved"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToSaveKeyboardProfile"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveDeviceProfile",
+		req.KeyboardProfileName,
+		req.New,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyboardProfileSaved"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToSaveKeyboardProfile"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveKeyboardProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1070,13 +1128,19 @@ func ProcessChangeKeyboardLayout(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeKeyboardLayout(req.DeviceId, req.KeyboardLayout)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtKeyboardLayoutChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeKeyboardLayout"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeKeyboardLayout",
+		req.KeyboardLayout,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyboardLayoutChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeKeyboardLayout"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeKeyboardLayout"), Code: http.StatusOK, Status: 0}
 }
@@ -1110,13 +1174,19 @@ func ProcessChangeControlDial(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeKeyboardControlDial(req.DeviceId, req.KeyboardControlDial)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtControlDialChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeControlDial"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateControlDial",
+		req.KeyboardControlDial,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtControlDialChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeControlDial"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeControlDial"), Code: http.StatusOK, Status: 0}
 }
@@ -1150,13 +1220,19 @@ func ProcessChangeSleepMode(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceSleepMode(req.DeviceId, req.SleepMode)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtSleepModeChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeSleepMode"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateSleepTimer",
+		req.SleepMode,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtSleepModeChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeSleepMode"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeSleepMode"), Code: http.StatusOK, Status: 0}
 }
@@ -1190,13 +1266,19 @@ func ProcessChangePollingRate(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDevicePollingRate(req.DeviceId, req.PollingRate)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtPollingRateChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangePollingRate"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdatePollingRate",
+		req.PollingRate,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtPollingRateChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangePollingRate"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangePollingRate"), Code: http.StatusOK, Status: 0}
 }
@@ -1230,13 +1312,19 @@ func ProcessChangeAngleSnapping(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceAngleSnapping(req.DeviceId, req.AngleSnapping)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtAngleSnappingChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeAngleSnapping"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateAngleSnapping",
+		req.AngleSnapping,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtAngleSnappingChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeAngleSnapping"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeAngleSnapping"), Code: http.StatusOK, Status: 0}
 }
@@ -1270,13 +1358,19 @@ func ProcessChangeButtonOptimization(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceButtonOptimization(req.DeviceId, req.ButtonOptimization)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtButtonOptimizationChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeButtonOptimization"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateButtonOptimization",
+		req.ButtonOptimization,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtButtonOptimizationChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeButtonOptimization"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeButtonOptimization"), Code: http.StatusOK, Status: 0}
 }
@@ -1319,13 +1413,20 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtPressAndHoldNotAllowed"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceKeyAssignment(req.DeviceId, req.KeyIndex, keyAssignment)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtKeyAssigmentUpdated"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToApplyKeyAssigment"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceKeyAssignment",
+		req.KeyIndex,
+		keyAssignment,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyAssigmentUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToApplyKeyAssigment"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToApplyKeyAssigment"), Code: http.StatusOK, Status: 0}
 }
@@ -1359,13 +1460,19 @@ func ProcessChangeMuteIndicator(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceMuteIndicator(req.DeviceId, req.MuteIndicator)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtIndicatorChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeIndicator"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateMuteIndicator",
+		req.MuteIndicator,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtIndicatorChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeIndicator"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeIndicator"), Code: http.StatusOK, Status: 0}
 }
@@ -1403,15 +1510,21 @@ func ProcessDeleteKeyboardProfile(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.DeleteKeyboardProfile(req.DeviceId, req.KeyboardProfileName)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtKeyboardProfileDeleted"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableKeyboardProfile"), Code: http.StatusOK, Status: 0}
-	case 3:
-		return &Payload{Message: language.GetValue("txtDefaultProfileNoDelete"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"DeleteKeyboardProfile",
+		req.KeyboardProfileName,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyboardProfileDeleted"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableKeyboardProfile"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtDefaultProfileNoDelete"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableKeyboardProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1449,13 +1562,19 @@ func ProcessChangeKeyboardProfile(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeKeyboardProfile(req.DeviceId, req.KeyboardProfileName)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtKeyboardProfileChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeKeyboardProfile"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateKeyboardProfile",
+		req.KeyboardProfileName,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyboardProfileChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeKeyboardProfile"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeKeyboardProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1493,13 +1612,19 @@ func ProcessChangeUserProfile(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeUserProfile(req.DeviceId, req.UserProfileName)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtUserProfileChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeUserProfile"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceProfile",
+		req.UserProfileName,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtUserProfileChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeUserProfile"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeUserProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1533,13 +1658,19 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceBrightness(req.DeviceId, req.Brightness)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtBrightnessChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtBrightnessTooHigh"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceBrightness",
+		req.Brightness,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtBrightnessChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtBrightnessTooHigh"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeBrightness"), Code: http.StatusOK, Status: 0}
 }
@@ -1573,13 +1704,19 @@ func ProcessBrightnessChangeGradual(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.ChangeDeviceBrightnessGradual(req.DeviceId, req.Brightness)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtBrightnessChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtBrightnessTooHigh"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceBrightnessValue",
+		req.Brightness,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtBrightnessChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtBrightnessTooHigh"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeBrightness"), Code: http.StatusOK, Status: 0}
 }
@@ -1613,15 +1750,22 @@ func ProcessPositionChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDevicePosition(req.DeviceId, req.Position, req.Direction)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtPositionChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDevicePosition",
+		req.Position,
+		req.Direction,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtPositionChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangePosition"), Code: http.StatusOK, Status: 0}
 }
@@ -1667,13 +1811,20 @@ func ProcessLabelChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDeviceLabel(req.DeviceId, req.ChannelId, req.Label, req.DeviceType)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToApplyLabel"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceLabelApplied"), Code: http.StatusOK, Status: 1}
+	var results []reflect.Value
+	if req.DeviceType == 0 {
+		results = devices.CallDeviceMethod(req.DeviceId, "UpdateDeviceLabel", req.ChannelId, req.Label)
+	} else {
+		results = devices.CallDeviceMethod(req.DeviceId, "UpdateRGBDeviceLabel", req.ChannelId, req.Label)
+	}
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToApplyLabel"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceLabelApplied"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToApplyLabel"), Code: http.StatusOK, Status: 0}
 }
@@ -1715,11 +1866,19 @@ func ProcessManualChangeSpeed(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	if devices.UpdateManualSpeed(req.DeviceId, req.ChannelId, req.Value) == 1 {
-		return &Payload{Message: language.GetValue("txtDeviceSpeedProfileChanged"), Code: http.StatusOK, Status: 1}
-	}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceSpeed",
+		req.ChannelId,
+		req.Value,
+	)
 
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceSpeedProfileChanged"), Code: http.StatusOK, Status: 1}
+		}
+	}
 	return &Payload{Message: language.GetValue("txtNoDeviceForSpeedControl"), Code: http.StatusOK, Status: 0}
 }
 
@@ -1749,26 +1908,28 @@ func ProcessChangeColor(r *http.Request) *Payload {
 	}
 
 	// Run it
-	var status uint8 = 0
+	var results []reflect.Value
 	if len(req.ChannelIds) > 0 {
-		status = devices.UpdateRgbProfileBulk(req.DeviceId, req.ChannelIds, req.Profile)
+		results = devices.CallDeviceMethod(req.DeviceId, "UpdateRgbProfileBulk", req.ChannelIds, req.Profile)
 	} else {
-		status = devices.UpdateRgbProfile(req.DeviceId, req.ChannelId, req.Profile)
+		results = devices.CallDeviceMethod(req.DeviceId, "UpdateRgbProfile", req.ChannelId, req.Profile)
 	}
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
-	case 3:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
-	case 4:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileOpenRgb"), Code: http.StatusOK, Status: 0}
-	case 5:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileCluster"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
+		case 4:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileOpenRgb"), Code: http.StatusOK, Status: 0}
+		case 5:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileCluster"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1789,6 +1950,7 @@ func ProcessGlobalChangeColor(r *http.Request) *Payload {
 	if len(req.Profile) < 1 {
 		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
 	}
+
 	devices.UpdateGlobalRgbProfile(req.Profile)
 	return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
 }
@@ -1822,18 +1984,25 @@ func ProcessChangeLinkAdapterColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateLinkAdapterRgbProfile(req.DeviceId, req.ChannelId, req.AdapterId, req.Profile)
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateLinkAdapterRgbProfile",
+		req.ChannelId,
+		req.AdapterId,
+		req.Profile,
+	)
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
-	case 3:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1863,18 +2032,24 @@ func ProcessChangeLinkAdapterColorBulk(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateLinkAdapterRgbProfileBulk(req.DeviceId, req.ChannelId, req.Profile)
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateLinkAdapterRgbProfileBulk",
+		req.ChannelId,
+		req.Profile,
+	)
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
-	case 3:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoPump"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfileNoKeyboard"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1900,14 +2075,19 @@ func ProcessHardwareChangeColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateHardwareRgbProfile(req.DeviceId, req.HardwareLight)
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateHardwareRgbProfile",
+		req.HardwareLight,
+	)
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbProfile"), Code: http.StatusOK, Status: 0}
 }
@@ -1933,16 +2113,22 @@ func ProcessChangeStrip(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateRgbStrip(req.DeviceId, req.ChannelId, req.StripId)
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateExternalAdapter",
+		req.ChannelId,
+		req.StripId,
+	)
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
 }
@@ -1968,16 +2154,22 @@ func ProcessChangeLinkAdapter(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateLinkAdapter(req.DeviceId, req.ChannelId, req.AdapterId)
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateLinkAdapter",
+		req.ChannelId,
+		req.AdapterId,
+	)
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
-	case 2:
-		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
 }
@@ -2002,14 +2194,22 @@ func ProcessExternalHubDeviceType(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingLedPort"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.UpdateExternalHubDeviceType(req.DeviceId, req.PortId, req.DeviceType)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeExternalHub"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtExternalHubChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtNonExistingExternalDeviceType"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateExternalHubDeviceType",
+		req.PortId,
+		req.DeviceType,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeExternalHub"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtExternalHubChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNonExistingExternalDeviceType"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeExternalHub"), Code: http.StatusOK, Status: 0}
 }
@@ -2034,14 +2234,22 @@ func ProcessARGBDevice(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingLedPort"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.UpdateARGBDevice(req.DeviceId, req.PortId, req.DeviceType)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeExternalHub"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtExternalHubChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtNonExistingExternalDeviceType"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateARGBDevice",
+		req.PortId,
+		req.DeviceType,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeExternalHub"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtExternalHubChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNonExistingExternalDeviceType"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeExternalHub"), Code: http.StatusOK, Status: 0}
 }
@@ -2079,14 +2287,23 @@ func ProcessKeyboardColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidKeyOptionSelected"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.UpdateKeyboardColor(req.DeviceId, req.KeyId, req.KeyOption, req.Color)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeDeviceColor"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceColorChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtNonExistingDeviceType"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceColor",
+		req.KeyId,
+		req.KeyOption,
+		req.Color,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeDeviceColor"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceColorChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNonExistingDeviceType"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeDeviceColor"), Code: http.StatusOK, Status: 0}
 }
@@ -2124,14 +2341,23 @@ func ProcessMiscColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidAreaOptionSelected"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.UpdateMiscColor(req.DeviceId, req.AreaId, req.AreaOption, req.Color)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeDeviceColor"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtDeviceColorChanged"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtNonExistingDeviceType"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceColor",
+		req.AreaId,
+		req.AreaOption,
+		req.Color,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeDeviceColor"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceColorChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNonExistingDeviceType"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeDeviceColor"), Code: http.StatusOK, Status: 0}
 }
@@ -2159,14 +2385,22 @@ func ProcessExternalHubDeviceAmount(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.UpdateExternalHubDeviceAmount(req.DeviceId, req.PortId, req.DeviceAmount)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeDeviceAmount"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtExternalLedAmountUpdated"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtTooMuchLedChannels"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateExternalHubDeviceAmount",
+		req.PortId,
+		req.DeviceAmount,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeDeviceAmount"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtExternalLedAmountUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtTooMuchLedChannels"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeDeviceAmount"), Code: http.StatusOK, Status: 0}
 }
@@ -2299,13 +2533,19 @@ func ProcessPsuFanModeChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdatePsuFanMode(req.DeviceId, req.FanMode)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeFanMode"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtFanModeChanged"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdatePsuFan",
+		req.FanMode,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeFanMode"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtFanModeChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeFanMode"), Code: http.StatusOK, Status: 0}
 }
@@ -2331,13 +2571,19 @@ func ProcessMouseDpiSave(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.SaveMouseDPI(req.DeviceId, req.Stages)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToSaveDPI"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtMouseDPIUpdated"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveMouseDPI",
+		req.Stages,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToSaveDPI"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtMouseDPIUpdated"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveDPI"), Code: http.StatusOK, Status: 0}
 }
@@ -2359,18 +2605,31 @@ func ProcessMouseZoneColorsSave(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	var status uint8 = 0
+	var results []reflect.Value
 	if req.IsSniper {
-		status = devices.SaveMouseZoneColorsSniper(req.DeviceId, req.ColorDpi, req.ColorZones, req.ColorSniper)
+		results = devices.CallDeviceMethod(
+			req.DeviceId,
+			"SaveMouseZoneColorsSniper",
+			req.ColorDpi,
+			req.ColorZones,
+			req.ColorSniper,
+		)
 	} else {
-		status = devices.SaveMouseZoneColors(req.DeviceId, req.ColorDpi, req.ColorZones)
+		results = devices.CallDeviceMethod(
+			req.DeviceId,
+			"SaveMouseZoneColors",
+			req.ColorDpi,
+			req.ColorZones,
+		)
 	}
 
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtMouseZoneColorsChanged"), Code: http.StatusOK, Status: 1}
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtMouseZoneColorsChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
 }
@@ -2392,13 +2651,20 @@ func ProcessMouseDpiColorsSave(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.SaveMouseDpiColors(req.DeviceId, req.ColorDpi, req.ColorZones)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToSaveDPIColors"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtMouseDpiColorsChanged"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveMouseDpiColors",
+		req.ColorDpi,
+		req.ColorZones,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToSaveDPIColors"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtMouseDpiColorsChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveDPIColors"), Code: http.StatusOK, Status: 0}
 }
@@ -2420,13 +2686,19 @@ func ProcessHeadsetZoneColorsSave(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.SaveHeadsetZoneColors(req.DeviceId, req.ColorZones)
-	switch status {
-	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
-	case 1:
-		return &Payload{Message: language.GetValue("txtMouseZoneColorsChanged"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveHeadsetZoneColors",
+		req.ColorZones,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtMouseZoneColorsChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
 }
@@ -2698,11 +2970,17 @@ func ProcessLedChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	// Run it
-	status := devices.UpdateDeviceLedData(req.DeviceId, req.LedProfile)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtLedDataChanged"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceLedData",
+		req.LedProfile,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLedDataChanged"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLedData"), Code: http.StatusOK, Status: 0}
 }
@@ -2732,10 +3010,15 @@ func ProcessGetKeyboardKey(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	data := devices.ProcessGetKeyboardKey(req.DeviceId, req.KeyId)
-	if data != nil {
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetKeyboardKey",
+		req.KeyId,
+	)
+
+	if len(results) > 0 {
 		return &Payload{
-			Data:   data,
+			Data:   results[0].Interface(),
 			Code:   http.StatusOK,
 			Status: 1,
 		}
@@ -2780,10 +3063,17 @@ func ProcessSetKeyboardPerformance(r *http.Request) *Payload {
 		AltF4:    req.PerfAltF4,
 	}
 
-	status := devices.ProcessSetKeyboardPerformance(req.DeviceId, performance)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtKeyboardPerformanceUpdated"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetKeyboardPerformance",
+		performance,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyboardPerformanceUpdated"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSetKeyboardPerformance"), Code: http.StatusOK, Status: 0}
 }
@@ -2821,10 +3111,16 @@ func ProcessGetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
 	}
 
-	data := devices.ProcessGetRgbOverride(req.DeviceId, req.ChannelId, req.SubDeviceId)
-	if data != nil {
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetRgbOverride",
+		req.ChannelId,
+		req.SubDeviceId,
+	)
+
+	if len(results) > 0 {
 		return &Payload{
-			Data:   data,
+			Data:   results[0].Interface(),
 			Code:   http.StatusOK,
 			Status: 1,
 		}
@@ -2870,8 +3166,9 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.ProcessSetRgbOverride(
+	results := devices.CallDeviceMethod(
 		req.DeviceId,
+		"ProcessSetRgbOverride",
 		req.ChannelId,
 		req.SubDeviceId,
 		req.Enabled,
@@ -2879,9 +3176,12 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		req.EndColor,
 		req.Speed,
 	)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtRgbOverrideUpdated"), Code: http.StatusOK, Status: 1}
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtRgbOverrideUpdated"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
 }
@@ -2919,10 +3219,16 @@ func ProcessGetLedData(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
 	}
 
-	data := devices.ProcessGetLedData(req.DeviceId, req.ChannelId, req.SubDeviceId)
-	if data != nil {
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetLedData",
+		req.ChannelId,
+		req.SubDeviceId,
+	)
+
+	if len(results) > 0 {
 		return &Payload{
-			Data:   data,
+			Data:   results[0].Interface(),
 			Code:   http.StatusOK,
 			Status: 1,
 		}
@@ -2972,10 +3278,20 @@ func ProcessSetLedData(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidColors"), Code: http.StatusOK, Status: 0}
 	}
 
-	status := devices.ProcessSetLedData(req.DeviceId, req.ChannelId, req.SubDeviceId, req.ColorZones, req.Save)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtRgbPerLedUpdated"), Code: http.StatusOK, Status: 1}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetLedData",
+		req.ChannelId,
+		req.SubDeviceId,
+		req.ColorZones,
+		req.Save,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtRgbPerLedUpdated"), Code: http.StatusOK, Status: 1}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtInvalidRgbPerLed"), Code: http.StatusOK, Status: 0}
 }
@@ -3007,12 +3323,19 @@ func ProcessSetOpenRgbIntegration(r *http.Request) *Payload {
 
 	enabled := req.Mode == 1
 
-	status := devices.ProcessSetOpenRgbIntegration(req.DeviceId, enabled)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtOpenRGBIntegrationEnabled"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtOpenRGBClusterEnabled"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetOpenRgbIntegration",
+		enabled,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtOpenRGBIntegrationEnabled"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtOpenRGBClusterEnabled"), Code: http.StatusOK, Status: 0}
+		}
 	}
 	return &Payload{Message: language.GetValue("txtOpenRGBIntegrationError"), Code: http.StatusOK, Status: 0}
 }
@@ -3044,12 +3367,20 @@ func ProcessSetRgbCluster(r *http.Request) *Payload {
 
 	enabled := req.Mode == 1
 
-	status := devices.ProcessSetRgbCluster(req.DeviceId, enabled)
-	switch status {
-	case 1:
-		return &Payload{Message: language.GetValue("txtRgbClusterAdded"), Code: http.StatusOK, Status: 1}
-	case 2:
-		return &Payload{Message: language.GetValue("txtRgbClusterORGB"), Code: http.StatusOK, Status: 0}
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetRgbCluster",
+		enabled,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtRgbClusterAdded"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtRgbClusterORGB"), Code: http.StatusOK, Status: 0}
+		}
 	}
+
 	return &Payload{Message: language.GetValue("txtRgbClusterError"), Code: http.StatusOK, Status: 0}
 }

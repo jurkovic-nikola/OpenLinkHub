@@ -897,7 +897,6 @@ func (d *Device) setDeviceColor() {
 func (d *Device) writeColor(data []byte) {
 	d.deviceLock.Lock()
 	defer d.deviceLock.Unlock()
-
 	d.transfer(cmdSetColor, data)
 }
 
@@ -1060,6 +1059,9 @@ func (d *Device) getDeviceProfile() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 

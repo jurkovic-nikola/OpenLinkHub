@@ -336,22 +336,25 @@ func getColor(w http.ResponseWriter, r *http.Request) {
 			Status: 0,
 			Data:   devices.GetRgbProfiles(),
 		}
+		resp.Send(w)
 	} else {
-		if rgbProfile := devices.GetRgbProfile(deviceId); rgbProfile != nil {
+		results := devices.CallDeviceMethod(deviceId, "GetRgbProfiles")
+		if len(results) > 0 {
 			resp = &Response{
 				Code:   http.StatusOK,
 				Status: 1,
-				Data:   rgbProfile,
+				Data:   results[0].Interface(),
 			}
+			resp.Send(w)
 		} else {
 			resp = &Response{
 				Code:    http.StatusOK,
 				Status:  0,
 				Message: language.GetValue("txtNoSuchRGBProfile"),
 			}
+			resp.Send(w)
 		}
 	}
-	resp.Send(w)
 }
 
 // getMediaKeys will return a map of media keys
@@ -405,19 +408,19 @@ func getKeyAssignmentTypes(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Send(w)
 	} else {
-		val := devices.ProcessGetKeyAssignmentTypes(deviceId)
-		if val == nil {
+		results := devices.CallDeviceMethod(deviceId, "ProcessGetKeyAssignmentTypes")
+		if len(results) > 0 {
 			resp := &Response{
-				Code:    http.StatusOK,
-				Status:  0,
-				Message: language.GetValue("txtUnableToGetAssignmentsTypes"),
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
 			}
 			resp.Send(w)
 		} else {
 			resp := &Response{
-				Code:   http.StatusOK,
-				Status: 1,
-				Data:   val,
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetAssignmentsTypes"),
 			}
 			resp.Send(w)
 		}
@@ -435,19 +438,19 @@ func getKeyAssignmentModifiers(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Send(w)
 	} else {
-		val := devices.ProcessGetKeyAssignmentModifiers(deviceId)
-		if val == nil {
+		results := devices.CallDeviceMethod(deviceId, "ProcessGetKeyAssignmentModifiers")
+		if len(results) > 0 {
 			resp := &Response{
-				Code:    http.StatusOK,
-				Status:  0,
-				Message: language.GetValue("txtUnableToGetAssignmentsModifiers"),
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
 			}
 			resp.Send(w)
 		} else {
 			resp := &Response{
-				Code:   http.StatusOK,
-				Status: 1,
-				Data:   val,
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetAssignmentsModifiers"),
 			}
 			resp.Send(w)
 		}
@@ -465,19 +468,19 @@ func getKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Send(w)
 	} else {
-		val := devices.ProcessGetKeyboardPerformance(deviceId)
-		if val == nil {
+		results := devices.CallDeviceMethod(deviceId, "ProcessGetKeyboardPerformance")
+		if len(results) > 0 {
 			resp := &Response{
-				Code:    http.StatusOK,
-				Status:  0,
-				Message: language.GetValue("txtUnableToGetKeyboardPerformance"),
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
 			}
 			resp.Send(w)
 		} else {
 			resp := &Response{
-				Code:   http.StatusOK,
-				Status: 1,
-				Data:   val,
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetKeyboardPerformance"),
 			}
 			resp.Send(w)
 		}

@@ -26,8 +26,8 @@ import (
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/ironclawWU"
 	"OpenLinkHub/src/devices/k100"
-	"OpenLinkHub/src/devices/k100air"
 	"OpenLinkHub/src/devices/k100airW"
+	"OpenLinkHub/src/devices/k100airWU"
 	"OpenLinkHub/src/devices/k55"
 	"OpenLinkHub/src/devices/k55core"
 	"OpenLinkHub/src/devices/k55pro"
@@ -126,7 +126,7 @@ const (
 	productTypeK70Pro               = 104
 	productTypeK65Plus              = 105
 	productTypeK65PlusW             = 106
-	productTypeK100Air              = 107
+	productTypeK100AirWU            = 107
 	productTypeK100AirW             = 108
 	productTypeK100                 = 109
 	productTypeK70MK2               = 110
@@ -2462,12 +2462,12 @@ func initializeDevice(productId uint16, key, productPath string) {
 	case 7083: // K100 AIR USB
 		{
 			go func(vendorId, productId uint16, key string) {
-				dev := k100air.Init(vendorId, productId, key)
+				dev := k100airWU.Init(vendorId, productId, key)
 				if dev == nil {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK100Air,
+					ProductType: productTypeK100AirWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,

@@ -76,6 +76,7 @@ func Init() *Device {
 		},
 		autoRefreshChan: make(chan struct{}),
 		timer:           &time.Ticker{},
+		Controllers:     make([]*common.ClusterController, 0),
 	}
 	d.loadRgb()
 	d.loadDeviceProfile()
@@ -91,9 +92,9 @@ func (d *Device) Stop() {
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
-
 	d.timer.Stop()
 	close(d.autoRefreshChan)
+	d.Controllers = make([]*common.ClusterController, 0)
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 

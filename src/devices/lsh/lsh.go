@@ -3518,7 +3518,7 @@ func (d *Device) setupOpenRGBController() {
 							Type:     int32(common.ZoneTypeLinear),
 						},
 						{
-							Name:     "Back Outer Ring",
+							Name:     "Back Inner Ring",
 							LedCount: 4,
 							StartIdx: 30,
 							Type:     int32(common.ZoneTypeLinear),

@@ -187,12 +187,13 @@ func (d *Device) Stop() {
 
 // StopInternal will stop all device operations and switch a device back to hardware mode
 func (d *Device) StopInternal() {
+	d.Exit = true
+
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
 	}
 
-	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 
 	if d.Connected {
@@ -419,6 +420,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if !d.Connected {
+		return 0
+	}
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -1176,6 +1181,7 @@ func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
 	}
+
 	// Buffer
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
@@ -1192,6 +1198,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02
@@ -1202,44 +1209,50 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	reports := make([]byte, 1)
-	err := d.dev.SetNonblock(true)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
-	}
-
-	for {
-		n, e := d.dev.Read(reports)
-		if e != nil {
-			if n < 0 {
-				//
-			}
-			if e == hid.ErrTimeout || n == 0 {
-				break
-			}
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	err = d.dev.SetNonblock(false)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
-	}
-
-	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return bufferR, err
-	}
+	if d.Exit {
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		}
+	} else {
+		reports := make([]byte, 1)
+		err := d.dev.SetNonblock(true)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+		}
 
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
+		for {
+			n, e := d.dev.Read(reports)
+			if e != nil {
+				if n < 0 {
+					//
+				}
+				if e == hid.ErrTimeout || n == 0 {
+					break
+				}
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		err = d.dev.SetNonblock(false)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+		}
+
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			return bufferR, err
+		}
+
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return bufferR, err
+		}
 	}
 	return bufferR, nil
 }

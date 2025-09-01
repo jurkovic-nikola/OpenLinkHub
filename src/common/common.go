@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"golang.org/x/image/draw"
+	"image/gif"
 )
 
 type Device struct {
@@ -403,6 +404,21 @@ func ResizeImage(src image.Image, width, height int) image.Image {
 	dst := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
 	return dst
+}
+
+// ResizeGifImage will resize image with given width and height
+func ResizeGifImage(g *gif.GIF, width, height int) []*image.RGBA {
+	imageBuffer := make([]*image.RGBA, len(g.Image))
+	canvas := image.NewRGBA(image.Rect(0, 0, width, height))
+	for i, frame := range g.Image {
+		resized := ResizeImage(frame, width, height)
+		draw.Draw(canvas, canvas.Bounds().Add(resized.Bounds().Min), resized, resized.Bounds().Min, draw.Over)
+
+		canvasCopy := image.NewRGBA(canvas.Bounds())
+		copy(canvasCopy.Pix, canvas.Pix)
+		imageBuffer[i] = canvasCopy
+	}
+	return imageBuffer
 }
 
 // MuteWithPulseAudio will mute / unmute mic via pulse audio

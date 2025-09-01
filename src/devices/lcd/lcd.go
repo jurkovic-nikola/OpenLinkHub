@@ -970,18 +970,17 @@ func loadImage(imagePath string, format uint8) {
 				return
 			}
 			imageBuffer = make([]Frames, len(src.Image))
-
-			for i, frame := range src.Image {
+			resized := common.ResizeGifImage(src, imgWidth, imgHeight)
+			for i, frame := range resized {
 				var buffer bytes.Buffer
-				resized := common.ResizeImage(frame, imgWidth, imgHeight)
-				err = jpeg.Encode(&buffer, resized, nil)
+				err = jpeg.Encode(&buffer, frame, nil)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
 					continue
 				}
 				imageBuffer[i] = Frames{
 					Buffer: buffer.Bytes(),
-					Delay:  float64(src.Delay[i]) * 10, // Multiply by 10 to get frame delay in milliseconds
+					Delay:  float64(src.Delay[i]) * 10,
 				}
 			}
 		}

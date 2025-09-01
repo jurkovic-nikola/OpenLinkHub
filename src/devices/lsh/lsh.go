@@ -2299,7 +2299,6 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 		for k := range d.Devices {
 			lightChannels += int(d.Devices[k].LedChannels)
 		}
-
 		clusterController := &common.ClusterController{
 			Product:      d.Product,
 			Serial:       d.Serial,

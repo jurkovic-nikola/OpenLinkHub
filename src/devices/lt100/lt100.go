@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/cluster"
 	"github.com/sstallion/go-hid"
 )
 
@@ -46,6 +47,7 @@ type DeviceProfile struct {
 	OriginalBrightness uint8
 	RGBProfiles        map[int]string
 	Labels             map[int]string
+	RGBCluster         bool
 }
 
 type Devices struct {
@@ -118,7 +120,7 @@ var (
 	maxBufferSizePerRequest = 50
 	ledsPerTower            = 27
 	deviceKeepAlive         = 2000
-	rgbProfileUpgrade       = []string{"custom"}
+	rgbProfileUpgrade       = []string{"nebula", "marquee", "rotarystack", "sequential"}
 	rgbModes                = []string{
 		"circle",
 		"circleshift",
@@ -128,9 +130,12 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"gpu-temperature",
+		"marquee",
+		"nebula",
 		"off",
 		"rainbow",
 		"rotator",
+		"sequential",
 		"spinner",
 		"static",
 		"storm",
@@ -178,10 +183,11 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 	d.getDeviceFirmware()  // Firmware
 	d.resetLeds()          // Reset all LEDs
 	if d.getDevices() > 0 {
-		d.setAutoRefresh()    // Set auto device refresh
-		d.saveDeviceProfile() // Create device profile
-		d.setupLedProfile()   // LED profile
-		d.setDeviceColor()    // Device color
+		d.setAutoRefresh()         // Set auto device refresh
+		d.saveDeviceProfile()      // Create device profile
+		d.setupLedProfile()        // LED profile
+		d.setDeviceColor()         // Device color
+		d.setupClusterController() // RGB Cluster
 		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	} else {
 		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Warn("Unable to get amount of connected towers. Closing device...\"")
@@ -391,7 +397,12 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 		if pf == nil {
 			save = true
 			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
-			d.Rgb.Profiles[profile] = rgb.Profile{}
+			template := rgb.GetRgbProfile(profile)
+			if template == nil {
+				d.Rgb.Profiles[profile] = rgb.Profile{}
+			} else {
+				d.Rgb.Profiles[profile] = *template
+			}
 		}
 	}
 
@@ -696,6 +707,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 	}
 
 	// Convert to JSON
@@ -869,6 +881,13 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if d.DeviceProfile.RGBCluster {
+		return 5
+	}
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
@@ -913,6 +932,39 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
+	if enabled {
+		lightChannels := 0
+		for k := range d.Devices {
+			lightChannels += int(d.Devices[k].LedChannels)
+		}
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       d.Serial,
+			LedChannels:  uint32(lightChannels),
+			WriteColorEx: d.writeColorCluster,
+		}
+
+		cluster.Get().AddDeviceController(clusterController)
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
 	return 1
 }
 
@@ -1078,6 +1130,30 @@ func (d *Device) isRgbStatic() bool {
 	return false
 }
 
+// setupOpenRGBController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	lightChannels := 0
+	for k := range d.Devices {
+		lightChannels += int(d.Devices[k].LedChannels)
+	}
+	clusterController := &common.ClusterController{
+		Product:      d.Product,
+		Serial:       d.Serial,
+		LedChannels:  uint32(lightChannels),
+		WriteColorEx: d.writeColorCluster,
+	}
+
+	cluster.Get().AddDeviceController(clusterController)
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -1109,6 +1185,12 @@ func (d *Device) setDeviceColor() {
 	}
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
+
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
+		return
+	}
 
 	if d.isRgbStatic() {
 		static := map[int][]byte{}
@@ -1288,6 +1370,26 @@ func (d *Device) setDeviceColor() {
 							r.Colorwarp(&startTime, d.activeRgb)
 							buff = append(buff, r.Output...)
 						}
+					case "nebula":
+						{
+							r.Nebula(&startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "marquee":
+						{
+							r.Marquee(&startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "rotarystack":
+						{
+							r.RotaryStack(&startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "sequential":
+						{
+							r.Sequential(&startTime)
+							buff = append(buff, r.Output...)
+						}
 					}
 				}
 				// Send it
@@ -1320,83 +1422,115 @@ func (d *Device) setAutoRefresh() {
 	}()
 }
 
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, _ int) {
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	if d.Exit {
+		return
+	}
+
+	packetLen := len(data) / 3
+	if packetLen == 0 {
+		return
+	}
+
+	// Split into R, G, B channels
+	r, g, b := make([]byte, packetLen), make([]byte, packetLen), make([]byte, packetLen)
+	for i := 0; i < packetLen; i++ {
+		r[i], g[i], b[i] = data[i*3], data[i*3+1], data[i*3+2]
+	}
+
+	channels := [][]byte{r, g, b}
+
+	// Prepare device for packets
+	if _, err := d.transfer(cmdPortState, []byte{0x00, 0x02}); err != nil {
+		return
+	}
+
+	// Helper to send a channel
+	sendChannel := func(channelData []byte, channelID byte) {
+		chunks := common.ProcessMultiChunkPacket(channelData, maxBufferSizePerRequest)
+		for p, chunk := range chunks {
+			packet := make([]byte, len(chunk)+4)
+			packet[1] = byte(p * maxBufferSizePerRequest)
+			packet[2] = byte(maxBufferSizePerRequest)
+			packet[3] = channelID
+			copy(packet[4:], chunk)
+
+			if _, err := d.transfer(cmdWriteColor, packet); err != nil {
+				logger.Log(logger.Fields{"error": err}).Errorf("Unable to write channel %d to device", channelID)
+			}
+		}
+	}
+
+	// Write R, G, B
+	for id, ch := range channels {
+		sendChannel(ch, byte(id))
+	}
+
+	// Flush
+	flush := []byte{0x00, 0x64, 0x08, 0x00}
+	for id := 0; id < 3; id++ {
+		flush[3] = byte(id)
+		if _, err := d.transfer(cmdWriteColor, flush); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to flush packet to device")
+		}
+	}
+
+	d.write(cmdSave, dataFlush)
+}
+
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
 	}
+
 	packetLen := len(data) / 3
-	r := make([]byte, packetLen)
-	g := make([]byte, packetLen)
-	b := make([]byte, packetLen)
-	m := 0
-
-	for i := 0; i < packetLen; i++ {
-		r[i] = data[m]
-		m++
-		g[i] = data[m]
-		m++
-		b[i] = data[m]
-		m++
-	}
-
-	chunksR := common.ProcessMultiChunkPacket(r, maxBufferSizePerRequest)
-	chunksG := common.ProcessMultiChunkPacket(g, maxBufferSizePerRequest)
-	chunksB := common.ProcessMultiChunkPacket(b, maxBufferSizePerRequest)
-
-	// Prepare for packets
-	_, err := d.transfer(cmdPortState, []byte{0x00, 0x02})
-	if err != nil {
+	if packetLen == 0 {
 		return
 	}
 
-	for p := 0; p < len(chunksR); p++ {
-		chunkPacket := make([]byte, len(chunksR[p])+4)
-		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(maxBufferSizePerRequest)
-		chunkPacket[3] = 0x00
-		copy(chunkPacket[4:], chunksR[p])
-		_, err = d.transfer(cmdWriteColor, chunkPacket)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write red color to device")
+	r, g, b := make([]byte, packetLen), make([]byte, packetLen), make([]byte, packetLen)
+	for i := 0; i < packetLen; i++ {
+		r[i], g[i], b[i] = data[i*3], data[i*3+1], data[i*3+2]
+	}
+
+	channels := [][]byte{r, g, b}
+
+	if _, err := d.transfer(cmdPortState, []byte{0x00, 0x02}); err != nil {
+		return
+	}
+
+	sendChannel := func(channelData []byte, channelID byte) {
+		chunks := common.ProcessMultiChunkPacket(channelData, maxBufferSizePerRequest)
+		for p, chunk := range chunks {
+			packet := make([]byte, len(chunk)+4)
+			packet[1] = byte(p * maxBufferSizePerRequest)
+			packet[2] = byte(maxBufferSizePerRequest)
+			packet[3] = channelID
+			copy(packet[4:], chunk)
+			if _, err := d.transfer(cmdWriteColor, packet); err != nil {
+				logger.Log(logger.Fields{"error": err}).Errorf("Unable to write channel %d to device", channelID)
+			}
 		}
 	}
 
-	for p := 0; p < len(chunksG); p++ {
-		chunkPacket := make([]byte, len(chunksG[p])+4)
-		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(maxBufferSizePerRequest)
-		chunkPacket[3] = 0x01
-		copy(chunkPacket[4:], chunksG[p])
-		_, err = d.transfer(cmdWriteColor, chunkPacket)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write green color to device")
+	for id, ch := range channels {
+		sendChannel(ch, byte(id))
+	}
+
+	flush := []byte{0x00, 0x64, 0x08, 0x00}
+	for id := 0; id < 3; id++ {
+		flush[3] = byte(id)
+		if _, err := d.transfer(cmdWriteColor, flush); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to flush packet to device")
 		}
 	}
 
-	for p := 0; p < len(chunksB); p++ {
-		chunkPacket := make([]byte, len(chunksB[p])+4)
-		chunkPacket[1] = byte(p * maxBufferSizePerRequest)
-		chunkPacket[2] = byte(maxBufferSizePerRequest)
-		chunkPacket[3] = 0x02
-		copy(chunkPacket[4:], chunksB[p])
-		_, err = d.transfer(cmdWriteColor, chunkPacket)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to write blue color to device")
-		}
-	}
-
-	// Flush everything
-	flush := make([]byte, 4)
-	flush[1] = 0x64
-	flush[2] = 0x08
-	for end := 0x00; end < 0x03; end++ {
-		flush[3] = byte(end)
-		_, err = d.transfer(cmdWriteColor, flush)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to flush packet to a device")
-		}
-	}
 	d.write(cmdSave, dataFlush)
 }
 

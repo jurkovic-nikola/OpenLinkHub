@@ -283,7 +283,7 @@
     "1": {
       "keys": {
         "20": {
-          "keyName": "P",
+          "keyName": "👤",
           "width": 65,
           "height": 70,
           "left": 0,
@@ -305,7 +305,7 @@
           }
         },
         "21": {
-          "keyName": "BTS",
+          "keyName": "🔆",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -324,7 +324,7 @@
           }
         },
         "22": {
-          "keyName": "LOCK",
+          "keyName": "🔒",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -341,7 +341,7 @@
           "isLock": true
         },
         "23": {
-          "keyName": "MUTE",
+          "keyName": "🔈🛇",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -376,7 +376,7 @@
           }
         },
         "24": {
-          "keyName": "W +",
+          "keyName": "🔈 +",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -387,7 +387,7 @@
           "keyHash": ["1361129467683753853853498429727072845824"]
         },
         "25": {
-          "keyName": "W -",
+          "keyName": "🔈 -",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -629,7 +629,7 @@
           }
         },
         "40": {
-          "keyName": "PrtSc",
+          "keyName": "ImprPant",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -646,7 +646,7 @@
           }
         },
         "41": {
-          "keyName": "ScrLk",
+          "keyName": "BloqDespl",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -662,7 +662,7 @@
           }
         },
         "42": {
-          "keyName": "Pause",
+          "keyName": "Pausa",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -678,7 +678,7 @@
           }
         },
         "43": {
-          "keyName": "Stop",
+          "keyName": "⏹️",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -695,7 +695,7 @@
           }
         },
         "44": {
-          "keyName": "Prev",
+          "keyName": "⏮️",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -711,7 +711,7 @@
           }
         },
         "45": {
-          "keyName": "Play",
+          "keyName": "⏯️",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -727,7 +727,7 @@
           }
         },
         "46": {
-          "keyName": "Next",
+          "keyName": "⏭️",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -763,7 +763,7 @@
           }
         },
         "48": {
-          "keyName": "° \\",
+          "keyName": "°",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -939,7 +939,7 @@
           }
         },
         "59": {
-          "keyName": "?",
+          "keyName": "'",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -988,7 +988,7 @@
           }
         },
         "62": {
-          "keyName": "Ins",
+          "keyName": "Insert",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1005,7 +1005,7 @@
           }
         },
         "63": {
-          "keyName": "Home",
+          "keyName": "Inicio",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1021,7 +1021,7 @@
           }
         },
         "64": {
-          "keyName": "PgUp",
+          "keyName": "RePag",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1037,7 +1037,7 @@
           }
         },
         "65": {
-          "keyName": "Num",
+          "keyName": "BloqNum",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1300,7 +1300,7 @@
           }
         },
         "81": {
-          "keyName": "' ^",
+          "keyName": "`",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1316,7 +1316,7 @@
           }
         },
         "82": {
-          "keyName": "+ *",
+          "keyName": "+",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1349,7 +1349,7 @@
           }
         },
         "84": {
-          "keyName": "Del",
+          "keyName": "Supr",
           "width": 65,
           "height": 70,
           "left": 25,
@@ -1366,7 +1366,7 @@
           }
         },
         "85": {
-          "keyName": "End",
+          "keyName": "Fin",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1382,7 +1382,7 @@
           }
         },
         "86": {
-          "keyName": "PgDn",
+          "keyName": "AvPag",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1485,7 +1485,7 @@
           }
         },
         "92": {
-          "keyName": "CAPS",
+          "keyName": "BloqMayus",
           "width": 131,
           "height": 70,
           "left": 15,
@@ -1662,7 +1662,7 @@
           }
         },
         "103": {
-          "keyName": "´ {",
+          "keyName": "´",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1764,7 +1764,7 @@
           }
         },
         "109": {
-          "keyName": "Shift",
+          "keyName": "Mayus",
           "width": 131,
           "height": 70,
           "left": 15,
@@ -1781,7 +1781,7 @@
           }
         },
         "110": {
-          "keyName": "< >",
+          "keyName": "<",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1909,7 +1909,7 @@
           }
         },
         "118": {
-          "keyName": ", ;",
+          "keyName": ",",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1925,7 +1925,7 @@
           }
         },
         "119": {
-          "keyName": ". :",
+          "keyName": ".",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1941,7 +1941,7 @@
           }
         },
         "120": {
-          "keyName": "- _",
+          "keyName": "-",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1957,7 +1957,7 @@
           }
         },
         "121": {
-          "keyName": "Shift",
+          "keyName": "Mayus",
           "width": 205,
           "height": 70,
           "left": 15,
@@ -2040,7 +2040,7 @@
           }
         },
         "126": {
-          "keyName": "Enter",
+          "keyName": "Intro",
           "width": 65,
           "height": 155,
           "left": 15,
@@ -2144,7 +2144,7 @@
           }
         },
         "132": {
-          "keyName": "Alt",
+          "keyName": "AltGr",
           "width": 90,
           "height": 70,
           "left": 15,

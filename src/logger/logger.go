@@ -2,14 +2,17 @@ package logger
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
-
-	"OpenLinkHub/src/config"
 )
 
 type Fields map[string]interface{}
@@ -29,6 +32,12 @@ func Init() {
 	logFilename := config.GetConfig().LogFile
 	if logFilename == "" {
 		logFilename = config.GetConfig().ConfigPath + "/stdout.log"
+	}
+
+	if _, err := os.Stat(logFilename); err == nil {
+		if err = archiveLog(logFilename); err != nil {
+			fmt.Println("failed to archive log file", err)
+		}
 	}
 
 	var output *os.File
@@ -52,6 +61,71 @@ func Init() {
 // Log is new log entry with fields
 func Log(fields Fields) *Entry {
 	return &Entry{fields: fields}
+}
+
+// archiveLog will compress an existing log file into .tar.gz and remove the original
+func archiveLog(logFilename string) error {
+	timestamp := time.Now().Format("2006-01-02T15-04-05")
+	archiveName := fmt.Sprintf("%s.%s.tar.gz", logFilename, timestamp)
+
+	logFile, err := os.Open(logFilename)
+	if err != nil {
+		return err
+	}
+	defer func(logFile *os.File) {
+		err = logFile.Close()
+		if err != nil {
+			fmt.Println("Unable to close log file", err)
+		}
+	}(logFile)
+
+	outFile, err := os.Create(archiveName)
+	if err != nil {
+		return err
+	}
+	defer func(outFile *os.File) {
+		err = outFile.Close()
+		if err != nil {
+			fmt.Println("Unable to close log file", err)
+		}
+	}(outFile)
+
+	gw := gzip.NewWriter(outFile)
+	defer func(gw *gzip.Writer) {
+		err = gw.Close()
+		if err != nil {
+			fmt.Println("Unable to close log file", err)
+		}
+	}(gw)
+
+	tw := tar.NewWriter(gw)
+	defer func(tw *tar.Writer) {
+		err = tw.Close()
+		if err != nil {
+			fmt.Println("Unable to close log file", err)
+		}
+	}(tw)
+
+	info, err := logFile.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := tar.FileInfoHeader(info, "")
+	if err != nil {
+		return err
+	}
+	header.Name = filepath.Base(logFilename)
+
+	if err = tw.WriteHeader(header); err != nil {
+		return err
+	}
+
+	if _, err = io.Copy(tw, logFile); err != nil {
+		return err
+	}
+
+	return os.Remove(logFilename)
 }
 
 // levelFromString will convert string level to integer

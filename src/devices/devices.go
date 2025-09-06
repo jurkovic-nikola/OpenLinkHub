@@ -11,6 +11,9 @@ import (
 	"OpenLinkHub/src/devices/darkcorergbproWU"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
+	"OpenLinkHub/src/devices/darkcorergbseW"
+	"OpenLinkHub/src/devices/darkcorergbseWU"
+	"OpenLinkHub/src/devices/darkcorergbsesongle"
 	"OpenLinkHub/src/devices/darkstarW"
 	"OpenLinkHub/src/devices/darkstarWU"
 	"OpenLinkHub/src/devices/elite"
@@ -22,6 +25,7 @@ import (
 	"OpenLinkHub/src/devices/hs80maxdongle"
 	"OpenLinkHub/src/devices/hs80rgb"
 	"OpenLinkHub/src/devices/hs80rgbW"
+	"OpenLinkHub/src/devices/hydro"
 	"OpenLinkHub/src/devices/ironclaw"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/ironclawWU"
@@ -40,6 +44,7 @@ import (
 	"OpenLinkHub/src/devices/k70coretkl"
 	"OpenLinkHub/src/devices/k70coretklW"
 	"OpenLinkHub/src/devices/k70coretklWU"
+	"OpenLinkHub/src/devices/k70max"
 	"OpenLinkHub/src/devices/k70mk2"
 	"OpenLinkHub/src/devices/k70pmW"
 	"OpenLinkHub/src/devices/k70pmWU"
@@ -83,6 +88,7 @@ import (
 	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/scimitarprorgb"
+	"OpenLinkHub/src/devices/scimitarrgb"
 	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
@@ -92,105 +98,16 @@ import (
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
-
-	"OpenLinkHub/src/devices/scimitarrgb"
-	"OpenLinkHub/src/metrics"
 	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
-)
-
-const (
-	productTypeLinkHub              = 0
-	productTypeCC                   = 1
-	productTypeCCXT                 = 2
-	productTypeElite                = 3
-	productTypeLNCore               = 4
-	productTypeLnPro                = 5
-	productTypeCPro                 = 6
-	productTypeXC7                  = 7
-	productTypeMemory               = 8
-	productTypeNexus                = 9
-	productTypePlatinum             = 10
-	productTypeK65PM                = 101
-	productTypeK70Core              = 102
-	productTypeK55Core              = 103
-	productTypeK70Pro               = 104
-	productTypeK65Plus              = 105
-	productTypeK65PlusW             = 106
-	productTypeK100AirWU            = 107
-	productTypeK100AirW             = 108
-	productTypeK100                 = 109
-	productTypeK70MK2               = 110
-	productTypeK70CoreTkl           = 111
-	productTypeK70CoreTklWU         = 112
-	productTypeK70CoreTklW          = 113
-	productTypeK70ProTkl            = 114
-	productTypeK70RgbTkl            = 115
-	productTypeK55Pro               = 116
-	productTypeK55ProXT             = 117
-	productTypeK55                  = 118
-	productTypeK95Platinum          = 119
-	productTypeK60RgbPro            = 120
-	productTypeK70PMW               = 121
-	productTypeK70PMWU              = 122
-	productTypeK70Max               = 123
-	productTypeKatarPro             = 201
-	productTypeIronClawRgb          = 202
-	productTypeIronClawRgbW         = 203
-	productTypeIronClawRgbWU        = 204
-	productTypeNightsabreW          = 205
-	productTypeNightsabreWU         = 206
-	productTypeScimitarRgbElite     = 207
-	productTypeScimitarRgbEliteW    = 208
-	productTypeScimitarRgbEliteWU   = 209
-	productTypeM55                  = 210
-	productTypeM55W                 = 211
-	productTypeM55RgbPro            = 212
-	productTypeKatarProW            = 213
-	productTypeDarkCoreRgbProSEW    = 214
-	productTypeDarkCoreRgbProSEWU   = 215
-	productTypeDarkCoreRgbProW      = 216
-	productTypeDarkCoreRgbProWU     = 217
-	productTypeM75                  = 218
-	productTypeM75AirW              = 219
-	productTypeM75AirWU             = 220
-	productTypeM75W                 = 221
-	productTypeM75WU                = 222
-	productTypeM65RgbUltra          = 223
-	productTypeHarpoonRgbPro        = 224
-	productTypeHarpoonRgbW          = 225
-	productTypeHarpoonRgbWU         = 226
-	productTypeKatarProXT           = 227
-	productTypeDarkstarWU           = 228
-	productTypeDarkstarW            = 229
-	productTypeScimitarRgbEliteSEW  = 230
-	productTypeScimitarRgbEliteSEWU = 231
-	productTypeM65RgbUltraW         = 232
-	productTypeM65RgbUltraWU        = 233
-	productTypeSabreRgbProWU        = 234
-	productTypeSabreRgbProW         = 235
-	productTypeNightswordRgb        = 236
-	productTypeSabreRgbPro          = 237
-	productTypeScimitarProRgb       = 238
-	productTypeScimitarRgb          = 239
-	productTypeVirtuosoXTW          = 300
-	productTypeVirtuosoXTWU         = 301
-	productTypeVirtuosoMAXW         = 302
-	productTypeHS80RGBW             = 303
-	productTypeHS80MAXW             = 304
-	productTypeHS80RGB              = 305
-	productTypeST100                = 401
-	productTypeMM700                = 402
-	productTypeLT100                = 403
-	productTypeMM800                = 404
-	productTypePSUHid               = 501
-	productTypeCluster              = 999
+	"sync"
 )
 
 type AIOData struct {
@@ -212,18 +129,20 @@ type ProductEX struct {
 }
 
 var (
+	mutex               sync.Mutex
 	expectedPermissions        = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
 	vendorId            uint16 = 6940 // Corsair
 	interfaceId                = 0
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
 	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094, 7104}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033, 6974, 6942}
+	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033, 6974, 6942, 6987, 6993}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667, 2696}
 	headsets2                  = []uint16{10754, 2711}
 	dongles                    = []uint16{7132, 7078, 11008, 7060}
-	legacyDevices              = []uint16{3090, 3091, 3093}
+	legacyDevices              = []uint16{3080, 3081, 3082, 3090, 3091, 3093}
+	cls                 *cluster.Device
 )
 
 // isUSBConnected will check if a USB device is connected
@@ -238,6 +157,9 @@ func isUSBConnected(productId uint16) bool {
 
 // Stop will stop all active devices
 func Stop() {
+	// Stop all cluster operations
+	cls.Stop()
+
 	for _, device := range devices {
 		methodName := "Stop"
 		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
@@ -256,23 +178,30 @@ func Stop() {
 }
 
 // StopDirty will stop the device without closing the file handles. Used when device is unplugged
-func StopDirty(deviceId string) {
-	if device, ok := devices[deviceId]; ok {
-		methodName := "StopDirty"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-		} else {
-			results := method.Call(nil)
-			if len(results) > 0 {
-				val := results[0]
-				uintResult := val.Uint()
-				if uint8(uintResult) == 2 { // USB only devices, remove them from the device list
-					delete(devices, deviceId)
-				}
+func StopDirty(deviceId string, productId uint16) {
+	device, ok := devices[deviceId]
+	if !ok {
+		device, ok = devices[strconv.Itoa(int(productId))]
+		if !ok {
+			return
+		}
+	}
+
+	methodName := "StopDirty"
+	method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+	if !method.IsValid() {
+		logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
+	} else {
+		results := method.Call(nil)
+		if len(results) > 0 {
+			val := results[0]
+			uintResult := val.Uint()
+			if uint8(uintResult) == 2 { // USB only devices, remove them from the device list
+				deleteDevice(device.Serial)
 			}
 		}
 	}
+
 }
 
 // GetRgbProfiles will return a list of all RGB profiles for every device
@@ -353,9 +282,9 @@ func UpdateGlobalRgbProfile(profile string) uint8 {
 // ResetSpeedProfiles will reset the speed profile on each available device
 func ResetSpeedProfiles(profile string) {
 	for _, device := range devices {
-		if device.ProductType == productTypeLinkHub ||
-			device.ProductType == productTypeCC ||
-			device.ProductType == productTypeCCXT {
+		if device.ProductType == common.ProductTypeLinkHub ||
+			device.ProductType == common.ProductTypeCC ||
+			device.ProductType == common.ProductTypeCCXT {
 			methodName := "ResetSpeedProfiles"
 			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 			if !method.IsValid() {
@@ -414,14 +343,14 @@ func GetDevicesLedData() interface{} {
 func GetTemperatureProbes() interface{} {
 	var probes []interface{}
 	for _, device := range devices {
-		if device.ProductType == productTypeLinkHub ||
-			device.ProductType == productTypeCC ||
-			device.ProductType == productTypeCCXT ||
-			device.ProductType == productTypeMemory ||
-			device.ProductType == productTypeCPro ||
-			device.ProductType == productTypeElite ||
-			device.ProductType == productTypeXC7 ||
-			device.ProductType == productTypePlatinum {
+		if device.ProductType == common.ProductTypeLinkHub ||
+			device.ProductType == common.ProductTypeCC ||
+			device.ProductType == common.ProductTypeCCXT ||
+			device.ProductType == common.ProductTypeMemory ||
+			device.ProductType == common.ProductTypeCPro ||
+			device.ProductType == common.ProductTypeElite ||
+			device.ProductType == common.ProductTypeXC7 ||
+			device.ProductType == common.ProductTypePlatinum {
 			methodName := "GetTemperatureProbes"
 			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 			if !method.IsValid() {
@@ -457,8 +386,29 @@ func UpdateDeviceMetrics() {
 	}
 }
 
+// deleteDevice will remove device from device list
+func deleteDevice(serial string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(devices, serial)
+}
+
+// deleteDevice will add device to device list
+func addDevice(device *common.Device) {
+	if device == nil {
+		return
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+	devices[device.Serial] = device
+}
+
 // CallDeviceMethod will call device method based on method name and arguments
 func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) []reflect.Value {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	device, ok := devices[deviceId]
 	if !ok {
 		logger.Log(logger.Fields{"deviceId": deviceId}).Warn("Device not found")
@@ -571,6 +521,7 @@ func InitManual(productId uint16, serial string) {
 				if len(serial) == 0 {
 					serial = info.SerialNbr
 				}
+
 				if len(serial) == 0 {
 					// Devices with no serial, make serial based of productId
 					serial = strconv.Itoa(int(info.ProductID))
@@ -693,9 +644,9 @@ func Init() {
 	}
 
 	// Create dummy cluster object before any other object
-	cls := cluster.Init()
+	cls = cluster.Init()
 	devices["cluster"] = &common.Device{
-		ProductType: productTypeCluster,
+		ProductType: common.ProductTypeCluster,
 		Product:     "Cluster",
 		Serial:      "cluster",
 		Hidden:      true,
@@ -736,7 +687,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeLinkHub,
+					ProductType: common.ProductTypeLinkHub,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -754,7 +705,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeCC,
+					ProductType: common.ProductTypeCC,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -772,7 +723,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeCCXT,
+					ProductType: common.ProductTypeCCXT,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -793,7 +744,28 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypePlatinum,
+					ProductType: common.ProductTypePlatinum,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-device.svg",
+					Instance:    dev,
+				}
+				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
+			}(vendorId, productId, productPath)
+		}
+	case 3080, 3081, 3082:
+		// Corsair H80i Hydro
+		// Corsair H100i Hydro
+		// Corsair H115i Hydro
+		{
+			go func(vendorId, productId uint16, path string) {
+				dev := hydro.Init(vendorId, productId, path)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: common.ProductTypeHydro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -822,7 +794,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[strconv.Itoa(int(productId))] = &common.Device{
-					ProductType: productTypeElite,
+					ProductType: common.ProductTypeElite,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -840,7 +812,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeLNCore,
+					ProductType: common.ProductTypeLNCore,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -857,7 +829,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeLnPro,
+					ProductType: common.ProductTypeLnPro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -874,7 +846,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeCPro,
+					ProductType: common.ProductTypeCPro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -892,7 +864,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeXC7,
+					ProductType: common.ProductTypeXC7,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -910,7 +882,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK65PM,
+					ProductType: common.ProductTypeK65PM,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -927,7 +899,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70PMWU,
+					ProductType: common.ProductTypeK70PMWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -944,7 +916,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70Core,
+					ProductType: common.ProductTypeK70Core,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -961,7 +933,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70CoreTkl,
+					ProductType: common.ProductTypeK70CoreTkl,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -978,7 +950,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70CoreTklWU,
+					ProductType: common.ProductTypeK70CoreTklWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -995,7 +967,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70ProTkl,
+					ProductType: common.ProductTypeK70ProTkl,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1012,7 +984,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70RgbTkl,
+					ProductType: common.ProductTypeK70RgbTkl,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1029,7 +1001,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK55,
+					ProductType: common.ProductTypeK55,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1046,7 +1018,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK95Platinum,
+					ProductType: common.ProductTypeK95Platinum,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1063,7 +1035,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK55Core,
+					ProductType: common.ProductTypeK55Core,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1080,7 +1052,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK55Pro,
+					ProductType: common.ProductTypeK55Pro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1097,7 +1069,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK55ProXT,
+					ProductType: common.ProductTypeK55ProXT,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1114,7 +1086,24 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK60RgbPro,
+					ProductType: common.ProductTypeK60RgbPro,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 7104:
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := k70max.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: common.ProductTypeK70Max,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1131,7 +1120,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70Pro,
+					ProductType: common.ProductTypeK70Pro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1148,7 +1137,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK70MK2,
+					ProductType: common.ProductTypeK70MK2,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1165,7 +1154,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK65Plus,
+					ProductType: common.ProductTypeK65Plus,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1182,7 +1171,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK65PlusW,
+					ProductType: common.ProductTypeK65PlusW,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1199,7 +1188,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK100AirWU,
+					ProductType: common.ProductTypeK100AirWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1216,7 +1205,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeK100,
+					ProductType: common.ProductTypeK100,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1233,7 +1222,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeIronClawRgbW,
+					ProductType: common.ProductTypeIronClawRgbW,
 					Product:     "HEADSET DONGLE",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1258,7 +1247,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeVirtuosoXTW,
+								ProductType: common.ProductTypeVirtuosoXTW,
 								Product:     "VIRTUOSO RGB WIRELESS XT",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1278,7 +1267,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeHS80RGBW,
+								ProductType: common.ProductTypeHS80RGBW,
 								Product:     "HS80 RGB WIRELESS",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1302,7 +1291,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeVirtuosoMAXW,
+					ProductType: common.ProductTypeVirtuosoMAXW,
 					Product:     "HEADSET DONGLE",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1323,7 +1312,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 							dev.Devices.Serial,
 						)
 						devices[d.Serial] = &common.Device{
-							ProductType: productTypeVirtuosoMAXW,
+							ProductType: common.ProductTypeVirtuosoMAXW,
 							Product:     "VIRTUOSO MAX",
 							Serial:      d.Serial,
 							Firmware:    d.Firmware,
@@ -1346,7 +1335,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeHS80MAXW,
+					ProductType: common.ProductTypeHS80MAXW,
 					Product:     "HEADSET DONGLE",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1366,7 +1355,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 							dev.Devices.Serial,
 						)
 						devices[d.Serial] = &common.Device{
-							ProductType: productTypeHS80MAXW,
+							ProductType: common.ProductTypeHS80MAXW,
 							Product:     "HS80 MAX WIRELESS",
 							Serial:      d.Serial,
 							Firmware:    d.Firmware,
@@ -1389,7 +1378,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeIronClawRgbW,
+					ProductType: common.ProductTypeIronClawRgbW,
 					Product:     "SLIPSTREAM",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1410,7 +1399,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeM55W,
+								ProductType: common.ProductTypeM55W,
 								Product:     "M55 WIRELESS",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1430,7 +1419,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeScimitarRgbEliteW,
+								ProductType: common.ProductTypeScimitarRgbEliteW,
 								Product:     "SCIMITAR RGB ELITE",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1450,7 +1439,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeScimitarRgbEliteSEW,
+								ProductType: common.ProductTypeScimitarRgbEliteSEW,
 								Product:     "SCIMITAR ELITE SE",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1470,7 +1459,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeNightsabreW,
+								ProductType: common.ProductTypeNightsabreW,
 								Product:     "NIGHTSABRE",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1490,7 +1479,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeK100AirW,
+								ProductType: common.ProductTypeK100AirW,
 								Product:     "K100 AIR",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1510,7 +1499,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeIronClawRgbW,
+								ProductType: common.ProductTypeIronClawRgbW,
 								Product:     "IRONCLAW RGB",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1530,7 +1519,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeDarkCoreRgbProSEW,
+								ProductType: common.ProductTypeDarkCoreRgbProSEW,
 								Product:     "DARK CORE RGB PRO SE",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1550,7 +1539,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeDarkCoreRgbProW,
+								ProductType: common.ProductTypeDarkCoreRgbProW,
 								Product:     "DARK CORE RGB PRO",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1570,7 +1559,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeM75W,
+								ProductType: common.ProductTypeM75W,
 								Product:     "M75 WIRELESS",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1590,7 +1579,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeM75AirW,
+								ProductType: common.ProductTypeM75AirW,
 								Product:     "M75 AIR WIRELESS",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1610,7 +1599,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeHarpoonRgbW,
+								ProductType: common.ProductTypeHarpoonRgbW,
 								Product:     "HARPOON RGB",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1630,7 +1619,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeDarkstarW,
+								ProductType: common.ProductTypeDarkstarW,
 								Product:     "DARKSTAR",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1650,7 +1639,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeM65RgbUltraW,
+								ProductType: common.ProductTypeM65RgbUltraW,
 								Product:     "M65 RGB ULTRA",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1671,7 +1660,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								dev.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeK70CoreTklW,
+								ProductType: common.ProductTypeK70CoreTklW,
 								Product:     "K70 CORE TKL",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1691,7 +1680,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeSabreRgbProW,
+								ProductType: common.ProductTypeSabreRgbProW,
 								Product:     "SABRE RGB PRO",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1711,7 +1700,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 								value.Serial,
 							)
 							devices[d.Serial] = &common.Device{
-								ProductType: productTypeK70PMW,
+								ProductType: common.ProductTypeK70PMW,
 								Product:     "K70 PRO MINI",
 								Serial:      d.Serial,
 								Firmware:    d.Firmware,
@@ -1735,7 +1724,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeST100,
+					ProductType: common.ProductTypeST100,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1752,7 +1741,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeMM700,
+					ProductType: common.ProductTypeMM700,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1769,7 +1758,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeMM800,
+					ProductType: common.ProductTypeMM800,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1786,7 +1775,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeLT100,
+					ProductType: common.ProductTypeLT100,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1813,7 +1802,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypePSUHid,
+					ProductType: common.ProductTypePSUHid,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1831,7 +1820,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeKatarPro,
+					ProductType: common.ProductTypeKatarPro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1848,7 +1837,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeKatarProXT,
+					ProductType: common.ProductTypeKatarProXT,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1865,13 +1854,66 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeIronClawRgb,
+					ProductType: common.ProductTypeIronClawRgb,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
 				}
+			}(vendorId, productId, key)
+		}
+	case 6987: // CORSAIR DARK CORE RGB SE
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := darkcorergbseWU.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: common.ProductTypeDarkCoreRgbSEWU,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 6993: // CORSAIR DARK CORE RGB SE Wireless USB Receiver
+		{
+			go func(vendorId, productId uint16, key string) {
+				var pid uint16 = 6987
+				dev := darkcorergbsesongle.Init(vendorId, productId, key, devices)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: common.ProductTypeDarkCoreRgbSEW,
+					Product:     "DONGLE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-dongle.svg",
+					Instance:    dev,
+					Hidden:      true,
+				}
+
+				d := darkcorergbseW.Init(
+					vendorId,
+					pid,
+					dev.GetDevice(),
+					strconv.Itoa(int(pid)),
+				)
+				devices[d.Serial] = &common.Device{
+					ProductType: common.ProductTypeDarkCoreRgbSEW,
+					Product:     "DARK CORE RGB SE",
+					Serial:      d.Serial,
+					Firmware:    d.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    d,
+				}
+				dev.AddPairedDevice(pid, d, devices[d.Serial])
+				dev.InitAvailableDevices()
 			}(vendorId, productId, key)
 		}
 	case 6988: // Corsair IRONCLAW RGB WIRELESS Gaming Mouse
@@ -1882,7 +1924,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeIronClawRgbWU,
+					ProductType: common.ProductTypeIronClawRgbWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1899,7 +1941,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeNightsabreWU,
+					ProductType: common.ProductTypeNightsabreWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1916,7 +1958,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeScimitarRgbElite,
+					ProductType: common.ProductTypeScimitarRgbElite,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1933,7 +1975,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeScimitarProRgb,
+					ProductType: common.ProductTypeScimitarProRgb,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1950,7 +1992,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeScimitarRgb,
+					ProductType: common.ProductTypeScimitarRgb,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1967,7 +2009,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeScimitarRgbElite,
+					ProductType: common.ProductTypeScimitarRgbElite,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -1984,7 +2026,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeScimitarRgbEliteWU,
+					ProductType: common.ProductTypeScimitarRgbEliteWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2001,7 +2043,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeScimitarRgbEliteSEWU,
+					ProductType: common.ProductTypeScimitarRgbEliteSEWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2018,7 +2060,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM55,
+					ProductType: common.ProductTypeM55,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2035,7 +2077,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM55RgbPro,
+					ProductType: common.ProductTypeM55RgbPro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2052,7 +2094,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeKatarProW,
+					ProductType: common.ProductTypeKatarProW,
 					Product:     "KATAR PRO",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2069,7 +2111,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeDarkCoreRgbProSEWU,
+					ProductType: common.ProductTypeDarkCoreRgbProSEWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2086,7 +2128,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeDarkCoreRgbProWU,
+					ProductType: common.ProductTypeDarkCoreRgbProWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2103,7 +2145,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM75,
+					ProductType: common.ProductTypeM75,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2120,7 +2162,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM75WU,
+					ProductType: common.ProductTypeM75WU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2137,7 +2179,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM75AirWU,
+					ProductType: common.ProductTypeM75AirWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2154,7 +2196,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM65RgbUltra,
+					ProductType: common.ProductTypeM65RgbUltra,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2171,7 +2213,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeM65RgbUltraWU,
+					ProductType: common.ProductTypeM65RgbUltraWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2188,7 +2230,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeHarpoonRgbPro,
+					ProductType: common.ProductTypeHarpoonRgbPro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2205,7 +2247,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeHarpoonRgbWU,
+					ProductType: common.ProductTypeHarpoonRgbWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2222,7 +2264,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeNightswordRgb,
+					ProductType: common.ProductTypeNightswordRgb,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2239,7 +2281,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeSabreRgbProWU,
+					ProductType: common.ProductTypeSabreRgbProWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2256,7 +2298,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeSabreRgbPro,
+					ProductType: common.ProductTypeSabreRgbPro,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2273,7 +2315,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeDarkstarWU,
+					ProductType: common.ProductTypeDarkstarWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2290,7 +2332,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeVirtuosoXTWU,
+					ProductType: common.ProductTypeVirtuosoXTWU,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2307,7 +2349,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeHS80RGB,
+					ProductType: common.ProductTypeHS80RGB,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2324,7 +2366,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 					return
 				}
 				devices[dev.Serial] = &common.Device{
-					ProductType: productTypeNexus,
+					ProductType: common.ProductTypeNexus,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2340,7 +2382,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 				dev := memory.Init(serialId, "Memory")
 				if dev != nil {
 					devices[dev.Serial] = &common.Device{
-						ProductType: productTypeMemory,
+						ProductType: common.ProductTypeMemory,
 						Product:     dev.Product,
 						Serial:      dev.Serial,
 						Firmware:    "0",

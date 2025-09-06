@@ -109,11 +109,8 @@ var (
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x01}
-	cmdWrite                = []byte{0x06, 0x02}
-	cmdOpenWriteEndpoint    = []byte{0x0d, 0x02, 0x02}
 	cmdKeepAlive            = []byte{0x12}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
-	cmdSlipstreamMode       = map[int][]byte{0: {0x02, 0x3a, 0x00, 0x00}, 1: {0x01, 0x3a, 0x00, 0x01}}
 	cmdOpenEndpoint         = []byte{0x0d, 0x02, 0x02}
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x02}
 	cmdKeyAssignment        = []byte{0x06, 0x02}
@@ -423,7 +420,12 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 		if pf == nil {
 			save = true
 			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
-			d.Rgb.Profiles[profile] = rgb.Profile{}
+			template := rgb.GetRgbProfile(profile)
+			if template == nil {
+				d.Rgb.Profiles[profile] = rgb.Profile{}
+			} else {
+				d.Rgb.Profiles[profile] = *template
+			}
 		}
 	}
 
@@ -936,7 +938,7 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 
 }
 
-// setupOpenRGBController will create Cluster Controller for RGB Cluster
+// setupClusterController will create Cluster Controller for RGB Cluster
 func (d *Device) setupClusterController() {
 	if d.DeviceProfile == nil {
 		return
@@ -1428,30 +1430,6 @@ func (d *Device) setBrightnessLevel() {
 
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
-	// Reset
-	reset := map[int][]byte{}
-	var buffer []byte
-	var buf = make([]byte, colorPacketLength)
-
-	// Reset all channels
-	color := &rgb.Color{
-		Red:        0,
-		Green:      0,
-		Blue:       0,
-		Brightness: 0,
-	}
-
-	for i := 0; i < d.LEDChannels; i++ {
-		reset[i] = []byte{
-			byte(color.Red),
-			byte(color.Green),
-			byte(color.Blue),
-		}
-	}
-
-	buffer = rgb.SetColor(reset)
-	d.writeColor(buffer)
-
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
 		return
@@ -1468,6 +1446,7 @@ func (d *Device) setDeviceColor() {
 	}
 
 	if d.DeviceProfile.RGBProfile == "keyboard" {
+		var buf = make([]byte, colorPacketLength)
 		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 			for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 				for _, key := range rows.Keys {
@@ -1499,6 +1478,7 @@ func (d *Device) setDeviceColor() {
 		}
 
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
+		var buf = make([]byte, colorPacketLength)
 		for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 			for _, key := range rows.Keys {
 				if key.NoColor {
@@ -1529,8 +1509,6 @@ func (d *Device) setDeviceColor() {
 				return
 			default:
 				buff := make([]byte, 0)
-				var buf = make([]byte, colorPacketLength)
-
 				rgbCustomColor := true
 				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
 				if profile == nil {
@@ -1658,12 +1636,17 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				}
+
+				var buf = make([]byte, colorPacketLength)
 				for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, keys := range rows.Keys {
 						if keys.NoColor {
 							continue
 						}
 						for _, packetIndex := range keys.PacketIndex {
+							if packetIndex+2 >= len(buff) {
+								continue
+							}
 							buf[packetIndex] = r.Output[packetIndex]
 							buf[packetIndex+1] = r.Output[packetIndex+1]
 							buf[packetIndex+2] = r.Output[packetIndex+2]

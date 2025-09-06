@@ -214,6 +214,12 @@ func (h *Device) GetProductStr() string {
 	return product
 }
 
+// SetEndpoints sets device endpoint
+func (h *Device) SetEndpoints(endpointOut, endpointIn int) {
+	endpointBulkOut = endpointOut
+	endpointBulkIn = endpointIn
+}
+
 // SetDeviceControl will send control packet to the device and return err if any.
 func (h *Device) SetDeviceControl(request uint8, value, index, length uint16, data uintptr) error {
 	ctrl := usbCtrlSetup{

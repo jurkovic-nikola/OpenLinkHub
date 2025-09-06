@@ -199,7 +199,7 @@ func Init() {
 							}
 							logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": serial}).Info("Dirty USB removal...")
 
-							devices.StopDirty(serial)
+							devices.StopDirty(serial, info.ProductID)
 							delete(cache, devPath)
 							openrgb.NotifyControllerChange(serial)
 						}

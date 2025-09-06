@@ -25,3 +25,4 @@ flatpak/
 flatpak-build/
 copr/
 OpenLinkHub.spec.template
+*.tar.gz

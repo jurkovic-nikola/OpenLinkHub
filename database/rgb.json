@@ -104,6 +104,7 @@
     "marquee": {
       "profileName": "Marquee",
       "alternateColors": false,
+      "brightness": 1,
       "start": {
         "red": 0,
         "green": 255,
@@ -259,6 +260,7 @@
     "rotarystack": {
       "profileName": "Rotary Stack",
       "alternateColors": false,
+      "brightness": 1,
       "start": {
         "red": 0,
         "green": 255,
@@ -275,6 +277,7 @@
     "sequential": {
       "profileName": "Sequential",
       "alternateColors": false,
+      "brightness": 1,
       "start": {
         "red": 0,
         "green": 255,

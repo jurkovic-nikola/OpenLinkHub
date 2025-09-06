@@ -46,7 +46,96 @@ type KeyboardPerformanceData struct {
 	AltF4    bool
 }
 
-type DeviceType uint32
+const (
+	ProductTypeLinkHub              = 0
+	ProductTypeCC                   = 1
+	ProductTypeCCXT                 = 2
+	ProductTypeElite                = 3
+	ProductTypeLNCore               = 4
+	ProductTypeLnPro                = 5
+	ProductTypeCPro                 = 6
+	ProductTypeXC7                  = 7
+	ProductTypeMemory               = 8
+	ProductTypeNexus                = 9
+	ProductTypePlatinum             = 10
+	ProductTypeHydro                = 11
+	ProductTypeK65PM                = 101
+	ProductTypeK70Core              = 102
+	ProductTypeK55Core              = 103
+	ProductTypeK70Pro               = 104
+	ProductTypeK65Plus              = 105
+	ProductTypeK65PlusW             = 106
+	ProductTypeK100AirWU            = 107
+	ProductTypeK100AirW             = 108
+	ProductTypeK100                 = 109
+	ProductTypeK70MK2               = 110
+	ProductTypeK70CoreTkl           = 111
+	ProductTypeK70CoreTklWU         = 112
+	ProductTypeK70CoreTklW          = 113
+	ProductTypeK70ProTkl            = 114
+	ProductTypeK70RgbTkl            = 115
+	ProductTypeK55Pro               = 116
+	ProductTypeK55ProXT             = 117
+	ProductTypeK55                  = 118
+	ProductTypeK95Platinum          = 119
+	ProductTypeK60RgbPro            = 120
+	ProductTypeK70PMW               = 121
+	ProductTypeK70PMWU              = 122
+	ProductTypeK70Max               = 123
+	ProductTypeKatarPro             = 201
+	ProductTypeIronClawRgb          = 202
+	ProductTypeIronClawRgbW         = 203
+	ProductTypeIronClawRgbWU        = 204
+	ProductTypeNightsabreW          = 205
+	ProductTypeNightsabreWU         = 206
+	ProductTypeScimitarRgbElite     = 207
+	ProductTypeScimitarRgbEliteW    = 208
+	ProductTypeScimitarRgbEliteWU   = 209
+	ProductTypeM55                  = 210
+	ProductTypeM55W                 = 211
+	ProductTypeM55RgbPro            = 212
+	ProductTypeKatarProW            = 213
+	ProductTypeDarkCoreRgbProSEW    = 214
+	ProductTypeDarkCoreRgbProSEWU   = 215
+	ProductTypeDarkCoreRgbProW      = 216
+	ProductTypeDarkCoreRgbProWU     = 217
+	ProductTypeM75                  = 218
+	ProductTypeM75AirW              = 219
+	ProductTypeM75AirWU             = 220
+	ProductTypeM75W                 = 221
+	ProductTypeM75WU                = 222
+	ProductTypeM65RgbUltra          = 223
+	ProductTypeHarpoonRgbPro        = 224
+	ProductTypeHarpoonRgbW          = 225
+	ProductTypeHarpoonRgbWU         = 226
+	ProductTypeKatarProXT           = 227
+	ProductTypeDarkstarWU           = 228
+	ProductTypeDarkstarW            = 229
+	ProductTypeScimitarRgbEliteSEW  = 230
+	ProductTypeScimitarRgbEliteSEWU = 231
+	ProductTypeM65RgbUltraW         = 232
+	ProductTypeM65RgbUltraWU        = 233
+	ProductTypeSabreRgbProWU        = 234
+	ProductTypeSabreRgbProW         = 235
+	ProductTypeNightswordRgb        = 236
+	ProductTypeSabreRgbPro          = 237
+	ProductTypeScimitarProRgb       = 238
+	ProductTypeScimitarRgb          = 239
+	ProductTypeDarkCoreRgbSEWU      = 240
+	ProductTypeDarkCoreRgbSEW       = 241
+	ProductTypeVirtuosoXTW          = 300
+	ProductTypeVirtuosoXTWU         = 301
+	ProductTypeVirtuosoMAXW         = 302
+	ProductTypeHS80RGBW             = 303
+	ProductTypeHS80MAXW             = 304
+	ProductTypeHS80RGB              = 305
+	ProductTypeST100                = 401
+	ProductTypeMM700                = 402
+	ProductTypeLT100                = 403
+	ProductTypeMM800                = 404
+	ProductTypePSUHid               = 501
+	ProductTypeCluster              = 999
+)
 
 const (
 	DeviceTypeMotherboard = uint32(iota)

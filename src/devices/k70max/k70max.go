@@ -1,6 +1,6 @@
-package k70pro
+package k70max
 
-// Package: K70 PRO
+// Package: K70 MAX
 // This is the primary package for K70 PRO.
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
@@ -114,21 +114,22 @@ var (
 	cmdWritePerformance     = []byte{0x01}
 	cmdOpenEndpoint         = []byte{0x0d, 0x02, 0x02}
 	cmdKeyAssignment        = []byte{0x06, 0x02}
+	cmdKeyAssignmentNext    = []byte{0x07, 0x02}
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x02}
 	deviceRefreshInterval   = 1000
 	transferTimeout         = 500
-	bufferSize              = 1024
+	bufferSize              = 128
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 2
 	headerWriteSize         = 4
-	maxBufferSizePerRequest = 1021
+	maxBufferSizePerRequest = 125
 	colorPacketLength       = 428
 	lockLedIndex            = 342
 	lockLcdIndex            = 6
-	keyboardKey             = "k70pro-default"
-	defaultLayout           = "k70pro-default-US"
+	keyboardKey             = "k70max-default"
+	defaultLayout           = "k70max-default-US"
+	maxKeyAssignmentLen     = 125
 	keyAssignmentLength     = 129
-	rgbProfileUpgrade       = []string{"marquee", "nebula", "sequential"}
 	rgbModes                = []string{
 		"circle",
 		"circleshift",
@@ -166,7 +167,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
-		Template:  "k70pro.html",
+		Template:  "k70max.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Brightness: map[int]string{
@@ -175,7 +176,7 @@ func Init(vendorId, productId uint16, key string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:     "K70 RGB PRO",
+		Product:     "K70 MAX",
 		LEDChannels: 142,
 		Layouts:     keyboards.GetLayouts(keyboardKey),
 		KeyAssignmentTypes: map[int]string{
@@ -215,8 +216,8 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getSerial()              // Serial
 	d.loadRgb()                // Load RGB
 	d.setSoftwareMode()        // Activate software mode
-	d.initLeds()               // Init LED ports
 	d.getDeviceFirmware()      // Firmware
+	d.initLeds()               // Init LED ports
 	d.loadDeviceProfiles()     // Load all device profiles
 	d.saveDeviceProfile()      // Save profile
 	d.setAutoRefresh()         // Set auto device refresh
@@ -405,44 +406,6 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
-	}
-	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
-}
-
-// upgradeRgbProfile will upgrade current rgb profile list
-func (d *Device) upgradeRgbProfile(path string, profiles []string) {
-	save := false
-	for _, profile := range profiles {
-		pf := d.GetRgbProfile(profile)
-		if pf == nil {
-			save = true
-			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
-			template := rgb.GetRgbProfile(profile)
-			if template == nil {
-				d.Rgb.Profiles[profile] = rgb.Profile{}
-			} else {
-				d.Rgb.Profiles[profile] = *template
-			}
-		}
-	}
-
-	if save {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
-			return
-		}
-
-		f, err := os.Create(path)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
-			return
-		}
-
-		_, err = f.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
-		}
 	}
 }
 
@@ -1731,7 +1694,7 @@ func (d *Device) writeColor(data []byte) {
 	}
 }
 
-// writeColorTopBar controls top LED bar
+// writeTopLedColor controls top LED bar
 func (d *Device) writeColorTopBar(data []byte) {
 	if d.Exit {
 		return
@@ -1873,10 +1836,20 @@ func (d *Device) writeKeyAssignment(data []byte) {
 		return
 	}
 
-	// Write data
-	_, err = d.transfer(cmdKeyAssignment, buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to key assignment endpoint")
+	// Split packet into chunks
+	chunks := common.ProcessMultiChunkPacket(buffer, maxKeyAssignmentLen)
+	for i, chunk := range chunks {
+		if i == 0 {
+			_, err = d.transfer(cmdKeyAssignment, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		} else {
+			_, err = d.transfer(cmdKeyAssignmentNext, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
 	}
 
 	// Close endpoint
@@ -1978,7 +1951,6 @@ func (d *Device) backendListener() {
 				if modifierIndex > 0 {
 					modifierKey = d.getModifierKey(modifierIndex)
 				}
-
 				if data[1] == 0x02 {
 					d.triggerKeyAssignment(data, functionKey, modifierKey)
 				}
@@ -2026,7 +1998,6 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 		}
 		d.KeyboardKey = nil
 	}
-
 	d.ModifierIndex = val
 	if val.Cmp(big.NewInt(0)) > 0 {
 		key := d.getKeyData(val.String())

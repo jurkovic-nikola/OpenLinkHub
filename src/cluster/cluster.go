@@ -89,11 +89,22 @@ func Init() *Device {
 func (d *Device) Stop() {
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-	d.timer.Stop()
-	close(d.autoRefreshChan)
+
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.activeRgb != nil {
+				d.activeRgb.Exit <- true
+				d.activeRgb = nil
+			}
+			d.timer.Stop()
+
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+				d.autoRefreshChan = nil
+			}
+		})
+	}()
 	d.Controllers = make([]*common.ClusterController, 0)
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }

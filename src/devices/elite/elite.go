@@ -2178,7 +2178,6 @@ func (d *Device) updateDeviceSpeed() {
 								channelSpeeds[device.ChannelId] = speedMode
 								change = true
 							}
-
 						} else {
 							for i := 0; i < len(profiles.Profiles); i++ {
 								profile := profiles.Profiles[i]
@@ -2198,7 +2197,6 @@ func (d *Device) updateDeviceSpeed() {
 							}
 						}
 					}
-
 				}
 				if change {
 					change = false

@@ -251,6 +251,7 @@ func (d *Device) createDevice() {
 		Firmware:    "0",
 		Image:       "icon-ram.svg",
 		Instance:    d,
+		GetDevice:   d,
 	}
 }
 

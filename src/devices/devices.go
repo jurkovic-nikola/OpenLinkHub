@@ -127,16 +127,6 @@ var (
 	cls                 *cluster.Device
 )
 
-// isUSBConnected will check if a USB device is connected
-func isUSBConnected(productId uint16) bool {
-	for _, value := range products {
-		if value.ProductId == productId {
-			return true
-		}
-	}
-	return false
-}
-
 // Stop will stop all active devices
 func Stop() {
 	// Stop all cluster operations

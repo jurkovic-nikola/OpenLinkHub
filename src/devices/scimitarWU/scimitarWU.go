@@ -107,6 +107,7 @@ type Device struct {
 	SniperMode               bool
 	MacroTracker             map[int]uint16
 	RGBModes                 []string
+	instance                 *common.Device
 }
 
 var (
@@ -154,13 +155,13 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
-	dev, err := hid.OpenPath(key)
+	dev, err := hid.OpenPath(path)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
 		return nil
 	}
 
@@ -233,8 +234,22 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setKeepAlive()          // Keepalive
 	d.loadKeyAssignments()    // Key Assignments
 	d.setupKeyAssignment()    // Setup key assignments
+	d.createDevice()          // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeScimitarRgbEliteWU,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-mouse.svg",
+		Instance:    d,
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device

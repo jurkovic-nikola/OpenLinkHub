@@ -680,79 +680,96 @@ func Init() {
 
 // deviceRegisterMap hold map of supported devices and their initialization call
 var deviceRegisterMap = map[uint16]deviceRegister{
-	3135:  lsh.Init,             // iCUE Link System Hub
-	3122:  cc.Init,              // iCUE COMMANDER Core
-	3100:  cc.Init,              // iCUE COMMANDER Core
-	3114:  ccxt.Init,            // iCUE COMMANDER CORE XT
-	3090:  platinum.Init,        // H150i Platinum
-	3091:  platinum.Init,        // H115i Platinum
-	3093:  platinum.Init,        // H100i Platinum
-	3080:  hydro.Init,           // H80i Hydro
-	3081:  hydro.Init,           // H100i Hydro
-	3082:  hydro.Init,           // H115i Hydro
-	3125:  elite.Init,           // iCUE H100i ELITE RGB
-	3126:  elite.Init,           // iCUE H115i ELITE RGB
-	3127:  elite.Init,           // iCUE H150i ELITE RGB
-	3136:  elite.Init,           // iCUE H100i ELITE RGB White
-	3137:  elite.Init,           // iCUE H150i ELITE RGB White
-	3104:  elite.Init,           // iCUE H100i RGB PRO XT
-	3105:  elite.Init,           // iCUE H115i RGB PRO XT
-	3106:  elite.Init,           // iCUE H150i RGB PRO XT
-	3095:  elite.Init,           // H115i RGB PLATINUM
-	3096:  elite.Init,           // H100i RGB PLATINUM
-	3097:  elite.Init,           // H100i RGB PLATINUM SE
-	3098:  lncore.Init,          // Lighting Node CORE
-	3083:  lnpro.Init,           // Lighting Node Pro
-	3088:  cpro.Init,            // Commander Pro
-	3138:  xc7.Init,             // XC7 ELITE LCD CPU Water Block
-	2612:  st100.Init,           // ST100 LED Driver
-	7067:  mm700.Init,           // MM700 RGB Gaming Mousepad
-	7113:  mm700.Init,           // MM700 3XL RGB Gaming Mousepad
-	6971:  mm800.Init,           // MM800 RGB POLARIS
-	3107:  lt100.Init,           // LT100 Smart Lighting Tower
-	7198:  psuhid.Init,          // HX1000i Power Supply
-	7203:  psuhid.Init,          // HX1200i Power Supply
-	7199:  psuhid.Init,          // HX1500i Power Supply
-	7173:  psuhid.Init,          // HX750i Power Supply
-	7174:  psuhid.Init,          // HX850i Power Supply
-	7175:  psuhid.Init,          // HX1000i Power Supply
-	7176:  psuhid.Init,          // HX1200i Power Supply
-	7181:  psuhid.Init,          // RM1000i Power Supply
-	7180:  psuhid.Init,          // RM850i Power Supply
-	7207:  psuhid.Init,          // HX1200i Power Supply
-	7054:  nexus.Init,           // iCUE NEXUS
-	7127:  k65pm.Init,           // K65 PRO MINI
-	7094:  k70pmWU.Init,         // K70 PPO MINI
-	7165:  k70core.Init,         // K70 CORE RGB
-	11009: k70coretkl.Init,      // K70 CORE TKL
-	11010: k70coretklWU.Init,    // K70 CORE TKL WIRELESS
-	11028: k70protkl.Init,       // K70 PRO TKL WIRELESS
-	7097:  k70rgbtklcs.Init,     // K70 RGB TKL
-	7027:  k70rgbtklcs.Init,     // K70 RGB TKL
-	6973:  k55.Init,             // K55 RGB
-	7166:  k55core.Init,         // K55 CORE RGB
-	7076:  k55pro.Init,          // K55 PRO RGB
-	7073:  k55proXT.Init,        // K55 RGB PRO XT
-	7072:  k60rgbpro.Init,       // K60 RGB PRO
-	7104:  k70max.Init,          // K70 MAX
-	7110:  k70pro.Init,          // K70 PRO
-	7091:  k70pro.Init,          // K70 PRO
-	7124:  k70pro.Init,          // K70 PRO
-	6985:  k70mk2.Init,          // K70 RGB MK2
-	6997:  k70mk2.Init,          // K70 RGB MK2
-	7019:  k70mk2.Init,          // K70 RGB MK2
-	11024: k65plusWU.Init,       // K65 PLUS WIRELESS USB
-	11025: k65plusWU.Init,       // K65 PLUS WIRELESS USB
-	11015: k65plusW.Init,        // K65 PLUS WIRELESS
-	6957:  k95platinum.Init,     // K95 PLATINUM
-	7083:  k100airWU.Init,       // K100 AIR USB
-	7036:  k100.Init,            // K100
-	7109:  k100.Init,            // K100
-	7037:  k100.Init,            // K100
-	7059:  katarpro.Init,        // KATAR PRO Gaming Mouse
-	7084:  katarproxt.Init,      // KATAR PRO XT Gaming Mouse
-	7005:  ironclaw.Init,        // IRONCLAW RGB Gaming Mouse
-	6987:  darkcorergbseWU.Init, // DARK CORE RGB SE
+	3135:  lsh.Init,                // iCUE Link System Hub
+	3122:  cc.Init,                 // iCUE COMMANDER Core
+	3100:  cc.Init,                 // iCUE COMMANDER Core
+	3114:  ccxt.Init,               // iCUE COMMANDER CORE XT
+	3090:  platinum.Init,           // H150i Platinum
+	3091:  platinum.Init,           // H115i Platinum
+	3093:  platinum.Init,           // H100i Platinum
+	3080:  hydro.Init,              // H80i Hydro
+	3081:  hydro.Init,              // H100i Hydro
+	3082:  hydro.Init,              // H115i Hydro
+	3125:  elite.Init,              // iCUE H100i ELITE RGB
+	3126:  elite.Init,              // iCUE H115i ELITE RGB
+	3127:  elite.Init,              // iCUE H150i ELITE RGB
+	3136:  elite.Init,              // iCUE H100i ELITE RGB White
+	3137:  elite.Init,              // iCUE H150i ELITE RGB White
+	3104:  elite.Init,              // iCUE H100i RGB PRO XT
+	3105:  elite.Init,              // iCUE H115i RGB PRO XT
+	3106:  elite.Init,              // iCUE H150i RGB PRO XT
+	3095:  elite.Init,              // H115i RGB PLATINUM
+	3096:  elite.Init,              // H100i RGB PLATINUM
+	3097:  elite.Init,              // H100i RGB PLATINUM SE
+	3098:  lncore.Init,             // Lighting Node CORE
+	3083:  lnpro.Init,              // Lighting Node Pro
+	3088:  cpro.Init,               // Commander Pro
+	3138:  xc7.Init,                // XC7 ELITE LCD CPU Water Block
+	2612:  st100.Init,              // ST100 LED Driver
+	7067:  mm700.Init,              // MM700 RGB Gaming Mousepad
+	7113:  mm700.Init,              // MM700 3XL RGB Gaming Mousepad
+	6971:  mm800.Init,              // MM800 RGB POLARIS
+	3107:  lt100.Init,              // LT100 Smart Lighting Tower
+	7198:  psuhid.Init,             // HX1000i Power Supply
+	7203:  psuhid.Init,             // HX1200i Power Supply
+	7199:  psuhid.Init,             // HX1500i Power Supply
+	7173:  psuhid.Init,             // HX750i Power Supply
+	7174:  psuhid.Init,             // HX850i Power Supply
+	7175:  psuhid.Init,             // HX1000i Power Supply
+	7176:  psuhid.Init,             // HX1200i Power Supply
+	7181:  psuhid.Init,             // RM1000i Power Supply
+	7180:  psuhid.Init,             // RM850i Power Supply
+	7207:  psuhid.Init,             // HX1200i Power Supply
+	7054:  nexus.Init,              // iCUE NEXUS
+	7127:  k65pm.Init,              // K65 PRO MINI
+	7094:  k70pmWU.Init,            // K70 PPO MINI
+	7165:  k70core.Init,            // K70 CORE RGB
+	11009: k70coretkl.Init,         // K70 CORE TKL
+	11010: k70coretklWU.Init,       // K70 CORE TKL WIRELESS
+	11028: k70protkl.Init,          // K70 PRO TKL WIRELESS
+	7097:  k70rgbtklcs.Init,        // K70 RGB TKL
+	7027:  k70rgbtklcs.Init,        // K70 RGB TKL
+	6973:  k55.Init,                // K55 RGB
+	7166:  k55core.Init,            // K55 CORE RGB
+	7076:  k55pro.Init,             // K55 PRO RGB
+	7073:  k55proXT.Init,           // K55 RGB PRO XT
+	7072:  k60rgbpro.Init,          // K60 RGB PRO
+	7104:  k70max.Init,             // K70 MAX
+	7110:  k70pro.Init,             // K70 PRO
+	7091:  k70pro.Init,             // K70 PRO
+	7124:  k70pro.Init,             // K70 PRO
+	6985:  k70mk2.Init,             // K70 RGB MK2
+	6997:  k70mk2.Init,             // K70 RGB MK2
+	7019:  k70mk2.Init,             // K70 RGB MK2
+	11024: k65plusWU.Init,          // K65 PLUS WIRELESS USB
+	11025: k65plusWU.Init,          // K65 PLUS WIRELESS USB
+	11015: k65plusW.Init,           // K65 PLUS WIRELESS
+	6957:  k95platinum.Init,        // K95 PLATINUM
+	7083:  k100airWU.Init,          // K100 AIR USB
+	7036:  k100.Init,               // K100
+	7109:  k100.Init,               // K100
+	7037:  k100.Init,               // K100
+	7059:  katarpro.Init,           // KATAR PRO Gaming Mouse
+	7084:  katarproxt.Init,         // KATAR PRO XT Gaming Mouse
+	7005:  ironclaw.Init,           // IRONCLAW RGB Gaming Mouse
+	6987:  darkcorergbseWU.Init,    // DARK CORE RGB SE
+	6988:  ironclawWU.Init,         // IRONCLAW RGB WIRELESS Gaming Mouse
+	7096:  nightsabreWU.Init,       // NIGHTSABRE WIRELESS Mouse
+	7139:  scimitar.Init,           // SCIMITAR RGB ELITE
+	6974:  scimitarprorgb.Init,     // SCIMITAR PRO RGB
+	6942:  scimitarrgb.Init,        // SCIMITAR RGB
+	7051:  scimitarrgbelite.Init,   // SCIMITAR RGB ELITE
+	7131:  scimitarWU.Init,         // SCIMITAR RGB ELITE WIRELESS
+	11042: scimitarSEWU.Init,       // SCIMITAR ELITE WIRELESS SE
+	11011: m55.Init,                // M55 Gaming Mouse
+	7024:  m55rgbpro.Init,          // M55 RGB PRO Gaming Mouse
+	7060:  katarproW.Init,          // KATAR PRO Wireless Gaming Dongle
+	7038:  darkcorergbproseWU.Init, // DARK CORE RGB PRO SE Gaming Mouse
+	7040:  darkcorergbproWU.Init,   // DARK CORE RGB PRO Gaming Mouse
+	7152:  m75.Init,                // M75 Gaming Mouse
+	11016: m75WU.Init,              // M75 WIRELESS Gaming Mouse
+	7154:  m75AirWU.Init,           // M75 AIR WIRELESS Gaming Mouse
+	7070:  m65rgbultra.Init,        // M65 RGB ULTRA Gaming Mouse
 }
 
 // initializeDevice will initialize a device
@@ -1302,295 +1319,6 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				dev.AddPairedDevice(pid, d, devices[d.Serial])
 				dev.InitAvailableDevices()
-			}(vendorId, productId, key)
-		}
-	case 6988: // Corsair IRONCLAW RGB WIRELESS Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := ironclawWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeIronClawRgbWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7096: // Corsair NIGHTSABRE WIRELESS Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := nightsabreWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeNightsabreWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7139: // CORSAIR SCIMITAR RGB ELITE
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := scimitar.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeScimitarRgbElite,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 6974: // SCIMITAR PRO RGB
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := scimitarprorgb.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeScimitarProRgb,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 6942: // SCIMITAR RGB
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := scimitarrgb.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeScimitarRgb,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7051: // CORSAIR SCIMITAR RGB ELITE
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := scimitarrgbelite.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeScimitarRgbElite,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7131: // CORSAIR SCIMITAR RGB ELITE WIRELESS
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := scimitarWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeScimitarRgbEliteWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 11042: // CORSAIR SCIMITAR ELITE WIRELESS SE
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := scimitarSEWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeScimitarRgbEliteSEWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 11011: // CORSAIR M55 Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m55.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM55,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7024: // CORSAIR M55 RGB PRO Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m55rgbpro.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM55RgbPro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7060: // CORSAIR KATAR PRO Wireless Gaming Dongle
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := katarproW.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeKatarProW,
-					Product:     "KATAR PRO",
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7038: // CORSAIR DARK CORE RGB PRO SE Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := darkcorergbproseWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeDarkCoreRgbProSEWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7040: // CORSAIR DARK CORE RGB PRO Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := darkcorergbproWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeDarkCoreRgbProWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7152: // CORSAIR M75 Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m75.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM75,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 11016: // CORSAIR M75 WIRELESS Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m75WU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM75WU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7154: // CORSAIR M75 AIR WIRELESS Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m75AirWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM75AirWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7070: // CORSAIR M65 RGB ULTRA Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m65rgbultra.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM65RgbUltra,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
 			}(vendorId, productId, key)
 		}
 	case 7093, 7126: // CORSAIR M65 RGB ULTRA WIRELESS Gaming Mouse

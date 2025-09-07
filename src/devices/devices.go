@@ -110,6 +110,8 @@ import (
 	"sync"
 )
 
+type deviceRegister func(vid, pid uint16, serial, path string) *common.Device
+
 type AIOData struct {
 	Rpm         int16
 	Temperature float32
@@ -676,205 +678,62 @@ func Init() {
 	}
 }
 
+// deviceRegisterMap hold map of supported devices and their initialization call
+var deviceRegisterMap = map[uint16]deviceRegister{
+	3135: lsh.Init,      // CORSAIR iCUE Link System Hub
+	3122: cc.Init,       // CORSAIR iCUE COMMANDER Core
+	3100: cc.Init,       // CORSAIR iCUE COMMANDER Core
+	3114: ccxt.Init,     // CORSAIR iCUE COMMANDER CORE XT
+	3090: platinum.Init, // Corsair H150i Platinum
+	3091: platinum.Init, // Corsair H115i Platinum
+	3093: platinum.Init, // Corsair H100i Platinum
+	3080: hydro.Init,    // Corsair H80i Hydro
+	3081: hydro.Init,    // Corsair H100i Hydro
+	3082: hydro.Init,    // Corsair H115i Hydro
+	3125: elite.Init,    // iCUE H100i ELITE RGB
+	3126: elite.Init,    // iCUE H115i ELITE RGB
+	3127: elite.Init,    // iCUE H150i ELITE RGB
+	3136: elite.Init,    // iCUE H100i ELITE RGB White
+	3137: elite.Init,    // iCUE H150i ELITE RGB White
+	3104: elite.Init,    // iCUE H100i RGB PRO XT
+	3105: elite.Init,    // iCUE H115i RGB PRO XT
+	3106: elite.Init,    // iCUE H150i RGB PRO XT
+	3095: elite.Init,    // H115i RGB PLATINUM
+	3096: elite.Init,    // H100i RGB PLATINUM
+	3097: elite.Init,    // H100i RGB PLATINUM SE
+	3098: lncore.Init,   // Lighting Node CORE
+	3083: lnpro.Init,    // Lighting Node Pro
+	3088: cpro.Init,     // Commander Pro
+	3138: xc7.Init,      // XC7 ELITE LCD CPU Water Block
+	2612: st100.Init,    // ST100 LED Driver
+	7067: mm700.Init,    // MM700 RGB Gaming Mousepad
+	7113: mm700.Init,    // MM700 3XL RGB Gaming Mousepad
+	6971: mm800.Init,    // MM800 RGB POLARIS
+	3107: lt100.Init,    // LT100 Smart Lighting Tower
+	7198: psuhid.Init,   // HX1000i Power Supply
+	7203: psuhid.Init,   // HX1200i Power Supply
+	7199: psuhid.Init,   // HX1500i Power Supply
+	7173: psuhid.Init,   // HX750i Power Supply
+	7174: psuhid.Init,   // HX850i Power Supply
+	7175: psuhid.Init,   // HX1000i Power Supply
+	7176: psuhid.Init,   // HX1200i Power Supply
+	7181: psuhid.Init,   // RM1000i Power Supply
+	7180: psuhid.Init,   // RM850i Power Supply
+	7207: psuhid.Init,   // HX1200i Power Supply
+}
+
 // initializeDevice will initialize a device
 func initializeDevice(productId uint16, key, productPath string) {
+	callback, ok := deviceRegisterMap[productId]
+	if ok {
+		go func(vid, pid uint16, serial, path string, cb deviceRegister) {
+			dev := cb(vid, pid, serial, path)
+			addDevice(dev)
+		}(vendorId, productId, key, productPath, callback)
+	}
+
 	switch productId {
-	case 3135: // CORSAIR iCUE Link System Hub
-		{
-			go func(vendorId, productId uint16, serialId, productPath string) {
-				dev := lsh.Init(vendorId, productId, serialId, productPath)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeLinkHub,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key, productPath)
-		}
-	case 3122, 3100: // CORSAIR iCUE COMMANDER Core
-		{
-			go func(vendorId, productId uint16, serialId, path string) {
-				dev := cc.Init(vendorId, productId, serialId, path)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeCC,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key, productPath)
-		}
-	case 3114: // CORSAIR iCUE COMMANDER CORE XT
-		{
-			go func(vendorId, productId uint16, serialId, path string) {
-				dev := ccxt.Init(vendorId, productId, serialId, path)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeCCXT,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key, productPath)
-		}
-	case 3090, 3091, 3093:
-		// Corsair H150i Platinum
-		// Corsair H115i Platinum
-		// Corsair H100i Platinum
-		{
-			go func(vendorId, productId uint16, path string) {
-				dev := platinum.Init(vendorId, productId, path)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypePlatinum,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, productPath)
-		}
-	case 3080, 3081, 3082:
-		// Corsair H80i Hydro
-		// Corsair H100i Hydro
-		// Corsair H115i Hydro
-		{
-			go func(vendorId, productId uint16, path string) {
-				dev := hydro.Init(vendorId, productId, path)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeHydro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, productPath)
-		}
-	case 3125, 3126, 3127, 3136, 3137, 3104, 3105, 3106, 3095, 3096, 3097:
-		// iCUE H100i ELITE RGB
-		// iCUE H115i ELITE RGB
-		// iCUE H150i ELITE RGB
-		// iCUE H100i ELITE RGB White
-		// iCUE H150i ELITE RGB White
-		// iCUE H100i RGB PRO XT
-		// iCUE H115i RGB PRO XT
-		// iCUE H150i RGB PRO XT
-		// H115i RGB PLATINUM
-		// H100i RGB PLATINUM
-		// H100i RGB PLATINUM SE
-		{
-			go func(vendorId, productId uint16, path string) {
-				dev := elite.Init(vendorId, productId, path)
-				if dev == nil {
-					return
-				}
-				devices[strconv.Itoa(int(productId))] = &common.Device{
-					ProductType: common.ProductTypeElite,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, productPath)
-		}
-	case 3098: // CORSAIR Lighting Node CORE
-		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := lncore.Init(vendorId, productId, serialId)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeLNCore,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 3083: // CORSAIR Lighting Node Pro
-		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := lnpro.Init(vendorId, productId, serialId)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeLnPro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 3088: // Corsair Commander Pro
-		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := cpro.Init(vendorId, productId, serialId)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeCPro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key)
-		}
-	case 3138: // CORSAIR XC7 ELITE LCD CPU Water Block
-		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := xc7.Init(vendorId, productId, serialId)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeXC7,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key)
-		}
-	case 7127: // K65 Pro Mini
+	case 7127: // K65 PRO MINI
 		{
 			go func(vendorId, productId uint16, key string) {
 				dev := k65pm.Init(vendorId, productId, key)
@@ -1095,7 +954,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 			}(vendorId, productId, key)
 		}
-	case 7104:
+	case 7104: // K70 MAX
 		{
 			go func(vendorId, productId uint16, key string) {
 				dev := k70max.Init(vendorId, productId, key)
@@ -1715,102 +1574,6 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				dev.InitAvailableDevices()
 			}(vendorId, productId, key)
-		}
-	case 2612: // Corsair ST100 LED Driver
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := st100.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeST100,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-headphone-stand.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7067, 7113: // Corsair MM700 RGB Gaming Mousepad
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := mm700.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeMM700,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mousepad.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 6971: // Corsair Gaming MM800 RGB POLARIS
-		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := mm800.Init(vendorId, productId, serialId)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeMM800,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mousepad.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 3107: // Corsair iCUE LT100 Smart Lighting Tower
-		{
-			go func(vendorId, productId uint16, key, devicePath string) {
-				dev := lt100.Init(vendorId, productId, key, devicePath)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeLT100,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-towers.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key, productPath)
-		}
-	case 7198, 7203, 7199, 7173, 7174, 7175, 7176, 7181, 7180, 7207:
-		// Corsair HX1000i Power Supply
-		// Corsair HX1200i Power Supply
-		// Corsair HX1500i Power Supply
-		// Corsair HX750i Power Supply
-		// Corsair HX850i Power Supply
-		// Corsair HX1000i Power Supply
-		// Corsair HX1200i Power Supply
-		// Corsair RM1000i Power Supply
-		// Corsair RM850i Power Supply
-		// Corsair HX1200i Power Supply
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := psuhid.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypePSUHid,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-psu.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, productPath)
 		}
 	case 7059: // Corsair KATAR PRO Gaming Mouse
 		{

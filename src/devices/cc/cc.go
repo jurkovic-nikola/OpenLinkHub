@@ -299,6 +299,7 @@ type Device struct {
 	internalLedDevices map[int]*LedChannel
 	RGBModes           []string
 	queue              chan []byte
+	instance           *common.Device
 }
 
 /*
@@ -322,7 +323,7 @@ func (d *Device) hardLedReset() {
 */
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial, path string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -438,9 +439,24 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 	}
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
+	d.createDevice()           // Device register
 	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeCC,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+		GetDevice:   d,
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -2885,7 +2901,7 @@ func (d *Device) resetLEDPorts() {
 func (d *Device) saveDeviceProfile() {
 	d.deviceLock.Lock()
 	defer d.deviceLock.Unlock()
-	
+
 	noOverride := false
 	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"

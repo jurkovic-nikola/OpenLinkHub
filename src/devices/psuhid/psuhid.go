@@ -75,6 +75,7 @@ type Device struct {
 	GpuTemp       float32
 	FanModes      map[int]string
 	InputVoltage  float32
+	instance      *common.Device
 }
 
 var (
@@ -107,14 +108,14 @@ var (
 	temperatureChannels   = 2
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
 	// Open device, return if failure
-	dev, err := hid.OpenPath(key)
+	dev, err := hid.OpenPath(path)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "serial": key}).Error("Unable to open HID device")
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
 		return nil
 	}
 
@@ -142,8 +143,24 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.getDevices()         // Get devices
 	d.saveDeviceProfile()  // Save device profile
 	d.updateFanMode()      // Fan speed
-	d.setAutoRefresh()
-	return d
+	d.setAutoRefresh()     // Auto refresh
+	d.createDevice()       // Device register
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypePSUHid,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-psu.svg",
+		Instance:    d,
+		GetDevice:   d,
+	}
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode

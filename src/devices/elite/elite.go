@@ -153,6 +153,7 @@ type Device struct {
 	Exit              bool
 	RGBModes          []string
 	queue             chan []byte
+	instance          *common.Device
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -318,7 +319,7 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16, path string) *Device {
+func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -373,9 +374,24 @@ func Init(vendorId, productId uint16, path string) *Device {
 		d.updateDeviceSpeed() // Update device speed
 	}
 	d.setupOpenRGBController() // OpenRGB Controller
+	d.createDevice()           // Device register
 	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeElite,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+		GetDevice:   d,
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -1898,15 +1914,7 @@ func (d *Device) getProduct() {
 // getSerial will set the device serial number.
 // In case of no serial, productId will be placed as serial number
 func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
-	}
-	d.Serial = serial
-
-	if len(serial) == 0 {
-		d.Serial = strconv.Itoa(int(d.ProductId))
-	}
+	d.Serial = strconv.Itoa(int(d.ProductId))
 }
 
 // getSupportedDevice will return supported device or nil pointer

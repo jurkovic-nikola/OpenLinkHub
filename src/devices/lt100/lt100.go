@@ -97,6 +97,7 @@ type Device struct {
 	timer                   *time.Ticker
 	timerKeepAlive          *time.Ticker
 	RGBModes                []string
+	instance                *common.Device
 }
 
 var (
@@ -145,7 +146,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial, path string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -194,7 +195,21 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 		d.Stop()
 		return nil
 	}
-	return d
+	d.createDevice() // Device register
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeLT100,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-towers.svg",
+		Instance:    d,
+	}
 }
 
 // GetDeviceLedData will return led profiles as interface

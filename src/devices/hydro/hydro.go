@@ -144,6 +144,7 @@ type Device struct {
 	timerSpeed        *time.Ticker
 	Exit              bool
 	RGBModes          []string
+	instance          *common.Device
 }
 
 var (
@@ -192,7 +193,7 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16, path string) *Device {
+func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -255,8 +256,23 @@ func Init(vendorId, productId uint16, path string) *Device {
 	} else {
 		d.updateDeviceSpeed() // Update device speed
 	}
+	d.createDevice() // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeHydro,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+		GetDevice:   d,
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device

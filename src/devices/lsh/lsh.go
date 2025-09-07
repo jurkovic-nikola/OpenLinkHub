@@ -196,6 +196,7 @@ type Device struct {
 	supportedDevices       []SupportedDevice
 	RGBModes               []string
 	pumpInnerLedStartIndex int
+	instance               *common.Device
 }
 
 var (
@@ -275,7 +276,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial, path string) *Device {
+func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -379,9 +380,23 @@ func Init(vendorId, productId uint16, serial, path string) *Device {
 	}
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
-
+	d.createDevice()           // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeLinkHub,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+		GetDevice:   d,
+	}
 }
 
 // GetDeviceLedData will return led profiles as interface

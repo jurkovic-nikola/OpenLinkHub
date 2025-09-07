@@ -51,6 +51,7 @@ type Device struct {
 	autoRefreshChan chan struct{}
 	mutex           sync.Mutex
 	RGBModes        []string
+	instance        *common.Device
 }
 
 type ZoneColor struct {
@@ -127,7 +128,7 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -169,8 +170,22 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.setAutoRefresh()         // Set auto device refresh
 	d.setDeviceColor()         // Device color
 	d.setupClusterController() // RGB Cluster
+	d.createDevice()           // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeST100,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-headphone-stand.svg",
+		Instance:    d,
+	}
 }
 
 // GetDeviceLedData will return led profiles as interface

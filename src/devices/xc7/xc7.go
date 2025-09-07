@@ -93,6 +93,7 @@ type Device struct {
 	timer             *time.Ticker
 	lcdTimer          *time.Ticker
 	RGBModes          []string
+	instance          *common.Device
 }
 
 var (
@@ -130,7 +131,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -209,8 +210,23 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	} else {
 		d.setupLCD(false)
 	}
+	d.createDevice() // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeXC7,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+		GetDevice:   d,
+	}
 }
 
 // GetDeviceLedData will return led profiles as interface

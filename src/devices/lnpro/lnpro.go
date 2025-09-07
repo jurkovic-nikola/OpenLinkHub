@@ -98,6 +98,7 @@ type Device struct {
 	State                   map[byte]bool
 	HardwareModes           map[int]string
 	RGBModes                []string
+	instance                *common.Device
 }
 
 var (
@@ -149,7 +150,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -212,8 +213,22 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.saveDeviceProfile()   // Create device profile
 	d.setColorEndpoint()    // Setup lightning
 	d.setDeviceColor(true)  // Device color
+	d.createDevice()        // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeLnPro,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+	}
 }
 
 // ShutdownLed will reset LED ports and set device in 'hardware' mode

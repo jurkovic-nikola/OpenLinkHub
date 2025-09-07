@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -30,8 +31,9 @@ type Device struct {
 	ProductId     uint16
 	mutex         sync.Mutex
 	PairedDevices map[uint16]any
-	SharedDevices map[string]*common.Device
+	SharedDevices func(device *common.Device)
 	DeviceList    map[string]*common.Device
+	instance      *common.Device
 	Exit          bool
 }
 
@@ -47,8 +49,8 @@ var (
 	firmwareIndex   = 9
 )
 
-func Init(vendorId, productId uint16, key string, devices map[string]*common.Device) *Device {
-	dev, err := hid.OpenPath(key)
+func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
+	dev, err := hid.OpenPath(path)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
 		return nil
@@ -61,16 +63,56 @@ func Init(vendorId, productId uint16, key string, devices map[string]*common.Dev
 		ProductId:     productId,
 		PairedDevices: make(map[uint16]any),
 		DeviceList:    make(map[string]*common.Device),
-		SharedDevices: devices,
+		SharedDevices: callback,
 	}
 
-	d.getDebugMode()    // Debug mode
-	d.getManufacturer() // Manufacturer
-	d.getSerial()       // Serial
-	d.setSoftwareMode() // Software mode
-	d.backendListener() // Control listener
+	d.getDebugMode()         // Debug mode
+	d.getManufacturer()      // Manufacturer
+	d.getSerial()            // Serial
+	d.setSoftwareMode()      // Software mode
+	d.addDevices()           // Add devices
+	d.backendListener()      // Control listener
+	d.createDevice()         // Device register
+	d.initAvailableDevices() // Init devices
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// addDevices adda a mew device
+func (d *Device) addDevices() {
+	var pid uint16 = 6987
+	dev := darkcorergbseW.Init(
+		d.VendorId,
+		pid,
+		d.dev,
+		strconv.Itoa(int(pid)),
+	)
+
+	object := &common.Device{
+		ProductType: common.ProductTypeDarkCoreRgbSEW,
+		Product:     "DARK CORE RGB SE",
+		Serial:      dev.Serial,
+		Firmware:    dev.Firmware,
+		Image:       "icon-mouse.svg",
+		Instance:    dev,
+	}
+
+	d.SharedDevices(object)
+	d.AddPairedDevice(pid, d, object)
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeDongle,
+		Product:     "DONGLE",
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-dongle.svg",
+		Instance:    d,
+		Hidden:      true,
+	}
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -205,8 +247,8 @@ func (d *Device) getDeviceStatus() []byte {
 	return output
 }
 
-// InitAvailableDevices will run on initial start
-func (d *Device) InitAvailableDevices() {
+// initAvailableDevices will run on initial start
+func (d *Device) initAvailableDevices() {
 	status := d.getDeviceStatus()
 	if status == nil || len(status) == 0 {
 		return
@@ -309,7 +351,7 @@ func (d *Device) backendListener() {
 								if !device.Connected {
 									time.Sleep(2000 * time.Millisecond)
 									device.Connect()
-									d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+									d.SharedDevices(d.DeviceList[device.Serial])
 								}
 							}
 						}

@@ -54,7 +54,7 @@ type Device struct {
 	VendorId       uint16
 	Devices        map[int]*Devices `json:"devices"`
 	PairedDevices  map[uint16]any
-	SharedDevices  map[string]*common.Device
+	SharedDevices  func(device *common.Device)
 	DeviceList     map[string]*common.Device
 	SingleDevice   bool
 	Template       string
@@ -65,6 +65,7 @@ type Device struct {
 	keepAliveChan  chan struct{}
 	sleepChan      chan struct{}
 	mutex          sync.Mutex
+	instance       *common.Device
 }
 
 var (
@@ -88,11 +89,11 @@ var (
 	connectDelay     = 5000
 )
 
-func Init(vendorId, productId uint16, key string, devices map[string]*common.Device) *Device {
+func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
 	// Open device, return if failure
-	dev, err := hid.OpenPath(key)
+	dev, err := hid.OpenPath(path)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
 		return nil
 	}
 
@@ -108,21 +109,402 @@ func Init(vendorId, productId uint16, key string, devices map[string]*common.Dev
 		keepAliveChan:  make(chan struct{}),
 		timerSleep:     &time.Ticker{},
 		timerKeepAlive: &time.Ticker{},
-		SharedDevices:  devices,
+		SharedDevices:  callback,
 	}
 
-	d.getDebugMode()      // Debug
-	d.getManufacturer()   // Manufacturer
-	d.getProduct()        // Product
-	d.getSerial()         // Serial
-	d.getDeviceFirmware() // Firmware
-	d.setSoftwareMode()   // Switch to software mode
-	d.getDevices()        // Get devices
-	d.monitorDevice()     // Monitor device
-	d.sleepMonitor()      // Sleep
-	d.backendListener()   // Control listener
+	d.getDebugMode()         // Debug
+	d.getManufacturer()      // Manufacturer
+	d.getProduct()           // Product
+	d.getSerial()            // Serial
+	d.getDeviceFirmware()    // Firmware
+	d.setSoftwareMode()      // Switch to software mode
+	d.getDevices()           // Get devices
+	d.addDevices()           // Add devices
+	d.monitorDevice()        // Monitor device
+	d.sleepMonitor()         // Sleep
+	d.backendListener()      // Control listener
+	d.initAvailableDevices() // Init devices
+	d.createDevice()         // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeSlipstream,
+		Product:     "SLIPSTREAM",
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-dongle.svg",
+		Instance:    d,
+		Hidden:      true,
+	}
+}
+
+// addDevices will add list of available devices
+func (d *Device) addDevices() {
+	for _, value := range d.Devices {
+		switch value.ProductId {
+		case 7163: // M55
+			{
+				dev := m55W.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeM55W,
+					Product:     "M55 WIRELESS",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7131: // SCIMITAR
+			{
+				dev := scimitarW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeScimitarRgbEliteW,
+					Product:     "SCIMITAR RGB ELITE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 11042: // CORSAIR SCIMITAR ELITE WIRELESS SE
+			{
+				dev := scimitarSEW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeScimitarRgbEliteSEW,
+					Product:     "SCIMITAR ELITE SE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7096: // NIGHTSABRE
+			{
+				dev := nightsabreW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeNightsabreW,
+					Product:     "NIGHTSABRE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7083: // K100 AIR WIRELESS
+			{
+				dev := k100airW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeK100AirW,
+					Product:     "K100 AIR",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 6988: // IRONCLAW RGB WIRELESS
+			{
+				dev := ironclawW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeIronClawRgbW,
+					Product:     "IRONCLAW RGB",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7038: // DARK CORE RGB PRO SE WIRELESS
+			{
+				dev := darkcorergbproseW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeDarkCoreRgbProSEW,
+					Product:     "DARK CORE RGB PRO SE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7040: // DARK CORE RGB PRO WIRELESS
+			{
+				dev := darkcorergbproW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeDarkCoreRgbProW,
+					Product:     "DARK CORE RGB PRO",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 11016: // M75 WIRELESS
+			{
+				dev := m75W.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeM75W,
+					Product:     "M75 WIRELESS",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7154: // M75 AIR WIRELESS
+			{
+				dev := m75AirW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeM75AirW,
+					Product:     "M75 AIR WIRELESS",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7006: // HARPOON RGB WIRELESS
+			{
+				dev := harpoonW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeHarpoonRgbW,
+					Product:     "HARPOON RGB",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7090: // CORSAIR DARKSTAR RGB WIRELESS Gaming Mouse
+			{
+				dev := darkstarW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeDarkstarW,
+					Product:     "DARKSTAR",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7093, 7126: // M65 RGB ULTRA WIRELESS Gaming Mouse
+			{
+				dev := m65rgbultraW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeM65RgbUltraW,
+					Product:     "M65 RGB ULTRA",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 11010: // K70 CORE TKL WIRELESS
+			{
+				dev := k70coretklW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+					d.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeK70CoreTklW,
+					Product:     "K70 CORE TKL",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7064: // CORSAIR SABRE RGB PRO WIRELESS Gaming Mouse
+			{
+				dev := sabrergbproW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeSabreRgbProW,
+					Product:     "SABRE RGB PRO",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 7094: // K70 PRO MINI
+			{
+				dev := k70pmW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeK70PMW,
+					Product:     "K70 PRO MINI",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		default:
+			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
+		}
+	}
 }
 
 // StopDirty will stop devices in a dirty way
@@ -506,10 +888,10 @@ func (d *Device) read(endpoint []byte) []byte {
 	return buffer
 }
 
-// InitAvailableDevices will run on initial start
-func (d *Device) InitAvailableDevices() {
+// initAvailableDevices will run on initial start
+func (d *Device) initAvailableDevices() {
 	for _, value := range d.Devices {
-		_, err := d.transferToDevice(value.Endpoint, cmdHeartbeat, nil, "InitAvailableDevices")
+		_, err := d.transferToDevice(value.Endpoint, cmdHeartbeat, nil, "initAvailableDevices")
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "endpoint": value.Endpoint, "productId": value.ProductId}).Warn("Unable to read endpoint. Device is probably offline")
 			continue
@@ -886,19 +1268,19 @@ func (d *Device) setDeviceOnline(deviceType int) {
 				if device, found := pairedDevice.(*k100airW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*k70pmW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 			}
@@ -909,79 +1291,79 @@ func (d *Device) setDeviceOnline(deviceType int) {
 				if device, found := pairedDevice.(*m55W.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*scimitarW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*scimitarSEW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*nightsabreW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*ironclawW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m75W.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m75AirW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*harpoonW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*darkstarW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*sabrergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 			}
@@ -992,97 +1374,97 @@ func (d *Device) setDeviceOnline(deviceType int) {
 				if device, found := pairedDevice.(*k100airW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*k70pmW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m55W.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*scimitarW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*scimitarSEW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*nightsabreW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*ironclawW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproseW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*darkcorergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m75W.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m75AirW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*harpoonW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*darkstarW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*m65rgbultraW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 				if device, found := pairedDevice.(*sabrergbproW.Device); found {
 					if !device.Connected {
 						device.Connect()
-						d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
 			}

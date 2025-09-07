@@ -7,30 +7,21 @@ import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cpro"
-	"OpenLinkHub/src/devices/darkcorergbproW"
 	"OpenLinkHub/src/devices/darkcorergbproWU"
-	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
-	"OpenLinkHub/src/devices/darkcorergbseW"
 	"OpenLinkHub/src/devices/darkcorergbseWU"
 	"OpenLinkHub/src/devices/darkcorergbsesongle"
-	"OpenLinkHub/src/devices/darkstarW"
 	"OpenLinkHub/src/devices/darkstarWU"
 	"OpenLinkHub/src/devices/elite"
-	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/harpoonWU"
 	"OpenLinkHub/src/devices/harpoonrgbpro"
 	"OpenLinkHub/src/devices/headsetdongle"
-	"OpenLinkHub/src/devices/hs80maxW"
 	"OpenLinkHub/src/devices/hs80maxdongle"
 	"OpenLinkHub/src/devices/hs80rgb"
-	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/hydro"
 	"OpenLinkHub/src/devices/ironclaw"
-	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/ironclawWU"
 	"OpenLinkHub/src/devices/k100"
-	"OpenLinkHub/src/devices/k100airW"
 	"OpenLinkHub/src/devices/k100airWU"
 	"OpenLinkHub/src/devices/k55"
 	"OpenLinkHub/src/devices/k55core"
@@ -42,11 +33,9 @@ import (
 	"OpenLinkHub/src/devices/k65pm"
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70coretkl"
-	"OpenLinkHub/src/devices/k70coretklW"
 	"OpenLinkHub/src/devices/k70coretklWU"
 	"OpenLinkHub/src/devices/k70max"
 	"OpenLinkHub/src/devices/k70mk2"
-	"OpenLinkHub/src/devices/k70pmW"
 	"OpenLinkHub/src/devices/k70pmWU"
 	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/k70protkl"
@@ -60,41 +49,31 @@ import (
 	"OpenLinkHub/src/devices/lsh"
 	"OpenLinkHub/src/devices/lt100"
 	"OpenLinkHub/src/devices/m55"
-	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m55rgbpro"
 	"OpenLinkHub/src/devices/m65rgbultra"
-	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/m65rgbultraWU"
 	"OpenLinkHub/src/devices/m75"
-	"OpenLinkHub/src/devices/m75AirW"
 	"OpenLinkHub/src/devices/m75AirWU"
-	"OpenLinkHub/src/devices/m75W"
 	"OpenLinkHub/src/devices/m75WU"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/mm800"
 	"OpenLinkHub/src/devices/nexus"
-	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/nightswordrgb"
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/sabrergbpro"
-	"OpenLinkHub/src/devices/sabrergbproW"
 	"OpenLinkHub/src/devices/sabrergbproWU"
 	"OpenLinkHub/src/devices/scimitar"
-	"OpenLinkHub/src/devices/scimitarSEW"
 	"OpenLinkHub/src/devices/scimitarSEWU"
-	"OpenLinkHub/src/devices/scimitarW"
 	"OpenLinkHub/src/devices/scimitarWU"
 	"OpenLinkHub/src/devices/scimitarprorgb"
 	"OpenLinkHub/src/devices/scimitarrgb"
 	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
-	"OpenLinkHub/src/devices/virtuosomaxW"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
-	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
@@ -111,6 +90,7 @@ import (
 )
 
 type deviceRegister func(vid, pid uint16, serial, path string) *common.Device
+type deviceRegisterEx func(vid, pid uint16, serial, path string, callback func(device *common.Device)) *common.Device
 
 type AIOData struct {
 	Rpm         int16
@@ -395,7 +375,7 @@ func deleteDevice(serial string) {
 	delete(devices, serial)
 }
 
-// deleteDevice will add device to device list
+// addDevice will add device to device list
 func addDevice(device *common.Device) {
 	if device == nil {
 		return
@@ -783,6 +763,18 @@ var deviceRegisterMap = map[uint16]deviceRegister{
 	2696:  hs80rgb.Init,            // HS80 RGB USB Gaming Headset
 }
 
+// deviceRegisterMapEx hold map of supported devices and their initialization call with callback function
+var deviceRegisterMapEx = map[uint16]deviceRegisterEx{
+	7132:  slipstream.Init,          // SLIPSTREAM WIRELESS USB Receiver
+	7078:  slipstream.Init,          // SLIPSTREAM WIRELESS USB Receiver
+	11008: slipstream.Init,          // SLIPSTREAM WIRELESS USB Receiver
+	10754: virtuosomaxdongle.Init,   // VIRTUOSO MAX WIRELESS
+	2711:  hs80maxdongle.Init,       // HS80 MAX WIRELESS
+	6993:  darkcorergbsesongle.Init, // DARK CORE RGB SE Wireless USB Receiver
+	2660:  headsetdongle.Init,       // Headset dongle
+	2667:  headsetdongle.Init,       // Headset dongle
+}
+
 // initializeDevice will initialize a device
 func initializeDevice(productId uint16, key, productPath string) {
 	callback, ok := deviceRegisterMap[productId]
@@ -791,548 +783,14 @@ func initializeDevice(productId uint16, key, productPath string) {
 			dev := cb(vid, pid, serial, path)
 			addDevice(dev)
 		}(vendorId, productId, key, productPath, callback)
-	}
-
-	switch productId {
-	case 2660, 2667: // Headset dongle
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := headsetdongle.Init(vendorId, productId, key, devices)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeIronClawRgbW,
-					Product:     "HEADSET DONGLE",
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-dongle.svg",
-					Instance:    dev,
-					Hidden:      true,
-				}
-				for _, value := range dev.Devices {
-					if isUSBConnected(value.ProductId) {
-						continue
-					}
-
-					switch value.ProductId {
-					case 2658:
-						{
-							d := virtuosorgbXTW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeVirtuosoXTW,
-								Product:     "VIRTUOSO RGB WIRELESS XT",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-headphone.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 2665:
-						{
-							d := hs80rgbW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeHS80RGBW,
-								Product:     "HS80 RGB WIRELESS",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-headphone.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					default:
-						logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
-					}
-				}
-				dev.InitAvailableDevices()
-			}(vendorId, productId, key)
+	} else {
+		// Used for initialization of devices with callback function
+		callbackEx, valid := deviceRegisterMapEx[productId]
+		if valid {
+			go func(vid, pid uint16, serial, path string, cb deviceRegisterEx) {
+				dev := cb(vid, pid, serial, path, addDevice)
+				addDevice(dev)
+			}(vendorId, productId, key, productPath, callbackEx)
 		}
-	case 10754: // CORSAIR VIRTUOSO MAX WIRELESS
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := virtuosomaxdongle.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeVirtuosoMAXW,
-					Product:     "HEADSET DONGLE",
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-dongle.svg",
-					Instance:    dev,
-					Hidden:      true,
-				}
-
-				switch dev.Devices.ProductId {
-				case 10752:
-					{
-						d := virtuosomaxW.Init(
-							dev.Devices.VendorId,
-							productId,
-							dev.Devices.ProductId,
-							dev.GetDevice(),
-							dev.Devices.Endpoint,
-							dev.Devices.Serial,
-						)
-						devices[d.Serial] = &common.Device{
-							ProductType: common.ProductTypeVirtuosoMAXW,
-							Product:     "VIRTUOSO MAX",
-							Serial:      d.Serial,
-							Firmware:    d.Firmware,
-							Image:       "icon-headphone.svg",
-							Instance:    d,
-						}
-						dev.AddPairedDevice(dev.Devices.ProductId, d)
-					}
-				default:
-					logger.Log(logger.Fields{"productId": dev.Devices.ProductId}).Warn("Unsupported device detected")
-				}
-				dev.InitAvailableDevices()
-			}(vendorId, productId, key)
-		}
-	case 2711: // CORSAIR HS80 MAX WIRELESS
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := hs80maxdongle.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeHS80MAXW,
-					Product:     "HEADSET DONGLE",
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-dongle.svg",
-					Instance:    dev,
-					Hidden:      true,
-				}
-				switch dev.Devices.ProductId {
-				case 2710:
-					{
-						d := hs80maxW.Init(
-							dev.Devices.VendorId,
-							productId,
-							dev.Devices.ProductId,
-							dev.GetDevice(),
-							dev.Devices.Endpoint,
-							dev.Devices.Serial,
-						)
-						devices[d.Serial] = &common.Device{
-							ProductType: common.ProductTypeHS80MAXW,
-							Product:     "HS80 MAX WIRELESS",
-							Serial:      d.Serial,
-							Firmware:    d.Firmware,
-							Image:       "icon-headphone.svg",
-							Instance:    d,
-						}
-						dev.AddPairedDevice(dev.Devices.ProductId, d)
-					}
-				default:
-					logger.Log(logger.Fields{"productId": dev.Devices.ProductId}).Warn("Unsupported device detected")
-				}
-				dev.InitAvailableDevices()
-			}(vendorId, productId, key)
-		}
-	case 7132, 7078, 11008: // Corsair SLIPSTREAM WIRELESS USB Receiver
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := slipstream.Init(vendorId, productId, key, devices)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeIronClawRgbW,
-					Product:     "SLIPSTREAM",
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-dongle.svg",
-					Instance:    dev,
-					Hidden:      true,
-				}
-				for _, value := range dev.Devices {
-					switch value.ProductId {
-					case 7163: // M55
-						{
-							d := m55W.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeM55W,
-								Product:     "M55 WIRELESS",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7131: // SCIMITAR
-						{
-							d := scimitarW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeScimitarRgbEliteW,
-								Product:     "SCIMITAR RGB ELITE",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 11042: // CORSAIR SCIMITAR ELITE WIRELESS SE
-						{
-							d := scimitarSEW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeScimitarRgbEliteSEW,
-								Product:     "SCIMITAR ELITE SE",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7096: // NIGHTSABRE
-						{
-							d := nightsabreW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeNightsabreW,
-								Product:     "NIGHTSABRE",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7083: // K100 AIR WIRELESS
-						{
-							d := k100airW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeK100AirW,
-								Product:     "K100 AIR",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-keyboard.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 6988: // IRONCLAW RGB WIRELESS
-						{
-							d := ironclawW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeIronClawRgbW,
-								Product:     "IRONCLAW RGB",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7038: // DARK CORE RGB PRO SE WIRELESS
-						{
-							d := darkcorergbproseW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeDarkCoreRgbProSEW,
-								Product:     "DARK CORE RGB PRO SE",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7040: // DARK CORE RGB PRO WIRELESS
-						{
-							d := darkcorergbproW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeDarkCoreRgbProW,
-								Product:     "DARK CORE RGB PRO",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 11016: // M75 WIRELESS
-						{
-							d := m75W.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeM75W,
-								Product:     "M75 WIRELESS",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7154: // M75 AIR WIRELESS
-						{
-							d := m75AirW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeM75AirW,
-								Product:     "M75 AIR WIRELESS",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7006: // HARPOON RGB WIRELESS
-						{
-							d := harpoonW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeHarpoonRgbW,
-								Product:     "HARPOON RGB",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7090: // CORSAIR DARKSTAR RGB WIRELESS Gaming Mouse
-						{
-							d := darkstarW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeDarkstarW,
-								Product:     "DARKSTAR",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7093, 7126: // M65 RGB ULTRA WIRELESS Gaming Mouse
-						{
-							d := m65rgbultraW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeM65RgbUltraW,
-								Product:     "M65 RGB ULTRA",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 11010: // K70 CORE TKL WIRELESS
-						{
-							d := k70coretklW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-								dev.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeK70CoreTklW,
-								Product:     "K70 CORE TKL",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-keyboard.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7064: // CORSAIR SABRE RGB PRO WIRELESS Gaming Mouse
-						{
-							d := sabrergbproW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeSabreRgbProW,
-								Product:     "SABRE RGB PRO",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-mouse.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					case 7094: // K70 PRO MINI
-						{
-							d := k70pmW.Init(
-								value.VendorId,
-								productId,
-								value.ProductId,
-								dev.GetDevice(),
-								value.Endpoint,
-								value.Serial,
-							)
-							devices[d.Serial] = &common.Device{
-								ProductType: common.ProductTypeK70PMW,
-								Product:     "K70 PRO MINI",
-								Serial:      d.Serial,
-								Firmware:    d.Firmware,
-								Image:       "icon-keyboard.svg",
-								Instance:    d,
-							}
-							dev.AddPairedDevice(value.ProductId, d, devices[d.Serial])
-						}
-					default:
-						logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
-					}
-				}
-				dev.InitAvailableDevices()
-			}(vendorId, productId, key)
-		}
-	case 6993: // CORSAIR DARK CORE RGB SE Wireless USB Receiver
-		{
-			go func(vendorId, productId uint16, key string) {
-				var pid uint16 = 6987
-				dev := darkcorergbsesongle.Init(vendorId, productId, key, devices)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeDarkCoreRgbSEW,
-					Product:     "DONGLE",
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-dongle.svg",
-					Instance:    dev,
-					Hidden:      true,
-				}
-
-				d := darkcorergbseW.Init(
-					vendorId,
-					pid,
-					dev.GetDevice(),
-					strconv.Itoa(int(pid)),
-				)
-				devices[d.Serial] = &common.Device{
-					ProductType: common.ProductTypeDarkCoreRgbSEW,
-					Product:     "DARK CORE RGB SE",
-					Serial:      d.Serial,
-					Firmware:    d.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    d,
-				}
-				dev.AddPairedDevice(pid, d, devices[d.Serial])
-				dev.InitAvailableDevices()
-			}(vendorId, productId, key)
-		}
-	default:
-		return
 	}
 }

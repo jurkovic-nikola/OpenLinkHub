@@ -134,6 +134,8 @@ const (
 	ProductTypeLT100                = 403
 	ProductTypeMM800                = 404
 	ProductTypePSUHid               = 501
+	ProductTypeDongle               = 997
+	ProductTypeSlipstream           = 998
 	ProductTypeCluster              = 999
 )
 

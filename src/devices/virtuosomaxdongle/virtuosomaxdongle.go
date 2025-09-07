@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/common"
 	"github.com/sstallion/go-hid"
 )
 
@@ -36,6 +37,7 @@ type Device struct {
 	ProductId      uint16
 	VendorId       uint16
 	Devices        *Devices `json:"devices"`
+	SharedDevices  func(device *common.Device)
 	PairedDevices  map[uint16]any
 	SingleDevice   bool
 	Template       string
@@ -44,6 +46,7 @@ type Device struct {
 	timerKeepAlive *time.Ticker
 	keepAliveChan  chan struct{}
 	mutex          sync.Mutex
+	instance       *common.Device
 }
 
 var (
@@ -59,9 +62,9 @@ var (
 	transferTimeout = 1000
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
 	// Open device, return if failure
-	dev, err := hid.OpenPath(key)
+	dev, err := hid.OpenPath(path)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
 		return nil
@@ -76,19 +79,66 @@ func Init(vendorId, productId uint16, key string) *Device {
 		Template:       "slipstream.html",
 		keepAliveChan:  make(chan struct{}),
 		timerKeepAlive: &time.Ticker{},
+		SharedDevices:  callback,
 	}
 
-	d.getDebugMode()      // Debug
-	d.getManufacturer()   // Manufacturer
-	d.getProduct()        // Product
-	d.getSerial()         // Serial
-	d.getDeviceFirmware() // Firmware
-	d.setSoftwareMode()   // Switch to software mode
-	d.getDevice()         // Get paired device
-	d.monitorDevice()     // Monitor device
-	d.backendListener()   // Control listener
+	d.getDebugMode()         // Debug
+	d.getManufacturer()      // Manufacturer
+	d.getProduct()           // Product
+	d.getSerial()            // Serial
+	d.getDeviceFirmware()    // Firmware
+	d.setSoftwareMode()      // Switch to software mode
+	d.getDevice()            // Get paired device
+	d.addDevices()           // Add devices
+	d.monitorDevice()        // Monitor device
+	d.backendListener()      // Control listener
+	d.createDevice()         // Device register
+	d.initAvailableDevices() // Init devices
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeVirtuosoMAXW,
+		Product:     "HEADSET DONGLE",
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-dongle.svg",
+		Instance:    d,
+		Hidden:      true,
+	}
+}
+
+// addDevices adda a mew device
+func (d *Device) addDevices() {
+	switch d.Devices.ProductId {
+	case 10752:
+		{
+			dev := virtuosomaxW.Init(
+				d.Devices.VendorId,
+				d.ProductId,
+				d.Devices.ProductId,
+				d.dev,
+				d.Devices.Endpoint,
+				d.Devices.Serial,
+			)
+			object := &common.Device{
+				ProductType: common.ProductTypeVirtuosoMAXW,
+				Product:     "VIRTUOSO MAX",
+				Serial:      dev.Serial,
+				Firmware:    dev.Firmware,
+				Image:       "icon-headphone.svg",
+				Instance:    dev,
+			}
+			d.SharedDevices(object)
+			d.AddPairedDevice(d.Devices.ProductId, dev)
+		}
+	default:
+		logger.Log(logger.Fields{"productId": d.Devices.ProductId}).Warn("Unsupported device detected")
+	}
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -234,9 +284,9 @@ func (d *Device) setSoftwareMode() {
 	}
 }
 
-// InitAvailableDevices will run on initial start
-func (d *Device) InitAvailableDevices() {
-	_, err := d.transferToDevice(d.Devices.Endpoint, cmdHeartbeat, nil, "InitAvailableDevices")
+// initAvailableDevices will run on initial start
+func (d *Device) initAvailableDevices() {
+	_, err := d.transferToDevice(d.Devices.Endpoint, cmdHeartbeat, nil, "initAvailableDevices")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "endpoint": d.Devices.Endpoint, "productId": d.Devices.ProductId}).Warn("Unable to read endpoint. Device is probably offline")
 		return

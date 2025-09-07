@@ -38,7 +38,7 @@ type Device struct {
 	ProductId      uint16
 	VendorId       uint16
 	Devices        map[int]*Devices `json:"devices"`
-	SharedDevices  map[string]*common.Device
+	SharedDevices  func(device *common.Device)
 	DeviceList     map[string]*common.Device
 	PairedDevices  map[uint16]any
 	SingleDevice   bool
@@ -48,6 +48,7 @@ type Device struct {
 	timerKeepAlive *time.Ticker
 	keepAliveChan  chan struct{}
 	mutex          sync.Mutex
+	instance       *common.Device
 }
 
 var (
@@ -69,9 +70,9 @@ var (
 	connectDelay     = 3000
 )
 
-func Init(vendorId, productId uint16, key string, devices map[string]*common.Device) *Device {
+func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
 	// Open device, return if failure
-	dev, err := hid.OpenPath(key)
+	dev, err := hid.OpenPath(path)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
 		return nil
@@ -87,20 +88,91 @@ func Init(vendorId, productId uint16, key string, devices map[string]*common.Dev
 		Template:       "slipstream.html",
 		keepAliveChan:  make(chan struct{}),
 		timerKeepAlive: &time.Ticker{},
-		SharedDevices:  devices,
+		SharedDevices:  callback,
 	}
 
-	d.getDebugMode()      // Debug
-	d.getManufacturer()   // Manufacturer
-	d.getProduct()        // Product
-	d.getSerial()         // Serial
-	d.getDeviceFirmware() // Firmware
-	d.setSoftwareMode()   // Switch to software mode
-	d.getDevices()        // Get devices
-	d.monitorDevice()     // Monitor device
-	d.backendListener()   // Control listener
+	d.getDebugMode()         // Debug
+	d.getManufacturer()      // Manufacturer
+	d.getProduct()           // Product
+	d.getSerial()            // Serial
+	d.getDeviceFirmware()    // Firmware
+	d.setSoftwareMode()      // Switch to software mode
+	d.getDevices()           // Get devices
+	d.addDevices()           // Add devices
+	d.monitorDevice()        // Monitor device
+	d.backendListener()      // Control listener
+	d.initAvailableDevices() // Init devices
+	d.createDevice()         // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// addDevices adda a mew device
+func (d *Device) addDevices() {
+	for _, value := range d.Devices {
+
+		switch value.ProductId {
+		case 2658:
+			{
+				dev := virtuosorgbXTW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeVirtuosoXTW,
+					Product:     "VIRTUOSO RGB WIRELESS XT",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-headphone.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 2665:
+			{
+				dev := hs80rgbW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+				object := &common.Device{
+					ProductType: common.ProductTypeHS80RGBW,
+					Product:     "HS80 RGB WIRELESS",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-headphone.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		default:
+			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
+		}
+	}
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeIronClawRgbW,
+		Product:     "HEADSET DONGLE",
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-dongle.svg",
+		Instance:    d,
+		Hidden:      true,
+	}
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -346,10 +418,10 @@ func (d *Device) read(endpoint []byte) []byte {
 	return buffer
 }
 
-// InitAvailableDevices will run on initial start
-func (d *Device) InitAvailableDevices() {
+// initAvailableDevices will run on initial start
+func (d *Device) initAvailableDevices() {
 	for _, value := range d.Devices {
-		_, err := d.transferToDevice(value.Endpoint, cmdHeartbeat, nil, "InitAvailableDevices")
+		_, err := d.transferToDevice(value.Endpoint, cmdHeartbeat, nil, "initAvailableDevices")
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "endpoint": value.Endpoint, "productId": value.ProductId}).Warn("Unable to read endpoint. Device is probably offline")
 			continue
@@ -400,14 +472,14 @@ func (d *Device) setDeviceOnline() {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
-				d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+				d.SharedDevices(d.DeviceList[device.Serial])
 			}
 		}
 		if device, found := pairedDevice.(*hs80rgbW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
-				d.SharedDevices[device.Serial] = d.DeviceList[device.Serial]
+				d.SharedDevices(d.DeviceList[device.Serial])
 			}
 		}
 	}

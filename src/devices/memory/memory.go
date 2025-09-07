@@ -117,6 +117,7 @@ type Device struct {
 	Path              string
 	queue             chan map[int][]byte
 	SkuLine           string
+	instance          *common.Device
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -178,7 +179,7 @@ var (
 	}
 )
 
-func Init(device, product string) *Device {
+func Init(_, _ uint16, _, path string) *common.Device {
 	if config.GetConfig().MemoryType == 5 {
 		temperatureAddresses = dimmInfoAddresses                                // DDR5
 		colorAddresses = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR5
@@ -192,13 +193,13 @@ func Init(device, product string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
-	dev, err := smbus.Open(device)
+	dev, err := smbus.Open(path)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "device": device}).Error("Unable to open I2C device")
+		logger.Log(logger.Fields{"error": err, "device": path}).Error("Unable to open I2C device")
 		return nil
 	}
 
-	serial := filepath.Base(device)
+	serial := filepath.Base(path)
 	serial = strings.Replace(serial, "-", "", -1)
 
 	d := &Device{
@@ -211,13 +212,13 @@ func Init(device, product string) *Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:         product,
+		Product:         "Memory",
 		Serial:          serial,
 		LEDChannels:     0,
 		timer:           &time.Ticker{},
 		autoRefreshChan: make(chan struct{}),
 		enhancementKits: make(map[byte]bool, 8),
-		Path:            device,
+		Path:            path,
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -236,7 +237,21 @@ func Init(device, product string) *Device {
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
 	d.startQueueWorker()       // Queue
-	return d
+	d.createDevice()           // Device register
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeMemory,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    "0",
+		Image:       "icon-ram.svg",
+		Instance:    d,
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device

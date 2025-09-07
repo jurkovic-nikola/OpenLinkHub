@@ -637,7 +637,7 @@ func Init() {
 			if len(sm.Path) > 0 {
 				products[sm.Path] = Product{
 					ProductId: 0,
-					Path:      "",
+					Path:      sm.Path,
 				}
 			}
 		} else {
@@ -680,6 +680,7 @@ func Init() {
 
 // deviceRegisterMap hold map of supported devices and their initialization call
 var deviceRegisterMap = map[uint16]deviceRegister{
+	0:     memory.Init,             // Memory
 	3135:  lsh.Init,                // iCUE Link System Hub
 	3122:  cc.Init,                 // iCUE COMMANDER Core
 	3100:  cc.Init,                 // iCUE COMMANDER Core
@@ -770,6 +771,16 @@ var deviceRegisterMap = map[uint16]deviceRegister{
 	11016: m75WU.Init,              // M75 WIRELESS Gaming Mouse
 	7154:  m75AirWU.Init,           // M75 AIR WIRELESS Gaming Mouse
 	7070:  m65rgbultra.Init,        // M65 RGB ULTRA Gaming Mouse
+	7093:  m65rgbultraWU.Init,      // M65 RGB ULTRA WIRELESS Gaming Mouse
+	7126:  m65rgbultraWU.Init,      // M65 RGB ULTRA WIRELESS Gaming Mouse
+	7029:  harpoonrgbpro.Init,      // HARPOON RGB PRO Gaming Mouse
+	7006:  harpoonWU.Init,          // HARPOON Gaming Mouse
+	7004:  nightswordrgb.Init,      // NIGHTSWORD RGB Gaming Mouse
+	7064:  sabrergbproWU.Init,      // SABRE RGB PRO WIRELESS Gaming Mouse
+	7033:  sabrergbpro.Init,        // SABRE RGB PRO
+	7090:  darkstarWU.Init,         // DARKSTAR RGB WIRELESS Gaming Mouse
+	2658:  virtuosorgbXTWU.Init,    // VIRTUOSO RGB WIRELESS XT
+	2696:  hs80rgb.Init,            // HS80 RGB USB Gaming Headset
 }
 
 // initializeDevice will initialize a device
@@ -1320,176 +1331,6 @@ func initializeDevice(productId uint16, key, productPath string) {
 				dev.AddPairedDevice(pid, d, devices[d.Serial])
 				dev.InitAvailableDevices()
 			}(vendorId, productId, key)
-		}
-	case 7093, 7126: // CORSAIR M65 RGB ULTRA WIRELESS Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := m65rgbultraWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeM65RgbUltraWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7029: // CORSAIR HARPOON RGB PRO Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := harpoonrgbpro.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeHarpoonRgbPro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7006: // CORSAIR HARPOON Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := harpoonWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeHarpoonRgbWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7004: // CORSAIR NIGHTSWORD RGB Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := nightswordrgb.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeNightswordRgb,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7064: // CORSAIR SABRE RGB PRO WIRELESS Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := sabrergbproWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeSabreRgbProWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7033: // CORSAIR SABRE RGB PRO
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := sabrergbpro.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeSabreRgbPro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7090: // CORSAIR DARKSTAR RGB WIRELESS Gaming Mouse
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := darkstarWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeDarkstarWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-mouse.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 2658: // VIRTUOSO RGB WIRELESS XT
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := virtuosorgbXTWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeVirtuosoXTWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-headphone.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 2696: // Corsair HS80 RGB USB Gaming Headset
-		{
-			go func(vendorId, productId uint16, path string) {
-				dev := hs80rgb.Init(vendorId, productId, path)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeHS80RGB,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-headphone.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, productPath)
-		}
-	case 0: // Memory
-		{
-			go func(serialId string) {
-				dev := memory.Init(serialId, "Memory")
-				if dev != nil {
-					devices[dev.Serial] = &common.Device{
-						ProductType: common.ProductTypeMemory,
-						Product:     dev.Product,
-						Serial:      dev.Serial,
-						Firmware:    "0",
-						Image:       "icon-ram.svg",
-						Instance:    dev,
-					}
-					devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-				}
-			}(key)
 		}
 	default:
 		return

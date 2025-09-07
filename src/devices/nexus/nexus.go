@@ -126,6 +126,7 @@ type Device struct {
 	lcdTimer          *time.Ticker
 	LCDProfiles       *LCDProfiles
 	Keyboard          bool
+	instance          *common.Device
 }
 
 var (
@@ -142,7 +143,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial string) *Device {
+func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -191,8 +192,22 @@ func Init(vendorId, productId uint16, serial string) *Device {
 	d.loadLcdBackground()  // LCD background
 	d.setupLCD()           // LCD
 	d.backendListener()    // Control listener
+	d.createDevice()       // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-	return d
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeNexus,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-device.svg",
+		Instance:    d,
+	}
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode

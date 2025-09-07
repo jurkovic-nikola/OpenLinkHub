@@ -101,6 +101,7 @@ type Device struct {
 	Connected              bool
 	deviceLock             sync.Mutex
 	RGBModes               []string
+	instance               *common.Device
 }
 
 var (
@@ -133,33 +134,33 @@ var (
 	deviceKeepAlive       = 20000
 	rgbProfileUpgrade     = []string{"tlk", "tlr", "spiralrainbow", "rainbowwave", "rain", "visor", "colorwave"}
 	rgbModes              = []string{
-		"keyboard",
-		"rainbow",
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
 		"cpu-temperature",
+		"flickering",
 		"gpu-temperature",
+		"keyboard",
+		"off",
+		"rainbow",
+		"rotator",
+		"spinner",
 		"static",
 		"storm",
 		"watercolor",
-		"colorshift",
-		"rotator",
 		"wave",
-		"colorpulse",
-		"circle",
-		"circleshift",
-		"flickering",
-		"colorwarp",
-		"spinner",
-		"off",
 	}
 )
 
-func Init(vendorId, productId uint16, key string) *Device {
+func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
-	dev, err := hid.OpenPath(key)
+	dev, err := hid.OpenPath(path)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId}).Error("Unable to open HID device")
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
 		return nil
 	}
 
@@ -219,7 +220,22 @@ func Init(vendorId, productId uint16, key string) *Device {
 	d.setDeviceColor()     // Device color
 	d.setupPerformance()   // Performance
 	d.backendListener()    // Control buttons
-	return d
+	d.createDevice()       // Device register
+	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
+
+	return d.instance
+}
+
+// createDevice will create new device register object
+func (d *Device) createDevice() {
+	d.instance = &common.Device{
+		ProductType: common.ProductTypeK70PMWU,
+		Product:     d.Product,
+		Serial:      d.Serial,
+		Firmware:    d.Firmware,
+		Image:       "icon-keyboard.svg",
+		Instance:    d,
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device

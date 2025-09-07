@@ -680,46 +680,61 @@ func Init() {
 
 // deviceRegisterMap hold map of supported devices and their initialization call
 var deviceRegisterMap = map[uint16]deviceRegister{
-	3135: lsh.Init,      // CORSAIR iCUE Link System Hub
-	3122: cc.Init,       // CORSAIR iCUE COMMANDER Core
-	3100: cc.Init,       // CORSAIR iCUE COMMANDER Core
-	3114: ccxt.Init,     // CORSAIR iCUE COMMANDER CORE XT
-	3090: platinum.Init, // Corsair H150i Platinum
-	3091: platinum.Init, // Corsair H115i Platinum
-	3093: platinum.Init, // Corsair H100i Platinum
-	3080: hydro.Init,    // Corsair H80i Hydro
-	3081: hydro.Init,    // Corsair H100i Hydro
-	3082: hydro.Init,    // Corsair H115i Hydro
-	3125: elite.Init,    // iCUE H100i ELITE RGB
-	3126: elite.Init,    // iCUE H115i ELITE RGB
-	3127: elite.Init,    // iCUE H150i ELITE RGB
-	3136: elite.Init,    // iCUE H100i ELITE RGB White
-	3137: elite.Init,    // iCUE H150i ELITE RGB White
-	3104: elite.Init,    // iCUE H100i RGB PRO XT
-	3105: elite.Init,    // iCUE H115i RGB PRO XT
-	3106: elite.Init,    // iCUE H150i RGB PRO XT
-	3095: elite.Init,    // H115i RGB PLATINUM
-	3096: elite.Init,    // H100i RGB PLATINUM
-	3097: elite.Init,    // H100i RGB PLATINUM SE
-	3098: lncore.Init,   // Lighting Node CORE
-	3083: lnpro.Init,    // Lighting Node Pro
-	3088: cpro.Init,     // Commander Pro
-	3138: xc7.Init,      // XC7 ELITE LCD CPU Water Block
-	2612: st100.Init,    // ST100 LED Driver
-	7067: mm700.Init,    // MM700 RGB Gaming Mousepad
-	7113: mm700.Init,    // MM700 3XL RGB Gaming Mousepad
-	6971: mm800.Init,    // MM800 RGB POLARIS
-	3107: lt100.Init,    // LT100 Smart Lighting Tower
-	7198: psuhid.Init,   // HX1000i Power Supply
-	7203: psuhid.Init,   // HX1200i Power Supply
-	7199: psuhid.Init,   // HX1500i Power Supply
-	7173: psuhid.Init,   // HX750i Power Supply
-	7174: psuhid.Init,   // HX850i Power Supply
-	7175: psuhid.Init,   // HX1000i Power Supply
-	7176: psuhid.Init,   // HX1200i Power Supply
-	7181: psuhid.Init,   // RM1000i Power Supply
-	7180: psuhid.Init,   // RM850i Power Supply
-	7207: psuhid.Init,   // HX1200i Power Supply
+	3135:  lsh.Init,          // CORSAIR iCUE Link System Hub
+	3122:  cc.Init,           // CORSAIR iCUE COMMANDER Core
+	3100:  cc.Init,           // CORSAIR iCUE COMMANDER Core
+	3114:  ccxt.Init,         // CORSAIR iCUE COMMANDER CORE XT
+	3090:  platinum.Init,     // Corsair H150i Platinum
+	3091:  platinum.Init,     // Corsair H115i Platinum
+	3093:  platinum.Init,     // Corsair H100i Platinum
+	3080:  hydro.Init,        // Corsair H80i Hydro
+	3081:  hydro.Init,        // Corsair H100i Hydro
+	3082:  hydro.Init,        // Corsair H115i Hydro
+	3125:  elite.Init,        // iCUE H100i ELITE RGB
+	3126:  elite.Init,        // iCUE H115i ELITE RGB
+	3127:  elite.Init,        // iCUE H150i ELITE RGB
+	3136:  elite.Init,        // iCUE H100i ELITE RGB White
+	3137:  elite.Init,        // iCUE H150i ELITE RGB White
+	3104:  elite.Init,        // iCUE H100i RGB PRO XT
+	3105:  elite.Init,        // iCUE H115i RGB PRO XT
+	3106:  elite.Init,        // iCUE H150i RGB PRO XT
+	3095:  elite.Init,        // H115i RGB PLATINUM
+	3096:  elite.Init,        // H100i RGB PLATINUM
+	3097:  elite.Init,        // H100i RGB PLATINUM SE
+	3098:  lncore.Init,       // Lighting Node CORE
+	3083:  lnpro.Init,        // Lighting Node Pro
+	3088:  cpro.Init,         // Commander Pro
+	3138:  xc7.Init,          // XC7 ELITE LCD CPU Water Block
+	2612:  st100.Init,        // ST100 LED Driver
+	7067:  mm700.Init,        // MM700 RGB Gaming Mousepad
+	7113:  mm700.Init,        // MM700 3XL RGB Gaming Mousepad
+	6971:  mm800.Init,        // MM800 RGB POLARIS
+	3107:  lt100.Init,        // LT100 Smart Lighting Tower
+	7198:  psuhid.Init,       // HX1000i Power Supply
+	7203:  psuhid.Init,       // HX1200i Power Supply
+	7199:  psuhid.Init,       // HX1500i Power Supply
+	7173:  psuhid.Init,       // HX750i Power Supply
+	7174:  psuhid.Init,       // HX850i Power Supply
+	7175:  psuhid.Init,       // HX1000i Power Supply
+	7176:  psuhid.Init,       // HX1200i Power Supply
+	7181:  psuhid.Init,       // RM1000i Power Supply
+	7180:  psuhid.Init,       // RM850i Power Supply
+	7207:  psuhid.Init,       // HX1200i Power Supply
+	7054:  nexus.Init,        // iCUE NEXUS
+	7127:  k65pm.Init,        // K65 PRO MINI
+	7094:  k70pmWU.Init,      // K70 PPO MINI
+	7165:  k70core.Init,      // K70 CORE RGB
+	11009: k70coretkl.Init,   // K70 CORE TKL
+	11010: k70coretklWU.Init, // K70 CORE TKL WIRELESS
+	11028: k70protkl.Init,    // K70 PRO TKL WIRELESS
+	7097:  k70rgbtklcs.Init,  // K70 RGB TKL
+	7027:  k70rgbtklcs.Init,  // K70 RGB TKL
+	6973:  k55.Init,          // K55 RGB
+	7166:  k55core.Init,      // K55 CORE RGB
+	7076:  k55pro.Init,       // K55 PRO RGB
+	7073:  k55proXT.Init,     // K55 RGB PRO XT
+	7072:  k60rgbpro.Init,    // K60 RGB PRO
+	7104:  k70max.Init,       // K70 MAX
 }
 
 // initializeDevice will initialize a device
@@ -733,244 +748,6 @@ func initializeDevice(productId uint16, key, productPath string) {
 	}
 
 	switch productId {
-	case 7127: // K65 PRO MINI
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k65pm.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK65PM,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7094: // K70 Pro Mini
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70pmWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70PMWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7165: // K70 CORE RGB
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70core.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70Core,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 11009: // K70 CORE TKL
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70coretkl.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70CoreTkl,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 11010: // K70 CORE TKL WIRELESS
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70coretklWU.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70CoreTklWU,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 11028: // K70 CORE TKL WIRELESS
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70protkl.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70ProTkl,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7097, 7027: // K70 RGB TKL
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70rgbtklcs.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70RgbTkl,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 6973: // K55 RGB
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k55.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK55,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 6957: // K95 PLATINUM
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k95platinum.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK95Platinum,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7166: // K55 CORE RGB
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k55core.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK55Core,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7076: // K55 PRO RGB
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k55pro.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK55Pro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7073: // K55 RGB PRO XT
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k55proXT.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK55ProXT,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7072: // K60 RGB PRO
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k60rgbpro.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK60RgbPro,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
-	case 7104: // K70 MAX
-		{
-			go func(vendorId, productId uint16, key string) {
-				dev := k70max.Init(vendorId, productId, key)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeK70Max,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-keyboard.svg",
-					Instance:    dev,
-				}
-			}(vendorId, productId, key)
-		}
 	case 7110, 7091, 7124: // K70 RGB PRO
 		{
 			go func(vendorId, productId uint16, key string) {
@@ -1031,6 +808,23 @@ func initializeDevice(productId uint16, key, productPath string) {
 				}
 				devices[dev.Serial] = &common.Device{
 					ProductType: common.ProductTypeK65PlusW,
+					Product:     dev.Product,
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+			}(vendorId, productId, key)
+		}
+	case 6957: // K95 PLATINUM
+		{
+			go func(vendorId, productId uint16, key string) {
+				dev := k95platinum.Init(vendorId, productId, key)
+				if dev == nil {
+					return
+				}
+				devices[dev.Serial] = &common.Device{
+					ProductType: common.ProductTypeK95Platinum,
 					Product:     dev.Product,
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
@@ -2120,24 +1914,6 @@ func initializeDevice(productId uint16, key, productPath string) {
 					Instance:    dev,
 				}
 			}(vendorId, productId, productPath)
-		}
-	case 7054: // CORSAIR iCUE NEXUS
-		{
-			go func(vendorId, productId uint16, serialId string) {
-				dev := nexus.Init(vendorId, productId, serialId)
-				if dev == nil {
-					return
-				}
-				devices[dev.Serial] = &common.Device{
-					ProductType: common.ProductTypeNexus,
-					Product:     dev.Product,
-					Serial:      dev.Serial,
-					Firmware:    dev.Firmware,
-					Image:       "icon-device.svg",
-					Instance:    dev,
-				}
-				devices[dev.Serial].GetDevice = GetDevice(dev.Serial)
-			}(vendorId, productId, key)
 		}
 	case 0: // Memory
 		{

@@ -134,14 +134,7 @@ func Stop() {
 	cls.Stop()
 
 	for _, device := range devices {
-		methodName := "Stop"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-			continue
-		} else {
-			method.Call(nil)
-		}
+		CallDeviceMethod(device.Serial, "Stop")
 		delete(devices, device.Serial)
 	}
 	err := hid.Exit()
@@ -160,38 +153,24 @@ func StopDirty(deviceId string, productId uint16) {
 		}
 	}
 
-	methodName := "StopDirty"
-	method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-	if !method.IsValid() {
-		logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-	} else {
-		results := method.Call(nil)
-		if len(results) > 0 {
-			val := results[0]
-			uintResult := val.Uint()
-			if uint8(uintResult) == 2 { // USB only devices, remove them from the device list
-				deleteDevice(device.Serial)
-			}
+	res := CallDeviceMethod(device.Serial, "StopDirty")
+	if res != nil {
+		val := res[0]
+		uintResult := val.Uint()
+		if uint8(uintResult) == 2 { // USB only devices, remove them from the device list
+			deleteDevice(device.Serial)
 		}
 	}
-
 }
 
 // GetRgbProfiles will return a list of all RGB profiles for every device
 func GetRgbProfiles() map[string]interface{} {
 	profiles := make(map[string]interface{}, len(devices))
 	for _, device := range devices {
-		methodName := "GetRgbProfiles"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName, "device": device.Product}).Warn("Method not found or method is not supported for this device type")
-			continue
-		} else {
-			results := method.Call(nil)
-			if len(results) > 0 {
-				val := results[0]
-				profiles[device.Serial] = val.Interface()
-			}
+		res := CallDeviceMethod(device.Serial, "GetRgbProfiles")
+		if res != nil {
+			val := res[0]
+			profiles[device.Serial] = val.Interface()
 		}
 	}
 	return profiles
@@ -200,16 +179,7 @@ func GetRgbProfiles() map[string]interface{} {
 // ScheduleDeviceBrightness will change device brightness level based on scheduler
 func ScheduleDeviceBrightness(mode uint8) {
 	for _, device := range GetDevices() {
-		methodName := "SchedulerBrightness"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-			continue
-		} else {
-			var reflectArgs []reflect.Value
-			reflectArgs = append(reflectArgs, reflect.ValueOf(mode))
-			method.Call(reflectArgs)
-		}
+		CallDeviceMethod(device.Serial, "SchedulerBrightness", mode)
 	}
 }
 
@@ -217,17 +187,7 @@ func ScheduleDeviceBrightness(mode uint8) {
 func UpdateGlobalRgbProfile(profile string) uint8 {
 	channelId := -1
 	for _, device := range devices {
-		methodName := "UpdateRgbProfile"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-			continue
-		} else {
-			var reflectArgs []reflect.Value
-			reflectArgs = append(reflectArgs, reflect.ValueOf(channelId))
-			reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
-			method.Call(reflectArgs)
-		}
+		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, profile)
 	}
 	return 1
 }
@@ -238,16 +198,7 @@ func ResetSpeedProfiles(profile string) {
 		if device.ProductType == common.ProductTypeLinkHub ||
 			device.ProductType == common.ProductTypeCC ||
 			device.ProductType == common.ProductTypeCCXT {
-			methodName := "ResetSpeedProfiles"
-			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-			if !method.IsValid() {
-				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-				return
-			} else {
-				var reflectArgs []reflect.Value
-				reflectArgs = append(reflectArgs, reflect.ValueOf(profile))
-				method.Call(reflectArgs)
-			}
+			CallDeviceMethod(device.Serial, "ResetSpeedProfiles", profile)
 		}
 	}
 }
@@ -256,18 +207,10 @@ func ResetSpeedProfiles(profile string) {
 func GetDevicesLedData() interface{} {
 	var leds []interface{}
 	for _, device := range devices {
-		methodName := "GetDeviceLedData"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-			continue
-		} else {
-			results := method.Call(nil)
-			if len(results) > 0 {
-				val := results[0]
-				res := val.Interface()
-				leds = append(leds, res)
-			}
+		res := CallDeviceMethod(device.Serial, "GetDeviceLedData")
+		if res != nil && len(res) > 0 {
+			val := res[0]
+			leds = append(leds, val.Interface())
 		}
 	}
 	return leds
@@ -285,18 +228,10 @@ func GetTemperatureProbes() interface{} {
 			device.ProductType == common.ProductTypeElite ||
 			device.ProductType == common.ProductTypeXC7 ||
 			device.ProductType == common.ProductTypePlatinum {
-			methodName := "GetTemperatureProbes"
-			method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-			if !method.IsValid() {
-				logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-				continue
-			} else {
-				results := method.Call(nil)
-				if len(results) > 0 {
-					val := results[0]
-					res := val.Interface()
-					probes = append(probes, res)
-				}
+			res := CallDeviceMethod(device.Serial, "GetTemperatureProbes")
+			if res != nil && len(res) > 0 {
+				val := res[0]
+				probes = append(probes, val.Interface())
 			}
 		}
 	}
@@ -309,14 +244,7 @@ func UpdateDeviceMetrics() {
 	metrics.PopulateStorage()
 
 	for _, device := range devices {
-		methodName := "UpdateDeviceMetrics"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-			continue
-		} else {
-			method.Call(nil)
-		}
+		CallDeviceMethod(device.Serial, "UpdateDeviceMetrics")
 	}
 }
 

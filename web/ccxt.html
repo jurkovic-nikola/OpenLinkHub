@@ -14,6 +14,7 @@
         {{ $rgb := .Rgb }}
         <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
         <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
+        
         <div class="bg-dash-dark-2 py-4">
             <div class="container-fluid">
                 {{ template "navigation" . }}
@@ -347,7 +348,7 @@
                             <div class="row">
                                 {{ range $device := $rgbDevices }}
                                 <div style="width: 300px;">
-                                    <div class="card mb-4">
+                                    <div class="card mb-4 device-selectable" data-info="{{ $device.ChannelId }}">
                                         <div class="card-header border-bottom border-dash-dark-1">
                                             <div class="ds-svg-placeholder-left">
                                                 {{ if $device.ContainsPump }}

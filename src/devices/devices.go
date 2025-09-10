@@ -55,6 +55,7 @@ import (
 	"OpenLinkHub/src/devices/m75"
 	"OpenLinkHub/src/devices/m75AirWU"
 	"OpenLinkHub/src/devices/m75WU"
+	"OpenLinkHub/src/devices/makr75WU"
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/mm800"
@@ -117,7 +118,7 @@ var (
 	interfaceId                = 0
 	devices                    = make(map[string]*common.Device)
 	products                   = make(map[string]Product)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094, 7104}
+	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094, 7104, 11012}
 	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033, 6974, 6942, 6987, 6993}
 	pads                       = []uint16{7067, 7113}
 	headsets                   = []uint16{2658, 2660, 2667, 2696}
@@ -196,26 +197,6 @@ func GetRgbProfiles() map[string]interface{} {
 	return profiles
 }
 
-// GetDeviceTemplate will return device template
-func GetDeviceTemplate(device interface{}) string {
-	if device == nil {
-		return "404.html"
-	}
-	methodName := "GetDeviceTemplate"
-	method := reflect.ValueOf(device).MethodByName(methodName)
-	if !method.IsValid() {
-		logger.Log(logger.Fields{"method": methodName}).Warn("Method not found or method is not supported for this device type")
-		return ""
-	} else {
-		results := method.Call(nil)
-		if len(results) > 0 {
-			val := results[0]
-			return val.String()
-		}
-	}
-	return ""
-}
-
 // ScheduleDeviceBrightness will change device brightness level based on scheduler
 func ScheduleDeviceBrightness(mode uint8) {
 	for _, device := range GetDevices() {
@@ -269,25 +250,6 @@ func ResetSpeedProfiles(profile string) {
 			}
 		}
 	}
-}
-
-// GetDeviceLedData will return device led data
-func GetDeviceLedData(deviceId string) interface{} {
-	if device, ok := devices[deviceId]; ok {
-		methodName := "GetDeviceLedData"
-		method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
-		if !method.IsValid() {
-			logger.Log(logger.Fields{"method": methodName}).Warn("Method not found")
-			return 0
-		} else {
-			results := method.Call(nil)
-			if len(results) > 0 {
-				val := results[0]
-				return val.Interface()
-			}
-		}
-	}
-	return 0
 }
 
 // GetDevicesLedData will return led data for all devices
@@ -720,6 +682,7 @@ var deviceRegisterMap = map[uint16]deviceRegister{
 	7036:  k100.Init,               // K100
 	7109:  k100.Init,               // K100
 	7037:  k100.Init,               // K100
+	11012: makr75WU.Init,           // MAKR 75
 	7059:  katarpro.Init,           // KATAR PRO Gaming Mouse
 	7084:  katarproxt.Init,         // KATAR PRO XT Gaming Mouse
 	7005:  ironclaw.Init,           // IRONCLAW RGB Gaming Mouse

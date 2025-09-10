@@ -65,6 +65,7 @@ const (
 	RelX                = 0x00
 	RelY                = 0x01
 	RelWheel            = 0x08
+	RelHWheel           = 0x06
 )
 
 const (
@@ -332,6 +333,7 @@ var (
 	keyPause                uint16 = 0x77
 	evRel                   uint16 = 0x02
 	relWheel                uint16 = 0x08
+	relHWheel               uint16 = 0x06
 	inputActions            map[uint16]InputAction
 	virtualKeyboardPointer  uintptr
 	virtualMousePointer     uintptr

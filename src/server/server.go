@@ -189,12 +189,26 @@ func getDeviceLed(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Send(w)
 	} else {
-		resp := &Response{
-			Code:   http.StatusOK,
-			Status: 1,
-			Data:   devices.GetDeviceLedData(deviceId),
+		results := devices.CallDeviceMethod(
+			deviceId,
+			"GetDeviceLedData",
+		)
+
+		if len(results) > 0 {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 0,
+				Data:   nil,
+			}
+			resp.Send(w)
 		}
-		resp.Send(w)
 	}
 }
 
@@ -481,6 +495,36 @@ func getKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 				Code:    http.StatusOK,
 				Status:  0,
 				Message: language.GetValue("txtUnableToGetKeyboardPerformance"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
+// getControlDialColors returns list of control dial colors
+func getControlDialColors(w http.ResponseWriter, r *http.Request) {
+	deviceId, valid := getVar("/api/keyboard/dial/getColors/", r)
+	if !valid {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: language.GetValue("txtInvalidDeviceId"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "ProcessGetKeyboardControlDialColors")
+		if len(results) > 0 {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToGetControlDialColors"),
 			}
 			resp.Send(w)
 		}
@@ -1190,6 +1234,17 @@ func setKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setKeyboardPerformance handles setting keyboard performance
+func setKeyboardControlDialColors(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetKeyboardControlDialColors(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -1201,9 +1256,20 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 		}
 		resp.Send(w)
 	}
-
+	template := ""
 	device := devices.GetDevice(deviceId)
-	template := devices.GetDeviceTemplate(device)
+	if device == nil {
+		template = "404.html"
+	} else {
+		results := devices.CallDeviceMethod(
+			deviceId,
+			"GetDeviceTemplate",
+		)
+		if len(results) > 0 {
+			template = results[0].String()
+		}
+	}
+
 	if len(template) == 0 {
 		resp := &Response{
 			Code:    http.StatusInternalServerError,
@@ -1601,6 +1667,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/assignmentsModifiers/", http.MethodGet, getKeyAssignmentModifiers)
 	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
 	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
+	handleFunc(r, "/api/keyboard/dial/getColors/", http.MethodGet, getControlDialColors)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -1661,6 +1728,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/keyboard/setPerformance", http.MethodPost, setKeyboardPerformance)
 	handleFunc(r, "/api/macro/updateValue", http.MethodPost, updateMacroValue)
+	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

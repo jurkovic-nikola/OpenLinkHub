@@ -63,7 +63,10 @@ func UpdateDeviceController(serial string, ctrl *common.OpenRGBController) {
 			controllers[key] = ctrl
 		}
 	}
-	sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+
+	if conn != nil {
+		sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+	}
 }
 
 // GetDeviceController will return existing OpenRGB Controller

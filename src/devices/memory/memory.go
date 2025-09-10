@@ -1314,7 +1314,7 @@ func (d *Device) setDeviceColor() {
 			}
 			buffer = rgb.SetColor(static)
 			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}
 		return
 	}

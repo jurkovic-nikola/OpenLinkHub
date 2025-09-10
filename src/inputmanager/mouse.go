@@ -80,6 +80,12 @@ func createVirtualMouse(vendorId, productId uint16) error {
 		return errno
 	}
 
+	// Enable RelHWheel events
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMousePointer, UiSetRelbit, uintptr(RelHWheel)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable key events")
+		return errno
+	}
+
 	// Enable button events
 	for _, code := range []uint16{btnLeft, btnRight, btnMiddle, btnBack, btnForward} {
 		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMousePointer, UiSetKeybit, uintptr(code)); errno != 0 {
@@ -136,7 +142,7 @@ func InputControlMouse(controlType uint16) {
 	}
 }
 
-// InputControlScroll will trigger scroll up / down
+// InputControlScroll will trigger vertical scroll (up / down)
 func InputControlScroll(up bool) {
 	if virtualMouseFile == nil {
 		logger.Log(logger.Fields{}).Error("Virtual mouse is not present")
@@ -151,6 +157,40 @@ func InputControlScroll(up bool) {
 	scrollEvent := inputEvent{
 		Type:  evRel,
 		Code:  relWheel,
+		Value: value,
+	}
+
+	syncEvent := inputEvent{
+		Type:  evSyn,
+		Code:  0,
+		Value: 0,
+	}
+
+	events := []inputEvent{scrollEvent, syncEvent}
+
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualMouseFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit scroll event")
+			return
+		}
+	}
+}
+
+// InputControlScrollHorizontal will trigger horizontal scroll (left / right)
+func InputControlScrollHorizontal(left bool) {
+	if virtualMouseFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual mouse is not present")
+		return
+	}
+
+	value := int32(-1)
+	if left {
+		value = 1
+	}
+
+	scrollEvent := inputEvent{
+		Type:  evRel,
+		Code:  relHWheel,
 		Value: value,
 	}
 

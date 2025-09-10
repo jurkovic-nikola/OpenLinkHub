@@ -290,10 +290,13 @@
         "txtNoKeyboardKeyData": "Impossible de recuperer la donné de clé du clavier",
         "txtInvalidDeviceId": "Device ID invalide",
         "txtUnableToGetAssignmentsTypes": "Impossible de recuperer les types d'assignations",
+        "txtUnableToGetControlDialColors": "Impossible d’obtenir les couleurs de la molette de contrôle",
         "txtUnableToGetAssignmentsModifiers": "Impossible de recuperer les modificateur d'assignations",
         "txtUnableToGetKeyboardPerformance": "Impossible de recuperer les performance du clavier",
         "txtKeyboardPerformanceUpdated": "Performance du clavier mise a jour avec succès",
+        "txtKeyboardControlDialUpdated": "Les couleurs du bouton de commande ont été mises à jour avec succès.",
         "txtUnableToSetKeyboardPerformance": "Impossible d'enregistré les perfomance du clavier",
+        "txtUnableToSetKeyboardControlDialColors": "Impossible de définir les couleurs du bouton de commande du clavier.",
         "txtWorkers": "Ouvriers",
         "txtInvalidWorkers": "Les ouvriers peuvent être defini entre 1 et 8",
         "txtFrameDelay": "Delai d'image",
@@ -318,6 +321,8 @@
         "txtOpenRGBIntegrationError": "Impossible d’activer l’intégration OpenRGB",
         "txtOpenRGBClusterEnabled": "L’intégration OpenRGB ne peut pas être activée tant que RGB Cluster est activé",
         "txtRgbClusterError": "Impossible d’ajouter l’objet RGB Cluster",
-        "txtRgbCluster": "RGB Cluster"
+        "txtRgbCluster": "RGB Cluster",
+        "txtControlDial": "Bouton de commande",
+        "txtControlDialColors": "Couleurs du bouton de commande"
     }
 }

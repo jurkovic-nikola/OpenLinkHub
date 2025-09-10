@@ -32,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/devices/makr75W"
 	"github.com/sstallion/go-hid"
 )
 
@@ -501,6 +502,28 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 11012: // MAKR 75
+			{
+				dev := makr75W.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeMakr75W,
+					Product:     "MAKR 75",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		default:
 			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 		}
@@ -607,6 +630,11 @@ func (d *Device) StopDirty() uint8 {
 				dev.StopDirty()
 			}
 		}
+		if dev, found := value.(*makr75W.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 2
@@ -643,6 +671,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*k100airW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*makr75W.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -908,6 +941,11 @@ func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16
 				device.ModifyBatteryLevel(batteryLevel)
 			}
 		}
+		if device, found := dev.(*makr75W.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
 		if device, found := dev.(*k70pmW.Device); found {
 			if device.Connected {
 				device.ModifyBatteryLevel(batteryLevel)
@@ -1015,6 +1053,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*makr75W.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 		if device, found := dev.(*k70pmW.Device); found {
 			if !device.Connected {
 				device.Connect()
@@ -1101,6 +1144,11 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
+		if device, found := pairedDevice.(*makr75W.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
 		if device, found := pairedDevice.(*k70pmW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
@@ -1167,6 +1215,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 			{
 				// Keyboards
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*makr75W.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -1266,6 +1319,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 			{
 				// Keyboards
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices(d.DeviceList[device.Serial])
+					}
+				}
+				if device, found := pairedDevice.(*makr75W.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices(d.DeviceList[device.Serial])
@@ -1372,6 +1431,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 			{
 				// All
 				if device, found := pairedDevice.(*k100airW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices(d.DeviceList[device.Serial])
+					}
+				}
+				if device, found := pairedDevice.(*makr75W.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices(d.DeviceList[device.Serial])
@@ -1667,6 +1732,9 @@ func (d *Device) backendListener() {
 						{
 							for _, value := range d.PairedDevices {
 								if dev, found := value.(*k100airW.Device); found {
+									dev.TriggerKeyAssignment(data)
+								}
+								if dev, found := value.(*makr75W.Device); found {
 									dev.TriggerKeyAssignment(data)
 								}
 								if dev, found := value.(*k70pmW.Device); found {

@@ -673,7 +673,7 @@ func (d *Device) loadDeviceProfiles() {
 func (d *Device) getManufacturer() {
 	manufacturer, err := d.dev.GetMfrStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get manufacturer")
 	}
 	d.Manufacturer = manufacturer
 }
@@ -682,7 +682,7 @@ func (d *Device) getManufacturer() {
 func (d *Device) getProduct() {
 	product, err := d.dev.GetProductStr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get product")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get product")
 	}
 	product = strings.Replace(product, "CORSAIR ", "", -1)
 	d.Product = product
@@ -692,7 +692,7 @@ func (d *Device) getProduct() {
 func (d *Device) getSerial() {
 	serial, err := d.dev.GetSerialNbr()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get device serial number")
 	}
 	d.Serial = serial
 }
@@ -701,7 +701,7 @@ func (d *Device) getSerial() {
 func (d *Device) getDeviceFirmware() {
 	fw, err := d.transfer(cmdGetFirmware, nil, "getDeviceFirmware")
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to a device")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
 
 	v1, v2, v3 := int(fw[3]), int(fw[4]), int(binary.LittleEndian.Uint16(fw[5:7]))
@@ -737,13 +737,13 @@ func (d *Device) setColorEndpoint() {
 	// Close any RGB endpoint
 	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, "setColorEndpoint")
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to close endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
 	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, "setColorEndpoint")
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to open endpoint")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 }
 
@@ -1168,7 +1168,7 @@ func (d *Device) setDeviceColor() {
 
 				// Send it
 				d.writeColor(buff)
-				time.Sleep(5 * time.Millisecond)
+				time.Sleep(20 * time.Millisecond)
 			}
 		}
 	}(lightChannels)
@@ -1300,6 +1300,7 @@ func (d *Device) getDeviceData() {
 
 	// Speed
 	response := d.read(modeGetSpeeds, "getDeviceData")
+
 	if response == nil {
 		return
 	}
@@ -1714,6 +1715,51 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	return 1
 }
 
+// UpdateRgbProfileBulk will update device RGB profile on bulk selected devices
+func (d *Device) UpdateRgbProfileBulk(channelIds []int, profile string) uint8 {
+	if d.GetRgbProfile(profile) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+	hasPump := false
+
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	if len(channelIds) > 0 {
+		d.DeviceProfile.MultiRGB = profile
+		for _, channelId := range channelIds {
+			if _, ok := d.RgbDevices[channelId]; ok {
+				d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
+				d.RgbDevices[channelId].RGB = profile
+			} else {
+				return 0
+			}
+		}
+	} else {
+		return 0
+	}
+
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
 // ProcessGetRgbOverride will get rgb override data
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	return d.getRgbOverride(channelId, subDeviceId)
@@ -1859,6 +1905,9 @@ func (d *Device) UpdateExternalHubDeviceAmount(_ int, externalDevices int) uint8
 				break
 			case 12:
 				maximum = 2
+				break
+			case 15:
+				maximum = 1
 				break
 			}
 
@@ -2521,7 +2570,7 @@ func (d *Device) saveDeviceProfile() {
 	// Close file
 	err = file.Close()
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to close file handle")
 	}
 	d.loadDeviceProfiles() // Reload
 }
@@ -3058,12 +3107,12 @@ func (d *Device) writeColor(data []byte) {
 		if i > 0 {
 			_, err := d.transfer(cmdWriteColorNext, chunk, "writeColor")
 			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write to endpoint")
 			}
 		} else {
 			_, err := d.transfer(cmdWriteColor, chunk, "writeColor")
 			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Fatal("Unable to write to endpoint")
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write to endpoint")
 			}
 		}
 	}

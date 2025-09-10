@@ -197,6 +197,115 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.controlDialColors').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/keyboard/dial/getColors/' + deviceId,
+            type: 'GET',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        const data = response.data;
+                        let modalElement = `
+                          <div class="modal fade text-start" id="keyboardControlDial" tabindex="-1" aria-labelledby="keyboardControlDial">
+                            <div class="modal-dialog">
+                              <div class="modal-content">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="keyboardControlDial">Control Dial Colors</h5>
+                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                  <form>
+                                    <div class="mb-3">
+                                        <table class="table mb-0">
+                                            <thead>
+                                            <tr>
+                                                <th style="text-align: left;">Option</th>
+                                                <th style="text-align: right;">Color</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                  </form>
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveControlDialColors">Save</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        $.each(data, function( index, value ) {
+                            const color = rgbToHex(value.Color.red, value.Color.green, value.Color.blue);
+                            const optionId = value.Id;
+                            var newRow = `
+                                <tr>
+                                    <th scope="row" style="text-align: left;">${value.Name}</th>
+                                    <td style="text-align: right;"><input type="color" id="dial-color-${optionId}" value="${color}"></td>
+                                </tr>
+                            `;
+                            modal.find('.table tbody').append(newRow);
+                        });
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveControlDialColors').on('click', function () {
+                                const colorZones = {};
+                                $.each(data, function(index, value) {
+                                    let color = modal.find("#dial-color-" + value.Id).val();
+                                    color = hexToRgb(color);
+                                    colorZones[value.Id] = {red: color.r, green: color.g, blue: color.b};
+                                });
+
+                                pf["colorZones"] = colorZones;
+                                const json = JSON.stringify(pf, null, 2);
+
+                                $.ajax({
+                                    url: '/api/keyboard/dial/setColors',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                const modalElement = $("#keyboardControlDial");
+                                                $(modalElement).modal('hide');
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     function noColorChange(deviceId, keyId) {
         const pf = {};
         pf["deviceId"] = deviceId;
@@ -2558,8 +2667,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 for (let i = 0; i < count; i++) {
                                     let ledColor = modal.find('#ledId_' + i).val();
-                                    console.log(i, ledColor)
-
                                     const colorRgb = hexToRgb(ledColor)
                                     ledColors[i] = {red: colorRgb.r, green: colorRgb.g, blue: colorRgb.b};
                                 }
@@ -2572,8 +2679,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 pf["save"] = true;
 
                                 const json = JSON.stringify(pf, null, 2);
-
-                                console.log(json)
                                 $.ajax({
                                     url: '/api/color/setLedData',
                                     type: 'POST',
@@ -2621,7 +2726,6 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        console.log(response);
                         const data = response.data;
 
                         const startColor = rgbToHex(data.RGBStartColor.red, data.RGBStartColor.green, data.RGBStartColor.blue);

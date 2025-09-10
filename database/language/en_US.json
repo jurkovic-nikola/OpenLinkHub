@@ -290,10 +290,13 @@
     "txtNoKeyboardKeyData": "Unable to get keyboard key data",
     "txtInvalidDeviceId": "Invalid device ID",
     "txtUnableToGetAssignmentsTypes": "Unable to get assignments types",
+    "txtUnableToGetControlDialColors": "Unable to get control dial colors",
     "txtUnableToGetAssignmentsModifiers": "Unable to get assignments modifiers",
     "txtUnableToGetKeyboardPerformance": "Unable to get keyboard performance",
     "txtKeyboardPerformanceUpdated": "Keyboard performance is successfully updated",
+    "txtKeyboardControlDialUpdated": "Control Dial colors are successfully updated",
     "txtUnableToSetKeyboardPerformance": "Unable to set keyboard performance",
+    "txtUnableToSetKeyboardControlDialColors": "Unable to set keyboard control dial colors",
     "txtWorkers": "Workers",
     "txtInvalidWorkers": "Workers can be defined from 1-8",
     "txtFrameDelay": "Frame Delay",
@@ -318,6 +321,8 @@
     "txtOpenRGBIntegrationError": "Unable to enabled OpenRGB Integration",
     "txtOpenRGBClusterEnabled": "OpenRGB Integration can not be enabled while RGB Cluster is enabled",
     "txtRgbClusterError": "Unable to add RGB Cluster object",
-    "txtRgbCluster": "RGB Cluster"
+    "txtRgbCluster": "RGB Cluster",
+    "txtControlDial": "Control Dial",
+    "txtControlDialColors": "Control Dial Colors"
   }
 }

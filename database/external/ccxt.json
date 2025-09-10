@@ -110,5 +110,38 @@
         "total": 16
       }
     }
+  },
+  {
+    "index":   15,
+    "name":    "iCUE 5000T RGB",
+    "total":   160,
+    "command": 1,
+    "kit": true,
+    "devices": {
+      "0": {
+        "name": "Top Right Strip",
+        "total": 25
+      },
+      "1": {
+        "name": "Side Right Strip",
+        "total": 30
+      },
+      "2": {
+        "name": "Bottom Right Strip",
+        "total": 25
+      },
+      "3": {
+        "name": "Top Left Strip",
+        "total": 25
+      },
+      "4": {
+        "name": "Side Left Strip",
+        "total": 30
+      },
+      "5": {
+        "name": "Bottom Left Strip",
+        "total": 25
+      }
+    }
   }
 ]

@@ -125,6 +125,7 @@ const (
 	ProductTypeScimitarRgb          = 239
 	ProductTypeDarkCoreRgbSEWU      = 240
 	ProductTypeDarkCoreRgbSEW       = 241
+	ProductTypeSabreProCs           = 242
 	ProductTypeVirtuosoXTW          = 300
 	ProductTypeVirtuosoXTWU         = 301
 	ProductTypeVirtuosoMAXW         = 302

@@ -1841,8 +1841,6 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 	valid := false
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
 
 	// Check if the profile exists
 	profiles := temperatures.GetTemperatureProfile(profile)

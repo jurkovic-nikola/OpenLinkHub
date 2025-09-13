@@ -1546,9 +1546,6 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 
 // UpdateDeviceLcd will update device LCD
 func (d *Device) UpdateDeviceLcd(channelId int, mode uint8) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		if mode == lcd.DisplayImage {
 			if len(lcd.GetLcdImages()) == 0 {
@@ -1579,9 +1576,6 @@ func (d *Device) UpdateDeviceLcd(channelId int, mode uint8) uint8 {
 
 // ChangeDeviceLcd will change device LCD
 func (d *Device) ChangeDeviceLcd(channelId int, lcdSerial string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		if _, ok := d.DeviceProfile.LCDDevices[channelId]; ok {
 			if device, found := d.Devices[channelId]; found {
@@ -1630,9 +1624,6 @@ func (d *Device) UpdateDeviceLedData(ledProfile led.Device) uint8 {
 
 // UpdateDeviceLcdRotation will update device LCD rotation
 func (d *Device) UpdateDeviceLcdRotation(channelId int, rotation uint8) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		if _, ok := d.DeviceProfile.LCDRotations[channelId]; ok {
 			d.DeviceProfile.LCDRotations[channelId] = rotation
@@ -1647,9 +1638,6 @@ func (d *Device) UpdateDeviceLcdRotation(channelId int, rotation uint8) uint8 {
 
 // UpdateDeviceLcdImage will update device LCD image
 func (d *Device) UpdateDeviceLcdImage(channelId int, image string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", image); !m {
 			return 0
@@ -4765,7 +4753,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 	if d.Exit {
-		// Create write buffer
+		// Create write buffer, on exit we don't care about reading anything back
 		bufferW := make([]byte, bufferSizeWrite)
 		bufferW[2] = 0x01
 		endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]

@@ -3649,7 +3649,7 @@ func (d *Device) transfer(endpoint, buffer []byte, caller string) ([]byte, error
 	bufferR := make([]byte, bufferSize)
 
 	if d.Exit {
-		// Create write buffer
+		// Create write buffer, on exit we don't care about reading anything back
 		bufferW := make([]byte, bufferSizeWrite)
 		bufferW[1] = 0x08
 		endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]

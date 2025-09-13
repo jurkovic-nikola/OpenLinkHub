@@ -266,12 +266,18 @@
                                                 <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                                                 {{ else if $device.IsTemperatureProbe }}
                                                 <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
+                                                {{ else if eq $device.Label "Pump" }}
+                                                <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                                                 {{ else }}
                                                 <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                                                 {{ end }}
                                             </div>
                                             <div class="ds-svg-placeholder-right">
+                                                {{ if eq $device.Label "Pump" }}
+                                                <span style="font-size: 13px;">Pump</span><br />
+                                                {{ else }}
                                                 <span style="font-size: 13px;">{{ $device.Name }}</span><br />
+                                                {{ end }}
                                                 <p class="text-md-start lh-1 mb-0 text-dash-color-3 newLabel" style="margin-top: 5px;">
                                                     <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
                                                     <span class="labelValue">{{ $device.Label }}</span>
@@ -355,12 +361,18 @@
                                                 <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                                                 {{ else if $device.IsTemperatureProbe }}
                                                 <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
+                                                {{ else if eq $device.Label "Pump" }}
+                                                <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                                                 {{ else }}
                                                 <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Device" />
                                                 {{ end }}
                                             </div>
                                             <div class="ds-svg-placeholder-right">
+                                                {{ if eq $device.Label "Pump" }}
+                                                <span style="font-size: 13px;">Pump</span><br />
+                                                {{ else }}
                                                 <span style="font-size: 13px;">{{ $device.Name }}</span><br />
+                                                {{ end }}
                                                 <p class="text-md-start lh-1 mb-0 text-dash-color-3 newRgbLabel" style="margin-top: 5px;">
                                                     <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
                                                     <span class="labelValue">{{ $device.Label }}</span>

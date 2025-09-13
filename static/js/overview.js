@@ -1342,7 +1342,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('.newRgbLabel').on('click', function () {
+    $('.newRgbLabel').on('click', function (e) {
         e.stopPropagation();
 
         const $this = $(this);

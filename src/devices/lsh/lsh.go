@@ -1423,9 +1423,6 @@ func (d *Device) getDevicePositionByDeviceId(deviceId string) bool {
 // ResetSpeedProfiles will reset channel speed profile if it matches with the current speed profile
 // This is used when speed profile is deleted from the UI
 func (d *Device) ResetSpeedProfiles(profile string) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	i := 0
 	for _, device := range d.Devices {
 		if device.Profile == profile {
@@ -1538,9 +1535,6 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
 	}
@@ -1904,8 +1898,6 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 // UpdateSpeedProfileBulk will update device channel speed.
 func (d *Device) UpdateSpeedProfileBulk(channelIds []int, profile string) uint8 {
 	valid := false
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
 
 	// Check if the profile exists
 	profiles := temperatures.GetTemperatureProfile(profile)

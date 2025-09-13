@@ -1645,9 +1645,6 @@ func (d *Device) setSpeed(data map[int]byte, mode uint8) {
 // ResetSpeedProfiles will reset channel speed profile if it matches with the current speed profile
 // This is used when speed profile is deleted from the UI
 func (d *Device) ResetSpeedProfiles(profile string) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	i := 0
 	for _, device := range d.Devices {
 		if device.HasSpeed {
@@ -2152,9 +2149,6 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
 	}
@@ -2166,9 +2160,6 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 
 // UpdateRGBDeviceLabel will set / update device label
 func (d *Device) UpdateRGBDeviceLabel(channelId int, label string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if _, ok := d.RgbDevices[channelId]; !ok {
 		return 0
 	}
@@ -2180,9 +2171,6 @@ func (d *Device) UpdateRGBDeviceLabel(channelId int, label string) uint8 {
 
 // UpdateDeviceLcd will update device LCD
 func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		value := d.DeviceProfile.LCDMode
 		if mode == lcd.DisplayImage {
@@ -2226,9 +2214,6 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 
 // UpdateDeviceLcdImage will update device LCD image
 func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", image); !m {
 			return 0
@@ -2253,9 +2238,6 @@ func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
 
 // UpdateDeviceLcdRotation will update device LCD rotation
 func (d *Device) UpdateDeviceLcdRotation(_ int, rotation uint8) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if d.HasLCD {
 		d.DeviceProfile.LCDRotation = rotation
 		d.saveDeviceProfile()
@@ -2402,9 +2384,6 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	// Check if the profile exists
 	profiles := temperatures.GetTemperatureProfile(profile)
 	if profiles == nil {
@@ -2463,9 +2442,6 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 
 // UpdateSpeedProfileBulk will update device channel speed.
 func (d *Device) UpdateSpeedProfileBulk(channelIds []int, profile string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	// Check if the profile exists
 	profiles := temperatures.GetTemperatureProfile(profile)
 	if profiles == nil {

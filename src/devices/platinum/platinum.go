@@ -387,9 +387,6 @@ func (d *Device) StopDirty() uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if _, ok := d.Devices[channelId]; !ok {
 		return 0
 	}
@@ -402,9 +399,6 @@ func (d *Device) UpdateDeviceLabel(channelId int, label string) uint8 {
 // UpdateSpeedProfile will update device channel speed.
 // If channelId is 0, all device channels will be updated
 func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	// Check if the profile exists
 	profiles := temperatures.GetTemperatureProfile(profile)
 	if profiles == nil {

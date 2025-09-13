@@ -6,6 +6,7 @@ This effectively resolves any device communication issue that occurs when two pr
 With this implementation, you can utilize OpenRGB for your RGB effects and use OpenLinkHub for temperature monitoring, fan control, pump control, LCD control, and everything else the program offers you. 
 
 ## How to configure
+### Step 1
 ```json
 {
   "enableOpenRGBTargetServer": true,
@@ -16,16 +17,33 @@ With this implementation, you can utilize OpenRGB for your RGB effects and use O
 - `enableOpenRGBTargetServer` This will enable TCP listener
 - `openRGBPort` TCP port to listen on. This is OpenRGB native server port + 1
 
-Each device that has OpenRGB integration will have a small toggle to enable/disable integration.
+### Step 2
+```bash
+systemctl stop OpenLinkHub
+```
 
-For each device you toggle the integration, you'll need to disable that device in the OpenRGB application, so it's not processed there.
+### Step 3
+Disable device in the OpenRGB application, so it's not processed there and click Apply button. After that you can either Rescan Devices or restart OpenRGB application. 
+For each device you want integration, you'll have to disable it in OpenRGB. 
 
-When you toggle the integration, your RGB will go off, and it's ready to receive data from OpenRGB.
+![OpenRGB Device](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/openrgb-device.png?raw=true)
+
+### Step 4
+```bash
+systemctl start OpenLinkHub
+```
+
+### Step 5
+- Toggle OpenRGB Integration
 
 ![OpenRGB Integration](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/openrgb.png?raw=true)
 
+### Step 6
+In OpenRGB, click on Client tab connect to 6743 port. 
 
-## Supported devices for 0.6.2 release
+![OpenRGB Client](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/openrgb-client.png?raw=true)
+
+## Supported devices for 0.6.2+ release
 | Device                 |
 |------------------------|
 | iCUE LINK System Hub   | 

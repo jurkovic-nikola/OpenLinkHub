@@ -1723,9 +1723,8 @@ func (d *Device) startQueueWorker() {
 			}
 
 			d.transfer(cmdSetColor, data)
-			time.Sleep(5 * time.Millisecond)
-
 			d.deviceLock.Unlock()
+			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 }

@@ -196,6 +196,7 @@ type Device struct {
 	supportedDevices       []SupportedDevice
 	RGBModes               []string
 	pumpInnerLedStartIndex int
+	queue                  chan []byte
 	instance               *common.Device
 }
 
@@ -381,6 +382,7 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
+	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -537,19 +539,35 @@ func (d *Device) Stop() {
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
+
 	d.timer.Stop()
-	close(d.autoRefreshChan)
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.HasLCD {
+				close(d.lcdRefreshChan)
+				close(d.lcdImageChan)
+				d.lcdTimer.Stop()
+			}
 
-	if d.HasLCD {
-		close(d.lcdRefreshChan)
-		close(d.lcdImageChan)
-		d.lcdTimer.Stop()
-	}
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+					d.speedRefreshChan = nil
+				}
+			}
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+				d.autoRefreshChan = nil
 
-	if !config.GetConfig().Manual {
-		d.timerSpeed.Stop()
-		close(d.speedRefreshChan)
-	}
+			}
+			if d.queue != nil {
+				close(d.queue)
+				d.queue = nil
+			}
+		})
+	}()
 
 	for _, lcdHidDevice := range d.lcdDevices {
 		if lcdHidDevice.Lcd != nil {
@@ -584,19 +602,35 @@ func (d *Device) StopDirty() uint8 {
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
+
 	d.timer.Stop()
-	close(d.autoRefreshChan)
+	var once sync.Once
+	go func() {
+		once.Do(func() {
+			if d.HasLCD {
+				close(d.lcdRefreshChan)
+				close(d.lcdImageChan)
+				d.lcdTimer.Stop()
+			}
 
-	if d.HasLCD {
-		close(d.lcdRefreshChan)
-		close(d.lcdImageChan)
-		d.lcdTimer.Stop()
-	}
+			if !config.GetConfig().Manual {
+				d.timerSpeed.Stop()
+				if d.speedRefreshChan != nil {
+					close(d.speedRefreshChan)
+					d.speedRefreshChan = nil
+				}
+			}
+			if d.autoRefreshChan != nil {
+				close(d.autoRefreshChan)
+				d.autoRefreshChan = nil
 
-	if !config.GetConfig().Manual {
-		d.timerSpeed.Stop()
-		close(d.speedRefreshChan)
-	}
+			}
+			if d.queue != nil {
+				close(d.queue)
+				d.queue = nil
+			}
+		})
+	}()
 
 	for _, lcdHidDevice := range d.lcdDevices {
 		if lcdHidDevice.Lcd != nil {
@@ -2282,6 +2316,7 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 	if d.DeviceProfile.RGBCluster {
 		return 2
 	}
+	d.clearQueue()
 	d.DeviceProfile.OpenRGBIntegration = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
@@ -2695,7 +2730,6 @@ func (d *Device) updateDeviceSpeed() {
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}
-							fmt.Println(temp)
 						}
 					}
 
@@ -4560,58 +4594,17 @@ func (d *Device) writeColorEx(data []byte, _ int) {
 	if !d.DeviceProfile.OpenRGBIntegration {
 		return
 	}
-
-	d.deviceLock.Lock()
-	defer d.deviceLock.Unlock()
-
 	if d.Exit {
 		return
 	}
 
-	// Disable pump inner 4 LEDs when LCD is installed
-	if d.pumpInnerLedStartIndex > 0 {
-		for i := d.pumpInnerLedStartIndex; i < d.pumpInnerLedStartIndex+12; i++ {
-			data[i] = byte(0)
-		}
-	}
+	// Copy data to avoid race conditions, since the caller might reuse the slice
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
 
-	// Protect device
-	// When a specific number of LEDs exceeds the maximum LEDs per controller channel, brightness needs to be reduced
-	// to avoid device damage. Brightness reduction is implemented in 3 stages, and each stage reduces brightness
-	// by 33 %.
-	if d.GlobalBrightness != 0 {
-		rgb.ModifyBrightnessSlice(data, d.GlobalBrightness)
-	}
-
-	// Buffer
-	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
-	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
-	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
-	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
-
-	// Process buffer and create a chunked array if needed
-	writeColorEp := cmdWriteColor
-	colorEp := make([]byte, len(writeColorEp))
-	copy(colorEp, writeColorEp)
-
-	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
-	for i, chunk := range chunks {
-		if d.Exit {
-			break
-		}
-		if i == 0 {
-			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
-			}
-		} else {
-			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
-			}
-		}
+	select {
+	case d.queue <- copyData:
+	default:
 	}
 }
 
@@ -4673,6 +4666,82 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 			}
 		}
 	}
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan []byte, 10)
+
+	go func() {
+		for data := range d.queue {
+			d.deviceLock.Lock()
+
+			if d.Exit {
+				d.deviceLock.Unlock()
+				return
+			}
+
+			// Disable pump inner 4 LEDs when LCD is installed
+			if d.pumpInnerLedStartIndex > 0 {
+				for i := d.pumpInnerLedStartIndex; i < d.pumpInnerLedStartIndex+12; i++ {
+					data[i] = byte(0)
+				}
+			}
+
+			// Protect device
+			// When a specific number of LEDs exceeds the maximum LEDs per controller channel, brightness needs to be reduced
+			// to avoid device damage. Brightness reduction is implemented in 3 stages, and each stage reduces brightness
+			// by 33 %.
+			if d.GlobalBrightness != 0 {
+				rgb.ModifyBrightnessSlice(data, d.GlobalBrightness)
+			}
+
+			// Buffer
+			buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
+			binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
+			copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
+			copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
+
+			// Process buffer and create a chunked array if needed
+			writeColorEp := cmdWriteColor
+			colorEp := make([]byte, len(writeColorEp))
+			copy(colorEp, writeColorEp)
+
+			chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+			for i, chunk := range chunks {
+				if d.Exit {
+					break
+				}
+				if i == 0 {
+					// Initial packet is using cmdWriteColor
+					_, err := d.transfer(cmdWriteColor, chunk)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+					}
+				} else {
+					// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+					_, err := d.transfer(dataTypeSubColor, chunk)
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+					}
+				}
+			}
+
+			d.deviceLock.Unlock()
+			time.Sleep(20 * time.Millisecond)
+		}
+	}()
 }
 
 // transferToLcd will transfer data to LCD panel

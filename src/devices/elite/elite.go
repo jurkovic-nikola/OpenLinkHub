@@ -2338,6 +2338,7 @@ func (d *Device) startQueueWorker() {
 			}
 
 			d.deviceLock.Unlock()
+			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 }

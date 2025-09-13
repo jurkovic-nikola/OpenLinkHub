@@ -249,7 +249,7 @@ var (
 	criticalAioCoolantTemp      = 57.0
 	zeroRpmLimit                = 40
 	i2cPrefix                   = "i2c"
-	rgbProfileUpgrade           = []string{"led", "nebula", "marquee", "rotarystack", "sequential"}
+	rgbProfileUpgrade           = []string{"led", "nebula", "marquee", "rotarystack", "sequential", "spiralrainbow"}
 	rgbModes                    = []string{
 		"circle",
 		"circleshift",
@@ -269,6 +269,7 @@ var (
 		"rotator",
 		"sequential",
 		"spinner",
+		"spiralrainbow",
 		"static",
 		"storm",
 		"watercolor",
@@ -2623,7 +2624,6 @@ func (d *Device) updateDeviceSpeed() {
 			channelSpeeds[d.Devices[k].ChannelId] = byte(defaultSpeedValue)
 		}
 
-		zeroRpmFraction := 1.0
 		for {
 			select {
 			case <-d.timerSpeed.C:
@@ -2747,7 +2747,7 @@ func (d *Device) updateDeviceSpeed() {
 						fans := int(math.Round(float64(fansValue)))
 
 						// Failsafe
-						if fans < 20 {
+						if fans < 20 && !profiles.ZeroRpm {
 							fans = 20
 						}
 						if d.Devices[k].AIO {
@@ -2790,9 +2790,14 @@ func (d *Device) updateDeviceSpeed() {
 								cp := fmt.Sprintf("%s-%d-%d-%d", d.Devices[k].Profile, d.Devices[k].ChannelId, profile.Fans, profile.Pump)
 								if ok := tmp[d.Devices[k].ChannelId]; ok != cp {
 									tmp[d.Devices[k].ChannelId] = cp
+
 									// Validation
 									if profile.Mode < 0 || profile.Mode > 1 {
 										profile.Mode = 0
+									}
+
+									if profile.Fans < 20 && !profiles.ZeroRpm {
+										profile.Fans = 20
 									}
 
 									if profile.Pump > 100 {
@@ -2810,42 +2815,14 @@ func (d *Device) updateDeviceSpeed() {
 									}
 
 									var speed byte = 0x00
-									if profiles.ZeroRpm {
-										if d.getLiquidTemperature() < 10 {
-											if d.Devices[k].ContainsPump {
-												speed = byte(profile.Pump)
-											} else {
-												speed = byte(profile.Fans)
-											}
-											if channelSpeeds[d.Devices[k].ChannelId] != speed {
-												channelSpeeds[d.Devices[k].ChannelId] = speed
-												d.setSpeed(channelSpeeds, 0)
-											}
-										} else {
-											if d.Devices[k].ContainsPump {
-												speed = byte(profile.Pump)
-											} else {
-												if d.getLiquidTemperature()+float32(zeroRpmFraction) <= float32(zeroRpmLimit) {
-													speed = 0x00
-												} else {
-													speed = byte(profile.Fans)
-												}
-											}
-											if channelSpeeds[d.Devices[k].ChannelId] != speed {
-												channelSpeeds[d.Devices[k].ChannelId] = speed
-												d.setSpeed(channelSpeeds, 0)
-											}
-										}
+									if d.Devices[k].ContainsPump {
+										speed = byte(profile.Pump)
 									} else {
-										if d.Devices[k].ContainsPump {
-											speed = byte(profile.Pump)
-										} else {
-											speed = byte(profile.Fans)
-										}
-										if channelSpeeds[d.Devices[k].ChannelId] != speed {
-											channelSpeeds[d.Devices[k].ChannelId] = speed
-											d.setSpeed(channelSpeeds, 0)
-										}
+										speed = byte(profile.Fans)
+									}
+									if channelSpeeds[d.Devices[k].ChannelId] != speed {
+										channelSpeeds[d.Devices[k].ChannelId] = speed
+										d.setSpeed(channelSpeeds, 0)
 									}
 								}
 							}
@@ -3908,6 +3885,11 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 	case "rainbow":
 		{
 			r.Rainbow(*startTime)
+			buff = r.Output
+		}
+	case "spiralrainbow":
+		{
+			r.SpiralRainbow(*startTime)
 			buff = r.Output
 		}
 	case "watercolor":

@@ -40,7 +40,8 @@
     },
     "spiralrainbow": {
       "profileName": "Spiral Rainbow",
-      "speed": 2
+      "speed": 2,
+      "brightness": 1
     },
     "rainbowwave": {
       "profileName": "Rainbow Wave",

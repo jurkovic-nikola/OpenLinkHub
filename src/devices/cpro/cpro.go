@@ -1868,10 +1868,12 @@ func (d *Device) updateDeviceSpeed() {
 						if config.GetConfig().GraphProfiles {
 							fansValue := temperatures.Interpolate(profiles.Points[1], temp)
 							fans := int(math.Round(float64(fansValue)))
+
 							// Failsafe
-							if fans < 20 {
+							if fans < 20 && !profiles.ZeroRpm {
 								fans = 20
 							}
+
 							if fans > 100 {
 								fans = 100
 							}
@@ -1889,6 +1891,11 @@ func (d *Device) updateDeviceSpeed() {
 									cp := fmt.Sprintf("%s-%d-%d-%d-%d", device.Profile, device.ChannelId, profile.Id, profile.Fans, profile.Pump)
 									if ok := tmp[device.ChannelId]; ok != cp {
 										tmp[device.ChannelId] = cp
+
+										if profile.Fans < 20 && !profiles.ZeroRpm {
+											profile.Fans = 20
+										}
+
 										channelSpeeds[device.ChannelId] = byte(profile.Fans)
 										d.setSpeed(channelSpeeds)
 									}

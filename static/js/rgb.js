@@ -258,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             case "spiralrainbow": {
                                 startColorHtml = 'N/A';
                                 endColorHtml = 'N/A';
-                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard Only</span></p>';
+                                keyboardOnlyText = '<p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;"><span style="color: #37929d !important;">Keyboard + Other Devices</span></p>';
                                 speedHtml = '<div style="display: flex; align-items: center; width: 250px;">' +
                                     '<div style="float: left;width: 15%;"><img src="/static/img/icons/icon-fast.svg" width="30" height="30" alt="Fast" /></div>' +
                                     '<div style="float: left;width: 70%;margin-top:4px;margin-left: 5px;"><input class="brightness-slider" type="range" id="speed_' + index + '" name="speedSlider" style="margin-top: 0;" min="1" max="3" value="' + value.speed + '" step="1" /></div>' +

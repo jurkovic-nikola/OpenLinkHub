@@ -66,7 +66,7 @@ var (
 	ledStartIndex              = 10
 	maxBufferSizePerRequest    = 381
 	i2cPrefix                  = "i2c"
-	rgbProfileUpgrade          = []string{"nebula", "marquee", "rotarystack", "sequential"}
+	rgbProfileUpgrade          = []string{"nebula", "marquee", "rotarystack", "sequential", "spiralrainbow"}
 	rgbModes                   = []string{
 		"circle",
 		"circleshift",
@@ -84,6 +84,7 @@ var (
 		"rotator",
 		"sequential",
 		"spinner",
+		"spiralrainbow",
 		"static",
 		"storm",
 		"watercolor",
@@ -1067,6 +1068,11 @@ func (d *Device) setDeviceColor() {
 					case "rainbow":
 						{
 							r.Rainbow(startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "spiralrainbow":
+						{
+							r.SpiralRainbow(startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "watercolor":
@@ -2745,9 +2751,10 @@ func (d *Device) updateDeviceSpeed() {
 						fans := int(math.Round(float64(fansValue)))
 
 						// Failsafe
-						if fans < 20 {
+						if fans < 20 && !profiles.ZeroRpm {
 							fans = 20
 						}
+
 						if device.ContainsPump {
 							if pump < 50 {
 								pump = 70
@@ -2790,6 +2797,10 @@ func (d *Device) updateDeviceSpeed() {
 									// Validation
 									if profile.Mode < 0 || profile.Mode > 1 {
 										profile.Mode = 0
+									}
+
+									if profile.Fans < 20 && !profiles.ZeroRpm {
+										profile.Fans = 20
 									}
 
 									if profile.Pump < 50 {

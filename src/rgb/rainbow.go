@@ -5,76 +5,6 @@ import (
 	"time"
 )
 
-/*
-// hslToRGB converts HSL values to RGB. H in [0,1], S in [0,1], L in [0,1]
-func hslToRGB(h, s, l float64) (int, int, int) {
-	var r, g, b float64
-
-	if s == 0 {
-		r, g, b = l, l, l // achromatic
-	} else {
-		var q float64
-		if l < 0.5 {
-			q = l * (1 + s)
-		} else {
-			q = l + s - l*s
-		}
-		p := 2*l - q
-		r = hueToRGB(p, q, h+1.0/3.0)
-		g = hueToRGB(p, q, h)
-		b = hueToRGB(p, q, h-1.0/3.0)
-	}
-
-	return int(r * 255), int(g * 255), int(b * 255)
-}
-
-func hueToRGB(p, q, t float64) float64 {
-	if t < 0 {
-		t += 1
-	}
-	if t > 1 {
-		t -= 1
-	}
-	switch {
-	case t < 1.0/6.0:
-		return p + (q-p)*6*t
-	case t < 1.0/2.0:
-		return q
-	case t < 2.0/3.0:
-		return p + (q-p)*(2.0/3.0-t)*6
-	default:
-		return p
-	}
-}
-
-// rainbowColor using HSL hue wheel
-func rainbowColor(position float64) (int, int, int) {
-	hue := math.Mod(position, 1.0)
-	return hslToRGB(hue, 1.0, 0.5)
-}
-
-// generateColors will generate color based on start and end color
-func generateRainbowColors(lightChannels int, elapsedTime, bts float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lightChannels)
-	for i := 0; i < lightChannels; i++ {
-		position := float64(i)/float64(lightChannels) + elapsedTime*0.4
-		position = math.Mod(position, 1.0)
-		r, g, b := rainbowColor(position)
-
-		color := &Color{
-			Red:        float64(r),
-			Green:      float64(g),
-			Blue:       float64(b),
-			Brightness: bts,
-		}
-
-		modify := ModifyBrightness(*color)
-		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
-	}
-	return colors
-}
-*/
-
 // rainbowColor function returns an RGB color corresponding to a given position in the rainbow
 func rainbowColor(position float64) (int, int, int) {
 	// Normalize position to be between 0 and 1
@@ -149,6 +79,75 @@ func (r *ActiveRGB) Rainbow(startTime time.Time) {
 		}
 	}
 	// Raw colors
+	r.Raw = buf
+
+	if r.Inverted {
+		r.Output = SetColorInverted(buf)
+	} else {
+		r.Output = SetColor(buf)
+	}
+}
+
+// generateSpiralRainbow generates rainbow colors with spiral offset
+func generateSpiralRainbow(lightChannels int, elapsedTime, brightness, spiralDensity float64) []struct{ R, G, B float64 } {
+	colors := make([]struct{ R, G, B float64 }, lightChannels)
+
+	for i := 0; i < lightChannels; i++ {
+		// Spiral effect: add offset based on index and density
+		position := (elapsedTime / 4.0) + (float64(i) * spiralDensity / float64(lightChannels))
+		position = math.Mod(position, 1.0)
+
+		r, g, b := rainbowColor(position)
+
+		color := &Color{
+			Red:        float64(r),
+			Green:      float64(g),
+			Blue:       float64(b),
+			Brightness: brightness,
+		}
+
+		modify := ModifyBrightness(*color)
+		colors[i] = struct{ R, G, B float64 }{modify.Red, modify.Green, modify.Blue}
+	}
+
+	return colors
+}
+
+// SpiralRainbow runs RGB function with spiral effect
+func (r *ActiveRGB) SpiralRainbow(startTime time.Time) {
+	elapsed := time.Since(startTime).Seconds()
+
+	// Speed control
+	speedFactor := 4.0
+	if r.RgbModeSpeed > 0 {
+		speedFactor = 4.0 / r.RgbModeSpeed
+	}
+
+	// Spiral density (higher = more twists)
+	spiralDensity := 3.0 // tweakable (1 = smooth sweep, 3–5 = tight spiral)
+
+	buf := map[int][]byte{}
+	colors := generateSpiralRainbow(r.LightChannels, elapsed*speedFactor, r.RGBBrightness, spiralDensity)
+
+	for i, color := range colors {
+		if len(r.Buffer) > 0 {
+			r.Buffer[i] = byte(color.R)
+			r.Buffer[i+r.ColorOffset] = byte(color.G)
+			r.Buffer[i+(r.ColorOffset*2)] = byte(color.B)
+		} else {
+			buf[i] = []byte{
+				byte(color.R),
+				byte(color.G),
+				byte(color.B),
+			}
+			if r.IsAIO && r.HasLCD {
+				if i > 15 && i < 20 {
+					buf[i] = []byte{0, 0, 0}
+				}
+			}
+		}
+	}
+
 	r.Raw = buf
 
 	if r.Inverted {

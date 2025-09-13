@@ -155,7 +155,7 @@ var (
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
 	temperatureRegister   = byte(0x05)
 	basePath              = "/sys/bus/i2c/drivers/spd5118/"
-	rgbProfileUpgrade     = []string{"led", "nebula", "marquee"}
+	rgbProfileUpgrade     = []string{"led", "nebula", "marquee", "spiralrainbow"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -172,6 +172,7 @@ var (
 		"rainbow",
 		"rotator",
 		"spinner",
+		"spiralrainbow",
 		"static",
 		"storm",
 		"watercolor",
@@ -1422,6 +1423,11 @@ func (d *Device) setDeviceColor() {
 					case "rainbow":
 						{
 							r.Rainbow(startTime)
+							buff = r.Output
+						}
+					case "spiralrainbow":
+						{
+							r.SpiralRainbow(startTime)
 							buff = r.Output
 						}
 					case "watercolor":

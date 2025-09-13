@@ -1844,10 +1844,6 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
-	if profiles.ZeroRpm && !valid {
-		return 2
-	}
-
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
 		if strings.HasPrefix(profiles.Device, i2cPrefix) {
 			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {

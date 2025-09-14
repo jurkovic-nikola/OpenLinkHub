@@ -296,6 +296,7 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
 	d.startQueueWorker()       // Queue
+
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -2340,6 +2341,9 @@ func (d *Device) getDevices() int {
 				HasTemps:    false,
 				Label:       label,
 				CellSize:    4,
+			}
+			if label == "Pump" {
+				device.ContainsPump = true
 			}
 			devices[m] = device
 		}

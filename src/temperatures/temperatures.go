@@ -345,7 +345,12 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 				pf = profileLinearLiquid
 				pf.Linear = linear
 			}
-
+			if len(deviceId) > 0 {
+				pf.Device = deviceId
+			}
+			if sensor == 4 || sensor == 9 {
+				pf.ChannelId = channelId
+			}
 			if pf.Points == nil {
 				pump := make([]Point, 0)
 				fans := make([]Point, 0)

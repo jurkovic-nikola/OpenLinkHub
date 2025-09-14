@@ -236,7 +236,7 @@ var (
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
 	manualSpeedModes           = map[int]*SpeedMode{}
-	rgbProfileUpgrade          = []string{"led"}
+	rgbProfileUpgrade          = []string{"led", "spiralrainbow"}
 	rgbModes                   = []string{
 		"circle",
 		"circleshift",
@@ -252,6 +252,7 @@ var (
 		"rainbow",
 		"rotator",
 		"spinner",
+		"spiralrainbow",
 		"static",
 		"storm",
 		"watercolor",
@@ -548,7 +549,12 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 		if pf == nil {
 			save = true
 			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
-			d.Rgb.Profiles[profile] = rgb.Profile{}
+			template := rgb.GetRgbProfile(profile)
+			if template == nil {
+				d.Rgb.Profiles[profile] = rgb.Profile{}
+			} else {
+				d.Rgb.Profiles[profile] = *template
+			}
 		}
 	}
 
@@ -923,6 +929,11 @@ func (d *Device) setDeviceColor() {
 					case "rainbow":
 						{
 							r.Rainbow(startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "spiralrainbow":
+						{
+							r.SpiralRainbow(startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "watercolor":

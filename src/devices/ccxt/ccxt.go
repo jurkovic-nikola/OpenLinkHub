@@ -296,6 +296,8 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
 	d.startQueueWorker()       // Queue
+	d.selectPumps()            // Select Pumps
+
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -311,6 +313,19 @@ func (d *Device) createDevice() {
 		Image:       "icon-device.svg",
 		Instance:    d,
 		GetDevice:   d,
+	}
+}
+
+// selectPumps will search for pumps
+func (d *Device) selectPumps() {
+	for i, label := range d.DeviceProfile.Labels {
+		if label == "Pump" {
+			for j, device := range d.Devices {
+				if i == j {
+					device.ContainsPump = true;
+				}
+			}
+		}
 	}
 }
 

@@ -521,3 +521,117 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+
+$('.sensorInfoToggle').on('click', function () {
+    const modalElement = `
+    <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-800">
+            <div class="modal-content" style="width: 800px;">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoToggleLabel">Temperature Sensors</h5>
+                    <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Sensor</th>
+                                <th style="text-align: left;">Description</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>CPU</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the CPU as a temperature source. It can be applied to any device.
+                                </th>
+                            </tr>
+                            
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>GPU</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the GPU as a temperature source. It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>Liquid Temperature (AIO)</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the AIO temperature sensor as a temperature source. It can be applied only to AIO device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>Storage Temperature</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the storage temperature sensor as a temperature source. It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>Temperature Probe</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the temperature probe sensor as a temperature source. It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>CPU + GPU</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the CPU and GPU as temperature source, higher number wins. It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>External HWMON</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the external hwmon device as temperature source, It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>External binary</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the external binary as temperature source, It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>Multi GPU</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the single GPU from multiple GPUs as temperature source, It can be applied to any device.
+                                </th>
+                            </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>Global Temperature Probe</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the single temperature probe as temperature source, It can be applied to any device.
+                                </th>
+                            </tr>
+                        </tbody>
+                    </table>  
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const modal = $(modalElement).modal('toggle');
+    modal.on('hidden.bs.modal', function () {
+        modal.data('bs.modal', null);
+    })
+});

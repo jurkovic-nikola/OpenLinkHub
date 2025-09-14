@@ -44,7 +44,10 @@
                                                 <label class="form-label" for="profileName">{{ .Lang "txtProfileName" }}</label>
                                                 <input class="form-control" id="profileName" type="text">
 
-                                                <label class="form-label" for="sensor">{{ .Lang "txtSensor" }}:</label>
+                                                <label class="form-label" for="sensor">
+                                                    {{ .Lang "txtSensor" }}
+                                                    <i style="cursor: pointer;padding-top: 4px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensorInfoToggle"></i>
+                                                </label>
                                                 <select class="form-select mb-1 tempProfile" id="sensor">
                                                     <option value="0" selected>CPU</option>
                                                     <option value="1">GPU</option>

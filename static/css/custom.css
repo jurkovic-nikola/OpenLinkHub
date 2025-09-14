@@ -950,6 +950,11 @@ canvas {
     border: 1px solid;
 }
 
+.modal-dialog-700 {
+    max-width: 700px;
+    margin: 1rem auto;
+}
+
 .modal-dialog-800 {
     max-width: 800px;
     margin: 1rem auto;

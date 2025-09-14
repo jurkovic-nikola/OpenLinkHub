@@ -405,7 +405,20 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if temperatures.AddTemperatureProfile(profile, deviceId, static, zeroRpm, linear, sensor, channelId, hwmonId, temperatureInputId, gpuIndex) {
+	newTemperatureProfile := &temperatures.NewTemperatureProfile{
+		Profile:            profile,
+		DeviceId:           deviceId,
+		Static:             static,
+		ZeroRpm:            zeroRpm,
+		Linear:             linear,
+		Sensor:             sensor,
+		ChannelId:          channelId,
+		HwmonDevice:        hwmonId,
+		TemperatureInputId: temperatureInputId,
+		GpuIndex:           gpuIndex,
+	}
+
+	if temperatures.AddTemperatureProfile(newTemperatureProfile) {
 		return &Payload{
 			Message: language.GetValue("txtSpeedProfileSaved"),
 			Code:    http.StatusOK,

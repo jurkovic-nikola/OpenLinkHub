@@ -91,6 +91,19 @@ type HwMonSensor struct {
 	Path       string
 }
 
+type NewTemperatureProfile struct {
+	Profile            string
+	DeviceId           string
+	Static             bool
+	ZeroRpm            bool
+	Linear             bool
+	Sensor             uint8
+	ChannelId          int
+	HwmonDevice        string
+	TemperatureInputId string
+	GpuIndex           uint8
+}
+
 var (
 	i2cPrefix         = "i2c"
 	temperatureOffset = 0
@@ -329,27 +342,27 @@ func GetMemoryTemperature(channelId int) float32 {
 }
 
 // AddTemperatureProfile will save new temperature profile
-func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear bool, sensor uint8, channelId int, hwmonDevice, temperatureInputId string, gpuIndex uint8) bool {
+func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	if _, ok := temperatures.Profiles[profile]; !ok {
+	if _, ok := temperatures.Profiles[newTemperatureProfile.Profile]; !ok {
 		pf := TemperatureProfileData{}
-		if static || linear {
+		if newTemperatureProfile.Static || newTemperatureProfile.Linear {
 			pf = profileStatic
-			pf.Sensor = sensor
-			if sensor == 2 {
+			pf.Sensor = newTemperatureProfile.Sensor
+			if newTemperatureProfile.Sensor == 2 {
 				pf.Profiles[0].Max = 60
 			}
-			if linear {
+			if newTemperatureProfile.Linear {
 				pf = profileLinearLiquid
-				pf.Linear = linear
+				pf.Linear = newTemperatureProfile.Linear
 			}
-			if len(deviceId) > 0 {
-				pf.Device = deviceId
+			if len(newTemperatureProfile.DeviceId) > 0 {
+				pf.Device = newTemperatureProfile.DeviceId
 			}
-			if sensor == 4 || sensor == 9 {
-				pf.ChannelId = channelId
+			if newTemperatureProfile.Sensor == 4 || newTemperatureProfile.Sensor == 9 {
+				pf.ChannelId = newTemperatureProfile.ChannelId
 			}
 			if pf.Points == nil {
 				pump := make([]Point, 0)
@@ -377,26 +390,26 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 				pf.Points = data
 			}
 
-			err := saveProfileToDisk(profile, pf)
+			err := saveProfileToDisk(newTemperatureProfile.Profile, pf)
 			if err != nil {
 				return false
 			}
 			return true
 		}
 
-		if sensor == 3 && len(deviceId) < 1 {
+		if newTemperatureProfile.Sensor == 3 && len(newTemperatureProfile.DeviceId) < 1 {
 			return false
 		}
 
-		if sensor == 4 && len(deviceId) < 1 {
+		if newTemperatureProfile.Sensor == 4 && len(newTemperatureProfile.DeviceId) < 1 {
 			return false
 		}
 
-		if sensor == 4 && channelId < 1 {
+		if newTemperatureProfile.Sensor == 4 && newTemperatureProfile.ChannelId < 1 {
 			return false
 		}
 
-		switch sensor {
+		switch newTemperatureProfile.Sensor {
 		case SensorTypeCPU:
 			{
 				pf = profileNormal
@@ -416,7 +429,7 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 		case SensorTypeTemperatureProbe:
 			{
 				pf = profileProbeTemperature
-				if strings.HasPrefix(deviceId, i2cPrefix) {
+				if strings.HasPrefix(newTemperatureProfile.DeviceId, i2cPrefix) {
 					pf = profileNormal
 				}
 			}
@@ -442,23 +455,23 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 			}
 		}
 
-		if len(deviceId) > 0 {
-			pf.Device = deviceId
+		if len(newTemperatureProfile.DeviceId) > 0 {
+			pf.Device = newTemperatureProfile.DeviceId
 		}
 
-		if sensor == 4 || sensor == 9 {
-			pf.ChannelId = channelId
+		if newTemperatureProfile.Sensor == 4 || newTemperatureProfile.Sensor == 9 {
+			pf.ChannelId = newTemperatureProfile.ChannelId
 		}
 
-		if len(hwmonDevice) > 0 {
-			pf.HwmonDevice = hwmonDevice
-			pf.TemperatureInputId = temperatureInputId
+		if len(newTemperatureProfile.HwmonDevice) > 0 {
+			pf.HwmonDevice = newTemperatureProfile.HwmonDevice
+			pf.TemperatureInputId = newTemperatureProfile.TemperatureInputId
 		}
 
-		pf.Sensor = sensor
-		pf.ZeroRpm = zeroRpm
-		pf.Linear = linear
-		pf.GPUIndex = gpuIndex
+		pf.Sensor = newTemperatureProfile.Sensor
+		pf.ZeroRpm = newTemperatureProfile.ZeroRpm
+		pf.Linear = newTemperatureProfile.Linear
+		pf.GPUIndex = newTemperatureProfile.GpuIndex
 
 		if pf.Points == nil {
 			pump := make([]Point, 0)
@@ -485,7 +498,7 @@ func AddTemperatureProfile(profile, deviceId string, static, zeroRpm, linear boo
 			pf.Points = data
 		}
 
-		err := saveProfileToDisk(profile, pf)
+		err := saveProfileToDisk(newTemperatureProfile.Profile, pf)
 		if err != nil {
 			return false
 		}

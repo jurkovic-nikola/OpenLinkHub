@@ -183,6 +183,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			3: "Scroll",
 			4: "Zoom",
 			5: "Screen Brightness",
+			6: "Media Control",
+			7: "Horizontal Scroll",
 		},
 		autoRefreshChan: make(chan struct{}),
 		keepAliveChan:   make(chan struct{}),
@@ -2048,6 +2050,24 @@ func (d *Device) backendListener() {
 								inputmanager.InputControlKeyboard(inputmanager.KeyScreenBrightnessUp, false)
 							case 255:
 								inputmanager.InputControlKeyboard(inputmanager.KeyScreenBrightnessDown, false)
+							}
+						}
+					case 6:
+						{
+							switch value {
+							case 1:
+								inputmanager.InputControlKeyboard(inputmanager.MediaNext, false)
+							case 255:
+								inputmanager.InputControlKeyboard(inputmanager.MediaPrev, false)
+							}
+						}
+					case 7:
+						{
+							switch value {
+							case 1:
+								inputmanager.InputControlScrollHorizontal(true)
+							case 255:
+								inputmanager.InputControlScrollHorizontal(false)
 							}
 						}
 					}

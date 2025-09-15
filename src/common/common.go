@@ -84,6 +84,7 @@ const (
 	ProductTypeK70Max               = 123
 	ProductTypeMakr75WU             = 124
 	ProductTypeMakr75W              = 125
+	ProductTypeK95PlatinumXT        = 126
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203

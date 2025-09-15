@@ -836,6 +836,10 @@ footer {
     grid-column: span 3;
     width: auto;
 }
+.keyboard-key-half.wide3 {
+    grid-column: span 3;
+    width: auto;
+}
 
 .keyboard-key.wide100 {
     width: 100%;
@@ -897,6 +901,11 @@ footer {
 }
 
 .keyboard-key.wide4 {
+    grid-column: span 4;
+    width: auto;
+}
+
+.keyboard-key-half.wide4 {
     grid-column: span 4;
     width: auto;
 }

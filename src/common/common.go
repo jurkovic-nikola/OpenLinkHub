@@ -127,6 +127,7 @@ const (
 	ProductTypeDarkCoreRgbSEWU      = 240
 	ProductTypeDarkCoreRgbSEW       = 241
 	ProductTypeSabreProCs           = 242
+	ProductTypeM65RgbElite          = 243
 	ProductTypeVirtuosoXTW          = 300
 	ProductTypeVirtuosoXTWU         = 301
 	ProductTypeVirtuosoMAXW         = 302

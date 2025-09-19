@@ -201,6 +201,8 @@
                                                 <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
                                                 {{ else if $device.IsLinkAdapter }}
                                                 <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
+                                                {{ else if $device.IsCommanderDuo }}
+                                                <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
                                                 {{ else if $device.IsCpuBlock }}
                                                 <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
                                                 {{ else }}

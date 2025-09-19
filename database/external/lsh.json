@@ -362,5 +362,19 @@
     "linkAdapter": true,
     "cpuBlock": false,
     "hasSpeed": false
+  },
+  {
+    "deviceId": 27,
+    "deviceModel": 0,
+    "deviceName": "iCUE COMMANDER DUO",
+    "ledChannels": 0,
+    "containsPump": false,
+    "desc": "Hub",
+    "aio": false,
+    "temperatureProbe": true,
+    "linkAdapter": false,
+    "cpuBlock": false,
+    "hasSpeed": true,
+    "commanderDuo": true
   }
 ]

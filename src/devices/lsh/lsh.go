@@ -107,6 +107,7 @@ type SupportedDevice struct {
 	LinkAdapter      bool   `json:"linkAdapter"`
 	CpuBlock         bool   `json:"cpuBlock"`
 	HasSpeed         bool   `json:"hasSpeed"`
+	CommanderDuo     bool   `json:"commanderDuo"`
 }
 
 // Devices contain information about devices connected to an iCUE Link
@@ -131,6 +132,7 @@ type Devices struct {
 	PortId             uint8           `json:"portId"`
 	IsTemperatureProbe bool
 	IsLinkAdapter      bool
+	IsCommanderDuo     bool
 	IsCpuBlock         bool
 	HasSpeed           bool
 	HasTemps           bool
@@ -216,6 +218,7 @@ var (
 	cmdResetLedPower            = []byte{0x15, 0x01}
 	cmdDeviceCommandCodes       = []byte{0x1e}
 	cmdDeviceCommandLeds        = []byte{0x1d}
+	modeGetLeds                 = []byte{0x20}
 	modeGetDevices              = []byte{0x36}
 	modeGetTemperatures         = []byte{0x21}
 	modeGetSpeeds               = []byte{0x17}
@@ -247,8 +250,8 @@ var (
 	portProtectionMaximumStage2 = 340
 	portProtectionMaximumStage3 = 442
 	criticalAioCoolantTemp      = 57.0
-	zeroRpmLimit                = 40
 	i2cPrefix                   = "i2c"
+	ledStartIndex               = 11
 	rgbProfileUpgrade           = []string{"led", "nebula", "marquee", "rotarystack", "sequential", "spiralrainbow"}
 	rgbModes                    = []string{
 		"circle",
@@ -357,6 +360,7 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	d.setSoftwareMode()      // Activate software mode
 	d.getLedDeviceTypes()    // Device led types
 	d.getDevices()           // Get devices connected to a hub
+	d.getLedDevices()        // Get connected LED devices
 	d.setColorEndpoint()     // Set device color endpoint
 	d.setDeviceProtection()  // Protect device
 	d.setDefaults()          // Set default speed and color values for fans and pumps
@@ -3060,6 +3064,7 @@ func (d *Device) getDevices() int {
 	channels := response[6]
 	data := response[7:]
 	position := 0
+	duoPort := 1
 	for i := 1; i <= int(channels); i++ {
 		deviceIdLen := data[position+7]
 		if deviceIdLen == 0 {
@@ -3198,6 +3203,12 @@ func (d *Device) getDevices() int {
 			ExternalAdapter:    adapterId,
 			SubDevices:         subDevices,
 			IsCpuBlock:         deviceMeta.CpuBlock,
+			IsCommanderDuo:     deviceMeta.CommanderDuo,
+		}
+
+		if device.IsCommanderDuo {
+			device.Name = fmt.Sprintf("%s - Channel %d", device.Name, duoPort)
+			duoPort++
 		}
 
 		deviceValue, found := d.getDevicesValue(i)
@@ -3998,6 +4009,37 @@ func (d *Device) setSoftwareMode() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+}
+
+// getChannelAmount will return a number of available channels
+func (d *Device) getChannelAmount(data []byte) int {
+	return int(data[6])
+}
+
+// getLedDevices will get all connected LED data
+func (d *Device) getLedDevices() {
+	buf := d.read(modeGetLeds, nil)
+	channels := buf[6]
+	data := buf[7:]
+
+	for i := 1; i <= int(channels); i++ {
+		var numLEDs uint16 = 0
+		connected := binary.LittleEndian.Uint16(data[i*4:i*4+2]) == 2
+		if connected {
+			numLEDs = binary.LittleEndian.Uint16(data[i*4+2 : i*4+2+2])
+			if numLEDs > 50 {
+				numLEDs = 50
+			}
+
+			// Update LED amount for specified channel
+			if device, ok := d.Devices[i]; ok {
+				if device.IsCommanderDuo {
+					device.LedChannels = uint8(numLEDs)
+					d.Devices[i] = device
+				}
+			}
+		}
+	}
 }
 
 // getLedDeviceTypes will fetch each connected device command code for LED activation

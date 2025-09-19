@@ -6,6 +6,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
+	"OpenLinkHub/src/devices/cduo"
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/darkcorergbproWU"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
@@ -548,6 +549,7 @@ var deviceRegisterMap = map[uint16]deviceRegister{
 	3122:  cc.Init,                 // iCUE COMMANDER Core
 	3100:  cc.Init,                 // iCUE COMMANDER Core
 	3114:  ccxt.Init,               // iCUE COMMANDER CORE XT
+	3158:  cduo.Init,               // iCUE COMMANDER DUO (USB)
 	3090:  platinum.Init,           // H150i Platinum
 	3091:  platinum.Init,           // H115i Platinum
 	3093:  platinum.Init,           // H100i Platinum

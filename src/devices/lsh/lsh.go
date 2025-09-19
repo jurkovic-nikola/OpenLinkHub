@@ -251,7 +251,6 @@ var (
 	portProtectionMaximumStage3 = 442
 	criticalAioCoolantTemp      = 57.0
 	i2cPrefix                   = "i2c"
-	ledStartIndex               = 11
 	rgbProfileUpgrade           = []string{"led", "nebula", "marquee", "rotarystack", "sequential", "spiralrainbow"}
 	rgbModes                    = []string{
 		"circle",
@@ -4009,11 +4008,6 @@ func (d *Device) setSoftwareMode() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
-}
-
-// getChannelAmount will return a number of available channels
-func (d *Device) getChannelAmount(data []byte) int {
-	return int(data[6])
 }
 
 // getLedDevices will get all connected LED data

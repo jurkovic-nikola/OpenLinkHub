@@ -102,34 +102,38 @@ type AIOData struct {
 	Temperature float32
 	Serial      string
 }
-type Product struct {
+type Device struct {
 	ProductId uint16
 	Path      string
 	DevPath   string
 	Serial    string
 }
 
-type ProductEX struct {
-	ProductId uint16
-	Serial    string
-	Path      string
-}
-
 var (
 	mutex               sync.Mutex
-	expectedPermissions        = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
-	vendorId            uint16 = 6940 // Corsair
-	interfaceId                = 0
-	devices                    = make(map[string]*common.Device)
-	products                   = make(map[string]Product)
-	keyboards                  = []uint16{7127, 7165, 7166, 7110, 7083, 11024, 11025, 11015, 7109, 7091, 7124, 7036, 7037, 6985, 6997, 7019, 11009, 11010, 11028, 7097, 7027, 7076, 7073, 6973, 6957, 7072, 7094, 7104, 11012, 7049}
-	mouses                     = []uint16{7059, 7005, 6988, 7096, 7139, 7131, 11011, 7024, 7038, 7040, 7152, 7154, 11016, 7070, 7029, 7006, 7084, 7090, 11042, 7093, 7126, 7163, 7064, 7051, 7004, 7033, 6974, 6942, 6987, 6993, 7034, 7002}
-	pads                       = []uint16{7067, 7113}
-	headsets                   = []uint16{2658, 2660, 2667, 2696}
-	headsets2                  = []uint16{10754, 2711}
-	dongles                    = []uint16{7132, 7078, 11008, 7060}
-	legacyDevices              = []uint16{3080, 3081, 3082, 3090, 3091, 3093}
 	cls                 *cluster.Device
+	expectedPermissions = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
+	vendorId            = uint16(6940) // Corsair
+	interfaceId         = 0
+	devices             = make(map[string]*common.Device)
+	deviceList          = make(map[string]Device)
+	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093}
+	deviceInterfaces    = map[uint16]int{
+		// (bInterfaceNumber) Interface 1
+		7127: 1, 7165: 1, 7166: 1, 7110: 1, 7083: 1, 11024: 1, 11025: 1, 11015: 1, 7109: 1, 7091: 1,
+		7124: 1, 7036: 1, 7037: 1, 6985: 1, 6997: 1, 7019: 1, 11009: 1, 11010: 1, 11028: 1, 7097: 1,
+		7027: 1, 7076: 1, 7073: 1, 6973: 1, 6957: 1, 7072: 1, 7094: 1, 7104: 1, 11012: 1, 7049: 1,
+		7059: 1, 7005: 1, 6988: 1, 7096: 1, 7139: 1, 7131: 1, 11011: 1, 7024: 1, 7038: 1, 7040: 1,
+		7152: 1, 7154: 1, 11016: 1, 7070: 1, 7029: 1, 7006: 1, 7084: 1, 7090: 1, 11042: 1, 7093: 1,
+		7126: 1, 7163: 1, 7064: 1, 7051: 1, 7004: 1, 7033: 1, 6974: 1, 6942: 1, 6987: 1, 6993: 1,
+		7034: 1, 7002: 1, 7067: 1, 7113: 1, 7132: 1, 7078: 1, 11008: 1, 7060: 1,
+
+		// (bInterfaceNumber) Interface 3
+		2658: 3, 2660: 3, 2667: 3, 2696: 3,
+
+		// (bInterfaceNumber) Interface 4
+		10754: 4, 2711: 4,
+	}
 )
 
 // Stop will stop all active devices
@@ -296,8 +300,8 @@ func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) [
 }
 
 // GetProducts will return all available products
-func GetProducts() map[string]Product {
-	return products
+func GetProducts() map[string]Device {
+	return deviceList
 }
 
 // GetDevice will return a device by device serial
@@ -330,7 +334,7 @@ func GetDevicesEx() map[string]*common.Device {
 
 // InitManual will initialize device manually when plugged in
 func InitManual(productId uint16, serial string) {
-	var product = ProductEX{
+	var device = Device{
 		ProductId: 0,
 		Path:      "",
 		Serial:    "",
@@ -346,22 +350,7 @@ func InitManual(productId uint16, serial string) {
 			},
 		).Info("Processing device...")
 
-		if slices.Contains(keyboards, info.ProductID) {
-			interfaceId = 1 // Keyboard
-		} else if slices.Contains(mouses, info.ProductID) {
-			interfaceId = 1 // Mouse
-		} else if slices.Contains(pads, info.ProductID) {
-			interfaceId = 1 // Mousepad
-		} else if slices.Contains(dongles, info.ProductID) {
-			interfaceId = 1 // USB Dongle
-		} else if slices.Contains(headsets, info.ProductID) {
-			interfaceId = 3 // USB Headset
-		} else if slices.Contains(headsets2, info.ProductID) {
-			interfaceId = 4 // USB Headset
-		} else {
-			interfaceId = 0
-		}
-
+		interfaceId = deviceInterfaces[info.ProductID]
 		if info.InterfaceNbr == interfaceId {
 			devPath := info.Path
 			if config.GetConfig().CheckDevicePermission {
@@ -378,7 +367,7 @@ func InitManual(productId uint16, serial string) {
 			}
 
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
-				product = ProductEX{
+				device = Device{
 					ProductId: info.ProductID,
 					Path:      info.Path,
 					Serial:    info.Path,
@@ -392,7 +381,7 @@ func InitManual(productId uint16, serial string) {
 					// Devices with no serial, make serial based of productId
 					serial = strconv.Itoa(int(info.ProductID))
 				}
-				product = ProductEX{
+				device = Device{
 					ProductId: info.ProductID,
 					Path:      info.Path,
 					Serial:    serial,
@@ -409,8 +398,8 @@ func InitManual(productId uint16, serial string) {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
 
-	if product.ProductId > 0 && len(product.Path) > 0 {
-		initializeDevice(productId, product.Serial, product.Path)
+	if device.ProductId > 0 && len(device.Path) > 0 {
+		initializeDevice(productId, device.Serial, device.Path)
 	}
 }
 
@@ -431,22 +420,7 @@ func Init() {
 			},
 		).Info("Processing device...")
 
-		if slices.Contains(keyboards, info.ProductID) {
-			interfaceId = 1 // Keyboard
-		} else if slices.Contains(mouses, info.ProductID) {
-			interfaceId = 1 // Mouse
-		} else if slices.Contains(pads, info.ProductID) {
-			interfaceId = 1 // Mousepad
-		} else if slices.Contains(dongles, info.ProductID) {
-			interfaceId = 1 // USB Dongle
-		} else if slices.Contains(headsets, info.ProductID) {
-			interfaceId = 3 // USB Headset
-		} else if slices.Contains(headsets2, info.ProductID) {
-			interfaceId = 4 // USB Headset
-		} else {
-			interfaceId = 0
-		}
-
+		interfaceId = deviceInterfaces[info.ProductID]
 		if info.InterfaceNbr == interfaceId {
 			devPath := info.Path
 			if config.GetConfig().CheckDevicePermission {
@@ -465,7 +439,7 @@ func Init() {
 			p, _ := common.GetShortUSBDevPath(base)
 
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
-				products[info.Path] = Product{
+				deviceList[info.Path] = Device{
 					ProductId: info.ProductID,
 					Path:      info.Path,
 					DevPath:   p,
@@ -477,7 +451,7 @@ func Init() {
 					// Devices with no serial, make serial based of productId
 					serial = strconv.Itoa(int(info.ProductID))
 				}
-				products[serial] = Product{
+				deviceList[serial] = Device{
 					ProductId: info.ProductID,
 					Path:      info.Path,
 					DevPath:   p,
@@ -499,7 +473,7 @@ func Init() {
 		sm, err := smbus.GetSmBus()
 		if err == nil {
 			if len(sm.Path) > 0 {
-				products[sm.Path] = Product{
+				deviceList[sm.Path] = Device{
 					ProductId: 0,
 					Path:      sm.Path,
 				}
@@ -523,7 +497,7 @@ func Init() {
 	res := usb.Init(legacyDevices)
 	if res != 0 {
 		for _, device := range usb.GetDevices() {
-			products[device.SerialNbr] = Product{
+			deviceList[device.SerialNbr] = Device{
 				ProductId: device.ProductID,
 				Path:      device.Path,
 			}
@@ -531,7 +505,7 @@ func Init() {
 	}
 
 	// USB-HID
-	for key, product := range products {
+	for key, product := range deviceList {
 		productId := product.ProductId
 		productPath := product.Path
 		if slices.Contains(config.GetConfig().Exclude, productId) {

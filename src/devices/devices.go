@@ -205,7 +205,11 @@ func ResetSpeedProfiles(profile string) {
 	for _, device := range devices {
 		if device.ProductType == common.ProductTypeLinkHub ||
 			device.ProductType == common.ProductTypeCC ||
-			device.ProductType == common.ProductTypeCCXT {
+			device.ProductType == common.ProductTypeCCXT ||
+			device.ProductType == common.ProductTypeCPro ||
+			device.ProductType == common.ProductTypeElite ||
+			device.ProductType == common.ProductTypeHydro ||
+			device.ProductType == common.ProductTypePlatinum {
 			CallDeviceMethod(device.Serial, "ResetSpeedProfiles", profile)
 		}
 	}
@@ -235,6 +239,7 @@ func GetTemperatureProbes() interface{} {
 			device.ProductType == common.ProductTypeCPro ||
 			device.ProductType == common.ProductTypeElite ||
 			device.ProductType == common.ProductTypeXC7 ||
+			device.ProductType == common.ProductTypeHydro ||
 			device.ProductType == common.ProductTypePlatinum {
 			res := CallDeviceMethod(device.Serial, "GetTemperatureProbes")
 			if res != nil && len(res) > 0 {
@@ -333,7 +338,7 @@ func GetDevicesEx() map[string]*common.Device {
 }
 
 // InitManual will initialize device manually when plugged in
-func InitManual(productId uint16, serial string) {
+func InitManual(productId uint16, key string) {
 	var device = Device{
 		ProductId: 0,
 		Path:      "",
@@ -366,29 +371,22 @@ func InitManual(productId uint16, serial string) {
 				}
 			}
 
-			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
-				device = Device{
-					ProductId: info.ProductID,
-					Path:      info.Path,
-					Serial:    info.Path,
-				}
-			} else {
-				if len(serial) == 0 {
-					serial = info.SerialNbr
-				}
-
-				if len(serial) == 0 {
-					// Devices with no serial, make serial based of productId
-					serial = strconv.Itoa(int(info.ProductID))
-				}
-				device = Device{
-					ProductId: info.ProductID,
-					Path:      info.Path,
-					Serial:    serial,
+			if len(key) == 0 {
+				key = info.SerialNbr
+				if len(key) == 0 {
+					key = strconv.Itoa(int(info.ProductID))
 				}
 			}
-		}
 
+			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
+				key = info.Path
+			}
+			device = Device{
+				ProductId: info.ProductID,
+				Path:      info.Path,
+				Serial:    key,
+			}
+		}
 		return nil
 	})
 
@@ -438,25 +436,21 @@ func Init() {
 			base := filepath.Base(info.Path)
 			p, _ := common.GetShortUSBDevPath(base)
 
+			key := info.SerialNbr
+			if len(key) == 0 {
+				// Devices with no serial, make serial based of productId
+				key = strconv.Itoa(int(info.ProductID))
+			}
+
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
-				deviceList[info.Path] = Device{
-					ProductId: info.ProductID,
-					Path:      info.Path,
-					DevPath:   p,
-					Serial:    info.SerialNbr,
-				}
-			} else {
-				serial := info.SerialNbr
-				if len(serial) == 0 {
-					// Devices with no serial, make serial based of productId
-					serial = strconv.Itoa(int(info.ProductID))
-				}
-				deviceList[serial] = Device{
-					ProductId: info.ProductID,
-					Path:      info.Path,
-					DevPath:   p,
-					Serial:    info.SerialNbr,
-				}
+				key = info.Path
+			}
+
+			deviceList[key] = Device{
+				ProductId: info.ProductID,
+				Path:      info.Path,
+				DevPath:   p,
+				Serial:    info.SerialNbr,
 			}
 		}
 		return nil

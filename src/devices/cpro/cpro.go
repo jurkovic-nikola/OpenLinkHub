@@ -626,6 +626,25 @@ func (d *Device) setSpeed(data map[int]byte) {
 	}
 }
 
+// ResetSpeedProfiles will reset channel speed profile if it matches with the current speed profile
+// This is used when speed profile is deleted from the UI
+func (d *Device) ResetSpeedProfiles(profile string) {
+	i := 0
+	for _, device := range d.Devices {
+		if device.HasSpeed {
+			if device.Profile == profile {
+				d.Devices[device.ChannelId].Profile = "Normal"
+				i++
+			}
+		}
+	}
+
+	if i > 0 {
+		// Save only if something was changed
+		d.saveDeviceProfile()
+	}
+}
+
 // getTemperatureProbe will return all devices with a temperature probe
 func (d *Device) getTemperatureProbe() {
 	var probes []TemperatureProbe

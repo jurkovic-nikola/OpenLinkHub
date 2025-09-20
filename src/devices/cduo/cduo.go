@@ -685,22 +685,11 @@ func (d *Device) setupOpenRGBController() {
 	lightChannels := 0
 
 	keys := make([]int, 0)
-	externalKeys := make([]int, 0)
-	internalKeys := make([]int, 0)
 	for k, device := range d.RgbDevices {
-		if device.LedChannels > 0 {
-			lightChannels += int(device.LedChannels)
-			if device.ExternalLed {
-				externalKeys = append(externalKeys, k)
-			} else {
-				internalKeys = append(internalKeys, k)
-			}
-		}
+		lightChannels += int(device.LedChannels)
+		keys = append(keys, k)
 	}
-	sort.Ints(internalKeys)
-	sort.Ints(externalKeys)
-	keys = append(keys, externalKeys...)
-	keys = append(keys, internalKeys...)
+	sort.Ints(keys)
 
 	controller := &common.OpenRGBController{
 		Name:         d.Product,

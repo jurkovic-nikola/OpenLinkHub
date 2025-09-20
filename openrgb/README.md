@@ -43,12 +43,13 @@ In OpenRGB, click on Client tab connect to 6743 port.
 
 ![OpenRGB Client](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/openrgb-client.png?raw=true)
 
-## Supported devices for 0.6.2+ release
+## Supported devices
 | Device                 |
 |------------------------|
 | iCUE LINK System Hub   | 
 | iCUE COMMANDER Core    |
 | iCUE COMMANDER Core XT |
+| iCUE COMMANDER DUO     |
 | ELITE AIOs             |
 | PLATINUM AIOs          |
 | HYDRO AIOs             |

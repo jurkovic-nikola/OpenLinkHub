@@ -109,6 +109,13 @@ type Device struct {
 	Serial    string
 }
 
+type Product struct {
+	InterfaceId      int
+	Name             string
+	DeviceRegister   deviceRegister
+	DeviceRegisterEx deviceRegisterEx
+}
+
 var (
 	mutex               sync.Mutex
 	cls                 *cluster.Device
@@ -118,22 +125,6 @@ var (
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
 	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093}
-	deviceInterfaces    = map[uint16]int{
-		// (bInterfaceNumber) Interface 1
-		7127: 1, 7165: 1, 7166: 1, 7110: 1, 7083: 1, 11024: 1, 11025: 1, 11015: 1, 7109: 1, 7091: 1,
-		7124: 1, 7036: 1, 7037: 1, 6985: 1, 6997: 1, 7019: 1, 11009: 1, 11010: 1, 11028: 1, 7097: 1,
-		7027: 1, 7076: 1, 7073: 1, 6973: 1, 6957: 1, 7072: 1, 7094: 1, 7104: 1, 11012: 1, 7049: 1,
-		7059: 1, 7005: 1, 6988: 1, 7096: 1, 7139: 1, 7131: 1, 11011: 1, 7024: 1, 7038: 1, 7040: 1,
-		7152: 1, 7154: 1, 11016: 1, 7070: 1, 7029: 1, 7006: 1, 7084: 1, 7090: 1, 11042: 1, 7093: 1,
-		7126: 1, 7163: 1, 7064: 1, 7051: 1, 7004: 1, 7033: 1, 6974: 1, 6942: 1, 6987: 1, 6993: 1,
-		7034: 1, 7002: 1, 7067: 1, 7113: 1, 7132: 1, 7078: 1, 11008: 1, 7060: 1,
-
-		// (bInterfaceNumber) Interface 3
-		2658: 3, 2660: 3, 2667: 3, 2696: 3,
-
-		// (bInterfaceNumber) Interface 4
-		10754: 4, 2711: 4,
-	}
 )
 
 // Stop will stop all active devices
@@ -169,6 +160,32 @@ func StopDirty(deviceId string, productId uint16) {
 			deleteDevice(device.Serial)
 		}
 	}
+}
+
+// GetSupportedDevices will return list of supported devices
+func GetSupportedDevices() interface{} {
+	type product struct {
+		ProductId uint16
+		Name      string
+		Enabled   bool
+	}
+
+	var products []product
+	for key, val := range deviceRegisterMap {
+		if key > 0 {
+			p := product{
+				ProductId: key,
+				Name:      val.Name,
+				Enabled:   true,
+			}
+
+			if slices.Contains(config.GetConfig().Exclude, key) {
+				p.Enabled = false
+			}
+			products = append(products, p)
+		}
+	}
+	return products
 }
 
 // GetRgbProfiles will return a list of all RGB profiles for every device
@@ -355,7 +372,10 @@ func InitManual(productId uint16, key string) {
 			},
 		).Info("Processing device...")
 
-		interfaceId = deviceInterfaces[info.ProductID]
+		if val, ok := deviceRegisterMap[info.ProductID]; ok {
+			interfaceId = val.InterfaceId
+		}
+
 		if info.InterfaceNbr == interfaceId {
 			devPath := info.Path
 			if config.GetConfig().CheckDevicePermission {
@@ -418,7 +438,10 @@ func Init() {
 			},
 		).Info("Processing device...")
 
-		interfaceId = deviceInterfaces[info.ProductID]
+		if val, ok := deviceRegisterMap[info.ProductID]; ok {
+			interfaceId = val.InterfaceId
+		}
+
 		if info.InterfaceNbr == interfaceId {
 			devPath := info.Path
 			if config.GetConfig().CheckDevicePermission {
@@ -511,143 +534,139 @@ func Init() {
 }
 
 // deviceRegisterMap hold map of supported devices and their initialization call
-var deviceRegisterMap = map[uint16]deviceRegister{
-	0:     memory.Init,             // Memory
-	3135:  lsh.Init,                // iCUE Link System Hub
-	3122:  cc.Init,                 // iCUE COMMANDER Core
-	3100:  cc.Init,                 // iCUE COMMANDER Core
-	3114:  ccxt.Init,               // iCUE COMMANDER CORE XT
-	3158:  cduo.Init,               // iCUE COMMANDER DUO (USB)
-	3090:  platinum.Init,           // H150i Platinum
-	3091:  platinum.Init,           // H115i Platinum
-	3093:  platinum.Init,           // H100i Platinum
-	3080:  hydro.Init,              // H80i Hydro
-	3081:  hydro.Init,              // H100i Hydro
-	3082:  hydro.Init,              // H115i Hydro
-	3125:  elite.Init,              // iCUE H100i ELITE RGB
-	3126:  elite.Init,              // iCUE H115i ELITE RGB
-	3127:  elite.Init,              // iCUE H150i ELITE RGB
-	3136:  elite.Init,              // iCUE H100i ELITE RGB White
-	3137:  elite.Init,              // iCUE H150i ELITE RGB White
-	3104:  elite.Init,              // iCUE H100i RGB PRO XT
-	3105:  elite.Init,              // iCUE H115i RGB PRO XT
-	3106:  elite.Init,              // iCUE H150i RGB PRO XT
-	3095:  elite.Init,              // H115i RGB PLATINUM
-	3096:  elite.Init,              // H100i RGB PLATINUM
-	3097:  elite.Init,              // H100i RGB PLATINUM SE
-	3098:  lncore.Init,             // Lighting Node CORE
-	3083:  lnpro.Init,              // Lighting Node Pro
-	3088:  cpro.Init,               // Commander Pro
-	3138:  xc7.Init,                // XC7 ELITE LCD CPU Water Block
-	2612:  st100.Init,              // ST100 LED Driver
-	7067:  mm700.Init,              // MM700 RGB Gaming Mousepad
-	7113:  mm700.Init,              // MM700 3XL RGB Gaming Mousepad
-	6971:  mm800.Init,              // MM800 RGB POLARIS
-	3107:  lt100.Init,              // LT100 Smart Lighting Tower
-	7198:  psuhid.Init,             // HX1000i Power Supply
-	7203:  psuhid.Init,             // HX1200i Power Supply
-	7199:  psuhid.Init,             // HX1500i Power Supply
-	7173:  psuhid.Init,             // HX750i Power Supply
-	7174:  psuhid.Init,             // HX850i Power Supply
-	7175:  psuhid.Init,             // HX1000i Power Supply
-	7176:  psuhid.Init,             // HX1200i Power Supply
-	7181:  psuhid.Init,             // RM1000i Power Supply
-	7180:  psuhid.Init,             // RM850i Power Supply
-	7207:  psuhid.Init,             // HX1200i Power Supply
-	7054:  nexus.Init,              // iCUE NEXUS
-	7127:  k65pm.Init,              // K65 PRO MINI
-	7094:  k70pmWU.Init,            // K70 PPO MINI
-	7165:  k70core.Init,            // K70 CORE RGB
-	11009: k70coretkl.Init,         // K70 CORE TKL
-	11010: k70coretklWU.Init,       // K70 CORE TKL WIRELESS
-	11028: k70protkl.Init,          // K70 PRO TKL WIRELESS
-	7097:  k70rgbtklcs.Init,        // K70 RGB TKL
-	7027:  k70rgbtklcs.Init,        // K70 RGB TKL
-	6973:  k55.Init,                // K55 RGB
-	7166:  k55core.Init,            // K55 CORE RGB
-	7076:  k55pro.Init,             // K55 PRO RGB
-	7073:  k55proXT.Init,           // K55 RGB PRO XT
-	7072:  k60rgbpro.Init,          // K60 RGB PRO
-	7104:  k70max.Init,             // K70 MAX
-	7110:  k70pro.Init,             // K70 PRO
-	7091:  k70pro.Init,             // K70 PRO
-	7124:  k70pro.Init,             // K70 PRO
-	6985:  k70mk2.Init,             // K70 RGB MK2
-	6997:  k70mk2.Init,             // K70 RGB MK2
-	7019:  k70mk2.Init,             // K70 RGB MK2
-	11024: k65plusWU.Init,          // K65 PLUS WIRELESS USB
-	11025: k65plusWU.Init,          // K65 PLUS WIRELESS USB
-	6957:  k95platinum.Init,        // K95 PLATINUM
-	7049:  k95platinumXT.Init,      // K95 PLATINUM XT
-	7083:  k100airWU.Init,          // K100 AIR USB
-	7036:  k100.Init,               // K100
-	7109:  k100.Init,               // K100
-	7037:  k100.Init,               // K100
-	11012: makr75WU.Init,           // MAKR 75
-	7059:  katarpro.Init,           // KATAR PRO Gaming Mouse
-	7084:  katarproxt.Init,         // KATAR PRO XT Gaming Mouse
-	7005:  ironclaw.Init,           // IRONCLAW RGB Gaming Mouse
-	6987:  darkcorergbseWU.Init,    // DARK CORE RGB SE
-	6988:  ironclawWU.Init,         // IRONCLAW RGB WIRELESS Gaming Mouse
-	7096:  nightsabreWU.Init,       // NIGHTSABRE WIRELESS Mouse
-	7139:  scimitar.Init,           // SCIMITAR RGB ELITE
-	6974:  scimitarprorgb.Init,     // SCIMITAR PRO RGB
-	6942:  scimitarrgb.Init,        // SCIMITAR RGB
-	7051:  scimitarrgbelite.Init,   // SCIMITAR RGB ELITE
-	7131:  scimitarWU.Init,         // SCIMITAR RGB ELITE WIRELESS
-	11042: scimitarSEWU.Init,       // SCIMITAR ELITE WIRELESS SE
-	11011: m55.Init,                // M55 Gaming Mouse
-	7024:  m55rgbpro.Init,          // M55 RGB PRO Gaming Mouse
-	7060:  katarproW.Init,          // KATAR PRO Wireless Gaming Dongle
-	7038:  darkcorergbproseWU.Init, // DARK CORE RGB PRO SE Gaming Mouse
-	7040:  darkcorergbproWU.Init,   // DARK CORE RGB PRO Gaming Mouse
-	7152:  m75.Init,                // M75 Gaming Mouse
-	11016: m75WU.Init,              // M75 WIRELESS Gaming Mouse
-	7154:  m75AirWU.Init,           // M75 AIR WIRELESS Gaming Mouse
-	7070:  m65rgbultra.Init,        // M65 RGB ULTRA Gaming Mouse
-	7093:  m65rgbultraWU.Init,      // M65 RGB ULTRA WIRELESS Gaming Mouse
-	7126:  m65rgbultraWU.Init,      // M65 RGB ULTRA WIRELESS Gaming Mouse
-	7002:  m65rgbelite.Init,        // M65 RGB ELITE Gaming Mouse
-	7029:  harpoonrgbpro.Init,      // HARPOON RGB PRO Gaming Mouse
-	7006:  harpoonWU.Init,          // HARPOON Gaming Mouse
-	7004:  nightswordrgb.Init,      // NIGHTSWORD RGB Gaming Mouse
-	7064:  sabrergbproWU.Init,      // SABRE RGB PRO WIRELESS Gaming Mouse
-	7033:  sabrergbpro.Init,        // SABRE RGB PRO
-	7034:  sabreprocs.Init,         // SABRE PRO CS
-	7090:  darkstarWU.Init,         // DARKSTAR RGB WIRELESS Gaming Mouse
-	2658:  virtuosorgbXTWU.Init,    // VIRTUOSO RGB WIRELESS XT
-	2696:  hs80rgb.Init,            // HS80 RGB USB Gaming Headset
-}
-
-// deviceRegisterMapEx hold map of supported devices and their initialization call with callback function
-var deviceRegisterMapEx = map[uint16]deviceRegisterEx{
-	7132:  slipstream.Init,          // SLIPSTREAM WIRELESS USB Receiver
-	7078:  slipstream.Init,          // SLIPSTREAM WIRELESS USB Receiver
-	11008: slipstream.Init,          // SLIPSTREAM WIRELESS USB Receiver
-	10754: virtuosomaxdongle.Init,   // VIRTUOSO MAX WIRELESS
-	2711:  hs80maxdongle.Init,       // HS80 MAX WIRELESS
-	6993:  darkcorergbsesongle.Init, // DARK CORE RGB SE Wireless USB Receiver
-	2660:  headsetdongle.Init,       // Headset dongle
-	2667:  headsetdongle.Init,       // Headset dongle
-	11015: k65plusWdongle.Init,      // K65 PLUS WIRELESS
+var deviceRegisterMap = map[uint16]Product{
+	0:     {0, "Memory", memory.Init, nil},                            // Memory
+	3135:  {0, "iCUE LINK SYSTEM HUB", lsh.Init, nil},                 // iCUE Link System Hub
+	3122:  {0, "iCUE COMMANDER Core", cc.Init, nil},                   // iCUE COMMANDER Core
+	3100:  {0, "iCUE COMMANDER Core", cc.Init, nil},                   // iCUE COMMANDER Core
+	3114:  {0, "iCUE COMMANDER CORE XT", ccxt.Init, nil},              // iCUE COMMANDER CORE XT
+	3158:  {0, "iCUE COMMANDER DUO", cduo.Init, nil},                  // iCUE COMMANDER DUO (USB)
+	3090:  {0, "H150i PLATINUM", platinum.Init, nil},                  // H150i PLATINUM
+	3091:  {0, "H115i PLATINUM", platinum.Init, nil},                  // H115i PLATINUM
+	3093:  {0, "H100i PLATINUM", platinum.Init, nil},                  // H100i PLATINUM
+	3080:  {0, "H80i HYDRO", hydro.Init, nil},                         // H80i HYDRO
+	3081:  {0, "H100i HYDRO", hydro.Init, nil},                        // H100i HYDRO
+	3082:  {0, "H115i HYDRO", hydro.Init, nil},                        // H115i HYDRO
+	3125:  {0, "iCUE H100i ELITE RGB", elite.Init, nil},               // iCUE H100i ELITE RGB
+	3126:  {0, "iCUE H115i ELITE RGB", elite.Init, nil},               // iCUE H115i ELITE RGB
+	3127:  {0, "iCUE H150i ELITE RGB", elite.Init, nil},               // iCUE H150i ELITE RGB
+	3136:  {0, "iCUE H100i ELITE RGB White", elite.Init, nil},         // iCUE H100i ELITE RGB White
+	3137:  {0, "iCUE H150i ELITE RGB White", elite.Init, nil},         // iCUE H150i ELITE RGB White
+	3104:  {0, "iCUE H100i RGB PRO XT", elite.Init, nil},              // iCUE H100i RGB PRO XT
+	3105:  {0, "iCUE H115i RGB PRO XT", elite.Init, nil},              // iCUE H115i RGB PRO XT
+	3106:  {0, "iCUE H150i RGB PRO XT", elite.Init, nil},              // iCUE H150i RGB PRO XT
+	3095:  {0, "H115i RGB PLATINUM", elite.Init, nil},                 // H115i RGB PLATINUM
+	3096:  {0, "H100i RGB PLATINUM", elite.Init, nil},                 // H100i RGB PLATINUM
+	3097:  {0, "H100i RGB PLATINUM SE", elite.Init, nil},              // H100i RGB PLATINUM SE
+	3098:  {0, "LIGHTING NODE CORE", lncore.Init, nil},                // Lighting Node CORE
+	3083:  {0, "LIGHTING NODE PRO", lnpro.Init, nil},                  // Lighting Node Pro
+	3088:  {0, "COMMANDER PRO", cpro.Init, nil},                       // Commander Pro
+	3138:  {0, "XC7 ELITE LCD", xc7.Init, nil},                        // XC7 ELITE LCD CPU Water Block
+	2612:  {0, "ST100", st100.Init, nil},                              // ST100 LED Driver
+	7067:  {1, "MM700 RGB", mm700.Init, nil},                          // MM700 RGB Gaming Mousepad
+	7113:  {1, "MM700 3XL RGB", mm700.Init, nil},                      // MM700 3XL RGB Gaming Mousepad
+	6971:  {0, "MM800 RGB POLARIS", mm800.Init, nil},                  // MM800 RGB POLARIS
+	3107:  {0, "LT100", lt100.Init, nil},                              // LT100 Smart Lighting Tower
+	7198:  {0, "HX1000i", psuhid.Init, nil},                           // HX1000i Power Supply
+	7203:  {0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
+	7199:  {0, "HX1500i", psuhid.Init, nil},                           // HX1500i Power Supply
+	7173:  {0, "HX750i", psuhid.Init, nil},                            // HX750i Power Supply
+	7174:  {0, "HX850i", psuhid.Init, nil},                            // HX850i Power Supply
+	7175:  {0, "HX1000i", psuhid.Init, nil},                           // HX1000i Power Supply
+	7176:  {0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
+	7181:  {0, "RM1000i", psuhid.Init, nil},                           // RM1000i Power Supply
+	7180:  {0, "RM850i", psuhid.Init, nil},                            // RM850i Power Supply
+	7207:  {0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
+	7054:  {0, "iCUE NEXUS", nexus.Init, nil},                         // iCUE NEXUS
+	7127:  {1, "K65 PRO MINI", k65pm.Init, nil},                       // K65 PRO MINI
+	7094:  {1, "K70 PPO MINI", k70pmWU.Init, nil},                     // K70 PPO MINI
+	7165:  {1, "K70 CORE RGB", k70core.Init, nil},                     // K70 CORE RGB
+	11009: {1, "K70 CORE TKL", k70coretkl.Init, nil},                  // K70 CORE TKL
+	11010: {1, "K70 CORE TKL", k70coretklWU.Init, nil},                // K70 CORE TKL WIRELESS
+	11028: {1, " K70 PRO TKL", k70protkl.Init, nil},                   // K70 PRO TKL WIRELESS
+	7097:  {1, "K70 RGB TKL", k70rgbtklcs.Init, nil},                  // K70 RGB TKL
+	7027:  {1, "K70 RGB TKL", k70rgbtklcs.Init, nil},                  // K70 RGB TKL
+	6973:  {1, "K55 RGB", k55.Init, nil},                              // K55 RGB
+	7166:  {1, "K55 CORE RGB", k55core.Init, nil},                     // K55 CORE RGB
+	7076:  {1, "K55 PRO RGB", k55pro.Init, nil},                       // K55 PRO RGB
+	7073:  {1, "K55 RGB PRO XT", k55proXT.Init, nil},                  // K55 RGB PRO XT
+	7072:  {1, "K60 RGB PRO", k60rgbpro.Init, nil},                    // K60 RGB PRO
+	7104:  {1, "K70 MAX", k70max.Init, nil},                           // K70 MAX
+	7110:  {1, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
+	7091:  {1, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
+	7124:  {1, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
+	6985:  {1, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
+	6997:  {1, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
+	7019:  {1, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
+	11024: {1, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
+	11025: {1, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
+	6957:  {1, "K95 PLATINUM", k95platinum.Init, nil},                 // K95 PLATINUM
+	7049:  {1, "K95 PLATINUM XT", k95platinumXT.Init, nil},            // K95 PLATINUM XT
+	7083:  {1, "K100 AIR", k100airWU.Init, nil},                       // K100 AIR USB
+	7036:  {1, "K100", k100.Init, nil},                                // K100
+	7109:  {1, "K100", k100.Init, nil},                                // K100
+	7037:  {1, "K100", k100.Init, nil},                                // K100
+	11012: {1, "MAKR 75", makr75WU.Init, nil},                         // MAKR 75
+	7059:  {1, "KATAR PRO", katarpro.Init, nil},                       // KATAR PRO Gaming Mouse
+	7084:  {1, "KATAR PRO XT", katarproxt.Init, nil},                  // KATAR PRO XT Gaming Mouse
+	7005:  {1, "IRONCLAW RGB", ironclaw.Init, nil},                    // IRONCLAW RGB Gaming Mouse
+	6987:  {1, "DARK CORE RGB SE", darkcorergbseWU.Init, nil},         // DARK CORE RGB SE
+	6988:  {1, "IRONCLAW RGB WIRELESS", ironclawWU.Init, nil},         // IRONCLAW RGB WIRELESS Gaming Mouse
+	7096:  {1, "NIGHTSABRE WIRELESS", nightsabreWU.Init, nil},         // NIGHTSABRE WIRELESS Mouse
+	7139:  {1, "SCIMITAR RGB ELITE", scimitar.Init, nil},              // SCIMITAR RGB ELITE
+	6974:  {1, "SCIMITAR PRO RGB", scimitarprorgb.Init, nil},          // SCIMITAR PRO RGB
+	6942:  {1, "SCIMITAR RGB", scimitarrgb.Init, nil},                 // SCIMITAR RGB
+	7051:  {1, "SCIMITAR RGB ELITE", scimitarrgbelite.Init, nil},      // SCIMITAR RGB ELITE
+	7131:  {1, "SCIMITAR RGB ELITE WIRELESS", scimitarWU.Init, nil},   // SCIMITAR RGB ELITE WIRELESS
+	11042: {1, "SCIMITAR ELITE WIRELESS SE", scimitarSEWU.Init, nil},  // SCIMITAR ELITE WIRELESS SE
+	11011: {1, "M55", m55.Init, nil},                                  // M55 Gaming Mouse
+	7024:  {1, "M55 RGB PRO", m55rgbpro.Init, nil},                    // M55 RGB PRO Gaming Mouse
+	7060:  {1, "KATAR PRO WIRELESS", katarproW.Init, nil},             // KATAR PRO Wireless Gaming Dongle
+	7038:  {1, "DARK CORE RGB PRO SE", darkcorergbproseWU.Init, nil},  // DARK CORE RGB PRO SE Gaming Mouse
+	7040:  {1, "DARK CORE RGB PRO", darkcorergbproWU.Init, nil},       // DARK CORE RGB PRO Gaming Mouse
+	7152:  {1, "M75", m75.Init, nil},                                  // M75 Gaming Mouse
+	11016: {1, "M75 WIRELESS", m75WU.Init, nil},                       // M75 WIRELESS Gaming Mouse
+	7154:  {1, "M75 AIR WIRELESS", m75AirWU.Init, nil},                // M75 AIR WIRELESS Gaming Mouse
+	7070:  {1, "M65 RGB ULTRA", m65rgbultra.Init, nil},                // M65 RGB ULTRA Gaming Mouse
+	7093:  {1, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},     // M65 RGB ULTRA WIRELESS Gaming Mouse
+	7126:  {1, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},     // M65 RGB ULTRA WIRELESS Gaming Mouse
+	7002:  {1, "M65 RGB ELITE", m65rgbelite.Init, nil},                // M65 RGB ELITE Gaming Mouse
+	7029:  {1, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},            // HARPOON RGB PRO Gaming Mouse
+	7006:  {1, "HARPOON", harpoonWU.Init, nil},                        // HARPOON Gaming Mouse
+	7004:  {1, "NIGHTSWORD RGB", nightswordrgb.Init, nil},             // NIGHTSWORD RGB Gaming Mouse
+	7064:  {1, "SABRE RGB PRO WIRELESS", sabrergbproWU.Init, nil},     // SABRE RGB PRO WIRELESS Gaming Mouse
+	7033:  {1, "SABRE RGB PRO", sabrergbpro.Init, nil},                // SABRE RGB PRO
+	7034:  {1, "SABRE PRO CS", sabreprocs.Init, nil},                  // SABRE PRO CS
+	7090:  {1, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},         // DARKSTAR RGB WIRELESS Gaming Mouse
+	2658:  {3, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil}, // VIRTUOSO RGB WIRELESS XT
+	2696:  {3, "HS80 RGB USB", hs80rgb.Init, nil},                     // HS80 RGB USB Gaming Headset
+	7132:  {1, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
+	7078:  {1, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
+	11008: {1, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
+	10754: {4, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},  // VIRTUOSO MAX WIRELESS
+	2711:  {4, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},          // HS80 MAX WIRELESS
+	6993:  {1, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},     // DARK CORE RGB SE Wireless USB Receiver
+	2660:  {3, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
+	2667:  {3, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
+	11015: {1, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},         // K65 PLUS WIRELESS
 }
 
 // initializeDevice will initialize a device
 func initializeDevice(productId uint16, key, productPath string) {
 	callback, ok := deviceRegisterMap[productId]
 	if ok {
-		go func(vid, pid uint16, serial, path string, cb deviceRegister) {
-			dev := cb(vid, pid, serial, path)
-			addDevice(dev)
-		}(vendorId, productId, key, productPath, callback)
-	} else {
-		// Used for initialization of devices with callback function
-		callbackEx, valid := deviceRegisterMapEx[productId]
-		if valid {
+		if callback.DeviceRegister != nil {
+			go func(vid, pid uint16, serial, path string, cb deviceRegister) {
+				dev := cb(vid, pid, serial, path)
+				addDevice(dev)
+			}(vendorId, productId, key, productPath, callback.DeviceRegister)
+		}
+
+		if callback.DeviceRegisterEx != nil {
 			go func(vid, pid uint16, serial, path string, cb deviceRegisterEx) {
 				dev := cb(vid, pid, serial, path, addDevice)
 				addDevice(dev)
-			}(vendorId, productId, key, productPath, callbackEx)
+			}(vendorId, productId, key, productPath, callback.DeviceRegisterEx)
 		}
 	}
 }

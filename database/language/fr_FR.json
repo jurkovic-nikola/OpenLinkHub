@@ -323,6 +323,13 @@
         "txtRgbClusterError": "Impossible d’ajouter l’objet RGB Cluster",
         "txtRgbCluster": "RGB Cluster",
         "txtControlDial": "Bouton de commande",
-        "txtControlDialColors": "Couleurs du bouton de commande"
+        "txtControlDialColors": "Couleurs du bouton de commande",
+        "txtSupportedDevices": "Appareils compatibles",
+        "txtProductId": "ID du produit",
+        "txtProductName": "Nom du produit",
+        "txtEnabled": "Activé",
+        "txtSupportedDeviceListUpdated": "La liste des appareils pris en charge a été mise à jour avec succès",
+        "txtSupportedDeviceListUpdateFailed": "Échec de la mise à jour de la liste des appareils pris en charge",
+        "txtServiceRestartRequired": "Un redémarrage du service est requis pour toute modification"
     }
 }

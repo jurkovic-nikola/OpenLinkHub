@@ -118,6 +118,7 @@ type Payload struct {
 	PerfAltTab            bool                  `json:"perf_altTab"`
 	PerfAltF4             bool                  `json:"perf_altF4"`
 	Save                  bool                  `json:"save"`
+	SupportedDevices      map[uint16]bool       `json:"supportedDevices"`
 	Status                int
 	Code                  int
 	Message               string
@@ -3436,4 +3437,24 @@ func ProcessSetKeyboardControlDialColors(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSetKeyboardControlDialColors"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetSupportedDevices will enable / disable of supported devices
+func ProcessSetSupportedDevices(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+	if len(req.SupportedDevices) > 0 {
+		config.UpdateSupportedDevices(req.SupportedDevices)
+		return &Payload{Message: language.GetValue("txtSupportedDeviceListUpdated"), Code: http.StatusOK, Status: 1}
+	} else {
+		return &Payload{Message: language.GetValue("txtSupportedDeviceListUpdated"), Code: http.StatusOK, Status: 0}
+	}
 }

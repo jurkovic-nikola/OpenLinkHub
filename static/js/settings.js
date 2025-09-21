@@ -25,6 +25,102 @@ document.addEventListener("DOMContentLoaded", function () {
     // Init toastr
     const toast = CreateToastr();
 
+    // Init dataTable
+    const dt = $('#supported-devices').DataTable(
+        {
+            order: [[0, 'asc']],
+            select: {
+                style: 'os',
+                selector: 'td:first-child'
+            },
+            paging: true,
+            searching: true,
+            language: {
+                emptyTable: "Supported device list"
+            },
+            layout: {
+                topStart: null,
+                topEnd: 'search',
+                bottomStart: ['paging', 'info'],
+                bottomEnd: 'pageLength'
+            },
+            columns: [
+                { data: 'ProductId', title: 'Product Id' },
+                {
+                    data: 'ProductId',
+                    title: 'Product Id - Hexadecimal',
+                    render: function(data, type, row, meta) {
+                        return '0x' + Number(data).toString(16).toUpperCase().padStart(4, '0');
+                    }
+                },
+                { data: 'Name', title: 'Product Name' }, // JSON uses Name
+                {
+                    data: 'Enabled',
+                    title: 'Enabled',
+                    orderable: false,
+                    render: function(data, type, row, meta) {
+                        const checked = data ? 'checked' : '';
+                        return `<input type="checkbox" class="device-checkbox" data-id="${row.ProductId}" ${checked}/>`;
+                    }
+                }
+            ]
+        }
+    );
+
+    $.ajax({
+        url: '/api/getSupportedDevices',
+        dataType: 'JSON',
+        success: function(response) {
+            if (response.code === 0) {
+                toast.warning(response.message);
+            } else {
+                dt.clear();
+                dt.rows.add(response.data);
+                dt.draw();
+            }
+        }
+    });
+
+    $('#supported-devices').on('change', '.device-checkbox', function() {
+        const productId = $(this).data('id');
+        const enabled = $(this).prop('checked');
+
+        // Optional: store in DataTables row data if needed
+        const row = dt.row($(this).closest('tr'));
+        const rowData = row.data();
+        rowData.Enabled = enabled;
+        row.data(rowData); // update row
+    });
+
+    $('#btnSaveSupportedDevices').on('click', function() {
+        const supportedDevices = {};
+        const pf = {};
+        dt.rows().every(function() {
+            const data = this.data();
+            supportedDevices[data.ProductId] = data.Enabled; // true/false
+        });
+        pf["supportedDevices"] = supportedDevices;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/setSupportedDevices',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     const checkboxCpu = $('#checkbox-cpu');
     const checkboxGpu = $('#checkbox-gpu');
     const checkboxStorage = $('#checkbox-storage');

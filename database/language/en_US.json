@@ -323,6 +323,13 @@
     "txtRgbClusterError": "Unable to add RGB Cluster object",
     "txtRgbCluster": "RGB Cluster",
     "txtControlDial": "Control Dial",
-    "txtControlDialColors": "Control Dial Colors"
+    "txtControlDialColors": "Control Dial Colors",
+    "txtSupportedDevices": "Supported Devices",
+    "txtProductId": "Product Id",
+    "txtProductName": "Product Name",
+    "txtEnabled": "Enabled",
+    "txtSupportedDeviceListUpdated": "Supported device list is successfully updated",
+    "txtSupportedDeviceListUpdateFailed": "Failed to update supported device list",
+    "txtServiceRestartRequired": "Service restart is required upon any change"
   }
 }

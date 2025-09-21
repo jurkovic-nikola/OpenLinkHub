@@ -4,6 +4,7 @@ import (
 	"OpenLinkHub/src/common"
 	"encoding/json"
 	"os"
+	"slices"
 )
 
 type Configuration struct {
@@ -184,4 +185,21 @@ func saveConfigSettings(data any) {
 // GetConfig will return structs.Configuration struct
 func GetConfig() Configuration {
 	return configuration
+}
+
+// UpdateSupportedDevices will update the Exclude slice based on the enabled flag for each product ID
+func UpdateSupportedDevices(productIds map[uint16]bool) uint8 {
+	for productId, enabled := range productIds {
+		if enabled {
+			if i := slices.Index(configuration.Exclude, productId); i != -1 {
+				configuration.Exclude = append(configuration.Exclude[:i], configuration.Exclude[i+1:]...)
+			}
+		} else {
+			if !slices.Contains(configuration.Exclude, productId) {
+				configuration.Exclude = append(configuration.Exclude, productId)
+			}
+		}
+	}
+	saveConfigSettings(configuration)
+	return 1
 }

@@ -1160,3 +1160,109 @@ canvas {
     margin-top:-65px;
     height:125px;
 }
+
+.dt-search input {
+    display: block;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #8a8d93;
+    background-color: #181818 !important;
+    border: 1px solid #40444b;
+}
+
+.dt-length select {
+    display:block;
+    width:100%;
+    padding:.375rem 2.25rem .375rem .75rem;
+    -moz-padding-start:calc(.75rem - 3px);
+    font-size:1rem;
+    font-weight:400;
+    line-height:1.5;
+    color:#8a8d93;
+    background-color: #181818 !important;
+    background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat:no-repeat;
+    background-position:right .75rem center;
+    background-size:16px 12px;
+    border:1px solid #40444b;
+    border-radius:0;
+    -webkit-transition:border-color .15s ease-in-out,-webkit-box-shadow .15s ease-in-out;
+    transition:border-color .15s ease-in-out,-webkit-box-shadow .15s ease-in-out;
+    transition:border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    transition:border-color .15s ease-in-out,box-shadow .15s ease-in-out,-webkit-box-shadow .15s ease-in-out;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+    appearance:none;
+    outline: none;
+}
+
+.dt-paging button {
+    padding: 6px 12px;
+    margin: 0 2px;
+    border: 1px solid #40444b;
+    border-radius: 6px;
+    background-color: #181818 !important;
+    cursor: pointer;
+    font-size: 14px;
+    color: #a1a1a1;
+
+}
+
+.dt-paging button:disabled,
+.dt-paging button.disabled {
+    background: #f1f1f1;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+.dt-paging button.current {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.dt-paging button:not(:disabled):hover {
+    outline:1px solid #37cfdc;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+/* Active page */
+.dt-paging button.current {
+    background-color: #007bff;
+    color: #a1a1a1;
+    border: 1px solid #37cfdc;
+}
+
+.dt-length select:not(:disabled):hover {
+    border-color:#37cfdc;
+    outline:0;
+    -webkit-box-shadow:none;
+    box-shadow:none;
+}
+
+#supported-devices_wrapper .dt-layout-row:last-child {
+    display: flex;
+    justify-content: space-between; /* spread items left + right */
+    align-items: center;
+}
+
+#supported-devices_wrapper .dt-length {
+    order: 2;
+    margin-left: auto;
+}
+
+#supported-devices_wrapper .dt-search label {
+    display: none;
+}
+
+#supported-devices_wrapper .dt-length label {
+    display: none;
+}
+
+#supported-devices_info {
+    display: none;
+}

@@ -89,6 +89,36 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-md-9" style="margin: 0 auto;">
+                                <div class="card mb-2">
+                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtSupportedDevices" }}</div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table text-sm" id="supported-devices" style="width: 100%;">
+                                                <thead>
+                                                <tr>
+                                                    <th>{{ .Lang "txtProductId" }}</th>
+                                                    <th>{{ .Lang "txtProductName" }}</th>
+                                                    <th>{{ .Lang "txtEnabled" }}</th>
+                                                </tr>
+                                                </thead>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                        <div class="input-group">
+                                            <div style="float: left;">
+                                                <button class="btn btn-primary" type="button" id="btnSaveSupportedDevices">{{ .Lang "txtSave" }}</button>
+                                            </div>
+                                            <div style="display: flex; align-items: center; float: right; margin-left: 10px;">
+                                                <p style="margin: 0;">
+                                                    {{ .Lang "txtServiceRestartRequired" }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -99,6 +129,7 @@
 </div>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/dataTables.min.js"></script>
 <script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/settings.js"></script>
 </body>

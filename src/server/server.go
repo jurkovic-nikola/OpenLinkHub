@@ -160,6 +160,26 @@ func getDeviceMetrics(w http.ResponseWriter, r *http.Request) {
 	metrics.Handler(w, r)
 }
 
+// getSupportedDevices will return list of supported devices
+func getSupportedDevices(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code: http.StatusOK,
+		Data: devices.GetSupportedDevices(),
+	}
+	resp.Send(w)
+}
+
+// setSupportedDevices handles enable / disable of supported devices
+func setSupportedDevices(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetSupportedDevices(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // getDevices returns response on /devices
 func getDevices(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/api/devices/", r)
@@ -1668,6 +1688,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
 	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
 	handleFunc(r, "/api/keyboard/dial/getColors/", http.MethodGet, getControlDialColors)
+	handleFunc(r, "/api/getSupportedDevices", http.MethodGet, getSupportedDevices)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -1729,6 +1750,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/setPerformance", http.MethodPost, setKeyboardPerformance)
 	handleFunc(r, "/api/macro/updateValue", http.MethodPost, updateMacroValue)
 	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
+	handleFunc(r, "/api/setSupportedDevices", http.MethodPost, setSupportedDevices)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

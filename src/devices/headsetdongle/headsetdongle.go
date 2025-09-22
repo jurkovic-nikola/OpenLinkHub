@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/devices/virtuosoSEW"
 	"github.com/sstallion/go-hid"
 )
 
@@ -135,6 +136,28 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 2621:
+			{
+				dev := virtuosoSEW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeVirtuosoSEW,
+					Product:     "VIRTUOSO SE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-headphone.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		case 2665:
 			{
 				dev := hs80rgbW.Init(
@@ -196,6 +219,11 @@ func (d *Device) Stop() {
 				dev.StopInternal()
 			}
 		}
+		if dev, found := value.(*virtuosoSEW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
 		if dev, found := value.(*hs80rgbW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
@@ -230,6 +258,11 @@ func (d *Device) StopDirty() uint8 {
 
 	for _, value := range d.PairedDevices {
 		if dev, found := value.(*virtuosorgbXTW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*virtuosoSEW.Device); found {
 			if dev.Connected {
 				dev.StopDirty()
 			}
@@ -439,6 +472,12 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*virtuosoSEW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+			}
+		}
 		if device, found := dev.(*hs80rgbW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
@@ -456,6 +495,11 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
+		if device, found := pairedDevice.(*virtuosoSEW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
 		if device, found := pairedDevice.(*hs80rgbW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
@@ -469,6 +513,13 @@ func (d *Device) setDeviceOnline() {
 	time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 	for _, pairedDevice := range d.PairedDevices {
 		if device, found := pairedDevice.(*virtuosorgbXTW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+				d.SharedDevices(d.DeviceList[device.Serial])
+			}
+		}
+		if device, found := pairedDevice.(*virtuosoSEW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
@@ -591,6 +642,9 @@ func (d *Device) backendListener() {
 							if dev, found := value.(*virtuosorgbXTW.Device); found {
 								dev.ModifyBatteryLevel(val)
 							}
+							if dev, found := value.(*virtuosoSEW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
 							if dev, found := value.(*hs80rgbW.Device); found {
 								dev.ModifyBatteryLevel(val)
 							}
@@ -609,6 +663,12 @@ func (d *Device) backendListener() {
 							}
 							if dev, found := value.(*hs80rgbW.Device); found {
 								dev.NotifyMuteChanged(data[5])
+							}
+						}
+					} else if data[2] == 0x02 && data[3] == 0x01 {
+						for _, value := range d.PairedDevices {
+							if dev, found := value.(*virtuosoSEW.Device); found {
+								dev.NotifyMuteChanged(data[3])
 							}
 						}
 					}

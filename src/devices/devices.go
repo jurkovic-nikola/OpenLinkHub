@@ -78,6 +78,7 @@ import (
 	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
+	"OpenLinkHub/src/devices/virtuosoSEWU"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/xc7"
@@ -648,7 +649,9 @@ var deviceRegisterMap = map[uint16]Product{
 	6993:  {1, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},     // DARK CORE RGB SE Wireless USB Receiver
 	2660:  {3, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
 	2667:  {3, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
+	2622:  {3, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
 	11015: {1, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},         // K65 PLUS WIRELESS
+	2621:  {3, "VIRTUOSO SE", virtuosoSEWU.Init, nil},                 // CORSAIR VIRTUOSO SE USB Gaming Headset
 }
 
 // initializeDevice will initialize a device

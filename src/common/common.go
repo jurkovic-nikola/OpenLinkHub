@@ -134,6 +134,8 @@ const (
 	ProductTypeHS80RGBW             = 303
 	ProductTypeHS80MAXW             = 304
 	ProductTypeHS80RGB              = 305
+	ProductTypeVirtuosoSEWU         = 306
+	ProductTypeVirtuosoSEW          = 307
 	ProductTypeST100                = 401
 	ProductTypeMM700                = 402
 	ProductTypeLT100                = 403
@@ -523,11 +525,96 @@ func MuteWithPulseAudio() error {
 	return cmd.Run()
 }
 
+// MuteWithPulseAudioEx will mute / unmute mic via pulse audio and return status
+func MuteWithPulseAudioEx() (bool, error) {
+	// Toggle mute state
+	cmd := exec.Command("pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle")
+	if err := cmd.Run(); err != nil {
+		return false, err
+	}
+
+	// Query new mute state
+	out, err := exec.Command("pactl", "get-source-mute", "@DEFAULT_SOURCE@").Output()
+	if err != nil {
+		return false, err
+	}
+
+	// Parse output
+	s := strings.TrimSpace(string(out))
+	if strings.HasSuffix(s, "yes") {
+		return true, nil // muted
+	}
+	return false, nil // unmuted
+}
+
+// GetPulseAudioMuteStatus will get mute status
+func GetPulseAudioMuteStatus() (bool, error) {
+	// Query new mute state
+	out, err := exec.Command("pactl", "get-source-mute", "@DEFAULT_SOURCE@").Output()
+	if err != nil {
+		return false, err
+	}
+
+	// Parse output
+	s := strings.TrimSpace(string(out))
+	if strings.HasSuffix(s, "yes") {
+		return true, nil // muted
+	}
+	return false, nil // unmuted
+}
+
 // MuteWithALSA will mute / unmute mic via alsa
 func MuteWithALSA() error {
 	// Try muting with ALSA (assuming 'Capture' as the control name)
 	cmd := exec.Command("amixer", "set", "Capture", "toggle")
 	return cmd.Run()
+}
+
+// MuteWithALSAEx will mute / unmute mic via alsa and return status
+func MuteWithALSAEx() (bool, error) {
+	// Toggle mute state
+	cmd := exec.Command("amixer", "set", "Capture", "toggle")
+	if err := cmd.Run(); err != nil {
+		return false, err
+	}
+
+	// Query new state
+	out, err := exec.Command("amixer", "get", "Capture").Output()
+	if err != nil {
+		return false, err
+	}
+
+	s := string(out)
+
+	// Look for [on]/[off] in the output
+	if strings.Contains(s, "[off]") {
+		return true, nil // muted
+	}
+	if strings.Contains(s, "[on]") {
+		return false, nil // unmuted
+	}
+
+	return false, fmt.Errorf("could not determine mute state from output: %s", s)
+}
+
+// GetAlsaMuteStatus will get mute status
+func GetAlsaMuteStatus() (bool, error) {
+	// Query new state
+	out, err := exec.Command("amixer", "get", "Capture").Output()
+	if err != nil {
+		return false, err
+	}
+
+	s := string(out)
+
+	// Look for [on]/[off] in the output
+	if strings.Contains(s, "[off]") {
+		return true, nil // muted
+	}
+	if strings.Contains(s, "[on]") {
+		return false, nil // unmuted
+	}
+	return false, fmt.Errorf("could not determine mute state from output: %s", s)
 }
 
 // PidVidToUint16 will convert string based productId or vendorId to uint16 value

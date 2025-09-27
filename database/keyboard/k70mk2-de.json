@@ -4,7 +4,7 @@
   "fontSize": 14,
   "key": "k70mk2-default",
   "device": "K70 MK2",
-  "layout": "US",
+  "layout": "DE",
   "rows": 6,
   "row": {
     "0": {
@@ -921,7 +921,7 @@
           }
         },
         "76": {
-          "keyName": "Y",
+          "keyName": "Z",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1032,23 +1032,6 @@
             "blue": 255
           }
         },
-        "83": {
-          "keyName": "\\ |",
-          "width": 107,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [102],
-          "keyData": [152,80],
-          "default": true,
-          "keyHash": ["1208925819614629174706176"],
-          "keySpace": "keyboard-key wide",
-          "color": {
-            "red": 0,
-            "green": 255,
-            "blue": 255
-          }
-        },
         "84": {
           "keyName": "Del",
           "width": 65,
@@ -1058,7 +1041,7 @@
           "packetIndex": [43],
           "keyData": [160,87],
           "default": true,
-          "keyEmpty": ["keyboard-key-empty"],
+          "keyEmpty": ["keyboard-key-empty", "keyboard-key-empty", "keyboard-key-empty"],
           "keyHash": ["154742504910672534362390528"],
           "color": {
             "red": 0,
@@ -1363,16 +1346,15 @@
           }
         },
         "104": {
-          "keyName": "Enter",
-          "width": 164,
+          "keyName": "\\ |",
+          "width": 107,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [126],
-          "keyData": [154,82],
+          "packetIndex": [114],
+          "keyData": [162,81],
           "default": true,
-          "keyHash": ["4835703278458516698824704"],
-          "keySpace": "keyboard-key wide3",
+          "keyHash": ["2417851639229258349412352"],
           "color": {
             "red": 0,
             "green": 255,
@@ -1380,6 +1362,24 @@
           }
         },
         "105": {
+          "keyName": "Enter",
+          "width": 164,
+          "height": 155,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [126],
+          "keyData": [154,82],
+          "default": true,
+          "keyHash": ["4835703278458516698824704"],
+          "keySpace": "keyboard-key wide",
+          "css": "enter-custom",
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "106": {
           "keyName": "4",
           "width": 65,
           "height": 70,
@@ -1396,7 +1396,7 @@
             "blue": 255
           }
         },
-        "106": {
+        "107": {
           "keyName": "5",
           "width": 65,
           "height": 70,
@@ -1412,7 +1412,7 @@
             "blue": 255
           }
         },
-        "107": {
+        "108": {
           "keyName": "6",
           "width": 65,
           "height": 70,
@@ -1442,7 +1442,7 @@
           "packetIndex": [4],
           "keyData": [96,48],
           "default": true,
-          "keySpace": "keyboard-key wide3",
+          "keySpace": "keyboard-key wide",
           "keyHash": ["281474976710656"],
           "color": {
             "red": 255,
@@ -1451,7 +1451,23 @@
           }
         },
         "110": {
-          "keyName": "Z",
+          "keyName": "<",
+          "width": 65,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [16],
+          "keyData": [98,49],
+          "default": true,
+          "keyHash": ["562949953421312"],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          }
+        },
+        "111": {
+          "keyName": "Y",
           "width": 65,
           "height": 70,
           "left": 15,
@@ -1466,7 +1482,7 @@
             "blue": 255
           }
         },
-        "111": {
+        "112": {
           "keyName": "X",
           "width": 65,
           "height": 70,
@@ -1482,7 +1498,7 @@
             "blue": 255
           }
         },
-        "112": {
+        "113": {
           "keyName": "C",
           "width": 65,
           "height": 70,
@@ -1498,7 +1514,7 @@
             "blue": 255
           }
         },
-        "113": {
+        "114": {
           "keyName": "V",
           "width": 65,
           "height": 70,
@@ -1514,7 +1530,7 @@
             "blue": 255
           }
         },
-        "114": {
+        "115": {
           "keyName": "B",
           "width": 65,
           "height": 70,
@@ -1530,7 +1546,7 @@
             "blue": 255
           }
         },
-        "115": {
+        "116": {
           "keyName": "N",
           "width": 65,
           "height": 70,
@@ -1546,7 +1562,7 @@
             "blue": 255
           }
         },
-        "116": {
+        "117": {
           "keyName": "M",
           "width": 65,
           "height": 70,
@@ -1562,7 +1578,7 @@
             "blue": 255
           }
         },
-        "117": {
+        "118": {
           "keyName": ", <",
           "width": 65,
           "height": 70,
@@ -1578,7 +1594,7 @@
             "blue": 255
           }
         },
-        "118": {
+        "119": {
           "keyName": ". >",
           "width": 65,
           "height": 70,
@@ -1594,7 +1610,7 @@
             "blue": 255
           }
         },
-        "119": {
+        "120": {
           "keyName": "/ ?",
           "width": 65,
           "height": 70,
@@ -1610,7 +1626,7 @@
             "blue": 255
           }
         },
-        "120": {
+        "121": {
           "keyName": "Shift",
           "width": 205,
           "height": 70,
@@ -1627,7 +1643,7 @@
             "blue": 255
           }
         },
-        "121": {
+        "122": {
           "keyName": "↑",
           "width": 65,
           "height": 70,
@@ -1644,7 +1660,7 @@
             "blue": 255
           }
         },
-        "122": {
+        "123": {
           "keyName": "1",
           "width": 65,
           "height": 70,
@@ -1661,7 +1677,7 @@
             "blue": 255
           }
         },
-        "123": {
+        "124": {
           "keyName": "2",
           "width": 65,
           "height": 70,
@@ -1677,7 +1693,7 @@
             "blue": 255
           }
         },
-        "124": {
+        "125": {
           "keyName": "3",
           "width": 65,
           "height": 70,
@@ -1693,7 +1709,7 @@
             "blue": 255
           }
         },
-        "125": {
+        "126": {
           "keyName": "Enter",
           "width": 65,
           "height": 155,

@@ -548,6 +548,10 @@ func (d *Device) getDevices() int {
 			logger.Log(logger.Fields{"address": dimmInfoAddresses[i]}).Info("Probing address")
 		}
 
+		if slices.Contains(config.GetConfig().EnhancementKits, dimmInfoAddresses[i]) {
+			d.setEnhancementKit(dimmInfoAddresses[i])
+		}
+		
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
 		if err != nil {

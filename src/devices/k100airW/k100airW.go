@@ -1956,6 +1956,21 @@ func (d *Device) setDeviceColor() {
 				buf[6] = 0xff
 				buf[7] = byte(d.KeyAmount)
 				start := 8
+
+				var speed = byte(0x04)
+				watercolor := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if watercolor != nil {
+					if watercolor.Speed == 1 {
+						speed = 0x05 // Fast
+					}
+					if watercolor.Speed > 1 {
+						speed = 0x04 // Medium
+					}
+					if watercolor.Speed > 5 {
+						speed = 0x03 // Slow
+					}
+				}
+
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
 						if key.NoColor {
@@ -1968,7 +1983,7 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0x22, 0x00, 0x03, 0x04}
+				dataTypeSetColor = []byte{0x22, 0x00, 0x03, speed}
 				d.writeColor(buf)
 				return
 			}
@@ -2029,7 +2044,7 @@ func (d *Device) writeColor(data []byte) {
 	}
 }
 
-// getModifierPosition will return key modifier packet position in backendListener
+// getModifierKey will return modifier key value
 func (d *Device) getModifierKey(modifierIndex uint8) uint8 {
 	if d.DeviceProfile == nil {
 		return 0

@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "makr75-default",
@@ -857,7 +857,7 @@
           },
           "default": true,
           "keyData": [11, 57, 56],
-          "keyHash": ["8192"]
+          "keyHash": ["2048"]
         },
         "52": {
           "keyName": "J",

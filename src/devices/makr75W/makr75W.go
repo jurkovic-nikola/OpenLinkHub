@@ -2130,7 +2130,7 @@ func (d *Device) writeColorTopBar(data []byte) {
 	}
 }
 
-// getModifierPosition will return key modifier packet position in backendListener
+// getModifierKey will return modifier key value
 func (d *Device) getModifierKey(modifierIndex uint8) uint8 {
 	if d.DeviceProfile == nil {
 		return 0

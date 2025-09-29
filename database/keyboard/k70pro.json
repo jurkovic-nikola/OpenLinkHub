@@ -1260,7 +1260,7 @@
           },
           "default": true,
           "keyData": [11, 57, 56],
-          "keyHash": ["8192"]
+          "keyHash": ["2048"]
         },
         "77": {
           "keyName": "J",

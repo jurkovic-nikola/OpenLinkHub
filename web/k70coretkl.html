@@ -35,10 +35,13 @@
                                 </div>
                                 <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
                                     <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </span>
+                                    <span title="{{ .Lang "txtPerformance" }}" class="btn btn-secondary-empty keyboardPerformance" type="button" style="margin-top: 5px;">
+                                    <i class="bi bi-speedometer svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </span>
                                     <button title="{{ .Lang "txtKeyboardLayout" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                         <li>
@@ -54,7 +57,7 @@
                                         </li>
                                     </ul>
                                     <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                         <li>
@@ -69,9 +72,8 @@
                                             </select>
                                         </li>
                                     </ul>
-
                                     <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
                                         <li>
@@ -102,7 +104,6 @@
                                             </select>
                                         </li>
                                     </ul>
-
                                     <button title="Control Dial" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -119,109 +120,106 @@
                                             </select>
                                         </li>
                                     </ul>
-
+                                    <button title="{{ .Lang "txtRgbCluster" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <img src="/static/img/icons/icon-cluster.svg" alt="{{ .Lang "txtRgbCluster" }}" class="svg-icon svg-icon-sm svg-icon-heavy" />
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select rgbCluster">
+                                                {{ if $device.DeviceProfile.RGBCluster }}
+                                                <option value="1" selected>Enabled</option>
+                                                <option value="0">Disabled</option>
+                                                {{ else }}
+                                                <option value="1">Enabled</option>
+                                                <option value="0" selected>Disabled</option>
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
                                     <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
                                 </div>
                             </div>
-                            {{ if eq "keyboard" $device.DeviceProfile.RGBProfile }}
                             <div class="{{ $device.UIKeyboard }}" style="margin-top: 10px;margin-bottom: 10px;">
                                 {{ range $index, $keys := $keyboard.Row }}
-                                <div class="{{ $device.UIKeyboardRow }}">
-                                    {{ range $index, $keys := .Keys }}
-                                    {{ if eq $index 2 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 6 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 10 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 14 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 29 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 46 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 74 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ else if eq $index 83 }}
-                                    <div class="keyboard-key-empty"></div>
-                                    {{ end }}
-
-                                    {{ if eq $index 28 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 32 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 45 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 61 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 49 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 62 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 73 }}
-                                    <div class="keyboard-key wide3 keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 78 }}
-                                    <div class="keyboard-key wide7 keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 81 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else if eq $index 82 }}
-                                    <div class="keyboard-key wide keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else }}
-                                    <div class="keyboard-key keyboardColor" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ end }}
-                                    {{ if $keys.Svg }}
-                                        <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>
+                                {{ if gt $keys.Top 0 }}
+                                <div class="{{ $device.UIKeyboardRow }}" style="margin-top:{{ $keys.Top }}px;">
+                                    {{ else if gt (len $keys.Css) 0 }}
+                                    <div class="{{ $keys.Css }}">
                                         {{ else }}
-                                        <span style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);">
-                                           {{ $keys.KeyName }}
+                                        <div class="{{ $device.UIKeyboardRow }}">
+                                            {{ end }}
+                                            {{ range $index, $keys := .Keys }}
+                                            {{ range $index, $keyEmpty := $keys.KeyEmpty }}
+                                            <div class="{{ $keyEmpty }}"></div>
+                                            {{ end }}
+
+                                            {{ range $amount := $keys.Spacing }}
+                                            <div class="keyboard-key-empty"></div>
+                                            {{ end }}
+
+                                            {{ if gt (len $keys.KeySpace) 0 }}
+                                            <div class="{{ $keys.KeySpace }} keyboardColor keySelector {{ $keys.Css }}" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                                {{ else }}
+                                                <div class="keyboard-key keyboardColor keySelector {{ $keys.Css }}" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                                    {{ end }}
+                                                    {{ if $keys.NoColor }}
+                                                    <span class="key-uppercase" style="color: rgba(255,255,255,1);text-align: center;align-items: center;justify-content: center;display: flex;">
+                                            {{ $keys.KeyName }}
                                         </span>
-                                        {{ end }}
-                                    </div>
-                                    {{ end }}
-                                </div>
-                                {{ end }}
-                                <div>
-                                    <div style="float: left;width: 400px;">
-                                        <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
-                                        <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
-                                            <option value="0">Current Key</option>
-                                            <option value="1">Current Row</option>
-                                            <option value="2">All Keys</option>
-                                        </select>
-                                        <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Apply</span>
-                                        </button>
-                                    </div>
-                                    <div style="float: right;width: auto;">
-                                        <select class="form-select keyboardProfile" name="keyboardProfile" style="margin-top:10px;width: 150px;float: right;margin-left: 10px;">
-                                            {{ range $key := $device.DeviceProfile.Profiles }}
-                                            {{ if eq $key $device.DeviceProfile.Profile }}
-                                            <option value="{{ $key }}" selected>{{ $key }}</option>
-                                            {{ else }}
-                                            <option value="{{ $key }}">{{ $key }}</option>
+                                                    {{ else }}
+                                                    <span class="key-uppercase"  style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);width: 100%;text-align: center;">
+                                            {{ $keys.KeyName }}
+                                        </span>
+                                                    {{ end }}
+                                                </div>
+                                                {{ end }}
+                                            </div>
                                             {{ end }}
-                                            {{ end }}
-                                        </select>
-                                        <button class="btn btn-secondary" id="saveAsProfile" style="margin-top: 10px;margin-left: 10px;float: right;">
-                                            <span>Save As</span>
-                                        </button>
-                                        <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;margin-left: 10px;float: right">
-                                            <span>{{ .Lang "txtSave" }}</span>
-                                        </button>
-                                        <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
-                                            <span>Delete</span>
-                                        </button>
+                                            <div>
+                                                <div style="float: left;width: 400px;">
+                                                    <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
+                                                    <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
+                                                        <option value="0">{{ .Lang "txtCurrentKey" }}</option>
+                                                        <option value="1">{{ .Lang "txtCurrentRow" }}</option>
+                                                        <option value="2">{{ .Lang "txtAllKeys" }}</option>
+                                                    </select>
+                                                    <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
+                                                        <span>Apply</span>
+                                                    </button>
+                                                </div>
+                                                <div style="float: right;width: auto;">
+                                                    <select class="form-select keyboardProfile" name="keyboardProfile" style="margin-top:10px;width: 150px;float: right;margin-left: 10px;">
+                                                        {{ range $key := $device.DeviceProfile.Profiles }}
+                                                        {{ if eq $key $device.DeviceProfile.Profile }}
+                                                        <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                        {{ else }}
+                                                        <option value="{{ $key }}">{{ $key }}</option>
+                                                        {{ end }}
+                                                        {{ end }}
+                                                    </select>
+                                                    <button class="btn btn-secondary" id="saveAsProfile" style="margin-top: 10px;margin-left: 10px;float: right;">
+                                                        <span>{{ .Lang "txtSaveAs" }}</span>
+                                                    </button>
+                                                    <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;margin-left: 10px;float: right">
+                                                        <span>{{ .Lang "txtSave" }}</span>
+                                                    </button>
+                                                    <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
+                                                        <span>{{ .Lang "txtDelete" }}</span>
+                                                    </button>
+                                                </div>
+                                                <div style="float: right;width: auto;" class="keyAssignmentsArea">
+                                                    <button class="btn btn-secondary openKeyAssignmentsWithModifier" style="margin-top: 10px;margin-left: 10px;float: right;">
+                                                        <span>{{ .Lang "txtKeyAssignments" }}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            {{ end }}
                         </div>
-                    </div>
-                </div>
-            </div>
         </section>
         {{ template "footer" . }}
     </div>

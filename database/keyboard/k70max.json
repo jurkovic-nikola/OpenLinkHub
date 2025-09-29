@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k70max-default",
@@ -1260,7 +1260,7 @@
           },
           "default": true,
           "keyData": [11, 1, 0],
-          "keyHash": ["8192"]
+          "keyHash": ["2048"]
         },
         "77": {
           "keyName": "J",

@@ -1806,11 +1806,7 @@ func (d *Device) backendListener() {
 									}
 								}
 								if dev, found := value.(*k70coretklW.Device); found {
-									if data[1] == 0x02 && data[2] == 0x04 {
-										dev.ControlDial(data)
-									} else if data[1] == 0x05 && (data[4] == 0x01 || data[4] == 0xff) {
-										dev.ControlDial(data)
-									}
+									dev.TriggerKeyAssignment(data)
 								}
 							}
 						}

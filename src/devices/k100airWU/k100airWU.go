@@ -916,6 +916,8 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
 	pf.Speed = profile.Speed
+	pf.AlternateColors = profile.AlternateColors
+	pf.RgbDirection = profile.RgbDirection
 
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
@@ -1773,7 +1775,7 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 	}
 }
 
-// getModifierPosition will return key modifier packet position in backendListener
+// getModifierKey will return modifier key value
 func (d *Device) getModifierKey(modifierIndex uint8) uint8 {
 	if d.DeviceProfile == nil {
 		return 0

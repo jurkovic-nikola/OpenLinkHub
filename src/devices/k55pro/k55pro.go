@@ -838,7 +838,7 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 		buf[0] = byte(pullingRate)
 		_, err := d.transfer(cmdSetPollingRate, buf)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set mouse polling rate")
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set polling rate")
 			return 0
 		}
 		return 1

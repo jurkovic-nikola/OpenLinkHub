@@ -11,6 +11,7 @@
     "green": 255,
     "blue": 255
   },
+  "modifierPosition": 15,
   "row": {
     "0": {
       "keys": {
@@ -24,8 +25,11 @@
           "color": {
             "red": 0,
             "green": 255,
-            "blue": 255
-          }
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [41, 57, 56],
+          "keyHash": ["2199023255552"]
         },
         "2": {
           "keyName": "F1",
@@ -38,7 +42,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [58, 57, 56],
+          "keyHash": ["288230376151711744"],
+          "keyEmpty": ["keyboard-key-empty"]
         },
         "3": {
           "keyName": "F2",
@@ -51,7 +59,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [59, 57, 56],
+          "keyHash": ["576460752303423488"]
         },
         "4": {
           "keyName": "F3",
@@ -64,7 +75,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [60, 57, 56],
+          "keyHash": ["1152921504606846976"],
+          "actionType": 12
         },
         "5": {
           "keyName": "F4",
@@ -77,7 +92,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [61, 57, 56],
+          "keyHash": ["2305843009213693952"],
+          "actionType": 11
         },
         "6": {
           "keyName": "F5",
@@ -90,7 +109,14 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [62, 57, 56],
+          "keyHash": ["4611686018427387904"],
+          "keyEmpty": ["keyboard-key-empty"],
+          "mediaKey": true,
+          "fnActionType": 1,
+          "fnActionCommand": 4
         },
         "7": {
           "keyName": "F6",
@@ -103,7 +129,13 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [63, 57, 56],
+          "keyHash": ["9223372036854775808"],
+          "mediaKey": true,
+          "fnActionType": 1,
+          "fnActionCommand": 5
         },
         "8": {
           "keyName": "F7",
@@ -116,7 +148,13 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [64, 57, 56],
+          "keyHash": ["18446744073709551616"],
+          "mediaKey": true,
+          "fnActionType": 1,
+          "fnActionCommand": 6
         },
         "9": {
           "keyName": "F8",
@@ -129,7 +167,13 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [65, 57, 56],
+          "keyHash": ["36893488147419103232"],
+          "mediaKey": true,
+          "fnActionType": 1,
+          "fnActionCommand": 7
         },
         "10": {
           "keyName": "F9",
@@ -142,7 +186,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [66, 57, 56],
+          "keyHash": ["73786976294838206464"],
+          "keyEmpty": ["keyboard-key-empty"]
         },
         "11": {
           "keyName": "F10",
@@ -155,7 +203,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [67, 57, 56],
+          "keyHash": ["147573952589676412928"]
         },
         "12": {
           "keyName": "F11",
@@ -168,7 +219,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [68, 57, 56],
+          "keyHash": ["295147905179352825856"]
         },
         "13": {
           "keyName": "F12",
@@ -181,34 +235,29 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [69, 57, 56],
+          "keyHash": ["590295810358705651712"]
         },
-        "14": {
-          "keyName": "icon-speed.svg",
+        "15": {
+          "keyName": "PLAY",
           "width": 65,
           "height": 70,
-          "left": 25,
+          "left": 15,
           "top": 0,
-          "packetIndex": [3],
+          "packetIndex": [372],
           "color": {
             "red": 255,
             "green": 255,
             "blue": 0
           },
-          "svg": true
-        },
-        "15": {
-          "keyName": "Profile",
-          "width": 65,
-          "height": 70,
-          "left": 15,
-          "top": 0,
-          "packetIndex": [6],
-          "color": {
-            "red": 255,
-            "green": 255,
-            "blue": 0
-          }
+          "keyEmpty": ["keyboard-key-empty"],
+          "default": true,
+          "keyData": [124, 57, 56],
+          "fnActionType": 1,
+          "fnActionCommand": 6,
+          "keyHash": ["21267647932558653966460912964485513216"]
         }
       }
     },
@@ -225,7 +274,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [53, 57, 56],
+          "keyHash": ["9007199254740992"]
         },
         "17": {
           "keyName": "1",
@@ -238,7 +290,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [30, 57, 56],
+          "keyHash": ["1073741824"]
         },
         "18": {
           "keyName": "2",
@@ -251,7 +306,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [31, 57, 56],
+          "keyHash": ["2147483648"]
         },
         "19": {
           "keyName": "3",
@@ -264,7 +322,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [32, 57, 56],
+          "keyHash": ["4294967296"]
         },
         "20": {
           "keyName": "4",
@@ -277,7 +338,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [33, 57, 56],
+          "keyHash": ["8589934592"]
         },
         "21": {
           "keyName": "5",
@@ -290,7 +354,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [34, 57, 56],
+          "keyHash": ["17179869184"]
         },
         "22": {
           "keyName": "6",
@@ -303,7 +370,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [35, 57, 56],
+          "keyHash": ["34359738368"]
         },
         "23": {
           "keyName": "7",
@@ -316,7 +386,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [36, 57, 56],
+          "keyHash": ["68719476736"]
         },
         "24": {
           "keyName": "8",
@@ -329,7 +402,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [37, 57, 56],
+          "keyHash": ["137438953472"]
         },
         "25": {
           "keyName": "9",
@@ -342,7 +418,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [38, 57, 56],
+          "keyHash": ["274877906944"]
         },
         "26": {
           "keyName": "0",
@@ -355,7 +434,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [39, 57, 56],
+          "keyHash": ["549755813888"]
         },
         "27": {
           "keyName": "-",
@@ -368,7 +450,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [45, 57, 56],
+          "keyHash": ["35184372088832"]
         },
         "28": {
           "keyName": "=",
@@ -381,7 +466,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [46, 57, 56],
+          "keyHash": ["70368744177664"]
         },
         "29": {
           "keyName": "<---",
@@ -394,7 +482,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide3",
+          "default": true,
+          "keyData": [42, 57, 56],
+          "keyHash": ["4398046511104"]
         },
         "30": {
           "keyName": "Ins",
@@ -407,7 +499,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keyEmpty": ["keyboard-key-empty"],
+          "default": true,
+          "keyData": [73, 57, 56],
+          "keyHash": ["9444732965739290427392"]
         },
         "31": {
           "keyName": "Home",
@@ -420,7 +516,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [74, 57, 56],
+          "keyHash": ["18889465931478580854784"]
         },
         "32": {
           "keyName": "PgUp",
@@ -433,7 +532,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [75, 57, 56],
+          "keyHash": ["37778931862957161709568"]
         }
       }
     },
@@ -450,7 +552,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide",
+          "default": true,
+          "keyData": [43, 57, 56],
+          "keyHash": ["8796093022208"]
         },
         "34": {
           "keyName": "Q",
@@ -463,7 +569,10 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "default": true,
+          "keyData": [20, 57, 56],
+          "keyHash": ["1048576"]
         },
         "35": {
           "keyName": "W",
@@ -476,7 +585,10 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "default": true,
+          "keyData": [26, 57, 56],
+          "keyHash": ["67108864"]
         },
         "36": {
           "keyName": "E",
@@ -489,7 +601,10 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "default": true,
+          "keyData": [8, 57, 56],
+          "keyHash": ["256"]
         },
         "37": {
           "keyName": "R",
@@ -502,7 +617,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [21, 57, 56],
+          "keyHash": ["2097152"]
         },
         "38": {
           "keyName": "T",
@@ -515,7 +633,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [23, 57, 56],
+          "keyHash": ["8388608"]
         },
         "39": {
           "keyName": "Y",
@@ -528,7 +649,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [28, 57, 56],
+          "keyHash": ["268435456"]
         },
         "40": {
           "keyName": "U",
@@ -541,7 +665,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [24, 57, 56],
+          "keyHash": ["16777216"]
         },
         "41": {
           "keyName": "I",
@@ -554,7 +681,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [12, 57, 56],
+          "keyHash": ["4096"]
         },
         "42": {
           "keyName": "O",
@@ -567,7 +697,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [18, 57, 56],
+          "keyHash": ["262144"]
         },
         "43": {
           "keyName": "P",
@@ -580,7 +713,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [19, 57, 56],
+          "keyHash": ["524288"]
         },
         "44": {
           "keyName": "[ {",
@@ -593,7 +729,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [47, 57, 56],
+          "keyHash": ["140737488355328"]
         },
         "45": {
           "keyName": "] }",
@@ -606,7 +745,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [48, 57, 56],
+          "keyHash": ["281474976710656"]
         },
         "46": {
           "keyName": "\\ |",
@@ -619,7 +761,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide",
+          "default": true,
+          "keyData": [49, 57, 56],
+          "keyHash": ["562949953421312"]
         },
         "47": {
           "keyName": "Del",
@@ -632,7 +778,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keyEmpty": ["keyboard-key-empty"],
+          "default": true,
+          "keyData": [76, 57, 56],
+          "keyHash": ["75557863725914323419136"]
         },
         "48": {
           "keyName": "End",
@@ -645,7 +795,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [77, 57, 56],
+          "keyHash": ["151115727451828646838272"]
         },
         "49": {
           "keyName": "PgDn",
@@ -658,7 +811,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [78, 57, 56],
+          "keyHash": ["302231454903657293676544"]
         }
       }
     },
@@ -675,7 +831,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide",
+          "default": true,
+          "keyData": [57, 57, 56],
+          "keyHash": ["144115188075855872"]
         },
         "51": {
           "keyName": "A",
@@ -688,7 +848,10 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "default": true,
+          "keyData": [4, 57, 56],
+          "keyHash": ["16"]
         },
         "52": {
           "keyName": "S",
@@ -701,7 +864,10 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "default": true,
+          "keyData": [22, 57, 56],
+          "keyHash": ["4194304"]
         },
         "53": {
           "keyName": "D",
@@ -714,7 +880,10 @@
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "default": true,
+          "keyData": [7, 57, 56],
+          "keyHash": ["128"]
         },
         "54": {
           "keyName": "F",
@@ -727,7 +896,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyHash": ["512"],
+          "keyData": [9, 57, 56]
         },
         "55": {
           "keyName": "G",
@@ -740,7 +912,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [10, 57, 56],
+          "keyHash": ["1024"]
         },
         "56": {
           "keyName": "H",
@@ -753,7 +928,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [11, 57, 56],
+          "keyHash": ["2048"]
         },
         "57": {
           "keyName": "J",
@@ -766,7 +944,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [13, 57, 56],
+          "keyHash": ["8192"]
         },
         "58": {
           "keyName": "K",
@@ -779,7 +960,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [14, 57, 56],
+          "keyHash": ["16384"]
         },
         "59": {
           "keyName": "L",
@@ -792,7 +976,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [15, 57, 56],
+          "keyHash": ["32768"]
         },
         "60": {
           "keyName": "; :",
@@ -805,7 +992,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [51, 57, 56],
+          "keyHash": ["2251799813685248"]
         },
         "61": {
           "keyName": "' ''",
@@ -818,7 +1008,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [52, 57, 56],
+          "keyHash": ["4503599627370496"]
         },
         "62": {
           "keyName": "Enter",
@@ -831,7 +1024,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide3",
+          "default": true,
+          "keyData": [40, 57, 56],
+          "keyHash": ["1099511627776"]
         }
       }
     },
@@ -848,7 +1045,14 @@
             "red": 255,
             "green": 255,
             "blue": 0
-          }
+          },
+          "keySpace": "keyboard-key wide3",
+          "modifierShift": 25,
+          "modifierPacketValue": 4,
+          "default": true,
+          "modifier": true,
+          "keyData": [106, 63, 62],
+          "keyHash": ["81129638414606681695789005144064"]
         },
         "64": {
           "keyName": "Z",
@@ -861,7 +1065,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [29, 57, 56],
+          "keyHash": ["536870912"]
         },
         "65": {
           "keyName": "X",
@@ -874,7 +1081,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [27, 57, 56],
+          "keyHash": ["134217728"]
         },
         "66": {
           "keyName": "C",
@@ -887,7 +1097,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [6, 57, 56],
+          "keyHash": ["64"]
         },
         "67": {
           "keyName": "V",
@@ -900,7 +1113,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [25, 57, 56],
+          "keyHash": ["33554432"]
         },
         "68": {
           "keyName": "B",
@@ -913,7 +1129,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [5, 57, 56],
+          "keyHash": ["32"]
         },
         "69": {
           "keyName": "N",
@@ -926,7 +1145,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [17, 57, 56],
+          "keyHash": ["131072"]
         },
         "70": {
           "keyName": "M",
@@ -939,7 +1161,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [16, 57, 56],
+          "keyHash": ["65536"]
         },
         "71": {
           "keyName": ", <",
@@ -952,7 +1177,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [54, 57, 56],
+          "keyHash": ["18014398509481984"]
         },
         "72": {
           "keyName": ". >",
@@ -965,7 +1193,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [55, 57, 56],
+          "keyHash": ["36028797018963968"]
         },
         "73": {
           "keyName": "/ ?",
@@ -978,7 +1209,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [56, 57, 56],
+          "keyHash": ["72057594037927936"]
         },
         "74": {
           "keyName": "Shift",
@@ -991,7 +1225,14 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide3",
+          "modifierShift": 25,
+          "modifierPacketValue": 64,
+          "default": true,
+          "modifier": true,
+          "keyData": [110, 63, 62],
+          "keyHash": ["1298074214633706907132624082305024"]
         },
         "75": {
           "keyName": "↑",
@@ -1004,7 +1245,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keyEmpty": ["keyboard-key-empty", "keyboard-key-empty"],
+          "default": true,
+          "keyData": [82, 57, 56],
+          "keyHash": ["4835703278458516698824704"]
         }
       }
     },
@@ -1021,7 +1266,14 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide",
+          "modifierShift": 49,
+          "modifierPacketValue": 2,
+          "default": true,
+          "modifier": true,
+          "keyData": [105, 63, 62],
+          "keyHash": ["40564819207303340847894502572032"]
         },
         "77": {
           "keyName": "Win",
@@ -1034,7 +1286,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [108, 57, 56],
+          "keyHash": ["324518553658426726783156020576256"]
         },
         "78": {
           "keyName": "Alt",
@@ -1047,7 +1302,14 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide",
+          "modifierShift": 41,
+          "modifierPacketValue": 8,
+          "default": true,
+          "modifier": true,
+          "keyData": [107, 63, 62],
+          "keyHash": ["162259276829213363391578010288128"]
         },
         "79": {
           "keyName": "----------",
@@ -1060,7 +1322,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keySpace": "keyboard-key wide7",
+          "default": true,
+          "keyData": [44, 57, 56],
+          "keyHash": ["17592186044416"]
         },
         "80": {
           "keyName": "Alt",
@@ -1073,7 +1339,13 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "modifierShift": 41,
+          "modifierPacketValue": 128,
+          "default": true,
+          "modifier": true,
+          "keyData": [111, 63, 62],
+          "keyHash": ["2596148429267413814265248164610048"]
         },
         "81": {
           "keyName": "Fn",
@@ -1086,7 +1358,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "modifier": true,
+          "onlyColor": true,
+          "keyData": [122, 63, 62]
         },
         "82": {
           "keyName": "Menu",
@@ -1099,7 +1375,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [101, 57, 56],
+          "keyHash": ["2535301200456458802993406410752"]
         },
         "83": {
           "keyName": "Ctrl",
@@ -1112,7 +1391,13 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "modifierShift": 49,
+          "modifierPacketValue": 32,
+          "default": true,
+          "modifier": true,
+          "keyData": [109, 63, 62],
+          "keyHash": ["649037107316853453566312041152512"]
         },
         "84": {
           "keyName": "←",
@@ -1125,7 +1410,11 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "keyEmpty": ["keyboard-key-empty"],
+          "default": true,
+          "keyData": [80, 57, 56],
+          "keyHash": ["1208925819614629174706176"]
         },
         "85": {
           "keyName": "↓",
@@ -1138,7 +1427,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [81, 57, 56],
+          "keyHash": ["2417851639229258349412352"]
         },
         "86": {
           "keyName": "→",
@@ -1151,7 +1443,10 @@
             "red": 0,
             "green": 255,
             "blue": 255
-          }
+          },
+          "default": true,
+          "keyData": [79, 57, 56],
+          "keyHash": ["604462909807314587353088"]
         }
       }
     }

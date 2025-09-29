@@ -1243,7 +1243,7 @@
           },
           "default": true,
           "keyData": [11, 1, 0],
-          "keyHash": ["8192"]
+          "keyHash": ["2048"]
         },
         "76": {
           "keyName": "J",

@@ -32,6 +32,7 @@ import (
 	"OpenLinkHub/src/devices/k65plusWU"
 	"OpenLinkHub/src/devices/k65plusWdongle"
 	"OpenLinkHub/src/devices/k65pm"
+	"OpenLinkHub/src/devices/k68rgb"
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70coretkl"
 	"OpenLinkHub/src/devices/k70coretklWU"
@@ -605,6 +606,7 @@ var deviceRegisterMap = map[uint16]Product{
 	11025: {1, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
 	6957:  {1, "K95 PLATINUM", k95platinum.Init, nil},                 // K95 PLATINUM
 	7049:  {1, "K95 PLATINUM XT", k95platinumXT.Init, nil},            // K95 PLATINUM XT
+	6991:  {1, "K68 RGB", k68rgb.Init, nil},                           // K68 RGB
 	7083:  {1, "K100 AIR", k100airWU.Init, nil},                       // K100 AIR USB
 	7036:  {1, "K100", k100.Init, nil},                                // K100
 	7109:  {1, "K100", k100.Init, nil},                                // K100

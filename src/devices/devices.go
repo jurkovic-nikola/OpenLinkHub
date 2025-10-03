@@ -28,6 +28,7 @@ import (
 	"OpenLinkHub/src/devices/k55core"
 	"OpenLinkHub/src/devices/k55pro"
 	"OpenLinkHub/src/devices/k55proXT"
+	"OpenLinkHub/src/devices/k57rgbWU"
 	"OpenLinkHub/src/devices/k60rgbpro"
 	"OpenLinkHub/src/devices/k65plusWU"
 	"OpenLinkHub/src/devices/k65plusWdongle"
@@ -586,13 +587,14 @@ var deviceRegisterMap = map[uint16]Product{
 	7165:  {1, "K70 CORE RGB", k70core.Init, nil},                     // K70 CORE RGB
 	11009: {1, "K70 CORE TKL", k70coretkl.Init, nil},                  // K70 CORE TKL
 	11010: {1, "K70 CORE TKL", k70coretklWU.Init, nil},                // K70 CORE TKL WIRELESS
-	11028: {1, " K70 PRO TKL", k70protkl.Init, nil},                   // K70 PRO TKL WIRELESS
+	11028: {1, "K70 PRO TKL", k70protkl.Init, nil},                    // K70 PRO TKL WIRELESS
 	7097:  {1, "K70 RGB TKL CS", k70rgbtklcs.Init, nil},               // K70 RGB TKL
 	7027:  {1, "K70 RGB TKL", k70rgbtklcs.Init, nil},                  // K70 RGB TKL
 	6973:  {1, "K55 RGB", k55.Init, nil},                              // K55 RGB
 	7166:  {1, "K55 CORE RGB", k55core.Init, nil},                     // K55 CORE RGB
 	7076:  {1, "K55 PRO RGB", k55pro.Init, nil},                       // K55 PRO RGB
 	7073:  {1, "K55 RGB PRO XT", k55proXT.Init, nil},                  // K55 RGB PRO XT
+	7022:  {1, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                // K57 RGB WIRELESS
 	7072:  {1, "K60 RGB PRO", k60rgbpro.Init, nil},                    // K60 RGB PRO
 	7104:  {1, "K70 MAX", k70max.Init, nil},                           // K70 MAX
 	7110:  {1, "K70 PRO", k70pro.Init, nil},                           // K70 PRO

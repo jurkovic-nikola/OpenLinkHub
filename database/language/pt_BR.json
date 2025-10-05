@@ -330,6 +330,10 @@
     "txtEnabled": "Habilitado",
     "txtSupportedDeviceListUpdated": "Lista de dispositivos suportados atualizada com sucesso",
     "txtSupportedDeviceListUpdateFailed": "Falha ao atualizar a lista de dispositivos suportados",
-    "txtServiceRestartRequired": "Reinício do serviço é necessário após qualquer alteração"
+    "txtServiceRestartRequired": "Reinício do serviço é necessário após qualquer alteração",
+    "txtBackupRestore": "Backup e Restauração",
+    "txtBackupInfo": "O backup e a restauração permitem que você faça backup e restaure seu banco de dados ou diretório atual. É necessário reiniciar o serviço após o processo de restauração.",
+    "txtBackup": "Fazer Backup",
+    "txtRestore": "Restaurar"
   }
 }

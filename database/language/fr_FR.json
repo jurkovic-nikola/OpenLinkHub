@@ -330,6 +330,10 @@
         "txtEnabled": "Activé",
         "txtSupportedDeviceListUpdated": "La liste des appareils pris en charge a été mise à jour avec succès",
         "txtSupportedDeviceListUpdateFailed": "Échec de la mise à jour de la liste des appareils pris en charge",
-        "txtServiceRestartRequired": "Un redémarrage du service est requis pour toute modification"
+        "txtServiceRestartRequired": "Un redémarrage du service est requis pour toute modification",
+        "txtBackupRestore": "Sauvegarde et restauration",
+        "txtBackupInfo": "La sauvegarde et la restauration vous permettent de sauvegarder et de restaurer votre base de données ou répertoire actuel. Un redémarrage du service est nécessaire après le processus de restauration.",
+        "txtBackup": "Sauvegarder",
+        "txtRestore": "Restaurer"
     }
 }

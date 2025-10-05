@@ -67,6 +67,36 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     );
 
+    $("#btnBackup").on("click", function() {
+        window.location.href = "/api/backup";
+    });
+
+    $("#restoreForm").on("submit", function (e) {
+        e.preventDefault();
+
+        var formData = new FormData();
+        var file = $("#backupFile")[0].files[0];
+        if (!file) {
+            toast.warning('Please select a .zip file first!');
+            return;
+        }
+        formData.append("backupFile", file);
+
+        $.ajax({
+            url: "/api/restore",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                toast.success(response);
+            },
+            error: function (xhr) {
+                toast.warning("Restore failed: " + xhr.responseText);
+            }
+        });
+    });
+
     $.ajax({
         url: '/api/getSupportedDevices',
         dataType: 'JSON',

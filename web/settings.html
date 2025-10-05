@@ -88,6 +88,29 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="card mb-2">
+                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtBackupRestore" }}</div>
+                                    <div class="card-body">
+                                        {{ .Lang "txtBackupInfo" }}
+                                    </div>
+                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                        <div class="input-group">
+                                            <div style="float: left;width: 20%;">
+                                                <button class="btn btn-primary" type="button" id="btnBackup">{{ .Lang "txtBackup" }}</button>
+                                            </div>
+                                            <div style="float: right;width: 80%;">
+                                                <form id="restoreForm" enctype="multipart/form-data">
+                                                    <div class="input-group">
+                                                        <input type="file" class="form-control" id="backupFile" name="backupFile" accept=".zip">
+                                                        <button class="btn btn-success" type="submit" id="btnRestore">
+                                                            {{ .Lang "txtRestore" }}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-9" style="margin: 0 auto;">
                                 <div class="card mb-2">

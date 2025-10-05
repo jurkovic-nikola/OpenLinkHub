@@ -1,6 +1,7 @@
 package server
 
 import (
+	"OpenLinkHub/src/backup"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
@@ -1689,6 +1690,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
 	handleFunc(r, "/api/keyboard/dial/getColors/", http.MethodGet, getControlDialColors)
 	handleFunc(r, "/api/getSupportedDevices", http.MethodGet, getSupportedDevices)
+	handleFunc(r, "/api/backup", http.MethodGet, backup.PerformBackup)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -1751,6 +1753,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/updateValue", http.MethodPost, updateMacroValue)
 	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
 	handleFunc(r, "/api/setSupportedDevices", http.MethodPost, setSupportedDevices)
+	handleFunc(r, "/api/restore", http.MethodPost, backup.PerformRestore)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

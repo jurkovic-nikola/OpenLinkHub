@@ -330,6 +330,10 @@
     "txtEnabled": "Enabled",
     "txtSupportedDeviceListUpdated": "Supported device list is successfully updated",
     "txtSupportedDeviceListUpdateFailed": "Failed to update supported device list",
-    "txtServiceRestartRequired": "Service restart is required upon any change"
+    "txtServiceRestartRequired": "Service restart is required upon any change",
+    "txtBackupRestore": "Backup and Restore",
+    "txtBackupInfo": "Backup and restore allow you to back up and restore your current database/ directory. A service restart is required after the restore process.",
+    "txtBackup": "Backup",
+    "txtRestore": "Restore"
   }
 }

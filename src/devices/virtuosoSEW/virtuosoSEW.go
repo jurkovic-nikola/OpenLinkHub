@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/sstallion/go-hid"
+	"strconv"
 )
 
 type ZoneColors struct {
@@ -136,7 +137,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		VendorId:     vendorId,
 		ProductId:    productId,
 		SlipstreamId: slipstreamId,
-		Serial:       serial,
+		Serial:       strconv.Itoa(int(productId)),
 		Endpoint:     endpoint,
 		Firmware:     "n/a",
 		Brightness: map[int]string{

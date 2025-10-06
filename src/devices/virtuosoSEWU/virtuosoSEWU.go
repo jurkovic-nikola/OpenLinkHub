@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/sstallion/go-hid"
+	"strconv"
 )
 
 type ZoneColors struct {
@@ -264,11 +265,7 @@ func (d *Device) getManufacturer() {
 
 // getSerial will return device serial number
 func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
-	}
-	d.Serial = serial
+	d.Serial = strconv.Itoa(int(d.ProductId))
 }
 
 // loadRgb will load RGB file if found, or create the default.

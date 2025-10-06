@@ -19,6 +19,7 @@ import (
 
 	"OpenLinkHub/src/devices/virtuosoSEW"
 	"github.com/sstallion/go-hid"
+	"strconv"
 )
 
 type Devices struct {
@@ -66,7 +67,9 @@ var (
 	cmdGetFirmware   = []byte{0x02, 0x13}
 	cmdRead          = []byte{0x08, 0x01}
 	cmdWrite         = []byte{0x09, 0x01}
+	cmdProductId     = []byte{0x02, 0x12}
 	cmdCommand       = byte(0x08)
+	cmdEndpoint      = byte(0x09)
 	transferTimeout  = 1000
 	connectDelay     = 3000
 )
@@ -342,6 +345,25 @@ func (d *Device) getDevices() {
 			devices[i] = device
 			position += 8 + int(deviceIdLen)
 		}
+	} else {
+		if d.ProductId == 2622 {
+			buff, _ = d.transferToDevice(cmdEndpoint, cmdProductId, nil, "")
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
+			}
+			productId := uint16(buff[position+5])<<8 | uint16(buff[position+4])
+			device := &Devices{
+				Type:      0x02,
+				Endpoint:  0x09, // Single endpoint
+				Serial:    strconv.Itoa(int(productId)),
+				VendorId:  d.VendorId,
+				ProductId: productId,
+			}
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("Processing device")
+			}
+			devices[0] = device
+		}
 	}
 
 	if len(devices) == 1 {
@@ -595,7 +617,7 @@ func (d *Device) getListenerData() []byte {
 func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 3 {
+			if info.UsagePage == 65346 {
 				listener, err := hid.OpenPath(info.Path)
 				if err != nil {
 					return err

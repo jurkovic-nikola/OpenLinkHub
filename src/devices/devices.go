@@ -43,6 +43,7 @@ import (
 	"OpenLinkHub/src/devices/k70pmWU"
 	"OpenLinkHub/src/devices/k70pro"
 	"OpenLinkHub/src/devices/k70protkl"
+	"OpenLinkHub/src/devices/k70rgbRF"
 	"OpenLinkHub/src/devices/k70rgbtklcs"
 	"OpenLinkHub/src/devices/k95platinum"
 	"OpenLinkHub/src/devices/k95platinumXT"
@@ -601,6 +602,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7091:  {1, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
 	7124:  {1, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
 	6966:  {1, "K70 LUX", k70lux.Init, nil},                           // K70 LUX
+	6968:  {1, "K70 RGB RAPIDFIRE", k70rgbRF.Init, nil},               // K70 RGB RAPIDFIRE
 	6985:  {1, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
 	6997:  {1, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
 	7019:  {1, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2

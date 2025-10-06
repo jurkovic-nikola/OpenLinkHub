@@ -1288,7 +1288,7 @@ func (d *Device) getListenerData() []byte {
 func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 3 {
+			if info.UsagePage == 65346 {
 				listener, err := hid.OpenPath(info.Path)
 				if err != nil {
 					return err

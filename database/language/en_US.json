@@ -334,6 +334,19 @@
     "txtBackupRestore": "Backup and Restore",
     "txtBackupInfo": "Backup and restore allow you to back up and restore your current database/ directory. A service restart is required after the restore process.",
     "txtBackup": "Backup",
-    "txtRestore": "Restore"
+    "txtRestore": "Restore",
+    "txtDisableLedOnActiveMic": "Disable LED When Mic is Active",
+    "txtANC": "Active Noise Cancellation",
+    "txtSidetone": "Sidetone",
+    "txtSidetoneValue": "Sidetone Value",
+    "txtInvalidNoiseCancellation": "Invalid noise cancellation value",
+    "txtUnableToChangeAnc": "Unable to change active noise cancellation",
+    "txtNoAncSidetoneOn": "Active Noise Cancellation is blocked while Sidetone is Enabled",
+    "txtAncUpdated": "Active Noise Cancellation is successfully updated",
+    "txtSidetoneUpdated": "Sidetone successfully updated",
+    "txtNoSidetoneAncOn": "Sidetone is blocked while Active Noise Cancellation is Enabled",
+    "txtUnableToChangeSidetone": "Unable to change Sidetone",
+    "txtInvalidSidetone": "Invalid Sidetone value",
+    "txtNoSidetone": "Unable to update Sidetone value, enable Sidetone first"
   }
 }

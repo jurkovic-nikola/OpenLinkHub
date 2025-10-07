@@ -154,4 +154,91 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    $('.noiseCancellationMode').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["noiseCancellation"] = parseInt($(this).val());
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/headset/anc',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.sideToneMode').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["sideTone"] = parseInt($(this).val());
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/headset/sidetone',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('#sideToneValue').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const sidetone = $(this).val();
+        const sidetoneValue = parseInt(sidetone);
+
+        if (sidetoneValue < 0 || sidetoneValue > 100) {
+            toast.warning('Invalid sidetone value');
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["sideToneValue"] = sidetoneValue;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/headset/sidetoneValue',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

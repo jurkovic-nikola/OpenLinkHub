@@ -86,6 +86,9 @@ type Payload struct {
 	KeyAssignmentOriginal bool                  `json:"keyAssignmentOriginal"`
 	KeyAssignmentValue    uint16                `json:"keyAssignmentValue"`
 	MuteIndicator         int                   `json:"muteIndicator"`
+	NoiseCancellation     int                   `json:"noiseCancellation"`
+	SideTone              int                   `json:"sideTone"`
+	SideToneValue         int                   `json:"sideToneValue"`
 	RgbControl            bool                  `json:"rgbControl"`
 	RgbOff                string                `json:"rgbOff"`
 	RgbOn                 string                `json:"rgbOn"`
@@ -1489,6 +1492,144 @@ func ProcessChangeMuteIndicator(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeIndicator"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessActiveNoiseCancellation will process POST request from a client for device Active Noise Cancellation change
+func ProcessActiveNoiseCancellation(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.NoiseCancellation < 0 || req.MuteIndicator > 2 {
+		return &Payload{Message: language.GetValue("txtInvalidNoiseCancellation"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateActiveNoiseCancellation",
+		req.NoiseCancellation,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtAncUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNoAncSidetoneOn"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeAnc"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSidetone will process POST request from a client for device Sidetone
+func ProcessSidetone(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.SideTone < 0 || req.SideTone > 1 {
+		return &Payload{Message: language.GetValue("txtInvalidSidetone"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateSidetone",
+		req.SideTone,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtSidetoneUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNoSidetoneAncOn"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeSidetone"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSidetoneValue will process POST request from a client for device Sidetone value
+func ProcessSidetoneValue(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.SideToneValue < 0 || req.SideToneValue > 100 {
+		return &Payload{Message: language.GetValue("txtInvalidSidetone"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateSidetoneValue",
+		req.SideToneValue,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtSidetoneUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtNoSidetoneAncOn"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeSidetone"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDeleteKeyboardProfile will process DELETE request from a client for device profile deletion

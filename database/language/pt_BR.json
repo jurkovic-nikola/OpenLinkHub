@@ -334,6 +334,19 @@
     "txtBackupRestore": "Backup e Restauração",
     "txtBackupInfo": "O backup e a restauração permitem que você faça backup e restaure seu banco de dados ou diretório atual. É necessário reiniciar o serviço após o processo de restauração.",
     "txtBackup": "Fazer Backup",
-    "txtRestore": "Restaurar"
+    "txtRestore": "Restaurar",
+    "txtDisableLedOnActiveMic": "Desativar LED quando o microfone estiver ativo",
+    "txtANC": "Cancelamento ativo de ruído",
+    "txtSidetone": "Sidetone",
+    "txtSidetoneValue": "Valor do sidetone",
+    "txtInvalidNoiseCancellation": "Valor de cancelamento de ruído inválido",
+    "txtUnableToChangeAnc": "Não é possível alterar o cancelamento ativo de ruído",
+    "txtNoAncSidetoneOn": "O cancelamento ativo de ruído é bloqueado enquanto o sidetone estiver ativado",
+    "txtAncUpdated": "O cancelamento ativo de ruído foi atualizado com sucesso",
+    "txtSidetoneUpdated": "Sidetone atualizado com sucesso",
+    "txtNoSidetoneAncOn": "O sidetone é bloqueado enquanto o cancelamento ativo de ruído estiver ativado",
+    "txtUnableToChangeSidetone": "Não é possível alterar o sidetone",
+    "txtInvalidSidetone": "Valor de sidetone inválido",
+    "txtNoSidetone": "Não é possível atualizar o valor do sidetone, ative o sidetone primeiro"
   }
 }

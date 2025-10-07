@@ -861,6 +861,39 @@ $ curl -X POST http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile
 ```bash
 $ curl -X POST http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile": "Liquid", "updateType": 0,"points": [{"x": 0,"y": 25}...]}' --silent | jq
 ```
+
+### Headset Active Noise Cancellation - Off (require Sidetone Off)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "noiseCancellation": 0}' --silent | jq
+```
+### Headset Active Noise Cancellation - On (require Sidetone Off)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "noiseCancellation": 1}' --silent | jq
+```
+### Headset Active Noise Cancellation - Transparency (require Sidetone Off)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "noiseCancellation": 2}' --silent | jq
+```
+### Headset Sidetone - Off (require Active Noise Cancellation Off)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/sidetone -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "sideTone": 0}' --silent | jq
+```
+### Headset Sidetone - On (require Active Noise Cancellation Off)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/sidetone -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "sideTone": 1}' --silent | jq
+```
+### Headset Sidetone Value - 0 (require Sidetone On)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "sideToneValue": 0}' --silent | jq
+```
+### Headset Sidetone Value - 50 (require Sidetone On)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "sideToneValue": 50}' --silent | jq
+```
+### Headset Sidetone Value - 100 (require Sidetone On)
+```bash
+$ curl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "5C126A3EB51A39569ABADC4C3A1FCF54", "sideToneValue": 100}' --silent | jq
+```
 ### Save new user profile
 ```bash
 $ curl -X PUT http://127.0.0.1:27003/api/userProfile -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq

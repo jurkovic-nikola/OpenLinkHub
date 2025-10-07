@@ -1090,6 +1090,39 @@ func changeMuteIndicator(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeActiveNoiseCancellation handles device Active Noise Cancellation
+func changeActiveNoiseCancellation(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessActiveNoiseCancellation(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeSidetone handles device Sidetone
+func changeSidetone(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSidetone(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeSidetoneValue handles device Sidetone value
+func changeSidetoneValue(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSidetoneValue(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeRgbScheduler handles RGB scheduler change
 func changeRgbScheduler(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeRgbScheduler(r)
@@ -1754,6 +1787,9 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
 	handleFunc(r, "/api/setSupportedDevices", http.MethodPost, setSupportedDevices)
 	handleFunc(r, "/api/restore", http.MethodPost, backup.PerformRestore)
+	handleFunc(r, "/api/headset/anc", http.MethodPost, changeActiveNoiseCancellation)
+	handleFunc(r, "/api/headset/sidetone", http.MethodPost, changeSidetone)
+	handleFunc(r, "/api/headset/sidetoneValue", http.MethodPost, changeSidetoneValue)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

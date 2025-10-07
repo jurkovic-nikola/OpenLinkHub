@@ -334,6 +334,19 @@
         "txtBackupRestore": "Sauvegarde et restauration",
         "txtBackupInfo": "La sauvegarde et la restauration vous permettent de sauvegarder et de restaurer votre base de données ou répertoire actuel. Un redémarrage du service est nécessaire après le processus de restauration.",
         "txtBackup": "Sauvegarder",
-        "txtRestore": "Restaurer"
+        "txtRestore": "Restaurer",
+        "txtDisableLedOnActiveMic": "Désactiver la LED lorsque le micro est actif",
+        "txtANC": "Réduction active du bruit",
+        "txtSidetone": "Retour local",
+        "txtSidetoneValue": "Valeur du retour local",
+        "txtInvalidNoiseCancellation": "Valeur de réduction du bruit non valide",
+        "txtUnableToChangeAnc": "Impossible de modifier la réduction active du bruit",
+        "txtNoAncSidetoneOn": "La réduction active du bruit est bloquée lorsque le retour local est activé",
+        "txtAncUpdated": "La réduction active du bruit a été mise à jour avec succès",
+        "txtSidetoneUpdated": "Le retour local a été mis à jour avec succès",
+        "txtNoSidetoneAncOn": "Le retour local est bloqué lorsque la réduction active du bruit est activée",
+        "txtUnableToChangeSidetone": "Impossible de modifier le retour local",
+        "txtInvalidSidetone": "Valeur de retour local non valide",
+        "txtNoSidetone": "Impossible de mettre à jour la valeur du retour local, activez d'abord le retour local"
     }
 }

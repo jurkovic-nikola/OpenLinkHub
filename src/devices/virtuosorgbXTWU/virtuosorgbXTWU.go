@@ -45,6 +45,8 @@ type DeviceProfile struct {
 	ZoneColors         map[int]ZoneColors
 	SleepMode          int
 	MuteIndicator      int
+	SideTone           int
+	SideToneValue      int
 }
 
 type Device struct {
@@ -80,6 +82,7 @@ type Device struct {
 	Exit                  bool
 	MuteStatus            byte
 	MuteIndicators        map[int]string
+	SideToneModes         map[int]string
 	BatteryLevel          uint16
 	RGBModes              []string
 	instance              *common.Device
@@ -96,6 +99,8 @@ var (
 	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
 	cmdHeartbeat          = []byte{0x12}
 	cmdBatteryLevel       = []byte{0x02, 0x0f}
+	cmdSidetoneMode       = []byte{0x01, 0x46, 0x00}
+	cmdSidetone           = []byte{0x01, 0x47, 0x00}
 	bufferSize            = 64
 	bufferSizeWrite       = bufferSize + 1
 	headerSize            = 3
@@ -163,6 +168,10 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			0: "Disabled",
 			1: "Enabled",
 		},
+		SideToneModes: map[int]string{
+			0: "Disabled",
+			1: "Enabled",
+		},
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -183,6 +192,52 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
+}
+
+// configureHeadset will configure headset sidetone and active noise cancellation
+func (d *Device) configureHeadset() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.SideTone == 1 {
+		// Sidetone is enabled, ANC needs to be disabled
+		buf := make([]byte, 1)
+		buf[0] = 0x00
+
+		// Setup Sidetone
+		_, err := d.transfer(cmdSidetoneMode, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to enable side tone")
+			return
+		}
+
+		if d.DeviceProfile.SideToneValue < 0 {
+			d.DeviceProfile.SideToneValue = 0
+		}
+
+		if d.DeviceProfile.SideToneValue > 100 {
+			d.DeviceProfile.SideToneValue = 100
+		}
+
+		// Setup Sidetone value
+		buf = make([]byte, 2)
+		binary.LittleEndian.PutUint16(buf[0:2], uint16(d.DeviceProfile.SideToneValue*10)) // Sidetone 0-100 * 10
+		_, err = d.transfer(cmdSidetone, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set side tone value")
+			return
+		}
+	} else {
+		// Disable sidetone
+		buf := make([]byte, 1)
+		buf[0] = 0x01
+		_, err := d.transfer(cmdSidetoneMode, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to enable side tone")
+			return
+		}
+	}
 }
 
 // createDevice will create new device register object
@@ -701,6 +756,8 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.SleepMode = d.DeviceProfile.SleepMode
 		deviceProfile.MuteIndicator = d.DeviceProfile.MuteIndicator
+		deviceProfile.SideTone = d.DeviceProfile.SideTone
+		deviceProfile.SideToneValue = d.DeviceProfile.SideToneValue
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
@@ -771,6 +828,32 @@ func (d *Device) UpdateMuteIndicator(minutes int) uint8 {
 		d.DeviceProfile.MuteIndicator = minutes
 		d.saveDeviceProfile()
 		return 1
+	}
+	return 0
+}
+
+// UpdateSidetone will update device side tone
+func (d *Device) UpdateSidetone(value int) uint8 {
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.SideTone = value
+		d.saveDeviceProfile()
+		d.configureHeadset()
+		return 1
+	}
+	return 0
+}
+
+// UpdateSidetoneValue will update device sidetone value
+func (d *Device) UpdateSidetoneValue(value int) uint8 {
+	if d.DeviceProfile != nil {
+		if d.DeviceProfile.SideTone == 1 {
+			d.DeviceProfile.SideToneValue = value
+			d.saveDeviceProfile()
+			d.configureHeadset()
+			return 1
+		} else {
+			return 2
+		}
 	}
 	return 0
 }

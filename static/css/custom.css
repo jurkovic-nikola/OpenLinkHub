@@ -690,6 +690,12 @@ footer {
     grid-gap: 5px;
 }
 
+.keyboard-row-21 {
+    display: grid;
+    grid-template-columns: repeat(21, 60px);
+    grid-gap: 5px;
+}
+
 .keyboard-row-24 {
     display: grid;
     grid-template-columns: repeat(24, 60px);

@@ -136,6 +136,32 @@
                                         </li>
                                     </ul>
 
+                                    <button title="{{ .Lang "txtSidetone" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-mic svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select sideToneMode" name="sideToneMode">
+                                                {{ range $key, $value := $device.SideToneModes }}
+                                                {{ if eq $device.DeviceProfile.SideTone $key }}
+                                                <option value="{{ $key }}" selected>{{ $value }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $value }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="{{ .Lang "txtSidetoneValue" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-headphones svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
+                                        <li>
+                                            <input class="brightness-slider" type="range" id="sideToneValue" name="sideToneValue" min="0" max="100" value="{{ $deviceProfile.SideToneValue }}" style="margin-top:0" step="1" />
+                                        </li>
+                                    </ul>
+
                                     <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

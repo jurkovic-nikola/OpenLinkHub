@@ -109,6 +109,7 @@ var (
 	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
 	cmdSleep                  = []byte{0x01, 0x0e, 0x00}
 	cmdBatteryLevel           = []byte{0x02, 0x0f}
+	cmdMicStatus              = []byte{0x02, 0xa6}
 	dataTypeSetColor          = []byte{0x12, 0x00}
 	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
 	cmdNoiseCancellation      = []byte{0x01, 0xd1, 0x00}
@@ -190,6 +191,30 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 func (d *Device) configureHeadset() {
 	if d.DeviceProfile == nil {
 		return
+	}
+
+	// Get microphone status
+	buff, err := d.transfer(cmdMicStatus, nil)
+	if err != nil {
+		return
+	}
+
+	micStatus := buff[4]
+	shouldMute := micStatus == 0x01 // true if device reports muted
+
+	// PulseAudio
+	mute, err := common.GetPulseAudioMuteStatus()
+	if err == nil {
+		if mute != shouldMute {
+			_, _ = common.MuteWithPulseAudioEx()
+		}
+		return
+	} else {
+		// Fallback to ALSA
+		mute, err = common.GetAlsaMuteStatus()
+		if err == nil && mute != shouldMute {
+			_, _ = common.MuteWithALSAEx()
+		}
 	}
 
 	if d.DeviceProfile.SideTone == 1 {
@@ -1305,15 +1330,23 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 }
 
 // NotifyMuteChanged will change mute status
-func (d *Device) NotifyMuteChanged() {
-	// TO-DO: This probably needs more work...
-	if err := common.MuteWithPulseAudio(); err == nil {
+func (d *Device) NotifyMuteChanged(value byte) {
+	shouldMute := value == 0x01 // true if device reports muted
+
+	// PulseAudio
+	mute, err := common.GetPulseAudioMuteStatus()
+	if err == nil {
+		if mute != shouldMute {
+			_, _ = common.MuteWithPulseAudioEx()
+		}
 		return
+	} else {
+		// Fallback to ALSA
+		mute, err = common.GetAlsaMuteStatus()
+		if err == nil && mute != shouldMute {
+			_, _ = common.MuteWithALSAEx()
+		}
 	}
-	if err := common.MuteWithALSA(); err == nil {
-		return
-	}
-	logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to change mute state via pulse or alsa")
 }
 
 // ModifyBatteryLevel will modify battery level

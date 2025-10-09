@@ -141,6 +141,7 @@ const (
 	ProductTypeHS80RGB              = 305
 	ProductTypeVirtuosoSEWU         = 306
 	ProductTypeVirtuosoSEW          = 307
+	ProductTypeVoidV2W              = 308
 	ProductTypeST100                = 401
 	ProductTypeMM700                = 402
 	ProductTypeLT100                = 403

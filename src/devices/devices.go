@@ -86,6 +86,7 @@ import (
 	"OpenLinkHub/src/devices/virtuosoSEWU"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
+	"OpenLinkHub/src/devices/voidV2dongle"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
@@ -675,6 +676,7 @@ var deviceRegisterMap = map[uint16]Product{
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},         // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},         // K65 PLUS WIRELESS
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},             // CORSAIR VIRTUOSO SE USB Gaming Headset
+	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},            // VOID WIRELESS V2
 }
 
 // initializeDevice will initialize a device

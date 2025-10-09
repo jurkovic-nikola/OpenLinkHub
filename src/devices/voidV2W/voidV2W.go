@@ -208,7 +208,6 @@ func (d *Device) configureHeadset() {
 		if mute != shouldMute {
 			_, _ = common.MuteWithPulseAudioEx()
 		}
-		return
 	} else {
 		// Fallback to ALSA
 		mute, err = common.GetAlsaMuteStatus()
@@ -1339,7 +1338,6 @@ func (d *Device) NotifyMuteChanged(value byte) {
 		if mute != shouldMute {
 			_, _ = common.MuteWithPulseAudioEx()
 		}
-		return
 	} else {
 		// Fallback to ALSA
 		mute, err = common.GetAlsaMuteStatus()

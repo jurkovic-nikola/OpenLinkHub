@@ -651,12 +651,18 @@ func (d *Device) backendListener() {
 				}
 
 				// Battery
-				if data[1] == 0x01 && data[2] == 0x12 {
+				if data[1] == 0x01 && (data[2] == 0x12 || data[2] == 0x02) {
 					var val uint16 = 0
 					if data[7] > 0 { // Unclear why it switches 1 position next
 						val = binary.LittleEndian.Uint16(data[6:8]) / 10
 					} else {
 						val = binary.LittleEndian.Uint16(data[5:7]) / 10
+						if val == 0 || val > 100 {
+							val = binary.LittleEndian.Uint16(data[4:6]) / 10
+							if val > 100 {
+								continue
+							}
+						}
 					}
 
 					if val > 0 {

@@ -1320,7 +1320,7 @@ func (d *Device) backendListener() {
 					continue
 				}
 
-				if data[2] == 0x12 {
+				if data[2] == 0x12 || data[3] == 0x0f {
 					var val uint16 = 0
 					if data[4] == 0 {
 						if data[5] > 0 {

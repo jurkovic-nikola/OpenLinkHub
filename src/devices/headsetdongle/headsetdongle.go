@@ -651,18 +651,31 @@ func (d *Device) backendListener() {
 				}
 
 				// Battery
-				if data[1] == 0x01 && (data[2] == 0x12 || data[2] == 0x02) {
+				// 03 01 01 0f 00 ac 03
+				if data[0] == 0x03 || data[1] == 0x01 && data[3] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[5:7]) / 10
+					if val > 0 {
+						for _, value := range d.PairedDevices {
+							if dev, found := value.(*virtuosorgbXTW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
+							if dev, found := value.(*virtuosoSEW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
+							if dev, found := value.(*hs80rgbW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
+						}
+					}
+					continue
+				}
+
+				if data[1] == 0x01 && data[2] == 0x12 {
 					var val uint16 = 0
 					if data[7] > 0 { // Unclear why it switches 1 position next
 						val = binary.LittleEndian.Uint16(data[6:8]) / 10
 					} else {
 						val = binary.LittleEndian.Uint16(data[5:7]) / 10
-						if val == 0 || val > 100 {
-							val = binary.LittleEndian.Uint16(data[4:6]) / 10
-							if val > 100 {
-								continue
-							}
-						}
 					}
 
 					if val > 0 {

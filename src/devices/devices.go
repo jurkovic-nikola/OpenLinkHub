@@ -71,6 +71,7 @@ import (
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/nightswordrgb"
 	"OpenLinkHub/src/devices/platinum"
+	"OpenLinkHub/src/devices/psudongle"
 	"OpenLinkHub/src/devices/psuhid"
 	"OpenLinkHub/src/devices/sabreprocs"
 	"OpenLinkHub/src/devices/sabrergbpro"
@@ -132,7 +133,7 @@ var (
 	interfaceId         = 0
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
-	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093}
+	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093, 7168}
 )
 
 // Stop will stop all active devices
@@ -677,6 +678,7 @@ var deviceRegisterMap = map[uint16]Product{
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},         // K65 PLUS WIRELESS
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},             // CORSAIR VIRTUOSO SE USB Gaming Headset
 	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},            // VOID WIRELESS V2
+	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},     // CORSAIR LINK TM USB DONGLE
 }
 
 // initializeDevice will initialize a device

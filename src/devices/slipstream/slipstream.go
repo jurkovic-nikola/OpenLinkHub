@@ -32,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/devices/k57rgbW"
 	"OpenLinkHub/src/devices/makr75W"
 	"github.com/sstallion/go-hid"
 )
@@ -524,6 +525,28 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 7022: // K57 RGB WIRELESS
+			{
+				dev := k57rgbW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeK57RgbW,
+					Product:     "K57 RGB",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-keyboard.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		default:
 			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 		}
@@ -635,6 +658,11 @@ func (d *Device) StopDirty() uint8 {
 				dev.StopDirty()
 			}
 		}
+		if dev, found := value.(*k57rgbW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
 	}
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 2
@@ -676,6 +704,11 @@ func (d *Device) Stop() {
 			}
 		}
 		if dev, found := value.(*makr75W.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
+		if dev, found := value.(*k57rgbW.Device); found {
 			if dev.Connected {
 				dev.StopInternal()
 			}
@@ -946,6 +979,11 @@ func (d *Device) setDeviceBatteryLevelByProductId(productId, batteryLevel uint16
 				device.ModifyBatteryLevel(batteryLevel)
 			}
 		}
+		if device, found := dev.(*k57rgbW.Device); found {
+			if device.Connected {
+				device.ModifyBatteryLevel(batteryLevel)
+			}
+		}
 		if device, found := dev.(*k70pmW.Device); found {
 			if device.Connected {
 				device.ModifyBatteryLevel(batteryLevel)
@@ -1058,6 +1096,11 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*k57rgbW.Device); found {
+			if !device.Connected {
+				device.Connect()
+			}
+		}
 		if device, found := dev.(*k70pmW.Device); found {
 			if !device.Connected {
 				device.Connect()
@@ -1149,6 +1192,11 @@ func (d *Device) setDevicesOffline() {
 				device.SetConnected(false)
 			}
 		}
+		if device, found := pairedDevice.(*k57rgbW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
 		if device, found := pairedDevice.(*k70pmW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
@@ -1230,6 +1278,11 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*k70coretklW.Device); found {
+					if device.Connected {
+						device.SetConnected(false)
+					}
+				}
+				if device, found := pairedDevice.(*k57rgbW.Device); found {
 					if device.Connected {
 						device.SetConnected(false)
 					}
@@ -1342,6 +1395,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 						d.SharedDevices(d.DeviceList[device.Serial])
 					}
 				}
+				if device, found := pairedDevice.(*k57rgbW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices(d.DeviceList[device.Serial])
+					}
+				}
 			}
 			break
 		case 1:
@@ -1443,6 +1502,12 @@ func (d *Device) setDeviceOnline(deviceType int) {
 					}
 				}
 				if device, found := pairedDevice.(*k70pmW.Device); found {
+					if !device.Connected {
+						device.Connect()
+						d.SharedDevices(d.DeviceList[device.Serial])
+					}
+				}
+				if device, found := pairedDevice.(*k57rgbW.Device); found {
 					if !device.Connected {
 						device.Connect()
 						d.SharedDevices(d.DeviceList[device.Serial])
@@ -1735,6 +1800,9 @@ func (d *Device) backendListener() {
 									dev.TriggerKeyAssignment(data)
 								}
 								if dev, found := value.(*makr75W.Device); found {
+									dev.TriggerKeyAssignment(data)
+								}
+								if dev, found := value.(*k57rgbW.Device); found {
 									dev.TriggerKeyAssignment(data)
 								}
 								if dev, found := value.(*k70pmW.Device); found {

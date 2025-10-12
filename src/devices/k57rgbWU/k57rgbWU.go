@@ -233,7 +233,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 // createDevice will create new device register object
 func (d *Device) createDevice() {
 	d.instance = &common.Device{
-		ProductType: common.ProductTypeK57RgbW,
+		ProductType: common.ProductTypeK57RgbWU,
 		Product:     d.Product,
 		Serial:      d.Serial,
 		Firmware:    d.Firmware,

@@ -84,6 +84,8 @@
                                                             <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
                                                             {{ else if and (eq $productType 501) (eq $device.HasSpeed false) }}
                                                             <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
+                                                            {{ else if and (eq $productType 502) (eq $device.HasSpeed false) }}
+                                                            <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
                                                             {{ else if and (eq $productType 8) (eq $device.HasSpeed false) }}
                                                             <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
                                                             {{ else }}
@@ -126,7 +128,7 @@
                                                             {{ end }}
 
                                                             <!-- PSU -->
-                                                            {{ if eq $productType 501 }}
+                                                            {{ if or (eq $productType 501) (eq $productType 502) }}
                                                             {{ if and (eq $device.HasSpeed false) (eq $device.HasTemps false) }}
                                                             {{ if $device.Output }}
                                                             <p class="text-md-start lh-1 mb-0 text-dash-color-3">

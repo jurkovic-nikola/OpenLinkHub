@@ -87,9 +87,10 @@ const (
 	ProductTypeK95PlatinumXT        = 126
 	ProductTypeK70LUX               = 127
 	ProductTypeK65Rgb               = 128
-	ProductTypeK57RgbW              = 129
+	ProductTypeK57RgbWU             = 129
 	ProductTypeK70RgbRF             = 130
 	ProductTypeK55CoreTkl           = 131
+	ProductTypeK57RgbW              = 132
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203
@@ -147,6 +148,7 @@ const (
 	ProductTypeLT100                = 403
 	ProductTypeMM800                = 404
 	ProductTypePSUHid               = 501
+	ProductTypePSUDongle            = 502
 	ProductTypeDongle               = 997
 	ProductTypeSlipstream           = 998
 	ProductTypeCluster              = 999
@@ -280,6 +282,57 @@ var MatrixMaps = map[uint32][][]uint32{
 		{NA, 5, NA, NA, NA, 1, NA},
 		{NA, NA, 4, 3, 2, NA, NA},
 	},
+}
+
+// FindTtyByUsbId will find TTY device if available for provided vendorId and productId
+func FindTtyByUsbId(vendorID, productID uint16) ([]string, error) {
+	vendor := fmt.Sprintf("%04x", vendorID)
+	product := fmt.Sprintf("%04x", productID)
+
+	base := "/sys/class/tty"
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, e := range entries {
+		if !strings.HasPrefix(e.Name(), "ttyUSB") {
+			continue
+		}
+		devPath := filepath.Join(base, e.Name(), "device")
+		resolved, err := filepath.EvalSymlinks(devPath)
+		if err != nil {
+			continue
+		}
+
+		parent := resolved
+		for {
+			vendorPath := filepath.Join(parent, "idVendor")
+			productPath := filepath.Join(parent, "idProduct")
+
+			idVendor, vErr := os.ReadFile(vendorPath)
+			idProduct, pErr := os.ReadFile(productPath)
+			if vErr == nil && pErr == nil {
+				v := strings.TrimSpace(string(idVendor))
+				p := strings.TrimSpace(string(idProduct))
+				if v == vendor && p == product {
+					matches = append(matches, filepath.Join("/dev", e.Name()))
+				}
+				break
+			}
+			next := filepath.Dir(parent)
+			if next == parent || next == "/" {
+				break
+			}
+			parent = next
+		}
+	}
+
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("no matching device found for %s:%s", vendor, product)
+	}
+	return matches, nil
 }
 
 // runUdevadmInfo executes `udevadm info --query=property` on a given device and returns the result.

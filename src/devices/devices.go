@@ -93,13 +93,14 @@ import (
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
-	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
 	"sync"
+
+	"github.com/sstallion/go-hid"
 )
 
 type deviceRegister func(vid, pid uint16, serial, path string) *common.Device
@@ -582,6 +583,7 @@ var deviceRegisterMap = map[uint16]Product{
 	3098:  {0, 0, "LIGHTING NODE CORE", lncore.Init, nil},                // Lighting Node CORE
 	3083:  {0, 0, "LIGHTING NODE PRO", lnpro.Init, nil},                  // Lighting Node Pro
 	3088:  {0, 0, "COMMANDER PRO", cpro.Init, nil},                       // Commander Pro
+	7424:  {0, 0, "COMMANDER PRO 1000D", cpro.Init, nil},                 // Obsidian 1000D Hub (Commander Pro)
 	3138:  {0, 0, "XC7 ELITE LCD", xc7.Init, nil},                        // XC7 ELITE LCD CPU Water Block
 	2612:  {0, 0, "ST100", st100.Init, nil},                              // ST100 LED Driver
 	7067:  {1, 0, "MM700 RGB", mm700.Init, nil},                          // MM700 RGB Gaming Mousepad

@@ -100,6 +100,7 @@ import (
 	"strconv"
 	"sync"
 
+	"OpenLinkHub/src/devices/k70luxrgb"
 	"github.com/sstallion/go-hid"
 )
 
@@ -621,6 +622,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7091:  {1, 0, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
 	7124:  {1, 0, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
 	6966:  {1, 0, "K70 LUX", k70lux.Init, nil},                           // K70 LUX
+	6963:  {1, 0, "K70 LUX RGB", k70luxrgb.Init, nil},                    // K70 LUX RGB
 	6968:  {1, 0, "K70 RGB RAPIDFIRE", k70rgbRF.Init, nil},               // K70 RGB RAPIDFIRE
 	6985:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
 	6997:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2

@@ -347,6 +347,11 @@
         "txtNoSidetoneAncOn": "Le retour local est bloqué lorsque la réduction active du bruit est activée",
         "txtUnableToChangeSidetone": "Impossible de modifier le retour local",
         "txtInvalidSidetone": "Valeur de retour local non valide",
-        "txtNoSidetone": "Impossible de mettre à jour la valeur du retour local, activez d'abord le retour local"
+        "txtNoSidetone": "Impossible de mettre à jour la valeur du retour local, activez d'abord le retour local",
+        "txtMouse": "Souris",
+        "txtActionRepeat": "Répéter",
+        "txtInvalidMacroRepeatValue": "Valeur de répétition d’action macro non valide",
+        "txtActionRepeatDelay": "Délai de répétition",
+        "txtInvalidMacroRepeatDelayValue": "Valeur de délai de répétition d’action macro non valide"
     }
 }

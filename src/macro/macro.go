@@ -18,10 +18,17 @@ type Macro struct {
 }
 
 type Actions struct {
-	ActionType    uint8  `json:"actionType"`
-	ActionCommand uint16 `json:"actionCommand"`
-	ActionDelay   uint16 `json:"actionDelay"`
-	ActionHold    bool   `json:"actionHold"`
+	ActionType        uint8  `json:"actionType"`
+	ActionCommand     uint16 `json:"actionCommand"`
+	ActionDelay       uint16 `json:"actionDelay"`
+	ActionHold        bool   `json:"actionHold"`
+	ActionRepeat      uint8  `json:"actionRepeat"`
+	ActionRepeatDelay uint16 `json:"actionRepeatDelay"`
+}
+
+type Tracker struct {
+	Value uint16
+	Type  uint8
 }
 
 var (
@@ -103,15 +110,20 @@ func DeleteMacroValue(macroId, macroIndex int) uint8 {
 // validatePressAndHold will validate press and hold action
 func validatePressAndHold(macroId int) bool {
 	count := 0
+	length := 0
 	if val, ok := macros[macroId]; ok {
-		actionsLen := len(val.Actions)
 		for _, v := range val.Actions {
+			if v.ActionType == 5 {
+				continue
+			}
+
+			length++
 			if v.ActionHold {
 				count++
 			}
 		}
 
-		if count == actionsLen-1 {
+		if count+1 == length {
 			return false
 		}
 	}
@@ -119,7 +131,7 @@ func validatePressAndHold(macroId int) bool {
 }
 
 // UpdateMacroValue will update macro value
-func UpdateMacroValue(macroId, macroIndex int, actionHold bool) uint8 {
+func UpdateMacroValue(macroId, macroIndex int, actionHold bool, actionRepeat uint8, actionRepeatDelay uint16) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if val, ok := macros[macroId]; ok {
@@ -131,6 +143,8 @@ func UpdateMacroValue(macroId, macroIndex int, actionHold bool) uint8 {
 				}
 			}
 			action.ActionHold = actionHold
+			action.ActionRepeat = actionRepeat
+			action.ActionRepeatDelay = actionRepeatDelay
 			val.Actions[macroIndex] = action
 			macros[macroId] = val
 			SaveProfile(profile, val)

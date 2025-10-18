@@ -347,6 +347,11 @@
     "txtNoSidetoneAncOn": "Sidetone is blocked while Active Noise Cancellation is Enabled",
     "txtUnableToChangeSidetone": "Unable to change Sidetone",
     "txtInvalidSidetone": "Invalid Sidetone value",
-    "txtNoSidetone": "Unable to update Sidetone value, enable Sidetone first"
+    "txtNoSidetone": "Unable to update Sidetone value, enable Sidetone first",
+    "txtMouse": "Mouse",
+    "txtActionRepeat": "Repeat",
+    "txtInvalidMacroRepeatValue": "Invalid macro action repeat value",
+    "txtActionRepeatDelay": "Repeat Delay (ms)",
+    "txtInvalidMacroRepeatDelayValue": "Invalid macro action repeat delay value"
   }
 }

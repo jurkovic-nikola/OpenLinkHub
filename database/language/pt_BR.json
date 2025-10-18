@@ -347,6 +347,11 @@
     "txtNoSidetoneAncOn": "O sidetone é bloqueado enquanto o cancelamento ativo de ruído estiver ativado",
     "txtUnableToChangeSidetone": "Não é possível alterar o sidetone",
     "txtInvalidSidetone": "Valor de sidetone inválido",
-    "txtNoSidetone": "Não é possível atualizar o valor do sidetone, ative o sidetone primeiro"
+    "txtNoSidetone": "Não é possível atualizar o valor do sidetone, ative o sidetone primeiro",
+    "txtMouse": "Mouse",
+    "txtActionRepeat": "Repetir",
+    "txtInvalidMacroRepeatValue": "Valor de repetição de ação de macro inválido",
+    "txtActionRepeatDelay": "Atraso de repetição",
+    "txtInvalidMacroRepeatDelayValue": "Valor de atraso de repetição de ação de macro inválido"
   }
 }

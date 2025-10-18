@@ -95,11 +95,14 @@
                             <select class="form-select macroType" id="macroType" style="width: auto;float: left;">
                                 <option value="0" selected>{{ .Lang "txtNone" }}</option>
                                 <option value="3">{{ .Lang "txtKeyboard" }}</option>
+                                <option value="9">{{ .Lang "txtMouse" }}</option>
                                 <option value="5">{{ .Lang "txtDelay" }}</option>
                             </select>
-                            <select class="form-select macroKeyId" id="macroKeyId" style="width: auto;float: left;margin-left: 15px;display: none;">
-                                <option value="0" selected>{{ .Lang "txtNone" }}</option>
-                            </select>
+                            <div class="input-container">
+                                <select class="form-select macroKeyId" id="macroKeyId" style="width: auto;float: left;margin-left: 15px;display: none;">
+                                    <option value="0" selected>{{ .Lang "txtNone" }}</option>
+                                </select>
+                            </div>
                             <input class="form-control" id="macroDelay" type="text" placeholder="Delay (in milliseconds)" style="width: auto;margin-left: 15px;float: left;display: none;">
                             <button class="btn btn-success" type="button" id="addMacroValue" style="width: auto;margin-left: 15px;float: left;">{{ .Lang "txtAddMacroValue" }}</button>
                         </div>
@@ -116,6 +119,14 @@
                                                 <th>
                                                     {{ .Lang "txtPressAndHold" }}
                                                     <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldMacroInfoToggle"></i>
+                                                </th>
+                                                <th>
+                                                    {{ .Lang "txtActionRepeat" }}
+                                                    <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatMacroInfoToggle"></i>
+                                                </th>
+                                                <th>
+                                                    {{ .Lang "txtActionRepeatDelay" }}
+                                                    <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatDelayInfoToggle"></i>
                                                 </th>
                                                 <th style="width:20%;">{{ .Lang "txtOptions" }}</th>
                                             </tr>
@@ -136,6 +147,7 @@
 </div>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/select2.js"></script>
 <script src="/static/js/dataTables.min.js"></script>
 <script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/macros.js"></script>

@@ -347,6 +347,11 @@
         "txtNoSidetoneAncOn": "Сайдтон блокируется, когда включено активное шумоподавление",
         "txtUnableToChangeSidetone": "Невозможно изменить сайдтон",
         "txtInvalidSidetone": "Недопустимое значение сайдтона",
-        "txtNoSidetone": "Невозможно обновить значение сайдтона, сначала включите сайдтон"
+        "txtNoSidetone": "Невозможно обновить значение сайдтона, сначала включите сайдтон",
+        "txtMouse": "Мышь",
+        "txtActionRepeat": "Повторить",
+        "txtInvalidMacroRepeatValue": "Недопустимое значение повтора макрокоманды",
+        "txtActionRepeatDelay": "Задержка повтора",
+        "txtInvalidMacroRepeatDelayValue": "Недопустимое значение задержки повтора макрокоманды"
     }
 }

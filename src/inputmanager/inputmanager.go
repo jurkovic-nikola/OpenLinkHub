@@ -26,6 +26,7 @@ type KeyAssignment struct {
 	IsMacro        bool   `json:"isMacro"`
 	ModifierKey    uint8  `json:"modifierKey"`
 	RetainOriginal bool   `json:"retainOriginal"`
+	ToggleDelay    uint16 `json:"toggleDelay"`
 }
 
 type InputAction struct {

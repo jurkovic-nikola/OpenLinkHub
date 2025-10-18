@@ -422,10 +422,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             holdCheckbox = '<input id="pressAndHold" type="checkbox"/>';
                         }
 
+                        let toggleDelayInput = '<input id="toggleDelay" type="text" value="' + data.toggleDelay + '"/>';
+
                         let modalElement = `
                           <div class="modal fade text-start" id="setupKeyAssignments" tabindex="-1" aria-labelledby="setupKeyAssignments">
-                            <div class="modal-dialog modal-dialog-800">
-                              <div class="modal-content" style="width: 800px;">
+                            <div class="modal-dialog modal-dialog-1000">
+                              <div class="modal-content" style="width: 1000px;">
                                 <div class="modal-header">
                                   <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
                                   <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -442,8 +444,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Press and Hold
+                                                    Press and Hold / Toggle
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                                </th>
+                                                <th>
+                                                    Toggle Delay (ms)
+                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy toggleDelayInfoToggle"></i>
                                                 </th>
                                                 <th>Type</th>
                                                 <th>Value</th>
@@ -454,6 +460,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <th scope="row" style="text-align: left;">${data.keyName}</th>
                                                 <td>${defaultCheckbox}</td>
                                                 <td>${holdCheckbox}</td>
+                                                <td><input class="form-control" id="toggleDelay" type="text" value="${data.toggleDelay}" style="width: 100px;"/></td>
                                                 <td><select class="form-select keyAssignmentType" id="keyAssignmentType"></select></td>
                                                 <td><select class="form-select" id="keyAssignmentValue"></select></td>
                                             </tr>
@@ -613,7 +620,37 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <span>When enabled, the keyboard continuously sends action until the key is released.</span>
+                                                <span>
+                                                <b>Press and Hold:</b><br />When enabled, the keyboard continuously sends an action until the key is released.<br /><br />
+                                                <b>Toggle:</b><br /> Used only for the mouse Key Assignment type. When enabled, the action is repeated until the key is pressed again.
+                                                </span>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+                            infoPressAndHold.on('hidden.bs.modal', function () {
+                                infoPressAndHold.data('bs.modal', null);
+                            })
+                        });
+
+                        modal.find('.toggleDelayInfoToggle').on('click', function () {
+                            const modalPressAndHold = `
+                                <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="infoToggleLabel">Toggle Delay</h5>
+                                                <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <span>
+                                                <b>Toggle Delay:</b><br /> Used only for the mouse Key Assignment type. When enabled, the action repeat is delayed by the defined period of time.
+                                                </span>
                                             </div>
                                             <div class="modal-footer">
                                                 <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -639,6 +676,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const pressAndHold = modal.find("#pressAndHold").is(':checked');
                                 const keyAssignmentType = modal.find("#keyAssignmentType").val();
                                 const keyAssignmentValue = modal.find("#keyAssignmentValue").val();
+                                const toggleDelay = modal.find("#toggleDelay").val();
 
                                 const pf = {};
                                 pf["deviceId"] = deviceId;
@@ -647,6 +685,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 pf["pressAndHold"] = pressAndHold;
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
                                 pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                pf["toggleDelay"] = parseInt(toggleDelay);
+
                                 const json = JSON.stringify(pf, null, 2);
                                 $.ajax({
                                     url: '/api/keyboard/updateKeyAssignment',
@@ -746,8 +786,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Press and Hold
+                                                    Press and Hold / Toggle
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                                </th>
+                                                <th>
+                                                    Toggle Delay (ms)
+                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy toggleDelayInfoToggle"></i>
                                                 </th>
                                                 <th>
                                                     Original
@@ -763,6 +807,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <th scope="row" style="text-align: left;">${data.keyName}</th>
                                                 <td>${defaultCheckbox}</td>
                                                 <td>${holdCheckbox}</td>
+                                                <td><input class="form-control" id="toggleDelay" type="text" value="${data.toggleDelay}" style="width: 100px;"/></td>
                                                 <td>${retainCheckbox}</td>
                                                 <td><select class="form-select keyAssignmentModifier" id="keyAssignmentModifier"></select></td>
                                                 <td><select class="form-select keyAssignmentType" id="keyAssignmentType"></select></td>
@@ -928,7 +973,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <span>When enabled, the keyboard continuously sends action until the key is released.</span>
+                                                <span>Press and Hold: <br />When enabled, the keyboard continuously sends an action until the key is released. <br />
+                                                Toggle: In the case of a mouse action, the action is repeated until the key is pressed again.</span>
                                             </div>
                                             <div class="modal-footer">
                                                 <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -981,6 +1027,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const keyAssignmentModifier = modal.find("#keyAssignmentModifier").val();
                                 const keyAssignmentType = modal.find("#keyAssignmentType").val();
                                 const keyAssignmentValue = modal.find("#keyAssignmentValue").val();
+                                const toggleDelay = modal.find("#toggleDelay").val();
 
                                 const pf = {};
                                 pf["deviceId"] = deviceId;
@@ -991,6 +1038,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 pf["keyAssignmentModifier"] = parseInt(keyAssignmentModifier);
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
                                 pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                pf["toggleDelay"] = parseInt(toggleDelay);
+
                                 const json = JSON.stringify(pf, null, 2);
                                 $.ajax({
                                     url: '/api/keyboard/updateKeyAssignment',

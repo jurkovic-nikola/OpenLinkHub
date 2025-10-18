@@ -80,6 +80,9 @@ type Payload struct {
 	ButtonOptimization    int                   `json:"buttonOptimization"`
 	AngleSnapping         int                   `json:"angleSnapping"`
 	PressAndHold          bool                  `json:"pressAndHold"`
+	ActionRepeatValue     uint8                 `json:"actionRepeatValue"`
+	ActionRepeatDelay     uint16                `json:"actionRepeatDelay"`
+	ToggleDelay           uint16                `json:"toggleDelay"`
 	KeyIndex              int                   `json:"keyIndex"`
 	KeyAssignmentType     uint8                 `json:"keyAssignmentType"`
 	KeyAssignmentModifier uint8                 `json:"keyAssignmentModifier"`
@@ -1415,6 +1418,10 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
+	if req.ToggleDelay < 30 {
+		req.ToggleDelay = 30
+	}
+	
 	var keyAssignment = inputmanager.KeyAssignment{
 		Name:           "",
 		Default:        req.Enabled,
@@ -1424,6 +1431,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		IsMacro:        req.KeyAssignmentType == 10,
 		ModifierKey:    req.KeyAssignmentModifier,
 		RetainOriginal: req.KeyAssignmentOriginal,
+		ToggleDelay:    req.ToggleDelay,
 	}
 
 	if keyAssignment.IsMacro && keyAssignment.ActionHold {
@@ -2916,7 +2924,23 @@ func ProcessUpdateMacroValue(r *http.Request) *Payload {
 		}
 	}
 
-	res := macro.UpdateMacroValue(req.MacroId, req.MacroIndex, req.PressAndHold)
+	if req.ActionRepeatValue < 0 || req.ActionRepeatValue > 100 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroRepeatValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.ActionRepeatDelay < 0 || req.ActionRepeatDelay > 10000 { // Max 10 seconds of a delay
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroRepeatDelayValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.UpdateMacroValue(req.MacroId, req.MacroIndex, req.PressAndHold, req.ActionRepeatValue, req.ActionRepeatDelay)
 	switch res {
 	case 0:
 		return &Payload{
@@ -3060,7 +3084,7 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 		}
 	}
 
-	if macroType < 3 || macroType > 5 {
+	if macroType < 3 || macroType > 9 {
 		return &Payload{
 			Message: language.GetValue("txtInvalidMacroType"),
 			Code:    http.StatusOK,

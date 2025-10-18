@@ -716,7 +716,19 @@ footer {
 
 .keyboard-row-27 {
     display: grid;
-    grid-template-columns: repeat(26, 60px);
+    grid-template-columns: repeat(27, 60px);
+    grid-gap: 5px;
+}
+
+.keyboard-row-28 {
+    display: grid;
+    grid-template-columns: repeat(28, 60px);
+    grid-gap: 5px;
+}
+
+.keyboard-row-29 {
+    display: grid;
+    grid-template-columns: repeat(29, 60px);
     grid-gap: 5px;
 }
 
@@ -783,6 +795,28 @@ footer {
 }
 
 .keyboard-key-125:active {
+    background-color: #272727;
+}
+
+.keyboard-key-125-top32 {
+    width: 60px;
+    height: 125px;
+    background-color: #1e1e1e;
+    border: 1px solid #474747;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: #bf8d19;
+    position: relative;
+    top: 32px;
+}
+
+.keyboard-key-125-top32:active {
     background-color: #272727;
 }
 
@@ -857,8 +891,42 @@ footer {
     width: 10px;
 }
 
+.keyboard-key.height50 {
+    height: 50%;
+    width: 10px;
+}
+
+.keyboard-key.height40 {
+    height: 40%;
+    width: 10px;
+}
+
+.keyboard-key.height50-50 {
+    height: 50%;
+    width: 10px;
+    top:-50%;
+}
+
+.keyboard-key.height40-50 {
+    height: 40%;
+    width: 10px;
+    margin-top:-50%;
+}
+
 .keyboard-key.empty {
     visibility: hidden;
+}
+.keyboard-key.top-32 {
+    margin-top: 32px;
+}
+
+.keyboard-key.top-32auto {
+    margin-top: 64px;
+    height: auto;
+}
+
+.keyboard-key.stop-32 {
+    top: 32px;
 }
 
 .keyboard-key.height125top20 {
@@ -871,7 +939,178 @@ footer {
     width: 10px;
     margin-top: 40px;
     position: absolute;
+    height: 30px;
 }
+
+.keyboard-key.height30top40 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+}
+
+.keyboard-key.left-led-1 {
+    width: 10px;
+    position: absolute;
+    height: 60px;
+}
+
+.keyboard-key.right-led-1 {
+    width: 10px;
+    position: absolute;
+    height: 60px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-2 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: 4px;
+}
+
+.keyboard-key.right-led-2 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    justify-self: end;
+    margin-top: 4px;
+}
+
+.keyboard-key.left-led-3 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -22px;
+}
+
+.keyboard-key.right-led-3 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -22px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-4 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -15px;
+}
+
+.keyboard-key.right-led-4 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -15px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-5 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -72px
+}
+
+.keyboard-key.right-led-5 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -72px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-6 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -66px;
+}
+
+.keyboard-key.right-led-6 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -66px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-7 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -123px;
+}
+
+.keyboard-key.right-led-7 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -123px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-8 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -84px;
+}
+
+.keyboard-key.right-led-8 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -84px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-9 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -46px;
+}
+
+.keyboard-key.right-led-9 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -46px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-10 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -8px;
+}
+
+.keyboard-key.right-led-10 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: -8px;
+    justify-self: end;
+}
+
+.keyboard-key.left-led-11 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: 30px;
+}
+
+.keyboard-key.right-led-11 {
+    width: 10px;
+    position: absolute;
+    height: 30px;
+    margin-top: 30px;
+    justify-self: end;
+}
+
 
 .keyboard-key.height125top60 {
     width: 10px;
@@ -1166,6 +1405,10 @@ canvas {
     margin-top:-65px;
     height:125px;
 }
+.enter-custom2 {
+    margin-top: -64px;
+    height: 125px;
+}
 
 .dt-search input {
     display: block;
@@ -1271,4 +1514,79 @@ canvas {
 
 #supported-devices_info {
     display: none;
+}
+
+.input-container {
+    width: auto;
+    float: left;
+    margin-left: 15px;
+}
+
+.select2-container--default .select2-selection--single {
+    height: auto;
+    padding: .375rem 2.25rem .375rem .75rem;
+    border-radius: 0;
+    border: 1px solid #40444b;
+    background-color: #181818;
+    color: #8a8d93;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out, -webkit-box-shadow .15s ease-in-out;
+    min-width: 250px;
+}
+
+.select2-container .select2-selection__rendered {
+    padding: 0;
+    line-height: 1.5;
+    color: #8a8d93;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    background-color: transparent;
+    border: none;
+    width: 2.25rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238a8d93' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 16px 12px;
+    right: 0;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    display: none !important;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    outline: none;
+    border-color: rgb(58, 160, 171);
+}
+
+.select2-container--default .select2-dropdown {
+    border-radius: 0;
+    border: 1px solid #40444b;
+    background-color: #181818;
+    margin-top: 0;
+}
+
+.select2-search--dropdown .select2-search__field {
+    padding: 8px 12px;
+    border-radius: 0;
+    border: 1px solid #40444b;
+    background-color: #2d3035;
+    color: #8a8d93;
+}
+
+.select2-results__option {
+    padding: 8px 12px;
+    color: #8a8d93;
+    background-color: #181818;
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: rgb(58, 160, 171) !important;
+    color: #ffffff !important;
+    border-radius: 0;
+    margin: 0;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #2d3035;
 }

@@ -70,6 +70,75 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // Attach once outside AJAX call
+    $('#table').on('click', '.deleteMacroValue', function () {
+        const $btn = $(this);
+        const macroInfo = $btn.data('id');
+        const macro = macroInfo.split(";");
+
+        if (macro.length !== 2) {
+            toast.warning('Invalid macro profile selected');
+            return false;
+        }
+
+        const pf = {
+            macroId: parseInt(macro[0]),
+            macroIndex: parseInt(macro[1])
+        };
+
+        $.ajax({
+            url: '/api/macro/value',
+            type: 'DELETE',
+            data: JSON.stringify(pf),
+            cache: false,
+            success: function(response) {
+                if (response.status === 1) {
+                    dt.row($btn.closest('tr')).remove().draw();
+                    toast.success("Macro value deleted successfully.");
+                } else {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('#table').on('click', '.updateMacroValue', function () {
+        const $btn = $(this);
+        const macroInfo = $btn.data('id');
+        const macro = macroInfo.split(";");
+        const $row = $btn.closest('tr');
+        const pressAndHold = $row.find('.pressAndHold').is(':checked');
+        const actionRepeatValue = $row.find('.actionRepeatValue').val();
+        const actionRepeatDelayValue = $row.find('.actionRepeatDelayValue').val();
+
+        if (macro.length !== 2) {
+            toast.warning('Invalid macro profile selected');
+            return false;
+        }
+
+        const pf = {
+            macroId: parseInt(macro[0]),
+            macroIndex: parseInt(macro[1]),
+            pressAndHold: pressAndHold,
+            actionRepeatValue: parseInt(actionRepeatValue),
+            actionRepeatDelay: parseInt(actionRepeatDelayValue)
+        };
+
+        $.ajax({
+            url: '/api/macro/updateValue',
+            type: 'POST',
+            data: JSON.stringify(pf),
+            cache: false,
+            success: function(response) {
+                if (response.status === 1) {
+                    toast.success("Macro value successfully updated.");
+                } else {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     function loadMacroValues(pf) {
         $.ajax({
             url: '/api/macro/' + pf,
@@ -93,6 +162,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             case 5:
                                 actionType = 'Delay';
                                 break;
+                            case 9:
+                                actionType = 'Mouse';
+                                break;
                             default:
                                 actionType = 'n/a';
                                 break;
@@ -106,9 +178,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 i,
                                 actionType,
                                 item.actionDelay,
-                                actionHold,
-                                '<input class="btn btn-danger updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE">' +
-                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE">'
+                                'N/A',
+                                'N/A',
+                                'N/A',
+                                '' +
+                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 100%;">'
                             ]).draw();
                         } else {
                             // Render row if we have actual key
@@ -118,87 +192,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                     actionType,
                                     result,
                                     actionHold,
+                                    '<input class="form-control actionRepeatValue" type="text" value="' +  item.actionRepeat + '" placeholder="Define how many times the action will be repeated.">',
+                                    '<input class="form-control actionRepeatDelayValue" type="text" value="' +  item.actionRepeatDelay + '" placeholder="The amount of delay in milliseconds between the Repeat action.">',
                                     '<input class="btn btn-info updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE" style="width: 45%;">' +
-                                    '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 45%;margin-left: 10px;">'
+                                    '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 45%;float:right;">'
                                 ]).draw();
                             });
                         }
-                    });
-
-                    dt.on('click', '.deleteMacroValue', function () {
-                        const $btn = $(this); // Save reference to the clicked button
-                        const macroInfo = $btn.data('id');
-                        const macro = macroInfo.split(";");
-
-                        if (macro.length < 2 || macro.length > 2) {
-                            toast.warning('Invalid macro profile selected');
-                            return false;
-                        }
-
-                        const pf = {
-                            macroId: parseInt(macro[0]),
-                            macroIndex: parseInt(macro[1])
-                        };
-                        const json = JSON.stringify(pf, null, 2);
-
-                        $.ajax({
-                            url: '/api/macro/value',
-                            type: 'DELETE',
-                            data: json,
-                            cache: false,
-                            success: function(response) {
-                                try {
-                                    if (response.status === 1) {
-                                        // Remove the row from DataTable
-                                        dt.row($btn.closest('tr')).remove().draw();
-                                        toast.success("Macro value deleted successfully.");
-                                    } else {
-                                        toast.warning(response.message);
-                                    }
-                                } catch (err) {
-                                    toast.warning("Error occurred while processing response.");
-                                }
-                            }
-                        });
-                    });
-
-                    dt.on('click', '.updateMacroValue', function () {
-                        const $btn = $(this); // Save reference to the clicked button
-                        const macroInfo = $btn.data('id');
-                        const macro = macroInfo.split(";");
-                        const $row = $btn.closest('tr');
-                        const pressAndHold = $row.find('.pressAndHold').is(':checked');
-
-                        if (macro.length < 2 || macro.length > 2) {
-                            toast.warning('Invalid macro profile selected');
-                            return false;
-                        }
-
-                        const pf = {
-                            macroId: parseInt(macro[0]),
-                            macroIndex: parseInt(macro[1]),
-                            pressAndHold: pressAndHold
-                        };
-
-                        const json = JSON.stringify(pf, null, 2);
-
-                        $.ajax({
-                            url: '/api/macro/updateValue',
-                            type: 'POST',
-                            data: json,
-                            cache: false,
-                            success: function(response) {
-                                try {
-                                    if (response.status === 1) {
-                                        toast.success("Macro value successfully updated.");
-                                    } else {
-                                        toast.warning(response.message);
-                                    }
-                                } catch (err) {
-                                    toast.warning("Error occurred while processing response.");
-                                }
-                            }
-                        });
                     });
                     $("#deleteBtn").show();
                     $("#newMacroValue").show();
@@ -218,6 +218,56 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>
                         <div class="modal-body">
                             <span>When enabled, the keyboard continuously sends action until macro chain is finished. You need to have at least 1 Press and Hold un-checked in order to finish the macro.</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+        infoPressAndHold.on('hidden.bs.modal', function () {
+            infoPressAndHold.data('bs.modal', null);
+        })
+    });
+
+    $('.actionRepeatMacroInfoToggle').on('click', function () {
+        const modalPressAndHold = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">Repeat</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>Define the amount of time macro action will be triggered. Value is from 0 to 100.</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+        infoPressAndHold.on('hidden.bs.modal', function () {
+            infoPressAndHold.data('bs.modal', null);
+        })
+    });
+
+    $('.actionRepeatDelayInfoToggle').on('click', function () {
+        const modalPressAndHold = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">Repeat Delay</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>The amount of delay in milliseconds between the Repeat action. This is only valid if Repeat is greater than 1. </span>
                         </div>
                         <div class="modal-footer">
                             <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -336,6 +386,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
                 $("#macroKeyId").show();
+                $('#macroKeyId').select2({
+                    placeholder: 'Search...',
+                    allowClear: true,
+                    width: 'style' // use the width defined in style attribute
+                });
             }
             break;
             case 5: {
@@ -343,6 +398,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#macroKeyId").hide();
             }
             break;
+            case 9: {
+                $("#macroDelay").hide();
+                $.ajax({
+                    url:'/api/input/mouse',
+                    type:'get',
+                    success:function(result){
+                        let macroKeyId = $("#macroKeyId");
+                        macroKeyId.empty();
+                        $.each(result.data, function( index, value ) {
+                            macroKeyId.append($('<option>', { value: index, text: value.Name }));
+                        });
+                    }
+                });
+                $("#macroKeyId").show();
+            }
+                break;
         }
     });
 

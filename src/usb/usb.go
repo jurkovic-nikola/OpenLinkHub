@@ -7,6 +7,7 @@ package usb
 
 import (
 	"OpenLinkHub/src/common"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -262,6 +263,30 @@ func (h *Device) Read(buffer []byte) error {
 	}
 	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, h.file.Fd(), h.UsbdevfsBulk, uintptr(unsafe.Pointer(&bulkTransfer)))
 	if errno != 0 {
+		return fmt.Errorf("failed to read from device %s: %v", h.devicePath, errno)
+	}
+	return nil
+}
+
+// ReadNonBlock performs a quick, timeout-based nonblocking read.
+func (h *Device) ReadNonBlock(buffer []byte, timeoutMs uint32) error {
+	bulkTransfer := usbdevfsBulkTransfer{
+		Ep:      uint32(endpointBulkIn),
+		Len:     uint32(len(buffer)),
+		Timeout: timeoutMs,                           // Timeout in milliseconds
+		Data:    uintptr(unsafe.Pointer(&buffer[0])), // pointer to buffer
+	}
+
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_IOCTL,
+		h.file.Fd(),
+		h.UsbdevfsBulk,
+		uintptr(unsafe.Pointer(&bulkTransfer)),
+	)
+	if errno != 0 {
+		if errors.Is(errno, syscall.ETIMEDOUT) {
+			return nil
+		}
 		return fmt.Errorf("failed to read from device %s: %v", h.devicePath, errno)
 	}
 	return nil

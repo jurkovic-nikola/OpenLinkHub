@@ -268,27 +268,30 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.loadRgb()            // Load RGB
 	d.setFans()            // Number of fans
 	d.loadDeviceProfiles() // Load all device profiles
-	d.getDeviceFirmware()  // Firmware
-	d.getPumpSpeed()
-	d.getDevices()          // Get devices
-	d.setAutoRefresh()      // Set auto device refresh
-	d.getTemperatureProbe() // Devices with temperature probes
-	d.saveDeviceProfile()   // Save profile
-	d.initLeds()            // Init LED
-	d.setDeviceColor()      // Device color
-	if config.GetConfig().Manual {
-		fmt.Println(
-			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
-		)
+	if d.getDeviceFirmware() == 1 {
+		d.getPumpSpeed()
+		d.getDevices()          // Get devices
+		d.setAutoRefresh()      // Set auto device refresh
+		d.getTemperatureProbe() // Devices with temperature probes
+		d.saveDeviceProfile()   // Save profile
+		d.initLeds()            // Init LED
+		d.setDeviceColor()      // Device color
+		if config.GetConfig().Manual {
+			fmt.Println(
+				fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
+			)
+		} else {
+			d.updateDeviceSpeed() // Update device speed
+		}
+		d.setupOpenRGBController() // OpenRGB Controller
+		d.createDevice()           // Device register
+		d.startQueueWorker()       // Queue
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
+		return d.instance
 	} else {
-		d.updateDeviceSpeed() // Update device speed
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Error("Unable to get device firmware.")
+		return nil
 	}
-	d.setupOpenRGBController() // OpenRGB Controller
-	d.createDevice()           // Device register
-	d.startQueueWorker()       // Queue
-	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
-
-	return d.instance
 }
 
 // createDevice will create new device register object
@@ -705,39 +708,6 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
-	// Are all devices under static mode?
-	// In static mode, we only need to send color once;
-	// there is no need for continuous packet sending.
-	s, l := 0, 0
-	for _, device := range d.Devices {
-		if device.LedChannels > 0 {
-			l++ // device has LED
-			if device.RGB == "static" {
-				s++ // led profile is set to static
-			}
-		}
-	}
-	if s > 0 || l > 0 { // We have some values
-		if s == l { // number of devices matches number of devices with static profile
-			profile := d.GetRgbProfile("static")
-			if profile == nil {
-				return
-			}
-			profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
-			profileColor := rgb.ModifyBrightness(profile.StartColor)
-			for i := 0; i < lightChannels; i++ {
-				reset[i] = []byte{
-					byte(profileColor.Red),
-					byte(profileColor.Green),
-					byte(profileColor.Blue),
-				}
-			}
-			buffer = rgb.SetColor(reset)
-			d.transfer(cmdSetColor, buffer)
-			return
-		}
-	}
-
 	go func(lightChannels int) {
 		startTime := time.Now()
 		d.activeRgb = rgb.Exit()
@@ -898,7 +868,7 @@ func (d *Device) setDeviceColor() {
 
 				// Send it
 				d.writeColor(buff)
-				time.Sleep(20 * time.Millisecond)
+				time.Sleep(40 * time.Millisecond)
 			}
 		}
 	}(lightChannels)
@@ -973,12 +943,19 @@ func (d *Device) getSerial() {
 }
 
 // getDeviceFirmware will return a device firmware version out as string
-func (d *Device) getDeviceFirmware() {
+func (d *Device) getDeviceFirmware() uint8 {
 	response := d.transfer(cmdGetFirmware, nil)
 	if response == nil {
 		logger.Log(logger.Fields{}).Error("Unable to get device firmware")
 	}
-	d.Firmware = fmt.Sprintf("%d.%d.%d.%d", response[3], response[4], response[5], response[6])
+
+	if cmdGetFirmware == response[0] {
+		d.Firmware = fmt.Sprintf("%d.%d.%d.%d", response[3], response[4], response[5], response[6])
+		return 1
+	} else {
+		logger.Log(logger.Fields{"expected": cmdGetFirmware, "received": response[0]}).Error("Received unexpected response")
+		return 0
+	}
 }
 
 // initLeds will initialize LED channels
@@ -1758,12 +1735,19 @@ func (d *Device) transfer(command byte, data []byte) []byte {
 
 	bufferR := make([]byte, BufferSize)
 
+	// Check if something can be read before new write
+	if err := d.dev.ReadNonBlock(bufferR, 5); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to read data from device")
+		return bufferR
+	}
+
+	// Write data to the device
 	if err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 		return bufferR
 	}
 
-	// Get data from a device
+	// Get data from device device
 	if err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read data from device")
 		return bufferR

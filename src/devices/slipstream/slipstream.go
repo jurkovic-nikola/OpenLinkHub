@@ -1363,7 +1363,7 @@ func (d *Device) setDeviceTypeOffline(deviceType int) {
 	}
 }
 
-// setDeviceOffline will set device offline
+// setDeviceOnline will set device online
 func (d *Device) setDeviceOnline(deviceType int) {
 	time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 	for _, pairedDevice := range d.PairedDevices {
@@ -1603,7 +1603,7 @@ func (d *Device) setDeviceOnline(deviceType int) {
 	}
 }
 
-// setDeviceOffline will set device offline
+// setDeviceStatus will set device status
 func (d *Device) setDeviceStatus(status byte) {
 	switch status {
 	case 0x00: // ALl offline

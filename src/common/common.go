@@ -92,6 +92,7 @@ const (
 	ProductTypeK55CoreTkl           = 131
 	ProductTypeK57RgbW              = 132
 	ProductTypeK70LUXRgb            = 133
+	ProductTypeStrafeRgbMk2         = 134
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203

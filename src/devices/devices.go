@@ -101,6 +101,7 @@ import (
 	"sync"
 
 	"OpenLinkHub/src/devices/k70luxrgb"
+	"OpenLinkHub/src/devices/strafergbmk2"
 	"github.com/sstallion/go-hid"
 )
 
@@ -627,6 +628,7 @@ var deviceRegisterMap = map[uint16]Product{
 	6985:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
 	6997:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
 	7019:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
+	6984:  {1, 0, "STRAFE RGB MK2", strafergbmk2.Init, nil},              // STRAFE RGB MK2
 	11024: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
 	11025: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
 	6957:  {1, 0, "K95 PLATINUM", k95platinum.Init, nil},                 // K95 PLATINUM

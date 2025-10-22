@@ -739,7 +739,7 @@ $ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"5C126A3EB5
 ```
 ### Change user profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/userProfile -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq
+$ curl -X POST http://127.0.0.1:27003/api/userProfile/change -d '{"deviceId":"5C126A3EB51A39569ABADC4C3A1FCF54", "userProfileName": "myProfile"}' --silent | jq
 ```
 ### Change keyboard profile
 ```bash

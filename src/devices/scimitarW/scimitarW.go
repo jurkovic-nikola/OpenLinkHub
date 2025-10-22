@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -24,8 +25,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -430,7 +429,7 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	if !d.Connected {
 		return 0
 	}
-	
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0

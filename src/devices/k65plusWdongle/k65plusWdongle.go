@@ -9,16 +9,15 @@ package k65plusWdongle
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices/k65plusW"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"reflect"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/devices/k65plusW"
-	"OpenLinkHub/src/stats"
-	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {

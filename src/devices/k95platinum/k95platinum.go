@@ -17,6 +17,7 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math/big"
 	"os"
 	"regexp"
@@ -25,8 +26,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile

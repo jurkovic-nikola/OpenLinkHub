@@ -16,6 +16,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"regexp"
@@ -23,8 +24,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {

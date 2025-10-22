@@ -7,6 +7,7 @@ package lt100
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/led"
@@ -15,6 +16,7 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math/rand"
 	"os"
 	"regexp"
@@ -22,9 +24,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/cluster"
-	"github.com/sstallion/go-hid"
 )
 
 // DeviceInfo represents a USB device

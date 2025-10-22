@@ -6,7 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"golang.org/x/image/draw"
 	"image"
+	"image/gif"
 	"io"
 	"math"
 	"math/big"
@@ -16,9 +18,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/image/draw"
-	"image/gif"
 )
 
 type Device struct {

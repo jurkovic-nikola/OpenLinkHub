@@ -9,24 +9,23 @@ package strafergbmk2
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
+	"math/big"
 	"os"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/inputmanager"
-	"OpenLinkHub/src/macro"
-	"github.com/sstallion/go-hid"
-	"math/big"
-	"sort"
 )
 
 // DeviceProfile struct contains all device profile

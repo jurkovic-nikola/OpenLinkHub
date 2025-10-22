@@ -14,14 +14,13 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {

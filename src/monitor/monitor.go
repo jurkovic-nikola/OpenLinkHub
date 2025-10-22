@@ -6,13 +6,12 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/logger"
-	"slices"
-	"syscall"
-	"time"
-
 	"OpenLinkHub/src/openrgb"
 	"github.com/godbus/dbus/v5"
+	"slices"
 	"strconv"
+	"syscall"
+	"time"
 )
 
 const (

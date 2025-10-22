@@ -16,14 +16,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {

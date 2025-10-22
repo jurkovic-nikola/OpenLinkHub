@@ -39,6 +39,7 @@ import (
 	"OpenLinkHub/src/devices/k70coretkl"
 	"OpenLinkHub/src/devices/k70coretklWU"
 	"OpenLinkHub/src/devices/k70lux"
+	"OpenLinkHub/src/devices/k70luxrgb"
 	"OpenLinkHub/src/devices/k70max"
 	"OpenLinkHub/src/devices/k70mk2"
 	"OpenLinkHub/src/devices/k70pmWU"
@@ -84,6 +85,7 @@ import (
 	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
+	"OpenLinkHub/src/devices/strafergbmk2"
 	"OpenLinkHub/src/devices/virtuosoSEWU"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
@@ -93,16 +95,13 @@ import (
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
+	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
 	"sync"
-
-	"OpenLinkHub/src/devices/k70luxrgb"
-	"OpenLinkHub/src/devices/strafergbmk2"
-	"github.com/sstallion/go-hid"
 )
 
 type deviceRegister func(vid, pid uint16, serial, path string) *common.Device

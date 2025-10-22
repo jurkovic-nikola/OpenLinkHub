@@ -9,20 +9,19 @@ package psudongle
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/serial"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/dashboard"
-	"OpenLinkHub/src/serial"
-	"bytes"
-	"math"
-	"strconv"
 )
 
 type Devices struct {

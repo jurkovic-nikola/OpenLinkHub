@@ -12,12 +12,14 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
@@ -26,9 +28,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/openrgb"
-	"github.com/sstallion/go-hid"
 )
 
 type Shutdown struct {

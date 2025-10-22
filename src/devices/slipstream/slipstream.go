@@ -15,12 +15,14 @@ import (
 	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/k100airW"
+	"OpenLinkHub/src/devices/k57rgbW"
 	"OpenLinkHub/src/devices/k70coretklW"
 	"OpenLinkHub/src/devices/k70pmW"
 	"OpenLinkHub/src/devices/m55W"
 	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/m75AirW"
 	"OpenLinkHub/src/devices/m75W"
+	"OpenLinkHub/src/devices/makr75W"
 	"OpenLinkHub/src/devices/nightsabreW"
 	"OpenLinkHub/src/devices/sabrergbproW"
 	"OpenLinkHub/src/devices/scimitarSEW"
@@ -28,13 +30,10 @@ import (
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"reflect"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/devices/k57rgbW"
-	"OpenLinkHub/src/devices/makr75W"
-	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {

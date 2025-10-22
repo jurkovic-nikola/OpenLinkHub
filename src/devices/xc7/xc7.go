@@ -14,19 +14,18 @@ import (
 	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/stats"
-	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile

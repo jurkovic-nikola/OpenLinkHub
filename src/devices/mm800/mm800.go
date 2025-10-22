@@ -7,6 +7,7 @@ package mm800
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/led"
@@ -16,14 +17,12 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/cluster"
-	"github.com/sstallion/go-hid"
 )
 
 type Device struct {

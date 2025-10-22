@@ -7,16 +7,15 @@ package virtuosomaxdongle
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/virtuosomaxW"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/common"
-	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {

@@ -10,16 +10,15 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/hs80rgbW"
+	"OpenLinkHub/src/devices/virtuosoSEW"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
 	"fmt"
-	"sync"
-	"time"
-
-	"OpenLinkHub/src/devices/virtuosoSEW"
 	"github.com/sstallion/go-hid"
 	"strconv"
+	"sync"
+	"time"
 )
 
 type Devices struct {

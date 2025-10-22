@@ -7,6 +7,7 @@ package lsh
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
@@ -14,6 +15,7 @@ import (
 	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
@@ -22,6 +24,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math"
 	"math/rand"
 	"os"
@@ -31,10 +34,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"OpenLinkHub/src/cluster"
-	"OpenLinkHub/src/openrgb"
-	"github.com/sstallion/go-hid"
 )
 
 type RGBOverride struct {

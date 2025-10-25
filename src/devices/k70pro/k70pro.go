@@ -1065,11 +1065,6 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		newProfile.Active = true
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
-		// RGB reset
-		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
-			d.activeRgb = nil
-		}
 		d.setDeviceColor()
 		d.setupPerformance()
 		return 1

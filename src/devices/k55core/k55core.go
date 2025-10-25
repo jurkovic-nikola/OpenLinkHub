@@ -956,6 +956,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
+		d.setupPerformance()
 		return 1
 	}
 	return 0
@@ -981,6 +982,13 @@ func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
 				d.DeviceProfile.Keyboards["default"] = keyboardLayout
 				d.DeviceProfile.Layout = layout
 				d.saveDeviceProfile()
+				// RGB reset
+				if d.activeRgb != nil {
+					d.activeRgb.Exit <- true // Exit current RGB mode
+					d.activeRgb = nil
+				}
+				d.setDeviceColor()
+				d.setupPerformance()
 				return 1
 			}
 		} else {

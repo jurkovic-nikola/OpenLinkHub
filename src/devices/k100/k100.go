@@ -1026,6 +1026,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
+		d.setupPerformance()
 		return 1
 	}
 	return 0

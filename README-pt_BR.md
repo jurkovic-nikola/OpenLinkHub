@@ -3,6 +3,7 @@ Uma interface Linux de código aberto para iCUE LINK Hub e outros AIOs, Hubs da 
 Gerencie iluminação RGB, velocidades de ventiladores, métricas do sistema, bem como teclados, mouses, headsets via painel web.
 
 ![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
+[![Copr build status](https://copr.fedorainfracloud.org/coprs/jurkovic-nikola/OpenLinkHub/package/OpenLinkHub/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/jurkovic-nikola/OpenLinkHub/package/OpenLinkHub/)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/mPHcasZRPy?style=flat)](https://discord.gg/mPHcasZRPy)
 
 ## Recursos
@@ -224,58 +225,4 @@ $ docker run --network host --privileged openlinkhub
 - Documentação está disponível em `http://127.0.0.1:27003/docs`
 
 ## Memória - DDR4 / DDR5
-- Por padrão, visão geral de memória e controle RGB estão desabilitados no OpenLinkHub.
-- Para habilitá-los, você precisará mudar `"memory":false` para `"memory":true` e definir o valor adequado de `memorySmBus`.
-- Coisas a considerar antes:
-  - Se estiver usando qualquer outro software RGB que possa controlar sua RAM, não defina `"memory":true`.
-  - Dois programas não podem escrever no mesmo endereço I2C ao mesmo tempo.
-  - Se você não sabe o que significa `acpi_enforce_resources=lax`, não habilite isso.
-```bash
-# Instale ferramentas
-$ sudo apt-get install i2c-tools
-
-# Habilite carregamento de i2c-dev na inicialização e reinicie
-echo "i2c-dev" | sudo tee /etc/modules-load.d/i2c-dev.conf
-
-# Liste todos i2c, este é exemplo AMD! (AM4, X570 AORUS MASTER (F39d - 09/02/2024)
-# Se tudo estiver ok, você deve ver algo como isso, especialmente as primeiras 3 linhas.
-$ sudo i2cdetect -l
-i2c-0	smbus     	SMBus PIIX4 adapter port 0 at 0b00	SMBus adapter
-i2c-1	smbus     	SMBus PIIX4 adapter port 2 at 0b00	SMBus adapter
-i2c-2	smbus     	SMBus PIIX4 adapter port 1 at 0b20	SMBus adapter
-i2c-3	i2c       	NVIDIA i2c adapter 1 at c:00.0  	I2C adapter
-i2c-4	i2c       	NVIDIA i2c adapter 2 at c:00.0  	I2C adapter
-i2c-5	i2c       	NVIDIA i2c adapter 3 at c:00.0  	I2C adapter
-i2c-6	i2c       	NVIDIA i2c adapter 4 at c:00.0  	I2C adapter
-i2c-7	i2c       	NVIDIA i2c adapter 5 at c:00.0  	I2C adapter
-i2c-8	i2c       	NVIDIA i2c adapter 6 at c:00.0  	I2C adapter
-i2c-9	i2c       	NVIDIA i2c adapter 7 at c:00.0  	I2C adapter
-
-# Se você não ver nenhum dispositivo smbus, provavelmente precisará definir acpi_enforce_resources=lax
-# Antes de definir acpi_enforce_resources=lax por favor pesquise prós e contras disso e decida por conta própria!
-
-# Na maioria dos casos, memória será registrada sob SMBus PIIX4 adapter port 0 at 0b00 device, aka i2c-0. Vamos validar isso.
-# Exemplo DDR4:
-$ sudo i2cdetect -y 0 # este é i2c-0 do comando i2cdetect -l
-     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
-00:                         08 -- -- -- -- -- -- --
-10: 10 -- -- 13 -- 15 -- -- 18 19 -- -- -- -- -- --
-20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-30: 30 31 -- -- 34 35 -- -- -- -- 3a -- -- -- -- --
-40: -- -- -- -- -- -- -- -- -- -- 4a -- -- -- -- --
-50: 50 51 52 53 -- -- -- -- 58 59 -- -- -- -- -- --
-60: -- -- -- -- -- -- -- -- 68 -- -- -- 6c -- -- --
-70: 70 -- -- -- -- -- -- --
-
-# Defina permissão I2C
-$ echo 'KERNEL=="i2c-0", MODE="0600", OWNER="openlinkhub"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
-# Recarregue regras udev
-$ sudo udevadm control --reload-rules
-$ sudo udevadm trigger
-```
-- Modifique `"memorySmBus": "i2c-0"` se necessário.
-- Defina `"memory":true` no arquivo config.json.
-- Defina `"memoryType"` no config.json
-  - `4` se você tem uma plataforma DDR4
-  - `5` se você tem uma plataforma DDR5
-- Reinicie o serviço OpenLinkHub.
+[See details](docs/memory-configuration_pt-BR.md)

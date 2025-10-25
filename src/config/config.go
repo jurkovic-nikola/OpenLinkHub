@@ -43,7 +43,7 @@ var (
 	location      = ""
 	configuration Configuration
 	upgrade       = map[string]any{
-		"decodeMemorySku":           true,
+		"decodeMemorySku":           false,
 		"memorySku":                 "",
 		"resumeDelay":               15000,
 		"logLevel":                  "info",
@@ -105,7 +105,7 @@ func upgradeFile(cfg string) {
 			MemorySmBus:               "i2c-0",
 			MemoryType:                5,
 			Exclude:                   make([]uint16, 0),
-			DecodeMemorySku:           true,
+			DecodeMemorySku:           false,
 			MemorySku:                 "",
 			ResumeDelay:               15000,
 			LogLevel:                  "info",
@@ -117,7 +117,7 @@ func upgradeFile(cfg string) {
 			CheckDevicePermission:     true,
 			CpuTempFile:               "",
 			GraphProfiles:             true,
-			RamTempViaHwmon:           false,
+			RamTempViaHwmon:           true,
 			NvidiaGpuIndex:            []int{0},
 			DefaultNvidiaGPU:          0,
 			OpenRGBPort:               6743,

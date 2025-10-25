@@ -1206,10 +1206,10 @@ func (d *Device) loadKeyAssignments() {
 		var keyAssignment = map[int]inputmanager.KeyAssignment{
 			128: {
 				Name:          "Sniper",
-				Default:       true,
-				ActionType:    0,
+				Default:       false,
+				ActionType:    8,
 				ActionCommand: 0,
-				ActionHold:    false,
+				ActionHold:    true,
 			},
 			64: {
 				Name:          "DPI -",

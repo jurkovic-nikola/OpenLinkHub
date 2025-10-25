@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/hs80rgbW"
 	"OpenLinkHub/src/devices/virtuosoSEW"
+	"OpenLinkHub/src/devices/virtuosoW"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
@@ -181,6 +182,28 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 2627:
+			{
+				dev := virtuosoW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeVirtuosoW,
+					Product:     "VIRTUOSO",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-headphone.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		default:
 			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 		}
@@ -231,6 +254,11 @@ func (d *Device) Stop() {
 				dev.StopInternal()
 			}
 		}
+		if dev, found := value.(*virtuosoW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
 	}
 
 	d.setHardwareMode()
@@ -270,6 +298,11 @@ func (d *Device) StopDirty() uint8 {
 			}
 		}
 		if dev, found := value.(*hs80rgbW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*virtuosoW.Device); found {
 			if dev.Connected {
 				dev.StopDirty()
 			}
@@ -505,6 +538,12 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*virtuosoW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+			}
+		}
 	}
 }
 
@@ -522,6 +561,11 @@ func (d *Device) setDevicesOffline() {
 			}
 		}
 		if device, found := pairedDevice.(*hs80rgbW.Device); found {
+			if device.Connected {
+				device.SetConnected(false)
+			}
+		}
+		if device, found := pairedDevice.(*virtuosoW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
 			}
@@ -548,6 +592,13 @@ func (d *Device) setDeviceOnline() {
 			}
 		}
 		if device, found := pairedDevice.(*hs80rgbW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+				d.SharedDevices(d.DeviceList[device.Serial])
+			}
+		}
+		if device, found := pairedDevice.(*virtuosoW.Device); found {
 			if !device.Connected {
 				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 				device.Connect()
@@ -651,7 +702,7 @@ func (d *Device) backendListener() {
 
 				// Battery
 				// 03 01 01 0f 00 ac 03
-				if data[0] == 0x03 || data[1] == 0x01 && data[3] == 0x0f {
+				if (data[0] == 0x03 || data[1] == 0x01) && data[3] == 0x0f {
 					val := binary.LittleEndian.Uint16(data[5:7]) / 10
 					if val > 0 {
 						for _, value := range d.PairedDevices {
@@ -664,11 +715,15 @@ func (d *Device) backendListener() {
 							if dev, found := value.(*hs80rgbW.Device); found {
 								dev.ModifyBatteryLevel(val)
 							}
+							if dev, found := value.(*virtuosoW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
 						}
 					}
 					continue
 				}
 
+				// Battery
 				if data[1] == 0x01 && data[2] == 0x12 {
 					var val uint16 = 0
 					if data[7] > 0 { // Unclear why it switches 1 position next
@@ -686,6 +741,9 @@ func (d *Device) backendListener() {
 								dev.ModifyBatteryLevel(val)
 							}
 							if dev, found := value.(*hs80rgbW.Device); found {
+								dev.ModifyBatteryLevel(val)
+							}
+							if dev, found := value.(*virtuosoW.Device); found {
 								dev.ModifyBatteryLevel(val)
 							}
 						}
@@ -708,6 +766,9 @@ func (d *Device) backendListener() {
 					} else if data[2] == 0x02 && data[3] == 0x01 {
 						for _, value := range d.PairedDevices {
 							if dev, found := value.(*virtuosoSEW.Device); found {
+								dev.NotifyMuteChanged(data[3])
+							}
+							if dev, found := value.(*virtuosoW.Device); found {
 								dev.NotifyMuteChanged(data[3])
 							}
 						}

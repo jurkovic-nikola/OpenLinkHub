@@ -87,6 +87,7 @@ import (
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/strafergbmk2"
 	"OpenLinkHub/src/devices/virtuosoSEWU"
+	"OpenLinkHub/src/devices/virtuosoWU"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/voidV2dongle"
@@ -670,6 +671,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                  // SABRE PRO CS
 	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},         // DARKSTAR RGB WIRELESS Gaming Mouse
 	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil}, // VIRTUOSO RGB WIRELESS XT
+	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                      // VIRTUOSO USB Gaming Headset
 	2696:  {3, 0, "HS80 RGB USB", hs80rgb.Init, nil},                     // HS80 RGB USB Gaming Headset
 	7132:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
@@ -679,6 +681,7 @@ var deviceRegisterMap = map[uint16]Product{
 	6993:  {1, 0, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},     // DARK CORE RGB SE Wireless USB Receiver
 	2660:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
 	2667:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
+	2628:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},         // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},         // K65 PLUS WIRELESS
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},             // CORSAIR VIRTUOSO SE USB Gaming Headset

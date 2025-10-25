@@ -144,6 +144,8 @@ const (
 	ProductTypeVirtuosoSEWU         = 306
 	ProductTypeVirtuosoSEW          = 307
 	ProductTypeVoidV2W              = 308
+	ProductTypeVirtuosoWU           = 309
+	ProductTypeVirtuosoW            = 310
 	ProductTypeST100                = 401
 	ProductTypeMM700                = 402
 	ProductTypeLT100                = 403

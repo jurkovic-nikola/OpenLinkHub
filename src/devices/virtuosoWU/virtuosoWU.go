@@ -100,8 +100,6 @@ var (
 	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
 	cmdHeartbeat          = []byte{0x12}
 	cmdBatteryLevel       = []byte{0x02, 0x0f}
-	cmdSidetoneMode       = []byte{0x01, 0x46, 0x00}
-	cmdSidetone           = []byte{0x01, 0x47, 0x00}
 	bufferSize            = 64
 	bufferSizeWrite       = bufferSize + 1
 	headerSize            = 3

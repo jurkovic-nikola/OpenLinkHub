@@ -225,4 +225,4 @@ $ docker run --network host --privileged openlinkhub
 - Documentação está disponível em `http://127.0.0.1:27003/docs`
 
 ## Memória - DDR4 / DDR5
-[See details](docs/memory-configuration_pt-BR.md)
+[Ver detalhes](docs/memory-configuration_pt-BR.md)

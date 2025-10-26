@@ -107,7 +107,14 @@ $ ./install-immutable.sh
 $ systemctl reboot
 ```
 
-### 5. Configuration
+### 5. Usage
+```bash
+sudo systemctl start OpenLinkHub.service
+xdg-open http://127.0.0.1:27003
+```
+
+### 6. Configuration
+`/opt/OpenLinkHub/config.json`
 ```json
 {
   "debug": false,
@@ -168,12 +175,12 @@ $ systemctl reboot
 - defaultNvidiaGPU: default index of NVIDIA gpu, default is 0.
   - If you use vfio-pci/pass-through, you have to set it to -1 to avoid conflits with nvidia modules.
 
-### 6. Progressive Web App (PWA) UI
+### 7. Progressive Web App (PWA) UI
 The web UI supports installation as a progressive web app (PWA). With a supported browser, this allows the UI to appear as a standalone application.
 Chromium-based based browsers support PWAs, Firefox currently does not.
 GNOME 'Web,' also known as 'Epiphany' is a good option for PWAs on GNOME systems.
 
-### 7. OpenRGB Integration
+### 8. OpenRGB Integration
 [See details](openrgb/README.md)
 
 ## Uninstall

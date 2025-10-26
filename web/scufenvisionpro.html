@@ -83,6 +83,22 @@
                                             </select>
                                         </li>
                                     </ul>
+                                    <button title="{{ .Lang "txtSleepTimer" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-clock-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select controllerSleepModes" name="sleepModes">
+                                                {{ range $key, $sleepMode := $device.SleepModes }}
+                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
+                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
                                     <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                     <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

@@ -106,6 +106,7 @@ var (
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x01}
 	cmdOpenWriteEndpoint    = []byte{0x0d, 0x01, 0x02}
 	cmdWrite                = []byte{0x06, 0x01}
+	cmdSleep                = []byte{0x01, 0x0e, 0x00}
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 3
@@ -200,6 +201,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 	d.setVibrationModuleValues() // Vibration module
 	d.loadKeyAssignments()       // Key Assignments
 	d.setupKeyAssignment()       // Setup key assignments
+	d.setSleepTimer()            // Sleep timer
 	d.setKeepAlive()             // Keepalive
 	d.setAutoRefresh()           // Set auto device refresh
 	d.backendListener()          // Control listener
@@ -903,6 +905,41 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	}
 	d.setDeviceColor() // Restart RGB
 	return 1
+}
+
+// UpdateSleepTimer will update device sleep timer
+func (d *Device) UpdateSleepTimer(minutes int) uint8 {
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.SleepMode = minutes
+		d.saveDeviceProfile()
+		d.setSleepTimer()
+		return 1
+	}
+	return 0
+}
+
+// setSleepTimer will set device sleep timer
+func (d *Device) setSleepTimer() uint8 {
+	if d.DeviceProfile != nil {
+		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+			return 0
+		}
+
+		buf := make([]byte, 4)
+		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
+		binary.LittleEndian.PutUint32(buf, uint32(sleep))
+
+		_, err = d.transfer(cmdSleep, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+			return 0
+		}
+
+		return 1
+	}
+	return 0
 }
 
 // saveRgbProfile will save rgb profile data

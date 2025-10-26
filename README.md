@@ -114,6 +114,7 @@ xdg-open http://127.0.0.1:27003
 ```
 
 ### 6. Configuration
+`/opt/OpenLinkHub/config.json`
 ```json
 {
   "debug": false,

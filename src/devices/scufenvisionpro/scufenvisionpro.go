@@ -1000,7 +1000,7 @@ func (d *Device) getBatterLevel() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")
 	}
 	d.BatteryLevel = binary.LittleEndian.Uint16(batteryLevel[4:6]) / 10
-	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 3)
 }
 
 // getDeviceFirmware will return a device firmware version out as string

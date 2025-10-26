@@ -31,7 +31,7 @@ type DeviceProfile struct {
 	Serial              string
 	Brightness          uint8
 	RGBProfile          string
-	BrightnessSlider    *uint8
+	BrightnessSlider    uint8
 	OriginalBrightness  uint8
 	Label               string
 	ZoneColors          map[int]ZoneColors
@@ -445,6 +445,34 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	return 1
 }
 
+// ChangeDeviceBrightness will change device brightness
+func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
+	d.DeviceProfile.Brightness = mode
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = value
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
 // saveRgbProfile will save rgb profile data
 func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -602,14 +630,13 @@ func (d *Device) loadDeviceProfiles() {
 
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
-	var defaultBrightness = uint8(100)
 	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
 
 	deviceProfile := &DeviceProfile{
 		Product:            d.Product,
 		Serial:             d.Serial,
 		Path:               profilePath,
-		BrightnessSlider:   &defaultBrightness,
+		BrightnessSlider:   100,
 		OriginalBrightness: 100,
 	}
 
@@ -785,7 +812,7 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile.RGBProfile == "controller" {
 		for _, zoneColor := range d.DeviceProfile.ZoneColors {
-			zoneColor.Color.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+			zoneColor.Color.Brightness = rgb.GetBrightnessValueFloat(d.DeviceProfile.BrightnessSlider)
 			zoneColor.Color = rgb.ModifyBrightness(*zoneColor.Color)
 			zoneColorIndexRange := zoneColor.ColorIndex
 			for key, zoneColorIndex := range zoneColorIndexRange {
@@ -815,7 +842,7 @@ func (d *Device) setDeviceColor() {
 			return
 		}
 
-		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		profile.StartColor.Brightness = rgb.GetBrightnessValueFloat(d.DeviceProfile.BrightnessSlider)
 		profileColor := rgb.ModifyBrightness(profile.StartColor)
 		for _, zoneColor := range d.DeviceProfile.ZoneColors {
 			zoneColorIndexRange := zoneColor.ColorIndex
@@ -889,7 +916,7 @@ func (d *Device) setDeviceColor() {
 				}
 
 				// Brightness
-				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+				r.RGBBrightness = rgb.GetBrightnessValueFloat(d.DeviceProfile.BrightnessSlider)
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
 
@@ -1093,8 +1120,6 @@ func (d *Device) backendListener() {
 				if len(data) == 0 || data == nil {
 					continue
 				}
-
-				fmt.Println(fmt.Sprintf("% 2x", data))
 			}
 		}
 	}()

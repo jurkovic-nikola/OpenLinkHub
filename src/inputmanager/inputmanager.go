@@ -541,8 +541,8 @@ func buildInputActions() {
 	inputActions[KeyControllerSelect] = InputAction{Name: "(Controller) Select", CommandCode: btnControllerSelect, Controller: true}
 	inputActions[KeyControllerStart] = InputAction{Name: "(Controller) Start", CommandCode: btnControllerStart, Controller: true}
 	inputActions[KeyControllerMode] = InputAction{Name: "(Controller) Mode", CommandCode: btnControllerMode, Controller: true}
-	inputActions[KeyControllerThumbL] = InputAction{Name: "(Controller) Thumb L", CommandCode: btnControllerThumbL, Controller: true}
-	inputActions[KeyControllerThumbR] = InputAction{Name: "(Controller) Thumb R", CommandCode: btnControllerThumbR, Controller: true}
+	inputActions[KeyControllerThumbL] = InputAction{Name: "(Controller) Thumb L Press", CommandCode: btnControllerThumbL, Controller: true}
+	inputActions[KeyControllerThumbR] = InputAction{Name: "(Controller) Thumb R Press", CommandCode: btnControllerThumbR, Controller: true}
 	inputActions[KeyControllerDpadUp] = InputAction{Name: "(Controller) D-Pad Up", CommandCode: btnControllerDpadUp, Controller: true}
 	inputActions[KeyControllerDpadDown] = InputAction{Name: "(Controller) D-Pad Down", CommandCode: btnControllerDpadDown, Controller: true}
 	inputActions[KeyControllerDpadLeft] = InputAction{Name: "(Controller) D-Pad Left", CommandCode: btnControllerDpadLeft, Controller: true}

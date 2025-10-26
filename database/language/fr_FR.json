@@ -361,6 +361,7 @@
         "txtControllerColors": "Couleurs du contrôleur",
         "txtLeftVibrationModule": "Module de vibration gauche",
         "txtRightVibrationModule": "Module de vibration droit",
-        "txtVibrationModule": "Module de vibration"
+        "txtVibrationModule": "Module de vibration",
+        "txtControllerMappings": "Affectations du contrôleur"
     }
 }

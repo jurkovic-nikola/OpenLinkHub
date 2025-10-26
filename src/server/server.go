@@ -1814,6 +1814,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/headset/sidetoneValue", http.MethodPost, changeSidetoneValue)
 	handleFunc(r, "/api/controller/vibration", http.MethodPost, changeControllerVibration)
 	handleFunc(r, "/api/controller/zoneColors", http.MethodPost, saveControllerZoneColors)
+	handleFunc(r, "/api/controller/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

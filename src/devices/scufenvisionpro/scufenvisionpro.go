@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
@@ -12,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math/bits"
 	"os"
 	"regexp"
 	"sort"
@@ -40,6 +42,7 @@ type DeviceProfile struct {
 	SleepMode           int
 	LeftVibrationValue  uint8
 	RightVibrationValue uint8
+	KeyAssignmentHash   string
 }
 
 type Device struct {
@@ -107,7 +110,8 @@ var (
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 3
 	headerWriteSize         = 4
-	keyAmount               = 32
+	keyAmount               = 30
+	keyAmountLen            = 32
 	deviceKeepAlive         = 20000
 	deviceRefreshInterval   = 1000
 	scufVendorId            = uint16(11925)
@@ -177,6 +181,9 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 			9:  "Mouse",
 			10: "Macro",
 		},
+		InputActions:      inputmanager.GetInputActions(),
+		keyAssignmentFile: "/database/key-assignments/scufenvisionpro.json",
+		MacroTracker:      make(map[int]uint16),
 	}
 
 	d.getDebugMode()             // Debug mode
@@ -191,6 +198,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 	d.initLeds()                 // Init LED ports
 	d.setDeviceColor()           // Device color
 	d.setVibrationModuleValues() // Vibration module
+	d.loadKeyAssignments()       // Key Assignments
+	d.setupKeyAssignment()       // Setup key assignments
 	d.setKeepAlive()             // Keepalive
 	d.setAutoRefresh()           // Set auto device refresh
 	d.backendListener()          // Control listener
@@ -312,6 +321,405 @@ func (d *Device) SaveControllerZoneColors(zoneColors map[int]rgb.Color) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// UpdateDeviceKeyAssignment will update device key assignments
+func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmanager.KeyAssignment) uint8 {
+	if val, ok := d.KeyAssignment[keyIndex]; ok {
+		val.Default = keyAssignment.Default
+		val.ActionHold = keyAssignment.ActionHold
+		val.ActionType = keyAssignment.ActionType
+		val.ActionCommand = keyAssignment.ActionCommand
+		val.IsMacro = keyAssignment.IsMacro
+		d.KeyAssignment[keyIndex] = val
+		d.saveKeyAssignments()
+		d.setupKeyAssignment()
+		return 1
+	}
+	return 0
+}
+
+// SaveUserProfile will generate a new user profile configuration and save it to a file
+func (d *Device) SaveUserProfile(profileName string) uint8 {
+	if d.DeviceProfile != nil {
+		profilePath := pwd + "/database/profiles/" + d.Serial + "-" + profileName + ".json"
+		keyAssignmentHash := common.GenerateRandomMD5()
+
+		newProfile := d.DeviceProfile
+		newProfile.Path = profilePath
+		newProfile.Active = false
+		newProfile.KeyAssignmentHash = keyAssignmentHash
+
+		buffer, err := json.Marshal(newProfile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return 0
+		}
+
+		// Create profile filename
+		file, err := os.Create(profilePath)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to create new device profile")
+			return 0
+		}
+
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to write data")
+			return 0
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": newProfile.Path}).Error("Unable to close file handle")
+			return 0
+		}
+		d.saveKeyAssignments()
+		d.loadDeviceProfiles()
+		return 1
+	}
+	return 0
+}
+
+func (d *Device) saveKeyAssignments() {
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
+		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
+		keyAssignmentsFile = pwd + fileFormat
+	}
+
+	// Convert to JSON
+	buffer, err := json.MarshalIndent(d.KeyAssignment, "", "    ")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		return
+	}
+
+	// Create profile filename
+	file, err := os.Create(keyAssignmentsFile)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to create new device profile")
+		return
+	}
+
+	// Write JSON buffer to file
+	_, err = file.Write(buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write data")
+		return
+	}
+
+	// Close file
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to close file handle")
+	}
+}
+
+// loadKeyAssignments will load custom key assignments
+func (d *Device) loadKeyAssignments() {
+	if d.DeviceProfile == nil {
+		return
+	}
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
+		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
+		keyAssignmentsFile = pwd + fileFormat
+	}
+
+	if common.FileExists(keyAssignmentsFile) {
+		file, err := os.Open(keyAssignmentsFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to load JSON file")
+			return
+		}
+
+		if err = json.NewDecoder(file).Decode(&d.KeyAssignment); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to decode key assignments JSON")
+			return
+		}
+
+		// Prevent left click modifications
+		if !d.KeyAssignment[1].Default {
+			logger.Log(logger.Fields{"serial": d.Serial, "value": d.KeyAssignment[1].Default, "expectedValue": 1}).Warn("Restoring left button to original value")
+			var val = d.KeyAssignment[1]
+			val.Default = true
+			d.KeyAssignment[1] = val
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": keyAssignmentsFile, "serial": d.Serial}).Warn("Failed to close file handle")
+		}
+	} else {
+		var keyAssignment = map[int]inputmanager.KeyAssignment{
+			2147483648: {
+				Name:          "Profile",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   31,
+			},
+			1073741824: {
+				Name:          "G5",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   30,
+			},
+			536870912: {
+				Name:          "G4",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   29,
+			},
+			268435456: {
+				Name:          "G3",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   28,
+			},
+			134217728: {
+				Name:          "G2",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   27,
+			},
+			67108864: {
+				Name:          "G1",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   26,
+			},
+			16777216: {
+				Name:          "Power",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   24,
+			},
+			8388608: {
+				Name:          "S2",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   23,
+			},
+			4194304: {
+				Name:          "S1",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   22,
+			},
+			2097152: {
+				Name:          "P4",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   21,
+			},
+			1048576: {
+				Name:          "P3",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   20,
+			},
+			524288: {
+				Name:          "P2",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   19,
+			},
+			262144: {
+				Name:          "P1",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   18,
+			},
+			131072: {
+				Name:          "MENU",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   17,
+			},
+			65536: {
+				Name:          "LOCK",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   16,
+			},
+			16384: {
+				Name:          "RS (Press)",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   14,
+			},
+			8192: {
+				Name:          "LS (Press)",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   13,
+			},
+			4096: {
+				Name:          "RT",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   12,
+			},
+			2048: {
+				Name:          "LT",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   11,
+			},
+			1024: {
+				Name:          "RB",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   10,
+			},
+			512: {
+				Name:          "LB",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   9,
+			},
+			256: {
+				Name:          "B",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   8,
+			},
+			128: {
+				Name:          "Y",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   7,
+			},
+			64: {
+				Name:          "X",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   6,
+			},
+			32: {
+				Name:          "A",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   5,
+			},
+			16: {
+				Name:          "DPAD Right",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   4,
+			},
+			8: {
+				Name:          "DPAD Left",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   3,
+			},
+			4: {
+				Name:          "DPAD Down",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   2,
+			},
+			2: {
+				Name:          "DPAD Up",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   1,
+			},
+			1: {
+				Name:          "Left Button",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+				ButtonIndex:   0,
+			},
+		}
+
+		// Convert to JSON
+		buffer, err := json.MarshalIndent(keyAssignment, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		file, err := os.Create(keyAssignmentsFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to create new key assignment file")
+			return
+		}
+
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write data tp key assignment file")
+			return
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to close key assignment file")
+		}
+		d.KeyAssignment = keyAssignment
+	}
 }
 
 func (d *Device) createDevice() {
@@ -1120,16 +1528,18 @@ func (d *Device) setupKeyAssignment() {
 	}
 	sort.Ints(keys)
 
-	buf := make([]byte, keyAmount)
-	i := 0
+	buf := make([]byte, keyAmountLen)
+	for i := range buf {
+		buf[i] = 0x01
+	}
+
 	for _, k := range keys {
 		value := d.KeyAssignment[k]
 		if value.Default {
-			buf[i] = byte(1)
+			buf[value.ButtonIndex] = byte(1)
 		} else {
-			buf[i] = byte(0)
+			buf[value.ButtonIndex] = byte(0)
 		}
-		i++
 	}
 	d.writeKeyAssignmentData(buf)
 }
@@ -1150,6 +1560,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
+	fmt.Println(fmt.Sprintf("% 2x", bufferW))
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
@@ -1203,7 +1614,141 @@ func (d *Device) backendListener() {
 				if len(data) == 0 || data == nil {
 					continue
 				}
+
+				if data[0] == 0x03 && data[2] == 0x02 {
+					d.triggerKeyAssignment(binary.LittleEndian.Uint32(data[3:7]))
+				}
 			}
 		}
 	}()
+}
+
+// addToMacroTracker adds or updates an entry in MacroTracker
+func (d *Device) addToMacroTracker(key int, value uint16) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.MacroTracker == nil {
+		d.MacroTracker = make(map[int]uint16)
+	}
+	d.MacroTracker[key] = value
+}
+
+// deleteFromMacroTracker deletes an entry from MacroTracker
+func (d *Device) deleteFromMacroTracker(key int) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
+		return
+	}
+	delete(d.MacroTracker, key)
+}
+
+// releaseMacroTracker will release current MacroTracker
+func (d *Device) releaseMacroTracker() {
+	d.mutex.Lock()
+	if d.MacroTracker == nil {
+		d.mutex.Unlock()
+		return
+	}
+	keys := make([]int, 0, len(d.MacroTracker))
+	for key := range d.MacroTracker {
+		keys = append(keys, key)
+	}
+	sort.Ints(keys)
+	d.mutex.Unlock()
+
+	for _, key := range keys {
+		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
+		d.deleteFromMacroTracker(key)
+	}
+}
+
+// triggerKeyAssignment will trigger key assignment if defined
+func (d *Device) triggerKeyAssignment(value uint32) {
+	var bitDiff = value ^ d.ModifierIndex
+	var pressedKeys = bitDiff & value
+	var releasedKeys = bitDiff & ^value
+	d.ModifierIndex = value
+
+	for keys := pressedKeys | releasedKeys; keys != 0; {
+		bitIdx := bits.TrailingZeros32(keys)
+		mask := uint32(1) << bitIdx
+		keys &^= mask
+
+		isPressed := pressedKeys&mask != 0
+		isReleased := releasedKeys&mask != 0
+
+		val, ok := d.KeyAssignment[int(mask)]
+		if !ok {
+			continue
+		}
+
+		if isReleased {
+			// Check if we have any queue in macro tracker. If yes, release those keys
+			if len(d.MacroTracker) > 0 {
+				d.releaseMacroTracker()
+			}
+
+			if val.Default || !val.ActionHold {
+				continue
+			}
+			switch val.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+			case 9:
+				inputmanager.InputControlMouseHold(val.ActionCommand, false)
+			}
+		}
+
+		if isPressed {
+			if val.Default {
+				continue
+			}
+
+			switch val.ActionType {
+			case 1, 3:
+				if val.ActionHold {
+					inputmanager.InputControlKeyboardHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlKeyboard(val.ActionCommand, false)
+				}
+				break
+			case 9:
+				if val.ActionHold {
+					inputmanager.InputControlMouseHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlMouse(val.ActionCommand)
+				}
+				break
+			case 10:
+				macroProfile := macro.GetProfile(int(val.ActionCommand))
+				if macroProfile == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+					return
+				}
+				for i := 0; i < len(macroProfile.Actions); i++ {
+					if v, valid := macroProfile.Actions[i]; valid {
+						// Add to macro tracker for easier release
+						if v.ActionHold {
+							d.addToMacroTracker(i, v.ActionCommand)
+						}
+
+						switch v.ActionType {
+						case 1, 3:
+							inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+						case 9:
+							inputmanager.InputControlMouse(v.ActionCommand)
+						case 5:
+							if v.ActionDelay > 0 {
+								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
+						}
+					}
+				}
+				break
+			}
+		}
+	}
 }

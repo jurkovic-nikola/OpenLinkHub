@@ -361,6 +361,7 @@
         "txtControllerColors": "Цвета контроллера",
         "txtLeftVibrationModule": "Левый модуль вибрации",
         "txtRightVibrationModule": "Правый модуль вибрации",
-        "txtVibrationModule": "Модуль вибрации"
+        "txtVibrationModule": "Модуль вибрации",
+        "txtControllerMappings": "Назначения контроллера"
     }
 }

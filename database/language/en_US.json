@@ -361,7 +361,7 @@
     "txtControllerColors": "Controller Colors",
     "txtLeftVibrationModule": "Left Vibration Module",
     "txtRightVibrationModule": "Right Vibration Module",
-    "txtVibrationModule": "Vibration Module"
-
+    "txtVibrationModule": "Vibration Module",
+    "txtControllerMappings": "Controller Mappings"
   }
 }

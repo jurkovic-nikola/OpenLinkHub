@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	NetlinkKernelObjectUEvent        = 15
-	bufferSize                       = 2048
-	sysRoot                          = "/sys"
-	vendorId                  uint16 = 6940 // Corsair
+	NetlinkKernelObjectUEvent = 15
+	bufferSize                = 2048
+	sysRoot                   = "/sys"
+	vendorId                  = uint16(6940)  // Corsair
+	scufVendorId              = uint16(11925) // Scuf
 )
 
 // exclude list of device that are not supported via USB mode
@@ -158,7 +159,7 @@ func Init() {
 					basePath := sysRoot + devPath
 					vendor := common.ReadFile(basePath + "/idVendor")
 					vid := common.PidVidToUint16(vendor)
-					if vid == vendorId {
+					if vid == vendorId || vid == scufVendorId {
 						product := common.ReadFile(basePath + "/idProduct")
 						pid := common.PidVidToUint16(product)
 
@@ -191,7 +192,7 @@ func Init() {
 							continue
 						}
 
-						if info.VendorID == vendorId {
+						if info.VendorID == vendorId || info.VendorID == scufVendorId {
 							serial := info.Serial
 							if len(serial) < 1 {
 								serial = strconv.Itoa(int(info.ProductID))

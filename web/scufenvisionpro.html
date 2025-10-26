@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $root := . }}
+        {{ $devs := .Devices }}
+        {{ $rgbModes := .Device.RGBModes }}
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        {{ $rgb := .Rgb }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <input type="hidden" id="zones" name="zones" value="1">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        <div class="card mb-4">
+                            <div class="card-header border-bottom border-dash-dark-1">
+                                <div class="ds-svg-placeholder-left">
+                                    <img src="/static/img/icons/icon-controller.svg" width="46" height="46" alt="Device" />
+                                </div>
+                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
+                                    <span>{{ .Device.Product }}</span><br />
+                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
+                                    </p>
+                                </div>
+                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
+                                    <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </span>
+                                    <span title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
+                                    <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    {{ $device.BatteryLevel }} %
+                                    </span>
+                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select userProfile" name="userProfile">
+                                                {{ range $key, $profile := $device.UserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $key }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
+                                        <li>
+                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
+                                        </li>
+                                    </ul>
+                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select controllerRgbProfile" name="controllerRgbProfile">
+                                                {{ range $key, $mode := $rgbModes }}
+                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
+                                                {{ else }}
+                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
+                                    <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body" style="padding: 1rem 1rem;">
+                                <div class="row gy-12">
+                                    <div class="col-md-12 col-sm-6">
+                                        <div class="row">
+                                            <!-- Controller color start -->
+                                            <div style="width: auto;">
+                                                <div class="card mb-4" data-info="1">
+                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
+                                                        <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
+                                                            <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Device">
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-right2">
+                                                            <span style="font-size: 13px;">{{ .Lang "txtControllerLEDs" }}</span><br>
+                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                                                <span class="labelValue">{{ .Lang "txtControllerColors" }}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;">
+                                                        <div style="text-align: center;">
+                                                            <div class="d-flex align-items-end justify-content-between">
+                                                                {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                                                <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="margin:0 auto;">
+                                                                {{ end }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                                        <div class="input-group">
+                                                            <button class="btn btn-primary" type="button" id="saveZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Controller color end -->
+
+                                            <!-- Left Vibration Module start -->
+                                            <div style="width: auto;">
+                                                <div class="card mb-4" data-info="1">
+                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
+                                                        <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
+                                                            <img src="/static/img/icons/icon-vibrate.svg" width="46" height="46" alt="Device">
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-right2">
+                                                            <span style="font-size: 13px;">{{ .Lang "txtLeftVibrationModule" }}</span><br>
+                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                                                <span class="labelValue">{{ .Lang "txtVibrationModule" }}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;">
+                                                        <div style="text-align: center;">
+                                                            <div style="width: 100%;">
+                                                                <div style="float: left;width: 10%;">
+                                                                    <span id="leftVibrationVal">{{ $deviceProfile.LeftVibrationValue }}</span>
+                                                                </div>
+                                                                <div style="float: right;width: 80%;margin-top: 2px;">
+                                                                    <input class="brightness-slider" type="range" id="leftVibrationValue" name="leftVibrationValue" min="0" max="100" value="{{ $deviceProfile.LeftVibrationValue }}" style="margin-top:0" step="1" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                                        <div class="input-group">
+                                                            <button class="btn btn-primary" type="button" id="btnSaveLeftVibrationValue">{{ .Lang "txtSave" }}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Left Vibration Module end -->
+
+                                            <!-- Right Vibration Module start -->
+                                            <div style="width: auto;">
+                                                <div class="card mb-4" data-info="1">
+                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
+                                                        <div class="ds-svg-placeholder-left" style="width: 46px;height: 52px;">
+                                                            <img src="/static/img/icons/icon-vibrate.svg" width="46" height="46" alt="Device">
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-right2">
+                                                            <span style="font-size: 13px;">{{ .Lang "txtRightVibrationModule" }}</span><br>
+                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                                                <span class="labelValue">{{ .Lang "txtVibrationModule" }}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;">
+                                                        <div style="text-align: center;">
+                                                            <div style="width: 100%;">
+                                                                <div style="float: left;width: 10%;">
+                                                                    <span id="rightVibrationVal">{{ $deviceProfile.RightVibrationValue }}</span>
+                                                                </div>
+                                                                <div style="float: right;width: 80%;margin-top: 2px;">
+                                                                    <input class="brightness-slider" type="range" id="rightVibrationValue" name="rightVibrationValue" min="0" max="100" value="{{ $deviceProfile.RightVibrationValue }}" style="margin-top:0" step="1" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                                        <div class="input-group">
+                                                            <button class="btn btn-primary" type="button" id="btnSaveRightVibrationValue">{{ .Lang "txtSave" }}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Right Vibration Module end -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/controller.js"></script>
+</body>
+</html>

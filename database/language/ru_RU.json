@@ -352,6 +352,15 @@
         "txtActionRepeat": "Повторить",
         "txtInvalidMacroRepeatValue": "Недопустимое значение повтора макрокоманды",
         "txtActionRepeatDelay": "Задержка повтора",
-        "txtInvalidMacroRepeatDelayValue": "Недопустимое значение задержки повтора макрокоманды"
+        "txtInvalidMacroRepeatDelayValue": "Недопустимое значение задержки повтора макрокоманды",
+        "txtInvalidVibrationValue": "Недопустимое значение вибрации",
+        "txtInvalidVibrationModule": "Недопустимый модуль вибрации",
+        "txtVibrationModuleUpdate": "Модуль вибрации успешно обновлён",
+        "txtUnableToChangeVibrationModule": "Невозможно изменить значение модуля вибрации",
+        "txtControllerLEDs": "Светодиоды контроллера",
+        "txtControllerColors": "Цвета контроллера",
+        "txtLeftVibrationModule": "Левый модуль вибрации",
+        "txtRightVibrationModule": "Правый модуль вибрации",
+        "txtVibrationModule": "Модуль вибрации"
     }
 }

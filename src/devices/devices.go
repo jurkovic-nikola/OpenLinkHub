@@ -83,6 +83,7 @@ import (
 	"OpenLinkHub/src/devices/scimitarprorgb"
 	"OpenLinkHub/src/devices/scimitarrgb"
 	"OpenLinkHub/src/devices/scimitarrgbelite"
+	"OpenLinkHub/src/devices/scufenvisionpro"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/strafergbmk2"
@@ -132,7 +133,8 @@ var (
 	mutex               sync.Mutex
 	cls                 *cluster.Device
 	expectedPermissions = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
-	vendorId            = uint16(6940) // Corsair
+	vendorId            = uint16(6940)  // Corsair
+	scufVendorId        = uint16(11925) // Scuf
 	interfaceId         = 0
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
@@ -434,6 +436,12 @@ func InitManual(productId uint16, key string) {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
 
+	// Enumerate all Scuf devices
+	err = hid.Enumerate(scufVendorId, productId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
+	}
+
 	if device.ProductId > 0 && len(device.Path) > 0 {
 		initializeDevice(productId, device.Serial, device.Path)
 	}
@@ -505,6 +513,12 @@ func Init() {
 
 	// Enumerate all Corsair devices
 	err := hid.Enumerate(vendorId, hid.ProductIDAny, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
+	}
+
+	// Enumerate all Scuf devices
+	err = hid.Enumerate(scufVendorId, hid.ProductIDAny, enum)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
@@ -687,6 +701,7 @@ var deviceRegisterMap = map[uint16]Product{
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},             // CORSAIR VIRTUOSO SE USB Gaming Headset
 	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},            // VOID WIRELESS V2
 	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},     // CORSAIR LINK TM USB DONGLE
+	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionpro.Init, nil},        // SCUF Envision Pro Controller
 }
 
 // initializeDevice will initialize a device

@@ -1200,9 +1200,20 @@ func saveMouseDpiColors(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// saveHeadsetZoneColors handles mouse zone colors save
+// saveHeadsetZoneColors handles headset zone colors save
 func saveHeadsetZoneColors(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessHeadsetZoneColorsSave(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// saveControllerZoneColors handles controller zone colors save
+func saveControllerZoneColors(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessControllerZoneColorsSave(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1291,6 +1302,17 @@ func setKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 // setKeyboardPerformance handles setting keyboard performance
 func setKeyboardControlDialColors(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetKeyboardControlDialColors(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeControllerVibration handles device Sidetone value
+func changeControllerVibration(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessControllerVibration(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1790,6 +1812,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/headset/anc", http.MethodPost, changeActiveNoiseCancellation)
 	handleFunc(r, "/api/headset/sidetone", http.MethodPost, changeSidetone)
 	handleFunc(r, "/api/headset/sidetoneValue", http.MethodPost, changeSidetoneValue)
+	handleFunc(r, "/api/controller/vibration", http.MethodPost, changeControllerVibration)
+	handleFunc(r, "/api/controller/zoneColors", http.MethodPost, saveControllerZoneColors)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

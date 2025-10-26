@@ -352,6 +352,15 @@
         "txtActionRepeat": "Répéter",
         "txtInvalidMacroRepeatValue": "Valeur de répétition d’action macro non valide",
         "txtActionRepeatDelay": "Délai de répétition",
-        "txtInvalidMacroRepeatDelayValue": "Valeur de délai de répétition d’action macro non valide"
+        "txtInvalidMacroRepeatDelayValue": "Valeur de délai de répétition d’action macro non valide",
+        "txtInvalidVibrationValue": "Valeur de vibration non valide",
+        "txtInvalidVibrationModule": "Module de vibration non valide",
+        "txtVibrationModuleUpdate": "Le module de vibration a été mis à jour avec succès",
+        "txtUnableToChangeVibrationModule": "Impossible de modifier la valeur du module de vibration",
+        "txtControllerLEDs": "LEDs du contrôleur",
+        "txtControllerColors": "Couleurs du contrôleur",
+        "txtLeftVibrationModule": "Module de vibration gauche",
+        "txtRightVibrationModule": "Module de vibration droit",
+        "txtVibrationModule": "Module de vibration"
     }
 }

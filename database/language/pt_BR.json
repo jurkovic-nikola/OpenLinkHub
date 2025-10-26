@@ -352,6 +352,15 @@
     "txtActionRepeat": "Repetir",
     "txtInvalidMacroRepeatValue": "Valor de repetição de ação de macro inválido",
     "txtActionRepeatDelay": "Atraso de repetição",
-    "txtInvalidMacroRepeatDelayValue": "Valor de atraso de repetição de ação de macro inválido"
+    "txtInvalidMacroRepeatDelayValue": "Valor de atraso de repetição de ação de macro inválido",
+    "txtInvalidVibrationValue": "Valor de vibração inválido",
+    "txtInvalidVibrationModule": "Módulo de vibração inválido",
+    "txtVibrationModuleUpdate": "O módulo de vibração foi atualizado com sucesso",
+    "txtUnableToChangeVibrationModule": "Não é possível alterar o valor do módulo de vibração",
+    "txtControllerLEDs": "LEDs do controle",
+    "txtControllerColors": "Cores do controle",
+    "txtLeftVibrationModule": "Módulo de vibração esquerdo",
+    "txtRightVibrationModule": "Módulo de vibração direito",
+    "txtVibrationModule": "Módulo de vibração"
   }
 }

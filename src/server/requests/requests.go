@@ -125,6 +125,8 @@ type Payload struct {
 	PerfAltF4             bool                  `json:"perf_altF4"`
 	Save                  bool                  `json:"save"`
 	SupportedDevices      map[uint16]bool       `json:"supportedDevices"`
+	VibrationValue        uint8                 `json:"vibrationValue"`
+	VibrationModule       uint8                 `json:"vibrationModule"`
 	Status                int
 	Code                  int
 	Message               string
@@ -1421,7 +1423,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 	if req.ToggleDelay < 30 {
 		req.ToggleDelay = 30
 	}
-	
+
 	var keyAssignment = inputmanager.KeyAssignment{
 		Name:           "",
 		Default:        req.Enabled,
@@ -2866,6 +2868,40 @@ func ProcessHeadsetZoneColorsSave(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
 }
 
+// ProcessControllerZoneColorsSave will process a POST request from a client for controller zone colors save
+func ProcessControllerZoneColorsSave(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveControllerZoneColors",
+		req.ColorZones,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtMouseZoneColorsChanged"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
+}
+
 // ProcessDeleteMacroValue will process deletion of macro profile value
 func ProcessDeleteMacroValue(r *http.Request) *Payload {
 	req := &Payload{}
@@ -3622,4 +3658,53 @@ func ProcessSetSupportedDevices(r *http.Request) *Payload {
 	} else {
 		return &Payload{Message: language.GetValue("txtSupportedDeviceListUpdated"), Code: http.StatusOK, Status: 0}
 	}
+}
+
+// ProcessControllerVibration will process POST request from a client for device vibration change
+func ProcessControllerVibration(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.VibrationValue < 0 || req.VibrationValue > 100 {
+		return &Payload{Message: language.GetValue("txtInvalidVibrationValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.VibrationModule < 0 || req.VibrationModule > 1 {
+		return &Payload{Message: language.GetValue("txtInvalidVibrationModule"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateControllerVibrationModule",
+		req.VibrationModule,
+		req.VibrationValue,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtVibrationModuleUpdate"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeVibrationModule"), Code: http.StatusOK, Status: 0}
 }

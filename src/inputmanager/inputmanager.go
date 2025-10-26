@@ -34,6 +34,7 @@ type InputAction struct {
 	CommandCode uint16 // Key code
 	Media       bool   // Key can control media playback
 	Mouse       bool
+	Controller  bool
 	Scroll      bool
 }
 
@@ -200,11 +201,29 @@ const (
 	KeyScreenBrightnessUp   uint16 = 125
 	KeyPrtSc                uint16 = 126
 	KeyPause                uint16 = 127
+	KeyControllerSouth      uint16 = 128
+	KeyControllerEast       uint16 = 129
+	KeyControllerNorth      uint16 = 130
+	KeyControllerWest       uint16 = 131
+	KeyControllerTL         uint16 = 132
+	KeyControllerTR         uint16 = 133
+	KeyControllerTL2        uint16 = 134
+	KeyControllerTR2        uint16 = 135
+	KeyControllerSelect     uint16 = 136
+	KeyControllerStart      uint16 = 137
+	KeyControllerMode       uint16 = 138
+	KeyControllerThumbL     uint16 = 139
+	KeyControllerThumbR     uint16 = 140
+	KeyControllerDpadUp     uint16 = 141
+	KeyControllerDpadDown   uint16 = 142
+	KeyControllerDpadLeft   uint16 = 143
+	KeyControllerDpadRight  uint16 = 144
 )
 
 var (
 	evKey                   uint16 = 0x01
 	evSyn                   uint16 = 0x00
+	evAbs                   uint16 = 0x03
 	keyVolumeUp             uint16 = 0x73
 	keyVolumeDown           uint16 = 0x72
 	keyVolumeMute           uint16 = 0x71
@@ -335,6 +354,23 @@ var (
 	evRel                   uint16 = 0x02
 	relWheel                uint16 = 0x08
 	relHWheel               uint16 = 0x06
+	btnControllerSouth      uint16 = 0x130 // A, (XBox) / Cross (PS)
+	btnControllerEast       uint16 = 0x131 // B, Circle
+	btnControllerNorth      uint16 = 0x133 // Y. Triangle
+	btnControllerWest       uint16 = 0x134 // X. Square
+	btnControllerTL         uint16 = 0x136 // L1
+	btnControllerTR         uint16 = 0x137 // R1
+	btnControllerTL2        uint16 = 0x138 // L2 (can also be EV_ABS axis)
+	btnControllerTR2        uint16 = 0x139 // R2
+	btnControllerSelect     uint16 = 0x13A // Select / Share
+	btnControllerStart      uint16 = 0x13B // Start / Options
+	btnControllerMode       uint16 = 0x13C // Mode / PS button
+	btnControllerThumbL     uint16 = 0x13D // Left stick click
+	btnControllerThumbR     uint16 = 0x13E // Right stick click
+	btnControllerDpadUp     uint16 = 0x220
+	btnControllerDpadDown   uint16 = 0x221
+	btnControllerDpadLeft   uint16 = 0x222
+	btnControllerDpadRight  uint16 = 0x223
 	inputActions            map[uint16]InputAction
 	virtualKeyboardPointer  uintptr
 	virtualMousePointer     uintptr
@@ -492,6 +528,25 @@ func buildInputActions() {
 	inputActions[BtnMiddle] = InputAction{Name: "(Mouse) Middle Click", CommandCode: btnMiddle, Mouse: true}
 	inputActions[BtnBack] = InputAction{Name: "(Mouse) Back", CommandCode: btnBack, Mouse: true}
 	inputActions[BtnForward] = InputAction{Name: "(Mouse) Forward", CommandCode: btnForward, Mouse: true}
+
+	// Controller
+	inputActions[KeyControllerSouth] = InputAction{Name: "(Controller) South (A)", CommandCode: btnControllerSouth, Controller: true}
+	inputActions[KeyControllerEast] = InputAction{Name: "(Controller) East (B)", CommandCode: btnControllerEast, Controller: true}
+	inputActions[KeyControllerNorth] = InputAction{Name: "(Controller) North (Y)", CommandCode: btnControllerNorth, Controller: true}
+	inputActions[KeyControllerWest] = InputAction{Name: "(Controller) West (X)", CommandCode: btnControllerWest, Controller: true}
+	inputActions[KeyControllerTL] = InputAction{Name: "(Controller) L1", CommandCode: btnControllerTL, Controller: true}
+	inputActions[KeyControllerTR] = InputAction{Name: "(Controller) R1", CommandCode: btnControllerTR, Controller: true}
+	inputActions[KeyControllerTL2] = InputAction{Name: "(Controller) L2", CommandCode: btnControllerTL2, Controller: true}
+	inputActions[KeyControllerTR2] = InputAction{Name: "(Controller) R2", CommandCode: btnControllerTR2, Controller: true}
+	inputActions[KeyControllerSelect] = InputAction{Name: "(Controller) Select", CommandCode: btnControllerSelect, Controller: true}
+	inputActions[KeyControllerStart] = InputAction{Name: "(Controller) Start", CommandCode: btnControllerStart, Controller: true}
+	inputActions[KeyControllerMode] = InputAction{Name: "(Controller) Mode", CommandCode: btnControllerMode, Controller: true}
+	inputActions[KeyControllerThumbL] = InputAction{Name: "(Controller) Thumb L", CommandCode: btnControllerThumbL, Controller: true}
+	inputActions[KeyControllerThumbR] = InputAction{Name: "(Controller) Thumb R", CommandCode: btnControllerThumbR, Controller: true}
+	inputActions[KeyControllerDpadUp] = InputAction{Name: "(Controller) D-Pad Up", CommandCode: btnControllerDpadUp, Controller: true}
+	inputActions[KeyControllerDpadDown] = InputAction{Name: "(Controller) D-Pad Down", CommandCode: btnControllerDpadDown, Controller: true}
+	inputActions[KeyControllerDpadLeft] = InputAction{Name: "(Controller) D-Pad Left", CommandCode: btnControllerDpadLeft, Controller: true}
+	inputActions[KeyControllerDpadRight] = InputAction{Name: "(Controller) D-Pad Right", CommandCode: btnControllerDpadRight, Controller: true}
 }
 
 // Init will fetch an input device
@@ -533,6 +588,17 @@ func GetMediaKeys() map[uint16]InputAction {
 	keys := make(map[uint16]InputAction)
 	for key, value := range inputActions {
 		if value.Media {
+			keys[key] = value
+		}
+	}
+	return keys
+}
+
+// GetControllerKeys will return a map of InputAction for Controller keys
+func GetControllerKeys() map[uint16]InputAction {
+	keys := make(map[uint16]InputAction)
+	for key, value := range inputActions {
+		if value.Controller {
 			keys[key] = value
 		}
 	}

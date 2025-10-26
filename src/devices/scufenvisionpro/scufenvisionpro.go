@@ -1560,7 +1560,6 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	fmt.Println(fmt.Sprintf("% 2x", bufferW))
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 

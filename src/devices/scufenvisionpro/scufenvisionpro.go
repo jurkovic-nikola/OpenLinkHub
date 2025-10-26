@@ -92,31 +92,32 @@ type Device struct {
 }
 
 var (
-	pwd                     = ""
-	cmdSoftwareMode         = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode         = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware          = []byte{0x02, 0x13}
-	cmdWriteVibration       = []byte{0x01}
-	cmdLeftVibrationModule  = []byte{0x84, 0x00}
-	cmdRightVibrationModule = []byte{0x85, 0x00}
-	cmdWriteColor           = []byte{0x06, 0x00}
-	cmdOpenEndpoint         = []byte{0x0d, 0x00, 0x01}
-	cmdHeartbeat            = []byte{0x12}
-	cmdBatteryLevel         = []byte{0x02, 0x0f}
-	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x01}
-	cmdOpenWriteEndpoint    = []byte{0x0d, 0x01, 0x02}
-	cmdWrite                = []byte{0x06, 0x01}
-	cmdSleep                = []byte{0x01, 0x0e, 0x00}
-	bufferSize              = 64
-	bufferSizeWrite         = bufferSize + 1
-	headerSize              = 3
-	headerWriteSize         = 4
-	keyAmount               = 30
-	keyAmountLen            = 32
-	deviceKeepAlive         = 20000
-	deviceRefreshInterval   = 1000
-	scufVendorId            = uint16(11925)
-	rgbModes                = []string{
+	pwd                          = ""
+	cmdSoftwareMode              = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode              = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware               = []byte{0x02, 0x13}
+	cmdInitWrite                 = []byte{0x01}
+	cmdLeftVibrationModule       = []byte{0x84, 0x00}
+	cmdRightVibrationModule      = []byte{0x85, 0x00}
+	cmdWriteColor                = []byte{0x06, 0x00}
+	cmdOpenEndpoint              = []byte{0x0d, 0x00, 0x01}
+	cmdHeartbeat                 = []byte{0x12}
+	cmdBatteryLevel              = []byte{0x02, 0x0f}
+	cmdCloseEndpoint             = []byte{0x05, 0x01, 0x01}
+	cmdOpenKeyAssignmentEndpoint = []byte{0x0d, 0x01, 0x02}
+	cmdOpenWriteEndpoint         = []byte{0x0d, 0x00, 0x01}
+	cmdWrite                     = []byte{0x06, 0x01}
+	cmdSleep                     = []byte{0x01, 0x0e, 0x00}
+	bufferSize                   = 64
+	bufferSizeWrite              = bufferSize + 1
+	headerSize                   = 3
+	headerWriteSize              = 4
+	keyAmount                    = 30
+	keyAmountLen                 = 32
+	deviceKeepAlive              = 20000
+	deviceRefreshInterval        = 1000
+	scufVendorId                 = uint16(11925)
+	rgbModes                     = []string{
 		"colorpulse",
 		"colorshift",
 		"colorwarp",
@@ -921,7 +922,7 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
 	if d.DeviceProfile != nil {
-		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+		_, err := d.transfer(cmdInitWrite, cmdOpenWriteEndpoint)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
 			return 0
@@ -1194,7 +1195,7 @@ func (d *Device) setVibrationModuleValues() {
 	buf[0] = cmdLeftVibrationModule[0]          // Left module
 	buf[1] = cmdLeftVibrationModule[1]          // Header
 	buf[2] = d.DeviceProfile.LeftVibrationValue // Value
-	_, err := d.transfer(cmdWriteVibration, buf)
+	_, err := d.transfer(cmdInitWrite, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set left vibration module")
 		return
@@ -1204,7 +1205,7 @@ func (d *Device) setVibrationModuleValues() {
 	buf[0] = cmdRightVibrationModule[0]          // Right module
 	buf[1] = cmdRightVibrationModule[1]          // Header
 	buf[2] = d.DeviceProfile.RightVibrationValue // Value
-	_, err = d.transfer(cmdWriteVibration, buf)
+	_, err = d.transfer(cmdInitWrite, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set right vibration module")
 	}
@@ -1527,7 +1528,7 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 	}
 
 	// Open endpoint
-	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	_, err := d.transfer(cmdOpenKeyAssignmentEndpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
 		return

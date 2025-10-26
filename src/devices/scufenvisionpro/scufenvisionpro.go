@@ -3,6 +3,7 @@ package scufenvisionpro
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
@@ -13,6 +14,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -57,6 +59,7 @@ type Device struct {
 	VendorId              uint16
 	ProductId             uint16
 	Brightness            map[int]string
+	KeyAssignmentTypes    map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
 	CpuTemp               float32
@@ -71,7 +74,15 @@ type Device struct {
 	timer                 *time.Ticker
 	autoRefreshChan       chan struct{}
 	Exit                  bool
+	KeyAssignment         map[int]inputmanager.KeyAssignment
+	InputActions          map[uint16]inputmanager.InputAction
+	PressLoop             bool
+	keyAssignmentFile     string
 	BatteryLevel          uint16
+	KeyAssignmentData     *inputmanager.KeyAssignment
+	ModifierIndex         uint32
+	SniperMode            bool
+	MacroTracker          map[int]uint16
 	RGBModes              []string
 	instance              *common.Device
 	Path                  string
@@ -82,17 +93,21 @@ var (
 	cmdSoftwareMode         = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode         = []byte{0x01, 0x03, 0x00, 0x01}
 	cmdGetFirmware          = []byte{0x02, 0x13}
-	cmdWrite                = []byte{0x01}
+	cmdWriteVibration       = []byte{0x01}
 	cmdLeftVibrationModule  = []byte{0x84, 0x00}
 	cmdRightVibrationModule = []byte{0x85, 0x00}
 	cmdWriteColor           = []byte{0x06, 0x00}
 	cmdOpenEndpoint         = []byte{0x0d, 0x00, 0x01}
 	cmdHeartbeat            = []byte{0x12}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
+	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x01}
+	cmdOpenWriteEndpoint    = []byte{0x0d, 0x01, 0x02}
+	cmdWrite                = []byte{0x06, 0x01}
 	bufferSize              = 64
 	bufferSizeWrite         = bufferSize + 1
 	headerSize              = 3
 	headerWriteSize         = 4
+	keyAmount               = 32
 	deviceKeepAlive         = 20000
 	deviceRefreshInterval   = 1000
 	scufVendorId            = uint16(11925)
@@ -153,6 +168,15 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 		keepAliveChan:         make(chan struct{}),
 		timerKeepAlive:        &time.Ticker{},
 		Path:                  path,
+		KeyAssignmentTypes: map[int]string{
+			0:  "None",
+			1:  "Media Keys",
+			2:  "DPI",
+			3:  "Keyboard",
+			8:  "Sniper",
+			9:  "Mouse",
+			10: "Macro",
+		},
 	}
 
 	d.getDebugMode()             // Debug mode
@@ -725,7 +749,7 @@ func (d *Device) setVibrationModuleValues() {
 	buf[0] = cmdLeftVibrationModule[0]          // Left module
 	buf[1] = cmdLeftVibrationModule[1]          // Header
 	buf[2] = d.DeviceProfile.LeftVibrationValue // Value
-	_, err := d.transfer(cmdWrite, buf)
+	_, err := d.transfer(cmdWriteVibration, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set left vibration module")
 		return
@@ -735,7 +759,7 @@ func (d *Device) setVibrationModuleValues() {
 	buf[0] = cmdRightVibrationModule[0]          // Right module
 	buf[1] = cmdRightVibrationModule[1]          // Header
 	buf[2] = d.DeviceProfile.RightVibrationValue // Value
-	_, err = d.transfer(cmdWrite, buf)
+	_, err = d.transfer(cmdWriteVibration, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set right vibration module")
 	}
@@ -1049,6 +1073,65 @@ func (d *Device) writeColor(data []byte) {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 	}
+}
+
+// writeKeyAssignmentData will write key assignment to the device.
+func (d *Device) writeKeyAssignmentData(data []byte) {
+	if d.Exit {
+		return
+	}
+
+	// Open endpoint
+	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
+		return
+	}
+
+	// Send data
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+	_, err = d.transfer(cmdWrite, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to data endpoint")
+	}
+
+	// Close endpoint
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to close endpoint")
+		return
+	}
+}
+
+// setupKeyAssignment will setup mouse keys
+func (d *Device) setupKeyAssignment() {
+	// Prevent modifications if key amount does not match the expected key amount
+	definedKeyAmount := len(d.KeyAssignment)
+	if definedKeyAmount < keyAmount || definedKeyAmount > keyAmount {
+		logger.Log(logger.Fields{"vendorId": d.VendorId, "keys": definedKeyAmount, "expected": keyAmount}).Warn("Expected key amount does not match the expected key amount.")
+		return
+	}
+
+	keys := make([]int, 0)
+	for k := range d.KeyAssignment {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	buf := make([]byte, keyAmount)
+	i := 0
+	for _, k := range keys {
+		value := d.KeyAssignment[k]
+		if value.Default {
+			buf[i] = byte(1)
+		} else {
+			buf[i] = byte(0)
+		}
+		i++
+	}
+	d.writeKeyAssignmentData(buf)
 }
 
 // transfer will send data to a device and retrieve device output

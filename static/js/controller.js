@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the mouse performs its default key action. This checkbox ignores all user custom assignments.</span>
+                        <span>When enabled, the controller performs its default key action. This checkbox ignores all user custom assignments.</span>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -207,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the mouse continuously sends action until the button is released.</span>
+                        <span>When enabled, the controller continuously sends action until the button is released.</span>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -302,7 +302,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 break;
         }
     });
-    
+
     $('.saveKeyAssignment').on('click', function () {
         const deviceId = $("#deviceId").val();
         const keyIndex = $(this).attr("data-info");

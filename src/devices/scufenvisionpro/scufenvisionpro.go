@@ -207,6 +207,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 	d.setKeepAlive()             // Keepalive
 	d.setAutoRefresh()           // Set auto device refresh
 	d.backendListener()          // Control listener
+	d.setHapticDevice()          // Haptic backend
 	d.createDevice()             // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
@@ -243,6 +244,14 @@ func (d *Device) Stop() {
 			return
 		}
 	}
+
+	if d.hapticDevice != nil {
+		err := d.hapticDevice.Close()
+		if err != nil {
+			return
+		}
+	}
+
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
@@ -384,6 +393,25 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// setHapticDevice will open analog device
+func (d *Device) setHapticDevice() {
+	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+		if info.InterfaceNbr == 3 {
+			listener, err := hid.OpenPath(info.Path)
+			if err != nil {
+				return err
+			}
+			d.hapticDevice = listener
+		}
+		return nil
+	})
+	err := hid.Enumerate(scufVendorId, d.ProductId, enum)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+		return
+	}
 }
 
 func (d *Device) saveKeyAssignments() {
@@ -822,22 +850,6 @@ func (d *Device) loadRgb() {
 // triggerHapticEngine will trigger vibration motors
 func (d *Device) triggerHapticEngine() {
 	go func() {
-		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 3 {
-				listener, err := hid.OpenPath(info.Path)
-				if err != nil {
-					return err
-				}
-				d.hapticDevice = listener
-			}
-			return nil
-		})
-		err := hid.Enumerate(scufVendorId, d.ProductId, enum)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
-			return
-		}
-
 		buf := make([]byte, 13)
 		buf[0] = 0x09
 		buf[1] = 0x00
@@ -854,11 +866,12 @@ func (d *Device) triggerHapticEngine() {
 		buf[12] = 0xeb
 
 		if d.hapticDevice != nil {
-			_, err = d.hapticDevice.Write(buf)
+			_, err := d.hapticDevice.Write(buf)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to write to haptic device")
 				return
 			}
+
 			time.Sleep(1 * time.Second)
 			buf[8] = 0x00 // Left Haptic Engine Off
 			buf[9] = 0x00 // Right Haptic Engine Off

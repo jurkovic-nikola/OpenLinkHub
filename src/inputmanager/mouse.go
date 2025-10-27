@@ -267,3 +267,41 @@ func InputControlMouseHold(controlType uint16, press bool) {
 		}
 	}
 }
+
+// InputControlMove will move the virtual mouse by the given relative offsets (x, y)
+func InputControlMove(x, y int32) {
+	if virtualMouseFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual mouse is not present")
+		return
+	}
+
+	var events []inputEvent
+
+	if x != 0 {
+		events = append(events, inputEvent{
+			Type:  evRel,
+			Code:  RelX,
+			Value: x,
+		})
+	}
+	if y != 0 {
+		events = append(events, inputEvent{
+			Type:  evRel,
+			Code:  RelY,
+			Value: y,
+		})
+	}
+
+	events = append(events, inputEvent{
+		Type:  evSyn,
+		Code:  0,
+		Value: 0,
+	})
+
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualMouseFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit move event")
+			return
+		}
+	}
+}

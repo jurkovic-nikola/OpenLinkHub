@@ -1230,7 +1230,6 @@ func (d *Device) setKeepAlive() {
 			select {
 			case <-d.timerKeepAlive.C:
 				d.keepAlive()
-				d.getBatterLevel()
 			case <-d.keepAliveChan:
 				d.timerKeepAlive.Stop()
 				return
@@ -1650,6 +1649,13 @@ func (d *Device) backendListener() {
 				data := d.getListenerData()
 				if len(data) == 0 || data == nil {
 					continue
+				}
+
+				if data[0] == 0x03 && data[2] == 0x01 && data[3] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[5:7]) / 10
+					if val > 0 {
+						d.BatteryLevel = val
+					}
 				}
 
 				if data[0] == 0x03 && data[2] == 0x02 {

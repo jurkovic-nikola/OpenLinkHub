@@ -122,8 +122,6 @@ document.addEventListener("DOMContentLoaded", function () {
         pf["vibrationValue"] = vibrationValue;
 
         const json = JSON.stringify(pf, null, 2);
-
-        console.log(json)
         $.ajax({
             url: '/api/controller/vibration',
             type: 'POST',
@@ -152,8 +150,6 @@ document.addEventListener("DOMContentLoaded", function () {
         pf["vibrationValue"] = vibrationValue;
 
         const json = JSON.stringify(pf, null, 2);
-
-        console.log(json)
         $.ajax({
             url: '/api/controller/vibration',
             type: 'POST',

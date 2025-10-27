@@ -48,6 +48,7 @@ type DeviceProfile struct {
 type Device struct {
 	Debug                 bool
 	dev                   *hid.Device
+	hapticDevice          *hid.Device
 	listener              *hid.Device
 	Manufacturer          string `json:"manufacturer"`
 	Product               string `json:"product"`
@@ -266,8 +267,8 @@ func (d *Device) StopDirty() uint8 {
 	return 2
 }
 
-// UpdateControllerVibrationModule will update left or right vibration module
-func (d *Device) UpdateControllerVibrationModule(module, value uint8) uint8 {
+// ProcessControllerVibration will update left or right vibration module
+func (d *Device) ProcessControllerVibration(module, value uint8) uint8 {
 	if d.DeviceProfile != nil {
 		if value < 0 || value > 100 {
 			value = 50
@@ -283,6 +284,7 @@ func (d *Device) UpdateControllerVibrationModule(module, value uint8) uint8 {
 		}
 		d.saveDeviceProfile()
 		d.setVibrationModuleValues()
+		d.triggerHapticEngine()
 		return 1
 	}
 	return 0
@@ -815,6 +817,58 @@ func (d *Device) loadRgb() {
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
 	}
+}
+
+// triggerHapticEngine will trigger vibration motors
+func (d *Device) triggerHapticEngine() {
+	go func() {
+		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
+			if info.InterfaceNbr == 3 {
+				listener, err := hid.OpenPath(info.Path)
+				if err != nil {
+					return err
+				}
+				d.hapticDevice = listener
+			}
+			return nil
+		})
+		err := hid.Enumerate(scufVendorId, d.ProductId, enum)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
+			return
+		}
+
+		buf := make([]byte, 13)
+		buf[0] = 0x09
+		buf[1] = 0x00
+		buf[2] = 0x6a
+		buf[3] = 0x09
+		buf[4] = 0x00
+		buf[5] = 0x03
+		buf[6] = 0x00
+		buf[7] = 0x00
+		buf[8] = 0xff // Left Haptic Engine On
+		buf[9] = 0xff // Right Haptic Engine On
+		buf[10] = 0x10
+		buf[11] = 0x00
+		buf[12] = 0xeb
+
+		if d.hapticDevice != nil {
+			_, err = d.hapticDevice.Write(buf)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to write to haptic device")
+				return
+			}
+			time.Sleep(1 * time.Second)
+			buf[8] = 0x00 // Left Haptic Engine Off
+			buf[9] = 0x00 // Right Haptic Engine Off
+			_, err = d.hapticDevice.Write(buf)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to write to haptic device")
+				return
+			}
+		}
+	}()
 }
 
 // GetRgbProfile will return rgb.Profile struct

@@ -1310,7 +1310,7 @@ func setKeyboardControlDialColors(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// changeControllerVibration handles device Sidetone value
+// changeControllerVibration handles device vibration module change
 func changeControllerVibration(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessControllerVibration(r)
 	resp := &Response{

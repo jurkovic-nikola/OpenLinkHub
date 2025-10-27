@@ -3695,7 +3695,7 @@ func ProcessControllerVibration(r *http.Request) *Payload {
 
 	results := devices.CallDeviceMethod(
 		req.DeviceId,
-		"UpdateControllerVibrationModule",
+		"ProcessControllerVibration",
 		req.VibrationModule,
 		req.VibrationValue,
 	)

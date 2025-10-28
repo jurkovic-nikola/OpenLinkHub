@@ -17,7 +17,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -349,6 +351,7 @@ func (d *Device) getDevices() {
 	var base byte = 0x08
 	if channels > 0 {
 		for i := 0; i < int(channels); i++ {
+			nullTerminator := false
 			vendorId := uint16(data[position+1])<<8 | uint16(data[position])
 			productId := uint16(data[position+5])<<8 | uint16(data[position+4])
 			deviceType := data[position+6]
@@ -358,6 +361,13 @@ func (d *Device) getDevices() {
 				continue
 			}
 			deviceId := data[position+8 : position+8+int(deviceIdLen)]
+			if slices.Contains(deviceId, 0x00) && position+8+int(deviceIdLen)+1 <= len(data) {
+				// Some device serials have random null terminator in data
+				deviceId = data[position+8 : position+8+int(deviceIdLen)+1]
+				nullTerminator = true
+			}
+			serial := strings.ReplaceAll(string(deviceId), "\x00", "")
+
 			endpoint := base + deviceType
 			if channels == 1 {
 				endpoint = base + 1
@@ -365,7 +375,7 @@ func (d *Device) getDevices() {
 			device := &Devices{
 				Type:      deviceType,
 				Endpoint:  endpoint,
-				Serial:    string(deviceId),
+				Serial:    serial,
 				VendorId:  vendorId,
 				ProductId: productId,
 			}
@@ -375,7 +385,11 @@ func (d *Device) getDevices() {
 			}
 
 			devices[i] = device
-			position += 8 + int(deviceIdLen)
+			if nullTerminator {
+				position += 8 + int(deviceIdLen) + 1
+			} else {
+				position += 8 + int(deviceIdLen)
+			}
 		}
 	} else {
 		if d.ProductId == 2622 {
@@ -490,7 +504,7 @@ func (d *Device) read(endpoint []byte) []byte {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
-	for i := 1; i < int(buffer[5]); i++ {
+	for i := 1; i < int(buffer[6]); i++ {
 		next, e := d.transfer(cmdCommand, cmdRead, endpoint)
 		if e != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")

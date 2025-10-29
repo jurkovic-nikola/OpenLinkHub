@@ -362,6 +362,15 @@
         "txtLeftVibrationModule": "Module de vibration gauche",
         "txtRightVibrationModule": "Module de vibration droit",
         "txtVibrationModule": "Module de vibration",
-        "txtControllerMappings": "Affectations du contrôleur"
+        "txtControllerMappings": "Affectations du contrôleur",
+        "txtLeftThumbstick": "Joystick gauche",
+        "txtRightThumbstick": "Joystick droit",
+        "txtLeftThumbstickEmulation": "Émulation du joystick gauche",
+        "txtRightThumbstickEmulation": "Émulation du joystick droit",
+        "txtEmulationMode": "Mode d'émulation",
+        "txtSensitivity": "Sensibilité",
+        "txtSensitivityX": "Sensibilité X",
+        "txtSensitivityY": "Sensibilité Y",
+        "txtInvertYAxis": "Inverser l'axe Y"
     }
 }

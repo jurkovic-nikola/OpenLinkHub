@@ -44,6 +44,26 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#rightVibrationVal').text($(this).val());
     });
 
+    // Left thumb stick slider update - X
+    $('#leftThumbStickSensitivityValueX').on('input change', function() {
+        $('#leftThumbStickSensitivityX').text($(this).val());
+    });
+
+    // Left thumb stick slider update - X
+    $('#leftThumbStickSensitivityValueY').on('input change', function() {
+        $('#leftThumbStickSensitivityY').text($(this).val());
+    });
+
+    // Right thumb stick slider update - X
+    $('#rightThumbStickSensitivityValueX').on('input change', function() {
+        $('#rightThumbStickSensitivityX').text($(this).val());
+    });
+
+    // Right thumb stick slider update - Y
+    $('#rightThumbStickSensitivityValueY').on('input change', function() {
+        $('#rightThumbStickSensitivityY').text($(this).val());
+    });
+
     $('.controllerRgbProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
@@ -169,6 +189,76 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('#btnSaveLeftThumbstick').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const emulationMode = parseInt($("#leftThumbStickEmulationMode").val());
+        const sensitivityX = parseInt($("#leftThumbStickSensitivityValueX").val());
+        const sensitivityY = parseInt($("#leftThumbStickSensitivityValueY").val());
+        const invertYAxis = $("#leftThumbStickInvertY").is(':checked');
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["emulationDevice"] = 0;
+        pf["emulationMode"] = emulationMode;
+        pf["sensitivityX"] = sensitivityX;
+        pf["sensitivityY"] = sensitivityY;
+        pf["invertYAxis"] = invertYAxis;
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/controller/emulation',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('#btnSaveRightThumbstick').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const emulationMode = parseInt($("#rightThumbStickEmulationMode").val());
+        const sensitivityX = parseInt($("#rightThumbStickSensitivityValueX").val());
+        const sensitivityY = parseInt($("#rightThumbStickSensitivityValueY").val());
+        const invertYAxis = $("#rightThumbStickInvertY").is(':checked');
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["emulationDevice"] = 1;
+        pf["emulationMode"] = emulationMode;
+        pf["sensitivityX"] = sensitivityX;
+        pf["sensitivityY"] = sensitivityY;
+        pf["invertYAxis"] = invertYAxis;
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/controller/emulation',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.defaultInfoToggle').on('click', function () {
         const modalElement = `
         <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
@@ -180,6 +270,30 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="modal-body">
                         <span>When enabled, the controller performs its default key action. This checkbox ignores all user custom assignments.</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const modal = $(modalElement).modal('toggle');
+        modal.on('hidden.bs.modal', function () {
+            modal.data('bs.modal', null);
+        })
+    });
+
+    $('.sensitivityInfoToggle').on('click', function () {
+        const modalElement = `
+        <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="infoToggleLabel">Sensitivity X, Y</h5>
+                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <span>This value is used only for Mouse emulation mode.</span>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>

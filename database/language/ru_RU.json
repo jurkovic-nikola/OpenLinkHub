@@ -362,6 +362,15 @@
         "txtLeftVibrationModule": "Левый модуль вибрации",
         "txtRightVibrationModule": "Правый модуль вибрации",
         "txtVibrationModule": "Модуль вибрации",
-        "txtControllerMappings": "Назначения контроллера"
+        "txtControllerMappings": "Назначения контроллера",
+        "txtLeftThumbstick": "Левый мини-джойстик",
+        "txtRightThumbstick": "Правый мини-джойстик",
+        "txtLeftThumbstickEmulation": "Эмуляция левого мини-джойстика",
+        "txtRightThumbstickEmulation": "Эмуляция правого мини-джойстика",
+        "txtEmulationMode": "Режим эмуляции",
+        "txtSensitivity": "Чувствительность",
+        "txtSensitivityX": "Чувствительность X",
+        "txtSensitivityY": "Чувствительность Y",
+        "txtInvertYAxis": "Инвертировать ось Y"
     }
 }

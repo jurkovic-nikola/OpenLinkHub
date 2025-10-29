@@ -1321,6 +1321,17 @@ func changeControllerVibration(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeControllerEmulation handles device emulation change
+func changeControllerEmulation(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessControllerEmulation(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -1815,6 +1826,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/controller/vibration", http.MethodPost, changeControllerVibration)
 	handleFunc(r, "/api/controller/zoneColors", http.MethodPost, saveControllerZoneColors)
 	handleFunc(r, "/api/controller/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
+	handleFunc(r, "/api/controller/emulation", http.MethodPost, changeControllerEmulation)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

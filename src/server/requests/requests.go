@@ -127,6 +127,11 @@ type Payload struct {
 	SupportedDevices      map[uint16]bool       `json:"supportedDevices"`
 	VibrationValue        uint8                 `json:"vibrationValue"`
 	VibrationModule       uint8                 `json:"vibrationModule"`
+	EmulationDevice       uint8                 `json:"emulationDevice"`
+	EmulationMode         uint8                 `json:"emulationMode"`
+	SensitivityX          uint8                 `json:"sensitivityX"`
+	SensitivityY          uint8                 `json:"sensitivityY"`
+	InvertYAxis           bool                  `json:"invertYAxis"`
 	Status                int
 	Code                  int
 	Message               string
@@ -3698,6 +3703,62 @@ func ProcessControllerVibration(r *http.Request) *Payload {
 		"ProcessControllerVibration",
 		req.VibrationModule,
 		req.VibrationValue,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtVibrationModuleUpdate"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeVibrationModule"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessControllerEmulation will process POST request from a client for device emulation change
+func ProcessControllerEmulation(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.EmulationMode < 0 || req.EmulationMode > 2 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.SensitivityX < 5 || req.SensitivityX > 50 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.SensitivityY < 5 || req.SensitivityY > 50 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessControllerEmulation",
+		req.EmulationDevice,
+		req.EmulationMode,
+		req.SensitivityX,
+		req.SensitivityY,
+		req.InvertYAxis,
 	)
 
 	if len(results) > 0 {

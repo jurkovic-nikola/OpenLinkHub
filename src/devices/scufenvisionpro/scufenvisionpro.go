@@ -29,26 +29,34 @@ type ZoneColors struct {
 }
 
 type DeviceProfile struct {
-	Active              bool
-	Path                string
-	Product             string
-	Serial              string
-	Brightness          uint8
-	RGBProfile          string
-	BrightnessSlider    uint8
-	OriginalBrightness  uint8
-	Label               string
-	ZoneColors          map[int]ZoneColors
-	SleepMode           int
-	LeftVibrationValue  uint8
-	RightVibrationValue uint8
-	KeyAssignmentHash   string
+	Active                      bool
+	Path                        string
+	Product                     string
+	Serial                      string
+	Brightness                  uint8
+	RGBProfile                  string
+	BrightnessSlider            uint8
+	OriginalBrightness          uint8
+	Label                       string
+	ZoneColors                  map[int]ZoneColors
+	SleepMode                   int
+	LeftVibrationValue          uint8
+	RightVibrationValue         uint8
+	KeyAssignmentHash           string
+	LeftThumbStickMode          uint8
+	LeftThumbStickSensitivityX  uint8
+	LeftThumbStickSensitivityY  uint8
+	LeftThumbStickInvertY       bool
+	RightThumbStickMode         uint8
+	RightThumbStickSensitivityX uint8
+	RightThumbStickSensitivityY uint8
+	RightThumbStickInvertY      bool
 }
 
 type Device struct {
 	Debug                 bool
 	dev                   *hid.Device
-	hapticDevice          *hid.Device
+	analogListener        *hid.Device
 	listener              *hid.Device
 	Manufacturer          string `json:"manufacturer"`
 	Product               string `json:"product"`
@@ -64,6 +72,7 @@ type Device struct {
 	ProductId             uint16
 	Brightness            map[int]string
 	KeyAssignmentTypes    map[int]string
+	ThumbStickModes       map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
 	CpuTemp               float32
@@ -184,6 +193,10 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 			9:  "Mouse",
 			10: "Macro",
 		},
+		ThumbStickModes: map[int]string{
+			0: "None",
+			1: "Mouse",
+		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/scufenvisionpro.json",
 		MacroTracker:      make(map[int]uint16),
@@ -207,7 +220,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 	d.setKeepAlive()             // Keepalive
 	d.setAutoRefresh()           // Set auto device refresh
 	d.backendListener()          // Control listener
-	d.setHapticDevice()          // Haptic backend
+	d.setAnalogDevice()          // Analog device
+	d.analogDataListener()       // Analog listener
 	d.createDevice()             // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
@@ -245,13 +259,6 @@ func (d *Device) Stop() {
 		}
 	}
 
-	if d.hapticDevice != nil {
-		err := d.hapticDevice.Close()
-		if err != nil {
-			return
-		}
-	}
-
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
@@ -274,6 +281,42 @@ func (d *Device) StopDirty() uint8 {
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 2
+}
+
+// ProcessControllerEmulation will process controller emulation
+func (d *Device) ProcessControllerEmulation(module, mode, sensitivityX, sensitivityY uint8, invertYAxis bool) uint8 {
+	if d.DeviceProfile != nil {
+		if mode < 0 || mode > 2 {
+			return 0
+		}
+
+		if sensitivityX < 5 || sensitivityX > 50 {
+			return 0
+		}
+
+		if sensitivityY < 5 || sensitivityY > 50 {
+			return 0
+		}
+
+		switch module {
+		case 0:
+			d.DeviceProfile.LeftThumbStickMode = mode
+			d.DeviceProfile.LeftThumbStickSensitivityX = sensitivityX
+			d.DeviceProfile.LeftThumbStickSensitivityY = sensitivityY
+			d.DeviceProfile.LeftThumbStickInvertY = invertYAxis
+			break
+		case 1:
+			d.DeviceProfile.RightThumbStickMode = mode
+			d.DeviceProfile.RightThumbStickSensitivityX = sensitivityX
+			d.DeviceProfile.RightThumbStickSensitivityY = sensitivityY
+			d.DeviceProfile.RightThumbStickInvertY = invertYAxis
+			break
+		}
+
+		d.saveDeviceProfile()
+		return 1
+	}
+	return 0
 }
 
 // ProcessControllerVibration will update left or right vibration module
@@ -395,15 +438,117 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 	return 0
 }
 
-// setHapticDevice will open analog device
-func (d *Device) setHapticDevice() {
+// GetRgbProfile will return rgb.Profile struct
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+// GetDeviceTemplate will return device template name
+func (d *Device) GetDeviceTemplate() string {
+	return d.Template
+}
+
+// UpdateRgbProfileData will update RGB profile data
+func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	d.rgbMutex.Lock()
+	defer d.rgbMutex.Unlock()
+
+	if d.GetRgbProfile(profileName) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+
+	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
+	profile.StartColor.Brightness = pf.StartColor.Brightness
+	profile.EndColor.Brightness = pf.EndColor.Brightness
+	pf.StartColor = profile.StartColor
+	pf.EndColor = profile.EndColor
+	pf.Speed = profile.Speed
+
+	d.Rgb.Profiles[profileName] = *pf
+	d.saveRgbProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// UpdateRgbProfile will update device RGB profile
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if d.GetRgbProfile(profile) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+	d.DeviceProfile.RGBProfile = profile // Set profile
+	d.saveDeviceProfile()                // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightness will change device brightness
+func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
+	d.DeviceProfile.Brightness = mode
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.BrightnessSlider = value
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// UpdateSleepTimer will update device sleep timer
+func (d *Device) UpdateSleepTimer(minutes int) uint8 {
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.SleepMode = minutes
+		d.saveDeviceProfile()
+		d.setSleepTimer()
+		return 1
+	}
+	return 0
+}
+
+// setAnalogDevice will open analog device
+func (d *Device) setAnalogDevice() {
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 		if info.InterfaceNbr == 3 {
 			listener, err := hid.OpenPath(info.Path)
 			if err != nil {
 				return err
 			}
-			d.hapticDevice = listener
+			d.analogListener = listener
 		}
 		return nil
 	})
@@ -414,6 +559,7 @@ func (d *Device) setHapticDevice() {
 	}
 }
 
+// saveKeyAssignments will save key mappings
 func (d *Device) saveKeyAssignments() {
 	keyAssignmentsFile := pwd + d.keyAssignmentFile
 	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
@@ -865,8 +1011,8 @@ func (d *Device) triggerHapticEngine() {
 		buf[11] = 0x00
 		buf[12] = 0xeb
 
-		if d.hapticDevice != nil {
-			_, err := d.hapticDevice.Write(buf)
+		if d.analogListener != nil {
+			_, err := d.analogListener.Write(buf)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to write to haptic device")
 				return
@@ -875,115 +1021,13 @@ func (d *Device) triggerHapticEngine() {
 			time.Sleep(1 * time.Second)
 			buf[8] = 0x00 // Left Haptic Engine Off
 			buf[9] = 0x00 // Right Haptic Engine Off
-			_, err = d.hapticDevice.Write(buf)
+			_, err = d.analogListener.Write(buf)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to write to haptic device")
 				return
 			}
 		}
 	}()
-}
-
-// GetRgbProfile will return rgb.Profile struct
-func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
-	if d.Rgb == nil {
-		return nil
-	}
-
-	if val, ok := d.Rgb.Profiles[profile]; ok {
-		return &val
-	}
-	return nil
-}
-
-// GetDeviceTemplate will return device template name
-func (d *Device) GetDeviceTemplate() string {
-	return d.Template
-}
-
-// UpdateRgbProfileData will update RGB profile data
-func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
-	d.rgbMutex.Lock()
-	defer d.rgbMutex.Unlock()
-
-	if d.GetRgbProfile(profileName) == nil {
-		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
-		return 0
-	}
-
-	pf := d.GetRgbProfile(profileName)
-	if pf == nil {
-		return 0
-	}
-	profile.StartColor.Brightness = pf.StartColor.Brightness
-	profile.EndColor.Brightness = pf.EndColor.Brightness
-	pf.StartColor = profile.StartColor
-	pf.EndColor = profile.EndColor
-	pf.Speed = profile.Speed
-
-	d.Rgb.Profiles[profileName] = *pf
-	d.saveRgbProfile()
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	d.setDeviceColor() // Restart RGB
-	return 1
-}
-
-// UpdateRgbProfile will update device RGB profile
-func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
-	if d.GetRgbProfile(profile) == nil {
-		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
-		return 0
-	}
-	d.DeviceProfile.RGBProfile = profile // Set profile
-	d.saveDeviceProfile()                // Save profile
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	d.setDeviceColor() // Restart RGB
-	return 1
-}
-
-// ChangeDeviceBrightness will change device brightness
-func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
-	d.DeviceProfile.Brightness = mode
-	d.saveDeviceProfile()
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	d.setDeviceColor() // Restart RGB
-	return 1
-}
-
-// ChangeDeviceBrightnessValue will change device brightness via slider
-func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
-	if value < 0 || value > 100 {
-		return 0
-	}
-
-	d.DeviceProfile.BrightnessSlider = value
-	d.saveDeviceProfile()
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
-	}
-	d.setDeviceColor() // Restart RGB
-	return 1
-}
-
-// UpdateSleepTimer will update device sleep timer
-func (d *Device) UpdateSleepTimer(minutes int) uint8 {
-	if d.DeviceProfile != nil {
-		d.DeviceProfile.SleepMode = minutes
-		d.saveDeviceProfile()
-		d.setSleepTimer()
-		return 1
-	}
-	return 0
 }
 
 // setSleepTimer will set device sleep timer
@@ -1199,6 +1243,10 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.SleepMode = 15
 		deviceProfile.LeftVibrationValue = 100
 		deviceProfile.RightVibrationValue = 100
+		deviceProfile.LeftThumbStickSensitivityX = 5
+		deviceProfile.LeftThumbStickSensitivityY = 5
+		deviceProfile.RightThumbStickSensitivityX = 5
+		deviceProfile.RightThumbStickSensitivityY = 5
 	} else {
 		deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		deviceProfile.Active = d.DeviceProfile.Active
@@ -1211,6 +1259,14 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Path = d.DeviceProfile.Path
 		deviceProfile.LeftVibrationValue = d.DeviceProfile.LeftVibrationValue
 		deviceProfile.RightVibrationValue = d.DeviceProfile.RightVibrationValue
+		deviceProfile.LeftThumbStickMode = d.DeviceProfile.LeftThumbStickMode
+		deviceProfile.LeftThumbStickSensitivityX = d.DeviceProfile.LeftThumbStickSensitivityX
+		deviceProfile.LeftThumbStickSensitivityY = d.DeviceProfile.LeftThumbStickSensitivityY
+		deviceProfile.RightThumbStickMode = d.DeviceProfile.RightThumbStickMode
+		deviceProfile.RightThumbStickSensitivityX = d.DeviceProfile.RightThumbStickSensitivityX
+		deviceProfile.RightThumbStickSensitivityY = d.DeviceProfile.RightThumbStickSensitivityY
+		deviceProfile.LeftThumbStickInvertY = d.DeviceProfile.LeftThumbStickInvertY
+		deviceProfile.RightThumbStickInvertY = d.DeviceProfile.RightThumbStickInvertY
 	}
 
 	// Convert to JSON
@@ -1692,6 +1748,17 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
+// getListenerData will listen for keyboard events and return data on success or nil on failure.
+// ReadWithTimeout is mandatory due to the nature of listening for events
+func (d *Device) getAnalogData() []byte {
+	data := make([]byte, bufferSize)
+	n, err := d.analogListener.ReadWithTimeout(data, 100*time.Millisecond)
+	if err != nil || n == 0 {
+		return nil
+	}
+	return data
+}
+
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
@@ -1727,6 +1794,100 @@ func (d *Device) backendListener() {
 
 				if data[0] == 0x03 && data[2] == 0x02 {
 					d.triggerKeyAssignment(binary.LittleEndian.Uint32(data[3:7]))
+				}
+			}
+		}
+	}()
+}
+
+func (d *Device) decodeStick(data []byte) (int16, int16) {
+	if len(data) < 4 {
+		return 0, 0
+	}
+
+	// little endian signed 16-bit
+	x := int16(uint16(data[0]) | uint16(data[1])<<8)
+	y := int16(uint16(data[2]) | uint16(data[3])<<8)
+	return x, y
+}
+
+func (d *Device) stickToMoveData(module uint8, xRaw, yRaw int16) (int32, int32) {
+	var scaleX = float32(0.00001)
+	var scaleY = float32(0.00001)
+
+	switch module {
+	case 0:
+		scaleX = scaleX * float32(d.DeviceProfile.LeftThumbStickSensitivityX)
+		scaleY = scaleY * float32(d.DeviceProfile.LeftThumbStickSensitivityY)
+		break
+	case 1:
+		scaleX = scaleX * float32(d.DeviceProfile.RightThumbStickSensitivityX)
+		scaleY = scaleY * float32(d.DeviceProfile.RightThumbStickSensitivityY)
+		break
+	}
+	dx := int32(float32(xRaw) * scaleX)
+	dy := int32(float32(yRaw) * scaleY)
+	return dx, dy
+}
+
+func (d *Device) handleAnalogData(module uint8, data []byte) {
+	xRaw, yRaw := d.decodeStick(data)
+	dx, dy := d.stickToMoveData(module, xRaw, yRaw)
+
+	if dx != 0 || dy != 0 {
+		switch module {
+		case 0:
+			switch d.DeviceProfile.LeftThumbStickMode {
+			case 1:
+				if d.DeviceProfile.LeftThumbStickInvertY {
+					dy = -dy
+				}
+				inputmanager.InputControlMove(dx, dy)
+				break
+			}
+			break
+		case 1:
+			switch d.DeviceProfile.RightThumbStickMode {
+			case 1:
+				if d.DeviceProfile.RightThumbStickInvertY {
+					dy = -dy
+				}
+				inputmanager.InputControlMove(dx, dy)
+				break
+			}
+			break
+		}
+	}
+}
+
+// analogListener will listen for analog events from the device
+func (d *Device) analogDataListener() {
+	go func() {
+		for {
+			select {
+			default:
+				if d.Exit {
+					err := d.analogListener.Close()
+					if err != nil {
+						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+						return
+					}
+					return
+				}
+
+				data := d.getAnalogData()
+				if len(data) == 0 || data == nil {
+					continue
+				}
+
+				// Left thumbstick
+				if data[1] > 0x00 || data[2] > 0x00 || data[3] > 0x00 || data[4] > 0x00 {
+					d.handleAnalogData(0, data[1:5])
+				}
+
+				// Right thumbstick
+				if data[5] > 0x00 || data[6] > 0x00 || data[7] > 0x00 || data[8] > 0x00 {
+					d.handleAnalogData(1, data[5:9])
 				}
 			}
 		}

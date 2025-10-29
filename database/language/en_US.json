@@ -362,6 +362,15 @@
     "txtLeftVibrationModule": "Left Vibration Module",
     "txtRightVibrationModule": "Right Vibration Module",
     "txtVibrationModule": "Vibration Module",
-    "txtControllerMappings": "Controller Mappings"
+    "txtControllerMappings": "Controller Mappings",
+    "txtLeftThumbstick": "Left Thumbstick",
+    "txtRightThumbstick": "Right Thumbstick",
+    "txtLeftThumbstickEmulation": "Left Thumbstick Emulation",
+    "txtRightThumbstickEmulation": "Right Thumbstick Emulation",
+    "txtEmulationMode": "Emulation Mode",
+    "txtSensitivity": "Sensitivity",
+    "txtSensitivityX": "Sensitivity X",
+    "txtSensitivityY": "Sensitivity Y",
+    "txtInvertYAxis": "Invert Y-Axis"
   }
 }

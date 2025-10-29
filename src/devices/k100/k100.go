@@ -597,7 +597,7 @@ func (d *Device) saveDeviceProfile() {
 		if layout == nil {
 			return
 		}
-		if d.DeviceProfile.Keyboards["default"].Version == layout.Version {
+		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
 					"current":  d.DeviceProfile.Keyboards["default"].Version,

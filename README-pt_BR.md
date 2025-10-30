@@ -64,6 +64,7 @@ $ sudo apt-get install usbutils
 $ sudo dnf install libudev-devel
 $ sudo dnf install usbutils
 ```
+Você também pode usar o devcontainer fornecido para o VScode. Isso é útil para distribuições imutáveis.
 ### 2. Compilar & instalar
 ```bash
 $ git clone https://github.com/jurkovic-nikola/OpenLinkHub.git

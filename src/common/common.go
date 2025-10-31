@@ -159,6 +159,7 @@ const (
 	ProductTypePSUDongle            = 502
 	ProductTypeScufEnvisionProWU    = 601
 	ProductTypeScufEnvisionProW     = 602
+	ProductTypeScufDongle           = 603
 	ProductTypeDongle               = 997
 	ProductTypeSlipstream           = 998
 	ProductTypeCluster              = 999

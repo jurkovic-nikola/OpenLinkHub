@@ -144,8 +144,8 @@ func (d *Device) addDevices() {
 // createDevice will create new device register object
 func (d *Device) createDevice() {
 	d.instance = &common.Device{
-		ProductType: common.ProductTypeIronClawRgbW,
-		Product:     "HEADSET DONGLE",
+		ProductType: common.ProductTypeScufDongle,
+		Product:     "SCUF DONGLE",
 		Serial:      d.Serial,
 		Firmware:    d.Firmware,
 		Image:       "icon-dongle.svg",

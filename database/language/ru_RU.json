@@ -371,6 +371,22 @@
         "txtSensitivity": "Чувствительность",
         "txtSensitivityX": "Чувствительность X",
         "txtSensitivityY": "Чувствительность Y",
-        "txtInvertYAxis": "Инвертировать ось Y"
+        "txtInvertYAxis": "Инвертировать ось Y",
+        "txtLeftThumbstickSettings": "Настройки левого мини-джойстика",
+        "txtRightThumbstickSettings": "Настройки правого мини-джойстика",
+        "txtLeftTriggerSettings": "Настройки левого триггера",
+        "txtRightTriggerSettings": "Настройки правого триггера",
+        "txtDeadZoneMin": "Минимальная мёртвая зона",
+        "txtDeadZoneMax": "Максимальная мёртвая зона",
+        "txtLeftTrigger": "Левый триггер",
+        "txtRightTrigger": "Правый триггер",
+        "txtGraphDataNotAvailable": "Данные графика недоступны",
+        "txtAnalogModuleUpdated": "Аналоговый модуль успешно обновлён",
+        "txtUnableToUpdateAnalogModule": "Невозможно обновить аналоговый модуль",
+        "txtInvalidDataPoints": "Недопустимые аналоговые данные",
+        "txtLinear": "Линейный",
+        "txtDynamic": "Динамический",
+        "txtExponential": "Экспоненциальный",
+        "txtAggressive": "Агрессивный"
     }
 }

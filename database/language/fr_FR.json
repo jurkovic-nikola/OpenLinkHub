@@ -371,6 +371,22 @@
         "txtSensitivity": "Sensibilité",
         "txtSensitivityX": "Sensibilité X",
         "txtSensitivityY": "Sensibilité Y",
-        "txtInvertYAxis": "Inverser l'axe Y"
+        "txtInvertYAxis": "Inverser l'axe Y",
+        "txtLeftThumbstickSettings": "Paramètres du joystick gauche",
+        "txtRightThumbstickSettings": "Paramètres du joystick droit",
+        "txtLeftTriggerSettings": "Paramètres de la gâchette gauche",
+        "txtRightTriggerSettings": "Paramètres de la gâchette droite",
+        "txtDeadZoneMin": "Zone morte min",
+        "txtDeadZoneMax": "Zone morte max",
+        "txtLeftTrigger": "Gâchette gauche",
+        "txtRightTrigger": "Gâchette droite",
+        "txtGraphDataNotAvailable": "Données du graphique non disponibles",
+        "txtAnalogModuleUpdated": "Le module analogique a été mis à jour avec succès",
+        "txtUnableToUpdateAnalogModule": "Impossible de mettre à jour le module analogique",
+        "txtInvalidDataPoints": "Données analogiques non valides",
+        "txtLinear": "Linéaire",
+        "txtDynamic": "Dynamique",
+        "txtExponential": "Exponentiel",
+        "txtAggressive": "Agressif"
     }
 }

@@ -1,4 +1,10 @@
-package scufenvisionpro
+package scufenvisionproW
+
+// Package: SCUF Gaming SCUF Envision Pro Controller
+// This is the primary package for SCUF Gaming SCUF Envision Pro Controller.
+// All device actions are controlled from this package.
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
 
 import (
 	"OpenLinkHub/src/common"
@@ -28,6 +34,12 @@ type ZoneColors struct {
 	Name       string
 }
 
+type AnalogData struct {
+	DeadZoneMin uint8
+	DeadZoneMax uint8
+	Points      map[int]common.CurveData `json:"points"`
+}
+
 type DeviceProfile struct {
 	Active                      bool
 	Path                        string
@@ -51,6 +63,7 @@ type DeviceProfile struct {
 	RightThumbStickSensitivityX uint8
 	RightThumbStickSensitivityY uint8
 	RightThumbStickInvertY      bool
+	AnalogData                  map[int]AnalogData
 }
 
 type Device struct {
@@ -70,6 +83,7 @@ type Device struct {
 	Template              string
 	VendorId              uint16
 	ProductId             uint16
+	SlipstreamId          uint16
 	Brightness            map[int]string
 	KeyAssignmentTypes    map[int]string
 	ThumbStickModes       map[int]string
@@ -80,8 +94,11 @@ type Device struct {
 	Layouts               []string
 	Rgb                   *rgb.RGB
 	rgbMutex              sync.RWMutex
+	Endpoint              byte
 	SleepModes            map[int]string
+	Connected             bool
 	mutex                 sync.Mutex
+	deviceLock            sync.Mutex
 	timerKeepAlive        *time.Ticker
 	keepAliveChan         chan struct{}
 	timer                 *time.Ticker
@@ -98,13 +115,13 @@ type Device struct {
 	MacroTracker          map[int]uint16
 	RGBModes              []string
 	instance              *common.Device
-	Path                  string
 }
 
 var (
 	pwd                          = ""
 	cmdSoftwareMode              = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode              = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdSleepMode                 = []byte{0x01, 0x03, 0x00, 0x04}
 	cmdGetFirmware               = []byte{0x02, 0x13}
 	cmdInitWrite                 = []byte{0x01}
 	cmdLeftVibrationModule       = []byte{0x84, 0x00}
@@ -115,19 +132,46 @@ var (
 	cmdBatteryLevel              = []byte{0x02, 0x0f}
 	cmdCloseEndpoint             = []byte{0x05, 0x01, 0x01}
 	cmdOpenKeyAssignmentEndpoint = []byte{0x0d, 0x01, 0x02}
+	cmdOpenAnalogDataEndpoint    = []byte{0x0d, 0x01, 0x2b}
 	cmdOpenWriteEndpoint         = []byte{0x0d, 0x00, 0x01}
+	cmdBeginWrite                = []byte{0x09, 0x01}
 	cmdWrite                     = []byte{0x06, 0x01}
+	cmdWriteNext                 = []byte{0x07, 0x01}
 	cmdSleep                     = []byte{0x01, 0x0e, 0x00}
-	bufferSize                   = 64
-	bufferSizeWrite              = bufferSize + 1
-	headerSize                   = 3
-	headerWriteSize              = 4
-	keyAmount                    = 30
-	keyAmountLen                 = 32
-	deviceKeepAlive              = 20000
-	deviceRefreshInterval        = 1000
-	scufVendorId                 = uint16(11925)
-	rgbModes                     = []string{
+	cmdDeadZones                 = map[int]map[int][]byte{
+		0: {
+			0: {0x7c, 0x00},
+			1: {0xdd, 0x00},
+		},
+		1: {
+			0: {0x7d, 0x00},
+			1: {0xde, 0x00},
+		},
+		2: {
+			0: {0x7a, 0x00},
+			1: {0xdb, 0x00},
+		},
+		3: {
+			0: {0x7b, 0x00},
+			1: {0xdc, 0x00},
+		},
+	}
+	cmdInitDeadZones = map[int][]byte{
+		0: {0x80, 0x00},
+		1: {0x81, 0x00},
+		2: {0x7e, 0x00},
+		3: {0x7f, 0x00},
+	}
+	bufferSize              = 64
+	bufferSizeWrite         = bufferSize + 1
+	headerSize              = 3
+	headerWriteSize         = 4
+	keyAmount               = 30
+	keyAmountLen            = 32
+	deviceRefreshInterval   = 1000
+	scufVendorId            = uint16(11925)
+	maxBufferSizePerRequest = 60
+	rgbModes                = []string{
 		"colorpulse",
 		"colorshift",
 		"colorwarp",
@@ -145,22 +189,19 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16, _, path string) *common.Device { // Set global working directory
+func Init(_, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
 	pwd = config.GetConfig().ConfigPath
-
-	dev, err := hid.OpenPath(path)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
-		return nil
-	}
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:       dev,
-		Template:  "scufenvisionpro.html",
-		VendorId:  scufVendorId,
-		ProductId: productId,
-		Firmware:  "n/a",
+		dev:          dev,
+		Template:     "scufenvisionproW.html",
+		VendorId:     scufVendorId,
+		ProductId:    productId,
+		SlipstreamId: slipstreamId,
+		Serial:       serial,
+		Endpoint:     endpoint,
+		Firmware:     "n/a",
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -183,7 +224,6 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 		timer:                 &time.Ticker{},
 		keepAliveChan:         make(chan struct{}),
 		timerKeepAlive:        &time.Ticker{},
-		Path:                  path,
 		KeyAssignmentTypes: map[int]string{
 			0:  "None",
 			1:  "Media Keys",
@@ -202,30 +242,41 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 		MacroTracker:      make(map[int]uint16),
 	}
 
-	d.getDebugMode()             // Debug mode
-	d.getManufacturer()          // Manufacturer
-	d.getSerial()                // Serial
-	d.loadRgb()                  // Load RGB
-	d.loadDeviceProfiles()       // Load all device profiles
-	d.saveDeviceProfile()        // Save profile
-	d.getDeviceFirmware()        // Firmware
-	d.setSoftwareMode()          // Activate software mode
-	d.getBatterLevel()           // Battery level
-	d.initLeds()                 // Init LED ports
-	d.setDeviceColor()           // Device color
-	d.setVibrationModuleValues() // Vibration module
-	d.loadKeyAssignments()       // Key Assignments
-	d.setupKeyAssignment()       // Setup key assignments
-	d.setSleepTimer()            // Sleep timer
-	d.setKeepAlive()             // Keepalive
-	d.setAutoRefresh()           // Set auto device refresh
-	d.backendListener()          // Control listener
-	d.setAnalogDevice()          // Analog device
-	d.analogDataListener()       // Analog listener
-	d.createDevice()             // Device register
+	d.getDebugMode()       // Debug mode
+	d.loadRgb()            // Load RGB
+	d.loadDeviceProfiles() // Load all device profiles
+	d.saveDeviceProfile()  // Save profile
+	d.setAutoRefresh()     // Set auto device refresh
+	d.loadKeyAssignments() // Key Assignments
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
-	return d.instance
+	return d
+}
+
+// SetConnected will change connected status
+func (d *Device) SetConnected(value bool) {
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+	}
+	d.Connected = value
+}
+
+// Connect will connect to a device
+func (d *Device) Connect() {
+	if !d.Connected {
+		d.Connected = true
+		d.getDeviceFirmware()        // Firmware
+		d.setSoftwareMode()          // Activate software mode
+		d.getBatterLevel()           // Battery level
+		d.initLeds()                 // Init LED ports
+		d.setDeviceColor()           // Device color
+		d.setVibrationModuleValues() // Vibration module
+		d.setupAnalogDevices()       // Analog devices
+		d.setupKeyAssignment()       // Setup key assignments
+		d.setSleepTimer()            // Sleep timer
+		d.setAnalogDevice()          // Analog device
+		d.analogDataListener()       // Analog listener
+	}
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -234,7 +285,10 @@ func (d *Device) GetRgbProfiles() interface{} {
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
-func (d *Device) Stop() {
+func (d *Device) Stop() {}
+
+// StopInternal will stop all device operations and switch a device back to hardware mode
+func (d *Device) StopInternal() {
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 	if d.activeRgb != nil {
@@ -252,13 +306,6 @@ func (d *Device) Stop() {
 	}()
 
 	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			return
-		}
-	}
-
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
@@ -364,6 +411,7 @@ func (d *Device) SaveControllerZoneColors(zoneColors map[int]rgb.Color) uint8 {
 			zoneColor.Color.Green = zone.Green
 			zoneColor.Color.Blue = zone.Blue
 			zoneColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(zone.Red), int(zone.Green), int(zone.Blue))
+			d.DeviceProfile.ZoneColors[key] = zoneColor
 		}
 		i++
 	}
@@ -540,6 +588,122 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 	return 0
 }
 
+// ProcessGetControllerGraph will return analog data
+func (d *Device) ProcessGetControllerGraph() interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+
+	if d.DeviceProfile.AnalogData == nil {
+		return nil
+	}
+
+	data := make(map[int][]common.CurveData, 4)
+	for i := 0; i < len(d.DeviceProfile.AnalogData); i++ {
+		var points []common.CurveData
+		for m := 0; m < len(d.DeviceProfile.AnalogData[i].Points); m++ {
+			points = append(points, common.CurveData{
+				X: d.DeviceProfile.AnalogData[i].Points[m].X,
+				Y: d.DeviceProfile.AnalogData[i].Points[m].Y,
+			})
+		}
+		data[i] = points
+	}
+	return data
+}
+
+// ProcessSetControllerGraph will set analog data
+func (d *Device) ProcessSetControllerGraph(analogDevice int, deadZoneMin, deadZoneMax uint8, curveData []common.CurveData) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.AnalogData == nil {
+		return 0
+	}
+
+	if device, ok := d.DeviceProfile.AnalogData[analogDevice]; ok {
+		device.DeadZoneMin = deadZoneMin
+		device.DeadZoneMax = deadZoneMax
+		for i := 0; i < len(curveData); i++ {
+			device.Points[i] = curveData[i]
+		}
+		d.DeviceProfile.AnalogData[analogDevice] = device
+		d.saveDeviceProfile()
+		d.setupAnalogDevices()
+	}
+	return 1
+}
+
+// setupAnalogDevices will set up analog devices and their dead zones
+func (d *Device) setupAnalogDevices() {
+	if d.DeviceProfile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("d.DeviceProfile is null")
+		return
+	}
+
+	if d.DeviceProfile.AnalogData == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("d.DeviceProfile.AnalogData is null")
+		return
+	}
+
+	// Dead zones
+	for i := 0; i < len(cmdInitDeadZones); i++ {
+		analogData := d.DeviceProfile.AnalogData[i]
+		deadZoneMin := analogData.DeadZoneMin
+		deadZoneMax := analogData.DeadZoneMax
+
+		if deadZoneMin < 0 || deadZoneMin > 15 {
+			deadZoneMin = 5
+		}
+
+		if deadZoneMax < 0 || deadZoneMax > 15 {
+			deadZoneMax = 5
+		}
+
+		// Init endpoint
+		_, err := d.transfer(cmdInitWrite, cmdInitDeadZones[i])
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to init left thumbstick endpoint")
+			return
+		}
+
+		// Write min / max
+		for m := 0; m < len(cmdDeadZones[i]); m++ {
+			buf := make([]byte, 3)
+			copy(buf[0:1], cmdDeadZones[i][m])
+			buf[2] = deadZoneMin
+			if m == 1 {
+				buf[2] = deadZoneMax
+			}
+			_, err = d.transfer(cmdInitWrite, buf)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to set left thumbstick dead zone")
+				return
+			}
+
+		}
+	}
+
+	// Analog curve data
+	buf := make([]byte, 59)
+	buf[0] = 0x26
+	buf[1] = 0x00
+	buf[2] = byte(len(cmdInitDeadZones))
+	var curveData []byte
+
+	for i := 0; i < len(cmdInitDeadZones); i++ {
+		curveData = append(curveData, byte(i))
+		curveData = append(curveData, byte(len(d.DeviceProfile.AnalogData[i].Points)))
+		for m := 0; m < len(d.DeviceProfile.AnalogData[i].Points); m++ {
+			curveData = append(curveData, d.DeviceProfile.AnalogData[i].Points[m].X)
+			curveData = append(curveData, d.DeviceProfile.AnalogData[i].Points[m].Y)
+		}
+	}
+	copy(buf[3:], curveData)
+	d.writeAnalogData(buf)
+}
+
 // setAnalogDevice will open analog device
 func (d *Device) setAnalogDevice() {
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
@@ -552,7 +716,8 @@ func (d *Device) setAnalogDevice() {
 		}
 		return nil
 	})
-	err := hid.Enumerate(scufVendorId, d.ProductId, enum)
+
+	err := hid.Enumerate(scufVendorId, d.SlipstreamId, enum)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to enumerate devices")
 		return
@@ -901,38 +1066,9 @@ func (d *Device) loadKeyAssignments() {
 	}
 }
 
-func (d *Device) createDevice() {
-	d.instance = &common.Device{
-		ProductType: common.ProductTypeScufEnvisionPro,
-		Product:     d.Product,
-		Serial:      d.Serial,
-		Firmware:    d.Firmware,
-		Image:       "icon-controller.svg",
-		Instance:    d,
-	}
-}
-
 // getManufacturer will return device manufacturer
 func (d *Device) getDebugMode() {
 	d.Debug = config.GetConfig().Debug
-}
-
-// getManufacturer will return device manufacturer
-func (d *Device) getManufacturer() {
-	manufacturer, err := d.dev.GetMfrStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
-	}
-	d.Manufacturer = manufacturer
-}
-
-// getSerial will return device serial number
-func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
-	}
-	d.Serial = serial
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -1044,6 +1180,18 @@ func (d *Device) setSleepTimer() uint8 {
 		binary.LittleEndian.PutUint32(buf, uint32(sleep))
 
 		_, err = d.transfer(cmdSleep, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+			return 0
+		}
+
+		_, err = d.transfer([]byte{0x02, 0x40}, nil)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+			return 0
+		}
+
+		_, err = d.transfer(cmdSleepMode, nil)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
 			return 0
@@ -1247,6 +1395,128 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LeftThumbStickSensitivityY = 5
 		deviceProfile.RightThumbStickSensitivityX = 5
 		deviceProfile.RightThumbStickSensitivityY = 5
+		deviceProfile.AnalogData = map[int]AnalogData{
+			0: { // Left Thumbstick
+				DeadZoneMin: 5,
+				DeadZoneMax: 5,
+				Points: map[int]common.CurveData{
+					0: {
+						X: 0,
+						Y: 0,
+					},
+					1: {
+						X: 20,
+						Y: 20,
+					},
+					2: {
+						X: 40,
+						Y: 40,
+					},
+					3: {
+						X: 60,
+						Y: 60,
+					},
+					4: {
+						X: 80,
+						Y: 80,
+					},
+					5: {
+						X: 100,
+						Y: 100,
+					},
+				},
+			},
+			1: { // Right Thumbstick
+				DeadZoneMin: 5,
+				DeadZoneMax: 5,
+				Points: map[int]common.CurveData{
+					0: {
+						X: 0,
+						Y: 0,
+					},
+					1: {
+						X: 20,
+						Y: 20,
+					},
+					2: {
+						X: 40,
+						Y: 40,
+					},
+					3: {
+						X: 60,
+						Y: 60,
+					},
+					4: {
+						X: 80,
+						Y: 80,
+					},
+					5: {
+						X: 100,
+						Y: 100,
+					},
+				},
+			},
+			2: { // Left Trigger
+				DeadZoneMin: 2,
+				DeadZoneMax: 2,
+				Points: map[int]common.CurveData{
+					0: {
+						X: 0,
+						Y: 0,
+					},
+					1: {
+						X: 20,
+						Y: 20,
+					},
+					2: {
+						X: 40,
+						Y: 40,
+					},
+					3: {
+						X: 60,
+						Y: 60,
+					},
+					4: {
+						X: 80,
+						Y: 80,
+					},
+					5: {
+						X: 100,
+						Y: 100,
+					},
+				},
+			},
+			3: { // Right Trigger
+				DeadZoneMin: 2,
+				DeadZoneMax: 2,
+				Points: map[int]common.CurveData{
+					0: {
+						X: 0,
+						Y: 0,
+					},
+					1: {
+						X: 20,
+						Y: 20,
+					},
+					2: {
+						X: 40,
+						Y: 40,
+					},
+					3: {
+						X: 60,
+						Y: 60,
+					},
+					4: {
+						X: 80,
+						Y: 80,
+					},
+					5: {
+						X: 100,
+						Y: 100,
+					},
+				},
+			},
+		}
 	} else {
 		deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		deviceProfile.Active = d.DeviceProfile.Active
@@ -1267,6 +1537,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.RightThumbStickSensitivityY = d.DeviceProfile.RightThumbStickSensitivityY
 		deviceProfile.LeftThumbStickInvertY = d.DeviceProfile.LeftThumbStickInvertY
 		deviceProfile.RightThumbStickInvertY = d.DeviceProfile.RightThumbStickInvertY
+		deviceProfile.AnalogData = d.DeviceProfile.AnalogData
 	}
 
 	// Convert to JSON
@@ -1336,6 +1607,9 @@ func (d *Device) setVibrationModuleValues() {
 
 // keepAlive will keep a device alive
 func (d *Device) keepAlive() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1343,22 +1617,6 @@ func (d *Device) keepAlive() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write heartbeat to a device")
 	}
-}
-
-// setAutoRefresh will refresh device data
-func (d *Device) setKeepAlive() {
-	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
-	go func() {
-		for {
-			select {
-			case <-d.timerKeepAlive.C:
-				d.keepAlive()
-			case <-d.keepAliveChan:
-				d.timerKeepAlive.Stop()
-				return
-			}
-		}
-	}()
 }
 
 // setCpuTemperature will store current CPU temperature
@@ -1630,6 +1888,9 @@ func (d *Device) setDeviceColor() {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1645,6 +1906,9 @@ func (d *Device) writeColor(data []byte) {
 
 // writeKeyAssignmentData will write key assignment to the device.
 func (d *Device) writeKeyAssignmentData(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1663,6 +1927,58 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 	_, err = d.transfer(cmdWrite, buffer)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to data endpoint")
+	}
+
+	// Close endpoint
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to close endpoint")
+		return
+	}
+}
+
+// writeAnalogData will write analog data to the device.
+func (d *Device) writeAnalogData(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if d.Exit {
+		return
+	}
+
+	// Open endpoint
+	_, err := d.transfer(cmdOpenAnalogDataEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
+		return
+	}
+
+	// Begin write
+	_, err = d.transfer(cmdBeginWrite, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
+		return
+	}
+
+	// Write data
+	buffer := make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+
+	// Split packet into chunks
+	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if i == 0 {
+			_, err := d.transfer(cmdWrite, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to analog endpoint")
+			}
+		} else {
+			_, err := d.transfer(cmdWriteNext, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
 	}
 
 	// Close endpoint
@@ -1713,7 +2029,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02
-	bufferW[2] = 0x08
+	bufferW[2] = d.Endpoint
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {
@@ -1757,47 +2073,6 @@ func (d *Device) getAnalogData() []byte {
 		return nil
 	}
 	return data
-}
-
-// backendListener will listen for events from the device
-func (d *Device) backendListener() {
-	go func() {
-		listener, err := hid.OpenPath(d.Path)
-		if err != nil {
-			return
-		}
-		d.listener = listener
-
-		for {
-			select {
-			default:
-				if d.Exit {
-					err = d.listener.Close()
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
-						return
-					}
-					return
-				}
-
-				data := d.getListenerData()
-				if len(data) == 0 || data == nil {
-					continue
-				}
-
-				if data[0] == 0x03 && data[2] == 0x01 && data[3] == 0x0f {
-					val := binary.LittleEndian.Uint16(data[5:7]) / 10
-					if val > 0 {
-						d.BatteryLevel = val
-					}
-				}
-
-				if data[0] == 0x03 && data[2] == 0x02 {
-					d.triggerKeyAssignment(binary.LittleEndian.Uint32(data[3:7]))
-				}
-			}
-		}
-	}()
 }
 
 func (d *Device) decodeStick(data []byte) (int16, int16) {
@@ -1936,8 +2211,8 @@ func (d *Device) releaseMacroTracker() {
 	}
 }
 
-// triggerKeyAssignment will trigger key assignment if defined
-func (d *Device) triggerKeyAssignment(value uint32) {
+// TriggerKeyAssignment will trigger key assignment if defined
+func (d *Device) TriggerKeyAssignment(value uint32) {
 	var bitDiff = value ^ d.ModifierIndex
 	var pressedKeys = bitDiff & value
 	var releasedKeys = bitDiff & ^value
@@ -2022,4 +2297,10 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 			}
 		}
 	}
+}
+
+// ModifyBatteryLevel will modify battery level
+func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
+	d.BatteryLevel = batteryLevel
+	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 1)
 }

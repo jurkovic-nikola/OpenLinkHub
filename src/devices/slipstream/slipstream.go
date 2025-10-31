@@ -840,6 +840,7 @@ func (d *Device) getDevices() {
 				VendorId:  vendorId,
 				ProductId: productId,
 			}
+			logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("Processing device")
 
 			devices[i] = device
 			position += 8 + int(deviceIdLen)

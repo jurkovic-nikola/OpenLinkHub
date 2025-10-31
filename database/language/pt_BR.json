@@ -371,6 +371,22 @@
     "txtSensitivity": "Sensibilidade",
     "txtSensitivityX": "Sensibilidade X",
     "txtSensitivityY": "Sensibilidade Y",
-    "txtInvertYAxis": "Inverter eixo Y"
+    "txtInvertYAxis": "Inverter eixo Y",
+    "txtLeftThumbstickSettings": "Configurações da manete esquerda",
+    "txtRightThumbstickSettings": "Configurações da manete direita",
+    "txtLeftTriggerSettings": "Configurações do gatilho esquerdo",
+    "txtRightTriggerSettings": "Configurações do gatilho direito",
+    "txtDeadZoneMin": "Zona morta mínima",
+    "txtDeadZoneMax": "Zona morta máxima",
+    "txtLeftTrigger": "Gatilho esquerdo",
+    "txtRightTrigger": "Gatilho direito",
+    "txtGraphDataNotAvailable": "Dados do gráfico não disponíveis",
+    "txtAnalogModuleUpdated": "O módulo analógico foi atualizado com sucesso",
+    "txtUnableToUpdateAnalogModule": "Não é possível atualizar o módulo analógico",
+    "txtInvalidDataPoints": "Dados analógicos inválidos",
+    "txtLinear": "Linear",
+    "txtDynamic": "Dinâmico",
+    "txtExponential": "Exponencial",
+    "txtAggressive": "Agressivo"
   }
 }

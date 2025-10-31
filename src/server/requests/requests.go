@@ -131,7 +131,11 @@ type Payload struct {
 	EmulationMode         uint8                 `json:"emulationMode"`
 	SensitivityX          uint8                 `json:"sensitivityX"`
 	SensitivityY          uint8                 `json:"sensitivityY"`
+	AnalogDevice          int                   `json:"analogDevice"`
+	DeadZoneMin           uint8                 `json:"deadZoneMin"`
+	DeadZoneMax           uint8                 `json:"deadZoneMax"`
 	InvertYAxis           bool                  `json:"invertYAxis"`
+	CurveData             []common.CurveData    `json:"curveData"`
 	Status                int
 	Code                  int
 	Message               string
@@ -3768,4 +3772,96 @@ func ProcessControllerEmulation(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeVibrationModule"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessGetControllerGraph will process POST request from a client for getting analog device data
+func ProcessGetControllerGraph(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetControllerGraph",
+	)
+
+	if len(results) > 0 {
+		return &Payload{
+			Data:   results[0].Interface(),
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtGraphDataNotAvailable"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
+// ProcessSetControllerGraph will process POST request from a client for setting analog device data
+func ProcessSetControllerGraph(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.CurveData) < 1 || len(req.CurveData) > 6 {
+		return &Payload{Message: language.GetValue("txtInvalidDataPoints"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetControllerGraph",
+		req.AnalogDevice,
+		req.DeadZoneMin,
+		req.DeadZoneMax,
+		req.CurveData,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtAnalogModuleUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateAnalogModule"), Code: http.StatusOK, Status: 0}
 }

@@ -83,7 +83,8 @@ import (
 	"OpenLinkHub/src/devices/scimitarprorgb"
 	"OpenLinkHub/src/devices/scimitarrgb"
 	"OpenLinkHub/src/devices/scimitarrgbelite"
-	"OpenLinkHub/src/devices/scufenvisionpro"
+	"OpenLinkHub/src/devices/scufdongle"
+	"OpenLinkHub/src/devices/scufenvisionproWU"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/strafergbmk2"
@@ -701,7 +702,8 @@ var deviceRegisterMap = map[uint16]Product{
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},             // CORSAIR VIRTUOSO SE USB Gaming Headset
 	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},            // VOID WIRELESS V2
 	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},     // CORSAIR LINK TM USB DONGLE
-	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionpro.Init, nil},        // SCUF Envision Pro Controller
+	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionproWU.Init, nil},      // SCUF Envision Pro Controller
+	17230: {4, 0, "SCUF PC Controller Dongle", nil, scufdongle.Init},     // SCUF Gaming SCUF PC Controller Dongle
 }
 
 // initializeDevice will initialize a device

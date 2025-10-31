@@ -45,6 +45,11 @@ type KeyboardPerformanceData struct {
 	AltF4    bool
 }
 
+type CurveData struct {
+	X uint8 `json:"x"`
+	Y uint8 `json:"y"`
+}
+
 const (
 	ProductTypeLinkHub              = 0
 	ProductTypeCC                   = 1
@@ -152,7 +157,8 @@ const (
 	ProductTypeMM800                = 404
 	ProductTypePSUHid               = 501
 	ProductTypePSUDongle            = 502
-	ProductTypeScufEnvisionPro      = 601
+	ProductTypeScufEnvisionProWU    = 601
+	ProductTypeScufEnvisionProW     = 602
 	ProductTypeDongle               = 997
 	ProductTypeSlipstream           = 998
 	ProductTypeCluster              = 999

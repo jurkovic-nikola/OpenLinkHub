@@ -211,7 +211,7 @@
                                             </div>
                                             <!-- Right Vibration Module end -->
 
-                                            <!-- Left Thumb Stick start -->
+                                            <!-- Left Thumb Stick Emulation start -->
                                             <div class="col-md-6 col-sm-6">
                                                 <div class="card mb-4" data-info="1">
                                                     <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
@@ -295,9 +295,9 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <!-- Left Thumb Stick end -->
+                                            <!-- Left Thumb Stick Emulation end -->
 
-                                            <!-- Right Thumb Stick start -->
+                                            <!-- Right Thumb Stick Emulation start -->
                                             <div class="col-md-6 col-sm-6">
                                                 <div class="card mb-4" data-info="1">
                                                     <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
@@ -381,7 +381,97 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <!-- Left Thumb Stick end -->
+                                            <!-- Right Thumb Stick Emulation end -->
+
+                                            <!-- Analog settings starts -->
+                                            {{ range $key, $leftTsSettings := $deviceProfile.AnalogData }}
+                                            <div class="col-md-6 col-sm-6">
+                                                <div class="card mb-4" data-info="1">
+                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
+                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
+                                                            {{ if eq $key 0 }}
+                                                            <img src="/static/img/icons/icon-thumbstick.svg" width="46" height="46" alt="Device">
+                                                            {{ else if eq $key 1 }}
+                                                            <img src="/static/img/icons/icon-thumbstick.svg" width="46" height="46" alt="Device">
+                                                            {{ else if eq $key 2 }}
+                                                            <img src="/static/img/icons/icon-trigger.svg" width="46" height="46" alt="Device">
+                                                            {{ else if eq $key 3 }}
+                                                            <img src="/static/img/icons/icon-trigger.svg" width="46" height="46" alt="Device">
+                                                            {{ end }}
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-right2">
+                                                            {{ if eq $key 0 }}
+                                                            <span style="font-size: 13px;">{{ $root.Lang "txtLeftThumbstick" }}</span><br>
+                                                            {{ else if eq $key 1 }}
+                                                            <span style="font-size: 13px;">{{ $root.Lang "txtRightThumbstick" }}</span><br>
+                                                            {{ else if eq $key 2 }}
+                                                            <span style="font-size: 13px;">{{ $root.Lang "txtLeftTrigger" }}</span><br>
+                                                            {{ else if eq $key 3 }}
+                                                            <span style="font-size: 13px;">{{ $root.Lang "txtRightTrigger" }}</span><br>
+                                                            {{ end }}
+                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                                                {{ if eq $key 0 }}
+                                                                <span class="labelValue">{{ $root.Lang "txtLeftThumbstickSettings" }}</span>
+                                                                {{ else if eq $key 1 }}
+                                                                <span class="labelValue">{{ $root.Lang "txtRightThumbstickSettings" }}</span>
+                                                                {{ else if eq $key 2 }}
+                                                                <span class="labelValue">{{ $root.Lang "txtLeftTriggerSettings" }}</span>
+                                                                {{ else if eq $key 3 }}
+                                                                <span class="labelValue">{{ $root.Lang "txtRightTriggerSettings" }}</span>
+                                                                {{ end }}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;height: 332px;">
+                                                        <div style="text-align: center;">
+                                                            <div style="width: 100%;">
+                                                                <div style="width: 100%;">
+                                                                    <canvas id="graph_{{ $key }}" style="width: 100%; height: 300px; display: block;"></canvas>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                                        <div class="input-group">
+                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};0">{{ $root.Lang "txtLinear" }}</button>
+                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};1" style="margin-left: 5px;">{{ $root.Lang "txtDynamic" }}</button>
+                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};2" style="margin-left: 5px;">{{ $root.Lang "txtExponential" }}</button>
+                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};3" style="margin-left: 5px;">{{ $root.Lang "txtAggressive" }}</button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
+                                                        <div style="text-align: center;">
+                                                            <div style="width: 100%;">
+                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
+                                                                    <span>{{ $root.Lang "txtDeadZoneMin" }} - <span class="deadZoneMin">{{ $leftTsSettings.DeadZoneMin }}</span> %</span>
+                                                                </div>
+                                                                <div style="float: right;width: 60%;margin-top: 1px;">
+                                                                    <input class="brightness-slider deadZoneMinValue" type="range" id="deadZoneMinValue_{{ $key }}" min="2" max="15" value="{{ $leftTsSettings.DeadZoneMin }}" style="margin-top:0" step="1" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
+                                                        <div style="text-align: center;">
+                                                            <div style="width: 100%;">
+                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
+                                                                    <span>{{ $root.Lang "txtDeadZoneMax" }} - <span class="deadZoneMax">{{ $leftTsSettings.DeadZoneMax }}</span> %</span>
+                                                                </div>
+                                                                <div style="float: right;width: 60%;margin-top: 1px;">
+                                                                    <input class="brightness-slider deadZoneMaxValue" type="range" id="deadZoneMaxValue_{{ $key }}" min="2" max="15" value="{{ $leftTsSettings.DeadZoneMax }}" style="margin-top:0" step="1" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
+                                                        <div class="input-group">
+                                                            <button class="btn btn-primary btnSaveAnalogSettings" id="btnSaveAnalogSettings_{{ $key }}" type="button" data-info="{{ $key }}">{{ $root.Lang "txtSave" }}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Analog settings end -->
+                                            {{ end }}
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-sm-6">

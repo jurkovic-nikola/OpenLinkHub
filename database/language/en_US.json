@@ -371,6 +371,22 @@
     "txtSensitivity": "Sensitivity",
     "txtSensitivityX": "Sensitivity X",
     "txtSensitivityY": "Sensitivity Y",
-    "txtInvertYAxis": "Invert Y-Axis"
+    "txtInvertYAxis": "Invert Y-Axis",
+    "txtLeftThumbstickSettings": "Left Thumbstick Settings",
+    "txtRightThumbstickSettings": "Right Thumbstick Settings",
+    "txtLeftTriggerSettings": "Left Trigger Settings",
+    "txtRightTriggerSettings": "Right Trigger Settings",
+    "txtDeadZoneMin": "Deadzone Min",
+    "txtDeadZoneMax": "Deadzone Max",
+    "txtLeftTrigger": "Left Trigger",
+    "txtRightTrigger": "Right Trigger",
+    "txtGraphDataNotAvailable": "Graph data is not available",
+    "txtAnalogModuleUpdated": "Analog module is successfully updated",
+    "txtUnableToUpdateAnalogModule": "Unable to update analog module",
+    "txtInvalidDataPoints": "Invalid analog data",
+    "txtLinear": "Linear",
+    "txtDynamic": "Dynamic",
+    "txtExponential": "Exponential",
+    "txtAggressive": "Aggressive"
   }
 }

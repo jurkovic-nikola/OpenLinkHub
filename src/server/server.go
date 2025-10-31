@@ -1332,6 +1332,28 @@ func changeControllerEmulation(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getControllerGraph handles getting controller graph
+func getControllerGraph(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetControllerGraph(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// setControllerGraph handles setting controller graph
+func setControllerGraph(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetControllerGraph(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -1827,6 +1849,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/controller/zoneColors", http.MethodPost, saveControllerZoneColors)
 	handleFunc(r, "/api/controller/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/controller/emulation", http.MethodPost, changeControllerEmulation)
+	handleFunc(r, "/api/controller/getGraph", http.MethodPost, getControllerGraph)
+	handleFunc(r, "/api/controller/setGraph", http.MethodPost, setControllerGraph)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

@@ -467,7 +467,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
-            url: '/api/headset/sleep',
+            url: '/api/controller/sleep',
             type: 'POST',
             data: json,
             cache: false,

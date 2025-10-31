@@ -1268,6 +1268,52 @@ func ProcessChangeSleepMode(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeSleepMode"), Code: http.StatusOK, Status: 0}
 }
 
+// ProcessChangeControllerSleepMode will process POST request from a client for device sleep change
+func ProcessChangeControllerSleepMode(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.SleepMode < 0 || req.SleepMode > 60 {
+		return &Payload{Message: language.GetValue("txtInvalidSleepOption"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateSleepTimer",
+		req.SleepMode,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtSleepModeChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeSleepMode"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeSleepMode"), Code: http.StatusOK, Status: 0}
+}
+
 // ProcessChangePollingRate will process POST request from a client for device polling rate change
 func ProcessChangePollingRate(r *http.Request) *Payload {
 	req := &Payload{}

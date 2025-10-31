@@ -135,7 +135,8 @@ var (
 	cmdBeginWrite                = []byte{0x09, 0x01}
 	cmdWrite                     = []byte{0x06, 0x01}
 	cmdWriteNext                 = []byte{0x07, 0x01}
-	cmdSleep                     = []byte{0x01, 0x0e, 0x00}
+	cmdSleep                     = []byte{0x0e, 0x00}
+	cmdEcoMode                   = []byte{0x0b, 0x00, 0x00}
 	cmdDeadZones                 = map[int]map[int][]byte{
 		0: {
 			0: {0x7c, 0x00},
@@ -212,6 +213,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 		},
 		Product: "SCUF ENVISION PRO",
 		SleepModes: map[int]string{
+			0:  "Never",
 			1:  "1 minute",
 			5:  "5 minutes",
 			10: "10 minutes",
@@ -261,6 +263,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 	d.loadKeyAssignments()       // Key Assignments
 	d.setupKeyAssignment()       // Setup key assignments
 	d.setSleepTimer()            // Sleep timer
+	d.setEcoMode()               // Eco mode Off
 	d.setKeepAlive()             // Keepalive
 	d.setAutoRefresh()           // Set auto device refresh
 	d.backendListener()          // Control listener
@@ -1186,26 +1189,48 @@ func (d *Device) triggerHapticEngine() {
 	}()
 }
 
+// setEcoMode will set device eco mode
+func (d *Device) setEcoMode() {
+	_, err := d.transfer(cmdInitWrite, cmdEcoMode)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+	}
+}
+
 // setSleepTimer will set device sleep timer
 func (d *Device) setSleepTimer() uint8 {
 	if d.DeviceProfile != nil {
-		_, err := d.transfer(cmdInitWrite, cmdOpenWriteEndpoint)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
+		if d.DeviceProfile.SleepMode == 0 {
+			sleepCmd := cmdOpenWriteEndpoint
+			sleepCmd[2] = 0x00
+			_, err := d.transfer(cmdInitWrite, sleepCmd)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
+			return 1
+		} else {
+			sleepCmd := cmdOpenWriteEndpoint
+			sleepCmd[2] = 0x01
+			_, err := d.transfer(cmdInitWrite, sleepCmd)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
+
+			buf := make([]byte, 6)
+			copy(buf[0:1], cmdSleep)
+			sleep := d.DeviceProfile.SleepMode * (60 * 1000)
+			binary.LittleEndian.PutUint32(buf[2:], uint32(sleep))
+
+			_, err = d.transfer(cmdInitWrite, buf)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
+
+			return 1
 		}
-
-		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-
-		_, err = d.transfer(cmdSleep, buf)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
-		}
-
-		return 1
 	}
 	return 0
 }

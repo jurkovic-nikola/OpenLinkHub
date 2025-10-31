@@ -1035,6 +1035,17 @@ func changeSleepMode(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeSleepMode handles device sleep mode change
+func changeControllerSleepMode(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeControllerSleepMode(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changePollingRate handles device USB polling rate
 func changePollingRate(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangePollingRate(r)
@@ -1851,6 +1862,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/controller/emulation", http.MethodPost, changeControllerEmulation)
 	handleFunc(r, "/api/controller/getGraph", http.MethodPost, getControllerGraph)
 	handleFunc(r, "/api/controller/setGraph", http.MethodPost, setControllerGraph)
+	handleFunc(r, "/api/controller/sleep", http.MethodPost, changeControllerSleepMode)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

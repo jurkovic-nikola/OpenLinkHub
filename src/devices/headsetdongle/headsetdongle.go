@@ -339,6 +339,7 @@ func (d *Device) GetDevice() *hid.Device {
 // getDevices will get a list of paired devices
 func (d *Device) getDevices() {
 	var devices = make(map[int]*Devices)
+	noProductType := false
 	buff := d.read(cmdGetDevices)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
@@ -353,42 +354,79 @@ func (d *Device) getDevices() {
 		for i := 0; i < int(channels); i++ {
 			nullTerminator := false
 			vendorId := uint16(data[position+1])<<8 | uint16(data[position])
-			productId := uint16(data[position+5])<<8 | uint16(data[position+4])
-			deviceType := data[position+6]
-			deviceIdLen := data[position+7]
-			if position+8+int(deviceIdLen) > len(data) {
-				logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "position": position + 8 + int(deviceIdLen), "data": fmt.Sprintf("% 2x", buff)}).Warn("Requested position exceeds maximum length")
-				continue
-			}
-			deviceId := data[position+8 : position+8+int(deviceIdLen)]
-			if slices.Contains(deviceId, 0x00) && position+8+int(deviceIdLen)+1 <= len(data) {
-				// Some device serials have random null terminator in data
-				deviceId = data[position+8 : position+8+int(deviceIdLen)+1]
-				nullTerminator = true
-			}
-			serial := strings.ReplaceAll(string(deviceId), "\x00", "")
+			if data[position+2] == 0x00 && data[position+3] == 0x00 {
+				productId := uint16(data[position+5])<<8 | uint16(data[position+4])
+				deviceType := data[position+6]
+				deviceIdLen := data[position+7]
+				if position+8+int(deviceIdLen) > len(data) {
+					logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "position": position + 8 + int(deviceIdLen), "data": fmt.Sprintf("% 2x", buff)}).Warn("Requested position exceeds maximum length")
+					continue
+				}
+				deviceId := data[position+8 : position+8+int(deviceIdLen)]
+				if slices.Contains(deviceId, 0x00) && position+8+int(deviceIdLen)+1 <= len(data) {
+					// Some device serials have random null terminator in data
+					deviceId = data[position+8 : position+8+int(deviceIdLen)+1]
+					nullTerminator = true
+				}
+				serial := strings.ReplaceAll(string(deviceId), "\x00", "")
 
-			endpoint := base + deviceType
-			if channels == 1 {
-				endpoint = base + 1
-			}
-			device := &Devices{
-				Type:      deviceType,
-				Endpoint:  endpoint,
-				Serial:    serial,
-				VendorId:  vendorId,
-				ProductId: productId,
-			}
+				endpoint := base + deviceType
+				if channels == 1 {
+					endpoint = base + 1
+				}
 
-			if d.Debug {
+				device := &Devices{
+					Type:      deviceType,
+					Endpoint:  endpoint,
+					Serial:    serial,
+					VendorId:  vendorId,
+					ProductId: productId,
+				}
 				logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("Processing device")
-			}
 
-			devices[i] = device
-			if nullTerminator {
-				position += 8 + int(deviceIdLen) + 1
+				devices[i] = device
+				if nullTerminator {
+					position += 8 + int(deviceIdLen) + 1
+				} else {
+					position += 8 + int(deviceIdLen)
+				}
 			} else {
-				position += 8 + int(deviceIdLen)
+				noProductType = true
+				productId := uint16(data[position+3])<<8 | uint16(data[position+2])
+				deviceIdLen := data[position+4]
+				if position+5+int(deviceIdLen) > len(data) {
+					logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "position": position + 5 + int(deviceIdLen), "data": fmt.Sprintf("% 2x", buff)}).Warn("Requested position exceeds maximum length")
+					continue
+				}
+
+				deviceId := data[position+5 : position+5+int(deviceIdLen)]
+				if slices.Contains(deviceId, 0x00) && position+5+int(deviceIdLen)+1 <= len(data) {
+					// Some device serials have random null terminator in data
+					deviceId = data[position+5 : position+5+int(deviceIdLen)+1]
+					nullTerminator = true
+				}
+				serial := strings.ReplaceAll(string(deviceId), "\x00", "")
+
+				endpoint := base + (byte(i) + 1)
+				if channels == 1 {
+					endpoint = base + 1
+				}
+
+				device := &Devices{
+					Type:      byte(i) + 1,
+					Endpoint:  endpoint,
+					Serial:    serial,
+					VendorId:  vendorId,
+					ProductId: productId,
+				}
+				logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("Processing device")
+
+				devices[i] = device
+				if nullTerminator {
+					position += 5 + int(deviceIdLen) + 1
+				} else {
+					position += 5 + int(deviceIdLen)
+				}
 			}
 		}
 	} else {
@@ -416,6 +454,29 @@ func (d *Device) getDevices() {
 		d.SingleDevice = true
 	}
 	d.Devices = devices
+
+	if noProductType {
+		// Find productId and match with endpoint for devices that do not expose valid product type
+		logger.Log(logger.Fields{"serial": d.Serial}).Info("No valid product type, probing devices...")
+		position = 0
+		for key, device := range d.Devices {
+			logger.Log(logger.Fields{"serial": d.Serial, "device": device.ProductId, "endpoint": device.Endpoint}).Info("Probing...")
+
+			buff, _ = d.transferToDevice(device.Endpoint, cmdProductId, nil, "")
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")
+			}
+			productId := uint16(buff[position+5])<<8 | uint16(buff[position+4])
+			for _, dev := range d.Devices {
+				if dev.ProductId == productId {
+					logger.Log(logger.Fields{"serial": d.Serial, "device": device.ProductId, "endpoint": dev.Endpoint, "new-endpoint": device.Endpoint}).Info("Device match found")
+					dev.Endpoint = device.Endpoint
+					devices[key] = dev
+					break
+				}
+			}
+		}
+	}
 }
 
 // getSerial will return device serial number

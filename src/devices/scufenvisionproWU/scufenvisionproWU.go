@@ -2106,9 +2106,11 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 // ReadWithTimeout is mandatory due to the nature of listening for events
 func (d *Device) getListenerData() []byte {
 	data := make([]byte, bufferSize)
-	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
-	if err != nil || n == 0 {
-		return nil
+	if d.listener != nil {
+		n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+		if err != nil || n == 0 {
+			return nil
+		}
 	}
 	return data
 }
@@ -2117,9 +2119,11 @@ func (d *Device) getListenerData() []byte {
 // ReadWithTimeout is mandatory due to the nature of listening for events
 func (d *Device) getAnalogData() []byte {
 	data := make([]byte, bufferSize)
-	n, err := d.analogListener.ReadWithTimeout(data, 100*time.Millisecond)
-	if err != nil || n == 0 {
-		return nil
+	if d.analogListener != nil {
+		n, err := d.analogListener.ReadWithTimeout(data, 100*time.Millisecond)
+		if err != nil || n == 0 {
+			return nil
+		}
 	}
 	return data
 }
@@ -2232,10 +2236,12 @@ func (d *Device) analogDataListener() {
 			select {
 			default:
 				if d.Exit {
-					err := d.analogListener.Close()
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
-						return
+					if d.analogListener != nil {
+						err := d.analogListener.Close()
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
+							return
+						}
 					}
 					return
 				}

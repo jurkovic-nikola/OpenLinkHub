@@ -440,7 +440,7 @@ func InitManual(productId uint16, key string) {
 	// Enumerate all Scuf devices
 	err = hid.Enumerate(scufVendorId, productId, enum)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
+		logger.Log(logger.Fields{"error": err, "vendorId": scufVendorId}).Fatal("Unable to enumerate devices")
 	}
 
 	if device.ProductId > 0 && len(device.Path) > 0 {
@@ -521,7 +521,7 @@ func Init() {
 	// Enumerate all Scuf devices
 	err = hid.Enumerate(scufVendorId, hid.ProductIDAny, enum)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
+		logger.Log(logger.Fields{"error": err, "vendorId": scufVendorId}).Fatal("Unable to enumerate devices")
 	}
 
 	// Memory

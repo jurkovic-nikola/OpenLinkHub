@@ -82,11 +82,11 @@ type AMDGPUInfo struct {
 }
 
 var (
-	info      *SystemInfo
-	prevTotal = 0
-	prevIdle  = 0
-	gpuIndex  = 0
-	amdsmi    = "amd-smi"
+	info          *SystemInfo
+	prevTotal     = 0
+	prevIdle      = 0
+	gpuIndex      = 0
+	amdsmi        = "amd-smi"
 	isAmdsmiFound = true
 )
 
@@ -161,7 +161,7 @@ func (si *SystemInfo) getGpuData() {
 	for scanner.Scan() {
 		line := scanner.Text()
 		gpus := make(map[int]GpuData)
-		if strings.Contains(line, "VGA compatible controller") && strings.Contains(line, "NVIDIA") && config.GetConfig().DefaultNvidiaGPU != -1 {
+		if (strings.Contains(line, "VGA compatible controller") || strings.Contains(line, "3D controller")) && strings.Contains(line, "NVIDIA") && config.GetConfig().DefaultNvidiaGPU != -1 {
 			// NVIDIA
 			for key := range config.GetConfig().NvidiaGpuIndex {
 				gpuModel := GetNVIDIAGpuModel(key)

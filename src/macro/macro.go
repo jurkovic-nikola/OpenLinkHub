@@ -24,6 +24,7 @@ type Actions struct {
 	ActionHold        bool   `json:"actionHold"`
 	ActionRepeat      uint8  `json:"actionRepeat"`
 	ActionRepeatDelay uint16 `json:"actionRepeatDelay"`
+	ActionText        string `json:"actionText"`
 }
 
 type Tracker struct {
@@ -200,7 +201,7 @@ func NewMacroProfile(macroName string) uint8 {
 }
 
 // NewMacroProfileValue will create new macro profile value
-func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, actionDelay uint16) uint8 {
+func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, actionDelay uint16, macroText string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -212,6 +213,7 @@ func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, a
 				ActionType:    actionType,
 				ActionCommand: actionCommand,
 				ActionDelay:   actionDelay,
+				ActionText:    macroText,
 			}
 			macros[macroId] = val
 			SaveProfile(profile, macros[macroId])

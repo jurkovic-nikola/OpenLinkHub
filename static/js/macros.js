@@ -162,6 +162,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             case 5:
                                 actionType = 'Delay';
                                 break;
+                            case 6:
+                                actionType = 'Text';
+                                break;
                             case 9:
                                 actionType = 'Mouse';
                                 break;
@@ -183,6 +186,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                 'N/A',
                                 '' +
                                 '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 100%;">'
+                            ]).draw();
+                        } else  if (item.actionType === 6) { // String
+                            dt.row.add([
+                                i,
+                                actionType,
+                                '<pre id="macroText">' + item.actionText + '</pre>',
+                                'N/A',
+                                '<input class="form-control actionRepeatValue" type="text" value="' +  item.actionRepeat + '" placeholder="Define how many times the action will be repeated.">',
+                                '<input class="form-control actionRepeatDelayValue" type="text" value="' +  item.actionRepeatDelay + '" placeholder="The amount of delay in milliseconds between the Repeat action.">',
+                                '<input class="btn btn-info updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE" style="width: 45%;">' +
+                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 45%;float:right;">'
                             ]).draw();
                         } else {
                             // Render row if we have actual key
@@ -320,6 +334,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const macroType = $("#macroType").val();
         const macroValue = $("#macroKeyId").val();
         const macroDelay = $("#macroDelay").val();
+        const macroText = $("#macroText").val();
 
         if (parseInt(macroType) === 0) {
             toast.warning('Select macro type');
@@ -341,6 +356,7 @@ document.addEventListener("DOMContentLoaded", function () {
         pf["macroType"] = parseInt(macroType);
         pf["macroValue"] = parseInt(macroValue);
         pf["macroDelay"] = parseInt(macroDelay);
+        pf["macroText"] = macroText;
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -369,11 +385,14 @@ document.addEventListener("DOMContentLoaded", function () {
         switch (selectedValue) {
             case 0: {
                 $("#macroDelay").hide();
+                $("#macroText").hide();
                 $("#macroKeyId").hide();
             }
             break;
+
             case 3: {
                 $("#macroDelay").hide();
+                $("#macroText").hide();
                 $.ajax({
                     url:'/api/input/keyboard',
                     type:'get',
@@ -393,27 +412,38 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
             break;
+
             case 5: {
                 $("#macroDelay").show();
+                $("#macroText").hide();
                 $("#macroKeyId").hide();
             }
             break;
+
+            case 6: {
+                $("#macroDelay").hide();
+                $("#macroText").show();
+                $("#macroKeyId").hide();
+            }
+            break;
+
             case 9: {
                 $("#macroDelay").hide();
+                $("#macroText").hide();
                 $.ajax({
-                    url:'/api/input/mouse',
-                    type:'get',
-                    success:function(result){
+                    url: '/api/input/mouse',
+                    type: 'get',
+                    success: function (result) {
                         let macroKeyId = $("#macroKeyId");
                         macroKeyId.empty();
-                        $.each(result.data, function( index, value ) {
-                            macroKeyId.append($('<option>', { value: index, text: value.Name }));
+                        $.each(result.data, function (index, value) {
+                            macroKeyId.append($('<option>', {value: index, text: value.Name}));
                         });
                     }
                 });
                 $("#macroKeyId").show();
             }
-                break;
+            break;
         }
     });
 

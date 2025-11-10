@@ -146,3 +146,83 @@ func InputControlKeyboardHold(controlType uint16, press bool) {
 		}
 	}
 }
+
+// InputControlKeyboardText will send given text string to keyboard
+func InputControlKeyboardText(text string) {
+	if virtualKeyboardFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
+		return
+	}
+
+	for _, char := range text {
+		useShift := false
+		baseChar := char
+
+		// Check if the char needs Shift
+		if shifted, exists := shiftedToBase[char]; exists {
+			baseChar = shifted
+			useShift = true
+		}
+
+		// Lookup key code using baseChar
+		keyCode, ok := charToKey[baseChar]
+		if !ok {
+			continue // skip unknown characters
+		}
+
+		// Press Shift if needed
+		if useShift {
+			err := writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evKey, Code: keyLeftShift, Value: 1})
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for Shift")
+				return
+			}
+			err = writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evSyn, Code: 0, Value: 0})
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for Shift")
+				return
+			}
+		}
+
+		// Key press
+		err := writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evKey, Code: keyCode, Value: 1})
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for key press")
+			return
+		}
+		err = writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evSyn, Code: 0, Value: 0})
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for key press")
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+
+		// Key release
+		err = writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evKey, Code: keyCode, Value: 0})
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for key release")
+			return
+		}
+		err = writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evSyn, Code: 0, Value: 0})
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for key release")
+			return
+		}
+
+		// Release Shift
+		if useShift {
+			err = writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evKey, Code: keyLeftShift, Value: 0})
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for Shift release")
+				return
+			}
+			err = writeVirtualEvent(virtualKeyboardFile, &inputEvent{Type: evSyn, Code: 0, Value: 0})
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to write virtual keyboard data struct for Shift release")
+				return
+			}
+		}
+
+		time.Sleep(40 * time.Millisecond) // normal typing rhythm
+	}
+}

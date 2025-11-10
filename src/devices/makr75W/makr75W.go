@@ -98,7 +98,10 @@ type Device struct {
 	ModifierIndex          *big.Int
 	KeyboardKey            *keyboards.Key
 	PressLoop              bool
-	MacroTracker           map[int]uint16
+	MacroTracker           map[int]macro.Tracker
+	mouseLoopActive        bool
+	mouseLoopMutex         sync.Mutex
+	mouseLoopStopCh        chan struct{}
 }
 
 var (
@@ -214,6 +217,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		},
 		UIKeyboard:    "keyboard-7",
 		UIKeyboardRow: "keyboard-row-17",
+		MacroTracker:  make(map[int]macro.Tracker),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -2158,14 +2162,17 @@ func (d *Device) getModifierPosition() uint8 {
 }
 
 // addToMacroTracker adds or updates an entry in MacroTracker
-func (d *Device) addToMacroTracker(key int, value uint16) {
+func (d *Device) addToMacroTracker(key int, value uint16, actionType uint8) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
 	if d.MacroTracker == nil {
-		d.MacroTracker = make(map[int]uint16)
+		d.MacroTracker = make(map[int]macro.Tracker)
 	}
-	d.MacroTracker[key] = value
+	d.MacroTracker[key] = macro.Tracker{
+		Value: value,
+		Type:  actionType,
+	}
 }
 
 // deleteFromMacroTracker deletes an entry from MacroTracker
@@ -2194,8 +2201,35 @@ func (d *Device) releaseMacroTracker() {
 	d.mutex.Unlock()
 
 	for _, key := range keys {
-		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
+		switch d.MacroTracker[key].Type {
+		case 1, 3:
+			inputmanager.InputControlKeyboardHold(d.MacroTracker[key].Value, false)
+			break
+		case 9:
+			inputmanager.InputControlMouseHold(d.MacroTracker[key].Value, false)
+			break
+		}
 		d.deleteFromMacroTracker(key)
+	}
+}
+
+// mouseEventLoop will send mouse action until stopped
+func mouseEventLoop(stopCh <-chan struct{}, actionCommand, actionSleep uint16) {
+	// Send input once
+	inputmanager.InputControlMouse(actionCommand)
+
+	// Timer
+	ticker := time.NewTicker(time.Duration(actionSleep) * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			inputmanager.InputControlMouse(actionCommand)
+		case <-stopCh:
+			// Loop stopped
+			return
+		}
 	}
 }
 
@@ -2326,7 +2360,21 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 			inputmanager.InputControlKeyboard(key.ActionCommand, key.ActionHold)
 			break
 		case 9:
-			inputmanager.InputControlMouse(key.ActionCommand)
+			if key.ActionHold {
+				d.mouseLoopMutex.Lock()
+				defer d.mouseLoopMutex.Unlock()
+				if !d.mouseLoopActive {
+					d.mouseLoopActive = true
+					d.mouseLoopStopCh = make(chan struct{})
+					go mouseEventLoop(d.mouseLoopStopCh, key.ActionCommand, key.ToggleDelay)
+				} else {
+					// Stop sending events
+					d.mouseLoopActive = false
+					close(d.mouseLoopStopCh)
+				}
+			} else {
+				inputmanager.InputControlMouse(key.ActionCommand)
+			}
 			break
 		case 10:
 			macroProfile := macro.GetProfile(int(key.ActionCommand))
@@ -2338,7 +2386,7 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 				if v, valid := macroProfile.Actions[i]; valid {
 					// Add to macro tracker for easier release
 					if v.ActionHold {
-						d.addToMacroTracker(i, v.ActionCommand)
+						d.addToMacroTracker(i, v.ActionCommand, v.ActionType)
 					}
 
 					switch v.ActionType {
@@ -2346,11 +2394,34 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 						inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
 						break
 					case 9:
-						inputmanager.InputControlMouse(v.ActionCommand)
+						if v.ActionRepeat > 0 && !v.ActionHold {
+							for z := 0; z < int(v.ActionRepeat); z++ {
+								inputmanager.InputControlMouse(v.ActionCommand)
+								if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+									time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+								}
+							}
+						} else if v.ActionHold && v.ActionRepeat == 0 {
+							inputmanager.InputControlMouseHold(v.ActionCommand, v.ActionHold)
+						} else {
+							inputmanager.InputControlMouse(v.ActionCommand)
+						}
 						break
 					case 5:
 						if v.ActionDelay > 0 {
 							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+						}
+						break
+					case 6:
+						if v.ActionRepeat > 0 {
+							for z := 0; z < int(v.ActionRepeat); z++ {
+								inputmanager.InputControlKeyboardText(v.ActionText)
+								if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+									time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+								}
+							}
+						} else {
+							inputmanager.InputControlKeyboardText(v.ActionText)
 						}
 						break
 					}

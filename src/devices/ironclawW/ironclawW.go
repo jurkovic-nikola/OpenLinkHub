@@ -1888,6 +1888,17 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 							if v.ActionDelay > 0 {
 								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
 							}
+						case 6:
+							if v.ActionRepeat > 0 {
+								for z := 0; z < int(v.ActionRepeat); z++ {
+									inputmanager.InputControlKeyboardText(v.ActionText)
+									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+									}
+								}
+							} else {
+								inputmanager.InputControlKeyboardText(v.ActionText)
+							}
 						}
 					}
 				}

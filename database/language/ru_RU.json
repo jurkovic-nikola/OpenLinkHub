@@ -387,6 +387,8 @@
         "txtLinear": "Линейный",
         "txtDynamic": "Динамический",
         "txtExponential": "Экспоненциальный",
-        "txtAggressive": "Агрессивный"
+        "txtAggressive": "Агрессивный",
+        "txtText": "Текст",
+        "txtInvalidMacroText": "Невозможно проверить ваш запрос. Недопустимое значение текста"
     }
 }

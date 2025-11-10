@@ -549,6 +549,61 @@ func buildInputActions() {
 	inputActions[KeyControllerDpadRight] = InputAction{Name: "(Controller) D-Pad Right", CommandCode: btnControllerDpadRight, Controller: true}
 }
 
+// charToKey mapping
+var charToKey = map[rune]uint16{
+	// letters (lowercase)
+	'a': keyA, 'b': keyB, 'c': keyC, 'd': keyD, 'e': keyE,
+	'f': keyF, 'g': keyG, 'h': keyH, 'i': keyI, 'j': keyJ,
+	'k': keyK, 'l': keyL, 'm': keyM, 'n': keyN, 'o': keyO,
+	'p': keyP, 'q': keyQ, 'r': keyR, 's': keyS, 't': keyT,
+	'u': keyU, 'v': keyV, 'w': keyW, 'x': keyX, 'y': keyY,
+	'z': keyZ,
+
+	// numbers (top row)
+	'0': keyNumber0, '1': keyNumber1, '2': keyNumber2,
+	'3': keyNumber3, '4': keyNumber4, '5': keyNumber5,
+	'6': keyNumber6, '7': keyNumber7, '8': keyNumber8, '9': keyNumber9,
+
+	// whitespace / control
+	' ':  keySpace,
+	'\n': keyEnter,
+	'\r': keyEnter,
+	'\t': keyTab,
+	'\b': keyBack,
+
+	// common punctuation
+	'-':  keyMinus,
+	'=':  keyEqual,
+	',':  keyComma,
+	'.':  keyDot,
+	'/':  keySlash,
+	';':  keySemicolon,
+	'\'': keySingleQuote,
+	'[':  keyLeftSquare,
+	']':  keyRightSquare,
+	'\\': keyBackslash,
+	'`':  keyTilde,
+}
+
+// shiftedToBase mappings with Shift
+var shiftedToBase = map[rune]rune{
+	// uppercase letters
+	'A': 'a', 'B': 'b', 'C': 'c', 'D': 'd', 'E': 'e',
+	'F': 'f', 'G': 'g', 'H': 'h', 'I': 'i', 'J': 'j',
+	'K': 'k', 'L': 'l', 'M': 'm', 'N': 'n', 'O': 'o',
+	'P': 'p', 'Q': 'q', 'R': 'r', 'S': 's', 'T': 't',
+	'U': 'u', 'V': 'v', 'W': 'w', 'X': 'x', 'Y': 'y',
+	'Z': 'z',
+
+	// shifted numbers -> symbol
+	'!': '1', '@': '2', '#': '3', '$': '4', '%': '5',
+	'^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
+
+	// shifted punctuation
+	'_': '-', '+': '=', '{': '[', '}': ']', '|': '\\',
+	':': ';', '"': '\'', '<': ',', '>': '.', '?': '/', '~': '`',
+}
+
 // Init will fetch an input device
 func Init() {
 	buildInputActions()

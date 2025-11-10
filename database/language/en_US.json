@@ -387,6 +387,8 @@
     "txtLinear": "Linear",
     "txtDynamic": "Dynamic",
     "txtExponential": "Exponential",
-    "txtAggressive": "Aggressive"
+    "txtAggressive": "Aggressive",
+    "txtText": "Text",
+    "txtInvalidMacroText": "Unable to validate your request. Invalid text value"
   }
 }

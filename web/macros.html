@@ -97,6 +97,7 @@
                                 <option value="3">{{ .Lang "txtKeyboard" }}</option>
                                 <option value="9">{{ .Lang "txtMouse" }}</option>
                                 <option value="5">{{ .Lang "txtDelay" }}</option>
+                                <option value="6">{{ .Lang "txtText" }}</option>
                             </select>
                             <div class="input-container">
                                 <select class="form-select macroKeyId" id="macroKeyId" style="width: auto;float: left;margin-left: 15px;display: none;">
@@ -104,6 +105,11 @@
                                 </select>
                             </div>
                             <input class="form-control" id="macroDelay" type="text" placeholder="Delay (in milliseconds)" style="width: auto;margin-left: 15px;float: left;display: none;">
+                            <textarea class="form-control"
+                                      id="macroText"
+                                      placeholder="Enter macro text..."
+                                      rows="3"
+                                      style="width: 300px; height: 37px; margin-left: 15px; float: left; display: none; resize: vertical;"></textarea>
                             <button class="btn btn-success" type="button" id="addMacroValue" style="width: auto;margin-left: 15px;float: left;">{{ .Lang "txtAddMacroValue" }}</button>
                         </div>
                         <div class="card">

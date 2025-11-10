@@ -115,6 +115,7 @@ type Payload struct {
 	MacroType             uint8                 `json:"macroType"`
 	MacroValue            uint16                `json:"macroValue"`
 	MacroDelay            uint16                `json:"macroDelay"`
+	MacroText             string                `json:"macroText"`
 	LedProfile            led.Device            `json:"ledProfile"`
 	Points                []temperatures.Point  `json:"points"`
 	UpdateType            uint8                 `json:"updateType"`
@@ -3158,6 +3159,7 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 	macroType := req.MacroType
 	macroValue := req.MacroValue
 	macroDelay := req.MacroDelay
+	macroText := req.MacroText
 
 	if macroId < 0 {
 		return &Payload{
@@ -3199,7 +3201,15 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 		}
 	}
 
-	res := macro.NewMacroProfileValue(macroId, macroType, macroValue, macroDelay)
+	if macroType == 6 && len(macroText) < 1 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroText"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.NewMacroProfileValue(macroId, macroType, macroValue, macroDelay, macroText)
 	if res == 1 {
 		return &Payload{
 			Message: language.GetValue("txtMacroProfileValueSaved"),

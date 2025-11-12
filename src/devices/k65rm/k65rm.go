@@ -104,10 +104,10 @@ var (
 	pwd                   = ""
 	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdActivateLed        = []byte{0x0d, 0x00, 0x22}
+	cmdActivateLed        = []byte{0x0d, 0x01, 0x22}
 	cmdGetFirmware        = []byte{0x02, 0x13}
 	dataTypeSetColor      = []byte{0x12, 0x00}
-	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdWriteColor         = []byte{0x06, 0x01}
 	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
 	cmdPerformance        = []byte{0x01, 0x4a, 0x00}
 	cmdWritePerformance   = []byte{0x01}
@@ -1674,7 +1674,7 @@ func (d *Device) writeColor(data []byte) {
 	}
 
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
-	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)+2))
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
 
@@ -1714,7 +1714,7 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 	}
 
 	buffer := make([]byte, len(dataTypeSetColor)+len(buf)+headerWriteSize)
-	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(buf)+2))
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(buf)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], buf)
 
@@ -2106,6 +2106,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
+	fmt.Println(fmt.Sprintf("% 2x", bufferW))
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 

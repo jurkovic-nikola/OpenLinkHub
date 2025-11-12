@@ -104,10 +104,10 @@ var (
 	pwd                   = ""
 	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
 	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdActivateLed        = []byte{0x0d, 0x01, 0x22}
+	cmdActivateLed        = []byte{0x0d, 0x00, 0x22}
 	cmdGetFirmware        = []byte{0x02, 0x13}
 	dataTypeSetColor      = []byte{0x12, 0x00}
-	cmdWriteColor         = []byte{0x06, 0x01}
+	cmdWriteColor         = []byte{0x06, 0x00}
 	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
 	cmdPerformance        = []byte{0x01, 0x4a, 0x00}
 	cmdWritePerformance   = []byte{0x01}
@@ -1648,9 +1648,9 @@ func (d *Device) setDeviceColor() {
 				for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range rows.Keys {
 						for _, packetIndex := range key.PacketIndex {
-							buf[packetIndex] = r.Output[packetIndex]
-							buf[packetIndex+1] = r.Output[packetIndex+1]
-							buf[packetIndex+2] = r.Output[packetIndex+2]
+							buf[packetIndex] = buff[packetIndex]
+							buf[packetIndex+1] = buff[packetIndex+1]
+							buf[packetIndex+2] = buff[packetIndex+2]
 						}
 					}
 				}

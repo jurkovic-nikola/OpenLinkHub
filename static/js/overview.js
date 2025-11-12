@@ -2891,6 +2891,43 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('#applyColors').on('click', function () {
+        const keyOption = $(".keyOptions").val();
+        if (parseInt(keyOption) === 2) {
+            const deviceId = $("#deviceId").val();
+            const keyColor = $('#keyColor').val();
+            const rgb = hexToRgb(keyColor);
+
+            const pf = {};
+            const color = {red:rgb.r, green:rgb.g, blue:rgb.b}
+            pf["deviceId"] = deviceId;
+            pf["keyId"] = 1;
+            pf["keyOption"] = parseInt(keyOption);
+            pf["color"] = color;
+
+            const json = JSON.stringify(pf, null, 2);
+            $.ajax({
+                url: '/api/keyboard/color',
+                type: 'POST',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1) {
+                            location.reload();
+                        } else {
+                            toast.warning(response.message);
+                        }
+                    } catch (err) {
+                        toast.warning(response.message);
+                    }
+                }
+            });
+        } else {
+            toast.warning('Key selection is required');
+        }
+    });
+
     $('.keyboardColor').on('click', function () {
         const applyButton = $('#applyColors')
         applyButton.unbind('click');

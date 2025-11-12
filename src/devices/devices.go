@@ -34,6 +34,7 @@ import (
 	"OpenLinkHub/src/devices/k65plusWU"
 	"OpenLinkHub/src/devices/k65plusWdongle"
 	"OpenLinkHub/src/devices/k65pm"
+	"OpenLinkHub/src/devices/k65rm"
 	"OpenLinkHub/src/devices/k68rgb"
 	"OpenLinkHub/src/devices/k70core"
 	"OpenLinkHub/src/devices/k70coretkl"
@@ -619,6 +620,8 @@ var deviceRegisterMap = map[uint16]Product{
 	7207:  {0, 0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
 	7054:  {0, 0, "iCUE NEXUS", nexus.Init, nil},                         // iCUE NEXUS
 	7127:  {1, 0, "K65 PRO MINI", k65pm.Init, nil},                       // K65 PRO MINI
+	7119:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                       // K65 RGB MINI
+	7087:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                       // K65 RGB MINI
 	7094:  {1, 0, "K70 PPO MINI", k70pmWU.Init, nil},                     // K70 PPO MINI
 	7165:  {1, 0, "K70 CORE RGB", k70core.Init, nil},                     // K70 CORE RGB
 	11009: {1, 0, "K70 CORE TKL", k70coretkl.Init, nil},                  // K70 CORE TKL

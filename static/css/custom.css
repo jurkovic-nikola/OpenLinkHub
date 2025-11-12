@@ -1224,6 +1224,11 @@ canvas {
     margin: 1rem auto;
 }
 
+.modal-dialog-1200 {
+    max-width: 1200px;
+    margin: 1rem auto;
+}
+
 .device-selectable {
     cursor: pointer;
 }

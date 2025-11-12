@@ -768,8 +768,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         let modalElement = `
                           <div class="modal fade text-start" id="setupKeyAssignments" tabindex="-1" aria-labelledby="setupKeyAssignments">
-                            <div class="modal-dialog modal-dialog-1000">
-                              <div class="modal-content" style="width: 1000px;">
+                            <div class="modal-dialog modal-dialog-1200">
+                              <div class="modal-content" style="width: 1200px;">
                                 <div class="modal-header">
                                   <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
                                   <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>

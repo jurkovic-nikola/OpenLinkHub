@@ -81,7 +81,9 @@ type Device struct {
 	Rgb                    *rgb.RGB
 	rgbMutex               sync.RWMutex
 	timer                  *time.Ticker
+	timerKeepAlive         *time.Ticker
 	autoRefreshChan        chan struct{}
+	keepAliveChan          chan struct{}
 	mutex                  sync.Mutex
 	Exit                   bool
 	UIKeyboard             string
@@ -108,6 +110,7 @@ var (
 	cmdGetFirmware        = []byte{0x02, 0x13}
 	dataTypeSetColor      = []byte{0x12, 0x00}
 	cmdWriteColor         = []byte{0x06, 0x01}
+	cmdKeepAlive          = []byte{0x12}
 	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
 	cmdPerformance        = []byte{0x01, 0x4a, 0x00}
 	cmdWritePerformance   = []byte{0x01}
@@ -115,6 +118,7 @@ var (
 	cmdKeyAssignment      = []byte{0x06, 0x02}
 	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x02}
 	deviceRefreshInterval = 1000
+	deviceKeepAlive       = 20000
 	transferTimeout       = 500
 	bufferSize            = 1024
 	bufferSizeWrite       = bufferSize + 1
@@ -176,6 +180,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		LEDChannels:     124,
 		Layouts:         keyboards.GetLayouts(keyboardKey),
 		autoRefreshChan: make(chan struct{}),
+		keepAliveChan:   make(chan struct{}),
 		UIKeyboard:      "keyboard-5",
 		UIKeyboardRow:   "keyboard-row-16",
 		RGBModes:        rgbModes,
@@ -209,6 +214,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.loadDeviceProfiles()     // Load all device profiles
 	d.saveDeviceProfile()      // Save profile
 	d.setAutoRefresh()         // Set auto device refresh
+	d.setKeepAlive()           // Keepalive
 	d.setDeviceColor()         // Device color
 	d.setupPerformance()       // Performance
 	d.backendListener()        // Control buttons
@@ -245,12 +251,14 @@ func (d *Device) Stop() {
 	}
 
 	d.timer.Stop()
+	d.timerKeepAlive.Stop()
 	var once sync.Once
 	go func() {
 		once.Do(func() {
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
+			close(d.keepAliveChan)
 		})
 	}()
 
@@ -273,12 +281,14 @@ func (d *Device) StopDirty() uint8 {
 	}
 
 	d.timer.Stop()
+	d.timerKeepAlive.Stop()
 	var once sync.Once
 	go func() {
 		once.Do(func() {
 			if d.autoRefreshChan != nil {
 				close(d.autoRefreshChan)
 			}
+			close(d.keepAliveChan)
 		})
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
@@ -754,6 +764,33 @@ func (d *Device) getDeviceProfile() {
 			}
 		}
 	}
+}
+
+// keepAlive will keep a device alive
+func (d *Device) keepAlive() {
+	if d.Exit {
+		return
+	}
+	_, err := d.transfer(cmdKeepAlive, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+	}
+}
+
+// setAutoRefresh will refresh device data
+func (d *Device) setKeepAlive() {
+	d.timerKeepAlive = time.NewTicker(time.Duration(deviceKeepAlive) * time.Millisecond)
+	go func() {
+		for {
+			select {
+			case <-d.timerKeepAlive.C:
+				d.keepAlive()
+			case <-d.keepAliveChan:
+				d.timerKeepAlive.Stop()
+				return
+			}
+		}
+	}()
 }
 
 // setAutoRefresh will refresh device data

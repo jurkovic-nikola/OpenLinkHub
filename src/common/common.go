@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"golang.org/x/image/draw"
 	"image"
 	"image/gif"
 	"io"
@@ -18,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/image/draw"
 )
 
 type Device struct {
@@ -27,7 +28,7 @@ type Device struct {
 	Firmware    string
 	Image       string
 	GetDevice   interface{}
-	Instance    interface{}
+	Instance    interface{} `json:"-"`
 	Hidden      bool
 }
 

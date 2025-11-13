@@ -119,7 +119,6 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 		LCDModes: map[int]string{
 			2:   "CPU Temperature",
 			3:   "GPU Temperature",
-			5:   "Combined",
 			6:   "CPU / GPU Temp",
 			7:   "CPU / GPU Load",
 			8:   "CPU / GPU Load/Temp",

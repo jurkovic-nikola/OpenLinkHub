@@ -605,6 +605,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7424:  {0, 0, "COMMANDER PRO 1000D", cpro.Init, nil},                 // Obsidian 1000D Hub (Commander Pro)
 	3138:  {0, 0, "XC7 ELITE LCD", xc7.Init, nil},                        // XC7 ELITE LCD CPU Water Block
 	3159:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},             // Nautilus LCD Cap
+	3157:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},             // Nautilus LCD Cap
 	2612:  {0, 0, "ST100", st100.Init, nil},                              // ST100 LED Driver
 	7067:  {1, 0, "MM700 RGB", mm700.Init, nil},                          // MM700 RGB Gaming Mousepad
 	7113:  {1, 0, "MM700 3XL RGB", mm700.Init, nil},                      // MM700 3XL RGB Gaming Mousepad

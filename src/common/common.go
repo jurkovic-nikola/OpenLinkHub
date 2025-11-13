@@ -63,6 +63,7 @@ const (
 	ProductTypeNexus                = 9
 	ProductTypePlatinum             = 10
 	ProductTypeHydro                = 11
+	ProductTypeNautilusLcdCap       = 12
 	ProductTypeK65PM                = 101
 	ProductTypeK70Core              = 102
 	ProductTypeK55Core              = 103

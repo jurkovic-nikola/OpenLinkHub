@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "header" . }}
+<body>
+<div class="d-flex align-items-stretch">
+    <div class="page-content">
+        {{ $devs := .Devices }}
+        {{ $temperatures := .Temperatures }}
+        {{ $device := .Device }}
+        {{ $lcd := .Device.HasLCD }}
+        {{ $lcdImages := .LCDImages }}
+        {{ $lcdModes := .Device.LCDModes }}
+        {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
+        {{ $lcdRotations := .Device.LCDRotations }}
+        {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
+        {{ $lcdImage := .Device.DeviceProfile.LCDImage }}
+        {{ $deviceProfile := .Device.DeviceProfile }}
+        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+        <div class="bg-dash-dark-2 py-4">
+            <div class="container-fluid">
+                {{ template "navigation" . }}
+            </div>
+        </div>
+
+        <section class="pt-0 pt-sm-4">
+            <div class="container-fluid">
+                <div class="row gy-4" style="margin-top: 10px;">
+                    <div class="row">
+                        <div style="width: 300px;">
+                            <div class="card mb-4">
+                                <div class="card-header border-bottom border-dash-dark-1">
+                                    <div class="ds-svg-placeholder-left">
+                                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="Device" />
+                                    </div>
+                                    <div class="ds-svg-placeholder-right">
+                                        <span style="font-size: 13px;">{{ .Device.Product }}</span><br />
+                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
+                                            <span>{{ .Device.DeviceProfile.Label }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="card-body" style="padding: 1rem 1rem;">
+                                    <div style="text-align: center;">
+                                        <div class="d-flex align-items-end justify-content-between mb-2">
+                                            <div class="me-2">
+                                                <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ .Lang "txtFirmware" }}</p>
+                                            </div>
+                                            <p class="text-sm lh-1 mb-0 text-dash-color-2">{{ .Device.Firmware }}</p>
+                                        </div>
+                                        <div class="progress" style="height: 3px">
+                                            <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+
+                                        <div class="custom-device-block">
+                                            <div class="custom-float-20-left">
+                                                <i class="bi bi-person svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                            </div>
+                                            <div class="custom-float-80-right">
+                                                <select class="form-select userProfile" style="line-height: 1;margin-top: 10px;">
+                                                    {{ range $key, $profile := $device.UserProfiles }}
+                                                    {{ if $profile.Active }}
+                                                    <option value="{{ $key }}" selected>{{ $key }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $key }}">{{ $key }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="custom-device-block">
+                                            <div class="custom-float-20-left">
+                                                <i class="bi bi-display svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                            </div>
+                                            <div class="custom-float-80-right">
+                                                <select class="form-select lcdMode" name="{{ $device.Serial }}" style="line-height: 1;margin-top:10px;">
+                                                    {{ range $key, $value := $lcdModes }}
+                                                    {{ if eq $key $lcdMode }}
+                                                    <option value="0;{{ $key }}" selected>{{ $value }}</option>
+                                                    {{ else }}
+                                                    <option value="0;{{ $key }}">{{ $value }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+
+                                                {{ if eq $lcdMode 10 }}
+                                                <select class="form-select lcdImages" name="{{ $device.Serial }}" style="line-height: 1;margin-top:10px;">
+                                                    {{ range $key, $value := $lcdImages }}
+                                                    {{ if eq $value.Name $lcdImage }}
+                                                    <option value="0;{{ $value.Name }}" selected>{{ $value.Name }}</option>
+                                                    {{ else }}
+                                                    <option value="0;{{ $value.Name }}">{{ $value.Name }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                                {{ else }}
+                                                <select class="form-select lcdImages" name="{{ $device.Serial }}" style="line-height: 1;margin-top:10px;display:none;">
+                                                    {{ range $key, $value := $lcdImages }}
+                                                    {{ if eq $value.Name $lcdImage }}
+                                                    <option value="0;{{ $value.Name }}" selected>{{ $value.Name }}</option>
+                                                    {{ else }}
+                                                    <option value="0;{{ $value.Name }}">{{ $value.Name }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                                {{ end }}
+                                            </div>
+                                        </div>
+
+                                        <div class="custom-device-block">
+                                            <div class="custom-float-20-left">
+                                                <i class="bi bi-0-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                            </div>
+                                            <div class="custom-float-80-right">
+                                                <select class="form-select lcdRotation" name="{{ $device.Serial }}" style="line-height: 1;margin-top:10px;">
+                                                    {{ range $key, $value := $lcdRotations }}
+                                                    {{ if eq $key $lcdRotation }}
+                                                    <option value="0;{{ $key }}" selected>{{ $value }}</option>
+                                                    {{ else }}
+                                                    <option value="0;{{ $key }}">{{ $value }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div style="overflow: hidden; margin-top: 10px;">
+                                            <button class="btn btn-secondary saveUserProfile">
+                                                <span>{{ .Lang "txtSaveAs" }}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {{ template "footer" . }}
+    </div>
+</div>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/overview.js"></script>
+</body>
+</html>

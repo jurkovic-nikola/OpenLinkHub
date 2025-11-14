@@ -376,5 +376,40 @@
     "cpuBlock": false,
     "hasSpeed": true,
     "commanderDuo": true
+  },
+  {
+    "deviceId": 11,
+    "deviceModel": 0,
+    "deviceName": "iCUE LINK HX1000i",
+    "deviceNameInternal": "HX1000i",
+    "ledChannels": 0,
+    "desc": "PSU",
+    "aio": false,
+    "temperatureProbe": true,
+    "hasSpeed": true,
+    "psu": true
+  },
+  {
+    "deviceId": 11,
+    "deviceModel": 1,
+    "deviceName": "iCUE LINK HX1200i",
+    "deviceNameInternal": "HX1200i",
+    "ledChannels": 0,
+    "desc": "PSU",
+    "aio": false,
+    "temperatureProbe": true,
+    "hasSpeed": true,
+    "psu": true
+  },
+  {
+    "deviceId": 11,
+    "deviceModel": 2,
+    "deviceName": "iCUE LINK HX1500i",
+    "deviceNameInternal": "HX1500i",
+    "ledChannels": 0,
+    "desc": "PSU",
+    "temperatureProbe": true,
+    "hasSpeed": true,
+    "psu": true
   }
 ]

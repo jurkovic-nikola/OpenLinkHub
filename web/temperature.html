@@ -59,6 +59,7 @@
                                                     <option value="7">External binary</option>
                                                     <option value="8">Multi GPU</option>
                                                     <option value="9">Global Temperature Probe</option>
+                                                    <option value="10">PSU</option>
                                                 </select>
 
                                                 {{ if .TemperatureProbes }}
@@ -198,6 +199,8 @@
                                                 {{ else if eq $value.Sensor 9 }}
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: Global Probe</p>
                                                 <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtDevice" }}: {{ $value.Device }}</p>
+                                                {{ else if eq $value.Sensor 10 }}
+                                                <p class="text-uppercase text-sm fw-light mb-2">{{ $root.Lang "txtSensor" }}: PSU</p>
                                                 {{ end }}
 
                                                 <!--

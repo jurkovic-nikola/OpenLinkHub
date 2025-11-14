@@ -389,6 +389,7 @@
     "txtExponential": "Exponencial",
     "txtAggressive": "Agressivo",
     "txtText": "Texto",
-    "txtInvalidMacroText": "Não foi possível validar sua solicitação. Valor de texto inválido"
+    "txtInvalidMacroText": "Não foi possível validar sua solicitação. Valor de texto inválido",
+    "txtSpeedProfileNoPSU": "Dispositivo incompatível. Este perfil requer um dispositivo PSU"
   }
 }

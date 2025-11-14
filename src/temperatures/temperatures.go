@@ -28,6 +28,7 @@ const (
 	SensorTypeExternalExecutable = 7
 	SensorTypeMultiGPU           = 8
 	SensorTypeGlobalTemperature  = 9
+	SensorTypePSU                = 10
 )
 
 type UpdateData struct {
@@ -242,6 +243,24 @@ var (
 		},
 		Hidden: false,
 	}
+
+	// Temperature probes
+	profilePsu = TemperatureProfileData{
+		Sensor: 10,
+		Profiles: []TemperatureProfile{
+			{Id: 1, Min: 0, Max: 45, Mode: 0, Fans: 0, Pump: 0},
+			{Id: 2, Min: 45, Max: 50, Mode: 0, Fans: 0, Pump: 0},
+			{Id: 3, Min: 50, Max: 55, Mode: 0, Fans: 20, Pump: 0},
+			{Id: 4, Min: 55, Max: 60, Mode: 0, Fans: 35, Pump: 0},
+			{Id: 5, Min: 60, Max: 65, Mode: 0, Fans: 50, Pump: 0},
+			{Id: 6, Min: 65, Max: 70, Mode: 0, Fans: 60, Pump: 0},
+			{Id: 7, Min: 70, Max: 75, Mode: 0, Fans: 75, Pump: 0},
+			{Id: 8, Min: 75, Max: 85, Mode: 0, Fans: 80, Pump: 0},
+			{Id: 8, Min: 85, Max: 100, Mode: 0, Fans: 100, Pump: 0},
+		},
+		Hidden:  false,
+		ZeroRpm: true,
+	}
 )
 
 // Init will initialize temperature data
@@ -452,6 +471,11 @@ func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 		case SensorTypeGlobalTemperature:
 			{
 				pf = profileNormal
+			}
+		case SensorTypePSU:
+			{
+				pf = profilePsu
+				newTemperatureProfile.ZeroRpm = true
 			}
 		}
 

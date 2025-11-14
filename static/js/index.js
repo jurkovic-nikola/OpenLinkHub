@@ -82,6 +82,34 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const elementWatts = "#watts-" + serialId + "-" + device.channelId;
                                     const elementAmps = "#amps-" + serialId + "-" + device.channelId;
                                     const elementVolts = "#volts-" + serialId + "-" + device.channelId;
+
+                                    if (device.IsPSU) {
+                                        const powerOut = "#powerOut-" + device.channelId;
+                                        $(powerOut).html(device.powerOut + " W");
+
+                                        $.each(device.volts, function( index, value ) {
+                                            const elementVolts = "#psuVolts-" + index;
+                                            if (elementVolts != null) {
+                                                $(elementVolts).html(value.ValueString + " V");
+                                            }
+                                        });
+
+                                        $.each(device.amps, function( index, value ) {
+                                            const elementAmps = "#psuAmps-" + index;
+                                            if (elementAmps != null) {
+                                                $(elementAmps).html(value.ValueString + " A");
+                                            }
+                                        });
+
+                                        $.each(device.watts, function( index, value ) {
+                                            const elementWatts = "#psuWatts-" + index;
+                                            if (elementWatts != null) {
+                                                $(elementWatts).html(value.ValueString + " W");
+                                            }
+                                        });
+
+                                        console.log(device)
+                                    }
                                     $(elementSpeedId).html(device.rpm + " RPM");
                                     $(elementTemperatureId).html(device.temperatureString);
                                     $(elementWatts).html(device.watts + " W");

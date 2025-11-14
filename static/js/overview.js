@@ -1484,6 +1484,34 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const elementTemperatureId = "#temperature-" + value.deviceId;
                                 $(elementSpeedId).html(value.rpm + " RPM");
                                 $(elementTemperatureId).html(value.temperatureString);
+
+                                if (value.IsPSU) {
+                                    const elementPowerOut = "#powerOut-" + value.channelId;
+                                    if (elementPowerOut != null) {
+                                        $(elementPowerOut).html(value.powerOutString + " W");
+                                    }
+
+                                    $.each(value.volts, function( index, value ) {
+                                        const elementVolts = "#volts-" + index;
+                                        if (elementVolts != null) {
+                                            $(elementVolts).html(value.ValueString + " V");
+                                        }
+                                    });
+
+                                    $.each(value.amps, function( index, value ) {
+                                        const elementAmps = "#amps-" + index;
+                                        if (elementAmps != null) {
+                                            $(elementAmps).html(value.ValueString + " A");
+                                        }
+                                    });
+
+                                    $.each(value.watts, function( index, value ) {
+                                        const elementWatts = "#watts-" + index;
+                                        if (elementWatts != null) {
+                                            $(elementWatts).html(value.ValueString + " W");
+                                        }
+                                    });
+                                }
                             });
                         }
                     }

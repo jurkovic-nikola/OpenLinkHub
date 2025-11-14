@@ -88,11 +88,12 @@
                                                             <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
                                                             {{ else if and (eq $productType 8) (eq $device.HasSpeed false) }}
                                                             <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
+                                                            {{ else if $device.IsPSU }}
+                                                            <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
                                                             {{ else }}
                                                             <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
                                                             {{ end }}
                                                         </div>
-
                                                         <div class="ds-svg-placeholder-left left-20-auto">
                                                             {{ if $dash.ShowLabels }}
                                                             <span class="custom-device-name">{{ $device.Name }}</span><br />
@@ -155,6 +156,57 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            {{ if and (eq $productType 0) $device.IsPSU }}
+                                            <div style="width: auto;min-width: 370px;">
+                                                <div class="card mb-4">
+                                                    <div class="card-header border-bottom border-dash-dark-1">
+                                                        <div class="ds-svg-placeholder-left size-46-46">
+                                                            <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-left left-20-auto">
+                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">Output Power</span><br />
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-right left-20-auto-text-right">
+                                                            <span class="text-dash-color-2-custom-15" id="powerOut-{{ $device.ChannelId }}">{{ $device.PowerOut }} W</span><br />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{ range $vk, $val := $device.Volts }}
+                                            {{ $volts := index $device.Volts $vk }}
+                                            {{ $amps := index $device.Amps $vk }}
+                                            {{ $watts := index $device.Watts $vk }}
+                                            <div style="width: auto;min-width: 370px;">
+                                                <div class="card mb-4">
+                                                    <div class="card-header border-bottom border-dash-dark-1">
+                                                        <div class="ds-svg-placeholder-left size-46-46">
+                                                            <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
+                                                        </div>
+                                                        <div class="ds-svg-placeholder-left left-20-auto">
+                                                            {{ if eq $vk 0 }}
+                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">3.3V Rail</span>
+                                                            {{ else if eq $vk 1 }}
+                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">5V Rail</span>
+                                                            {{ else if eq $vk 2 }}
+                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">12V Rail</span>
+                                                            {{ else }}
+                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">N/A Rail</span>
+                                                            {{ end }}
+                                                        </div>
+
+                                                        <div class="ds-svg-placeholder-right left-20-auto-text-right">
+                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3">
+                                                                <span class="text-dash-color-2-custom" id="psuVolts-{{ $vk }}">{{ $volts.ValueString }} V</span><br />
+                                                                <span class="text-dash-color-2-custom" id="psuAmps-{{ $vk }}" style="margin-top: 3px;">{{ $amps.ValueString }} A</span><br />
+                                                                <span class="text-dash-color-2-custom" id="psuWatts-{{ $vk }}" style="margin-top: 3px;">{{ $watts.ValueString }} W</span><br />
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {{ end }}
+                                            {{ end }}
+
                                             {{ end }}
                                         {{ end }}
                                     </div>

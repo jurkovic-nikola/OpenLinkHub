@@ -621,6 +621,14 @@ $('.sensorInfoToggle').on('click', function () {
                                     Utilizes the single temperature probe as temperature source, It can be applied to any device.
                                 </th>
                             </tr>
+                            <tr>
+                                <th scope="row" style="text-align: left;">
+                                    <b>PSU</b>
+                                </th>
+                                <th scope="row" style="text-align: left;">
+                                    Utilizes the single temperature probe from PSU source. This is only valid for PSUs with built-in Link System Hub device.
+                                </th>
+                            </tr>
                         </tbody>
                     </table>  
                 </div>

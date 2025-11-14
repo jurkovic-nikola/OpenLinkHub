@@ -98,6 +98,7 @@ type SupportedDevice struct {
 	DeviceId         byte   `json:"deviceId"`
 	Model            byte   `json:"deviceModel"`
 	Name             string `json:"deviceName"`
+	NameInternal     string `json:"deviceNameInternal"`
 	LedChannels      uint8  `json:"ledChannels"`
 	ContainsPump     bool   `json:"containsPump"`
 	Desc             string `json:"desc"`
@@ -107,31 +108,44 @@ type SupportedDevice struct {
 	CpuBlock         bool   `json:"cpuBlock"`
 	HasSpeed         bool   `json:"hasSpeed"`
 	CommanderDuo     bool   `json:"commanderDuo"`
+	Psu              bool   `json:"psu"`
+}
+
+type RailData struct {
+	Name        string
+	Value       float64
+	ValueString string
 }
 
 // Devices contain information about devices connected to an iCUE Link
 type Devices struct {
-	ChannelId          int             `json:"channelId"`
-	Type               byte            `json:"type"`
-	Model              byte            `json:"-"`
-	DeviceId           string          `json:"deviceId"`
-	Name               string          `json:"name"`
-	DefaultValue       byte            `json:"-"`
-	Rpm                int16           `json:"rpm"`
-	Temperature        float32         `json:"temperature"`
-	TemperatureString  string          `json:"temperatureString"`
-	LedChannels        uint8           `json:"-"`
-	ContainsPump       bool            `json:"-"`
-	Description        string          `json:"description"`
-	HubId              string          `json:"-"`
-	PumpModes          map[byte]string `json:"-"`
-	Profile            string          `json:"profile"`
-	RGB                string          `json:"rgb"`
-	Label              string          `json:"label"`
-	PortId             uint8           `json:"portId"`
+	ChannelId          int              `json:"channelId"`
+	Type               byte             `json:"type"`
+	Model              byte             `json:"-"`
+	DeviceId           string           `json:"deviceId"`
+	Name               string           `json:"name"`
+	DefaultValue       byte             `json:"-"`
+	Rpm                int16            `json:"rpm"`
+	Temperature        float32          `json:"temperature"`
+	TemperatureString  string           `json:"temperatureString"`
+	LedChannels        uint8            `json:"-"`
+	ContainsPump       bool             `json:"-"`
+	Description        string           `json:"description"`
+	HubId              string           `json:"-"`
+	PumpModes          map[byte]string  `json:"-"`
+	Profile            string           `json:"profile"`
+	RGB                string           `json:"rgb"`
+	Label              string           `json:"label"`
+	PortId             uint8            `json:"portId"`
+	Volts              map[int]RailData `json:"volts"`
+	Amps               map[int]RailData `json:"amps"`
+	Watts              map[int]RailData `json:"watts"`
+	PowerOut           float64          `json:"powerOut"`
+	PowerOutString     string           `json:"powerOutString"`
 	IsTemperatureProbe bool
 	IsLinkAdapter      bool
 	IsCommanderDuo     bool
+	IsPSU              bool
 	IsCpuBlock         bool
 	HasSpeed           bool
 	HasTemps           bool
@@ -199,6 +213,7 @@ type Device struct {
 	pumpInnerLedStartIndex int
 	queue                  chan []byte
 	instance               *common.Device
+	Psu                    bool
 }
 
 var (
@@ -223,6 +238,8 @@ var (
 	modeGetSpeeds               = []byte{0x17}
 	modeSetSpeed                = []byte{0x18}
 	modeSetColor                = []byte{0x22}
+	modeGetPsuVolts             = []byte{0x28}
+	modeGetPsuAmps              = []byte{0x29}
 	dataTypeGetDevices          = []byte{0x21, 0x00}
 	dataTypeGetTemperatures     = []byte{0x10, 0x00}
 	dataTypeGetSpeeds           = []byte{0x25, 0x00}
@@ -231,6 +248,7 @@ var (
 	dataTypeSubColor            = []byte{0x07, 0x00}
 	dataTypeCommandMode         = []byte{0x0d, 0x00}
 	dataTypeLedCount            = []byte{0x0c, 0x00}
+	psuInitHeader               = byte(0x19)
 	bufferSize                  = 512
 	headerSize                  = 3
 	headerWriteSize             = 4
@@ -250,6 +268,8 @@ var (
 	portProtectionMaximumStage3 = 442
 	criticalAioCoolantTemp      = 57.0
 	i2cPrefix                   = "i2c"
+	voltsScale                  = 1000.0
+	ampsScale                   = 100.0
 	rgbProfileUpgrade           = []string{"led", "nebula", "marquee", "rotarystack", "sequential", "spiralrainbow"}
 	rgbModes                    = []string{
 		"circle",
@@ -1846,6 +1866,19 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
+	// If the profile is PSU, check for the presence of AIOs
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		if device, ok := d.Devices[channelId]; ok {
+			if device.IsPSU {
+				valid = true
+			}
+		}
+
+		if !valid {
+			return 6
+		}
+	}
+
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
 		if strings.HasPrefix(profiles.Device, i2cPrefix) {
 			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
@@ -2481,7 +2514,7 @@ func (d *Device) UpdateLinkAdapter(channelId int, adapterId int) uint8 {
 				d.saveDeviceProfile()
 
 				// Full LED reset
-				_, err := d.transfer(cmdResetLedPower, nil)
+				_, err := d.transfer(cmdResetLedPower, nil, false)
 				if err != nil {
 					return 0
 				}
@@ -2537,7 +2570,7 @@ func (d *Device) UpdateLinkAdapter(channelId int, adapterId int) uint8 {
 				}
 
 				// Re-init LED ports
-				_, err := d.transfer(cmdResetLedPower, nil)
+				_, err := d.transfer(cmdResetLedPower, nil, false)
 				if err != nil {
 					return 0
 				}
@@ -2574,10 +2607,20 @@ func (d *Device) UpdateLinkAdapter(channelId int, adapterId int) uint8 {
 	return 0
 }
 
-// getLiquidTemperature will fetch temperature from AIO device
+// getLiquidTemperature will fetch temperature from AIO / Pump device
 func (d *Device) getLiquidTemperature() float32 {
 	for _, device := range d.Devices {
 		if device.AIO || device.ContainsPump {
+			return device.Temperature
+		}
+	}
+	return 0
+}
+
+// getPSUTemperature will fetch temperature from PSU device
+func (d *Device) getPSUTemperature() float32 {
+	for _, device := range d.Devices {
+		if device.IsPSU {
 			return device.Temperature
 		}
 	}
@@ -2705,6 +2748,13 @@ func (d *Device) updateDeviceSpeed() {
 							temp = stats.GetDeviceTemperature(profiles.Device, profiles.ChannelId)
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
+							}
+						}
+					case temperatures.SensorTypePSU:
+						{
+							temp = d.getPSUTemperature()
+							if temp == 0 {
+								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
 							}
 						}
 					}
@@ -2888,13 +2938,23 @@ func (d *Device) setAutoRefresh() {
 	}()
 }
 
+// getPsuDeviceId will return PSU device id
+func (d *Device) getPsuDeviceId() int {
+	for deviceId, device := range d.Devices {
+		if device.IsPSU {
+			return deviceId
+		}
+	}
+	return 0
+}
+
 // setDefaults will set default mode for all devices
 func (d *Device) getDeviceData() {
 	if d.Exit {
 		return
 	}
 	// Speed
-	response := d.read(modeGetSpeeds, dataTypeGetSpeeds)
+	response := d.read(modeGetSpeeds, dataTypeGetSpeeds, false)
 	if response == nil {
 		return
 	}
@@ -2915,6 +2975,10 @@ func (d *Device) getDeviceData() {
 					if rpm > 1 {
 						d.Devices[i].Rpm = rpm
 					}
+
+					if d.Devices[i].IsPSU && rpm == 0 {
+						d.Devices[i].Rpm = 0
+					}
 				}
 			}
 		}
@@ -2924,7 +2988,7 @@ func (d *Device) getDeviceData() {
 	if d.Exit {
 		return
 	}
-	response = d.read(modeGetTemperatures, dataTypeGetTemperatures)
+	response = d.read(modeGetTemperatures, dataTypeGetTemperatures, false)
 	if response[3] == 0x00 {
 		amount = response[6]
 		sensorData = response[7:]
@@ -2958,6 +3022,93 @@ func (d *Device) getDeviceData() {
 		}
 	}
 	d.protectLiquidCooler()
+
+	if d.Psu {
+		psuDeviceId := d.getPsuDeviceId()
+
+		// Volts
+		volts := d.read(modeGetPsuVolts, nil, true)
+		if volts == nil {
+			return
+		}
+		numRails := binary.LittleEndian.Uint16(volts[6:8])
+		if numRails > 3 {
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "amount": numRails, "type": "modeGetPsuVolts"}).Info("Number of rails has exceeded maximum number of rails")
+			}
+			return
+		}
+
+		d.Devices[psuDeviceId].Volts = make(map[int]RailData, numRails)
+		offset := 8
+		for i := 0; i < int(numRails); i++ {
+			if offset+4 > len(volts) {
+				break
+			}
+			railData := binary.LittleEndian.Uint16(volts[offset+2 : offset+4])
+			value := float64(railData) / voltsScale
+			value = math.Round(value*100) / 100
+			d.Devices[psuDeviceId].Volts[i] = RailData{
+				Name:        "Volts",
+				Value:       value,
+				ValueString: common.FormatTwoDecimals(value),
+			}
+			offset += 4
+		}
+
+		// Amps
+		amps := d.read(modeGetPsuAmps, nil, true)
+		if amps == nil {
+			return
+		}
+
+		numRails = binary.LittleEndian.Uint16(amps[6:8])
+		if numRails > 3 {
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "amount": numRails, "type": "modeGetPsuAmps"}).Info("Number of rails has exceeded maximum number of rails")
+			}
+			return
+		}
+
+		d.Devices[psuDeviceId].Amps = make(map[int]RailData, numRails)
+		offset = 8
+		for i := 0; i < int(numRails); i++ {
+			if offset+4 > len(amps) {
+				break
+			}
+			railData := binary.LittleEndian.Uint16(amps[offset+2 : offset+4])
+			value := float64(railData) / ampsScale
+			value = math.Round(value*100) / 100
+			d.Devices[psuDeviceId].Amps[i] = RailData{
+				Name:        "Amps",
+				Value:       value,
+				ValueString: common.FormatTwoDecimals(value),
+			}
+			offset += 4
+		}
+
+		// There are no command codes for watts on these devices.
+		// Watts are calculated by: Power = Volts * Amps
+		d.Devices[psuDeviceId].Watts = make(map[int]RailData, numRails)
+		for i := 0; i < int(numRails); i++ {
+			value := math.Round((d.Devices[psuDeviceId].Volts[i].Value*d.Devices[psuDeviceId].Amps[i].Value)*100) / 100
+			d.Devices[psuDeviceId].Watts[i] = RailData{
+				Name:        "Watts",
+				Value:       value,
+				ValueString: common.FormatTwoDecimals(value),
+			}
+		}
+
+		// Power out
+		powerOut := 0.00
+		for _, watts := range d.Devices[psuDeviceId].Watts {
+			powerOut += watts.Value
+		}
+
+		formatted := common.FormatTwoDecimals(powerOut)
+		d.Devices[psuDeviceId].PowerOut = math.Round(powerOut*100) / 100
+		d.Devices[psuDeviceId].PowerOutString = formatted
+	}
 }
 
 // protectLiquidCooler will try to protect your liquid cooler when the temperature reaches critical point
@@ -3051,10 +3202,11 @@ func (d *Device) maxChannelId() byte {
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
 	lcdAvailable := false
+	psuAvailable := false
 	var devices = make(map[int]*Devices)
 	var nonAIOLcdData = lcd.GetNonAioLCDData()
 
-	response := d.read(modeGetDevices, dataTypeGetDevices)
+	response := d.read(modeGetDevices, dataTypeGetDevices, false)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response)}).Info("getDevices()")
 	}
@@ -3202,11 +3354,31 @@ func (d *Device) getDevices() int {
 			SubDevices:         subDevices,
 			IsCpuBlock:         deviceMeta.CpuBlock,
 			IsCommanderDuo:     deviceMeta.CommanderDuo,
+			IsPSU:              deviceMeta.Psu,
+		}
+
+		if device.IsPSU {
+			device.Profile = "PSU"
 		}
 
 		if device.IsCommanderDuo {
 			device.Name = fmt.Sprintf("%s - Channel %d", device.Name, duoPort)
 			duoPort++
+		}
+
+		if device.IsPSU {
+			psuAvailable = true
+
+			// Check if we have PSU temperature profile
+			if temperatures.GetTemperatureProfile(deviceMeta.NameInternal) == nil {
+				if d.createPsuFanProfile(deviceMeta.NameInternal) == 0 {
+					device.Profile = "Normal"
+				} else {
+					device.Profile = deviceMeta.NameInternal
+				}
+			} else {
+				device.Profile = deviceMeta.NameInternal
+			}
 		}
 
 		deviceValue, found := d.getDevicesValue(i)
@@ -3279,7 +3451,24 @@ func (d *Device) getDevices() int {
 	}
 	d.Devices = devices
 
+	if psuAvailable {
+		d.Psu = true
+	}
 	return len(devices)
+}
+
+// createPsuFanProfile will generate PSU temperature profile if PSU is present
+func (d *Device) createPsuFanProfile(name string) uint8 {
+	psuTemperatureProfile := &temperatures.NewTemperatureProfile{
+		Profile: name,
+		ZeroRpm: true,
+		Sensor:  temperatures.SensorTypePSU,
+	}
+
+	if temperatures.AddTemperatureProfile(psuTemperatureProfile) {
+		return 1
+	}
+	return 0
 }
 
 // setupPortProtection will set port protection
@@ -3980,13 +4169,13 @@ func (d *Device) setColorEndpoint() {
 	defer d.deviceLock.Unlock()
 
 	// Close any RGB endpoint
-	_, err := d.transfer(cmdCloseEndpoint, modeSetColor)
+	_, err := d.transfer(cmdCloseEndpoint, modeSetColor, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open RGB endpoint
-	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor)
+	_, err = d.transfer(cmdOpenColorEndpoint, modeSetColor, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
@@ -3994,7 +4183,7 @@ func (d *Device) setColorEndpoint() {
 
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
-	_, err := d.transfer(cmdHardwareMode, nil)
+	_, err := d.transfer(cmdHardwareMode, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -4002,7 +4191,7 @@ func (d *Device) setHardwareMode() {
 
 // setSoftwareMode will switch a device to software mode
 func (d *Device) setSoftwareMode() {
-	_, err := d.transfer(cmdSoftwareMode, nil)
+	_, err := d.transfer(cmdSoftwareMode, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
@@ -4011,7 +4200,7 @@ func (d *Device) setSoftwareMode() {
 
 // getLedDevices will get all connected LED data
 func (d *Device) getLedDevices() {
-	buf := d.read(modeGetLeds, nil)
+	buf := d.read(modeGetLeds, nil, false)
 	channels := buf[6]
 	data := buf[7:]
 
@@ -4101,7 +4290,7 @@ func (d *Device) getSerial() {
 
 // getDeviceFirmware will return a device firmware version out as string
 func (d *Device) getDeviceFirmware() {
-	fw, err := d.transfer(cmdGetFirmware, nil)
+	fw, err := d.transfer(cmdGetFirmware, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to a device")
 	}
@@ -4116,7 +4305,7 @@ func (d *Device) getDeviceFirmware() {
 }
 
 // read will read data from a device and return data as a byte array
-func (d *Device) read(endpoint, bufferType []byte) []byte {
+func (d *Device) read(endpoint, bufferType []byte, psu bool) []byte {
 	d.deviceLock.Lock()
 	defer d.deviceLock.Unlock()
 
@@ -4124,26 +4313,26 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	var buffer []byte
 
 	// Close specified endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint, psu)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint, psu)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
 	// Read data from endpoint
-	buffer, err = d.transfer(cmdRead, endpoint)
+	buffer, err = d.transfer(cmdRead, endpoint, psu)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
 	if responseMatch(buffer, bufferType) {
 		// More data than it can fit into single 512 byte buffer
-		next, e := d.transfer(cmdRead, endpoint)
+		next, e := d.transfer(cmdRead, endpoint, psu)
 		if e != nil {
 			logger.Log(logger.Fields{"error": e}).Error("Unable to read endpoint")
 		}
@@ -4151,7 +4340,7 @@ func (d *Device) read(endpoint, bufferType []byte) []byte {
 	}
 
 	// Close specified endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint, psu)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
@@ -4170,19 +4359,19 @@ func (d *Device) readDeviceData(endpoint []byte) []byte {
 	buff = append(buff, endpoint...)
 
 	// Open endpoint
-	_, err := d.transfer(buff, nil)
+	_, err := d.transfer(buff, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 	}
 
 	// Read data from endpoint
-	buffer, err = d.transfer(cmdReadColor, nil)
+	buffer, err = d.transfer(cmdReadColor, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read endpoint")
 	}
 
 	// Close specified endpoint
-	_, err = d.transfer(cmdCloseColorEndpoint, nil)
+	_, err = d.transfer(cmdCloseColorEndpoint, nil, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 	}
@@ -4508,28 +4697,28 @@ func (d *Device) write(endpoint, bufferType, data []byte) []byte {
 	}
 
 	// Close endpoint
-	_, err := d.transfer(cmdCloseEndpoint, endpoint)
+	_, err := d.transfer(cmdCloseEndpoint, endpoint, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 		return bufferR
 	}
 
 	// Open endpoint
-	_, err = d.transfer(cmdOpenEndpoint, endpoint)
+	_, err = d.transfer(cmdOpenEndpoint, endpoint, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open endpoint")
 		return bufferR
 	}
 
 	// Send it
-	bufferR, err = d.transfer(cmdWrite, buffer)
+	bufferR, err = d.transfer(cmdWrite, buffer, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to write to endpoint")
 		return bufferR
 	}
 
 	// Close endpoint
-	_, err = d.transfer(cmdCloseEndpoint, endpoint)
+	_, err = d.transfer(cmdCloseEndpoint, endpoint, false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close endpoint")
 		return bufferR
@@ -4566,13 +4755,13 @@ func (d *Device) writeColor(data []byte) {
 		}
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk)
+			_, err := d.transfer(cmdWriteColor, chunk, false)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
 			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk)
+			_, err := d.transfer(dataTypeSubColor, chunk, false)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
@@ -4645,13 +4834,13 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 		}
 		if i == 0 {
 			// Initial packet is using cmdWriteColor
-			_, err := d.transfer(cmdWriteColor, chunk)
+			_, err := d.transfer(cmdWriteColor, chunk, false)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
 			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-			_, err := d.transfer(dataTypeSubColor, chunk)
+			_, err := d.transfer(dataTypeSubColor, chunk, false)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 			}
@@ -4716,13 +4905,13 @@ func (d *Device) startQueueWorker() {
 				}
 				if i == 0 {
 					// Initial packet is using cmdWriteColor
-					_, err := d.transfer(cmdWriteColor, chunk)
+					_, err := d.transfer(cmdWriteColor, chunk, false)
 					if err != nil {
 						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 					}
 				} else {
 					// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
-					_, err := d.transfer(dataTypeSubColor, chunk)
+					_, err := d.transfer(dataTypeSubColor, chunk, false)
 					if err != nil {
 						logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 					}
@@ -4777,7 +4966,7 @@ func (d *Device) transferToLcd(buffer []byte, lcdDevice *hid.Device) {
 }
 
 // transfer will send data to a device and retrieve device output
-func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
+func (d *Device) transfer(endpoint, buffer []byte, psu bool) ([]byte, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -4798,6 +4987,9 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	} else {
 		// Create write buffer
 		bufferW := make([]byte, bufferSizeWrite)
+		if psu {
+			bufferW[1] = psuInitHeader
+		}
 		bufferW[2] = 0x01
 		endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 		copy(endpointHeaderPosition, endpoint)

@@ -322,7 +322,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if sensor > 9 || sensor < 0 {
+	if sensor > 10 || sensor < 0 {
 		return &Payload{
 			Message: language.GetValue("txtInvalidSensorValue"),
 			Code:    http.StatusOK,
@@ -520,6 +520,8 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 			return &Payload{Message: language.GetValue("txtSpeedProfileNonExistingDevice"), Code: http.StatusOK, Status: 0}
 		case 5:
 			return &Payload{Message: language.GetValue("txtSpeedProfileNoTemperatureData"), Code: http.StatusOK, Status: 0}
+		case 6:
+			return &Payload{Message: language.GetValue("txtSpeedProfileNoPSU"), Code: http.StatusOK, Status: 0}
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToApplySpeedProfile"), Code: http.StatusOK, Status: 0}

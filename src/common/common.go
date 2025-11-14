@@ -552,6 +552,18 @@ func FromLinear11(bytes []byte) float32 {
 	return float32(fraction) * float32(math.Pow(2, float64(exp)))
 }
 
+// RoundToTwo will round a float64 to 2 decimal places
+func RoundToTwo(f float64) float64 {
+	const epsilon = 1e-9
+	return math.Round((f+epsilon)*100) / 100
+}
+
+// FormatTwoDecimals will return a string with exactly 2 decimals
+func FormatTwoDecimals(f float64) string {
+	rounded := RoundToTwo(f)
+	return strconv.FormatFloat(rounded, 'f', 2, 64)
+}
+
 // GetTime will return current time as string
 func GetTime() string {
 	t := time.Now()

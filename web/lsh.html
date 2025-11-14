@@ -203,6 +203,8 @@
                                                 <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
                                                 {{ else if $device.IsCommanderDuo }}
                                                 <img src="/static/img/icons/icon-hub.svg" width="46" height="46" alt="Device" />
+                                                {{ else if $device.IsPSU }}
+                                                <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
                                                 {{ else if $device.IsCpuBlock }}
                                                 <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
                                                 {{ else }}
@@ -229,7 +231,11 @@
                                         </div>
                                         {{ if $device.HasSpeed }}
                                         <div class="card-body" style="padding: 1rem 1rem;">
+                                            {{ if $device.IsPSU }}
+                                            <div style="text-align: center;float: left;">
+                                            {{ else }}
                                             <div style="text-align: center;">
+                                            {{ end }}
                                                 {{ if $device.HasTemps }}
                                                 {{ if gt $device.Temperature 0.00 }}
                                                 <div class="d-flex align-items-end justify-content-between mb-2">
@@ -285,7 +291,77 @@
                                                     <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
                                                 </div>
                                                 {{ end }}
+
+                                                {{ if $device.IsPSU }}
+                                                <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
+                                                    <div class="me-2">
+                                                        <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">Power Out</p>
+                                                    </div>
+                                                    <p class="text-sm lh-1 mb-0 text-dash-color-2" style="margin-top: 5px;" id="powerOut-{{ $device.ChannelId }}">{{ $device.PowerOut }} W</p>
+                                                </div>
+                                                <div class="progress" style="height: 3px">
+                                                    <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                                {{ end }}
                                             </div>
+
+                                                {{ if $device.IsPSU }}
+                                                {{ range $vk, $val := $device.Volts }}
+                                                <div style="text-align: center;float: right;margin-left: 15px;width: 150px;">
+                                                    <div class="d-flex align-items-end justify-content-between mb-2">
+                                                        <div class="me-2">
+                                                            {{ if eq $vk 0 }}
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">3.3V Rail</p>
+                                                            {{ else if eq $vk 1 }}
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">5V Rail</p>
+                                                            {{ else if eq $vk 2 }}
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">12V Rail</p>
+                                                            {{ else }}
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">N/A Rail</p>
+                                                            {{ end }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress" style="height: 3px">
+                                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+
+                                                    {{ $volts := index $device.Volts $vk }}
+                                                    {{ $amps := index $device.Amps $vk }}
+                                                    {{ $watts := index $device.Watts $vk }}
+
+                                                    <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
+                                                        <div class="me-2">
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $volts.Name }}</p>
+                                                        </div>
+                                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" style="margin-top: 5px;" id="volts-{{ $vk }}">{{ $volts.ValueString }} V</p>
+                                                    </div>
+                                                    <div class="progress" style="height: 3px">
+                                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+
+                                                    <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
+                                                        <div class="me-2">
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $amps.Name }}</p>
+                                                        </div>
+                                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" style="margin-top: 5px;" id="amps-{{ $vk }}">{{ $amps.ValueString }} A</p>
+                                                    </div>
+                                                    <div class="progress" style="height: 3px">
+                                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+
+                                                    <div class="d-flex align-items-end justify-content-between mb-2" style="margin-top: 10px;">
+                                                        <div class="me-2">
+                                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $watts.Name }}</p>
+                                                        </div>
+                                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" style="margin-top: 5px;" id="watts-{{ $vk }}">{{ $watts.ValueString }} W</p>
+                                                    </div>
+                                                    <div class="progress" style="height: 3px">
+                                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+
+                                                </div>
+                                                {{ end }}
+                                                {{ end }}
                                         </div>
                                         {{ else }}
                                         {{ if $device.HasTemps }}

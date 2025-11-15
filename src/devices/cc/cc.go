@@ -2404,6 +2404,11 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
+	// Block PSU profile type
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		return 6
+	}
+
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
 		if strings.HasPrefix(profiles.Device, i2cPrefix) {
 			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
@@ -2460,6 +2465,11 @@ func (d *Device) UpdateSpeedProfileBulk(channelIds []int, profile string) uint8 
 		if !valid {
 			return 2
 		}
+	}
+
+	// Block PSU profile type
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		return 6
 	}
 
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {

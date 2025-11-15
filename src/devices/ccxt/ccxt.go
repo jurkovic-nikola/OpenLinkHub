@@ -1432,6 +1432,11 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		return 2
 	}
 
+	// Block PSU profile type
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		return 6
+	}
+
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
 		if strings.HasPrefix(profiles.Device, i2cPrefix) {
 			if temperatures.GetMemoryTemperature(profiles.ChannelId) == 0 {
@@ -1479,6 +1484,11 @@ func (d *Device) UpdateSpeedProfileBulk(channelIds []int, profile string) uint8 
 	if profiles.Sensor == temperatures.SensorTypeLiquidTemperature {
 		// This device does not have an option for AIO pump
 		return 2
+	}
+
+	// Block PSU profile type
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		return 6
 	}
 
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {

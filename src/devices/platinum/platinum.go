@@ -428,6 +428,11 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
+	// Block PSU profile type
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		return 6
+	}
+
 	if profiles.Sensor == temperatures.SensorTypeTemperatureProbe {
 		if profiles.Device != d.Serial {
 			return 3

@@ -374,6 +374,11 @@ func (d *Device) UpdateSpeedProfile(channelId int, profile string) uint8 {
 		}
 	}
 
+	// Block PSU profile type
+	if profiles.Sensor == temperatures.SensorTypePSU {
+		return 6
+	}
+
 	// Check if actual channelId exists in the device list
 	if _, ok := d.Devices[channelId]; ok {
 		d.Devices[channelId].Profile = profile

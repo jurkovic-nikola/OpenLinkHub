@@ -972,7 +972,7 @@ func (d *Device) isRgbStatic() bool {
 	return false
 }
 
-// setupOpenRGBController will create Cluster Controller for RGB Cluster
+// setupClusterController will create Cluster Controller for RGB Cluster
 func (d *Device) setupClusterController() {
 	if d.DeviceProfile == nil {
 		return

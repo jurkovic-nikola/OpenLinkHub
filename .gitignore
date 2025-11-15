@@ -5,6 +5,7 @@ release/
 docker/
 ppa/
 build.sh
+changelog.sh
 build_local.sh
 OpenLinkHub
 Buildfile

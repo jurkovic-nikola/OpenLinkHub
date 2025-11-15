@@ -88,7 +88,7 @@
                                                             <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
                                                             {{ else if and (eq $productType 8) (eq $device.HasSpeed false) }}
                                                             <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
-                                                            {{ else if $device.IsPSU }}
+                                                            {{ else if and (eq $productType 0) (eq $device.IsPSU true) }}
                                                             <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
                                                             {{ else }}
                                                             <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />

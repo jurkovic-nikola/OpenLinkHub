@@ -1,5 +1,10 @@
+## 2025-11-16
+
+* smaller navigation (65f2d7b)
+
 ## 2025-11-15
 
+* changelog (7f538b4)
 * elite aio rgb cluster support (ddc6c1a)
 * psu profile fixups (a63a9eb)
 * templates fixup (09835d1)

@@ -275,7 +275,12 @@ footer {
 }
 
 .top-px {
-    margin-top: 8px;
+    /*margin-top: 8px;*/
+}
+
+.navigation-text {
+    font-size: 13px;
+    margin-left: 5px;
 }
 
 .device-px {
@@ -300,7 +305,7 @@ footer {
     float: left;
     margin-left:0;
     width: 120px;
-    height: 92px;
+    height: 40px;
     text-align: center;
     padding: 6px 0 0;
 }
@@ -308,7 +313,7 @@ footer {
 .navigation-left-big {
     float: left;
     margin-left: 20px;
-    height: 92px;
+    height: 40px;
     text-align: center;
     padding: 6px 0 0;
 }
@@ -316,7 +321,7 @@ footer {
 .navigation-right-big {
     float: right;
     margin-left: 20px;
-    height: 92px;
+    height: 40px;
     text-align: center;
     padding: 6px 0 0;
 }
@@ -325,7 +330,7 @@ footer {
     float: right;
     margin-left: 20px;
     width: 92px;
-    height: 92px;
+    height: 40px;
     text-align: center;
     padding: 6px 0 0;
 }

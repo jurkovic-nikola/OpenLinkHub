@@ -14,6 +14,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -114,7 +115,7 @@ func (d *Device) createDevice() {
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	switch d.Devices.ProductId {
-	case 2710:
+	case 2710, 10766:
 		{
 			dev := hs80maxW.Init(
 				d.Devices.VendorId,
@@ -226,6 +227,11 @@ func (d *Device) getDevice() {
 		Serial:    d.Serial + "W",
 		VendorId:  d.VendorId,
 		ProductId: 2710,
+	}
+
+	if d.ProductId == 10767 {
+		d.Devices.ProductId = 10766
+		d.Devices.Serial = strconv.Itoa(10766)
 	}
 }
 

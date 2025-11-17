@@ -1,5 +1,12 @@
+## 2025-11-17
+
+* docs update (076690b)
+* scuf envision pro v2 (d88a339)
+* zero rpm mode (55bf385)
+
 ## 2025-11-16
 
+* changelog (26f1aba)
 * smaller navigation (65f2d7b)
 
 ## 2025-11-15

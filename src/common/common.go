@@ -163,6 +163,9 @@ const (
 	ProductTypeScufEnvisionProWU    = 601
 	ProductTypeScufEnvisionProW     = 602
 	ProductTypeScufDongle           = 603
+	ProductTypeScufEnvisionProV2WU  = 604
+	ProductTypeScufEnvisionProV2W   = 605
+	ProductTypeScufDongleV2         = 606
 	ProductTypeDongle               = 997
 	ProductTypeSlipstream           = 998
 	ProductTypeCluster              = 999

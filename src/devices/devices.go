@@ -86,6 +86,8 @@ import (
 	"OpenLinkHub/src/devices/scimitarrgb"
 	"OpenLinkHub/src/devices/scimitarrgbelite"
 	"OpenLinkHub/src/devices/scufdongle"
+	"OpenLinkHub/src/devices/scufdongleV2"
+	"OpenLinkHub/src/devices/scufenvisionproV2WU"
 	"OpenLinkHub/src/devices/scufenvisionproWU"
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
@@ -576,140 +578,142 @@ func Init() {
 
 // deviceRegisterMap hold map of supported devices and their initialization call
 var deviceRegisterMap = map[uint16]Product{
-	0:     {0, 0, "Memory", memory.Init, nil},                            // Memory
-	3135:  {0, 0, "iCUE LINK SYSTEM HUB", lsh.Init, nil},                 // iCUE Link System Hub
-	3122:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                   // iCUE COMMANDER Core
-	3100:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                   // iCUE COMMANDER Core
-	3114:  {0, 0, "iCUE COMMANDER CORE XT", ccxt.Init, nil},              // iCUE COMMANDER CORE XT
-	3158:  {0, 0, "iCUE COMMANDER DUO", cduo.Init, nil},                  // iCUE COMMANDER DUO (USB)
-	3090:  {0, 0, "H150i PLATINUM", platinum.Init, nil},                  // H150i PLATINUM
-	3091:  {0, 0, "H115i PLATINUM", platinum.Init, nil},                  // H115i PLATINUM
-	3093:  {0, 0, "H100i PLATINUM", platinum.Init, nil},                  // H100i PLATINUM
-	3080:  {0, 0, "H80i HYDRO", hydro.Init, nil},                         // H80i HYDRO
-	3081:  {0, 0, "H100i HYDRO", hydro.Init, nil},                        // H100i HYDRO
-	3082:  {0, 0, "H115i HYDRO", hydro.Init, nil},                        // H115i HYDRO
-	3125:  {0, 0, "iCUE H100i ELITE RGB", elite.Init, nil},               // iCUE H100i ELITE RGB
-	3126:  {0, 0, "iCUE H115i ELITE RGB", elite.Init, nil},               // iCUE H115i ELITE RGB
-	3127:  {0, 0, "iCUE H150i ELITE RGB", elite.Init, nil},               // iCUE H150i ELITE RGB
-	3136:  {0, 0, "iCUE H100i ELITE RGB White", elite.Init, nil},         // iCUE H100i ELITE RGB White
-	3137:  {0, 0, "iCUE H150i ELITE RGB White", elite.Init, nil},         // iCUE H150i ELITE RGB White
-	3104:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},              // iCUE H100i RGB PRO XT
-	3105:  {0, 0, "iCUE H115i RGB PRO XT", elite.Init, nil},              // iCUE H115i RGB PRO XT
-	3106:  {0, 0, "iCUE H150i RGB PRO XT", elite.Init, nil},              // iCUE H150i RGB PRO XT
-	3095:  {0, 0, "H115i RGB PLATINUM", elite.Init, nil},                 // H115i RGB PLATINUM
-	3096:  {0, 0, "H100i RGB PLATINUM", elite.Init, nil},                 // H100i RGB PLATINUM
-	3097:  {0, 0, "H100i RGB PLATINUM SE", elite.Init, nil},              // H100i RGB PLATINUM SE
-	3098:  {0, 0, "LIGHTING NODE CORE", lncore.Init, nil},                // Lighting Node CORE
-	3083:  {0, 0, "LIGHTING NODE PRO", lnpro.Init, nil},                  // Lighting Node Pro
-	3088:  {0, 0, "COMMANDER PRO", cpro.Init, nil},                       // Commander Pro
-	7424:  {0, 0, "COMMANDER PRO 1000D", cpro.Init, nil},                 // Obsidian 1000D Hub (Commander Pro)
-	3138:  {0, 0, "XC7 ELITE LCD", xc7.Init, nil},                        // XC7 ELITE LCD CPU Water Block
-	3159:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},             // Nautilus LCD Cap
-	3157:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},             // Nautilus LCD Cap
-	2612:  {0, 0, "ST100", st100.Init, nil},                              // ST100 LED Driver
-	7067:  {1, 0, "MM700 RGB", mm700.Init, nil},                          // MM700 RGB Gaming Mousepad
-	7113:  {1, 0, "MM700 3XL RGB", mm700.Init, nil},                      // MM700 3XL RGB Gaming Mousepad
-	6971:  {0, 0, "MM800 RGB POLARIS", mm800.Init, nil},                  // MM800 RGB POLARIS
-	3107:  {0, 0, "LT100", lt100.Init, nil},                              // LT100 Smart Lighting Tower
-	7198:  {0, 0, "HX1000i", psuhid.Init, nil},                           // HX1000i Power Supply
-	7203:  {0, 0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
-	7199:  {0, 0, "HX1500i", psuhid.Init, nil},                           // HX1500i Power Supply
-	7173:  {0, 0, "HX750i", psuhid.Init, nil},                            // HX750i Power Supply
-	7174:  {0, 0, "HX850i", psuhid.Init, nil},                            // HX850i Power Supply
-	7175:  {0, 0, "HX1000i", psuhid.Init, nil},                           // HX1000i Power Supply
-	7176:  {0, 0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
-	7181:  {0, 0, "RM1000i", psuhid.Init, nil},                           // RM1000i Power Supply
-	7180:  {0, 0, "RM850i", psuhid.Init, nil},                            // RM850i Power Supply
-	7207:  {0, 0, "HX1200i", psuhid.Init, nil},                           // HX1200i Power Supply
-	7054:  {0, 0, "iCUE NEXUS", nexus.Init, nil},                         // iCUE NEXUS
-	7127:  {1, 0, "K65 PRO MINI", k65pm.Init, nil},                       // K65 PRO MINI
-	7119:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                       // K65 RGB MINI
-	7087:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                       // K65 RGB MINI
-	7094:  {1, 0, "K70 PPO MINI", k70pmWU.Init, nil},                     // K70 PPO MINI
-	7165:  {1, 0, "K70 CORE RGB", k70core.Init, nil},                     // K70 CORE RGB
-	11009: {1, 0, "K70 CORE TKL", k70coretkl.Init, nil},                  // K70 CORE TKL
-	11010: {1, 0, "K70 CORE TKL", k70coretklWU.Init, nil},                // K70 CORE TKL WIRELESS
-	11028: {1, 0, "K70 PRO TKL", k70protkl.Init, nil},                    // K70 PRO TKL WIRELESS
-	7097:  {1, 0, "K70 RGB TKL CS", k70rgbtklcs.Init, nil},               // K70 RGB TKL
-	7027:  {1, 0, "K70 RGB TKL", k70rgbtklcs.Init, nil},                  // K70 RGB TKL
-	6973:  {1, 0, "K55 RGB", k55.Init, nil},                              // K55 RGB
-	7166:  {1, 0, "K55 CORE RGB", k55core.Init, nil},                     // K55 CORE RGB
-	11040: {1, 0, "K55 CORE TKL RGB", k55coretkl.Init, nil},              // K55 CORE RGB
-	7076:  {1, 0, "K55 PRO RGB", k55pro.Init, nil},                       // K55 PRO RGB
-	7073:  {1, 0, "K55 RGB PRO XT", k55proXT.Init, nil},                  // K55 RGB PRO XT
-	7022:  {1, 0, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                // K57 RGB WIRELESS
-	7072:  {1, 0, "K60 RGB PRO", k60rgbpro.Init, nil},                    // K60 RGB PRO
-	7104:  {1, 0, "K70 MAX", k70max.Init, nil},                           // K70 MAX
-	7110:  {1, 0, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
-	7091:  {1, 0, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
-	7124:  {1, 0, "K70 PRO", k70pro.Init, nil},                           // K70 PRO
-	6966:  {1, 0, "K70 LUX", k70lux.Init, nil},                           // K70 LUX
-	6963:  {1, 0, "K70 LUX RGB", k70luxrgb.Init, nil},                    // K70 LUX RGB
-	6968:  {1, 0, "K70 RGB RAPIDFIRE", k70rgbRF.Init, nil},               // K70 RGB RAPIDFIRE
-	6985:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
-	6997:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
-	7019:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                       // K70 RGB MK2
-	6984:  {1, 0, "STRAFE RGB MK2", strafergbmk2.Init, nil},              // STRAFE RGB MK2
-	11024: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
-	11025: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},              // K65 PLUS WIRELESS USB
-	6957:  {1, 0, "K95 PLATINUM", k95platinum.Init, nil},                 // K95 PLATINUM
-	7049:  {1, 0, "K95 PLATINUM XT", k95platinumXT.Init, nil},            // K95 PLATINUM XT
-	6991:  {1, 0, "K68 RGB", k68rgb.Init, nil},                           // K68 RGB
-	7083:  {1, 0, "K100 AIR", k100airWU.Init, nil},                       // K100 AIR USB
-	7036:  {1, 0, "K100", k100.Init, nil},                                // K100
-	7109:  {1, 0, "K100", k100.Init, nil},                                // K100
-	7037:  {1, 0, "K100", k100.Init, nil},                                // K100
-	11012: {1, 0, "MAKR 75", makr75WU.Init, nil},                         // MAKR 75
-	7059:  {1, 0, "KATAR PRO", katarpro.Init, nil},                       // KATAR PRO Gaming Mouse
-	7084:  {1, 0, "KATAR PRO XT", katarproxt.Init, nil},                  // KATAR PRO XT Gaming Mouse
-	7005:  {1, 0, "IRONCLAW RGB", ironclaw.Init, nil},                    // IRONCLAW RGB Gaming Mouse
-	6987:  {1, 0, "DARK CORE RGB SE", darkcorergbseWU.Init, nil},         // DARK CORE RGB SE
-	6988:  {1, 0, "IRONCLAW RGB WIRELESS", ironclawWU.Init, nil},         // IRONCLAW RGB WIRELESS Gaming Mouse
-	7096:  {1, 0, "NIGHTSABRE WIRELESS", nightsabreWU.Init, nil},         // NIGHTSABRE WIRELESS Mouse
-	7139:  {1, 0, "SCIMITAR RGB ELITE", scimitar.Init, nil},              // SCIMITAR RGB ELITE
-	6974:  {1, 0, "SCIMITAR PRO RGB", scimitarprorgb.Init, nil},          // SCIMITAR PRO RGB
-	6942:  {1, 0, "SCIMITAR RGB", scimitarrgb.Init, nil},                 // SCIMITAR RGB
-	7051:  {1, 0, "SCIMITAR RGB ELITE", scimitarrgbelite.Init, nil},      // SCIMITAR RGB ELITE
-	7131:  {1, 0, "SCIMITAR RGB ELITE WIRELESS", scimitarWU.Init, nil},   // SCIMITAR RGB ELITE WIRELESS
-	11042: {1, 0, "SCIMITAR ELITE WIRELESS SE", scimitarSEWU.Init, nil},  // SCIMITAR ELITE WIRELESS SE
-	11011: {1, 0, "M55", m55.Init, nil},                                  // M55 Gaming Mouse
-	7024:  {1, 0, "M55 RGB PRO", m55rgbpro.Init, nil},                    // M55 RGB PRO Gaming Mouse
-	7060:  {1, 0, "KATAR PRO WIRELESS", katarproW.Init, nil},             // KATAR PRO Wireless Gaming Dongle
-	7038:  {1, 0, "DARK CORE RGB PRO SE", darkcorergbproseWU.Init, nil},  // DARK CORE RGB PRO SE Gaming Mouse
-	7040:  {1, 0, "DARK CORE RGB PRO", darkcorergbproWU.Init, nil},       // DARK CORE RGB PRO Gaming Mouse
-	7152:  {1, 0, "M75", m75.Init, nil},                                  // M75 Gaming Mouse
-	11016: {1, 0, "M75 WIRELESS", m75WU.Init, nil},                       // M75 WIRELESS Gaming Mouse
-	7154:  {1, 0, "M75 AIR WIRELESS", m75AirWU.Init, nil},                // M75 AIR WIRELESS Gaming Mouse
-	7070:  {1, 0, "M65 RGB ULTRA", m65rgbultra.Init, nil},                // M65 RGB ULTRA Gaming Mouse
-	7093:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},     // M65 RGB ULTRA WIRELESS Gaming Mouse
-	7126:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},     // M65 RGB ULTRA WIRELESS Gaming Mouse
-	7002:  {1, 0, "M65 RGB ELITE", m65rgbelite.Init, nil},                // M65 RGB ELITE Gaming Mouse
-	7029:  {1, 0, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},            // HARPOON RGB PRO Gaming Mouse
-	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                        // HARPOON Gaming Mouse
-	7004:  {1, 0, "NIGHTSWORD RGB", nightswordrgb.Init, nil},             // NIGHTSWORD RGB Gaming Mouse
-	7064:  {1, 0, "SABRE RGB PRO WIRELESS", sabrergbproWU.Init, nil},     // SABRE RGB PRO WIRELESS Gaming Mouse
-	7033:  {1, 0, "SABRE RGB PRO", sabrergbpro.Init, nil},                // SABRE RGB PRO
-	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                  // SABRE PRO CS
-	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},         // DARKSTAR RGB WIRELESS Gaming Mouse
-	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil}, // VIRTUOSO RGB WIRELESS XT
-	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                      // VIRTUOSO USB Gaming Headset
-	2696:  {3, 0, "HS80 RGB USB", hs80rgb.Init, nil},                     // HS80 RGB USB Gaming Headset
-	7132:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
-	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
-	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},           // SLIPSTREAM WIRELESS USB Receiver
-	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},  // VIRTUOSO MAX WIRELESS
-	2711:  {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},          // HS80 MAX WIRELESS
-	6993:  {1, 0, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},     // DARK CORE RGB SE Wireless USB Receiver
-	2660:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
-	2667:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
-	2628:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},             // Headset dongle
-	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},         // Headset dongle
-	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},         // K65 PLUS WIRELESS
-	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},             // CORSAIR VIRTUOSO SE USB Gaming Headset
-	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},            // VOID WIRELESS V2
-	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},     // CORSAIR LINK TM USB DONGLE
-	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionproWU.Init, nil},      // SCUF Envision Pro Controller
-	17230: {4, 0, "SCUF PC Controller Dongle", nil, scufdongle.Init},     // SCUF Gaming SCUF PC Controller Dongle
+	0:     {0, 0, "Memory", memory.Init, nil},                             // Memory
+	3135:  {0, 0, "iCUE LINK SYSTEM HUB", lsh.Init, nil},                  // iCUE Link System Hub
+	3122:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                    // iCUE COMMANDER Core
+	3100:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                    // iCUE COMMANDER Core
+	3114:  {0, 0, "iCUE COMMANDER CORE XT", ccxt.Init, nil},               // iCUE COMMANDER CORE XT
+	3158:  {0, 0, "iCUE COMMANDER DUO", cduo.Init, nil},                   // iCUE COMMANDER DUO (USB)
+	3090:  {0, 0, "H150i PLATINUM", platinum.Init, nil},                   // H150i PLATINUM
+	3091:  {0, 0, "H115i PLATINUM", platinum.Init, nil},                   // H115i PLATINUM
+	3093:  {0, 0, "H100i PLATINUM", platinum.Init, nil},                   // H100i PLATINUM
+	3080:  {0, 0, "H80i HYDRO", hydro.Init, nil},                          // H80i HYDRO
+	3081:  {0, 0, "H100i HYDRO", hydro.Init, nil},                         // H100i HYDRO
+	3082:  {0, 0, "H115i HYDRO", hydro.Init, nil},                         // H115i HYDRO
+	3125:  {0, 0, "iCUE H100i ELITE RGB", elite.Init, nil},                // iCUE H100i ELITE RGB
+	3126:  {0, 0, "iCUE H115i ELITE RGB", elite.Init, nil},                // iCUE H115i ELITE RGB
+	3127:  {0, 0, "iCUE H150i ELITE RGB", elite.Init, nil},                // iCUE H150i ELITE RGB
+	3136:  {0, 0, "iCUE H100i ELITE RGB White", elite.Init, nil},          // iCUE H100i ELITE RGB White
+	3137:  {0, 0, "iCUE H150i ELITE RGB White", elite.Init, nil},          // iCUE H150i ELITE RGB White
+	3104:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},               // iCUE H100i RGB PRO XT
+	3105:  {0, 0, "iCUE H115i RGB PRO XT", elite.Init, nil},               // iCUE H115i RGB PRO XT
+	3106:  {0, 0, "iCUE H150i RGB PRO XT", elite.Init, nil},               // iCUE H150i RGB PRO XT
+	3095:  {0, 0, "H115i RGB PLATINUM", elite.Init, nil},                  // H115i RGB PLATINUM
+	3096:  {0, 0, "H100i RGB PLATINUM", elite.Init, nil},                  // H100i RGB PLATINUM
+	3097:  {0, 0, "H100i RGB PLATINUM SE", elite.Init, nil},               // H100i RGB PLATINUM SE
+	3098:  {0, 0, "LIGHTING NODE CORE", lncore.Init, nil},                 // Lighting Node CORE
+	3083:  {0, 0, "LIGHTING NODE PRO", lnpro.Init, nil},                   // Lighting Node Pro
+	3088:  {0, 0, "COMMANDER PRO", cpro.Init, nil},                        // Commander Pro
+	7424:  {0, 0, "COMMANDER PRO 1000D", cpro.Init, nil},                  // Obsidian 1000D Hub (Commander Pro)
+	3138:  {0, 0, "XC7 ELITE LCD", xc7.Init, nil},                         // XC7 ELITE LCD CPU Water Block
+	3159:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},              // Nautilus LCD Cap
+	3157:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},              // Nautilus LCD Cap
+	2612:  {0, 0, "ST100", st100.Init, nil},                               // ST100 LED Driver
+	7067:  {1, 0, "MM700 RGB", mm700.Init, nil},                           // MM700 RGB Gaming Mousepad
+	7113:  {1, 0, "MM700 3XL RGB", mm700.Init, nil},                       // MM700 3XL RGB Gaming Mousepad
+	6971:  {0, 0, "MM800 RGB POLARIS", mm800.Init, nil},                   // MM800 RGB POLARIS
+	3107:  {0, 0, "LT100", lt100.Init, nil},                               // LT100 Smart Lighting Tower
+	7198:  {0, 0, "HX1000i", psuhid.Init, nil},                            // HX1000i Power Supply
+	7203:  {0, 0, "HX1200i", psuhid.Init, nil},                            // HX1200i Power Supply
+	7199:  {0, 0, "HX1500i", psuhid.Init, nil},                            // HX1500i Power Supply
+	7173:  {0, 0, "HX750i", psuhid.Init, nil},                             // HX750i Power Supply
+	7174:  {0, 0, "HX850i", psuhid.Init, nil},                             // HX850i Power Supply
+	7175:  {0, 0, "HX1000i", psuhid.Init, nil},                            // HX1000i Power Supply
+	7176:  {0, 0, "HX1200i", psuhid.Init, nil},                            // HX1200i Power Supply
+	7181:  {0, 0, "RM1000i", psuhid.Init, nil},                            // RM1000i Power Supply
+	7180:  {0, 0, "RM850i", psuhid.Init, nil},                             // RM850i Power Supply
+	7207:  {0, 0, "HX1200i", psuhid.Init, nil},                            // HX1200i Power Supply
+	7054:  {0, 0, "iCUE NEXUS", nexus.Init, nil},                          // iCUE NEXUS
+	7127:  {1, 0, "K65 PRO MINI", k65pm.Init, nil},                        // K65 PRO MINI
+	7119:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                        // K65 RGB MINI
+	7087:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                        // K65 RGB MINI
+	7094:  {1, 0, "K70 PPO MINI", k70pmWU.Init, nil},                      // K70 PPO MINI
+	7165:  {1, 0, "K70 CORE RGB", k70core.Init, nil},                      // K70 CORE RGB
+	11009: {1, 0, "K70 CORE TKL", k70coretkl.Init, nil},                   // K70 CORE TKL
+	11010: {1, 0, "K70 CORE TKL", k70coretklWU.Init, nil},                 // K70 CORE TKL WIRELESS
+	11028: {1, 0, "K70 PRO TKL", k70protkl.Init, nil},                     // K70 PRO TKL WIRELESS
+	7097:  {1, 0, "K70 RGB TKL CS", k70rgbtklcs.Init, nil},                // K70 RGB TKL
+	7027:  {1, 0, "K70 RGB TKL", k70rgbtklcs.Init, nil},                   // K70 RGB TKL
+	6973:  {1, 0, "K55 RGB", k55.Init, nil},                               // K55 RGB
+	7166:  {1, 0, "K55 CORE RGB", k55core.Init, nil},                      // K55 CORE RGB
+	11040: {1, 0, "K55 CORE TKL RGB", k55coretkl.Init, nil},               // K55 CORE RGB
+	7076:  {1, 0, "K55 PRO RGB", k55pro.Init, nil},                        // K55 PRO RGB
+	7073:  {1, 0, "K55 RGB PRO XT", k55proXT.Init, nil},                   // K55 RGB PRO XT
+	7022:  {1, 0, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                 // K57 RGB WIRELESS
+	7072:  {1, 0, "K60 RGB PRO", k60rgbpro.Init, nil},                     // K60 RGB PRO
+	7104:  {1, 0, "K70 MAX", k70max.Init, nil},                            // K70 MAX
+	7110:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO
+	7091:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO
+	7124:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO
+	6966:  {1, 0, "K70 LUX", k70lux.Init, nil},                            // K70 LUX
+	6963:  {1, 0, "K70 LUX RGB", k70luxrgb.Init, nil},                     // K70 LUX RGB
+	6968:  {1, 0, "K70 RGB RAPIDFIRE", k70rgbRF.Init, nil},                // K70 RGB RAPIDFIRE
+	6985:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                        // K70 RGB MK2
+	6997:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                        // K70 RGB MK2
+	7019:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                        // K70 RGB MK2
+	6984:  {1, 0, "STRAFE RGB MK2", strafergbmk2.Init, nil},               // STRAFE RGB MK2
+	11024: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},               // K65 PLUS WIRELESS USB
+	11025: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},               // K65 PLUS WIRELESS USB
+	6957:  {1, 0, "K95 PLATINUM", k95platinum.Init, nil},                  // K95 PLATINUM
+	7049:  {1, 0, "K95 PLATINUM XT", k95platinumXT.Init, nil},             // K95 PLATINUM XT
+	6991:  {1, 0, "K68 RGB", k68rgb.Init, nil},                            // K68 RGB
+	7083:  {1, 0, "K100 AIR", k100airWU.Init, nil},                        // K100 AIR USB
+	7036:  {1, 0, "K100", k100.Init, nil},                                 // K100
+	7109:  {1, 0, "K100", k100.Init, nil},                                 // K100
+	7037:  {1, 0, "K100", k100.Init, nil},                                 // K100
+	11012: {1, 0, "MAKR 75", makr75WU.Init, nil},                          // MAKR 75
+	7059:  {1, 0, "KATAR PRO", katarpro.Init, nil},                        // KATAR PRO Gaming Mouse
+	7084:  {1, 0, "KATAR PRO XT", katarproxt.Init, nil},                   // KATAR PRO XT Gaming Mouse
+	7005:  {1, 0, "IRONCLAW RGB", ironclaw.Init, nil},                     // IRONCLAW RGB Gaming Mouse
+	6987:  {1, 0, "DARK CORE RGB SE", darkcorergbseWU.Init, nil},          // DARK CORE RGB SE
+	6988:  {1, 0, "IRONCLAW RGB WIRELESS", ironclawWU.Init, nil},          // IRONCLAW RGB WIRELESS Gaming Mouse
+	7096:  {1, 0, "NIGHTSABRE WIRELESS", nightsabreWU.Init, nil},          // NIGHTSABRE WIRELESS Mouse
+	7139:  {1, 0, "SCIMITAR RGB ELITE", scimitar.Init, nil},               // SCIMITAR RGB ELITE
+	6974:  {1, 0, "SCIMITAR PRO RGB", scimitarprorgb.Init, nil},           // SCIMITAR PRO RGB
+	6942:  {1, 0, "SCIMITAR RGB", scimitarrgb.Init, nil},                  // SCIMITAR RGB
+	7051:  {1, 0, "SCIMITAR RGB ELITE", scimitarrgbelite.Init, nil},       // SCIMITAR RGB ELITE
+	7131:  {1, 0, "SCIMITAR RGB ELITE WIRELESS", scimitarWU.Init, nil},    // SCIMITAR RGB ELITE WIRELESS
+	11042: {1, 0, "SCIMITAR ELITE WIRELESS SE", scimitarSEWU.Init, nil},   // SCIMITAR ELITE WIRELESS SE
+	11011: {1, 0, "M55", m55.Init, nil},                                   // M55 Gaming Mouse
+	7024:  {1, 0, "M55 RGB PRO", m55rgbpro.Init, nil},                     // M55 RGB PRO Gaming Mouse
+	7060:  {1, 0, "KATAR PRO WIRELESS", katarproW.Init, nil},              // KATAR PRO Wireless Gaming Dongle
+	7038:  {1, 0, "DARK CORE RGB PRO SE", darkcorergbproseWU.Init, nil},   // DARK CORE RGB PRO SE Gaming Mouse
+	7040:  {1, 0, "DARK CORE RGB PRO", darkcorergbproWU.Init, nil},        // DARK CORE RGB PRO Gaming Mouse
+	7152:  {1, 0, "M75", m75.Init, nil},                                   // M75 Gaming Mouse
+	11016: {1, 0, "M75 WIRELESS", m75WU.Init, nil},                        // M75 WIRELESS Gaming Mouse
+	7154:  {1, 0, "M75 AIR WIRELESS", m75AirWU.Init, nil},                 // M75 AIR WIRELESS Gaming Mouse
+	7070:  {1, 0, "M65 RGB ULTRA", m65rgbultra.Init, nil},                 // M65 RGB ULTRA Gaming Mouse
+	7093:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},      // M65 RGB ULTRA WIRELESS Gaming Mouse
+	7126:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},      // M65 RGB ULTRA WIRELESS Gaming Mouse
+	7002:  {1, 0, "M65 RGB ELITE", m65rgbelite.Init, nil},                 // M65 RGB ELITE Gaming Mouse
+	7029:  {1, 0, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},             // HARPOON RGB PRO Gaming Mouse
+	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                         // HARPOON Gaming Mouse
+	7004:  {1, 0, "NIGHTSWORD RGB", nightswordrgb.Init, nil},              // NIGHTSWORD RGB Gaming Mouse
+	7064:  {1, 0, "SABRE RGB PRO WIRELESS", sabrergbproWU.Init, nil},      // SABRE RGB PRO WIRELESS Gaming Mouse
+	7033:  {1, 0, "SABRE RGB PRO", sabrergbpro.Init, nil},                 // SABRE RGB PRO
+	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                   // SABRE PRO CS
+	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},          // DARKSTAR RGB WIRELESS Gaming Mouse
+	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil},  // VIRTUOSO RGB WIRELESS XT
+	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                       // VIRTUOSO USB Gaming Headset
+	2696:  {3, 0, "HS80 RGB USB", hs80rgb.Init, nil},                      // HS80 RGB USB Gaming Headset
+	7132:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
+	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
+	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
+	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},   // VIRTUOSO MAX WIRELESS
+	2711:  {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},           // HS80 MAX WIRELESS
+	6993:  {1, 0, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},      // DARK CORE RGB SE Wireless USB Receiver
+	2660:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
+	2667:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
+	2628:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
+	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},          // Headset dongle
+	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},          // K65 PLUS WIRELESS
+	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},              // CORSAIR VIRTUOSO SE USB Gaming Headset
+	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},             // VOID WIRELESS V2
+	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},      // CORSAIR LINK TM USB DONGLE
+	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionproWU.Init, nil},       // SCUF Envision Pro Controller
+	14853: {4, 0, "SCUF ENVISION PRO V2", scufenvisionproV2WU.Init, nil},  // SCUF Envision Pro Controller V2
+	17230: {4, 0, "SCUF PC Controller Dongle", nil, scufdongle.Init},      // SCUF Gaming SCUF PC Controller Dongle
+	14856: {4, 0, "SCUF PC Controller Dongle V2", nil, scufdongleV2.Init}, // SCUF Envision Pro Wireless USB Receiver V2
 }
 
 // initializeDevice will initialize a device

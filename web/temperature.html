@@ -40,95 +40,94 @@
                                     </div>
                                     <div class="modal-body">
                                         <form>
-                                            <div class="mb-3">
-                                                <label class="form-label" for="profileName">{{ .Lang "txtProfileName" }}</label>
-                                                <input class="form-control" id="profileName" type="text">
+                                            <label class="form-label" for="profileName">{{ .Lang "txtProfileName" }}</label>
+                                            <input class="form-control" id="profileName" type="text">
 
-                                                <label class="form-label" for="sensor">
-                                                    {{ .Lang "txtSensor" }}
-                                                    <i style="cursor: pointer;padding-top: 4px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensorInfoToggle"></i>
-                                                </label>
-                                                <select class="form-select mb-1 tempProfile" id="sensor">
-                                                    <option value="0" selected>CPU</option>
-                                                    <option value="1">GPU</option>
-                                                    <option value="2">Liquid Temperature (AIO)</option>
-                                                    <option value="3">Storage Temperature</option>
-                                                    <option value="4">Temperature Probe</option>
-                                                    <option value="5">CPU + GPU</option>
-                                                    <option value="6">External HWMON</option>
-                                                    <option value="7">External binary</option>
-                                                    <option value="8">Multi GPU</option>
-                                                    <option value="9">Global Temperature Probe</option>
-                                                    <option value="10">PSU</option>
+                                            <label class="form-label" for="sensor">
+                                                {{ .Lang "txtSensor" }}
+                                                <i style="cursor: pointer;padding-top: 4px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensorInfoToggle"></i>
+                                            </label>
+                                            <select class="form-select mb-1 tempProfile" id="sensor">
+                                                <option value="0" selected>CPU</option>
+                                                <option value="1">GPU</option>
+                                                <option value="2">Liquid Temperature (AIO)</option>
+                                                <option value="3">Storage Temperature</option>
+                                                <option value="4">Temperature Probe</option>
+                                                <option value="5">CPU + GPU</option>
+                                                <option value="6">External HWMON</option>
+                                                <option value="7">External binary</option>
+                                                <option value="8">Multi GPU</option>
+                                                <option value="9">Global Temperature Probe</option>
+                                                <option value="10">PSU</option>
+                                            </select>
+
+                                            {{ if .TemperatureProbes }}
+                                            <div id="temperature-probe-data" style="display: none;">
+                                                <label class="form-label" for="probeData">{{ .Lang "txtTemperatureProbe" }}:</label>
+                                                <select class="form-select mb-1 tempProfile" id="probeData">
+                                                    <option value="0;0" selected>Select probe</option>
+                                                    {{ range .TemperatureProbes }}
+                                                    {{ range . }}
+                                                    <option value="{{ .Serial }};{{ .ChannelId }}">{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
+                                                    {{ end }}
+                                                    {{ end }}
                                                 </select>
+                                            </div>
+                                            {{ end }}
 
-                                                {{ if .TemperatureProbes }}
-                                                <div id="temperature-probe-data" style="display: none;">
-                                                    <label class="form-label" for="probeData">{{ .Lang "txtTemperatureProbe" }}:</label>
-                                                    <select class="form-select mb-1 tempProfile" id="probeData">
-                                                        <option value="0;0" selected>Select probe</option>
-                                                        {{ range .TemperatureProbes }}
-                                                        {{ range . }}
-                                                        <option value="{{ .Serial }};{{ .ChannelId }}">{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
-                                                        {{ end }}
-                                                        {{ end }}
-                                                    </select>
-                                                </div>
-                                                {{ end }}
+                                            {{ if .HwMonSensors }}
+                                            <div id="hwmon-sensors-probe-data" style="display: none;">
+                                                <label class="form-label" for="probeData">{{ .Lang "txtHwMonSensor" }}:</label>
+                                                <select class="form-select mb-1 tempProfile" id="hwmon-probeData">
+                                                    <option value="0;0" selected>Select sensor</option>
+                                                    {{ range .HwMonSensors }}
+                                                    <option value="{{ .HwmonName }};{{ .InputName }};{{ .SensorName }}">{{ .SensorName }} - {{ .Label }} - {{ .TempC }} °C</option>
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                            {{ end }}
 
-                                                {{ if .HwMonSensors }}
-                                                <div id="hwmon-sensors-probe-data" style="display: none;">
-                                                    <label class="form-label" for="probeData">{{ .Lang "txtHwMonSensor" }}:</label>
-                                                    <select class="form-select mb-1 tempProfile" id="hwmon-probeData">
-                                                        <option value="0;0" selected>Select sensor</option>
-                                                        {{ range .HwMonSensors }}
-                                                        <option value="{{ .HwmonName }};{{ .InputName }};{{ .SensorName }}">{{ .SensorName }} - {{ .Label }} - {{ .TempC }} °C</option>
-                                                        {{ end }}
-                                                    </select>
-                                                </div>
-                                                {{ end }}
+                                            <div id="binary-sensors-probe-data" style="display: none;">
+                                                <label class="form-label" for="probeData">{{ .Lang "txtExternalBinary" }}:</label>
+                                                <input class="form-control" id="binary-probeData" type="text" placeholder="Path to binary">
+                                            </div>
 
-                                                <div id="binary-sensors-probe-data" style="display: none;">
-                                                    <label class="form-label" for="probeData">{{ .Lang "txtExternalBinary" }}:</label>
-                                                    <input class="form-control" id="binary-probeData" type="text" placeholder="Path to binary">
-                                                </div>
+                                            {{ if .SystemInfo.Storage }}
+                                            <div id="storage-data" style="display: none;">
+                                                <label class="form-label" for="hwmonDeviceId">{{ .Lang "txtStorageDevice" }}:</label>
+                                                <select class="form-select mb-1 tempProfile" id="hwmonDeviceId">
+                                                    {{ range .SystemInfo.Storage }}
+                                                    <option value="{{ .Key }}">{{ .Model }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                            {{ end }}
 
-                                                {{ if .SystemInfo.Storage }}
-                                                <div id="storage-data" style="display: none;">
-                                                    <label class="form-label" for="hwmonDeviceId">{{ .Lang "txtStorageDevice" }}:</label>
-                                                    <select class="form-select mb-1 tempProfile" id="hwmonDeviceId">
-                                                        {{ range .SystemInfo.Storage }}
-                                                        <option value="{{ .Key }}">{{ .Model }}</option>
-                                                        {{ end }}
-                                                    </select>
-                                                </div>
-                                                {{ end }}
+                                            {{ if .SystemInfo.GPU }}
+                                            <div id="gpu-data" style="display: none;">
+                                                <label class="form-label" for="gpuIndex">{{ .Lang "txtGpuDevice" }}:</label>
+                                                <select class="form-select mb-1 tempProfile" id="gpuIndex">
+                                                    {{ range .SystemInfo.GPU }}
+                                                    <option value="{{ .Index }}">{{ .Model }} - {{ .TemperatureString }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </div>
+                                            {{ end }}
 
-                                                {{ if .SystemInfo.GPU }}
-                                                <div id="gpu-data" style="display: none;">
-                                                    <label class="form-label" for="gpuIndex">{{ .Lang "txtGpuDevice" }}:</label>
-                                                    <select class="form-select mb-1 tempProfile" id="gpuIndex">
-                                                        {{ range .SystemInfo.GPU }}
-                                                        <option value="{{ .Index }}">{{ .Model }} - {{ .TemperatureString }}</option>
-                                                        {{ end }}
-                                                    </select>
-                                                </div>
-                                                {{ end }}
-
-                                                <div class="form-check">
-                                                    <input class="form-check-input" id="staticCheckbox" type="checkbox">
-                                                    <label class="form-check-label" for="staticCheckbox">{{ .Lang "txtStaticTemp" }}</label>
-                                                </div>
-                                                <!--
-                                                <div class="form-check" id="linear-data" style="display: none;">
-                                                    <input class="form-check-input" id="linearCheckbox" type="checkbox">
-                                                    <label class="form-check-label" for="linearCheckbox">Linear (linear temperature / rpm interpolation)</label>
-                                                </div>
-                                                <div class="form-check">
-                                                    <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox" disabled>
-                                                    <label class="form-check-label" for="zeroRpmCheckbox">Zero RPM (Only for AIOs that support Zero RPM)</label>
-                                                </div>
-                                                -->
+                                            <div class="form-check">
+                                                <input class="form-check-input" id="staticCheckbox" type="checkbox">
+                                                <label class="form-check-label" for="staticCheckbox">{{ .Lang "txtStaticTemp" }}</label>
+                                            </div>
+                                            <!--
+                                            <div class="form-check" id="linear-data" style="display: none;">
+                                                <input class="form-check-input" id="linearCheckbox" type="checkbox">
+                                                <label class="form-check-label" for="linearCheckbox">Linear (linear temperature / rpm interpolation)</label>
+                                            </div>
+                                            -->
+                                            <div class="form-check">
+                                                <input class="form-check-input" id="zeroRpmCheckbox" type="checkbox">
+                                                <label class="form-check-label" for="zeroRpmCheckbox">Zero RPM</label>
+                                                <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy zeroRpmToggle"></i>
                                             </div>
                                         </form>
                                     </div>

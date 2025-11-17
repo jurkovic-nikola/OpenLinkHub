@@ -643,3 +643,31 @@ $('.sensorInfoToggle').on('click', function () {
         modal.data('bs.modal', null);
     })
 });
+
+$('.zeroRpmToggle').on('click', function () {
+    const modalElement = `
+    <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-700">
+            <div class="modal-content" style="width: 700px;">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="infoToggleLabel">Zero RPM Mode</h5>
+                    <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Zero RPM mode is only valid for the following devices:<br />
+                    &ndash; Link System Hub<br />
+                    &ndash; Commander Core XT<br />
+                    &ndash; Commander Core<br />
+                    &ndash; Commander Duo
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    const modal = $(modalElement).modal('toggle');
+    modal.on('hidden.bs.modal', function () {
+        modal.data('bs.modal', null);
+    })
+});

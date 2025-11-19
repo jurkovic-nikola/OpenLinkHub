@@ -1,5 +1,13 @@
+## 2025-11-19
+
+* k100 air watercolor changes (6f560ad)
+* fixup for keyboard rgb mode reset (b912c90)
+* rgb editor changes, gradient rgb mode (3f2ca40)
+
 ## 2025-11-17
 
+* hs80 max wireless (e77c0d3)
+* changelog (e6894e9)
 * docs update (076690b)
 * scuf envision pro v2 (d88a339)
 * zero rpm mode (55bf385)

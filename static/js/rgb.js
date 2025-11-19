@@ -167,7 +167,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                             case "tlr":
                                             case "rain":
                                             case "visor":
-                                            case "colorwave": {
+                                            case "colorwave":
+                                            case "watercolor": {
                                                 alternateColorsHtml = `
                                                     <div style="margin-top:10px">
                                                         <div class="progress" style="height: 1px">

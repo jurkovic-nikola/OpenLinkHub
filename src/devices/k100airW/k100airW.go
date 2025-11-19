@@ -1882,7 +1882,6 @@ func (d *Device) setDeviceColor() {
 						start = 4
 						buf[3] = byte(d.KeyAmount)
 					}
-
 				}
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
 					for _, key := range row.Keys {
@@ -2072,12 +2071,7 @@ func (d *Device) setDeviceColor() {
 		{
 			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
 				var buf = make([]byte, keyboard.BufferSize)
-				buf[2] = 0x01
-				buf[3] = 0xff
-				buf[4] = 0xff
-				buf[5] = 0xff
-				buf[6] = 0xff
-				buf[7] = byte(d.KeyAmount)
+				dataTypeSetColor = []byte{0x22, 0x00, 0x03, 0x04}
 				start := 8
 
 				var speed = byte(0x04)
@@ -2092,6 +2086,40 @@ func (d *Device) setDeviceColor() {
 					if watercolor.Speed > 5 {
 						speed = 0x03 // Slow
 					}
+
+					if watercolor.AlternateColors {
+						buf = make([]byte, (keyboard.BufferSize-4)+12)
+						dataTypeSetColor = []byte{0x22, 0x00, 0x01, speed}
+						buf[2] = 0x03                              // 3 colors
+						buf[3] = 0xff                              // Marker
+						buf[4] = 0xff                              // Initial Color Blue
+						buf[5] = 0xff                              // Initial Color Green
+						buf[6] = 0xff                              // Initial Color Red
+						buf[7] = 0xff                              // Marker
+						buf[8] = byte(watercolor.StartColor.Blue)  // Color 1 Blue
+						buf[9] = byte(watercolor.StartColor.Green) // Color 1 Green
+						buf[10] = byte(watercolor.StartColor.Red)  // Color 1 Red
+						buf[11] = 0xff                             // Marker
+						buf[12] = byte(watercolor.EndColor.Blue)   // Color 2 Blue
+						buf[13] = byte(watercolor.EndColor.Green)  // Color 2 Green
+						buf[14] = byte(watercolor.EndColor.Red)    // Color 2 Red
+						buf[15] = byte(d.KeyAmount)                // Key amount
+						start = 16                                 // Keyboard data start position
+					} else {
+						buf[2] = 0x01
+						buf[3] = 0xff
+						buf[4] = 0xff
+						buf[5] = 0xff
+						buf[6] = 0xff
+						buf[7] = byte(d.KeyAmount)
+					}
+				} else {
+					buf[2] = 0x01
+					buf[3] = 0xff
+					buf[4] = 0xff
+					buf[5] = 0xff
+					buf[6] = 0xff
+					buf[7] = byte(d.KeyAmount)
 				}
 
 				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
@@ -2106,7 +2134,6 @@ func (d *Device) setDeviceColor() {
 						}
 					}
 				}
-				dataTypeSetColor = []byte{0x22, 0x00, 0x03, speed}
 				d.writeColor(buf)
 				return
 			}

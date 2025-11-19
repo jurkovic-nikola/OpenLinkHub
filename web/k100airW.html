@@ -130,7 +130,6 @@
                                     </button>
                                 </div>
                             </div>
-                             {{ if eq "keyboard" $device.DeviceProfile.RGBProfile }}
                             <div class="{{ $device.UIKeyboard }}" style="margin-top: 10px;margin-bottom: 10px;">
                                 {{ range $index, $keys := $keyboard.Row }}
                                 {{ if gt $keys.Top 0 }}
@@ -200,7 +199,6 @@
                                     </div>
                                 </div>
                             </div>
-                            {{ end }}
                         </div>
                     </div>
                     {{ end }}

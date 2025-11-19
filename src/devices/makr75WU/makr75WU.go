@@ -33,29 +33,30 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active            bool
-	Path              string
-	Product           string
-	Serial            string
-	LCDMode           uint8
-	LCDRotation       uint8
-	Brightness        uint8
-	RGBProfile        string
-	Label             string
-	Layout            string
-	Keyboards         map[string]*keyboards.Keyboard
-	Profile           string
-	BrightnessLevel   uint16
-	SleepMode         int
-	Profiles          []string
-	ControlDial       int
-	ControlDialColors map[int]*rgb.Color
-	RGBCluster        bool
-	DisableAltTab     bool
-	DisableAltF4      bool
-	DisableShiftTab   bool
-	DisableWinKey     bool
-	Performance       bool
+	Active               bool
+	Path                 string
+	Product              string
+	Serial               string
+	LCDMode              uint8
+	LCDRotation          uint8
+	Brightness           uint8
+	RGBProfile           string
+	SlipstreamRGBProfile string
+	Label                string
+	Layout               string
+	Keyboards            map[string]*keyboards.Keyboard
+	Profile              string
+	BrightnessLevel      uint16
+	SleepMode            int
+	Profiles             []string
+	ControlDial          int
+	ControlDialColors    map[int]*rgb.Color
+	RGBCluster           bool
+	DisableAltTab        bool
+	DisableAltF4         bool
+	DisableShiftTab      bool
+	DisableWinKey        bool
+	Performance          bool
 }
 
 type Device struct {
@@ -636,6 +637,7 @@ func (d *Device) saveDeviceProfile() {
 	if d.DeviceProfile == nil {
 		// RGB, Label
 		deviceProfile.RGBProfile = "keyboard"
+		deviceProfile.SlipstreamRGBProfile = "keyboard"
 		deviceProfile.Label = "Keyboard"
 		deviceProfile.Active = true
 		keyboardMap["default"] = keyboards.GetKeyboard(defaultLayout)
@@ -696,6 +698,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
+		deviceProfile.SlipstreamRGBProfile = d.DeviceProfile.SlipstreamRGBProfile
 		deviceProfile.Label = d.DeviceProfile.Label
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.Profiles = d.DeviceProfile.Profiles

@@ -392,6 +392,39 @@ func getColor(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getColorData returns color profile data
+func getColorData(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{}
+	deviceId, validId := getDeviceID("/api/color/profile/", r)
+	profileName, validProfile := getVarLast(r)
+
+	if !validId || !validProfile {
+		resp = &Response{
+			Code:   http.StatusOK,
+			Status: 0,
+			Data:   language.GetValue("txtNoSuchRGBProfile"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetRgbProfile", profileName)
+		if len(results) > 0 {
+			resp = &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp = &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtNoSuchRGBProfile"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // getMediaKeys will return a map of media keys
 func getMediaKeys(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
@@ -1365,6 +1398,30 @@ func setControllerGraph(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// newDeviceGradientColor handles creation of new gradient color
+func newDeviceGradientColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessNewGradientColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+		Data:    request.Data,
+	}
+	resp.Send(w)
+}
+
+// deleteDeviceGradientColor handles deletion of gradient color
+func deleteDeviceGradientColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteGradientColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+		Data:    request.Data,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -1747,6 +1804,32 @@ func getVar(path string, r *http.Request) (string, bool) {
 	return value, true
 }
 
+// getVarLast will extract dynamic path from GET request
+func getVarLast(r *http.Request) (string, bool) {
+	parts := strings.Split(r.URL.Path, "/")
+	value := parts[len(parts)-1]
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-;:]+$", value); !m {
+		return "", false
+	}
+	return value, true
+}
+
+// getDeviceID will extract device id from dynamic path
+func getDeviceID(uri string, r *http.Request) (string, bool) {
+	path := strings.TrimPrefix(r.URL.Path, uri)
+	parts := strings.Split(path, "/")
+	if len(parts) < 2 {
+		return "", false
+	}
+
+	value := parts[0]
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-;:]+$", value); !m {
+		return "", false
+	}
+	return value, true
+}
+
 func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.ResponseWriter, r *http.Request)) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == method {
@@ -1774,6 +1857,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/batteryStats", http.MethodGet, getBatteryStats)
 	handleFunc(r, "/api/devices/", http.MethodGet, getDevices)
 	handleFunc(r, "/api/color/", http.MethodGet, getColor)
+	handleFunc(r, "/api/color/profile/", http.MethodGet, getColorData)
 	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
 	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
 	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
@@ -1806,6 +1890,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/setOpenRgbIntegration", http.MethodPost, setOpenRgbIntegration)
 	handleFunc(r, "/api/color/setCluster", http.MethodPost, setRgbCluster)
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
+	handleFunc(r, "/api/color/gradient/add", http.MethodPost, newDeviceGradientColor)
+	handleFunc(r, "/api/color/gradient/delete", http.MethodPost, deleteDeviceGradientColor)
 	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
 	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)
 	handleFunc(r, "/api/hub/type", http.MethodPost, setExternalHubDeviceType)

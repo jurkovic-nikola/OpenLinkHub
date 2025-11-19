@@ -136,6 +136,7 @@ var (
 	keyboardKey             = "k57rgb-default"
 	defaultLayout           = "k57rgb-default-US"
 	keyAssignmentLength     = 137
+	rgbProfileUpgrade       = []string{"gradient"}
 	rgbModes                = []string{
 		"visor",         //
 		"rainbowwave",   //
@@ -384,6 +385,54 @@ func (d *Device) loadRgb() {
 	err = file.Close()
 	if err != nil {
 		logger.Log(logger.Fields{"location": rgbFilename, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+
+	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(d.Rgb.Profiles))
+	for key, value := range d.Rgb.Profiles {
+		if slices.Contains(rgbModes, key) {
+			profiles[key] = value
+		}
+	}
+	d.Rgb.Profiles = profiles
+}
+
+// upgradeRgbProfile will upgrade current rgb profile list
+func (d *Device) upgradeRgbProfile(path string, profiles []string) {
+	save := false
+	for _, profile := range profiles {
+		pf := d.GetRgbProfile(profile)
+		if pf == nil {
+			save = true
+			logger.Log(logger.Fields{"profile": profile}).Info("Upgrading RGB profile")
+			template := rgb.GetRgbProfile(profile)
+			if template == nil {
+				d.Rgb.Profiles[profile] = rgb.Profile{}
+			} else {
+				d.Rgb.Profiles[profile] = *template
+			}
+		}
+	}
+
+	if save {
+		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return
+		}
+
+		f, err := os.Create(path)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
+			return
+		}
+
+		_, err = f.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
+		}
 	}
 }
 
@@ -856,6 +905,75 @@ func (d *Device) saveRgbProfile() {
 	}
 }
 
+// ProcessNewGradientColor will create new gradient color
+func (d *Device) ProcessNewGradientColor(profileName string) (uint8, uint) {
+	if d.GetRgbProfile(profileName) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profileName}).Warn("Non-existing RGB profile")
+		return 0, 0
+	}
+
+	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0, 0
+	}
+
+	if pf.Gradients == nil {
+		return 0, 0
+	}
+
+	// find next available key
+	nextID := 0
+	for k := range pf.Gradients {
+		if k >= nextID {
+			nextID = k + 1
+		}
+	}
+	pf.Gradients[nextID] = rgb.Color{Red: 0, Green: 255, Blue: 255}
+
+	d.Rgb.Profiles[profileName] = *pf
+	d.saveRgbProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1, uint(nextID)
+}
+
+// ProcessDeleteGradientColor will delete gradient color
+func (d *Device) ProcessDeleteGradientColor(profileName string) (uint8, uint) {
+	if d.GetRgbProfile(profileName) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profileName}).Warn("Non-existing RGB profile")
+		return 0, 0
+	}
+
+	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0, 0
+	}
+
+	if len(pf.Gradients) < 3 {
+		return 2, 0
+	}
+
+	maxKey := -1
+	for k := range pf.Gradients {
+		if k > maxKey {
+			maxKey = k
+		}
+	}
+	delete(pf.Gradients, maxKey)
+
+	d.Rgb.Profiles[profileName] = *pf
+	d.saveRgbProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1, uint(maxKey)
+}
+
 // UpdateRgbProfileData will update RGB profile data
 func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
 	d.rgbMutex.Lock()
@@ -877,6 +995,7 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	pf.Speed = profile.Speed
 	pf.AlternateColors = profile.AlternateColors
 	pf.RgbDirection = profile.RgbDirection
+	pf.Gradients = profile.Gradients
 
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()

@@ -390,6 +390,10 @@
         "txtAggressive": "Агрессивный",
         "txtText": "Текст",
         "txtInvalidMacroText": "Невозможно проверить ваш запрос. Недопустимое значение текста",
-        "txtSpeedProfileNoPSU": "Несовместимое устройство. Этот профиль требует устройство PSU"
+        "txtSpeedProfileNoPSU": "Несовместимое устройство. Этот профиль требует устройство PSU",
+        "txtUnableToDeleteGradientColor": "Невозможно удалить цвет градиента",
+        "txtUnableToAddGradientColor": "Невозможно создать новый цвет градиента",
+        "txtGradientColorCreated": "Цвет градиента успешно создан",
+        "txtGradientTooLow": "Вы достигли минимального количества — 2 цвета"
     }
 }

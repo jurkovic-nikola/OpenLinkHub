@@ -14,32 +14,30 @@
         </div>
         <section class="pt-0 pt-sm-4">
             <div class="container-fluid">
-                <div class="row gy-4">
-                    <div class="col-lg-2">
+                <div class="row justify-content-center">
+                    <div class="col-lg-12" style="text-align: center;">
                         {{ range $key, $value := .RGBProfiles }}
                         {{ if eq $value nil }}
                         {{ continue }}
                         {{ end }}
-                        <div class="card rgbList" id="{{ $key }}" style="margin-bottom: 20px;">
-                            <div class="card-body">
-                                <div class="row gx-12">
-                                    <div class="col-12">
-                                        <div>
-                                            <p class="text-lg fw-normal mb-0">{{ $value.Device }}</p>
-                                            <div class="progress" style="height: 2px">
-                                                <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="btn btn-secondary rgbList justify-content-center" id="{{ $key }}" style="margin-left: 10px;margin-top: 1px;">
+                            <a style="color: #a1a1a1;" href="#">
+                                <img src="/static/img/icons/icon-rgb.svg" width="25" height="25" alt="MM700 RGB" class="top-px">
+                                <span class="navigation-text">{{ $value.Device }}</span>
+                            </a>
                         </div>
                         {{ end }}
+                        <div class="progress" style="height: 1px;margin-top: 10px;">
+                            <div class="progress-bar bg-dash-color-5" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
-                    <input type="hidden" id="profile" name="profile" value="">
-                    <div class="col-lg-10">
-                        <div class="row" id="rgbDivList"></div>
-                        <br/>
+                </div>
+                <div class="row justify-content-center" style="margin-top: 10px;">
+                    <div class="col-lg-12" style="text-align: center;">
+                        <input type="hidden" id="profile" name="profile" value="">
+                        <div class="col-lg-12" style="text-align: center;">
+                            <div class="row justify-content-center" id="rgbDivList"></div>
+                        </div>
                     </div>
                 </div>
             </div>

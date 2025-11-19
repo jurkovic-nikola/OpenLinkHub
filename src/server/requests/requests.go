@@ -600,6 +600,7 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 		MaxTemp:         0,
 		AlternateColors: req.AlternateColors,
 		RgbDirection:    req.RgbDirection,
+		Gradients:       req.ColorZones,
 	}
 
 	results := devices.CallDeviceMethod(
@@ -3922,4 +3923,108 @@ func ProcessSetControllerGraph(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToUpdateAnalogModule"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessNewGradientColor will process POST request from a client for new gradient color
+func ProcessNewGradientColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	// Profile name
+	profile := req.Profile
+	if len(profile) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingProfile"), Code: http.StatusOK, Status: 0}
+	}
+	if rgb.GetRgbProfile(profile) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessNewGradientColor",
+		profile,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToAddGradientColor"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1, Data: results[1].Uint()}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToAddGradientColor"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessDeleteGradientColor will process POST request from a client for gradient color delete
+func ProcessDeleteGradientColor(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	// Profile name
+	profile := req.Profile
+	if len(profile) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingProfile"), Code: http.StatusOK, Status: 0}
+	}
+	if rgb.GetRgbProfile(profile) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessDeleteGradientColor",
+		profile,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToDeleteGradientColor"), Code: http.StatusOK, Status: 0}
+		case 2:
+			return &Payload{Message: language.GetValue("txtGradientTooLow"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1, Data: results[1].Uint()}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToDeleteGradientColor"), Code: http.StatusOK, Status: 0}
 }

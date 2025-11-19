@@ -390,6 +390,10 @@
         "txtAggressive": "Agressif",
         "txtText": "Texte",
         "txtInvalidMacroText": "Impossible de valider votre requête. Valeur de texte non valide",
-        "txtSpeedProfileNoPSU": "Appareil incompatible. Ce profil nécessite un appareil PSU"
+        "txtSpeedProfileNoPSU": "Appareil incompatible. Ce profil nécessite un appareil PSU",
+        "txtUnableToDeleteGradientColor": "Impossible de supprimer la couleur du dégradé",
+        "txtUnableToAddGradientColor": "Impossible de créer une nouvelle couleur de dégradé",
+        "txtGradientColorCreated": "La couleur du dégradé a été créée avec succès",
+        "txtGradientTooLow": "Vous avez atteint le minimum de 2 couleurs"
     }
 }

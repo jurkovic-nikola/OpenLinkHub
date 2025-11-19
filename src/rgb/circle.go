@@ -37,7 +37,7 @@ func (r *ActiveRGB) Circle(startTime *time.Time) {
 		}
 
 		// Single-color pulse, you can optionally use interpolateColors to create gradients if needed
-		colors := interpolateColors(r.RGBStartColor, r.RGBStartColor, 0, r.RGBBrightness)
+		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, pos, r.RGBBrightness)
 
 		red := byte(colors.Red * fade)
 		green := byte(colors.Green * fade)

@@ -28,18 +28,19 @@ type RGB struct {
 }
 
 type Profile struct {
-	Speed           float64 `json:"speed"`
-	Brightness      float64 `json:"brightness"`
-	Smoothness      int     `json:"smoothness"`
-	StartColor      Color   `json:"start"`
-	MiddleColor     Color   `json:"middle,omitempty"`
-	EndColor        Color   `json:"end"`
-	MinTemp         float64 `json:"minTemp"`
-	MaxTemp         float64 `json:"maxTemp"`
-	ProfileName     string  `json:"profileName"`
-	AlternateColors bool    `json:"alternateColors"`
-	RgbDirection    byte    `json:"rgbDirection"`
-	PerLed          bool    `json:"perLed"`
+	Speed           float64       `json:"speed"`
+	Brightness      float64       `json:"brightness"`
+	Smoothness      int           `json:"smoothness"`
+	StartColor      Color         `json:"start"`
+	MiddleColor     Color         `json:"middle,omitempty"`
+	EndColor        Color         `json:"end"`
+	Gradients       map[int]Color `json:"gradients"`
+	MinTemp         float64       `json:"minTemp"`
+	MaxTemp         float64       `json:"maxTemp"`
+	ProfileName     string        `json:"profileName"`
+	AlternateColors bool          `json:"alternateColors"`
+	RgbDirection    byte          `json:"rgbDirection"`
+	PerLed          bool          `json:"perLed"`
 }
 
 type LastCycle struct {
@@ -55,6 +56,8 @@ type ActiveRGB struct {
 	RGBEndColor            *Color
 	RGBStartColor          *Color
 	PreviousColor          *Color
+	Gradients              []Color
+	GradientList           map[int]Color
 	RGBBrightness          float64
 	RgbLoopDuration        time.Duration
 	RGBCustomColor         bool

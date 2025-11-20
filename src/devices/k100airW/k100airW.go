@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math"
 	"math/big"
 	"os"
 	"regexp"
@@ -144,6 +145,7 @@ var (
 		"colorwave",
 		"colorshift",
 		"colorpulse",
+		"gradient",
 		"spiralrainbow",
 		"tlr",
 		"tlk",
@@ -195,6 +197,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			"colorpulse":    "Color Pulse",
 			"colorshift":    "Color Shift",
 			"colorwave":     "Color Wave",
+			"gradient":      "Gradient",
 			"rain":          "Rain",
 			"rainbowwave":   "Rainbow Wave",
 			"spiralrainbow": "Spiral Rainbow",
@@ -2138,6 +2141,165 @@ func (d *Device) setDeviceColor() {
 				return
 			}
 		}
+	case "gradient":
+		{
+			if keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+				var buf = make([]byte, keyboard.BufferSize-2)
+
+				gradient := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
+				if gradient != nil {
+					entries := 128
+					entrySize := 4
+					packetSize := entries * entrySize
+
+					colors := make([]byte, packetSize)
+					colors[2] = 0xf4
+					colors[3] = 0xeb
+					colors[4] = 0x01
+					colors[5] = byte(gradient.Speed * 10)
+					colors[10] = byte(entries)
+
+					numSegments := len(gradient.Gradients) - 1
+					segSize := entries / numSegments
+					pos := 11
+
+					keys := make([]int, 0)
+					for k := range gradient.Gradients {
+						keys = append(keys, k)
+					}
+					sort.Ints(keys)
+
+					for _, k := range keys {
+						g1 := gradient.Gradients[k]
+						g2 := gradient.Gradients[k+1]
+
+						deltaR := (g2.Red - g1.Red) / float64(segSize-1)
+						deltaG := (g2.Green - g1.Green) / float64(segSize-1)
+						deltaB := (g2.Blue - g1.Blue) / float64(segSize-1)
+
+						for step := 0; step < segSize; step++ {
+							if pos+entrySize > packetSize {
+								break
+							}
+							R := byte(math.Round(g1.Red + deltaR*float64(step)))
+							G := byte(math.Round(g1.Green + deltaG*float64(step)))
+							B := byte(math.Round(g1.Blue + deltaB*float64(step)))
+
+							colors[pos] = 0xFF
+							colors[pos+1] = B
+							colors[pos+2] = G
+							colors[pos+3] = R
+							pos += entrySize
+						}
+					}
+
+					for pos < packetSize {
+						colors[pos] = 0
+						pos++
+					}
+
+					buf[0] = 0x04
+					buf[1] = 0xff
+					buf[2] = colors[12]
+					buf[3] = colors[13]
+					buf[4] = colors[14]
+					buf[5] = 0xff
+					buf[6] = colors[12]
+					buf[7] = colors[13]
+					buf[8] = colors[14]
+					buf[9] = byte(d.KeyAmount)
+					start := 10
+					for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+						for _, key := range row.Keys {
+							if key.NoColor {
+								continue
+							}
+							for packet := range key.PacketIndex {
+								value := key.PacketIndex[packet] / 3
+								buf[start] = byte(value)
+								start++
+							}
+						}
+					}
+
+					d.writeColorCustom(buf, colors)
+				}
+			}
+		}
+	}
+}
+
+// writeColor will write data to the device with a specific endpoint.
+func (d *Device) writeColorCustom(data, colors []byte) {
+	if d.Exit {
+		return
+	}
+	buffer := make([]byte, len(colors)+2)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(colors)))
+	copy(buffer[2:], colors)
+
+	_, err := d.transfer(cmdOpenColorEndpoint, cmdActivateLed)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
+	}
+
+	_, err = d.transfer(cmdRead, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
+	}
+
+	// Split packet into chunks
+	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if i == 0 {
+			// Initial packet is using cmdWriteColor
+			_, err := d.transfer(cmdWrite, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+		} else {
+			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+			_, err := d.transfer(cmdWriteExtra, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
+	}
+
+	buffer = make([]byte, len(data)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
+	copy(buffer[headerWriteSize:], data)
+
+	// Split packet into chunks
+	chunks = common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if i == 0 {
+			// Initial packet is using cmdWriteColor
+			_, err := d.transfer(cmdWrite, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+		} else {
+			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
+			_, err := d.transfer(cmdWriteExtra, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
+	}
+
+	_, err = d.transfer(cmdCloseEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
+		return
+	}
+
+	// Close endpoint
+	_, err = d.transfer(cmdFlush, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to close endpoint")
 	}
 }
 

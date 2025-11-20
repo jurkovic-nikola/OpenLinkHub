@@ -10,7 +10,7 @@ sudo apt install i2c-tools
 ```
 
 ### Find your `smbus` controller
-Your i2c-X device will have different number from this. Usually its first `smbus` device from the list. If you don't see your `smbus` device, you will need to use `acpi_enforce_resources=lax` boot parameter.
+Your i2c-X device will have a different number. Usually, it's the first `smbus` device from the list. If you don't see your `smbus` device, you will need to use `acpi_enforce_resources=lax` boot parameter.
 ```bash
 sudo i2cdetect -l
 i2c-0   i2c             Synopsys DesignWare I2C adapter         I2C adapter
@@ -33,8 +33,8 @@ i2c-16  smbus           SMBus PIIX4 adapter port 2 at 0b00      SMBus adapter
 i2c-17  smbus           SMBus PIIX4 adapter port 1 at 0b20      SMBus adapter
 ```
 
-### Find the correct smbus device
-Your physical memory starts from address 50 and goes up. If you're seeing thus, you're on the right smbus controller. In this example, my smbus is located on `i2c-15`
+### Find the correct SMBus device
+Your physical memory starts at address 50 and increases. If you're seeing this, you're on the right SMBus controller. In this example, my SMBus is located on `i2c-15`
 ```bash
 sudo i2cdetect -y 15
      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
@@ -49,7 +49,7 @@ sudo i2cdetect -y 15
 ```
 
 ### Find your memory SKU
-Find your memory SKU and take a note of it. 
+Find your memory SKU and take a note of it.
 ```bash
 sudo dmidecode -t memory | grep 'Part Number'
         Part Number: CMT64GX5M2B5600Z40
@@ -57,7 +57,7 @@ sudo dmidecode -t memory | grep 'Part Number'
 ```
 
 ### Configure OpenLinkHub `config.json`
-You will need to change your `memorySmBus`, `memoryType` and `memorySku` depending on your system values. 
+You will need to change your `memorySmBus`, `memoryType`, and `memorySku` depending on your system values.
 ```json
 "memory": true,
 "memorySmBus": "i2c-15",
@@ -68,7 +68,7 @@ You will need to change your `memorySmBus`, `memoryType` and `memorySku` dependi
 ```
 
 ### Set permissions
-You will need to change `'KERNEL=="i2c-15"` to your i2c `smbus` device. 
+You will need to change `'KERNEL=="i2c-15"` to your i2c `smbus` device.
 ```bash
 echo 'KERNEL=="i2c-15", MODE="0600", OWNER="openlinkhub"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
 sudo udevadm control --reload-rules

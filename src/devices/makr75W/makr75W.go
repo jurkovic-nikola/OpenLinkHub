@@ -1035,11 +1035,13 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
+	if d.Connected {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb = nil
+		}
+		d.setDeviceColor() // Restart RGB
 	}
-	d.setDeviceColor() // Restart RGB
 	return 1
 }
 

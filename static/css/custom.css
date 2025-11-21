@@ -1637,6 +1637,17 @@ pre {
     width: 60%;
 }
 
+.table-rgb-data td.left-gradient {
+    border-right: 1px solid #454545;
+    text-align: center;
+    width: 60%;
+}
+
+.table-rgb-data td.right-gradient {
+    text-align: right;
+    width: 40%;
+}
+
 .rgb-color-start,
 .rgb-color-end {
     width: 50px;
@@ -1753,4 +1764,28 @@ pre {
     border: none;
     border-radius: 50%;
     padding: 0;
+}
+
+#gradientWrapper {
+    position: relative;
+    width: 600px;
+    height: 100px;
+    margin-bottom: 20px;
+    margin-right: 15px;
+}
+
+#gradientCanvas {
+    width: 100%;
+    height: 100px;
+    border-radius: 5px;
+}
+
+.stop {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    position: absolute;
+    top: 0;
+    cursor: pointer;
 }

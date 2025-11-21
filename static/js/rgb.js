@@ -230,9 +230,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                         // Colors starts //
                                         let colorHtmlElement = '';
-                                        let gradients = false;
+                                        let size = 700;
+                                        let leftTableCss = "left";
+                                        let rightTableCss = "right";
 
                                         if (data.gradients != null) {
+                                            colorHtmlElement += `<div id="gradientWrapper">`;
+                                            colorHtmlElement += `<canvas id="gradientCanvas" width="600" height="80"></canvas>`;
+                                            colorHtmlElement += `</div>`;
+
+                                            /*
                                             colorHtmlElement += `<div class="row" style="margin-top: 10px;">`;
                                             colorHtmlElement += `<div class="col-lg-12" id="gradient-colors-container">`;
                                             $.each(data.gradients, function (index, value) {
@@ -241,15 +248,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                             });
                                             colorHtmlElement += `</div>`;
                                             colorHtmlElement += `</div>`;
+                                            */
 
                                             // Control buttons
                                             colorHtmlElement += `<div class="row" style="margin-top: 10px;">`;
                                             colorHtmlElement += `<div class="col-lg-12">`;
-                                            colorHtmlElement += `<span class="btn btn-secondary addGradientColor" type="button"">+</span>`;
-                                            colorHtmlElement += `<span class="btn btn-secondary deleteGradientColor" style="margin-left: 20px;" type="button"">-</span>`;
+                                            colorHtmlElement += `<span class="btn btn-secondary addGradientColor" id="addGradientColor" type="button"">+</span>`;
+                                            colorHtmlElement += `<span class="btn btn-secondary deleteGradientColor" id="deleteGradientColor" style="margin-left: 20px;" type="button"">-</span>`;
                                             colorHtmlElement += `</div>`;
                                             colorHtmlElement += `</div>`;
-
+                                            size = 1000;
+                                            leftTableCss = "left-gradient";
+                                            rightTableCss = "right-gradient";
                                         } else {
                                             colorHtmlElement = `
                                                 <input type="color" id="startColor_${profile}" class="rgb-color-start" value="${startColor}" style="margin-right: 20px;border:0;"/>
@@ -257,10 +267,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                             `;
                                         }
                                         // Colors ends //
+
                                         let modalElement = `
                                             <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
-                                                <div class="modal-dialog modal-dialog-700">
-                                                    <div class="modal-content" style="width: 700px;">
+                                                <div class="modal-dialog modal-dialog-${size}">
+                                                    <div class="modal-content" style="width: ${size}px;">
                                                     <div class="modal-header">
                                                       <h5 class="modal-title" id="keyboardControlDial">${profileName}</h5>
                                                       <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -270,10 +281,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             <table class="table-rgb-data">
                                                                 <tbody>
                                                                     <tr>
-                                                                        <td class="left">
+                                                                        <td class="${leftTableCss}">
                                                                             ${colorHtmlElement}
                                                                         </td>
-                                                                        <td class="right">
+                                                                        <td class="${rightTableCss}">
                                                                             ${speedHtml}
                                                                             ${rgbDirectionHtml}
                                                                             ${alternateColorsHtml}
@@ -298,57 +309,205 @@ document.addEventListener("DOMContentLoaded", function () {
                                         })
 
                                         modal.on('shown.bs.modal', function (e) {
-                                            modal.find('.addGradientColor').on('click', function () {
-                                                const pf = {};
-                                                pf["deviceId"] = deviceId;
-                                                pf["profile"] = profile;
-                                                const json = JSON.stringify(pf, null, 2);
+                                            let gradientColors = [];
+                                            let selectedColor = null;
 
-                                                $.ajax({
-                                                    url: '/api/color/gradient/add',
-                                                    type: 'POST',
-                                                    data: json,
-                                                    cache: false,
-                                                    success: function (response) {
-                                                        try {
-                                                            if (response.status === 1) {
-                                                                const appendElementColor = rgbToHex(0, 255, 255);
-                                                                const appendElement = `<input type="color" id="gradient_${profile}_${response.data}" class="rgb-color-gradient" value="${appendElementColor}" style="border:0;padding:10px;"/>`;
-                                                                modal.find('#gradient-colors-container').append(appendElement)
-                                                            } else {
-                                                                toast.warning(response.message);
-                                                            }
-                                                        } catch (err) {
-                                                            toast.warning(response.message);
+                                            if (data.gradients != null) {
+                                                const wrapper = $("#gradientWrapper");
+                                                const canvas = document.getElementById("gradientCanvas");
+                                                const ctx = canvas.getContext("2d");
+                                                let colorPicker = $('<input type="color" style="position:absolute; width:0; height:0; opacity:0;">');
+                                                $("body").append(colorPicker);
+
+                                                function initGradientColors() {
+                                                    let keys = Object.keys(data.gradients);
+                                                    let count = keys.length;
+
+                                                    keys.forEach((key, i) => {
+                                                        let g = data.gradients[key];
+                                                        let pos = i / (count - 1);
+                                                        createGradientColor(g.position, g.red, g.green, g.blue, g.brightness);
+                                                    });
+
+                                                    drawGradient();
+                                                }
+
+                                                function createGradientColor(position, r, g, b, brightness) {
+                                                    let div = $('<div class="stop"></div>');
+
+                                                    // Compute Y position from brightness
+                                                    let maxY = wrapper.height() - 16;
+                                                    let top = (1 - brightness) * maxY;
+
+                                                    div.css({
+                                                        left: position * (wrapper.width() - 16) + "px",
+                                                        top: top + "px",
+                                                        background: `rgb(${Math.round(r * brightness)},${Math.round(g * brightness)},${Math.round(b * brightness)})`
+                                                    });
+
+                                                    wrapper.append(div);
+
+                                                    let gradientObj = { el: div, r, g, b, brightness };
+                                                    gradientColors.push(gradientObj);
+
+                                                    // draggable
+                                                    div.draggable({
+                                                        containment: "parent",
+                                                        drag: function (event, ui) {
+                                                            applyBrightnessFromY(gradientObj, ui.position.top);
+                                                            drawGradient();
+                                                        },
+                                                        stop: function () {
+                                                            sortGradientsByX();
                                                         }
-                                                    }
-                                                });
-                                            });
+                                                    });
+                                                }
 
-                                            modal.find('.deleteGradientColor').on('click', function () {
-                                                const pf = {};
-                                                pf["deviceId"] = deviceId;
-                                                pf["profile"] = profile;
-                                                const json = JSON.stringify(pf, null, 2);
+                                                colorPicker.on("input", function () {
+                                                    let gradientObj = colorPicker.data("stop");
+                                                    if (!gradientObj) return;
 
-                                                $.ajax({
-                                                    url: '/api/color/gradient/delete',
-                                                    type: 'POST',
-                                                    data: json,
-                                                    cache: false,
-                                                    success: function (response) {
-                                                        try {
-                                                            if (response.status === 1) {
-                                                                $('#gradient_' + profile + '_' + response.data).remove();
-                                                            } else {
-                                                                toast.warning(response.message);
-                                                            }
-                                                        } catch (err) {
-                                                            toast.warning(response.message);
-                                                        }
-                                                    }
+                                                    let hex = $(this).val();
+                                                    let rgb = hexToRgb(hex);
+
+                                                    // Update the base color
+                                                    gradientObj.r = rgb.r;
+                                                    gradientObj.g = rgb.g;
+                                                    gradientObj.b = rgb.b;
+
+                                                    // Reapply brightness to update DOM
+                                                    let top = parseFloat(gradientObj.el.css("top")) || 0;
+                                                    applyBrightnessFromY(gradientObj, top, true);
+
+                                                    // Redraw gradient
+                                                    drawGradient();
                                                 });
-                                            });
+
+                                                function applyBrightnessFromY(gradientObj, y, updatePosition = true) {
+                                                    let maxY = wrapper.height() - 16;
+
+                                                    if (y < 0) y = 0;
+                                                    if (y > maxY) y = maxY;
+
+                                                    let brightness = 1 - (y / maxY);
+                                                    gradientObj.brightness = brightness;
+
+                                                    // Compute actual RGB based on brightness
+                                                    let r = Math.round(gradientObj.r * brightness);
+                                                    let g = Math.round(gradientObj.g * brightness);
+                                                    let b = Math.round(gradientObj.b * brightness);
+
+                                                    gradientObj.el.css("background", `rgb(${r},${g},${b})`);
+
+                                                    // Update dot position based on brightness if needed
+                                                    if (!updatePosition) {
+                                                        let newY = (1 - gradientObj.brightness) * maxY;
+                                                        gradientObj.el.css("top", newY + "px");
+                                                    }
+                                                }
+
+                                                function drawGradient() {
+                                                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                                                    let gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                                                    let w = wrapper.width() - 16;
+
+                                                    gradientColors.forEach(stop => {
+                                                        let x = parseInt(stop.el.css("left"));
+                                                        let pos = x / w;
+
+                                                        let r = Math.round(stop.r * stop.brightness);
+                                                        let g = Math.round(stop.g * stop.brightness);
+                                                        let b = Math.round(stop.b * stop.brightness);
+
+                                                        gradient.addColorStop(pos, `rgb(${r},${g},${b})`);
+                                                    });
+
+                                                    ctx.fillStyle = gradient;
+                                                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                                }
+
+                                                wrapper.on("click", ".stop", function (e) {
+                                                    let gradientObj = gradientColors.find(s => s.el[0] === this);
+                                                    selectedColor = gradientObj;
+
+                                                    colorPicker.val(rgbToHex(gradientObj.r, gradientObj.g, gradientObj.b));
+
+                                                    // Move input over the stop
+                                                    let offset = $(this).offset();
+                                                    colorPicker.css({
+                                                        left: offset.left + "px",
+                                                        top: offset.top + "px",
+                                                        display: "block"
+                                                    });
+
+                                                    // Force browser to reflow
+                                                    colorPicker[0].offsetWidth; // reading offsetWidth triggers reflow
+
+                                                    // Now trigger the color picker
+                                                    colorPicker.trigger("click");
+
+                                                    colorPicker.off("input").on("input", function () {
+                                                        let hex = $(this).val();
+                                                        let rgb = hexToRgb(hex);
+
+                                                        gradientObj.r = rgb.r;
+                                                        gradientObj.g = rgb.g;
+                                                        gradientObj.b = rgb.b;
+
+                                                        applyBrightnessFromY(gradientObj, parseFloat(gradientObj.el.css("top")), false);
+                                                        drawGradient();
+                                                    });
+                                                });
+
+                                                function hexToRgb(hex) {
+                                                    hex = hex.replace("#", "");
+                                                    return {
+                                                        r: parseInt(hex.substring(0, 2), 16),
+                                                        g: parseInt(hex.substring(2, 4), 16),
+                                                        b: parseInt(hex.substring(4, 6), 16)
+                                                    };
+                                                }
+
+                                                function rgbStringToHex(rgb) {
+                                                    let v = rgb.match(/\d+/g);
+                                                    return rgbToHex(+v[0], +v[1], +v[2]);
+                                                }
+
+                                                function rgbToHex(r, g, b) {
+                                                    return (
+                                                        "#" +
+                                                        ((1 << 24) + (r << 16) + (g << 8) + b)
+                                                            .toString(16)
+                                                            .slice(1)
+                                                            .toUpperCase()
+                                                    );
+                                                }
+
+                                                function sortGradientsByX() {
+                                                    gradientColors.sort((a, b) => {
+                                                        let ax = parseFloat(a.el.css("left"));
+                                                        let bx = parseFloat(b.el.css("left"));
+                                                        return ax - bx;
+                                                    });
+                                                }
+
+                                                initGradientColors();
+
+                                                modal.find('#addGradientColor').on('click', function () {
+                                                    createGradientColor(0.5, 0, 255, 255, 1.0);
+                                                    drawGradient();
+                                                });
+
+                                                modal.find('#deleteGradientColor').on('click', function () {
+                                                    if (!selectedColor) return;
+                                                    if (gradientColors.length <= 2) return;
+                                                    selectedColor.el.remove();
+                                                    gradientColors = gradientColors.filter(s => s !== selectedColor);
+                                                    selectedColor = null;
+                                                    drawGradient();
+                                                });
+                                            }
 
                                             modal.find('.saveRgbProfile').on('click', function () {
                                                 let startColorRgb = {}
@@ -398,15 +557,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 pf["alternateColors"] = alternateColors;
                                                 pf["rgbDirection"] = parseInt(rgbDirection);
 
-                                                let count = $('#gradient-colors-container input[id^="gradient_gradient_"]').length;
-                                                if (count > 0) {
-                                                    const colorZones = {};
-                                                    for (let i= 0; i < count; i++) {
-                                                        let color = modal.find("#gradient_gradient_" + i).val();
-                                                        color = hexToRgb(color);
-                                                        colorZones[i] = {red: color.r, green: color.g, blue: color.b};
-                                                    }
-                                                    pf["colorZones"] = colorZones;
+                                                if (data.gradients != null) {
+                                                    const wrapper = $("#gradientWrapper");
+                                                    let w = wrapper.width() - 16;
+                                                    let output = {};
+
+                                                    gradientColors.forEach((s, index) => {
+                                                        let x = parseFloat(s.el.css("left"));
+                                                        let pos = Number((x / w).toFixed(2));
+                                                        let brightness = Number(s.brightness.toFixed(2));
+
+                                                        output[index] = {
+                                                            red: s.r,
+                                                            green: s.g,
+                                                            blue: s.b,
+                                                            brightness: brightness,
+                                                            position: pos,
+                                                            Hex: rgbToHex(Math.round(s.r), Math.round(s.g), Math.round(s.b))
+                                                        };
+                                                    });
+                                                    pf["colorZones"] = output;
                                                 }
 
                                                 const json = JSON.stringify(pf, null, 2);

@@ -18,6 +18,7 @@ type Color struct {
 	Green      float64 `json:"green"`
 	Blue       float64 `json:"blue"`
 	Brightness float64 `json:"brightness"`
+	Position   float64 `json:"position"`
 	Hex        string
 }
 
@@ -151,13 +152,29 @@ func interpolateColors(c1, c2 *Color, t, bts float64) Color {
 	return *modify
 }
 
-func cloneColor(c *Color) *Color {
-	return &Color{
-		Red:        c.Red,
-		Green:      c.Green,
-		Blue:       c.Blue,
-		Brightness: c.Brightness,
-	}
+// interpolateColorsWithBrightness blends two colors based on a weight factor `t` (0.0 to 1.0) and their brightness
+func interpolateColorsWithBrightness(c1, c2 Color, t float64) Color {
+	// Interpolate brightness first
+	bts := c1.Brightness*(1-t) + c2.Brightness*t
+
+	// Apply brightness to RGB of each color
+	r1 := c1.Red * c1.Brightness
+	g1 := c1.Green * c1.Brightness
+	b1 := c1.Blue * c1.Brightness
+
+	r2 := c2.Red * c2.Brightness
+	g2 := c2.Green * c2.Brightness
+	b2 := c2.Blue * c2.Brightness
+
+	// Interpolate RGB linearly
+	r := r1*(1-t) + r2*t
+	g := g1*(1-t) + g2*t
+	b := b1*(1-t) + b2*t
+
+	// Create final color
+	color := Color{Red: r, Green: g, Blue: b, Brightness: bts}
+
+	return *ModifyBrightness(color)
 }
 
 // Interpolate function to calculate the intermediate color

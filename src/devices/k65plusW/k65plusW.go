@@ -237,7 +237,17 @@ func (d *Device) createDevice() {
 
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
-	return d.Rgb
+	tmp := *d.Rgb
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(tmp.Profiles))
+	for key, value := range tmp.Profiles {
+		if slices.Contains(rgbModes, key) {
+			profiles[key] = value
+		}
+	}
+	tmp.Profiles = profiles
+	return tmp
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode

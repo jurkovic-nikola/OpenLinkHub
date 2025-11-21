@@ -259,7 +259,17 @@ func (d *Device) createDevice() {
 
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
-	return d.Rgb
+	tmp := *d.Rgb
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(tmp.Profiles))
+	for key, value := range tmp.Profiles {
+		if slices.Contains(rgbModes, key) {
+			profiles[key] = value
+		}
+	}
+	tmp.Profiles = profiles
+	return tmp
 }
 
 // getLedProfileColor will get RGB color based on channelId and ledId
@@ -420,15 +430,6 @@ func (d *Device) loadRgb() {
 	}
 
 	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
-
-	// Filter unsupported modes out
-	profiles := make(map[string]rgb.Profile, len(d.Rgb.Profiles))
-	for key, value := range d.Rgb.Profiles {
-		if slices.Contains(rgbModes, key) {
-			profiles[key] = value
-		}
-	}
-	d.Rgb.Profiles = profiles
 }
 
 // upgradeRgbProfile will upgrade current rgb profile list
@@ -562,7 +563,7 @@ func (d *Device) getDevices() int {
 		if slices.Contains(config.GetConfig().EnhancementKits, dimmInfoAddresses[i]) {
 			d.setEnhancementKit(dimmInfoAddresses[i])
 		}
-		
+
 		// Probe for register
 		_, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], 0x00)
 		if err != nil {

@@ -229,7 +229,17 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
-	return d.Rgb
+	tmp := *d.Rgb
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(tmp.Profiles))
+	for key, value := range tmp.Profiles {
+		if slices.Contains(rgbModes, key) {
+			profiles[key] = value
+		}
+	}
+	tmp.Profiles = profiles
+	return tmp
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -346,6 +356,7 @@ func (d *Device) SetConnected(value bool) {
 func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
+		d.loadRgb()            // Load RGB
 		d.setSoftwareMode()    // Activate software mode
 		d.getBatterLevel()     // Battery level
 		d.getDeviceFirmware()  // Firmware
@@ -2138,83 +2149,124 @@ func (d *Device) setDeviceColor() {
 				var buf = make([]byte, keyboard.BufferSize-2)
 
 				gradient := d.GetRgbProfile(d.DeviceProfile.SlipstreamRGBProfile)
-				if gradient != nil {
-					entries := 128
-					entrySize := 4
-					packetSize := entries * entrySize
-
-					colors := make([]byte, packetSize)
-					colors[2] = 0xf4
-					colors[3] = 0xeb
-					colors[4] = 0x01
-					colors[5] = byte(gradient.Speed * 10)
-					colors[10] = byte(entries)
-
-					numSegments := len(gradient.Gradients) - 1
-					segSize := entries / numSegments
-					pos := 11
-
-					keys := make([]int, 0)
-					for k := range gradient.Gradients {
-						keys = append(keys, k)
-					}
-					sort.Ints(keys)
-
-					for _, k := range keys {
-						g1 := gradient.Gradients[k]
-						g2 := gradient.Gradients[k+1]
-
-						deltaR := (g2.Red - g1.Red) / float64(segSize-1)
-						deltaG := (g2.Green - g1.Green) / float64(segSize-1)
-						deltaB := (g2.Blue - g1.Blue) / float64(segSize-1)
-
-						for step := 0; step < segSize; step++ {
-							if pos+entrySize > packetSize {
-								break
-							}
-							R := byte(math.Round(g1.Red + deltaR*float64(step)))
-							G := byte(math.Round(g1.Green + deltaG*float64(step)))
-							B := byte(math.Round(g1.Blue + deltaB*float64(step)))
-
-							colors[pos] = 0xFF
-							colors[pos+1] = B
-							colors[pos+2] = G
-							colors[pos+3] = R
-							pos += entrySize
-						}
-					}
-
-					for pos < packetSize {
-						colors[pos] = 0
-						pos++
-					}
-
-					buf[0] = 0x04
-					buf[1] = 0xff
-					buf[2] = colors[12]
-					buf[3] = colors[13]
-					buf[4] = colors[14]
-					buf[5] = 0xff
-					buf[6] = colors[12]
-					buf[7] = colors[13]
-					buf[8] = colors[14]
-					buf[9] = byte(d.KeyAmount)
-					start := 10
-					for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
-						for _, key := range row.Keys {
-							if key.NoColor {
-								continue
-							}
-							for packet := range key.PacketIndex {
-								value := key.PacketIndex[packet] / 3
-								buf[start] = byte(value)
-								start++
-							}
-						}
-					}
-
-					d.writeColorCustom(buf, colors)
+				if gradient == nil {
+					return
 				}
+
+				entries := 128
+				entrySize := 4
+				packetSize := entries * entrySize
+
+				colors := make([]byte, packetSize)
+				colors[2] = 0xf4
+				colors[3] = 0xeb
+				colors[4] = 0x01
+				colors[5] = byte(gradient.Speed * 10)
+				colors[10] = byte(entries)
+
+				type G struct {
+					Red, Green, Blue float64
+					Brightness       float64
+					Position         float64
+				}
+
+				gradients := make([]G, 0, len(gradient.Gradients))
+				for _, v := range gradient.Gradients {
+					gradients = append(gradients, G{
+						Red:        v.Red,
+						Green:      v.Green,
+						Blue:       v.Blue,
+						Brightness: v.Brightness,
+						Position:   v.Position,
+					})
+				}
+
+				sort.Slice(gradients, func(i, j int) bool {
+					return gradients[i].Position < gradients[j].Position
+				})
+
+				if len(gradients) < 2 {
+					return
+				}
+
+				if gradients[0].Position > 0 {
+					gradients = append([]G{{Red: gradients[0].Red, Green: gradients[0].Green, Blue: gradients[0].Blue, Brightness: gradients[0].Brightness, Position: 0}}, gradients...)
+				}
+
+				if gradients[len(gradients)-1].Position < 1 {
+					last := gradients[len(gradients)-1]
+					gradients = append(gradients, G{Red: last.Red, Green: last.Green, Blue: last.Blue, Brightness: last.Brightness, Position: 1})
+				}
+
+				pos := 11
+				for i := 0; i < len(gradients)-1; i++ {
+					g1 := gradients[i]
+					g2 := gradients[i+1]
+
+					segmentRange := g2.Position - g1.Position
+					if segmentRange <= 0 {
+						continue
+					}
+
+					segmentEntries := int(segmentRange * float64(entries))
+					if segmentEntries < 1 {
+						segmentEntries = 1
+					}
+
+					for step := 0; step < segmentEntries; step++ {
+						if pos+entrySize > packetSize {
+							break
+						}
+
+						t := float64(step) / float64(segmentEntries)
+						b := g1.Brightness*(1-t) + g2.Brightness*t
+
+						Rf := (g1.Red*(1-t) + g2.Red*t) * b
+						Gf := (g1.Green*(1-t) + g2.Green*t) * b
+						Bf := (g1.Blue*(1-t) + g2.Blue*t) * b
+
+						red := byte(math.Round(Rf))
+						green := byte(math.Round(Gf))
+						blue := byte(math.Round(Bf))
+
+						colors[pos] = 0xFF
+						colors[pos+1] = blue
+						colors[pos+2] = green
+						colors[pos+3] = red
+						pos += entrySize
+					}
+				}
+
+				for pos < packetSize {
+					colors[pos] = 0
+					pos++
+				}
+
+				buf[0] = 0x04
+				buf[1] = 0xff
+				buf[2] = colors[12]
+				buf[3] = colors[13]
+				buf[4] = colors[14]
+				buf[5] = 0xff
+				buf[6] = colors[12]
+				buf[7] = colors[13]
+				buf[8] = colors[14]
+				buf[9] = byte(d.KeyAmount)
+
+				start := 10
+				for _, row := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+					for _, key := range row.Keys {
+						if key.NoColor {
+							continue
+						}
+						for packet := range key.PacketIndex {
+							value := key.PacketIndex[packet] / 3
+							buf[start] = byte(value)
+							start++
+						}
+					}
+				}
+				d.writeColorCustom(buf, colors)
 			}
 		}
 	}

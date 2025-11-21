@@ -238,7 +238,17 @@ func (d *Device) createDevice() {
 
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
-	return d.Rgb
+	tmp := *d.Rgb
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(tmp.Profiles))
+	for key, value := range tmp.Profiles {
+		if slices.Contains(rgbModes, key) {
+			profiles[key] = value
+		}
+	}
+	tmp.Profiles = profiles
+	return tmp
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -391,15 +401,6 @@ func (d *Device) loadRgb() {
 	}
 
 	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
-
-	// Filter unsupported modes out
-	profiles := make(map[string]rgb.Profile, len(d.Rgb.Profiles))
-	for key, value := range d.Rgb.Profiles {
-		if slices.Contains(rgbModes, key) {
-			profiles[key] = value
-		}
-	}
-	d.Rgb.Profiles = profiles
 }
 
 // upgradeRgbProfile will upgrade current rgb profile list

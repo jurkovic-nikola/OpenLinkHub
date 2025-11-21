@@ -401,7 +401,17 @@ func (d *Device) createDevice() {
 
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
-	return d.Rgb
+	tmp := *d.Rgb
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(tmp.Profiles))
+	for key, value := range tmp.Profiles {
+		if slices.Contains(rgbModes, key) {
+			profiles[key] = value
+		}
+	}
+	tmp.Profiles = profiles
+	return tmp
 }
 
 // getLedProfileColor will get RGB color based on channelId and ledId
@@ -543,15 +553,6 @@ func (d *Device) loadRgb() {
 	}
 
 	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
-
-	// Filter unsupported modes out
-	profiles := make(map[string]rgb.Profile, len(d.Rgb.Profiles))
-	for key, value := range d.Rgb.Profiles {
-		if slices.Contains(rgbModes, key) {
-			profiles[key] = value
-		}
-	}
-	d.Rgb.Profiles = profiles
 }
 
 // upgradeRgbProfile will upgrade current rgb profile list
@@ -2490,7 +2491,7 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 	for i := 0; i+2 < len(data); i += 3 {
 		data[i], data[i+2] = data[i+2], data[i]
 	}
-	
+
 	if d.Exit {
 		return
 	}

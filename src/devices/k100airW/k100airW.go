@@ -2221,13 +2221,16 @@ func (d *Device) setDeviceColor() {
 						t := float64(step) / float64(segmentEntries)
 						b := g1.Brightness*(1-t) + g2.Brightness*t
 
-						Rf := (g1.Red*(1-t) + g2.Red*t) * b
-						Gf := (g1.Green*(1-t) + g2.Green*t) * b
-						Bf := (g1.Blue*(1-t) + g2.Blue*t) * b
+						gamma := 2.2
+						corrected := math.Pow(b, gamma)
 
-						red := byte(math.Round(Rf))
-						green := byte(math.Round(Gf))
-						blue := byte(math.Round(Bf))
+						Rf := ((g1.Red*(1-t) + g2.Red*t) / 255.0) * corrected
+						Gf := ((g1.Green*(1-t) + g2.Green*t) / 255.0) * corrected
+						Bf := ((g1.Blue*(1-t) + g2.Blue*t) / 255.0) * corrected
+
+						red := byte(math.Round(Rf * 255))
+						green := byte(math.Round(Gf * 255))
+						blue := byte(math.Round(Bf * 255))
 
 						colors[pos] = 0xFF
 						colors[pos+1] = blue

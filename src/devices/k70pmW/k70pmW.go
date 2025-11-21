@@ -436,15 +436,6 @@ func (d *Device) loadRgb() {
 	}
 
 	d.upgradeRgbProfile(rgbFilename, rgbProfileUpgrade)
-
-	// Filter unsupported modes out
-	profiles := make(map[string]rgb.Profile, len(d.Rgb.Profiles))
-	for key, value := range d.Rgb.Profiles {
-		if slices.Contains(rgbModes, key) {
-			profiles[key] = value
-		}
-	}
-	d.Rgb.Profiles = profiles
 }
 
 // upgradeRgbProfile will upgrade current rgb profile list

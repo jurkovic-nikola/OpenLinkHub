@@ -1,5 +1,22 @@
+## 2025-11-21
+
+* reset color only if connected (0f34e01)
+* gamma brightness correction (2d9a8cf)
+* rgb profile filters (c9dbfd9)
+* fixup for rgb override on wireless (ca8d916)
+* k65 plus slipstream rgb profile (76ca427)
+* gradient color editor, duration, positions (7c340ed)
+* Merge pull request #264 from CajuCLC/feature/docker-package-build (a6e96a8)
+
+## 2025-11-20
+
+* readme update (ae78b13)
+* k100 air rgb change (4bbac06)
+* Create docker from release tag (f0aeb1e)
+
 ## 2025-11-19
 
+* changelog (0ca3df7)
 * k100 air watercolor changes (6f560ad)
 * fixup for keyboard rgb mode reset (b912c90)
 * rgb editor changes, gradient rgb mode (3f2ca40)

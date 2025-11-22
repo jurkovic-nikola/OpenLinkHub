@@ -1,5 +1,10 @@
+## 2025-11-22
+
+* animation background dispose, frame dispose, resize issue (543e668)
+
 ## 2025-11-21
 
+* changelog (6213efb)
 * reset color only if connected (0f34e01)
 * gamma brightness correction (2d9a8cf)
 * rgb profile filters (c9dbfd9)

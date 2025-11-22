@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"golang.org/x/image/draw"
+	"image/color"
+	"sync"
 )
 
 type Device struct {
@@ -593,18 +595,62 @@ func ResizeImage(src image.Image, width, height int) image.Image {
 }
 
 // ResizeGifImage will resize image with given width and height
-func ResizeGifImage(g *gif.GIF, width, height int) []*image.RGBA {
-	imageBuffer := make([]*image.RGBA, len(g.Image))
-	canvas := image.NewRGBA(image.Rect(0, 0, width, height))
-	for i, frame := range g.Image {
-		resized := ResizeImage(frame, width, height)
-		draw.Draw(canvas, canvas.Bounds().Add(resized.Bounds().Min), resized, resized.Bounds().Min, draw.Over)
+func ResizeGifImage(g *gif.GIF, width, height int) []*image.Paletted {
+	frameCount := len(g.Image)
+	frames := make([]*image.Paletted, frameCount)
 
-		canvasCopy := image.NewRGBA(canvas.Bounds())
-		copy(canvasCopy.Pix, canvas.Pix)
-		imageBuffer[i] = canvasCopy
+	origWidth := g.Config.Width
+	origHeight := g.Config.Height
+
+	scaleX := float64(width) / float64(origWidth)
+	scaleY := float64(height) / float64(origHeight)
+
+	composed := make([]*image.RGBA, frameCount)
+	prevCanvas := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	for i, frame := range g.Image {
+		frameCanvas := image.NewRGBA(image.Rect(0, 0, width, height))
+
+		if i > 0 && g.Disposal[i-1] != gif.DisposalBackground {
+			draw.Draw(frameCanvas, frameCanvas.Bounds(), prevCanvas, image.Point{}, draw.Over)
+		}
+
+		patchWidth := int(float64(frame.Bounds().Dx()) * scaleX)
+		patchHeight := int(float64(frame.Bounds().Dy()) * scaleY)
+
+		offsetX := int(float64(frame.Bounds().Min.X) * scaleX)
+		offsetY := int(float64(frame.Bounds().Min.Y) * scaleY)
+
+		patch := image.NewRGBA(image.Rect(0, 0, patchWidth, patchHeight))
+		draw.ApproxBiLinear.Scale(patch, patch.Bounds(), frame, frame.Bounds(), draw.Over, nil)
+
+		draw.Draw(frameCanvas, patch.Bounds().Add(image.Pt(offsetX, offsetY)), patch, image.Point{}, draw.Over)
+
+		composed[i] = frameCanvas
+
+		switch g.Disposal[i] {
+		case gif.DisposalNone, gif.DisposalPrevious:
+			draw.Draw(prevCanvas, prevCanvas.Bounds(), frameCanvas, image.Point{}, draw.Over)
+		case gif.DisposalBackground:
+			draw.Draw(prevCanvas, patch.Bounds().Add(image.Pt(offsetX, offsetY)),
+				&image.Uniform{C: color.Transparent}, image.Point{}, draw.Src)
+		}
 	}
-	return imageBuffer
+
+	var wg sync.WaitGroup
+	wg.Add(frameCount)
+
+	for i, frameCanvas := range composed {
+		go func(i int, frameCanvas *image.RGBA) {
+			defer wg.Done()
+			paletted := image.NewPaletted(frameCanvas.Bounds(), g.Image[i].Palette)
+			draw.FloydSteinberg.Draw(paletted, frameCanvas.Bounds(), frameCanvas, image.Point{})
+			frames[i] = paletted
+		}(i, frameCanvas)
+	}
+
+	wg.Wait()
+	return frames
 }
 
 // MuteWithPulseAudio will mute / unmute mic via pulse audio

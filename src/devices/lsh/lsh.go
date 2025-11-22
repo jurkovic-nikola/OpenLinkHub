@@ -4536,7 +4536,6 @@ func (d *Device) setupLCDImage() {
 											if delay > 0 {
 												time.Sleep(time.Duration(delay) * time.Millisecond)
 											} else {
-												// Single frame, static image, generate 100ms of delay
 												time.Sleep(10 * time.Millisecond)
 											}
 										}

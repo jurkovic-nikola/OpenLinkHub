@@ -83,9 +83,10 @@ var (
 )
 
 type ImageData struct {
-	Name   string
-	Frames int
-	Buffer []Frames
+	Name           string
+	Frames         int
+	Buffer         []Frames
+	PalettedFrames []*image.Paletted
 }
 
 type Frames struct {
@@ -889,6 +890,7 @@ func loadImage(imagePath string, format uint8) {
 	filename := filepath.Base(imagePath)
 	fileName := strings.TrimSuffix(filename, filepath.Ext(filename))
 	imageBuffer := make([]Frames, 1)
+	var paletted []*image.Paletted
 
 	switch format {
 	case ImageFormatJpg: // JPG, JPEG
@@ -969,8 +971,8 @@ func loadImage(imagePath string, format uint8) {
 				return
 			}
 			imageBuffer = make([]Frames, len(src.Image))
-			resized := common.ResizeGifImage(src, imgWidth, imgHeight)
-			for i, frame := range resized {
+			paletted = common.ResizeGifImage(src, imgWidth, imgHeight)
+			for i, frame := range paletted {
 				var buffer bytes.Buffer
 				err = jpeg.Encode(&buffer, frame, nil)
 				if err != nil {
@@ -987,10 +989,12 @@ func loadImage(imagePath string, format uint8) {
 	}
 
 	imageList := &ImageData{
-		Name:   fileName,
-		Frames: len(imageBuffer),
-		Buffer: imageBuffer,
+		Name:           fileName,
+		Frames:         len(imageBuffer),
+		Buffer:         imageBuffer,
+		PalettedFrames: paletted,
 	}
+	paletted = nil
 	lcd.ImageData = append(lcd.ImageData, *imageList)
 }
 

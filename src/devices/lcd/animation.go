@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"golang.org/x/image/draw"
 	"image"
-	"image/gif"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -144,54 +143,47 @@ func InitAnimation() {
 				return
 			}
 
-			file, err := os.Open(imagePath)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": animationsFolder, "image": imagePath}).Warn("Unable to open image")
-				return
-			}
-			defer func(file *os.File) {
-				err := file.Close()
-				if err != nil {
-
-				}
-			}(file)
-
-			src, err := gif.DecodeAll(file)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": animationsFolder, "image": imagePath}).Warn("Error decoding gif animation")
+			palettedFrames := GetPalettedFrames(fileName)
+			if palettedFrames.PalettedFrames == nil {
 				return
 			}
 
-			imageBuffer := make([]AnimationFrames, len(src.Image))
-
-			canvas := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
-
-			for i, frame := range src.Image {
-				resized := common.ResizeImage(frame, imgWidth, imgHeight)
-				draw.Draw(canvas, canvas.Bounds().Add(resized.Bounds().Min), resized, resized.Bounds().Min, draw.Over)
-
-				canvasCopy := image.NewRGBA(canvas.Bounds())
-				copy(canvasCopy.Pix, canvas.Pix)
-
-				delay := float64(src.Delay[i]) * 10
+			imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
+			for i, pf := range palettedFrames.PalettedFrames {
+				delay := palettedFrames.Buffer[i].Delay
 				if delay == 0 {
-					delay = float64(animation.FrameDelay)
+					if animation.FrameDelay > 0 {
+						delay = float64(animation.FrameDelay)
+					}
 				}
+
+				canvas := image.NewRGBA(pf.Bounds())
+				draw.Draw(canvas, canvas.Bounds(), pf, image.Point{}, draw.Over)
+
 				imageBuffer[i] = AnimationFrames{
 					Delay:  delay,
-					Canvas: canvasCopy,
-					RGBA:   image.NewRGBA(canvasCopy.Bounds()),
+					Canvas: canvas,
+					RGBA:   image.NewRGBA(canvas.Bounds()),
 				}
 			}
 
 			mu.Lock()
 			animationData[fileName] = imageBuffer
 			mu.Unlock()
-
 		}(fi)
 	}
 	wg.Wait()
 	animation.Images = animationData
+}
+
+// GetPalettedFrames will return
+func GetPalettedFrames(fileName string) ImageData {
+	for _, val := range lcd.ImageData {
+		if val.Name == fileName {
+			return val
+		}
+	}
+	return ImageData{}
 }
 
 // GetAnimation will return Animation object

@@ -454,6 +454,9 @@ func (d *Device) distributeColors(buff []byte) {
 	offset := 0
 
 	for _, c := range controllers {
+		if c == nil {
+			continue
+		}
 		length := int(c.LedChannels) * 3
 
 		if offset+length > len(buff) {

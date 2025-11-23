@@ -176,6 +176,43 @@ func InitAnimation() {
 	animation.Images = animationData
 }
 
+// LoadAnimation will load animation based on filename
+func LoadAnimation(fileName string) uint8 {
+	if animation.Images == nil {
+		return 0
+	}
+
+	if _, ok := animation.Images[fileName]; ok {
+		return 2
+	}
+
+	palettedFrames := GetPalettedFrames(fileName)
+	if palettedFrames.PalettedFrames == nil {
+		return 0
+	}
+
+	imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
+	for i, pf := range palettedFrames.PalettedFrames {
+		delay := palettedFrames.Buffer[i].Delay
+		if delay == 0 {
+			if animation.FrameDelay > 0 {
+				delay = float64(animation.FrameDelay)
+			}
+		}
+
+		canvas := image.NewRGBA(pf.Bounds())
+		draw.Draw(canvas, canvas.Bounds(), pf, image.Point{}, draw.Over)
+
+		imageBuffer[i] = AnimationFrames{
+			Delay:  delay,
+			Canvas: canvas,
+			RGBA:   image.NewRGBA(canvas.Bounds()),
+		}
+	}
+	animation.Images[fileName] = imageBuffer
+	return 1
+}
+
 // GetPalettedFrames will return
 func GetPalettedFrames(fileName string) ImageData {
 	for _, val := range lcd.ImageData {

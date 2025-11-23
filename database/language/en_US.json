@@ -394,6 +394,8 @@
     "txtUnableToDeleteGradientColor": "Unable to delete gradient color",
     "txtUnableToAddGradientColor": "Unable to create a new gradient color",
     "txtGradientColorCreated": "Gradient color is successfully created",
-    "txtGradientTooLow": "You have reached the minimum amount of 2 colors"
+    "txtGradientTooLow": "You have reached the minimum amount of 2 colors",
+    "txtUpload": "Upload",
+    "txtUploadGifAnimation": "Upload Gif Animation"
   }
 }

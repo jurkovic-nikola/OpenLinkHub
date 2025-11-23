@@ -1939,6 +1939,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
 	handleFunc(r, "/api/setSupportedDevices", http.MethodPost, setSupportedDevices)
 	handleFunc(r, "/api/restore", http.MethodPost, backup.PerformRestore)
+	handleFunc(r, "/api/lcd/upload", http.MethodPost, lcd.PerformGifUpload)
 	handleFunc(r, "/api/headset/anc", http.MethodPost, changeActiveNoiseCancellation)
 	handleFunc(r, "/api/headset/sidetone", http.MethodPost, changeSidetone)
 	handleFunc(r, "/api/headset/sidetoneValue", http.MethodPost, changeSidetoneValue)

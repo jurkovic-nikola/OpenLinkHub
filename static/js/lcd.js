@@ -24,6 +24,41 @@ document.addEventListener("DOMContentLoaded", function () {
     // Init toastr
     const toast = CreateToastr();
 
+    $("#gifUploadForm").on("submit", function (e) {
+        e.preventDefault();
+
+        var btn = $("#uploadGifImage");
+        btn.prop("disabled", true)
+
+        var formData = new FormData();
+        var file = $("#animationFile")[0].files[0];
+        if (!file) {
+            toast.warning('Please select a .gif file first!');
+            return;
+        }
+        formData.append("animationFile", file);
+
+        $.ajax({
+            url: "/api/lcd/upload",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                btn.prop("disabled", false)
+                if (response.status === 1) {
+                    location.reload();
+                } else {
+                    toast.warning(response.message);
+                }
+            },
+            error: function (xhr) {
+                btn.prop("disabled", false)
+                toast.warning("Upload failed: " + xhr.responseText);
+            }
+        });
+    });
+
     function componentToHex(c) {
         const hex = c.toString(16);
         return hex.length === 1 ? "0" + hex : hex;

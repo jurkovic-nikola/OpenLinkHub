@@ -394,6 +394,8 @@
         "txtUnableToDeleteGradientColor": "Невозможно удалить цвет градиента",
         "txtUnableToAddGradientColor": "Невозможно создать новый цвет градиента",
         "txtGradientColorCreated": "Цвет градиента успешно создан",
-        "txtGradientTooLow": "Вы достигли минимального количества — 2 цвета"
+        "txtGradientTooLow": "Вы достигли минимального количества — 2 цвета",
+        "txtUpload": "Загрузка",
+        "txtUploadGifAnimation": "Загрузить GIF-анимацию"
     }
 }

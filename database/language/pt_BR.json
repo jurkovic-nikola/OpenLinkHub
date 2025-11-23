@@ -394,6 +394,8 @@
     "txtUnableToDeleteGradientColor": "Não foi possível excluir a cor do gradiente",
     "txtUnableToAddGradientColor": "Não foi possível criar uma nova cor de gradiente",
     "txtGradientColorCreated": "A cor de gradiente foi criada com sucesso",
-    "txtGradientTooLow": "Você atingiu a quantidade mínima de 2 cores"
+    "txtGradientTooLow": "Você atingiu a quantidade mínima de 2 cores",
+    "txtUpload": "Upload",
+    "txtUploadGifAnimation": "Enviar animação GIF"
   }
 }

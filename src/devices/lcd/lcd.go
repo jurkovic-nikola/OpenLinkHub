@@ -12,6 +12,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
@@ -28,7 +29,10 @@ import (
 	"image/color"
 	"image/gif"
 	"image/jpeg"
+	"io"
 	"math"
+	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -387,6 +391,126 @@ func interpolateColor(c1, c2 color.RGBA, t float64) color.RGBA {
 		G: uint8(float64(c1.G)*(1-t) + float64(c2.G)*t),
 		B: uint8(float64(c1.B)*(1-t) + float64(c2.B)*t),
 		A: 255,
+	}
+}
+
+// PerformGifUpload will handle GIF upload
+func PerformGifUpload(w http.ResponseWriter, r *http.Request) {
+	const maxUploadSize = 5 * 1024 * 1024 // 5MB
+	var validFilename = regexp.MustCompile(`^[A-Za-z0-9]+$`)
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Use POST to upload GIF file", http.StatusMethodNotAllowed)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("File too large or invalid upload")
+		http.Error(w, "File too large or invalid upload", http.StatusBadRequest)
+		return
+	}
+
+	file, handler, err := r.FormFile("animationFile")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to read uploaded file")
+		http.Error(w, "Failed to read uploaded file: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer func(file multipart.File) {
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to close file")
+		}
+	}(file)
+
+	if strings.ToLower(filepath.Ext(handler.Filename)) != ".gif" {
+		http.Error(w, "Invalid file type. Only .gif allowed", http.StatusBadRequest)
+		return
+	}
+
+	name := strings.TrimSuffix(filepath.Base(handler.Filename), filepath.Ext(handler.Filename))
+	if !validFilename.MatchString(name) {
+		http.Error(w, "Invalid filename. Only letters and numbers allowed", http.StatusBadRequest)
+		return
+	}
+
+	// Read header bytes
+	header := make([]byte, 512)
+	if _, err = file.Read(header); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to inspect file")
+		http.Error(w, "Unable to inspect file", http.StatusBadRequest)
+		return
+	}
+
+	if http.DetectContentType(header) != "image/gif" {
+		http.Error(w, "Invalid file. Must be a GIF image", http.StatusBadRequest)
+		return
+	}
+
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return
+	}
+
+	if _, err = gif.Decode(file); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Corrupted or invalid GIF")
+		http.Error(w, "Corrupted or invalid GIF", http.StatusBadRequest)
+		return
+	}
+
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return
+	}
+
+	// Final safe filename (no traversal risk)
+	filename := name + ".gif"
+	savePath := filepath.Join(images, filename)
+
+	out, err := os.Create(savePath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to save file")
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+	defer func(out *os.File) {
+		err = out.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to close file")
+		}
+	}(out)
+
+	if _, err = io.Copy(out, file); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to write file")
+		http.Error(w, "Failed to write file", http.StatusInternalServerError)
+		return
+	}
+	
+	// Load image in cache
+	loadImage(savePath, ImageFormatGif)
+
+	status := LoadAnimation(name)
+	switch status {
+	case 0:
+		logger.Log(logger.Fields{}).Error("Failed to reload animations")
+		http.Error(w, "Failed to reload animations", http.StatusInternalServerError)
+		break
+	case 1:
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  1,
+			"message": "GIF uploaded successfully",
+		})
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to send response")
+			return
+		}
+		break
+	case 2:
+		logger.Log(logger.Fields{}).Error("Animation is already loaded")
+		http.Error(w, "Animation is already loaded", http.StatusInternalServerError)
+		break
 	}
 }
 

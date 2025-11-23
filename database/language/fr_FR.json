@@ -394,6 +394,8 @@
         "txtUnableToDeleteGradientColor": "Impossible de supprimer la couleur du dégradé",
         "txtUnableToAddGradientColor": "Impossible de créer une nouvelle couleur de dégradé",
         "txtGradientColorCreated": "La couleur du dégradé a été créée avec succès",
-        "txtGradientTooLow": "Vous avez atteint le minimum de 2 couleurs"
+        "txtGradientTooLow": "Vous avez atteint le minimum de 2 couleurs",
+        "txtUpload": "Téléverser",
+        "txtUploadGifAnimation": "Téléverser une animation GIF"
     }
 }

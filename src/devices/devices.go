@@ -596,6 +596,7 @@ var deviceRegisterMap = map[uint16]Product{
 	3136:  {0, 0, "iCUE H100i ELITE RGB White", elite.Init, nil},          // iCUE H100i ELITE RGB White
 	3137:  {0, 0, "iCUE H150i ELITE RGB White", elite.Init, nil},          // iCUE H150i ELITE RGB White
 	3104:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},               // iCUE H100i RGB PRO XT
+	3117:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},               // iCUE H100i RGB PRO XT
 	3105:  {0, 0, "iCUE H115i RGB PRO XT", elite.Init, nil},               // iCUE H115i RGB PRO XT
 	3106:  {0, 0, "iCUE H150i RGB PRO XT", elite.Init, nil},               // iCUE H150i RGB PRO XT
 	3095:  {0, 0, "H115i RGB PLATINUM", elite.Init, nil},                  // H115i RGB PLATINUM
@@ -706,6 +707,7 @@ var deviceRegisterMap = map[uint16]Product{
 	2660:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2667:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2628:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
+	2675:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},          // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},          // K65 PLUS WIRELESS
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},              // CORSAIR VIRTUOSO SE USB Gaming Headset

@@ -71,6 +71,36 @@ document.addEventListener("DOMContentLoaded", function () {
         window.location.href = "/api/backup";
     });
 
+    $('.saveRgbControl').on('click', function () {
+        const rgbControl = $("#rgbControl").is(':checked');
+        const rgbOff = $("#rgbOff").val();
+        const rgbOn = $("#rgbOn").val();
+
+        const pf = {};
+        pf["rgbControl"] = rgbControl;
+        pf["rgbOff"] = rgbOff;
+        pf["rgbOn"] = rgbOn;
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/scheduler/rgb',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+    
     $("#restoreForm").on("submit", function (e) {
         e.preventDefault();
 

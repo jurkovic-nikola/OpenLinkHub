@@ -396,6 +396,9 @@
         "txtGradientColorCreated": "La couleur du dégradé a été créée avec succès",
         "txtGradientTooLow": "Vous avez atteint le minimum de 2 couleurs",
         "txtUpload": "Téléverser",
-        "txtUploadGifAnimation": "Téléverser une animation GIF"
+        "txtUploadGifAnimation": "Téléverser une animation GIF",
+        "txtRgbScheduler": "Planificateur RGB",
+        "txtRgbOffTime": "Temps d'arrêt RGB",
+        "rgbOnTime": "Temps d'activation RGB"
     }
 }

@@ -1767,6 +1767,7 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
 	web.Title = "Device Dashboard"
 	web.Devices = devices.GetDevices()
+	web.Scheduler = scheduler.GetScheduler()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
 	web.Dashboard = dashboard.GetDashboard()

@@ -396,6 +396,9 @@
         "txtGradientColorCreated": "Цвет градиента успешно создан",
         "txtGradientTooLow": "Вы достигли минимального количества — 2 цвета",
         "txtUpload": "Загрузка",
-        "txtUploadGifAnimation": "Загрузить GIF-анимацию"
+        "txtUploadGifAnimation": "Загрузить GIF-анимацию",
+        "txtRgbScheduler": "Планировщик RGB",
+        "txtRgbOffTime": "Время отключения RGB",
+        "rgbOnTime": "Время включения RGB"
     }
 }

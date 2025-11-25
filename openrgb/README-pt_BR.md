@@ -54,5 +54,7 @@ No OpenRGB, clique na aba Cliente e conecte à porta 6743.
 | PLATINUM AIOs          |
 | HYDRO AIOs             |
 | Memória                |
+| MM700                  |
+| MM800                  |
 
 À medida que novas versões são lançadas, mais dispositivos serão adicionados à integração.

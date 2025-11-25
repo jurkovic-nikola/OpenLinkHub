@@ -54,5 +54,7 @@ In OpenRGB, click on Client tab connect to 6743 port.
 | PLATINUM AIOs          |
 | HYDRO AIOs             |
 | Memory                 |
+| MM700                  |
+| MM800                  |
 
 As new releases are rolled out, more devices will be added to the integration.

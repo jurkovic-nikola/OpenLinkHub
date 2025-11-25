@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
@@ -32,6 +33,7 @@ type Device struct {
 	Manufacturer    string `json:"manufacturer"`
 	Product         string `json:"product"`
 	Serial          string `json:"serial"`
+	Path            string `json:"path"`
 	Firmware        string `json:"firmware"`
 	activeRgb       *rgb.ActiveRGB
 	ledProfile      *led.Device
@@ -54,6 +56,7 @@ type Device struct {
 	keepAliveChan   chan struct{}
 	LEDs            int
 	RGBModes        []string
+	queue           chan []byte
 	instance        *common.Device
 }
 
@@ -74,6 +77,7 @@ type DeviceProfile struct {
 	RGBProfile         string
 	Label              string
 	Mousepad           *Mousepad
+	OpenRGBIntegration bool
 	RGBCluster         bool
 }
 
@@ -130,7 +134,7 @@ var (
 	}
 )
 
-func Init(vendorId, productId uint16, serial, _ string) *common.Device {
+func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -144,6 +148,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Init new struct with HID device
 	d := &Device{
 		dev:       dev,
+		Path:      path,
 		VendorId:  vendorId,
 		ProductId: productId,
 		Product:   "MM800 RGB",
@@ -175,8 +180,10 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d.setAutoRefresh()         // Set auto device refresh
 	d.initLeds()               // Init LED
 	d.setDeviceColor()         // Device color
+	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
+	d.startQueueWorker()       // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -612,6 +619,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 	}
 
@@ -880,6 +888,9 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	if d.DeviceProfile.RGBCluster {
 		return 5
 	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
 
 	d.DeviceProfile.RGBProfile = profile // Set profile
 	d.saveDeviceProfile()                // Save profile
@@ -909,6 +920,57 @@ func (d *Device) setupClusterController() {
 	}
 
 	cluster.Get().AddDeviceController(clusterController)
+}
+
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	lightChannels := 15
+	controller := &common.OpenRGBController{
+		Name:         d.Product,
+		Vendor:       "Corsair", // Static value
+		Description:  "OpenLinkHub Backend Device",
+		FwVersion:    d.Firmware,
+		Serial:       d.Serial,
+		Location:     fmt.Sprintf("HID: %s", d.Path),
+		Zones:        nil,
+		Colors:       make([]byte, lightChannels*3),
+		ActiveMode:   0,
+		WriteColorEx: d.writeColorEx,
+		DeviceType:   common.DeviceTypeMousemat,
+		ColorMode:    common.ColorModePerLed,
+	}
+
+	for i := 1; i <= lightChannels; i++ {
+		zone := common.OpenRGBZone{
+
+			Name:     fmt.Sprintf("Zone %d", i),
+			NumLEDs:  uint32(1),
+			ZoneType: common.ZoneTypeLinear,
+		}
+		controller.Zones = append(controller.Zones, zone)
+	}
+
+	// Send it
+	openrgb.AddDeviceController(controller)
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if d.DeviceProfile.RGBCluster {
+		return 2
+	}
+	d.clearQueue()
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
 }
 
 // ProcessSetRgbCluster will update OpenRGB integration status
@@ -1145,6 +1207,12 @@ func (d *Device) setDeviceColor() {
 
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
 		return
 	}
 
@@ -1396,6 +1464,61 @@ func (d *Device) writeColor(data []byte) {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 	}
+}
+
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, _ int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions, since the caller might reuse the slice
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	select {
+	case d.queue <- copyData:
+	default:
+	}
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan []byte, 10)
+
+	go func() {
+		for data := range d.queue {
+			var buf = make([]byte, d.LEDChannels)
+			for _, rows := range d.DeviceProfile.Mousepad.Row {
+				for _, keys := range rows.Zones {
+					for _, packetIndex := range keys.PacketIndex {
+						buf[packetIndex] = data[packetIndex]
+						buf[packetIndex+1] = data[packetIndex+1]
+						buf[packetIndex+2] = data[packetIndex+2]
+					}
+				}
+			}
+			_, err := d.transfer(cmdWrite, cmdWriteColor, buf, false)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}()
 }
 
 // transfer will send data to a device and retrieve device output

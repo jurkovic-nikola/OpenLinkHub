@@ -1,5 +1,29 @@
+## 2025-11-27
+
+* rgb map fixup (af072f9)
+
+## 2025-11-26
+
+* fixup (3668162)
+
+## 2025-11-25
+
+* docs update (0a59bb1)
+* mm700/800 openrgb integration (fe69383)
+* support for glaive rgb pro (c630201)
+
+## 2025-11-24
+
+* move scheduler to settings page (20766a9)
+* hs80 wireless, h100i rgb pro xt (f262324)
+
+## 2025-11-23
+
+* lcd animation form (a4dadec)
+
 ## 2025-11-22
 
+* changelog (4ee495c)
 * animation background dispose, frame dispose, resize issue (543e668)
 
 ## 2025-11-21

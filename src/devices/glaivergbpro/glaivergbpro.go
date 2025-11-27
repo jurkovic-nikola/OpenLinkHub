@@ -1623,11 +1623,21 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				}
+
+				zoneKeys := make([]int, 0, len(d.DeviceProfile.ZoneColors))
+				for key := range d.DeviceProfile.ZoneColors {
+					zoneKeys = append(zoneKeys, key)
+				}
+				sort.Ints(zoneKeys)
+
 				m := 0
-				for _, zoneColor := range d.DeviceProfile.ZoneColors {
-					zoneColorIndexRange := zoneColor.ColorIndex
+				for _, key := range zoneKeys {
+					zoneColor := d.DeviceProfile.ZoneColors[key]
 					buf[zoneColor.LEDIndexPosition] = byte(zoneColor.LEDIndex)
-					for _, zoneColorIndex := range zoneColorIndexRange {
+					for _, zoneColorIndex := range zoneColor.ColorIndex {
+						if m >= len(buff) {
+							break
+						}
 						buf[zoneColorIndex] = buff[m]
 						m++
 					}

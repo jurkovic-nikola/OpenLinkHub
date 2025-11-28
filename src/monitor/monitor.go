@@ -68,6 +68,11 @@ func Init() {
 					if isSleeping {
 						logger.Log(logger.Fields{}).Info("Suspend detected. Sending Stop() to all devices")
 
+						// Clear controllers on sleep
+						if config.GetConfig().EnableOpenRGBTargetServer {
+							openrgb.ClearDeviceControllers()
+						}
+
 						// Stop
 						devices.Stop()
 					} else {

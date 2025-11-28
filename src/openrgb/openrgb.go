@@ -43,6 +43,19 @@ var (
 	conn        net.Conn
 )
 
+func ClearDeviceControllers() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if controllers != nil && len(controllers) > 0 {
+		controllers = controllers[:0]
+		if conn != nil {
+			// Notify connected client about device change
+			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		}
+	}
+}
+
 // AddDeviceController will add new OpenRGB Controller
 func AddDeviceController(controller *common.OpenRGBController) {
 	mutex.Lock()

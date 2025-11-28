@@ -79,6 +79,12 @@ func Init() {
 						time.Sleep(time.Duration(config.GetConfig().ResumeDelay) * time.Millisecond)
 						logger.Log(logger.Fields{}).Info("Resume detected. Sending Init() to all devices")
 
+						// Clear controllers on sleep
+						if config.GetConfig().EnableOpenRGBTargetServer {
+							openrgb.ClearDeviceControllers()
+							time.Sleep(5000 * time.Millisecond)
+						}
+
 						// Init LCDs
 						lcd.Reconnect()
 

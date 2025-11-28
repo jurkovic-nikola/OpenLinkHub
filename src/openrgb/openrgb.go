@@ -311,8 +311,8 @@ func handleConn(conn net.Conn) {
 			// Mode change request. Payload commonly contains mode index (uint32) as first bytes.
 			mutex.Lock()
 			if int(deviceID) >= 0 && int(deviceID) < len(controllers) && len(payload) >= 4 {
-				modeIndex := int32(binary.LittleEndian.Uint32(payload[0:4]))
-				controllers[deviceID].ActiveMode = modeIndex
+				modeIndex := int32(binary.LittleEndian.Uint32(payload[0:4])) // This is not used...
+				controllers[deviceID].ActiveMode = 0
 				if debug {
 					logger.Log(logger.Fields{"deviceId": deviceID, "modeIndex": modeIndex}).Info("device mode changed")
 				}

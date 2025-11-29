@@ -699,6 +699,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},          // DARKSTAR RGB WIRELESS Gaming Mouse
 	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil},  // VIRTUOSO RGB WIRELESS XT
 	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                       // VIRTUOSO USB Gaming Headset
+	2625:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                       // VIRTUOSO USB Gaming Headset
 	2696:  {3, 0, "HS80 RGB USB", hs80rgb.Init, nil},                      // HS80 RGB USB Gaming Headset
 	7132:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
@@ -710,6 +711,7 @@ var deviceRegisterMap = map[uint16]Product{
 	2660:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2667:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2628:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
+	2626:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2675:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},          // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},          // K65 PLUS WIRELESS

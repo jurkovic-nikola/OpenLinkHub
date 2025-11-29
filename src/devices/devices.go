@@ -682,6 +682,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7038:  {1, 0, "DARK CORE RGB PRO SE", darkcorergbproseWU.Init, nil},   // DARK CORE RGB PRO SE Gaming Mouse
 	7040:  {1, 0, "DARK CORE RGB PRO", darkcorergbproWU.Init, nil},        // DARK CORE RGB PRO Gaming Mouse
 	7152:  {1, 0, "M75", m75.Init, nil},                                   // M75 Gaming Mouse
+	7153:  {1, 0, "M75 WIRELESS", m75WU.Init, nil},                        // M75 WIRELESS Gaming Mouse
 	11016: {1, 0, "M75 WIRELESS", m75WU.Init, nil},                        // M75 WIRELESS Gaming Mouse
 	7154:  {1, 0, "M75 AIR WIRELESS", m75AirWU.Init, nil},                 // M75 AIR WIRELESS Gaming Mouse
 	7070:  {1, 0, "M65 RGB ULTRA", m65rgbultra.Init, nil},                 // M65 RGB ULTRA Gaming Mouse

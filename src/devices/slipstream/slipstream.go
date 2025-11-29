@@ -325,6 +325,28 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 7153: // M75 WIRELESS
+			{
+				dev := m75W.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeM75W,
+					Product:     "M75 WIRELESS",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		case 11016: // M75 WIRELESS
 			{
 				dev := m75W.Init(

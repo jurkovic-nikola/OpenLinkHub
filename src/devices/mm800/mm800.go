@@ -978,6 +978,9 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 2
+	}
 
 	d.DeviceProfile.RGBCluster = enabled
 	d.saveDeviceProfile() // Save profile

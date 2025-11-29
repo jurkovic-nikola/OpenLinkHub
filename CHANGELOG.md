@@ -1,5 +1,19 @@
+## 2025-11-29
+
+* support for virtuoso rgb (2be32d5)
+* scimitar openrgb / rgb cluster integration (3a75d2e)
+* docs update (10d22c9)
+* support for m75 wireless (85459be)
+
+## 2025-11-28
+
+* cleanup controllers after sleep (8803949)
+* clear controller list on sleep (601b695)
+* only 1 mode is available (8c7a8d2)
+
 ## 2025-11-27
 
+* changelog (e658b5a)
 * rgb map fixup (af072f9)
 
 ## 2025-11-26

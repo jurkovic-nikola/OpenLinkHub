@@ -82,6 +82,22 @@ func UpdateDeviceController(serial string, ctrl *common.OpenRGBController) {
 	}
 }
 
+// RemoveDeviceControllerBySerial removes a controller by its serial
+func RemoveDeviceControllerBySerial(serial string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for i, c := range controllers {
+		if c.Serial == serial {
+			controllers = append(controllers[:i], controllers[i+1:]...)
+		}
+	}
+
+	if conn != nil {
+		sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+	}
+}
+
 // GetDeviceController will return existing OpenRGB Controller
 func GetDeviceController(serial string) *common.OpenRGBController {
 	mutex.RLock()
@@ -317,6 +333,12 @@ func handleConn(conn net.Conn) {
 			}
 			// Send it
 			mutex.Lock()
+			if int(deviceID) >= len(controllers) {
+				// Slipstream devices going to sleep mode, or just powered off
+				mutex.Unlock()
+				return
+			}
+
 			ctrl := controllers[int(deviceID)]
 			mutex.Unlock()
 			ctrl.WriteColorEx(buffer, ctrl.ChannelId)

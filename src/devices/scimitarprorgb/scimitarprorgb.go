@@ -2388,7 +2388,7 @@ func (d *Device) startQueueWorker() {
 	}()
 }
 
-// writeColor will write data to the device with a specific endpoint.
+// writeColorCluster will write cluster color
 func (d *Device) writeColorCluster(data []byte, _ int) {
 	if !d.DeviceProfile.RGBCluster {
 		return

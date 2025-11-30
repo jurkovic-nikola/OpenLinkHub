@@ -7,11 +7,13 @@ package sabrergbproW
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"encoding/binary"
@@ -23,6 +25,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,6 +54,8 @@ type DeviceProfile struct {
 	Profiles           map[int]DPIProfile
 	SleepMode          int
 	KeyAssignmentHash  string
+	OpenRGBIntegration bool
+	RGBCluster         bool
 }
 
 type DPIProfile struct {
@@ -69,6 +74,7 @@ type Device struct {
 	Manufacturer          string `json:"manufacturer"`
 	Product               string `json:"product"`
 	Serial                string `json:"serial"`
+	Path                  string `json:"path"`
 	Firmware              string `json:"firmware"`
 	activeRgb             *rgb.ActiveRGB
 	UserProfiles          map[string]*DeviceProfile `json:"userProfiles"`
@@ -104,6 +110,7 @@ type Device struct {
 	SniperMode            bool
 	MacroTracker          map[int]uint16
 	RGBModes              []string
+	queue                 chan []byte
 }
 
 var (
@@ -155,6 +162,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	// Init new struct with HID device
 	d := &Device{
 		dev:          dev,
+		Path:         strconv.Itoa(int(endpoint)),
 		Template:     "sabrergbproW.html",
 		VendorId:     vendorId,
 		ProductId:    productId,
@@ -199,6 +207,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	d.loadKeyAssignments() // Key Assignments
+	d.startQueueWorker()   // Queue
 	return d
 }
 
@@ -252,6 +261,11 @@ func (d *Device) StopDirty() uint8 {
 
 // SetConnected will change connected status
 func (d *Device) SetConnected(value bool) {
+	if !value {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		openrgb.RemoveDeviceControllerBySerial(d.Serial)
+	}
+
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true
 	}
@@ -262,13 +276,15 @@ func (d *Device) SetConnected(value bool) {
 func (d *Device) Connect() {
 	if !d.Connected {
 		d.Connected = true
-		d.getDeviceFirmware()  // Firmware
-		d.setSoftwareMode()    // Activate software mode
-		d.getBatterLevel()     // Battery level
-		d.initLeds()           // Init LED ports
-		d.setDeviceColor()     // Device color
-		d.toggleDPI()          // DPI
-		d.setupKeyAssignment() // Setup key assignments
+		d.getDeviceFirmware()      // Firmware
+		d.setSoftwareMode()        // Activate software mode
+		d.getBatterLevel()         // Battery level
+		d.initLeds()               // Init LED ports
+		d.setDeviceColor()         // Device color
+		d.toggleDPI()              // DPI
+		d.setupKeyAssignment()     // Setup key assignments
+		d.setupOpenRGBController() // OpenRGB Controller
+		d.setupClusterController() // RGB Cluster
 	}
 }
 
@@ -558,6 +574,14 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 5
+	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
 	d.DeviceProfile.RGBProfile = profile // Set profile
 	d.saveDeviceProfile()                // Save profile
 	if d.activeRgb != nil {
@@ -565,6 +589,108 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		d.activeRgb = nil
 	}
 	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// setupOpenRGBController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	clusterController := &common.ClusterController{
+		Product:      d.Product,
+		Serial:       d.Serial,
+		LedChannels:  uint32(d.ChangeableLedChannels),
+		WriteColorEx: d.writeColorCluster,
+	}
+
+	cluster.Get().AddDeviceController(clusterController)
+}
+
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	controller := &common.OpenRGBController{
+		Name:         d.Product,
+		Vendor:       "Corsair", // Static value
+		Description:  "OpenLinkHub Backend Device",
+		FwVersion:    d.Firmware,
+		Serial:       d.Serial,
+		Location:     fmt.Sprintf("Slipstream Ep: %s", d.Path), // Slipstream endpoint
+		Zones:        nil,
+		Colors:       make([]byte, d.ChangeableLedChannels*3),
+		ActiveMode:   0,
+		WriteColorEx: d.writeColorEx,
+		DeviceType:   common.DeviceTypeMouse,
+		ColorMode:    common.ColorModePerLed,
+	}
+
+	zone := []common.OpenRGBZone{
+		{
+			Name:     "Logo",
+			NumLEDs:  uint32(1),
+			ZoneType: common.ZoneTypeLinear,
+		},
+	}
+	controller.Zones = zone
+
+	// Send it
+	openrgb.AddDeviceController(controller)
+}
+
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if d.DeviceProfile.RGBCluster {
+		return 2
+	}
+
+	d.clearQueue()
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 2
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+
+	if enabled {
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       d.Serial,
+			LedChannels:  uint32(d.ChangeableLedChannels),
+			WriteColorEx: d.writeColorCluster,
+		}
+
+		cluster.Get().AddDeviceController(clusterController)
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
 	return 1
 }
 
@@ -1015,6 +1141,8 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 	}
 
 	// Convert to JSON
@@ -1398,6 +1526,60 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		// DPI
+		dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
+		if d.SniperMode {
+			dpiColor = d.getSniperColor()
+		}
+		if dpiColor == nil {
+			return
+		}
+
+		dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+		dpiColor = rgb.ModifyBrightness(*dpiColor)
+
+		dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
+		for i := 0; i < len(dpiLeds.ColorIndex); i++ {
+			dpiColorIndexRange := dpiLeds.ColorIndex[i]
+			for key, dpiColorIndex := range dpiColorIndexRange {
+				switch key {
+				case 0: // Red
+					buf[dpiColorIndex] = byte(dpiColor.Red)
+				case 1: // Green
+					buf[dpiColorIndex] = byte(dpiColor.Green)
+				case 2: // Blue
+					buf[dpiColorIndex] = byte(dpiColor.Blue)
+				}
+			}
+		}
+
+		zoneKeys := make([]int, 0, len(d.DeviceProfile.ZoneColors))
+		for key := range d.DeviceProfile.ZoneColors {
+			zoneKeys = append(zoneKeys, key)
+		}
+		sort.Ints(zoneKeys)
+
+		m := 0
+		for _, key := range zoneKeys {
+			zoneColor := d.DeviceProfile.ZoneColors[key]
+			for _, zoneColorIndex := range zoneColor.ColorIndex {
+				buf[zoneColorIndex] = 0x00
+				m++
+			}
+		}
+		d.writeColor(buf)
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
+
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
+		return
+	}
+
 	// DPI
 	dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
 	if d.SniperMode {
@@ -1614,10 +1796,19 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				}
+				zoneKeys := make([]int, 0, len(d.DeviceProfile.ZoneColors))
+				for key := range d.DeviceProfile.ZoneColors {
+					zoneKeys = append(zoneKeys, key)
+				}
+				sort.Ints(zoneKeys)
+
 				m := 0
-				for _, zoneColor := range d.DeviceProfile.ZoneColors {
-					zoneColorIndexRange := zoneColor.ColorIndex
-					for _, zoneColorIndex := range zoneColorIndexRange {
+				for _, key := range zoneKeys {
+					zoneColor := d.DeviceProfile.ZoneColors[key]
+					for _, zoneColorIndex := range zoneColor.ColorIndex {
+						if m >= len(buff) {
+							break
+						}
 						buf[zoneColorIndex] = buff[m]
 						m++
 					}
@@ -1708,6 +1899,172 @@ func (d *Device) toggleDPI() {
 	}
 }
 
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, _ int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions, since the caller might reuse the slice
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	select {
+	case d.queue <- copyData:
+	default:
+	}
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan []byte, 10)
+
+	go func() {
+		for data := range d.queue {
+			buf := make([]byte, d.LEDChannels*3)
+			// DPI
+			dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
+			if d.SniperMode {
+				dpiColor = d.getSniperColor()
+			}
+			if dpiColor == nil {
+				return
+			}
+
+			dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+			dpiColor = rgb.ModifyBrightness(*dpiColor)
+
+			dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
+			for i := 0; i < len(dpiLeds.ColorIndex); i++ {
+				dpiColorIndexRange := dpiLeds.ColorIndex[i]
+				for key, dpiColorIndex := range dpiColorIndexRange {
+					switch key {
+					case 0: // Red
+						buf[dpiColorIndex] = byte(dpiColor.Red)
+					case 1: // Green
+						buf[dpiColorIndex] = byte(dpiColor.Green)
+					case 2: // Blue
+						buf[dpiColorIndex] = byte(dpiColor.Blue)
+					}
+				}
+			}
+
+			zoneKeys := make([]int, 0, len(d.DeviceProfile.ZoneColors))
+			for key := range d.DeviceProfile.ZoneColors {
+				zoneKeys = append(zoneKeys, key)
+			}
+			sort.Ints(zoneKeys)
+
+			m := 0
+			for _, key := range zoneKeys {
+				zoneColor := d.DeviceProfile.ZoneColors[key]
+				for _, zoneColorIndex := range zoneColor.ColorIndex {
+					if m >= len(data) {
+						break
+					}
+					buf[zoneColorIndex] = data[m]
+					m++
+				}
+			}
+
+			buffer := make([]byte, len(buf)+headerWriteSize)
+			binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(buf)))
+			copy(buffer[headerWriteSize:], buf)
+
+			_, err := d.transferWithTimeout(cmdWriteColor, buffer)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}()
+}
+
+// writeColorCluster will write cluster color
+func (d *Device) writeColorCluster(data []byte, _ int) {
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	if d.Exit {
+		return
+	}
+
+	buf := make([]byte, d.LEDChannels*3)
+	if d.DeviceProfile == nil {
+		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
+	// DPI
+	dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
+	if d.SniperMode {
+		dpiColor = d.getSniperColor()
+	}
+	if dpiColor == nil {
+		return
+	}
+
+	dpiColor.Brightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
+	dpiColor = rgb.ModifyBrightness(*dpiColor)
+
+	dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
+	for i := 0; i < len(dpiLeds.ColorIndex); i++ {
+		dpiColorIndexRange := dpiLeds.ColorIndex[i]
+		for key, dpiColorIndex := range dpiColorIndexRange {
+			switch key {
+			case 0: // Red
+				buf[dpiColorIndex] = byte(dpiColor.Red)
+			case 1: // Green
+				buf[dpiColorIndex] = byte(dpiColor.Green)
+			case 2: // Blue
+				buf[dpiColorIndex] = byte(dpiColor.Blue)
+			}
+		}
+	}
+
+	zoneKeys := make([]int, 0, len(d.DeviceProfile.ZoneColors))
+	for key := range d.DeviceProfile.ZoneColors {
+		zoneKeys = append(zoneKeys, key)
+	}
+	sort.Ints(zoneKeys)
+
+	m := 0
+	for _, key := range zoneKeys {
+		zoneColor := d.DeviceProfile.ZoneColors[key]
+		for _, zoneColorIndex := range zoneColor.ColorIndex {
+			if m >= len(data) {
+				break
+			}
+			buf[zoneColorIndex] = data[m]
+			m++
+		}
+	}
+
+	buffer := make([]byte, len(buf)+headerWriteSize)
+	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(buf)))
+	copy(buffer[headerWriteSize:], buf)
+
+	_, err := d.transferWithTimeout(cmdWriteColor, buffer)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+	}
+}
+
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
 	if d.Exit {
@@ -1749,6 +2106,38 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		return bufferR, err
+	}
+	return bufferR, nil
+}
+
+// transferWithTimeout will send data to a device and retrieve device output with timeout
+func (d *Device) transferWithTimeout(endpoint, buffer []byte) ([]byte, error) {
+	// Packet control, mandatory for this device
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	// Create write buffer
+	bufferW := make([]byte, bufferSizeWrite)
+	bufferW[1] = d.Endpoint
+	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+	copy(endpointHeaderPosition, endpoint)
+	if len(buffer) > 0 {
+		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+	}
+
+	// Create read buffer
+	bufferR := make([]byte, bufferSize)
+
+	// Send command to a device
+	if _, err := d.dev.Write(bufferW); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		return bufferR, err
+	}
+
+	// Get data from a device
+	if _, err := d.dev.ReadWithTimeout(bufferR, 100*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
 	}

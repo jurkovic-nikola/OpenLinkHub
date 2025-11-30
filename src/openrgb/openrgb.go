@@ -12,6 +12,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -41,97 +42,112 @@ var (
 	controllers []*common.OpenRGBController
 	mutex       sync.RWMutex
 	conn        net.Conn
+	listener    net.Listener
+	enabled     bool
 )
 
 func ClearDeviceControllers() {
-	mutex.Lock()
-	defer mutex.Unlock()
+	if enabled {
+		mutex.Lock()
+		defer mutex.Unlock()
 
-	if controllers != nil && len(controllers) > 0 {
-		controllers = controllers[:0]
-		if conn != nil {
-			// Notify connected client about device change
-			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		if controllers != nil && len(controllers) > 0 {
+			controllers = controllers[:0]
 		}
 	}
 }
 
 // AddDeviceController will add new OpenRGB Controller
 func AddDeviceController(controller *common.OpenRGBController) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	controllers = append(controllers, controller)
-	if conn != nil {
-		// Notify connect client about device change
-		sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+	if enabled {
+		mutex.Lock()
+		defer mutex.Unlock()
+		controllers = append(controllers, controller)
+		if conn != nil {
+			// Notify connect client about device change
+			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
 // UpdateDeviceController will update existing OpenRGB Controller
 func UpdateDeviceController(serial string, ctrl *common.OpenRGBController) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	for key, controller := range controllers {
-		if controller.Serial == serial {
-			controllers[key] = ctrl
+	if enabled {
+		mutex.Lock()
+		defer mutex.Unlock()
+		for key, controller := range controllers {
+			if controller.Serial == serial {
+				controllers[key] = ctrl
+			}
 		}
-	}
 
-	if conn != nil {
-		sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		if conn != nil {
+			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		}
 	}
 }
 
 // RemoveDeviceControllerBySerial removes a controller by its serial
 func RemoveDeviceControllerBySerial(serial string) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	if enabled {
+		mutex.Lock()
+		defer mutex.Unlock()
 
-	for i, c := range controllers {
-		if c.Serial == serial {
-			controllers = append(controllers[:i], controllers[i+1:]...)
+		for i, c := range controllers {
+			if c.Serial == serial {
+				controllers = append(controllers[:i], controllers[i+1:]...)
+			}
 		}
-	}
 
-	if conn != nil {
-		sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		if conn != nil {
+			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+		}
 	}
 }
 
 // GetDeviceController will return existing OpenRGB Controller
 func GetDeviceController(serial string) *common.OpenRGBController {
-	mutex.RLock()
-	defer mutex.RUnlock()
-	for _, controller := range controllers {
-		if controller.Serial == serial {
-			return controller
+	if enabled {
+		mutex.RLock()
+		defer mutex.RUnlock()
+		for _, controller := range controllers {
+			if controller.Serial == serial {
+				return controller
+			}
 		}
+		return nil
 	}
 	return nil
 }
 
 // NotifyControllerChange will notify OpenRGB about controller change
 func NotifyControllerChange(serial string) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	if enabled {
+		mutex.Lock()
+		defer mutex.Unlock()
 
-	if conn != nil {
-		newControllers := controllers[:0]
-		for _, controller := range controllers {
-			if controller.Serial != serial {
-				newControllers = append(newControllers, controller)
+		if conn != nil {
+			newControllers := controllers[:0]
+			for _, controller := range controllers {
+				if controller.Serial != serial {
+					newControllers = append(newControllers, controller)
+				}
+			}
+			controllers = newControllers
+
+			if conn != nil {
+				// Notify connected client about device change
+				sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
 			}
 		}
-		controllers = newControllers
-
-		// Notify connected client about device change
-		sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
 	}
 }
 
 // Init will initialize OpenRGB Client Target
 func Init() {
-	if config.GetConfig().EnableOpenRGBTargetServer {
+	enabled = config.GetConfig().EnableOpenRGBTargetServer
+	if enabled {
 		debug = config.GetConfig().Debug
 		go func() {
 			address := fmt.Sprintf(
@@ -140,7 +156,8 @@ func Init() {
 				config.GetConfig().OpenRGBPort,
 			)
 
-			listener, err := net.Listen("tcp", address)
+			var err error
+			listener, err = net.Listen("tcp", address)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "address": address}).Fatal("Failed to create listener")
 			}
@@ -153,6 +170,10 @@ func Init() {
 			for {
 				conn, err = listener.Accept()
 				if err != nil {
+					if errors.Is(err, net.ErrClosed) {
+						// Listener was closed → stop goroutine
+						return
+					}
 					logger.Log(logger.Fields{"error": err}).Error("Failed to accept connection")
 					continue
 				}
@@ -164,6 +185,28 @@ func Init() {
 			}
 		}()
 	}
+}
+
+// Close will close any active connections and listener
+func Close() {
+	if conn != nil {
+		err := conn.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"err": err}).Error("Failed to close connection")
+			return
+		}
+		conn = nil
+	}
+
+	if listener != nil {
+		err := listener.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"err": err}).Error("Failed to close listener")
+			return
+		}
+		listener = nil
+	}
+	time.Sleep(100 * time.Millisecond)
 }
 
 // handleConn will handle connections from OpenRGB Client
@@ -287,7 +330,7 @@ func handleConn(conn net.Conn) {
 				sendHeader(conn, deviceID, OPCODE_REQUEST_CONTROLLER_DATA, 0)
 				continue
 			}
-			payload := buildDeviceDataPayload(deviceID)
+			payload = buildDeviceDataPayload(deviceID)
 			sendHeader(conn, deviceID, OPCODE_REQUEST_CONTROLLER_DATA, uint32(len(payload)))
 			if _, err = conn.Write(payload); err != nil {
 				if debug {
@@ -384,6 +427,10 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 	}
 	ctrl := controllers[deviceID]
 	mutex.RUnlock()
+
+	if debug {
+		logger.Log(logger.Fields{"controllerId": deviceID, "controllerData": ctrl}).Error("Requesting controller data")
+	}
 
 	deviceType := ctrl.DeviceType
 	activeMode := ctrl.ActiveMode

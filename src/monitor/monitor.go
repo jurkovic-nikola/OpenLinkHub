@@ -68,8 +68,9 @@ func Init() {
 					if isSleeping {
 						logger.Log(logger.Fields{}).Info("Suspend detected. Sending Stop() to all devices")
 
-						// Clear controllers on sleep
+						// Cleanup
 						if config.GetConfig().EnableOpenRGBTargetServer {
+							openrgb.Close()
 							openrgb.ClearDeviceControllers()
 						}
 
@@ -79,10 +80,11 @@ func Init() {
 						time.Sleep(time.Duration(config.GetConfig().ResumeDelay) * time.Millisecond)
 						logger.Log(logger.Fields{}).Info("Resume detected. Sending Init() to all devices")
 
-						// Clear controllers on sleep
+						// Cleanup and restart
 						if config.GetConfig().EnableOpenRGBTargetServer {
+							openrgb.Close()
 							openrgb.ClearDeviceControllers()
-							time.Sleep(5000 * time.Millisecond)
+							openrgb.Init()
 						}
 
 						// Init LCDs

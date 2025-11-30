@@ -91,6 +91,7 @@ type Device struct {
 	rgbMutex              sync.RWMutex
 	SleepModes            map[int]string
 	mutex                 sync.Mutex
+	deviceLock            sync.Mutex
 	timerKeepAlive        *time.Ticker
 	keepAliveChan         chan struct{}
 	timer                 *time.Ticker
@@ -779,6 +780,9 @@ func (d *Device) SaveMouseDPI(stages map[int]uint16) uint8 {
 
 // updateMouseDPI will set DPI values to the device
 func (d *Device) updateMouseDPI() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1902,12 +1906,15 @@ func (d *Device) sniperMode(active bool) {
 	if active {
 		for _, profile := range d.DeviceProfile.Profiles {
 			if profile.Sniper {
+				d.deviceLock.Lock()
+
 				buf := make([]byte, 1)
 				buf[0] = 0x00
 				_, err := d.transfer(cmdWrite, cmdSetDpi, buf)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 				}
+				d.deviceLock.Unlock()
 
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1927,6 +1934,8 @@ func (d *Device) toggleDPI(color bool) {
 		return
 	}
 	if d.DeviceProfile != nil {
+		d.deviceLock.Lock()
+
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
 
@@ -1944,6 +1953,7 @@ func (d *Device) toggleDPI(color bool) {
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 		}
+		d.deviceLock.Unlock()
 
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
@@ -1955,6 +1965,9 @@ func (d *Device) toggleDPI(color bool) {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1969,6 +1982,9 @@ func (d *Device) writeColor(data []byte) {
 
 // writeKeyAssignmentData will write key assignment to the device.
 func (d *Device) writeKeyAssignmentData(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}

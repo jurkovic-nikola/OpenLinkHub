@@ -98,6 +98,7 @@ type Device struct {
 	rgbMutex                 sync.RWMutex
 	SleepModes               map[int]string
 	mutex                    sync.Mutex
+	deviceLock               sync.Mutex
 	timerKeepAlive           *time.Ticker
 	keepAliveChan            chan struct{}
 	Exit                     bool
@@ -2071,6 +2072,7 @@ func (d *Device) sniperMode(active bool) {
 	if active {
 		for _, profile := range d.DeviceProfile.Profiles {
 			if profile.Sniper {
+				d.deviceLock.Lock()
 				value := profile.Value
 
 				// Send DPI packet
@@ -2089,6 +2091,7 @@ func (d *Device) sniperMode(active bool) {
 						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 					}
 				}
+				d.deviceLock.Unlock()
 
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true // Exit current RGB mode
@@ -2106,6 +2109,7 @@ func (d *Device) sniperMode(active bool) {
 // toggleDPI will change DPI mode
 func (d *Device) toggleDPI() {
 	if d.DeviceProfile != nil {
+		d.deviceLock.Lock()
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
 
@@ -2125,6 +2129,7 @@ func (d *Device) toggleDPI() {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 			}
 		}
+		d.deviceLock.Unlock()
 
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
@@ -2197,6 +2202,7 @@ func (d *Device) startQueueWorker() {
 
 	go func() {
 		for data := range d.queue {
+			d.deviceLock.Lock()
 			buf := make([]byte, d.LEDChannels*3)
 			dpiColor := d.DeviceProfile.Profiles[d.DeviceProfile.Profile].Color
 			if d.SniperMode {
@@ -2250,6 +2256,7 @@ func (d *Device) startQueueWorker() {
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
+			d.deviceLock.Unlock()
 			time.Sleep(20 * time.Millisecond)
 		}
 	}()
@@ -2257,6 +2264,9 @@ func (d *Device) startQueueWorker() {
 
 // writeColorCluster will write cluster color
 func (d *Device) writeColorCluster(data []byte, _ int) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if !d.DeviceProfile.RGBCluster {
 		return
 	}
@@ -2328,6 +2338,9 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 
 // writeColor will write data to the device with a specific endpoint.
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -2343,6 +2356,9 @@ func (d *Device) writeColor(data []byte) {
 
 // writeKeyAssignmentData will write key assignment to the device.
 func (d *Device) writeKeyAssignmentData(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}

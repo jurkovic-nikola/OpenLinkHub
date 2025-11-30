@@ -40,10 +40,12 @@
                                     <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </span>
+                                    
                                     <span title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
                                         {{ $device.BatteryLevel }} %
                                     </span>
+
                                     <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -60,6 +62,7 @@
                                             </select>
                                         </li>
                                     </ul>
+
                                     <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -68,6 +71,7 @@
                                             <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
                                         </li>
                                     </ul>
+
                                     <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -84,6 +88,7 @@
                                             </select>
                                         </li>
                                     </ul>
+
                                     <button title="{{ .Lang "txtPollingRate" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -100,6 +105,7 @@
                                             </select>
                                         </li>
                                     </ul>
+
                                     <button title="{{ .Lang "txtAngleSnapping" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi fa-angle-down svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -116,6 +122,7 @@
                                             </select>
                                         </li>
                                     </ul>
+
                                     <button title="{{ .Lang "txtButtonResponseOptimization" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
                                         <i class="bi bi-menu-button-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>
@@ -132,6 +139,41 @@
                                             </select>
                                         </li>
                                     </ul>
+
+                                    <button title="{{ .Lang "txtOpenRGBIntegration" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select openRgbIntegration" style="line-height: 1;">
+                                                {{ if $deviceProfile.OpenRGBIntegration }}
+                                                <option value="1" selected>Enabled</option>
+                                                <option value="0">Disabled</option>
+                                                {{ else }}
+                                                <option value="1">Enabled</option>
+                                                <option value="0" selected>Disabled</option>
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="{{ .Lang "txtRgbCluster" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <img src="/static/img/icons/icon-cluster.svg" alt="{{ .Lang "txtRgbCluster" }}" class="svg-icon svg-icon-sm svg-icon-heavy" />
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select rgbCluster">
+                                                {{ if $device.DeviceProfile.RGBCluster }}
+                                                <option value="1" selected>Enabled</option>
+                                                <option value="0">Disabled</option>
+                                                {{ else }}
+                                                <option value="1">Enabled</option>
+                                                <option value="0" selected>Disabled</option>
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
                                     <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

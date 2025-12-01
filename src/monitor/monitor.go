@@ -4,10 +4,11 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices"
-	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/openrgb"
 	"github.com/godbus/dbus/v5"
+	"os"
 	"slices"
 	"strconv"
 	"syscall"
@@ -76,22 +77,17 @@ func Init() {
 
 						// Stop
 						devices.Stop()
+						inputmanager.Stop()
 					} else {
 						time.Sleep(time.Duration(config.GetConfig().ResumeDelay) * time.Millisecond)
-						logger.Log(logger.Fields{}).Info("Resume detected. Sending Init() to all devices")
+						logger.Log(logger.Fields{}).Info("Resume detected. Process is shutting down...")
 
-						// Cleanup and restart
-						if config.GetConfig().EnableOpenRGBTargetServer {
-							openrgb.Close()
-							openrgb.ClearDeviceControllers()
-							openrgb.Init()
-						}
-
-						// Init LCDs
-						lcd.Reconnect()
-
-						// Init devices
-						devices.Init()
+						// Due to the issues encountered when sleeping and resuming, this is the best way to handle
+						// the resume, as systemd will pick up non-zero exit codes and restart on failure.
+						// If you're reading this and thinking a resume should work, good luck.
+						// Enough time was spent on tweaking this and trying to do something that makes no sense;
+						// just terminate the process and let systemd do the magic.
+						os.Exit(1)
 					}
 				} else {
 					sleep = false

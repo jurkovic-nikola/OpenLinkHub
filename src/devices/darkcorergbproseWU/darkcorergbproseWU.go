@@ -2126,6 +2126,9 @@ func (d *Device) startQueueWorker() {
 
 	go func() {
 		for data := range d.queue {
+			if d.Exit {
+				return
+			}
 			d.deviceLock.Lock()
 			buf := make([]byte, d.LEDChannels*3)
 			dpiColor := d.DeviceProfile.DPIColor

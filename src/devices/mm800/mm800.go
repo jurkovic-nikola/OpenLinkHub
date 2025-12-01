@@ -1452,10 +1452,7 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 			}
 		}
 	}
-	_, err := d.transfer(cmdWrite, cmdWriteColor, buf, false)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
-	}
+	d.writeColor(buf)
 }
 
 // writeColor will write data to the device with a specific endpoint.
@@ -1515,10 +1512,7 @@ func (d *Device) startQueueWorker() {
 					}
 				}
 			}
-			_, err := d.transfer(cmdWrite, cmdWriteColor, buf, false)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
-			}
+			d.writeColor(buf)
 			time.Sleep(20 * time.Millisecond)
 		}
 	}()

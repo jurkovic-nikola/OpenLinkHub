@@ -46,6 +46,7 @@ var (
 	enabled     bool
 )
 
+// ClearDeviceControllers will clear device controller list
 func ClearDeviceControllers() {
 	if enabled {
 		mutex.Lock()
@@ -59,15 +60,20 @@ func ClearDeviceControllers() {
 
 // AddDeviceController will add new OpenRGB Controller
 func AddDeviceController(controller *common.OpenRGBController) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	controllers = append(controllers, controller)
+}
+
+// SendToOpenRGB will notify OpenRGB about device list change
+func SendToOpenRGB() {
 	if enabled {
 		mutex.Lock()
 		defer mutex.Unlock()
-		controllers = append(controllers, controller)
 		if conn != nil {
 			// Notify connect client about device change
 			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
 		}
-		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -146,6 +152,7 @@ func NotifyControllerChange(serial string) {
 
 // Init will initialize OpenRGB Client Target
 func Init() {
+	Close()
 	enabled = config.GetConfig().EnableOpenRGBTargetServer
 	if enabled {
 		debug = config.GetConfig().Debug
@@ -286,7 +293,7 @@ func handleConn(conn net.Conn) {
 			if debug {
 				logger.Log(logger.Fields{"clientName": clientName}).Info("Setting client name")
 			}
-			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
+			//sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)
 		case OPCODE_REQUEST_PROTOCOL_VERSION:
 			// send protocol version
 			buf := make([]byte, 4)

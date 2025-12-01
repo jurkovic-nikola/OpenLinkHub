@@ -1468,11 +1468,6 @@ func (d *Device) writeColor(data []byte) {
 	buffer[0] = byte(len(data))
 	copy(buffer[headerSizeWrite:], data)
 
-	// Process buffer and create a chunked array if needed
-	writeColorEp := cmdWriteColor
-	colorEp := make([]byte, len(writeColorEp))
-	copy(colorEp, writeColorEp)
-
 	_, err := d.transfer(cmdWrite, cmdWriteColor, buffer)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
@@ -1529,21 +1524,7 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 			}
 		}
 	}
-
-	// Buffer
-	buffer := make([]byte, len(buf)+len(buf)+headerSize)
-	buffer[0] = byte(len(buf))
-	copy(buffer[headerSizeWrite:], buf)
-
-	// Process buffer and create a chunked array if needed
-	writeColorEp := cmdWriteColor
-	colorEp := make([]byte, len(writeColorEp))
-	copy(colorEp, writeColorEp)
-
-	_, err := d.transfer(cmdWrite, cmdWriteColor, buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
-	}
+	d.writeColor(buf)
 }
 
 // clearQueue will clear queue
@@ -1584,21 +1565,7 @@ func (d *Device) startQueueWorker() {
 					}
 				}
 			}
-
-			// Buffer
-			buffer := make([]byte, len(buf)+len(buf)+headerSize)
-			buffer[0] = byte(len(buf))
-			copy(buffer[headerSizeWrite:], buf)
-
-			// Process buffer and create a chunked array if needed
-			writeColorEp := cmdWriteColor
-			colorEp := make([]byte, len(writeColorEp))
-			copy(colorEp, writeColorEp)
-
-			_, err := d.transfer(cmdWrite, cmdWriteColor, buffer)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
-			}
+			d.writeColor(buf)
 			time.Sleep(20 * time.Millisecond)
 		}
 	}()

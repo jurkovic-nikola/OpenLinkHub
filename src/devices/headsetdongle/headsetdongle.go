@@ -163,6 +163,28 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 2623:
+			{
+				dev := virtuosoSEW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeVirtuosoSEW,
+					Product:     "VIRTUOSO SE",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-headphone.svg",
+					Instance:    dev,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		case 2665:
 			{
 				dev := hs80rgbW.Init(
@@ -473,7 +495,8 @@ func (d *Device) getDevices() {
 			}
 		}
 	} else {
-		if d.ProductId == 2622 {
+		switch d.ProductId {
+		case 2622, 2624:
 			buff, _ = d.transferToDevice(cmdEndpoint, cmdProductId, nil, "")
 			if d.Debug {
 				logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")

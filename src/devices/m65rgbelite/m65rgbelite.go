@@ -2321,6 +2321,9 @@ func (d *Device) startQueueWorker() {
 
 	go func() {
 		for data := range d.queue {
+			if d.Exit {
+				return
+			}
 			d.deviceLock.Lock()
 			buf := make([]byte, (d.LEDChannels*3)+3) // Append 3 additional places for each LED packet index
 			// DPI

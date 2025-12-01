@@ -2091,6 +2091,9 @@ func (d *Device) startQueueWorker() {
 
 	go func() {
 		for data := range d.queue {
+			if d.Exit {
+				return
+			}
 			d.deviceLock.Lock()
 			buf := make([]byte, LEDPacketLength)
 			zoneKeys := make([]int, 0, len(d.DeviceProfile.ZoneColors))

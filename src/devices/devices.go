@@ -101,6 +101,7 @@ import (
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
 	"github.com/sstallion/go-hid"
@@ -145,6 +146,7 @@ var (
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
 	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093, 7168}
+	initWG              sync.WaitGroup
 )
 
 // Stop will stop all active devices
@@ -171,6 +173,11 @@ func StopDirty(deviceId string, productId uint16) {
 			return
 		}
 	}
+
+	if config.GetConfig().EnableOpenRGBTargetServer {
+		openrgb.RemoveDeviceControllerBySerial(device.Serial)
+	}
+	cluster.Get().RemoveDeviceControllerBySerial(device.Serial)
 
 	res := CallDeviceMethod(device.Serial, "StopDirty")
 	if res != nil {
@@ -575,6 +582,12 @@ func Init() {
 		}
 		initializeDevice(productId, key, productPath)
 	}
+
+	if config.GetConfig().EnableOpenRGBTargetServer {
+		initWG.Wait()
+		openrgb.Init()
+		openrgb.SendToOpenRGB()
+	}
 }
 
 // deviceRegisterMap hold map of supported devices and their initialization call
@@ -714,8 +727,10 @@ var deviceRegisterMap = map[uint16]Product{
 	2626:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2675:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},              // Headset dongle
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},          // Headset dongle
+	2624:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},          // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},          // K65 PLUS WIRELESS
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},              // CORSAIR VIRTUOSO SE USB Gaming Headset
+	2623:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},              // CORSAIR VIRTUOSO SE USB Gaming Headset
 	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},             // VOID WIRELESS V2
 	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},      // CORSAIR LINK TM USB DONGLE
 	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionproWU.Init, nil},       // SCUF Envision Pro Controller
@@ -729,14 +744,18 @@ func initializeDevice(productId uint16, key, productPath string) {
 	callback, ok := deviceRegisterMap[productId]
 	if ok {
 		if callback.DeviceRegister != nil {
+			initWG.Add(1)
 			go func(vid, pid uint16, serial, path string, cb deviceRegister) {
+				defer initWG.Done()
 				dev := cb(vid, pid, serial, path)
 				addDevice(dev)
 			}(vendorId, productId, key, productPath, callback.DeviceRegister)
 		}
 
 		if callback.DeviceRegisterEx != nil {
+			initWG.Add(1)
 			go func(vid, pid uint16, serial, path string, cb deviceRegisterEx) {
+				defer initWG.Done()
 				dev := cb(vid, pid, serial, path, addDevice)
 				addDevice(dev)
 			}(vendorId, productId, key, productPath, callback.DeviceRegisterEx)

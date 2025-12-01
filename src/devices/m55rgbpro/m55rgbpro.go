@@ -2091,7 +2091,7 @@ func (d *Device) toggleDPI() {
 			}
 		}
 		d.deviceLock.Unlock()
-		
+
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true // Exit current RGB mode
 			d.activeRgb = nil
@@ -2166,6 +2166,9 @@ func (d *Device) startQueueWorker() {
 
 	go func() {
 		for data := range d.queue {
+			if d.Exit {
+				return
+			}
 			d.deviceLock.Lock()
 			buf := make([]byte, d.LEDChannels*3)
 			// DPI

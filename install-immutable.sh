@@ -57,6 +57,7 @@ WorkingDirectory=$CURRENT_DIR
 ExecStart=$CURRENT_DIR/$PRODUCT
 ExecReload=/bin/kill -s HUP \$MAINPID
 RestartSec=5
+Restart=on-failure
 
 [Install]
 WantedBy=default.target

@@ -3759,6 +3759,9 @@ func (d *Device) setupOpenRGBController() {
 		if d.Devices[k].IsLinkAdapter {
 			if adapterId, ok := d.DeviceProfile.ExternalAdapter[k]; ok {
 				adapterData := d.getLinkAdapterDevice(adapterId)
+				if adapterData == nil || len(adapterData.Devices) == 0 {
+					continue
+				}
 				aks := make([]int, 0)
 				for ak := range adapterData.Devices {
 					aks = append(aks, ak)
@@ -4014,7 +4017,9 @@ func (d *Device) setDeviceColor() {
 					if d.Devices[k].IsLinkAdapter {
 						if adapterId, ok := d.DeviceProfile.ExternalAdapter[k]; ok {
 							adapterData := d.getLinkAdapterDevice(adapterId)
-
+							if adapterData == nil || len(adapterData.Devices) == 0 {
+								continue
+							}
 							aks := make([]int, 0)
 							for ak := range adapterData.Devices {
 								aks = append(aks, ak)

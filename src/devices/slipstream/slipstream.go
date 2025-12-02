@@ -1810,6 +1810,10 @@ func (d *Device) backendListener() {
 					continue
 				}
 
+				if d.Debug {
+					logger.Log(logger.Fields{"data": fmt.Sprintf("% 2x", data)}).Info("Backend debug data")
+				}
+
 				if data[1] == 0x01 && data[2] == 0x36 {
 					value := data[4]
 					d.setDeviceStatus(value)

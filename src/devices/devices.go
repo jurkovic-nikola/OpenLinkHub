@@ -497,7 +497,13 @@ func Init() {
 				}
 				filePerm := dev.Mode().Perm()
 				if !slices.Contains(expectedPermissions, filePerm) {
-					logger.Log(logger.Fields{"productId": info.ProductID, "path": info.Path, "device": info.ProductStr}).Warn("Invalid permissions")
+					logger.Log(logger.Fields{
+						"productId":           info.ProductID,
+						"path":                info.Path,
+						"device":              info.ProductStr,
+						"permissions":         filePerm,
+						"expectedPermissions": expectedPermissions,
+					}).Warn("Invalid permissions")
 					return nil
 				}
 			}

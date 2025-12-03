@@ -66,6 +66,7 @@ type Device struct {
 	keepAliveChan  chan struct{}
 	sleepChan      chan struct{}
 	mutex          sync.Mutex
+	deviceLock     sync.Mutex
 	instance       *common.Device
 }
 
@@ -1627,6 +1628,9 @@ func (d *Device) setDeviceOnline(deviceType int) {
 
 // setDeviceStatus will set device status
 func (d *Device) setDeviceStatus(status byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	switch status {
 	case 0x00: // ALl offline
 		d.setDevicesOffline()
@@ -1656,6 +1660,7 @@ func (d *Device) monitorDevice() {
 			select {
 			case <-d.timerKeepAlive.C:
 				{
+					d.deviceLock.Lock()
 					if d.Exit {
 						return
 					}
@@ -1675,7 +1680,7 @@ func (d *Device) monitorDevice() {
 						batteryLevel, e := d.transfer(value.Endpoint, cmdBatteryLevel, nil)
 						if e != nil {
 							if d.Debug {
-								logger.Log(logger.Fields{"error": e}).Error("Unable to read paired device endpoint")
+								logger.Log(logger.Fields{"error": e}).Error("Unable to read paired device endpoint for battery status")
 							}
 							continue
 						}
@@ -1684,6 +1689,7 @@ func (d *Device) monitorDevice() {
 							d.setDeviceBatteryLevelByProductId(value.ProductId, val/10)
 						}
 					}
+					d.deviceLock.Unlock()
 				}
 			case <-d.keepAliveChan:
 				return

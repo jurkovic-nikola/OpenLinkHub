@@ -1,5 +1,38 @@
+## 2025-12-04
+
+* k70 max de layout (8c1b7a7)
+
+## 2025-12-03
+
+* packet control (4c19e90)
+* Merge pull request #275 from JordyProvost/main (812cd15)
+* Add Azerty/FR Layout for Corsair K100 (8369c2e)
+
+## 2025-12-02
+
+* m75 wireless rgb map (ce40695)
+* crashfix (1bf3eec)
+* log slipstream response (1218adb)
+
+## 2025-12-01
+
+* bulk: - packet control - restart service on failure on immutable - resume from sleep will now Exit(1) and systemd should take care of restart - changes how devices are presented to openrgb (fe3c758)
+
+## 2025-11-30
+
+* delay on sleep / resume (36b6276)
+* packet control (ebd982d)
+* m55, lt100 openrgb / rgb cluster integration (81ff900)
+* glaive,nightsword,harpoon openrgb / rgb cluster integration (2a62c48)
+* sabre pro openrgb / rgb cluster integration (203594d)
+* ironclaw openrgb / rgb cluster integration (1946e96)
+* darkstar, nightsabre openrgb / rgb cluster integration (7878c4e)
+* m65 openrgb / rgb cluster integration (56e74af)
+* dark core openrgb / rgb cluster integration (1b11c63)
+
 ## 2025-11-29
 
+* changelog (50e7fc5)
 * support for virtuoso rgb (2be32d5)
 * scimitar openrgb / rgb cluster integration (3a75d2e)
 * docs update (10d22c9)

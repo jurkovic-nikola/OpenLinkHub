@@ -663,6 +663,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7022:  {1, 0, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                 // K57 RGB WIRELESS
 	7072:  {1, 0, "K60 RGB PRO", k60rgbpro.Init, nil},                     // K60 RGB PRO
 	7104:  {1, 0, "K70 MAX", k70max.Init, nil},                            // K70 MAX
+	7108:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO
 	7110:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO
 	7091:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO
 	7124:  {1, 0, "K70 PRO", k70pro.Init, nil},                            // K70 PRO

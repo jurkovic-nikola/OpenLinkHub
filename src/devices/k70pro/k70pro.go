@@ -117,6 +117,7 @@ var (
 	cmdWritePerformance     = []byte{0x01}
 	cmdOpenEndpoint         = []byte{0x0d, 0x02, 0x02}
 	cmdKeyAssignment        = []byte{0x06, 0x02}
+	cmdKeyAssignmentNext    = []byte{0x07, 0x02}
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x02}
 	deviceRefreshInterval   = 1000
 	transferTimeout         = 500
@@ -213,6 +214,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		MacroTracker: make(map[int]macro.Tracker),
 	}
 
+	d.setupDeviceData()        // Device data
 	d.getDebugMode()           // Debug mode
 	d.getManufacturer()        // Manufacturer
 	d.getSerial()              // Serial
@@ -243,6 +245,16 @@ func (d *Device) createDevice() {
 		Firmware:    d.Firmware,
 		Image:       "icon-keyboard.svg",
 		Instance:    d,
+	}
+}
+
+// setupDeviceData will setup initial device data based on product id
+func (d *Device) setupDeviceData() {
+	switch d.ProductId {
+	case 7108:
+		bufferSize = 128
+		maxBufferSizePerRequest = 125
+		break
 	}
 }
 
@@ -2015,10 +2027,20 @@ func (d *Device) writeKeyAssignment(data []byte) {
 		return
 	}
 
-	// Write data
-	_, err = d.transfer(cmdKeyAssignment, buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to key assignment endpoint")
+	// Split packet into chunks
+	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
+	for i, chunk := range chunks {
+		if i == 0 {
+			_, err := d.transfer(cmdKeyAssignment, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
+			}
+		} else {
+			_, err := d.transfer(cmdKeyAssignmentNext, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
+			}
+		}
 	}
 
 	// Close endpoint

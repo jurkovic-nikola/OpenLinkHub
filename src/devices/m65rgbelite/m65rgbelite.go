@@ -84,6 +84,7 @@ type Device struct {
 	Firmware              string `json:"firmware"`
 	activeRgb             *rgb.ActiveRGB
 	UserProfiles          map[string]*DeviceProfile `json:"userProfiles"`
+	ProfileOrder          []string                  `json:"profileOrder"`
 	Devices               map[int]string            `json:"devices"`
 	DeviceProfile         *DeviceProfile
 	OriginalProfile       *DeviceProfile
@@ -219,6 +220,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
+			11: "Profile Switch",
 		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/m65rgbelite.json",
@@ -484,6 +486,46 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// rotateDeviceProfile will rotate and activate next user profile
+func (d *Device) rotateDeviceProfile() {
+	if d.DeviceProfile == nil || len(d.ProfileOrder) == 0 || len(d.UserProfiles) == 0 {
+		return
+	}
+
+	var currentName string
+	for name, profile := range d.UserProfiles {
+		if profile.Active {
+			currentName = name
+			break
+		}
+	}
+
+	if currentName == "" {
+		next := d.ProfileOrder[0]
+		d.ChangeDeviceProfile(next)
+		return
+	}
+	idx := -1
+	for i, name := range d.ProfileOrder {
+		if name == currentName {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		next := d.ProfileOrder[0]
+		d.ChangeDeviceProfile(next)
+		return
+	}
+
+	nextIdx := (idx + 1) % len(d.ProfileOrder)
+	next := d.ProfileOrder[nextIdx]
+
+	d.ChangeDeviceProfile(next)
+	return
 }
 
 // saveRgbProfile will save rgb profile data
@@ -1681,7 +1723,17 @@ func (d *Device) loadDeviceProfiles() {
 		}
 	}
 	d.UserProfiles = profileList
+	d.rebuildProfileOrder()
 	d.getDeviceProfile()
+}
+
+// rebuildProfileOrder will return profile order
+func (d *Device) rebuildProfileOrder() {
+	d.ProfileOrder = d.ProfileOrder[:0]
+	for name := range d.UserProfiles {
+		d.ProfileOrder = append(d.ProfileOrder, name)
+	}
+	sort.Strings(d.ProfileOrder)
 }
 
 // getDeviceProfile will load persistent device configuration
@@ -2220,6 +2272,9 @@ func (d *Device) triggerKeyAssignment(value uint8) {
 						}
 					}
 				}
+				break
+			case 11:
+				d.rotateDeviceProfile()
 				break
 			}
 		}

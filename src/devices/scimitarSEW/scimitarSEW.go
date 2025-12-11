@@ -424,6 +424,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor()
+		d.toggleDPI()
 		d.loadKeyAssignments()
 		d.setupKeyAssignment()
 		return 1
@@ -2463,7 +2464,7 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 				d.rotateDeviceProfile()
 				continue
 			}
-			
+
 			if mask == 0x08 && val.Default {
 				d.ModifyDpi()
 				continue

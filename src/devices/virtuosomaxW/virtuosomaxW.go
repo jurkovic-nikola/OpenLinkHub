@@ -50,6 +50,8 @@ type DeviceProfile struct {
 	NoiseCancellation   int
 	SideTone            int
 	SideToneValue       int
+	OpenRGBIntegration  bool
+	RGBCluster          bool
 }
 
 type DPIProfile struct {
@@ -332,24 +334,8 @@ func (d *Device) Connect() {
 		d.setDeviceColor()          // Device color
 		d.setupDefaultButtons()     // Default button actions
 		d.setupMicIndicatorStatus() // Mic indicator LED
-		d.enableMicButton()         // Enable mic button
 		d.configureHeadset()        // Headset config
 	}
-}
-
-func (d *Device) enableMicButton() {
-	_, _ = d.transfer([]byte{0x0d, 0x01, 0x25}, nil)
-	_, _ = d.transfer([]byte{0x02, 0x02}, nil)
-	_, _ = d.transfer([]byte{0x02, 0x0d}, nil)
-	_, _ = d.transfer([]byte{0x02, 0x0e}, nil)
-	_, _ = d.transfer([]byte{0x02, 0x0f}, nil)
-	_, _ = d.transfer([]byte{0x02, 0x10}, nil)
-	_, _ = d.transfer([]byte{0x02, 0xd4}, nil)
-	_, _ = d.transfer([]byte{0x02, 0xd1}, nil)
-	_, _ = d.transfer([]byte{0x02, 0xd2}, nil)
-	_, _ = d.transfer([]byte{0x02, 0xd3}, nil)
-	_, _ = d.transfer([]byte{0x02, 0xf6}, nil)
-	_, _ = d.transfer([]byte{0x02, 0xf7}, nil)
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -1073,11 +1059,11 @@ func (d *Device) setupDefaultButtons() {
 	buf := make([]byte, 4)
 	buf[0] = 0x01
 	buf[1] = 0x01
-	d.writeButtonData(buf)
+	d.writeKeyAssignmentData(buf)
 }
 
-// writeButtonData will write button data to the device.
-func (d *Device) writeButtonData(data []byte) {
+// writeKeyAssignmentData will write key assignment data to the device.
+func (d *Device) writeKeyAssignmentData(data []byte) {
 	if d.Exit {
 		return
 	}

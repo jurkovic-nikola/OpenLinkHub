@@ -367,6 +367,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		newProfile.Active = true
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
+		d.toggleDPI()
 		d.loadKeyAssignments()
 		d.setupKeyAssignment()
 		return 1

@@ -3,7 +3,6 @@ Uma interface Linux de código aberto para iCUE LINK Hub e outros AIOs, Hubs da 
 Gerencie iluminação RGB, velocidades de ventiladores, métricas do sistema, bem como teclados, mouses, headsets via painel web.
 
 ![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
-[![Copr build status](https://copr.fedorainfracloud.org/coprs/jurkovic-nikola/OpenLinkHub/package/OpenLinkHub/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/jurkovic-nikola/OpenLinkHub/package/OpenLinkHub/)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/mPHcasZRPy?style=flat)](https://discord.gg/mPHcasZRPy)
 
 ## Recursos

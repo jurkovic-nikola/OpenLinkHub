@@ -724,6 +724,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7132:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
 	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
+	7041:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},            // SLIPSTREAM WIRELESS USB Receiver
 	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},   // VIRTUOSO MAX WIRELESS
 	2711:  {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},           // HS80 MAX WIRELESS
 	10767: {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},           // HS80 MAX WIRELESS

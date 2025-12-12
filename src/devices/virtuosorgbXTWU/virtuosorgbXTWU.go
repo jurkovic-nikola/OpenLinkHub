@@ -1403,16 +1403,24 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return bufferR, err
-	}
+	if d.Exit {
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			return bufferR, err
+		}
+	} else {
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			return bufferR, err
+		}
 
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return bufferR, err
+		}
 	}
 	return bufferR, nil
 }

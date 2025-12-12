@@ -1320,44 +1320,51 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	reports := make([]byte, 1)
-	err := d.dev.SetNonblock(true)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
-	}
-
-	for {
-		n, e := d.dev.Read(reports)
-		if e != nil {
-			if n < 0 {
-				//
-			}
-			if e == hid.ErrTimeout || n == 0 {
-				break
-			}
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	err = d.dev.SetNonblock(false)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
-	}
-
 	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
-	if _, err := d.dev.Write(bufferW); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
-		return bufferR, err
-	}
+	if d.Exit {
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		}
+	} else {
+		reports := make([]byte, 1)
+		err := d.dev.SetNonblock(true)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+		}
 
-	// Get data from a device
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
+		for {
+			n, e := d.dev.Read(reports)
+			if e != nil {
+				if n < 0 {
+					//
+				}
+				if e == hid.ErrTimeout || n == 0 {
+					break
+				}
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		err = d.dev.SetNonblock(false)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
+		}
+
+		// Send command to a device
+		if _, err := d.dev.Write(bufferW); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+			return bufferR, err
+		}
+
+		// Get data from a device
+		if _, err := d.dev.Read(bufferR); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return bufferR, err
+		}
 	}
 	return bufferR, nil
 }

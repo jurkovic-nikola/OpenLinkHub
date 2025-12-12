@@ -123,7 +123,7 @@ var (
 	headerSize                = 3
 	headerWriteSize           = 4
 	colorPacketLength         = 20
-	rgbProfileUpgrade         = []string{"gradient"}
+	rgbProfileUpgrade         = []string{"gradient", "nebula"}
 	rgbModes                  = []string{
 		"colorpulse",
 		"colorshift",
@@ -133,6 +133,7 @@ var (
 		"gpu-temperature",
 		"gradient",
 		"headset",
+		"nebula",
 		"off",
 		"rainbow",
 		"rotator",
@@ -1404,6 +1405,11 @@ func (d *Device) setDeviceColor() {
 				case "colorwarp":
 					{
 						r.Colorwarp(&startTime, d.activeRgb)
+						buff = append(buff, r.Output...)
+					}
+				case "nebula":
+					{
+						r.Nebula(&startTime)
 						buff = append(buff, r.Output...)
 					}
 				}

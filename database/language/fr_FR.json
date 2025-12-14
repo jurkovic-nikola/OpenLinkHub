@@ -405,6 +405,8 @@
         "txtInvalidWheelId": "Identifiant de molette non valide",
         "txtInvalidWheelValue": "Option de molette non valide",
         "txtWheelUpdated": "L’option de la molette a été mise à jour avec succès",
-        "txtUnableToUpdateWheel": "Impossible de mettre à jour l’option de la molette"
+        "txtUnableToUpdateWheel": "Impossible de mettre à jour l’option de la molette",
+        "txtPressAndHoldNotAllowedOnRelease": "Impossible de mettre à jour les affectations de touches. L’option « Au relâchement » ne peut pas avoir la valeur « Appuyer et maintenir » activée.",
+        "txtSniperNotAllowedOnRelease": "Impossible de mettre à jour les affectations de touches. L’option « Au relâchement » ne peut pas avoir une affectation de touche Sniper."
     }
 }

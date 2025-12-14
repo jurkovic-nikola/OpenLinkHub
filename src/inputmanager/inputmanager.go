@@ -28,6 +28,7 @@ type KeyAssignment struct {
 	RetainOriginal bool   `json:"retainOriginal"`
 	ToggleDelay    uint16 `json:"toggleDelay"`
 	ProfileSwitch  bool   `json:"profileSwitch"`
+	OnRelease      bool   `json:"onRelease"`
 }
 
 type InputAction struct {

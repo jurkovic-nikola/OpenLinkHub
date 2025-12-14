@@ -405,6 +405,9 @@
     "txtInvalidWheelId": "Invalid wheel id",
     "txtInvalidWheelValue": "Invalid wheel option",
     "txtWheelUpdated": "Wheel option is successfully updated",
-    "txtUnableToUpdateWheel": "Unable to update wheel option"
+    "txtUnableToUpdateWheel": "Unable to update wheel option",
+    "txtOnRelease": "On Release",
+    "txtPressAndHoldNotAllowedOnRelease": "Unable to update key assignments. On Release can not have Press and Hold value checked.",
+    "txtSniperNotAllowedOnRelease": "Unable to update key assignments. On Release can not have Sniper Key Assignment."
   }
 }

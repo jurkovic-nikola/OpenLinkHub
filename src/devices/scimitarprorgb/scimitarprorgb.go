@@ -1416,6 +1416,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 		val.ActionType = keyAssignment.ActionType
 		val.ActionCommand = keyAssignment.ActionCommand
 		val.IsMacro = keyAssignment.IsMacro
+		val.OnRelease = keyAssignment.OnRelease
 		d.KeyAssignment[keyIndex] = val
 		d.saveKeyAssignments()
 		d.setupKeyAssignment()
@@ -2202,6 +2203,10 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 		val, ok := d.KeyAssignment[int(mask)]
 		if !ok {
 			continue
+		}
+
+		if val.OnRelease {
+			isPressed, isReleased = isReleased, isPressed
 		}
 
 		if isReleased {

@@ -63,6 +63,7 @@ type Payload struct {
 	ExternalExecutable    string                `json:"externalExecutable"`
 	GpuIndex              uint8                 `json:"gpuIndex"`
 	Enabled               bool                  `json:"enabled"`
+	OnRelease             bool                  `json:"onRelease"`
 	DeviceType            int                   `json:"deviceType"`
 	KeyOption             int                   `json:"keyOption"`
 	AreaOption            int                   `json:"areaOption"`
@@ -1495,10 +1496,21 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		ModifierKey:    req.KeyAssignmentModifier,
 		RetainOriginal: req.KeyAssignmentOriginal,
 		ToggleDelay:    req.ToggleDelay,
+		OnRelease:      req.OnRelease,
 	}
 
 	if keyAssignment.IsMacro && keyAssignment.ActionHold {
 		return &Payload{Message: language.GetValue("txtPressAndHoldNotAllowed"), Code: http.StatusOK, Status: 0}
+	}
+
+	if keyAssignment.OnRelease && keyAssignment.ActionHold {
+		// Press and Hold not allowed
+		return &Payload{Message: language.GetValue("txtPressAndHoldNotAllowedOnRelease"), Code: http.StatusOK, Status: 0}
+	}
+
+	if keyAssignment.OnRelease && keyAssignment.ActionType == 8 {
+		// Sniper not allowed
+		return &Payload{Message: language.GetValue("txtSniperNotAllowedOnRelease"), Code: http.StatusOK, Status: 0}
 	}
 
 	results := devices.CallDeviceMethod(

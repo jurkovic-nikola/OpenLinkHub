@@ -416,6 +416,30 @@ document.addEventListener("DOMContentLoaded", function () {
         })
     });
 
+    $('.onReleaseInfoToggle').on('click', function () {
+        const modalElement = `
+        <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="infoToggleLabel">On Release</h5>
+                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <span>When enabled, the mouse action is sent when the button is released. When enabled, <b>Press and Hold</b> and <b>Sniper</b> can not be used.</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        const modal = $(modalElement).modal('toggle');
+        modal.on('hidden.bs.modal', function () {
+            modal.data('bs.modal', null);
+        })
+    });
+
     $('.keyAssignmentType').on('change', function () {
         const selectedValue = parseInt($(this).val());
         const indexElements = $(this).attr("id").split('_')
@@ -502,10 +526,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const deviceId = $("#deviceId").val();
         const keyIndex = $(this).attr("data-info");
         const enabled = $("#default_" + keyIndex).is(':checked');
+        const onRelease = $("#onRelease_" + keyIndex).is(':checked');
         const pressAndHold = $("#pressAndHold_" + keyIndex).is(':checked');
         const keyAssignmentType = $("#keyAssignmentType_" + keyIndex).val();
         const keyAssignmentValue = $("#keyAssignmentValue_" + keyIndex).val();
 
+        if (onRelease === true && pressAndHold === true) {
+            toast.warning('Press and Hold can not be used while On Release is enabled');
+            return false;
+        }
         const pf = {};
         pf["deviceId"] = deviceId;
         pf["keyIndex"] = parseInt(keyIndex);
@@ -513,6 +542,7 @@ document.addEventListener("DOMContentLoaded", function () {
         pf["pressAndHold"] = pressAndHold;
         pf["keyAssignmentType"] = parseInt(keyAssignmentType);
         pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+        pf["onRelease"] = onRelease;
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
             url: '/api/mouse/updateKeyAssignment',

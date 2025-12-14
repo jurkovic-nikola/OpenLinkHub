@@ -405,6 +405,8 @@
     "txtInvalidWheelId": "ID da roda inválido",
     "txtInvalidWheelValue": "Opção de roda inválida",
     "txtWheelUpdated": "A opção da roda foi atualizada com sucesso",
-    "txtUnableToUpdateWheel": "Não é possível atualizar a opção da roda"
+    "txtUnableToUpdateWheel": "Não é possível atualizar a opção da roda",
+    "txtPressAndHoldNotAllowedOnRelease": "Não é possível atualizar as atribuições de teclas. A opção « Ao soltar » não pode ter o valor « Pressionar e segurar » marcado.",
+    "txtSniperNotAllowedOnRelease": "Não é possível atualizar as atribuições de teclas. A opção « Ao soltar » não pode ter uma atribuição de tecla Sniper."
   }
 }

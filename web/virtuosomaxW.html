@@ -179,6 +179,40 @@
                                         </li>
                                     </ul>
 
+                                    <button title="{{ .Lang "txtAssignLeftWheel" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select wheel-select" name="leftWheel" data-wheel-id="1">
+                                                {{ range $key, $value := $device.WheelOptions }}
+                                                {{ if eq $device.DeviceProfile.LeftWheel $key }}
+                                                <option value="{{ $key }}" selected>{{ $value }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $value }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
+                                    <button title="{{ .Lang "txtAssignRightWheel" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
+                                    <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
+                                        <li>
+                                            <select class="form-select wheel-select" name="rightWheel" data-wheel-id="2">
+                                                {{ range $key, $value := $device.WheelOptions }}
+                                                {{ if eq $device.DeviceProfile.RightWheel $key }}
+                                                <option value="{{ $key }}" selected>{{ $value }}</option>
+                                                {{ else }}
+                                                <option value="{{ $key }}">{{ $value }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </li>
+                                    </ul>
+
                                     <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
                                         <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
                                     </button>

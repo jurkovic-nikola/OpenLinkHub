@@ -399,6 +399,12 @@
         "txtUploadGifAnimation": "Загрузить GIF-анимацию",
         "txtRgbScheduler": "Планировщик RGB",
         "txtRgbOffTime": "Время отключения RGB",
-        "rgbOnTime": "Время включения RGB"
+        "rgbOnTime": "Время включения RGB",
+        "txtAssignLeftWheel": "Назначить левое колесо",
+        "txtAssignRightWheel": "Назначить правое колесо",
+        "txtInvalidWheelId": "Недопустимый идентификатор колеса",
+        "txtInvalidWheelValue": "Недопустимый параметр колеса",
+        "txtWheelUpdated": "Параметр колеса успешно обновлён",
+        "txtUnableToUpdateWheel": "Невозможно обновить параметр колеса"
     }
 }

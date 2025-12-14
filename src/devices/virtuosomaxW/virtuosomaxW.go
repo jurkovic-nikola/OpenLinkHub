@@ -50,8 +50,8 @@ type DeviceProfile struct {
 	NoiseCancellation   int
 	SideTone            int
 	SideToneValue       int
-	OpenRGBIntegration  bool
-	RGBCluster          bool
+	LeftWheel           uint8
+	RightWheel          uint8
 }
 
 type DPIProfile struct {
@@ -90,6 +90,7 @@ type Device struct {
 	Endpoint              byte
 	SleepModes            map[int]string
 	NoiseCancellations    map[int]string
+	WheelOptions          map[int]string
 	Connected             bool
 	mutex                 sync.Mutex
 	Exit                  bool
@@ -118,6 +119,8 @@ var (
 	cmdNoiseCancellation      = []byte{0x01, 0xd1, 0x00}
 	cmdSidetoneMode           = []byte{0x01, 0x46, 0x00}
 	cmdSidetone               = []byte{0x01, 0x47, 0x00}
+	cmdLeftWheel              = []byte{0x01, 0xd2, 0x00}
+	cmdRightWheel             = []byte{0x01, 0xd3, 0x00}
 	bufferSize                = 64
 	bufferSizeWrite           = bufferSize + 1
 	headerSize                = 3
@@ -177,6 +180,10 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			0: "Off",
 			1: "On",
 			2: "Transparency",
+		},
+		WheelOptions: map[int]string{
+			1: "System Volume",
+			2: "Bluetooth Volume",
 		},
 		RGBModes:              rgbModes,
 		LEDChannels:           6,
@@ -262,6 +269,36 @@ func (d *Device) configureHeadset() {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to disable active noise cancellation")
 			return
 		}
+	}
+	d.configureWheels()
+}
+
+// configureWheels will configure left and right wheel option
+func (d *Device) configureWheels() {
+	// Wheel options
+	if d.DeviceProfile.LeftWheel < 1 || d.DeviceProfile.LeftWheel > 2 {
+		d.DeviceProfile.LeftWheel = 1
+	}
+
+	if d.DeviceProfile.RightWheel < 1 || d.DeviceProfile.RightWheel > 2 {
+		d.DeviceProfile.RightWheel = 1
+	}
+
+	// Left wheel
+	buf := make([]byte, 1)
+	buf[0] = d.DeviceProfile.LeftWheel
+	_, err := d.transfer(cmdLeftWheel, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to change left wheel option")
+		return
+	}
+
+	// Right wheel
+	buf[0] = d.DeviceProfile.RightWheel
+	_, err = d.transfer(cmdRightWheel, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to change right wheel option")
+		return
 	}
 }
 
@@ -913,6 +950,8 @@ func (d *Device) saveDeviceProfile() {
 
 		deviceProfile.SleepMode = 15
 		deviceProfile.DisableMicIndicator = 0
+		deviceProfile.LeftWheel = 1
+		deviceProfile.RightWheel = 2
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
@@ -938,6 +977,20 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.NoiseCancellation = d.DeviceProfile.NoiseCancellation
 		deviceProfile.SideTone = d.DeviceProfile.SideTone
 		deviceProfile.SideToneValue = d.DeviceProfile.SideToneValue
+
+		if d.DeviceProfile.LeftWheel == 0 {
+			deviceProfile.LeftWheel = 1
+			d.DeviceProfile.LeftWheel = 1
+		} else {
+			deviceProfile.LeftWheel = d.DeviceProfile.LeftWheel
+		}
+
+		if d.DeviceProfile.RightWheel == 0 {
+			deviceProfile.RightWheel = 2
+			d.DeviceProfile.RightWheel = 2
+		} else {
+			deviceProfile.RightWheel = d.DeviceProfile.RightWheel
+		}
 	}
 
 	// Convert to JSON
@@ -1021,6 +1074,24 @@ func (d *Device) UpdateSidetoneValue(value int) uint8 {
 		} else {
 			return 2
 		}
+	}
+	return 0
+}
+
+// UpdateWheelOption will update device wheel option
+func (d *Device) UpdateWheelOption(wheelId, wheelOption uint8) uint8 {
+	if d.DeviceProfile != nil {
+		switch wheelId {
+		case 1:
+			d.DeviceProfile.LeftWheel = wheelOption
+			break
+		case 2:
+			d.DeviceProfile.RightWheel = wheelOption
+			break
+		}
+		d.saveDeviceProfile()
+		d.configureWheels()
+		return 1
 	}
 	return 0
 }

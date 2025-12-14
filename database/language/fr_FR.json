@@ -399,6 +399,12 @@
         "txtUploadGifAnimation": "Téléverser une animation GIF",
         "txtRgbScheduler": "Planificateur RGB",
         "txtRgbOffTime": "Temps d'arrêt RGB",
-        "rgbOnTime": "Temps d'activation RGB"
+        "rgbOnTime": "Temps d'activation RGB",
+        "txtAssignLeftWheel": "Attribuer la molette gauche",
+        "txtAssignRightWheel": "Attribuer la molette droite",
+        "txtInvalidWheelId": "Identifiant de molette non valide",
+        "txtInvalidWheelValue": "Option de molette non valide",
+        "txtWheelUpdated": "L’option de la molette a été mise à jour avec succès",
+        "txtUnableToUpdateWheel": "Impossible de mettre à jour l’option de la molette"
     }
 }

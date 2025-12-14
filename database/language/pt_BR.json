@@ -399,6 +399,12 @@
     "txtUploadGifAnimation": "Enviar animação GIF",
     "txtRgbScheduler": "Agendador RGB",
     "txtRgbOffTime": "Tempo de desligamento RGB",
-    "rgbOnTime": "Tempo de ativação RGB"
+    "rgbOnTime": "Tempo de ativação RGB",
+    "txtAssignLeftWheel": "Atribuir roda esquerda",
+    "txtAssignRightWheel": "Atribuir roda direita",
+    "txtInvalidWheelId": "ID da roda inválido",
+    "txtInvalidWheelValue": "Opção de roda inválida",
+    "txtWheelUpdated": "A opção da roda foi atualizada com sucesso",
+    "txtUnableToUpdateWheel": "Não é possível atualizar a opção da roda"
   }
 }

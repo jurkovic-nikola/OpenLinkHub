@@ -1167,6 +1167,17 @@ func changeSidetoneValue(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeHeadsetWheelOption handles headset wheel option value
+func changeWheelOption(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateWheelOption(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeRgbScheduler handles RGB scheduler change
 func changeRgbScheduler(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeRgbScheduler(r)
@@ -1944,6 +1955,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/headset/anc", http.MethodPost, changeActiveNoiseCancellation)
 	handleFunc(r, "/api/headset/sidetone", http.MethodPost, changeSidetone)
 	handleFunc(r, "/api/headset/sidetoneValue", http.MethodPost, changeSidetoneValue)
+	handleFunc(r, "/api/headset/wheelOption", http.MethodPost, changeWheelOption)
 	handleFunc(r, "/api/controller/vibration", http.MethodPost, changeControllerVibration)
 	handleFunc(r, "/api/controller/zoneColors", http.MethodPost, saveControllerZoneColors)
 	handleFunc(r, "/api/controller/updateKeyAssignment", http.MethodPost, changeKeyAssignment)

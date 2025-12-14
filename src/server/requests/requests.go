@@ -92,6 +92,8 @@ type Payload struct {
 	NoiseCancellation     int                   `json:"noiseCancellation"`
 	SideTone              int                   `json:"sideTone"`
 	SideToneValue         int                   `json:"sideToneValue"`
+	WheelId               uint8                 `json:"wheelId"`
+	WheelOption           uint8                 `json:"wheelOption"`
 	RgbControl            bool                  `json:"rgbControl"`
 	RgbOff                string                `json:"rgbOff"`
 	RgbOn                 string                `json:"rgbOn"`
@@ -1699,6 +1701,55 @@ func ProcessSidetoneValue(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeSidetone"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessUpdateWheelOption will process POST request from a client for device wheel option
+func ProcessUpdateWheelOption(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.WheelId < 1 || req.WheelId > 2 {
+		return &Payload{Message: language.GetValue("txtInvalidWheelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.WheelOption < 1 || req.WheelOption > 2 {
+		return &Payload{Message: language.GetValue("txtInvalidWheelValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateWheelOption",
+		req.WheelId,
+		req.WheelOption,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtWheelUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateWheel"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDeleteKeyboardProfile will process DELETE request from a client for device profile deletion

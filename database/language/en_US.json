@@ -399,6 +399,12 @@
     "txtUploadGifAnimation": "Upload Gif Animation",
     "txtRgbScheduler": "RGB Scheduler",
     "txtRgbOffTime": "RGB Off Time",
-    "rgbOnTime": "RGB On Time"
+    "rgbOnTime": "RGB On Time",
+    "txtAssignLeftWheel": "Assign Left Wheel",
+    "txtAssignRightWheel": "Assign Right Wheel",
+    "txtInvalidWheelId": "Invalid wheel id",
+    "txtInvalidWheelValue": "Invalid wheel option",
+    "txtWheelUpdated": "Wheel option is successfully updated",
+    "txtUnableToUpdateWheel": "Unable to update wheel option"
   }
 }

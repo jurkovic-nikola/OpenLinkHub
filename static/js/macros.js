@@ -21,6 +21,16 @@ document.addEventListener("DOMContentLoaded", function () {
         return toastr
     }
 
+    function initSelect2() {
+        if (!$('#macroKeyId').hasClass("select2-hidden-accessible")) {
+            $('#macroKeyId').select2({
+                placeholder: 'Search...',
+                allowClear: true,
+                width: 'style'
+            });
+        }
+    }
+    
     // Init toastr
     const toast = CreateToastr();
 

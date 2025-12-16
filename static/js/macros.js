@@ -382,68 +382,54 @@ document.addEventListener("DOMContentLoaded", function () {
     $('#macroType').on('change', function () {
         const selectedValue = parseInt($(this).val());
 
-        switch (selectedValue) {
-            case 0: {
-                $("#macroDelay").hide();
-                $("#macroText").hide();
-                $("#macroKeyId").hide();
-            }
-            break;
+        // Always reset
+        $("#macroDelay, #macroText, #macroKeyId").hide();
 
-            case 3: {
-                $("#macroDelay").hide();
-                $("#macroText").hide();
+        // Destroy Select2 if active
+        if ($('#macroKeyId').hasClass("select2-hidden-accessible")) {
+            $('#macroKeyId').select2('destroy');
+        }
+
+        switch (selectedValue) {
+            case 3:
                 $.ajax({
                     url:'/api/input/keyboard',
                     type:'get',
                     success:function(result){
                         let macroKeyId = $("#macroKeyId");
                         macroKeyId.empty();
-                        $.each(result.data, function( index, value ) {
-                            macroKeyId.append($('<option>', { value: index, text: value.Name }));
+                        $.each(result.data, function(index, value) {
+                            macroKeyId.append(
+                                $('<option>', { value: index, text: value.Name })
+                            );
                         });
+                        macroKeyId.show();
+                        initSelect2();
                     }
                 });
-                $("#macroKeyId").show();
-                $('#macroKeyId').select2({
-                    placeholder: 'Search...',
-                    allowClear: true,
-                    width: 'style' // use the width defined in style attribute
-                });
-            }
-            break;
-
-            case 5: {
+                break;
+            case 5:
                 $("#macroDelay").show();
-                $("#macroText").hide();
-                $("#macroKeyId").hide();
-            }
-            break;
-
-            case 6: {
-                $("#macroDelay").hide();
+                break;
+            case 6:
                 $("#macroText").show();
-                $("#macroKeyId").hide();
-            }
-            break;
-
-            case 9: {
-                $("#macroDelay").hide();
-                $("#macroText").hide();
+                break;
+            case 9:
                 $.ajax({
-                    url: '/api/input/mouse',
-                    type: 'get',
-                    success: function (result) {
+                    url:'/api/input/mouse',
+                    type:'get',
+                    success:function(result){
                         let macroKeyId = $("#macroKeyId");
                         macroKeyId.empty();
-                        $.each(result.data, function (index, value) {
-                            macroKeyId.append($('<option>', {value: index, text: value.Name}));
+                        $.each(result.data, function(index, value) {
+                            macroKeyId.append(
+                                $('<option>', { value: index, text: value.Name })
+                            );
                         });
+                        macroKeyId.show();
                     }
                 });
-                $("#macroKeyId").show();
-            }
-            break;
+                break;
         }
     });
 

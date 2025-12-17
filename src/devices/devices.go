@@ -14,6 +14,7 @@ import (
 	"OpenLinkHub/src/devices/darkcorergbsesongle"
 	"OpenLinkHub/src/devices/darkstarWU"
 	"OpenLinkHub/src/devices/elite"
+	"OpenLinkHub/src/devices/glaivergb"
 	"OpenLinkHub/src/devices/glaivergbpro"
 	"OpenLinkHub/src/devices/harpoonWU"
 	"OpenLinkHub/src/devices/harpoonrgbpro"
@@ -713,6 +714,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                          // HARPOON Gaming Mouse
 	7004:  {1, 0, "NIGHTSWORD RGB", nightswordrgb.Init, nil},               // NIGHTSWORD RGB Gaming Mouse
 	7028:  {1, 0, "GLAIVE RGB PRO", glaivergbpro.Init, nil},                // GLAIVE RGB PRO Gaming Mouse
+	6964:  {1, 0, "GLAIVE RGB", glaivergb.Init, nil},                       // GLAIVE RGB Gaming Mouse
 	7064:  {1, 0, "SABRE RGB PRO WIRELESS", sabrergbproWU.Init, nil},       // SABRE RGB PRO WIRELESS Gaming Mouse
 	7033:  {1, 0, "SABRE RGB PRO", sabrergbpro.Init, nil},                  // SABRE RGB PRO
 	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                    // SABRE PRO CS

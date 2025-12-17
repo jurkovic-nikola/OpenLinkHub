@@ -1426,7 +1426,7 @@ func ProcessChangeButtonOptimization(r *http.Request) *Payload {
 		}
 	}
 
-	if req.ButtonOptimization < 0 || req.ButtonOptimization > 1 {
+	if req.ButtonOptimization < 0 || req.ButtonOptimization > 4 {
 		return &Payload{Message: language.GetValue("txtInvalidButtonOptimization"), Code: http.StatusOK, Status: 0}
 	}
 

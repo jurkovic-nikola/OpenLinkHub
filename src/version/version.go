@@ -26,6 +26,15 @@ func Init() {
 	buildInfo = getBuildInfo()
 }
 
+// shortSHA will shorten revision SHA
+func shortSHA(sha string) string {
+	const shortLen = 7
+	if len(sha) >= shortLen {
+		return sha[:shortLen]
+	}
+	return sha
+}
+
 // getBuildInfo will fetch the latest build info
 func getBuildInfo() *BuildInfo {
 	build := &BuildInfo{
@@ -39,7 +48,7 @@ func getBuildInfo() *BuildInfo {
 		for _, kv := range info.Settings {
 			switch kv.Key {
 			case "vcs.revision":
-				build.Revision = kv.Value
+				build.Revision = shortSHA(kv.Value)
 			case "vcs.time":
 				build.Time, _ = time.Parse(time.RFC3339, kv.Value)
 			case "vcs.modified":

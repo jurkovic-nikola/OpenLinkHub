@@ -1,7 +1,7 @@
-package glaivergbpro
+package glaivergb
 
-// Package: CORSAIR GLAIVE RGB PRO Gaming Mouse
-// This is the primary package for CORSAIR GLAIVE RGB PRO Gaming Mouse
+// Package: CORSAIR GLAIVE RGB Gaming Mouse
+// This is the primary package for CORSAIR GLAIVE RGB Gaming Mouse
 // All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
@@ -57,6 +57,7 @@ type DeviceProfile struct {
 	Profiles           map[int]DPIProfile
 	SleepMode          int
 	AngleSnapping      int
+	ButtonOptimization int
 	KeyAssignmentHash  string
 	OpenRGBIntegration bool
 	RGBCluster         bool
@@ -92,6 +93,7 @@ type Device struct {
 	Brightness            map[int]string
 	PollingRates          map[int]string
 	SwitchModes           map[int]string
+	ButtonOptimizations   map[int]string
 	KeyAssignmentTypes    map[int]string
 	LEDChannels           int
 	ChangeableLedChannels int
@@ -128,6 +130,7 @@ var (
 	cmdWriteColor         = []byte{0x22, 0x03, 0x01}
 	cmdSetDpi             = []byte{0x13, 0x02, 0x00}
 	cmdAngleSnapping      = map[int][]byte{0: {0x13, 0x04, 0x00}, 1: {0x13, 0x04, 0x01}}
+	cmdButtonOptimization = []byte{0x13, 0x02, 0x00}
 	cmdSaveDpi            = []byte{0x13}
 	cmdWrite              = byte(0x07)
 	cmdRead               = byte(0x0e)
@@ -135,11 +138,11 @@ var (
 	cmdFirmware           = byte(0x01)
 	cmdSetPollingRate     = []byte{0x0a, 0x00, 0x00}
 	bufferSize            = 64
-	keyAmount             = 7
+	keyAmount             = 6
 	readBufferSize        = 16
 	bufferSizeWrite       = bufferSize + 1
 	minDpiValue           = 100
-	maxDpiValue           = 18000
+	maxDpiValue           = 16000
 	deviceRefreshInterval = 1000
 	LEDPacketLength       = 16
 	rgbProfileUpgrade     = []string{"gradient"}
@@ -176,7 +179,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d := &Device{
 		dev:       dev,
 		Path:      path,
-		Template:  "glaivergbpro.html",
+		Template:  "glaivergb.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Firmware:  "n/a",
@@ -186,7 +189,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "GLAIVE RGB PRO",
+		Product: "GLAIVE RGB",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -212,6 +215,12 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			0: "Disabled",
 			1: "Enabled",
 		},
+		ButtonOptimizations: map[int]string{
+			1: "Extreme",
+			2: "Very Fast",
+			3: "Fast",
+			4: "Normal",
+		},
 		KeyAssignmentTypes: map[int]string{
 			0:  "None",
 			1:  "Media Keys",
@@ -223,7 +232,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			11: "Profile Switch",
 		},
 		InputActions:      inputmanager.GetInputActions(),
-		keyAssignmentFile: "/database/key-assignments/glaivergbpro.json",
+		keyAssignmentFile: "/database/key-assignments/glaivergb.json",
 		MacroTracker:      make(map[int]uint16),
 	}
 
@@ -236,6 +245,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.getDeviceFirmware()      // Firmware
 	d.setSoftwareMode()        // Activate software mode
 	d.updateMouseDPI()         // Update DPI
+	d.setAngleSnapping()       // Angle snapping
+	d.setButtonOptimization()  // Button optimization
 	d.setDeviceColor()         // Device color
 	d.toggleDPI()              // DPI
 	d.backendListener()        // Control listener
@@ -254,7 +265,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 // createDevice will create new device register object
 func (d *Device) createDevice() {
 	d.instance = &common.Device{
-		ProductType: common.ProductTypeGlaiveRgbPro,
+		ProductType: common.ProductTypeGlaiveRgb,
 		Product:     d.Product,
 		Serial:      d.Serial,
 		Firmware:    d.Firmware,
@@ -594,6 +605,38 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// UpdateAngleSnapping will update angle snapping mode
+func (d *Device) UpdateAngleSnapping(angleSnappingMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.AngleSnapping == angleSnappingMode {
+		return 0
+	}
+
+	d.DeviceProfile.AngleSnapping = angleSnappingMode
+	d.saveDeviceProfile()
+	d.setAngleSnapping()
+	return 1
+}
+
+// UpdateButtonOptimization will update button response optimization mode
+func (d *Device) UpdateButtonOptimization(buttonOptimizationMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.ButtonOptimization == buttonOptimizationMode {
+		return 0
+	}
+
+	d.DeviceProfile.ButtonOptimization = buttonOptimizationMode
+	d.saveDeviceProfile()
+	d.setButtonOptimization()
+	return 1
 }
 
 // ProcessNewGradientColor will create new gradient color
@@ -980,15 +1023,6 @@ func (d *Device) updateMouseDPI() {
 		buf[2] = 0x00
 		binary.LittleEndian.PutUint16(buf[3:5], value.Value)
 		binary.LittleEndian.PutUint16(buf[5:7], value.Value)
-		buf[7] = byte(d.DeviceProfile.DPIColor.Red)
-		buf[8] = byte(d.DeviceProfile.DPIColor.Green)
-		buf[9] = byte(d.DeviceProfile.DPIColor.Blue)
-
-		if value.Sniper {
-			buf[7] = byte(d.DeviceProfile.SniperColor.Red)
-			buf[8] = byte(d.DeviceProfile.SniperColor.Green)
-			buf[9] = byte(d.DeviceProfile.SniperColor.Blue)
-		}
 		_, err := d.transfer(cmdWrite, cmdSaveDpi, buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Fatal("Unable to set dpi")
@@ -1132,6 +1166,24 @@ func (d *Device) setAngleSnapping() {
 	}
 }
 
+// setButtonOptimization will change Button Response Optimization mode
+func (d *Device) setButtonOptimization() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.ButtonOptimization < 1 || d.DeviceProfile.ButtonOptimization > 4 {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.ButtonOptimization)
+	err, _ := d.transfer(cmdWrite, cmdButtonOptimization, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set button response optimization")
+	}
+}
+
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	var defaultBrightness = uint8(100)
@@ -1192,56 +1244,43 @@ func (d *Device) saveDeviceProfile() {
 				LEDIndexPosition: 8,
 			},
 		}
-		deviceProfile.DPIColor = &rgb.Color{
-			Red:        0,
-			Green:      255,
-			Blue:       0,
-			Brightness: 1,
-			Hex:        fmt.Sprintf("#%02x%02x%02x", 0, 255, 0),
-		}
-		deviceProfile.SniperColor = &rgb.Color{
-			Red:        255,
-			Green:      255,
-			Blue:       0,
-			Brightness: 1,
-			Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 0),
-		}
 		deviceProfile.Profiles = map[int]DPIProfile{
 			0: {
-				Name:        "Stage 1",
-				Value:       800,
-				PackerIndex: 1,
-			},
-			1: {
-				Name:        "Stage 2",
-				Value:       1500,
-				PackerIndex: 2,
-			},
-			2: {
-				Name:        "Stage 3",
-				Value:       3000,
-				PackerIndex: 3,
-			},
-			3: {
-				Name:        "Stage 4",
-				Value:       6000,
-				PackerIndex: 4,
-			},
-			4: {
-				Name:        "Stage 5",
-				Value:       9000,
-				PackerIndex: 5,
-			},
-			5: {
 				Name:        "Sniper",
 				Value:       200,
 				PackerIndex: 6,
 				Sniper:      true,
 			},
+			1: {
+				Name:        "Stage 1",
+				Value:       800,
+				PackerIndex: 1,
+			},
+			2: {
+				Name:        "Stage 2",
+				Value:       1500,
+				PackerIndex: 2,
+			},
+			3: {
+				Name:        "Stage 3",
+				Value:       3000,
+				PackerIndex: 3,
+			},
+			4: {
+				Name:        "Stage 4",
+				Value:       6000,
+				PackerIndex: 4,
+			},
+			5: {
+				Name:        "Stage 5",
+				Value:       9000,
+				PackerIndex: 5,
+			},
 		}
 		deviceProfile.Profile = 1
 		deviceProfile.SleepMode = 15
 		deviceProfile.PollingRate = 1
+		deviceProfile.ButtonOptimization = 2
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
@@ -1267,6 +1306,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.SniperColor = d.DeviceProfile.SniperColor
 		deviceProfile.ZoneColors = d.DeviceProfile.ZoneColors
 		deviceProfile.AngleSnapping = d.DeviceProfile.AngleSnapping
+		deviceProfile.ButtonOptimization = d.DeviceProfile.ButtonOptimization
 		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 		deviceProfile.KeyAssignmentHash = d.DeviceProfile.KeyAssignmentHash
 		if len(d.DeviceProfile.Path) < 1 {
@@ -1399,16 +1439,8 @@ func (d *Device) loadKeyAssignments() {
 		}
 	} else {
 		var keyAssignment = map[int]inputmanager.KeyAssignment{
-			64: {
-				Name:          "DPI Down",
-				Default:       true,
-				ActionType:    0,
-				ActionCommand: 0,
-				ActionHold:    false,
-				ButtonIndex:   7,
-			},
 			32: {
-				Name:          "DPI Up",
+				Name:          "DPI Toggle",
 				Default:       true,
 				ActionType:    0,
 				ActionCommand: 0,
@@ -1895,19 +1927,11 @@ func (d *Device) setupKeyAssignment() {
 	d.writeKeyAssignmentData(buf)
 }
 
-func (d *Device) ModifyDpi(set bool) {
-	if set {
-		if d.DeviceProfile.Profile >= 5 {
-			d.DeviceProfile.Profile = 5
-		} else {
-			d.DeviceProfile.Profile++
-		}
+func (d *Device) ModifyDpi() {
+	if d.DeviceProfile.Profile >= 5 {
+		d.DeviceProfile.Profile = 1
 	} else {
-		if d.DeviceProfile.Profile <= 1 {
-			d.DeviceProfile.Profile = 1
-		} else {
-			d.DeviceProfile.Profile--
-		}
+		d.DeviceProfile.Profile++
 	}
 	d.saveDeviceProfile()
 	d.toggleDPI()
@@ -2000,14 +2024,10 @@ func (d *Device) triggerKeyAssignment(value uint16) {
 
 		if isPressed {
 			if mask == 0x20 && val.Default {
-				d.ModifyDpi(true)
+				d.ModifyDpi()
 				continue
 			}
 
-			if mask == 0x40 && val.Default {
-				d.ModifyDpi(false)
-				continue
-			}
 			if val.Default {
 				continue
 			}
@@ -2021,7 +2041,7 @@ func (d *Device) triggerKeyAssignment(value uint16) {
 				}
 				break
 			case 2:
-				d.ModifyDpi(true)
+				d.ModifyDpi()
 				break
 			case 8:
 				d.sniperMode(true)

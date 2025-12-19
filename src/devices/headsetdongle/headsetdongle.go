@@ -132,7 +132,7 @@ func (d *Device) addDevices() {
 
 				object := &common.Device{
 					ProductType: common.ProductTypeVirtuosoXTW,
-					Product:     "VIRTUOSO RGB WIRELESS XT",
+					Product:     "VIRTUOSO XT",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
 					Image:       "icon-headphone.svg",

@@ -153,7 +153,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "VIRTUOSO RGB WIRELESS XT",
+		Product: "VIRTUOSO XT",
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",

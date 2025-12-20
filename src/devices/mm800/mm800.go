@@ -274,6 +274,14 @@ func (d *Device) GetRgbProfiles() interface{} {
 	return tmp
 }
 
+// GetZoneColors will return current device zone colors
+func (d *Device) GetZoneColors() interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+	return d.DeviceProfile.Mousepad
+}
+
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	d.Exit = true

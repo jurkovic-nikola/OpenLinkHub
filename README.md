@@ -1,3 +1,6 @@
+> [!NOTE]
+> Issues are temporarily disabled during the holiday season and will be re-enabled on January 12th. Enjoy and stay safe.
+
 # OpenLinkHub interface for Linux
 An open-source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and headsets via a web dashboard.

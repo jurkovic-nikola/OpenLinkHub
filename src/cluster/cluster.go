@@ -68,10 +68,12 @@ func Init() *Device {
 			"marquee",
 			"nebula",
 			"rainbow",
+			"pastelrainbow",
 			"rotator",
 			"sequential",
 			"spinner",
 			"spiralrainbow",
+			"pastelspiralrainbow",
 			"static",
 			"storm",
 			"visor",
@@ -581,6 +583,16 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 	case "spiralrainbow":
 		{
 			r.SpiralRainbow(*startTime)
+			buff = r.Output
+		}
+	case "pastelrainbow":
+		{
+			r.PastelRainbow(*startTime)
+			buff = r.Output
+		}
+	case "pastelspiralrainbow":
+		{
+			r.PastelSpiralRainbow(*startTime)
 			buff = r.Output
 		}
 	case "watercolor":

@@ -171,9 +171,11 @@ var (
 		"nebula",
 		"off",
 		"rainbow",
+		"pastelrainbow",
 		"rotator",
 		"spinner",
 		"spiralrainbow",
+		"pastelspiralrainbow",
 		"static",
 		"storm",
 		"watercolor",
@@ -1441,9 +1443,19 @@ func (d *Device) setDeviceColor() {
 							r.Rainbow(startTime)
 							buff = r.Output
 						}
+					case "pastelrainbow":
+						{
+							r.PastelRainbow(startTime)
+							buff = r.Output
+						}
 					case "spiralrainbow":
 						{
 							r.SpiralRainbow(startTime)
+							buff = r.Output
+						}
+					case "pastelspiralrainbow":
+						{
+							r.PastelSpiralRainbow(startTime)
 							buff = r.Output
 						}
 					case "watercolor":

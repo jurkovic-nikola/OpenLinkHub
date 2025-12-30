@@ -162,6 +162,7 @@ var (
 		"gradient",
 		"off",
 		"rainbow",
+		"pastelrainbow",
 		"rotator",
 		"spinner",
 		"static",
@@ -1793,6 +1794,11 @@ func (d *Device) setDeviceColor(resetColor bool) {
 						case "rainbow":
 							{
 								r.Rainbow(startTime)
+								buff = append(buff, r.Output...)
+							}
+						case "pastelrainbow":
+							{
+								r.PastelRainbow(startTime)
 								buff = append(buff, r.Output...)
 							}
 						case "watercolor":

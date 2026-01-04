@@ -43,6 +43,11 @@
       "speed": 2,
       "brightness": 1
     },
+    "pastelspiralrainbow": {
+      "profileName": "Pastel Spiral Rainbow",
+      "speed": 2,
+      "brightness": 1
+    },
     "rainbowwave": {
       "profileName": "Rainbow Wave",
       "speed": 2
@@ -203,6 +208,11 @@
     },
     "rainbow": {
       "profileName": "Rainbow",
+      "speed": 4,
+      "brightness": 1
+    },
+    "pastelrainbow": {
+      "profileName": "Pastel Rainbow",
       "speed": 4,
       "brightness": 1
     },

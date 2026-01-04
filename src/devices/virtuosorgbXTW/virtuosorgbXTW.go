@@ -125,6 +125,7 @@ var (
 		"headset",
 		"off",
 		"rainbow",
+		"pastelrainbow",
 		"rotator",
 		"static",
 		"storm",
@@ -1174,6 +1175,11 @@ func (d *Device) setDeviceColor() {
 				case "rainbow":
 					{
 						r.Rainbow(startTime)
+						buff = append(buff, r.Output...)
+					}
+				case "pastelrainbow":
+					{
+						r.PastelRainbow(startTime)
 						buff = append(buff, r.Output...)
 					}
 				case "watercolor":

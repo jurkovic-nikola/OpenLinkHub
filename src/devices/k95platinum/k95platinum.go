@@ -129,6 +129,7 @@ var (
 		"keyboard",
 		"off",
 		"rainbow",
+		"pastelrainbow",
 		"rotator",
 		"spinner",
 		"static",
@@ -1515,6 +1516,10 @@ func (d *Device) setDeviceColor() {
 				case "rainbow":
 					{
 						r.Rainbow(startTime)
+					}
+				case "pastelrainbow":
+					{
+						r.PastelRainbow(startTime)
 					}
 				case "watercolor":
 					{

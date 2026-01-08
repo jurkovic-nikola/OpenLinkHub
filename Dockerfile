@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y libudev-dev i2c-tools
 RUN mkdir -p /opt/OpenLinkHub
 
 WORKDIR /app
-RUN git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
+COPY . /app/OpenLinkHub
 
 WORKDIR /app/OpenLinkHub
 RUN if [ -n "$GIT_TAG" ]; then git checkout "$GIT_TAG"; fi

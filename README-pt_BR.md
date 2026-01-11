@@ -228,7 +228,7 @@ $ docker run --network host --privileged openlinkhub
 
 ## API
 - OpenLinkHub vem com servidor HTTP integrado para visão geral e controle de dispositivos.
-- Documentação está disponível em `http://127.0.0.1:27003/docs`
+- Documentação está disponível em [API Page](api/README.md)
 
 ## Memória - DDR4 / DDR5
 [Ver detalhes](docs/memory-configuration_pt-BR.md)

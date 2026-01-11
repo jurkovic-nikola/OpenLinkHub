@@ -1,3 +1,58 @@
+## 2025-12-23
+
+* readme update (ce755a5)
+
+## 2025-12-20
+
+* zone color backend (5d0d95d)
+
+## 2025-12-19
+
+* initial version (6916e7a)
+* support for k65 plus iso https://github.com/jurkovic-nikola/OpenLinkHub/issues/281 (165ca6a)
+
+## 2025-12-17
+
+* missin rules entry (e6775e9)
+* support for glaive rgb (6c3d669)
+
+## 2025-12-16
+
+* missing function (11a42fe)
+* js fixups (76807c8)
+
+## 2025-12-14
+
+* ability to trigger mouse events on key release (dc4d8f1)
+* virtuoso max left / right wheel options (94022b5)
+
+## 2025-12-13
+
+* device naming (a2ff289)
+
+## 2025-12-12
+
+* docs update (d6c5e40)
+* support for dark core rgb pro dongle (65974bd)
+
+## 2025-12-11
+
+* readme update (ef88275)
+* toggle dpi on profile change (2c4e398)
+
+## 2025-12-10
+
+* headset rgb map (ce3ccfe)
+
+## 2025-12-08
+
+* support for k70 pro (88b60ea)
+* mice profile switching (28e5415)
+
+## 2025-12-07
+
+* scimitar profile switch button (83b5285)
+
 ## 2025-12-04
 
 * k70 max de layout (8c1b7a7)

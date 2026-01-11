@@ -1,6 +1,3 @@
-> [!NOTE]
-> Issues are temporarily disabled during the holiday season and will be re-enabled on January 12th. Enjoy and stay safe.
-
 # OpenLinkHub interface for Linux
 An open-source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
 Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and headsets via a web dashboard.
@@ -100,11 +97,11 @@ $ tar xf OpenLinkHub_?.?.?_amd64.tar.gz -C /home/$USER/
 # Go to the extract folder
 $ cd /home/$USER/OpenLinkHub
 
-# Make install-immutable.sh executable
-$ chmod +x install-immutable.sh
+# Make install-user-space.sh executable
+$ chmod +x install-user-space.sh
 
-# Run install-immutable.sh. Enter your password for sudo when asked to copy 99-openlinkhub.rules file
-$ ./install-immutable.sh
+# Run install-user-space.sh. Enter your password for sudo when asked to copy 99-openlinkhub.rules file
+$ ./install-user-space.sh
 
 # Restart 
 $ systemctl reboot

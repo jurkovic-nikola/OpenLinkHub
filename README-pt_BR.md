@@ -95,11 +95,11 @@ $ tar xf OpenLinkHub_?.?.?_amd64.tar.gz -C /home/$USER/
 # Vá para a pasta extraída
 $ cd /home/$USER/OpenLinkHub
 
-# Torne install-immutable.sh executável
-$ chmod +x install-immutable.sh
+# Torne install-user-space.sh executável
+$ chmod +x install-user-space.sh
 
-# Execute install-immutable.sh. Digite sua senha para sudo quando solicitado para copiar o arquivo 99-openlinkhub.rules
-$ ./install-immutable.sh
+# Execute install-user-space.sh. Digite sua senha para sudo quando solicitado para copiar o arquivo 99-openlinkhub.rules
+$ ./install-user-space.sh
 
 # Reinicie
 $ systemctl reboot

@@ -1,29 +1,5 @@
 "use strict";
-document.addEventListener("DOMContentLoaded", function () {
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
-
-    // Init toastr
-    const toast = CreateToastr();
-
+$(document).ready(function () {
     // Init dataTable
     const dt = $('#table').DataTable(
         {
@@ -32,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 style: 'os',
                 selector: 'td:first-child'
             },
+            info: false,
             paging: false,
             searching: false,
             language: {
@@ -39,6 +16,20 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     );
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.delete-speed-profile')) {
+            e.stopPropagation();
+        }
+    });
+
+    $('.delete-speed-profile').on('click', function () {
+        $('#profile').val($(this).data('info'));
+    });
+
+    $('#deleteTempModal').on('shown.bs.modal', function () {
+        $(this).find('.modal-content').addClass('shake-once');
+    });
 
     $('#btnSaveNewProfile').on('click', function(){
         const profile = $("#profileName").val();
@@ -109,14 +100,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('.tempList').on('click', function(){
+    $('.tempList').on('click', function (e) {
+        if ($(e.target).closest('.delete-speed-profile').length) {
+            return;
+        }
+
         const profile = $(this).attr('id');
-        $('.tempList').removeClass('selected-effect');
-        $(this).addClass('selected-effect');
+        $('.tempList').removeClass('tempList-selected');
+        $(this).addClass('tempList-selected');
         $.ajax({
             url: '/api/temperatures/' + profile,
             dataType: 'JSON',
             success: function(response) {
+                console.log(response)
                 if (response.code === 0) {
                     toast.warning(response.message);
                 } else {
@@ -157,25 +153,41 @@ document.addEventListener("DOMContentLoaded", function () {
                                 item.id,
                                 item.min,
                                 item.max,
-                                '<input class="form-control" id="pf-fans-' + item.id + '" type="text" value="' + item.fans + '">',
-                                '<input class="form-control" id="pf-pump-' + item.id + '" type="text" value="' + item.pump + '">'
+                                `<div class="system-input text-input">
+                                    <label for="profileName">
+                                        <input type="text" id="pf-fans-${item.id}" value="${item.fans}">
+                                    </label>
+                                </div>
+                                `,
+                                `<div class="system-input text-input">
+                                    <label for="profileName">
+                                        <input type="text" id="pf-pump-${item.id}" value="${item.pump}">
+                                    </label>
+                                </div>
+                                `
                             ]).draw();
                         });
-                        $("#deleteBtn").show();
                         $("#updateBtn").show();
                     }
                 }
             }
         });
     });
+
     $('.deletePf').on('click', function(){
         e.stopPropagation();
     });
 
-    $('.tempProfiles').on('click', function(){
+    $('.tempProfiles').on('click', function (e) {
+        if ($(e.target).closest('.delete-speed-profile').length) {
+            return;
+        }
+
         const profile = $(this).attr('id');
-        $('.tempProfiles').removeClass('selected-effect');
-        $(this).addClass('selected-effect');
+
+        $('.tempProfiles').removeClass('tempProfiles-selected');
+        $(this).addClass('tempProfiles-selected');
+
         $.ajax({
             url: '/api/temperatures/graph/' + profile,
             dataType: 'JSON',
@@ -184,15 +196,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     toast.warning(response.message);
                 } else {
                     $("#profile").val(profile);
-                    $("#graph-window").show();
+                    $(".graph-window").show();
+
                     let maxValue = 100;
-                    let sensor = response.data[0].sensor
-                    if (sensor === 2) { // Liquid temp, max is 60
-                        maxValue = 60
+                    let sensor = response.data[0].sensor;
+
+                    if (sensor === 2) {
+                        maxValue = 60;
                     }
-                    let pump = response.data[0].points
-                    let fans = response.data[1].points
-                    renderCanvas('graphPump', pump,"Pump Speed (%)", maxValue, "updatePump", 0);
+
+                    let pump = response.data[0].points;
+                    let fans = response.data[1].points;
+
+                    renderCanvas('graphPump', pump, "Pump Speed (%)", maxValue, "updatePump", 0);
                     renderCanvas('graphFans', fans, "Fan Speed (%)", maxValue, "updateFans", 1);
                 }
             }
@@ -418,6 +434,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         $('#' + profile).remove();
                         $('#deleteTempModal').modal('hide');
                         $("#profile").val('');
+                        dt.clear();
                     } else {
                         toast.warning(response.message);
                     }
@@ -524,120 +541,72 @@ document.addEventListener("DOMContentLoaded", function () {
 
 $('.sensorInfoToggle').on('click', function () {
     const modalElement = `
-    <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-800">
-            <div class="modal-content" style="width: 800px;">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="infoToggleLabel">Temperature Sensors</h5>
-                    <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <table class="table mb-0">
-                        <thead>
-                            <tr>
-                                <th style="text-align: left;">Sensor</th>
-                                <th style="text-align: left;">Description</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>CPU</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the CPU as a temperature source. It can be applied to any device.
-                                </th>
-                            </tr>
-                            
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>GPU</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the GPU as a temperature source. It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>Liquid Temperature (AIO)</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the AIO temperature sensor as a temperature source. It can be applied only to AIO device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>Storage Temperature</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the storage temperature sensor as a temperature source. It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>Temperature Probe</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the temperature probe sensor as a temperature source. It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>CPU + GPU</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the CPU and GPU as temperature source, higher number wins. It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>External HWMON</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the external hwmon device as temperature source, It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>External binary</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the external binary as temperature source, It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>Multi GPU</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the single GPU from multiple GPUs as temperature source, It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>Global Temperature Probe</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the single temperature probe as temperature source, It can be applied to any device.
-                                </th>
-                            </tr>
-                            <tr>
-                                <th scope="row" style="text-align: left;">
-                                    <b>PSU</b>
-                                </th>
-                                <th scope="row" style="text-align: left;">
-                                    Utilizes the single temperature probe from PSU source. This is only valid for PSUs with built-in Link System Hub device.
-                                </th>
-                            </tr>
-                        </tbody>
-                    </table>  
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+      <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-custom modal-1000">
+          <div class="modal-content">
+    
+            <div class="modal-header">
+              <h5 class="modal-title">Temperature Sensors</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+    
+            <div class="modal-body">
+                <div class="settings-list">
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">CPU</span>
+                        <span class="settings-label text-ellipsis">Utilizes the CPU as a temperature source. It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">GPU</span>
+                        <span class="settings-label text-ellipsis">Utilizes the GPU as a temperature source. It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">Liquid Temperature (AIO)</span>
+                        <span class="settings-label text-ellipsis">Utilizes the AIO temperature sensor as a temperature source. It can be applied only to AIO device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">Storage Temperature</span>
+                        <span class="settings-label text-ellipsis">Utilizes the storage temperature sensor as a temperature source. It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">Temperature Probe</span>
+                        <span class="settings-label text-ellipsis">Utilizes the temperature probe sensor as a temperature source. It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">CPU + GPU</span>
+                        <span class="settings-label text-ellipsis">Utilizes the CPU and GPU as temperature source, higher number wins. It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">External HWMON</span>
+                        <span class="settings-label text-ellipsis">Utilizes the external hwmon device as temperature source, It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">External binary</span>
+                        <span class="settings-label text-ellipsis">Utilizes the external binary as temperature source, It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">Multi GPU</span>
+                        <span class="settings-label text-ellipsis">Utilizes the single GPU from multiple GPUs as temperature source, It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">Global Temperature Probe</span>
+                        <span class="settings-label text-ellipsis">Utilizes the single temperature probe as temperature source, It can be applied to any device.</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">PSU</span>
+                        <span class="settings-label text-ellipsis">Utilizes the single temperature probe from PSU source. This is only valid for PSUs with built-in Link System Hub device.</span>
+                    </div>
                 </div>
             </div>
+    
+            <div class="modal-footer">
+              <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+    
+          </div>
         </div>
-    </div>`;
+      </div>
+    `;
     const modal = $(modalElement).modal('toggle');
     modal.on('hidden.bs.modal', function () {
         modal.data('bs.modal', null);
@@ -646,26 +615,37 @@ $('.sensorInfoToggle').on('click', function () {
 
 $('.zeroRpmToggle').on('click', function () {
     const modalElement = `
-    <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-700">
-            <div class="modal-content" style="width: 700px;">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="infoToggleLabel">Zero RPM Mode</h5>
-                    <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    Zero RPM mode is only valid for the following devices:<br />
-                    &ndash; Link System Hub<br />
-                    &ndash; Commander Core XT<br />
-                    &ndash; Commander Core<br />
-                    &ndash; Commander Duo
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+      <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-custom modal-700">
+          <div class="modal-content">
+    
+            <div class="modal-header">
+              <h5 class="modal-title">Zero RPM Mode</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+    
+            <div class="modal-body">
+                <div class="settings-list">
+                    <div class="settings-row">
+                        <span class="settings-label text-ellipsis">Available Devices</span>
+                        <span class="settings-label text-ellipsis">
+                            LINK SYSTEM HUB<br />
+                            COMMANDER CORE XT<br />
+                            COMMANDER CORE<br />
+                            COMMANDER DUO
+                        </span>
+                    </div>
                 </div>
             </div>
+    
+            <div class="modal-footer">
+              <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+    
+          </div>
         </div>
-    </div>`;
+      </div>
+    `;
     const modal = $(modalElement).modal('toggle');
     modal.on('hidden.bs.modal', function () {
         modal.data('bs.modal', null);

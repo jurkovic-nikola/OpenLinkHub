@@ -7,6 +7,7 @@ import (
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/language"
 	"OpenLinkHub/src/led"
 	"OpenLinkHub/src/logger"
@@ -23,126 +24,146 @@ import (
 
 // Payload contains data from a client about device speed change
 type Payload struct {
-	DeviceId              string                `json:"deviceId"`
-	ChannelId             int                   `json:"channelId"`
-	SubDeviceId           int                   `json:"subDeviceId"`
-	ChannelIds            []int                 `json:"channelIds"`
-	ProfileId             uint8                 `json:"profileId"`
-	Mode                  uint8                 `json:"mode"`
-	Rotation              uint8                 `json:"rotation"`
-	Value                 uint16                `json:"value"`
-	BackgroundColor       rgb.Color             `json:"backgroundColor"`
-	BackgroundImage       string                `json:"backgroundImage"`
-	BorderColor           rgb.Color             `json:"borderColor"`
-	SeparatorColor        rgb.Color             `json:"separatorColor"`
-	Color                 rgb.Color             `json:"color"`
-	StartColor            rgb.Color             `json:"startColor"`
-	EndColor              rgb.Color             `json:"endColor"`
-	TextColor             rgb.Color             `json:"textColor"`
-	Arcs                  map[uint8]lcd.Arcs    `json:"arcs"`
-	Sensors               map[uint8]lcd.Sensors `json:"sensors"`
-	Speed                 float64               `json:"speed"`
-	Thickness             float64               `json:"thickness"`
-	GapRadians            float64               `json:"gapRadians"`
-	Margin                float64               `json:"margin"`
-	Smoothness            int                   `json:"smoothness"`
-	Workers               int                   `json:"workers"`
-	FrameDelay            int                   `json:"frameDelay"`
-	Profile               string                `json:"profile"`
-	Label                 string                `json:"label"`
-	Static                bool                  `json:"static"`
-	AlternateColors       bool                  `json:"alternateColors"`
-	RgbDirection          byte                  `json:"rgbDirection"`
-	Sensor                uint8                 `json:"sensor"`
-	HardwareLight         int                   `json:"hardwareLight"`
-	ZeroRpm               bool                  `json:"zeroRpm"`
-	Linear                bool                  `json:"linear"`
-	HwmonDeviceId         string                `json:"hwmonDeviceId"`
-	HwmonDevice           string                `json:"hwmonDevice"`
-	TemperatureInputId    string                `json:"temperatureInputId"`
-	ExternalExecutable    string                `json:"externalExecutable"`
-	GpuIndex              uint8                 `json:"gpuIndex"`
-	Enabled               bool                  `json:"enabled"`
-	OnRelease             bool                  `json:"onRelease"`
-	DeviceType            int                   `json:"deviceType"`
-	KeyOption             int                   `json:"keyOption"`
-	AreaOption            int                   `json:"areaOption"`
-	KeyId                 int                   `json:"keyId"`
-	AreaId                int                   `json:"areaId"`
-	DeviceAmount          int                   `json:"deviceAmount"`
-	PortId                int                   `json:"portId"`
-	UserProfileName       string                `json:"userProfileName"`
-	LcdSerial             string                `json:"lcdSerial"`
-	KeyboardProfileName   string                `json:"keyboardProfileName"`
-	KeyboardLayout        string                `json:"keyboardLayout"`
-	KeyboardControlDial   int                   `json:"keyboardControlDial"`
-	SleepMode             int                   `json:"sleepMode"`
-	PollingRate           int                   `json:"pollingRate"`
-	ButtonOptimization    int                   `json:"buttonOptimization"`
-	AngleSnapping         int                   `json:"angleSnapping"`
-	PressAndHold          bool                  `json:"pressAndHold"`
-	ActionRepeatValue     uint8                 `json:"actionRepeatValue"`
-	ActionRepeatDelay     uint16                `json:"actionRepeatDelay"`
-	ToggleDelay           uint16                `json:"toggleDelay"`
-	KeyIndex              int                   `json:"keyIndex"`
-	KeyAssignmentType     uint8                 `json:"keyAssignmentType"`
-	KeyAssignmentModifier uint8                 `json:"keyAssignmentModifier"`
-	KeyAssignmentOriginal bool                  `json:"keyAssignmentOriginal"`
-	KeyAssignmentValue    uint16                `json:"keyAssignmentValue"`
-	MuteIndicator         int                   `json:"muteIndicator"`
-	NoiseCancellation     int                   `json:"noiseCancellation"`
-	SideTone              int                   `json:"sideTone"`
-	SideToneValue         int                   `json:"sideToneValue"`
-	WheelId               uint8                 `json:"wheelId"`
-	WheelOption           uint8                 `json:"wheelOption"`
-	RgbControl            bool                  `json:"rgbControl"`
-	RgbOff                string                `json:"rgbOff"`
-	RgbOn                 string                `json:"rgbOn"`
-	Brightness            uint8                 `json:"brightness"`
-	Position              int                   `json:"position"`
-	DeviceIdString        string                `json:"deviceIdString"`
-	Direction             int                   `json:"direction"`
-	StripId               int                   `json:"stripId"`
-	AdapterId             int                   `json:"adapterId"`
-	FanMode               int                   `json:"fanMode"`
-	New                   bool                  `json:"new"`
-	Stages                map[int]uint16        `json:"stages"`
-	ColorDpi              rgb.Color             `json:"colorDpi"`
-	ColorSniper           rgb.Color             `json:"colorSniper"`
-	ColorZones            map[int]rgb.Color     `json:"colorZones"`
-	IsSniper              bool                  `json:"isSniper"`
-	Image                 string                `json:"image"`
-	MacroId               int                   `json:"macroId"`
-	MacroIndex            int                   `json:"macroIndex"`
-	MacroName             string                `json:"macroName"`
-	MacroType             uint8                 `json:"macroType"`
-	MacroValue            uint16                `json:"macroValue"`
-	MacroDelay            uint16                `json:"macroDelay"`
-	MacroText             string                `json:"macroText"`
-	LedProfile            led.Device            `json:"ledProfile"`
-	Points                []temperatures.Point  `json:"points"`
-	UpdateType            uint8                 `json:"updateType"`
-	Data                  interface{}           `json:"data"`
-	PerfWinKey            bool                  `json:"perf_winKey"`
-	PerfShiftTab          bool                  `json:"perf_shiftTab"`
-	PerfAltTab            bool                  `json:"perf_altTab"`
-	PerfAltF4             bool                  `json:"perf_altF4"`
-	Save                  bool                  `json:"save"`
-	SupportedDevices      map[uint16]bool       `json:"supportedDevices"`
-	VibrationValue        uint8                 `json:"vibrationValue"`
-	VibrationModule       uint8                 `json:"vibrationModule"`
-	EmulationDevice       uint8                 `json:"emulationDevice"`
-	EmulationMode         uint8                 `json:"emulationMode"`
-	SensitivityX          uint8                 `json:"sensitivityX"`
-	SensitivityY          uint8                 `json:"sensitivityY"`
-	AnalogDevice          int                   `json:"analogDevice"`
-	DeadZoneMin           uint8                 `json:"deadZoneMin"`
-	DeadZoneMax           uint8                 `json:"deadZoneMax"`
-	InvertYAxis           bool                  `json:"invertYAxis"`
-	CurveData             []common.CurveData    `json:"curveData"`
-	Status                int
-	Code                  int
-	Message               string
+	DeviceId                      string                `json:"deviceId"`
+	ChannelId                     int                   `json:"channelId"`
+	SubDeviceId                   int                   `json:"subDeviceId"`
+	ChannelIds                    []int                 `json:"channelIds"`
+	ProfileId                     uint8                 `json:"profileId"`
+	Mode                          uint8                 `json:"mode"`
+	Rotation                      uint8                 `json:"rotation"`
+	Value                         uint16                `json:"value"`
+	BackgroundColor               rgb.Color             `json:"backgroundColor"`
+	BackgroundImage               string                `json:"backgroundImage"`
+	BorderColor                   rgb.Color             `json:"borderColor"`
+	SeparatorColor                rgb.Color             `json:"separatorColor"`
+	Color                         rgb.Color             `json:"color"`
+	StartColor                    rgb.Color             `json:"startColor"`
+	EndColor                      rgb.Color             `json:"endColor"`
+	TextColor                     rgb.Color             `json:"textColor"`
+	Arcs                          map[uint8]lcd.Arcs    `json:"arcs"`
+	Sensors                       map[uint8]lcd.Sensors `json:"sensors"`
+	Speed                         float64               `json:"speed"`
+	Thickness                     float64               `json:"thickness"`
+	GapRadians                    float64               `json:"gapRadians"`
+	Margin                        float64               `json:"margin"`
+	Smoothness                    int                   `json:"smoothness"`
+	Workers                       int                   `json:"workers"`
+	FrameDelay                    int                   `json:"frameDelay"`
+	Profile                       string                `json:"profile"`
+	Label                         string                `json:"label"`
+	Static                        bool                  `json:"static"`
+	AlternateColors               bool                  `json:"alternateColors"`
+	RgbDirection                  byte                  `json:"rgbDirection"`
+	Sensor                        uint8                 `json:"sensor"`
+	HardwareLight                 int                   `json:"hardwareLight"`
+	ZeroRpm                       bool                  `json:"zeroRpm"`
+	Linear                        bool                  `json:"linear"`
+	HwmonDeviceId                 string                `json:"hwmonDeviceId"`
+	HwmonDevice                   string                `json:"hwmonDevice"`
+	TemperatureInputId            string                `json:"temperatureInputId"`
+	ExternalExecutable            string                `json:"externalExecutable"`
+	GpuIndex                      uint8                 `json:"gpuIndex"`
+	Enabled                       bool                  `json:"enabled"`
+	OnRelease                     bool                  `json:"onRelease"`
+	DeviceType                    int                   `json:"deviceType"`
+	KeyOption                     int                   `json:"keyOption"`
+	AreaOption                    int                   `json:"areaOption"`
+	KeyId                         int                   `json:"keyId"`
+	AreaId                        int                   `json:"areaId"`
+	DeviceAmount                  int                   `json:"deviceAmount"`
+	PortId                        int                   `json:"portId"`
+	UserProfileName               string                `json:"userProfileName"`
+	LcdSerial                     string                `json:"lcdSerial"`
+	KeyboardProfileName           string                `json:"keyboardProfileName"`
+	KeyboardLayout                string                `json:"keyboardLayout"`
+	KeyboardControlDial           int                   `json:"keyboardControlDial"`
+	SleepMode                     int                   `json:"sleepMode"`
+	PollingRate                   int                   `json:"pollingRate"`
+	ButtonOptimization            int                   `json:"buttonOptimization"`
+	DebounceTime                  int                   `json:"debounceTime"`
+	LeftHandMode                  int                   `json:"leftHandMode"`
+	LiftHeight                    int                   `json:"liftHeight"`
+	MultiGestures                 int                   `json:"multiGestures"`
+	AngleSnapping                 int                   `json:"angleSnapping"`
+	AutoBrightness                int                   `json:"autoBrightness"`
+	PressAndHold                  bool                  `json:"pressAndHold"`
+	ActionRepeatValue             uint8                 `json:"actionRepeatValue"`
+	ActionRepeatDelay             uint16                `json:"actionRepeatDelay"`
+	ToggleDelay                   uint16                `json:"toggleDelay"`
+	KeyIndex                      int                   `json:"keyIndex"`
+	KeyAssignmentType             uint8                 `json:"keyAssignmentType"`
+	KeyAssignmentModifier         uint8                 `json:"keyAssignmentModifier"`
+	KeyAssignmentOriginal         bool                  `json:"keyAssignmentOriginal"`
+	KeyAssignmentValue            uint16                `json:"keyAssignmentValue"`
+	MuteIndicator                 int                   `json:"muteIndicator"`
+	NoiseCancellation             int                   `json:"noiseCancellation"`
+	SideTone                      int                   `json:"sideTone"`
+	SideToneValue                 int                   `json:"sideToneValue"`
+	WheelId                       uint8                 `json:"wheelId"`
+	WheelOption                   uint8                 `json:"wheelOption"`
+	RgbControl                    bool                  `json:"rgbControl"`
+	RgbOff                        string                `json:"rgbOff"`
+	RgbOn                         string                `json:"rgbOn"`
+	Brightness                    uint8                 `json:"brightness"`
+	Position                      int                   `json:"position"`
+	Positions                     []string              `json:"positions"`
+	DeviceIdString                string                `json:"deviceIdString"`
+	Direction                     int                   `json:"direction"`
+	StripId                       int                   `json:"stripId"`
+	AdapterId                     int                   `json:"adapterId"`
+	FanMode                       int                   `json:"fanMode"`
+	New                           bool                  `json:"new"`
+	Stages                        map[int]uint16        `json:"stages"`
+	ZoneTilts                     map[int]uint8         `json:"zoneTilts"`
+	ColorDpi                      rgb.Color             `json:"colorDpi"`
+	ColorSniper                   rgb.Color             `json:"colorSniper"`
+	ColorZones                    map[int]rgb.Color     `json:"colorZones"`
+	IsSniper                      bool                  `json:"isSniper"`
+	Image                         string                `json:"image"`
+	MacroId                       int                   `json:"macroId"`
+	MacroIndex                    int                   `json:"macroIndex"`
+	MacroName                     string                `json:"macroName"`
+	MacroType                     uint8                 `json:"macroType"`
+	MacroValue                    uint16                `json:"macroValue"`
+	MacroDelay                    uint16                `json:"macroDelay"`
+	MacroText                     string                `json:"macroText"`
+	LedProfile                    led.Device            `json:"ledProfile"`
+	Points                        []temperatures.Point  `json:"points"`
+	UpdateType                    uint8                 `json:"updateType"`
+	Data                          interface{}           `json:"data"`
+	PerfWinKey                    bool                  `json:"perf_winKey"`
+	PerfShiftTab                  bool                  `json:"perf_shiftTab"`
+	PerfAltTab                    bool                  `json:"perf_altTab"`
+	PerfAltF4                     bool                  `json:"perf_altF4"`
+	Save                          bool                  `json:"save"`
+	SupportedDevices              map[uint16]bool       `json:"supportedDevices"`
+	VibrationValue                uint8                 `json:"vibrationValue"`
+	VibrationModule               uint8                 `json:"vibrationModule"`
+	EmulationDevice               uint8                 `json:"emulationDevice"`
+	EmulationMode                 uint8                 `json:"emulationMode"`
+	SensitivityX                  uint8                 `json:"sensitivityX"`
+	SensitivityY                  uint8                 `json:"sensitivityY"`
+	AnalogDevice                  int                   `json:"analogDevice"`
+	DeadZoneMin                   uint8                 `json:"deadZoneMin"`
+	DeadZoneMax                   uint8                 `json:"deadZoneMax"`
+	InvertYAxis                   bool                  `json:"invertYAxis"`
+	SidebarCollapsed              bool                  `json:"sidebarCollapsed"`
+	CurveData                     []common.CurveData    `json:"curveData"`
+	LedChannels                   uint8                 `json:"ledChannels"`
+	Equalizers                    map[int]float64       `json:"equalizers"`
+	ActuationAllKeys              bool                  `json:"actuationAllKeys"`
+	ActuationPoint                byte                  `json:"actuationPoint"`
+	ActuationResetPoint           byte                  `json:"actuationResetPoint"`
+	EnableSecondaryActuationPoint bool                  `json:"enableSecondaryActuationPoint"`
+	SecondaryActuationPoint       byte                  `json:"secondaryActuationPoint"`
+	SecondaryActuationResetPoint  byte                  `json:"secondaryActuationResetPoint"`
+	FlashTapActive                int                   `json:"flashTapActive"`
+	FlashTapKeys                  []int                 `json:"flashTapKeys"`
+	FlashTapMode                  int                   `json:"flashTapMode"`
+	FlashTapColor                 rgb.Color             `json:"flashTapColor"`
+	Status                        int
+	Code                          int
+	Message                       string
 }
 
 // ProcessDeleteTemperatureProfile will process deletion of temperature profile
@@ -1413,6 +1434,52 @@ func ProcessChangeAngleSnapping(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeAngleSnapping"), Code: http.StatusOK, Status: 0}
 }
 
+// ProcessChangeAutoBrightness will process POST request from a client for auto brightness mode change
+func ProcessChangeAutoBrightness(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.AutoBrightness < 0 || req.AutoBrightness > 1 {
+		return &Payload{Message: language.GetValue("txtInvalidAutoBrightnessMode"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateAutoBrightness",
+		req.AutoBrightness,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtAutoBrightnessUpdated"), Code: http.StatusOK, Status: 1}
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateAutoBrightness"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateAutoBrightness"), Code: http.StatusOK, Status: 0}
+}
+
 // ProcessChangeButtonOptimization will process POST request from a client for button optimization mode change
 func ProcessChangeButtonOptimization(r *http.Request) *Payload {
 	req := &Payload{}
@@ -1457,6 +1524,144 @@ func ProcessChangeButtonOptimization(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeButtonOptimization"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeLeftHandMode will process POST request from a client for device left hand mode
+func ProcessChangeLeftHandMode(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.LeftHandMode < 0 || req.LeftHandMode > 4 {
+		return &Payload{Message: language.GetValue("txtInvalidLeftHandMode"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateLeftHandMode",
+		req.LeftHandMode,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLeftHandModeChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeLeftHandMode"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeLeftHandMode"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeLiftHeight will process POST request from a client for lift height change
+func ProcessChangeLiftHeight(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.LiftHeight < 1 || req.ButtonOptimization > 7 {
+		return &Payload{Message: language.GetValue("txtInvalidLiftHeightOption"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateLiftHeight",
+		req.LiftHeight,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLiftHeightUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateLiftHeight"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateLiftHeight"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeDebounceTime will process POST request from a client for switch debounce time
+func ProcessChangeDebounceTime(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.DebounceTime < 1 || req.DebounceTime > 9 {
+		return &Payload{Message: language.GetValue("txtInvalidDebounceTime"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDebounceTime",
+		req.DebounceTime,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtDebounceTimeUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateDebounceTime"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateDebounceTime"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeKeyAssignment will process POST request from a client for key assignment change
@@ -1529,6 +1734,64 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToApplyKeyAssigment"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeKeyActuation will process POST request from a client for key actuation change
+func ProcessChangeKeyActuation(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	keyActuation := keyboards.KeyActuation{
+		ActuationAllKeys:              req.ActuationAllKeys,
+		ActuationPoint:                req.ActuationPoint,
+		ActuationResetPoint:           req.ActuationResetPoint,
+		EnableSecondaryActuationPoint: req.EnableSecondaryActuationPoint,
+		SecondaryActuationPoint:       req.SecondaryActuationPoint,
+		SecondaryActuationResetPoint:  req.SecondaryActuationResetPoint,
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceKeyActuation",
+		req.KeyIndex,
+		keyActuation,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtKeyActuationUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtInvalidKeyActuationPoint"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtInvalidActuationResetValue"), Code: http.StatusOK, Status: 0}
+		case 4:
+			return &Payload{Message: language.GetValue("txtInvalidActuationResetValue"), Code: http.StatusOK, Status: 0}
+		case 5:
+			return &Payload{Message: language.GetValue("txtInvalidSecondaryActuationValue"), Code: http.StatusOK, Status: 0}
+		case 6:
+			return &Payload{Message: language.GetValue("txtNothingToUpdate"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateKeyActuation"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeMuteIndicator will process POST request from a client for device mute indicator change
@@ -1709,7 +1972,7 @@ func ProcessSidetoneValue(r *http.Request) *Payload {
 		case 1:
 			return &Payload{Message: language.GetValue("txtSidetoneUpdated"), Code: http.StatusOK, Status: 1}
 		case 2:
-			return &Payload{Message: language.GetValue("txtNoSidetoneAncOn"), Code: http.StatusOK, Status: 0}
+			return &Payload{Message: language.GetValue("txtSidetoneIsNotActive"), Code: http.StatusOK, Status: 0}
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeSidetone"), Code: http.StatusOK, Status: 0}
@@ -1916,6 +2179,62 @@ func ProcessChangeUserProfile(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeUserProfile"), Code: http.StatusOK, Status: 0}
 }
 
+// ProcessDeleteUserProfile will process POST request from a client for device profile deletion
+func ProcessDeleteUserProfile(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.UserProfileName) < 0 {
+		return &Payload{Message: language.GetValue("txtInvalidProfileName"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.UserProfileName); !m {
+		return &Payload{Message: language.GetValue("txtProfileOnlyLettersNumbers"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.UserProfileName == "default" {
+		return &Payload{Message: language.GetValue("txtDefaultProfileIsRequired"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"DeleteDeviceProfile",
+		req.UserProfileName,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtUserProfileDeleted"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToDeleteActiveProfile"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToRemoveProfileFile"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToDeleteProfile"), Code: http.StatusOK, Status: 0}
+}
+
 // ProcessBrightnessChange will process POST request from a client for device brightness change
 func ProcessBrightnessChange(r *http.Request) *Payload {
 	req := &Payload{}
@@ -2025,10 +2344,6 @@ func ProcessPositionChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	if req.Direction < 0 || req.Direction > 1 {
-		return &Payload{Message: language.GetValue("txtNonExistingDirection"), Code: http.StatusOK, Status: 0}
-	}
-
 	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
@@ -2037,21 +2352,20 @@ func ProcessPositionChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
+	if len(req.Positions) == 0 {
+		return &Payload{Message: language.GetValue("txtUnableToChangePosition"), Code: http.StatusOK, Status: 0}
+	}
+
 	results := devices.CallDeviceMethod(
 		req.DeviceId,
 		"UpdateDevicePosition",
-		req.Position,
-		req.Direction,
+		req.Positions,
 	)
 
 	if len(results) > 0 {
 		switch results[0].Uint() {
-		case 0:
-			return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
 		case 1:
 			return &Payload{Message: language.GetValue("txtPositionChanged"), Code: http.StatusOK, Status: 1}
-		case 2:
-			return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangePosition"), Code: http.StatusOK, Status: 0}
@@ -2517,7 +2831,7 @@ func ProcessARGBDevice(r *http.Request) *Payload {
 	if devices.GetDevice(req.DeviceId) == nil {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
-	if req.PortId < 0 || req.PortId > 5 {
+	if req.PortId < 0 || req.PortId > 6 {
 		return &Payload{Message: language.GetValue("txtNonExistingLedPort"), Code: http.StatusOK, Status: 0}
 	}
 
@@ -2713,17 +3027,12 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		}
 	}
 
-	dash := &dashboard.Dashboard{
-		ShowCpu:      req.ShowCpu,
-		ShowGpu:      req.ShowGpu,
-		ShowDisk:     req.ShowDisk,
-		ShowBattery:  req.ShowBattery,
-		ShowDevices:  req.ShowDevices,
-		ShowLabels:   req.ShowLabels,
-		Celsius:      req.Celsius,
-		LanguageCode: req.LanguageCode,
-		DeviceOrder:  dashboard.GetDashboard().DeviceOrder,
-	}
+	dash := dashboard.GetDashboard()
+	dash.Celsius = req.Celsius
+	dash.TemperatureBar = req.TemperatureBar
+	dash.LanguageCode = req.LanguageCode
+	dash.ShowLabels = req.ShowLabels
+
 	status := dashboard.SaveDashboardSettings(dash, true)
 	switch status {
 	case 0:
@@ -2734,8 +3043,8 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToSaveDashboardSettings"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessDashboardDevicePositionChange will process POST request from a client for dashboard device position change
-func ProcessDashboardDevicePositionChange(r *http.Request) *Payload {
+// ProcessDashboardSidebarChange will process POST request from a client for dashboard sidebar change
+func ProcessDashboardSidebarChange(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -2747,34 +3056,16 @@ func ProcessDashboardDevicePositionChange(r *http.Request) *Payload {
 		}
 	}
 
-	if len(req.DeviceId) < 0 {
-		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
-	}
-
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
-		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
-	}
-
-	if devices.GetDevice(req.DeviceId) == nil {
-		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
-	}
-
-	if req.Position < 0 {
-		return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
-	}
-
-	if req.Position > 1 {
-		return &Payload{Message: language.GetValue("txtInvalidPosition"), Code: http.StatusOK, Status: 0}
-	}
-
-	status := dashboard.UpdateDevicePosition(req.DeviceId, req.Position)
+	dash := dashboard.GetDashboard()
+	dash.SidebarCollapsed = req.SidebarCollapsed
+	status := dashboard.SaveDashboardSettings(dash, true)
 	switch status {
 	case 0:
-		return &Payload{Message: language.GetValue("txtUnableToChangeDevicePosition"), Code: http.StatusOK, Status: 0}
+		return &Payload{Message: language.GetValue("txtUnableToSaveDashboardSettings"), Code: http.StatusOK, Status: 0}
 	case 1:
-		return &Payload{Message: language.GetValue("txtDevicePositionChanged"), Code: http.StatusOK, Status: 1}
+		return &Payload{Message: language.GetValue("txtDashboardSettingsUpdated"), Code: http.StatusOK, Status: 1}
 	}
-	return &Payload{Message: language.GetValue("txtUnableToChangeDevicePosition"), Code: http.StatusOK, Status: 0}
+	return &Payload{Message: language.GetValue("txtUnableToSaveDashboardSettings"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeRgbScheduler will process a POST request from a client for RGB scheduler change
@@ -2873,6 +3164,45 @@ func ProcessMouseDpiSave(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveDPI"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessMouseGestureUpdate will process a POST request from a client for mouse gesture update
+func ProcessMouseGestureUpdate(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.ZoneTilts) == 0 {
+		return &Payload{Message: language.GetValue("txtInvalidZoneTilts"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveMouseGestures",
+		req.MultiGestures,
+		req.ZoneTilts,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateDeviceGestures"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtGesturesUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateDeviceGestures"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessMouseZoneColorsSave will process a POST request from a client for mouse zone colors save
@@ -2982,12 +3312,12 @@ func ProcessHeadsetZoneColorsSave(r *http.Request) *Payload {
 	if len(results) > 0 {
 		switch results[0].Uint() {
 		case 0:
-			return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
+			return &Payload{Message: language.GetValue("txtUnableToUpdateHeadsetColors"), Code: http.StatusOK, Status: 0}
 		case 1:
-			return &Payload{Message: language.GetValue("txtMouseZoneColorsChanged"), Code: http.StatusOK, Status: 1}
+			return &Payload{Message: language.GetValue("txtHeadsetZoneColorsChanged"), Code: http.StatusOK, Status: 1}
 		}
 	}
-	return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateHeadsetColors"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessControllerZoneColorsSave will process a POST request from a client for controller zone colors save
@@ -3377,6 +3707,51 @@ func ProcessGetKeyboardKey(r *http.Request) *Payload {
 	}
 }
 
+// ProcessGetKeyboardKeys will process getting keyboard keys
+func ProcessGetKeyboardKeys(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetKeyboardKeys",
+	)
+
+	if len(results) > 0 {
+		return &Payload{
+			Data:   results[0].Interface(),
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNoKeyboardKeyData"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
 // ProcessSetKeyboardPerformance will process setting keyboard performance
 func ProcessSetKeyboardPerformance(r *http.Request) *Payload {
 	req := &Payload{}
@@ -3419,6 +3794,67 @@ func ProcessSetKeyboardPerformance(r *http.Request) *Payload {
 		switch results[0].Uint() {
 		case 1:
 			return &Payload{Message: language.GetValue("txtKeyboardPerformanceUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToSetKeyboardPerformance"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetKeyboardFlashTap will process setting keyboard flash tap
+func ProcessSetKeyboardFlashTap(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.FlashTapActive < 0 || req.FlashTapActive > 1 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.FlashTapMode < 0 || req.FlashTapMode > 2 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.FlashTapKeys) < 2 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	flashTap := keyboards.FlashTap{
+		Active: req.FlashTapActive,
+		Mode:   req.FlashTapMode,
+		Modes:  nil,
+		Keys:   nil,
+		Color:  req.FlashTapColor,
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetKeyboardFlashTap",
+		req.FlashTapKeys,
+		flashTap,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtFlashTapUpdated"), Code: http.StatusOK, Status: 1}
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSetKeyboardPerformance"), Code: http.StatusOK, Status: 0}
@@ -3890,10 +4326,10 @@ func ProcessControllerEmulation(r *http.Request) *Payload {
 	if len(results) > 0 {
 		switch results[0].Uint() {
 		case 1:
-			return &Payload{Message: language.GetValue("txtVibrationModuleUpdate"), Code: http.StatusOK, Status: 1}
+			return &Payload{Message: language.GetValue("txtThumbstickModuleUpdate"), Code: http.StatusOK, Status: 1}
 		}
 	}
-	return &Payload{Message: language.GetValue("txtUnableToChangeVibrationModule"), Code: http.StatusOK, Status: 0}
+	return &Payload{Message: language.GetValue("txtUnableToChangeThumbstickModule"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessGetControllerGraph will process POST request from a client for getting analog device data
@@ -4090,4 +4526,172 @@ func ProcessDeleteGradientColor(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToDeleteGradientColor"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessCommanderDuoOverride will process POST request from a client for commander duo override
+func ProcessCommanderDuoOverride(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.LedChannels < 0 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SetCommanderDuoOverride",
+		req.ChannelId,
+		req.Enabled,
+		req.LedChannels,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToUpdatedCommanderDuoOverride"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtCommanderDuoOverrideUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdatedCommanderDuoOverride"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessAddDashboardDevice will process POST request from a client for new dashboard device
+func ProcessAddDashboardDevice(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	status := dashboard.AddDevice(req.DeviceId)
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtDashboardDeviceExists"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtDashboardDeviceAdded"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToAddDashboardDevice"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessRemoveDashboardDevice will process POST request from a client to delete a dashboard device
+func ProcessRemoveDashboardDevice(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	status := dashboard.RemoveDevice(req.DeviceId)
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtDashboardDeviceRemoved"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToRemoveDashboardDevice"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessUpdateDeviceEqualizer will process POST request from a client to update device equalizer
+func ProcessUpdateDeviceEqualizer(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.Equalizers) != 10 {
+		return &Payload{Message: language.GetValue("txtUnableToUpdateEqualizer"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateEqualizer",
+		req.Equalizers,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 2:
+			return &Payload{Message: language.GetValue("txtNothingToUpdate"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtEqualizerValuesUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateEqualizer"), Code: http.StatusOK, Status: 0}
 }

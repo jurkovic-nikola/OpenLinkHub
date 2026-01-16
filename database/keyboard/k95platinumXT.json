@@ -149,9 +149,9 @@
           "onlyColor": true,
           "keyData": [0],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         },
         "10": {
@@ -165,9 +165,9 @@
           "onlyColor": true,
           "keyData": [0],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         },
         "11": {
@@ -181,9 +181,9 @@
           "onlyColor": true,
           "keyData": [0],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         },
         "12": {

@@ -1,8 +1,6 @@
 package katarpro
 
 // Package: CORSAIR KATAR PRO
-// This is the primary package for CORSAIR KATAR PRO.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -20,6 +18,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -106,38 +105,45 @@ type Device struct {
 	MacroTracker          map[int]uint16
 	RGBModes              []string
 	instance              *common.Device
+	Usb                   bool
+	Connected             bool
+	MinDPI                int
+	MaxDPI                int
+	ZoneAmount            int
+	DPIAmount             int
 }
 
 var (
-	pwd                          = ""
-	cmdSoftwareMode              = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode              = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware               = []byte{0x02, 0x13}
-	cmdWriteColor                = []byte{0x06, 0x00}
-	cmdHeartbeat                 = []byte{0x12}
-	cmdOpenWriteEndpoint         = []byte{0x0d, 0x01, 0x02}
-	cmdOpenColorEndpoint         = []byte{0x0d, 0x00, 0x01}
-	cmdCloseEndpoint             = []byte{0x05, 0x01, 0x01}
-	cmdWrite                     = []byte{0x06, 0x01}
-	cmdSetDpi                    = []byte{0x01}
-	cmdButtonOptimization        = []byte{0x01, 0xb0, 0x00}
-	cmdSetPollingRate            = []byte{0x01, 0x01, 0x00}
-	deviceRefreshInterval        = 1000
-	deviceKeepAlive              = 20000
-	bufferSize                   = 64
-	keyAmount                    = 6
-	bufferSizeWrite              = bufferSize + 1
-	headerSize                   = 2
-	headerWriteSize              = 4
-	minDpiValue           uint16 = 200
-	maxDpiValue           uint16 = 12400
-	rgbProfileUpgrade            = []string{"gradient"}
-	rgbModes                     = []string{
+	pwd                   = ""
+	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware        = []byte{0x02, 0x13}
+	cmdWriteColor         = []byte{0x06, 0x00}
+	cmdHeartbeat          = []byte{0x12}
+	cmdOpenWriteEndpoint  = []byte{0x0d, 0x01, 0x02}
+	cmdOpenColorEndpoint  = []byte{0x0d, 0x00, 0x01}
+	cmdCloseEndpoint      = []byte{0x05, 0x01, 0x01}
+	cmdWrite              = []byte{0x06, 0x01}
+	cmdSetDpi             = []byte{0x01}
+	cmdButtonOptimization = []byte{0x01, 0xb0, 0x00}
+	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
+	deviceRefreshInterval = 1000
+	deviceKeepAlive       = 20000
+	bufferSize            = 64
+	keyAmount             = 6
+	bufferSizeWrite       = bufferSize + 1
+	headerSize            = 2
+	headerWriteSize       = 4
+	minDpiValue           = 200
+	maxDpiValue           = 12400
+	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
+	rgbModes              = []string{
 		"colorpulse",
 		"colorwarp",
 		"cpu-temperature",
 		"flickering",
 		"gpu-temperature",
+		"gradient",
 		"mouse",
 		"off",
 		"rainbow",
@@ -146,7 +152,6 @@ var (
 		"static",
 		"storm",
 		"watercolor",
-		"gradient",
 		"wave",
 	}
 )
@@ -163,6 +168,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 
 	// Init new struct with HID device
 	d := &Device{
+		Usb:       true,
+		Connected: true,
 		dev:       dev,
 		Template:  "katarpro.html",
 		VendorId:  vendorId,
@@ -205,6 +212,10 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/katarpro.json",
 		MacroTracker:      make(map[int]uint16),
+		MinDPI:            minDpiValue,
+		MaxDPI:            maxDpiValue,
+		ZoneAmount:        1,
+		DPIAmount:         4,
 	}
 
 	d.getDebugMode()          // Debug mode
@@ -335,31 +346,8 @@ func (d *Device) loadRgb() {
 		profile := rgb.GetRGB()
 		profile.Device = d.Product
 
-		// Convert to JSON
-		buffer, err := json.MarshalIndent(profile, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -399,21 +387,9 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 	}
 
 	if save {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		if err := common.SaveJsonData(path, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
 			return
-		}
-
-		f, err := os.Create(path)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
-			return
-		}
-
-		_, err = f.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
 		}
 	}
 }
@@ -596,9 +572,7 @@ func (d *Device) saveDeviceProfile() {
 		OriginalBrightness: 100,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
-		// RGB, Label
 		deviceProfile.RGBProfile = "mouse"
 		deviceProfile.Label = "Mouse"
 		deviceProfile.Active = true
@@ -718,34 +692,21 @@ func (d *Device) saveDeviceProfile() {
 		}
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
-	}
-
-	d.loadDeviceProfiles() // Reload
+	d.loadDeviceProfiles()
 }
 
 // upgradeDpiProfiles will perform upgrade of DPI profiles in needed
@@ -803,31 +764,9 @@ func (d *Device) saveKeyAssignments() {
 		keyAssignmentsFile = pwd + fileFormat
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(d.KeyAssignment, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(keyAssignmentsFile, d.KeyAssignment); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write key assignment data")
 		return
-	}
-
-	// Create profile filename
-	file, err := os.Create(keyAssignmentsFile)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to close file handle")
 	}
 }
 
@@ -912,28 +851,9 @@ func (d *Device) loadKeyAssignments() {
 			},
 		}
 
-		// Convert to JSON
-		buffer, err := json.MarshalIndent(keyAssignment, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		if err := common.SaveJsonData(keyAssignmentsFile, keyAssignment); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to save key assignments data")
 			return
-		}
-
-		file, err := os.Create(keyAssignmentsFile)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to create new key assignment file")
-			return
-		}
-
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write data tp key assignment file")
-			return
-		}
-
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to close key assignment file")
 		}
 		d.KeyAssignment = keyAssignment
 	}
@@ -976,10 +896,10 @@ func (d *Device) SaveMouseZoneColors(dpi rgb.Color, zoneColors map[int]rgb.Color
 	if i > 0 {
 		d.saveDeviceProfile()
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor()
 		return 1
 	}
 	return 0
@@ -1022,10 +942,10 @@ func (d *Device) SaveMouseDpiColors(dpi rgb.Color, dpiColors map[int]rgb.Color) 
 	if i > 0 {
 		d.saveDeviceProfile()
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor()
 		return 1
 	}
 	return 0
@@ -1202,7 +1122,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 
 		// RGB reset
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
 
@@ -1217,6 +1137,30 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// DeleteDeviceProfile deletes a device profile and its JSON file
+func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
+	profile, ok := d.UserProfiles[profileName]
+	if !ok {
+		return 0
+	}
+
+	if !common.IsValidExtension(profile.Path, ".json") {
+		return 0
+	}
+
+	if profile.Active {
+		return 2
+	}
+
+	if err := os.Remove(profile.Path); err != nil {
+		return 3
+	}
+
+	delete(d.UserProfiles, profileName)
+
+	return 1
 }
 
 // rotateDeviceProfile will rotate and activate next user profile
@@ -1264,30 +1208,8 @@ func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
 	rgbFilename := rgbDirectory + d.Serial + ".json"
 	if common.FileExists(rgbFilename) {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -1321,10 +1243,10 @@ func (d *Device) ProcessNewGradientColor(profileName string) (uint8, uint) {
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1, uint(nextID)
 }
 
@@ -1355,10 +1277,10 @@ func (d *Device) ProcessDeleteGradientColor(profileName string) (uint8, uint) {
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1, uint(maxKey)
 }
 
@@ -1386,10 +1308,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1401,7 +1323,7 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 		}
 		d.Exit = true
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
 		time.Sleep(40 * time.Millisecond)
@@ -1445,10 +1367,10 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	d.DeviceProfile.RGBProfile = profile // Set profile
 	d.saveDeviceProfile()                // Save profile
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1457,10 +1379,10 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.DeviceProfile.Brightness = mode
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1475,10 +1397,10 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 
 	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor()
 	}
 	return 1
 }
@@ -1495,10 +1417,10 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 	d.saveDeviceProfile()
 	if d.DeviceProfile.RGBProfile == "static" || d.DeviceProfile.RGBProfile == "mouse" {
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor()
 	}
 	return 1
 }
@@ -1944,11 +1866,11 @@ func (d *Device) sniperMode(active bool) {
 				value := profile.Value
 
 				// Send DPI packet
-				if value < minDpiValue {
-					value = minDpiValue
+				if value < uint16(minDpiValue) {
+					value = uint16(minDpiValue)
 				}
-				if value > maxDpiValue {
-					value = maxDpiValue
+				if value > uint16(maxDpiValue) {
+					value = uint16(maxDpiValue)
 				}
 
 				buf := make([]byte, 4)
@@ -1963,10 +1885,10 @@ func (d *Device) sniperMode(active bool) {
 
 				// Stop colors
 				if d.activeRgb != nil {
-					d.activeRgb.Exit <- true // Exit current RGB mode
+					d.activeRgb.Exit <- true
 					d.activeRgb = nil
 				}
-				d.setDeviceColor() // Restart RGB
+				d.setDeviceColor()
 			}
 		}
 	} else {
@@ -1996,11 +1918,11 @@ func (d *Device) toggleDPI(set bool) {
 		value := profile.Value
 
 		// Send DPI packet
-		if value < minDpiValue {
-			value = minDpiValue
+		if value < uint16(minDpiValue) {
+			value = uint16(minDpiValue)
 		}
-		if value > maxDpiValue {
-			value = maxDpiValue
+		if value > uint16(maxDpiValue) {
+			value = uint16(maxDpiValue)
 		}
 
 		buf := make([]byte, 4)
@@ -2015,7 +1937,7 @@ func (d *Device) toggleDPI(set bool) {
 
 		// Stop colors
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
 
@@ -2093,7 +2015,7 @@ func (d *Device) backendListener() {
 	}()
 }
 
-// writeColor will write data to the device with a specific endpoint.
+// writeColor will write color data to the device
 func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
@@ -2114,14 +2036,12 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 		return
 	}
 
-	// Open endpoint
 	_, err := d.transfer(cmdOpenWriteEndpoint, nil, "writeKeyAssignmentData")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
 		return
 	}
 
-	// Send data
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
@@ -2130,7 +2050,6 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to data endpoint")
 	}
 
-	// Close endpoint
 	_, err = d.transfer(cmdCloseEndpoint, nil, "writeKeyAssignmentData")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to close endpoint")
@@ -2140,11 +2059,9 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte, caller string) ([]byte, error) {
-	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x08
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
@@ -2153,16 +2070,13 @@ func (d *Device) transfer(endpoint, buffer []byte, caller string) ([]byte, error
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 		return bufferR, err

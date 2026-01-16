@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k70pro-default", 
@@ -70,9 +70,9 @@
           "top": 0,
           "packetIndex": [411,414],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           },
           "keyEmpty": [
             "keyboard-key-empty",
@@ -1636,9 +1636,9 @@
           "top": 15,
           "packetIndex": [330],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "keySpace": "keyboard-key wide3",
           "default": true,
@@ -1747,9 +1747,9 @@
           "top": 15,
           "packetIndex": [315],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "keySpace": "keyboard-key wide",
           "default": true,
@@ -1764,9 +1764,9 @@
           "top": 15,
           "packetIndex": [324],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "default": true,
           "keyData": [108, 63, 62],
@@ -1780,9 +1780,9 @@
           "top": 15,
           "packetIndex": [321],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "keySpace": "keyboard-key wide",
           "default": true,
@@ -1790,12 +1790,12 @@
           "keyHash": ["162259276829213363391578010288128"]
         },
         "107": {
-          "keyName": "----",
+          "keyName": "----------",
           "width": 451,
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [132],
+          "packetIndex": [420,132,423],
           "color": {
             "red": 0,
             "green": 255,
@@ -1814,9 +1814,9 @@
           "top": 15,
           "packetIndex": [333],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "default": true,
           "keyData": [111, 63, 62],
@@ -1830,9 +1830,9 @@
           "top": 15,
           "packetIndex": [366],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "default": true,
           "modifier": true,
@@ -1847,9 +1847,9 @@
           "top": 15,
           "packetIndex": [303],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "default": true,
           "keyData": [101, 57, 56],
@@ -1863,9 +1863,9 @@
           "top": 15,
           "packetIndex": [327],
           "color": {
-            "red": 255,
+            "red": 0,
             "green": 255,
-            "blue": 0
+            "blue": 255
           },
           "default": true,
           "keyData": [109, 63, 62],

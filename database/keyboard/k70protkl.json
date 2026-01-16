@@ -289,7 +289,11 @@
           },
           "default": true,
           "keyData": [53, 57, 56],
-          "keyHash": ["9007199254740992"]
+          "keyHash": ["9007199254740992"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "17": {
           "keyName": "1",
@@ -305,7 +309,11 @@
           },
           "default": true,
           "keyData": [30, 57, 56],
-          "keyHash": ["1073741824"]
+          "keyHash": ["1073741824"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "18": {
           "keyName": "2",
@@ -321,7 +329,11 @@
           },
           "default": true,
           "keyData": [31, 57, 56],
-          "keyHash": ["2147483648"]
+          "keyHash": ["2147483648"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "19": {
           "keyName": "3",
@@ -337,7 +349,11 @@
           },
           "default": true,
           "keyData": [32, 57, 56],
-          "keyHash": ["4294967296"]
+          "keyHash": ["4294967296"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "20": {
           "keyName": "4",
@@ -353,7 +369,11 @@
           },
           "default": true,
           "keyData": [33, 57, 56],
-          "keyHash": ["8589934592"]
+          "keyHash": ["8589934592"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "21": {
           "keyName": "5",
@@ -369,7 +389,11 @@
           },
           "default": true,
           "keyData": [34, 57, 56],
-          "keyHash": ["17179869184"]
+          "keyHash": ["17179869184"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "22": {
           "keyName": "6",
@@ -385,7 +409,11 @@
           },
           "default": true,
           "keyData": [35, 57, 56],
-          "keyHash": ["34359738368"]
+          "keyHash": ["34359738368"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "23": {
           "keyName": "7",
@@ -401,7 +429,11 @@
           },
           "default": true,
           "keyData": [36, 57, 56],
-          "keyHash": ["68719476736"]
+          "keyHash": ["68719476736"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "24": {
           "keyName": "8",
@@ -417,7 +449,11 @@
           },
           "default": true,
           "keyData": [37, 57, 56],
-          "keyHash": ["137438953472"]
+          "keyHash": ["137438953472"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "25": {
           "keyName": "9",
@@ -433,7 +469,11 @@
           },
           "default": true,
           "keyData": [38, 57, 56],
-          "keyHash": ["274877906944"]
+          "keyHash": ["274877906944"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "26": {
           "keyName": "0",
@@ -449,7 +489,11 @@
           },
           "default": true,
           "keyData": [39, 57, 56],
-          "keyHash": ["549755813888"]
+          "keyHash": ["549755813888"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "27": {
           "keyName": "-",
@@ -465,7 +509,11 @@
           },
           "default": true,
           "keyData": [45, 57, 56],
-          "keyHash": ["35184372088832"]
+          "keyHash": ["35184372088832"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "28": {
           "keyName": "=",
@@ -481,7 +529,11 @@
           },
           "default": true,
           "keyData": [46, 57, 56],
-          "keyHash": ["70368744177664"]
+          "keyHash": ["70368744177664"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "29": {
           "keyName": "<---",
@@ -498,7 +550,11 @@
           "keySpace": "keyboard-key wide3",
           "default": true,
           "keyData": [42, 57, 56],
-          "keyHash": ["4398046511104"]
+          "keyHash": ["4398046511104"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "30": {
           "keyName": "Ins",
@@ -568,7 +624,11 @@
           "keySpace": "keyboard-key wide",
           "default": true,
           "keyData": [43, 57, 56],
-          "keyHash": ["8796093022208"]
+          "keyHash": ["8796093022208"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "34": {
           "keyName": "Q",
@@ -584,7 +644,11 @@
           },
           "default": true,
           "keyData": [20, 57, 56],
-          "keyHash": ["1048576"]
+          "keyHash": ["1048576"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "35": {
           "keyName": "W",
@@ -600,7 +664,11 @@
           },
           "default": true,
           "keyData": [26, 57, 56],
-          "keyHash": ["67108864"]
+          "keyHash": ["67108864"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "36": {
           "keyName": "E",
@@ -616,7 +684,11 @@
           },
           "default": true,
           "keyData": [8, 57, 56],
-          "keyHash": ["256"]
+          "keyHash": ["256"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "37": {
           "keyName": "R",
@@ -632,7 +704,11 @@
           },
           "default": true,
           "keyData": [21, 57, 56],
-          "keyHash": ["2097152"]
+          "keyHash": ["2097152"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "38": {
           "keyName": "T",
@@ -648,7 +724,11 @@
           },
           "default": true,
           "keyData": [23, 57, 56],
-          "keyHash": ["8388608"]
+          "keyHash": ["8388608"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "39": {
           "keyName": "Y",
@@ -664,7 +744,11 @@
           },
           "default": true,
           "keyData": [28, 57, 56],
-          "keyHash": ["268435456"]
+          "keyHash": ["268435456"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "40": {
           "keyName": "U",
@@ -680,7 +764,11 @@
           },
           "default": true,
           "keyData": [24, 57, 56],
-          "keyHash": ["16777216"]
+          "keyHash": ["16777216"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "41": {
           "keyName": "I",
@@ -696,7 +784,11 @@
           },
           "default": true,
           "keyData": [12, 57, 56],
-          "keyHash": ["4096"]
+          "keyHash": ["4096"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "42": {
           "keyName": "O",
@@ -712,7 +804,11 @@
           },
           "default": true,
           "keyData": [18, 57, 56],
-          "keyHash": ["262144"]
+          "keyHash": ["262144"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "43": {
           "keyName": "P",
@@ -728,7 +824,11 @@
           },
           "default": true,
           "keyData": [19, 57, 56],
-          "keyHash": ["524288"]
+          "keyHash": ["524288"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "44": {
           "keyName": "[ {",
@@ -744,7 +844,11 @@
           },
           "default": true,
           "keyData": [47, 57, 56],
-          "keyHash": ["140737488355328"]
+          "keyHash": ["140737488355328"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "45": {
           "keyName": "] }",
@@ -760,7 +864,11 @@
           },
           "default": true,
           "keyData": [48, 57, 56],
-          "keyHash": ["281474976710656"]
+          "keyHash": ["281474976710656"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "46": {
           "keyName": "\\ |",
@@ -777,7 +885,11 @@
           "keySpace": "keyboard-key wide",
           "default": true,
           "keyData": [49, 57, 56],
-          "keyHash": ["562949953421312"]
+          "keyHash": ["562949953421312"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "47": {
           "keyName": "Del",
@@ -847,7 +959,11 @@
           "keySpace": "keyboard-key wide",
           "default": true,
           "keyData": [57, 57, 56],
-          "keyHash": ["144115188075855872"]
+          "keyHash": ["144115188075855872"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "51": {
           "keyName": "A",
@@ -863,7 +979,11 @@
           },
           "default": true,
           "keyData": [4, 57, 56],
-          "keyHash": ["16"]
+          "keyHash": ["16"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "52": {
           "keyName": "S",
@@ -879,7 +999,11 @@
           },
           "default": true,
           "keyData": [22, 57, 56],
-          "keyHash": ["4194304"]
+          "keyHash": ["4194304"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "53": {
           "keyName": "D",
@@ -895,7 +1019,11 @@
           },
           "default": true,
           "keyData": [7, 57, 56],
-          "keyHash": ["128"]
+          "keyHash": ["128"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "54": {
           "keyName": "F",
@@ -911,7 +1039,11 @@
           },
           "default": true,
           "keyHash": ["512"],
-          "keyData": [9, 57, 56]
+          "keyData": [9, 57, 56],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "55": {
           "keyName": "G",
@@ -927,7 +1059,11 @@
           },
           "default": true,
           "keyData": [10, 57, 56],
-          "keyHash": ["1024"]
+          "keyHash": ["1024"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "56": {
           "keyName": "H",
@@ -943,7 +1079,11 @@
           },
           "default": true,
           "keyData": [11, 57, 56],
-          "keyHash": ["2048"]
+          "keyHash": ["2048"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "57": {
           "keyName": "J",
@@ -959,7 +1099,11 @@
           },
           "default": true,
           "keyData": [13, 57, 56],
-          "keyHash": ["8192"]
+          "keyHash": ["8192"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "58": {
           "keyName": "K",
@@ -975,7 +1119,11 @@
           },
           "default": true,
           "keyData": [14, 57, 56],
-          "keyHash": ["16384"]
+          "keyHash": ["16384"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "59": {
           "keyName": "L",
@@ -991,7 +1139,11 @@
           },
           "default": true,
           "keyData": [15, 57, 56],
-          "keyHash": ["32768"]
+          "keyHash": ["32768"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "60": {
           "keyName": "; :",
@@ -1007,7 +1159,11 @@
           },
           "default": true,
           "keyData": [51, 57, 56],
-          "keyHash": ["2251799813685248"]
+          "keyHash": ["2251799813685248"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "61": {
           "keyName": "' ''",
@@ -1023,7 +1179,11 @@
           },
           "default": true,
           "keyData": [52, 57, 56],
-          "keyHash": ["4503599627370496"]
+          "keyHash": ["4503599627370496"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "62": {
           "keyName": "Enter",
@@ -1040,7 +1200,11 @@
           "keySpace": "keyboard-key wide3",
           "default": true,
           "keyData": [40, 57, 56],
-          "keyHash": ["1099511627776"]
+          "keyHash": ["1099511627776"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         }
       }
     },
@@ -1064,7 +1228,11 @@
           "default": true,
           "modifier": true,
           "keyData": [106, 63, 62],
-          "keyHash": ["81129638414606681695789005144064"]
+          "keyHash": ["81129638414606681695789005144064"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "64": {
           "keyName": "Z",
@@ -1080,7 +1248,11 @@
           },
           "default": true,
           "keyData": [29, 57, 56],
-          "keyHash": ["536870912"]
+          "keyHash": ["536870912"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "65": {
           "keyName": "X",
@@ -1096,7 +1268,11 @@
           },
           "default": true,
           "keyData": [27, 57, 56],
-          "keyHash": ["134217728"]
+          "keyHash": ["134217728"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "66": {
           "keyName": "C",
@@ -1112,7 +1288,11 @@
           },
           "default": true,
           "keyData": [6, 57, 56],
-          "keyHash": ["64"]
+          "keyHash": ["64"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "67": {
           "keyName": "V",
@@ -1128,7 +1308,11 @@
           },
           "default": true,
           "keyData": [25, 57, 56],
-          "keyHash": ["33554432"]
+          "keyHash": ["33554432"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "68": {
           "keyName": "B",
@@ -1144,7 +1328,11 @@
           },
           "default": true,
           "keyData": [5, 57, 56],
-          "keyHash": ["32"]
+          "keyHash": ["32"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "69": {
           "keyName": "N",
@@ -1160,7 +1348,11 @@
           },
           "default": true,
           "keyData": [17, 57, 56],
-          "keyHash": ["131072"]
+          "keyHash": ["131072"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "70": {
           "keyName": "M",
@@ -1176,7 +1368,11 @@
           },
           "default": true,
           "keyData": [16, 57, 56],
-          "keyHash": ["65536"]
+          "keyHash": ["65536"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "71": {
           "keyName": ", <",
@@ -1192,7 +1388,11 @@
           },
           "default": true,
           "keyData": [54, 57, 56],
-          "keyHash": ["18014398509481984"]
+          "keyHash": ["18014398509481984"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "72": {
           "keyName": ". >",
@@ -1208,7 +1408,11 @@
           },
           "default": true,
           "keyData": [55, 57, 56],
-          "keyHash": ["36028797018963968"]
+          "keyHash": ["36028797018963968"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "73": {
           "keyName": "/ ?",
@@ -1224,7 +1428,11 @@
           },
           "default": true,
           "keyData": [56, 57, 56],
-          "keyHash": ["72057594037927936"]
+          "keyHash": ["72057594037927936"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "74": {
           "keyName": "Shift",
@@ -1244,7 +1452,11 @@
           "default": true,
           "modifier": true,
           "keyData": [110, 63, 62],
-          "keyHash": ["1298074214633706907132624082305024"]
+          "keyHash": ["1298074214633706907132624082305024"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "75": {
           "keyName": "↑",
@@ -1285,7 +1497,11 @@
           "default": true,
           "modifier": true,
           "keyData": [105, 63, 62],
-          "keyHash": ["40564819207303340847894502572032"]
+          "keyHash": ["40564819207303340847894502572032"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "77": {
           "keyName": "Win",
@@ -1301,7 +1517,11 @@
           },
           "default": true,
           "keyData": [108, 57, 56],
-          "keyHash": ["324518553658426726783156020576256"]
+          "keyHash": ["324518553658426726783156020576256"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "78": {
           "keyName": "Alt",
@@ -1321,7 +1541,11 @@
           "default": true,
           "modifier": true,
           "keyData": [107, 63, 62],
-          "keyHash": ["162259276829213363391578010288128"]
+          "keyHash": ["162259276829213363391578010288128"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "79": {
           "keyName": "----------",
@@ -1338,7 +1562,11 @@
           "keySpace": "keyboard-key wide7",
           "default": true,
           "keyData": [44, 57, 56],
-          "keyHash": ["17592186044416"]
+          "keyHash": ["17592186044416"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "80": {
           "keyName": "Alt",
@@ -1357,7 +1585,11 @@
           "default": true,
           "modifier": true,
           "keyData": [111, 63, 62],
-          "keyHash": ["2596148429267413814265248164610048"]
+          "keyHash": ["2596148429267413814265248164610048"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "81": {
           "keyName": "Fn",
@@ -1374,7 +1606,11 @@
           "default": true,
           "modifier": true,
           "onlyColor": true,
-          "keyData": [122, 63, 62]
+          "keyData": [122, 63, 62],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "82": {
           "keyName": "Menu",
@@ -1390,7 +1626,11 @@
           },
           "default": true,
           "keyData": [101, 57, 56],
-          "keyHash": ["2535301200456458802993406410752"]
+          "keyHash": ["2535301200456458802993406410752"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "83": {
           "keyName": "Ctrl",
@@ -1409,7 +1649,11 @@
           "default": true,
           "modifier": true,
           "keyData": [109, 63, 62],
-          "keyHash": ["649037107316853453566312041152512"]
+          "keyHash": ["649037107316853453566312041152512"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
         },
         "84": {
           "keyName": "←",

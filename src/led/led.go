@@ -1,6 +1,7 @@
 package led
 
 import (
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
@@ -46,27 +47,8 @@ func LoadProfile(serial string) *Device {
 func SaveProfile(serial string, data Device) {
 	profile := fmt.Sprintf("%s/database/led/%s.json", config.GetConfig().ConfigPath, serial)
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(profile, data); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to save LED profile")
 		return
-	}
-
-	file, fileErr := os.Create(profile)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to create new led profile")
-		return
-	}
-
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write data")
-		return
-	}
-
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to close file handle")
 	}
 }

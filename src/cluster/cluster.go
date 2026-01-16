@@ -24,7 +24,7 @@ var (
 	pwd                   = ""
 	d                     *Device
 	deviceRefreshInterval = 1000
-	rgbProfileUpgrade     = []string{"gradient"}
+	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
 )
 
 type DeviceProfile struct {
@@ -315,30 +315,8 @@ func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
 	rgbFilename := rgbDirectory + d.Serial + ".json"
 	if common.FileExists(rgbFilename) {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to save rgb profile data")
 			return
 		}
 	}
@@ -358,31 +336,8 @@ func (d *Device) loadRgb() {
 		profile := rgb.GetRGB()
 		profile.Device = d.Product
 
-		// Convert to JSON
-		buffer, err := json.MarshalIndent(profile, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to save rgb profile data")
 			return
 		}
 	}
@@ -430,21 +385,9 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 	}
 
 	if save {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		if err := common.SaveJsonData(path, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile data")
 			return
-		}
-
-		f, err := os.Create(path)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
-			return
-		}
-
-		_, err = f.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
 		}
 	}
 }
@@ -718,27 +661,9 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 	}
 
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(profilePath, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profilePath}).Error("Unable to save cluster profile data")
 		return
-	}
-
-	file, fileErr := os.Create(profilePath)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": profilePath}).Error("Unable to create new device profile")
-		return
-	}
-
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profilePath}).Error("Unable to write data")
-		return
-	}
-
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profilePath}).Error("Unable to close file handle")
 	}
 	d.loadDeviceProfile()
 }

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
@@ -26,6 +27,7 @@ func Start() {
 	version.Init()      // Build info
 	config.Init()       // Configuration
 	logger.Init()       // Logger
+	audio.Init()        // Audio
 	dashboard.Init()    // Dashboard
 	systeminfo.Init()   // Build system info
 	metrics.Init()      // Metrics

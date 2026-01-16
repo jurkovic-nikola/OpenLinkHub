@@ -1,198 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $temperatures := .Temperatures }}
-        {{ $device := .Device }}
-        {{ $rgbModes := .Device.RGBModes }}
-        {{ $rgb := .Rgb }}
-        {{ $profile := $device.DeviceProfile.Profile }}
-        {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device" />
-                                </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <span title="{{ .Lang "txtConnectionUsb" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-usb-symbol svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </span>
-                                    <span title="{{ .Lang "txtPerformance" }}" class="btn btn-secondary-empty keyboardPerformance" type="button" style="margin-top: 5px;">
-                                    <i class="bi bi-speedometer svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </span>
-                                    <button title="{{ .Lang "txtKeyboardLayout" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-layout-text-sidebar svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select keyLayout" name="keyLayout">
-                                                {{ range $layout := $device.Layouts }}
-                                                {{ if eq $device.DeviceProfile.Layout $layout }}
-                                                <option value="{{ $layout }}" selected>{{ $layout }}</option>
-                                                {{ else }}
-                                                <option value="{{ $layout }}">{{ $layout }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select userProfile" name="userProfile">
-                                                {{ range $key, $profile := $device.UserProfiles }}
-                                                {{ if $profile.Active }}
-                                                <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $key }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select keyboardRgbProfile" name="keyboardRgbProfile">
-                                                {{ range $key, $mode := $rgbModes }}
-                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
-                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
-                                                {{ else }}
-                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="Control Dial" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-circle svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select controlDial" name="controlDial">
-                                                {{ range $key, $dialOptions := $device.ControlDialOptions }}
-                                                {{ if eq $device.DeviceProfile.ControlDial $key }}
-                                                <option value="{{ $key }}" selected>{{ $dialOptions }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $dialOptions }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select keyboardPollingRate" name="keyboardPollingRate">
-                                                {{ range $key, $pr := $device.PollingRates }}
-                                                {{ if eq $key $device.DeviceProfile.PollingRate }}
-                                                <option value="{{ $key }}" selected>{{ $pr }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $pr }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="{{ $device.UIKeyboard }}" style="margin-top: 10px;margin-bottom: 10px;">
-                                {{ range $index, $keys := $keyboard.Row }}
-                                {{ if gt $keys.Top 0 }}
-                                <div class="{{ $device.UIKeyboardRow }}" style="margin-top:{{ $keys.Top }}px;">
-                                {{ else if gt (len $keys.Css) 0 }}
-                                <div class="{{ $keys.Css }}">
-                                {{ else }}
-                                <div class="{{ $device.UIKeyboardRow }}">
-                                {{ end }}
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $rgb := .Rgb }}
+    {{ $profile := $device.DeviceProfile.Profile }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
 
-                                    {{ range $index, $keys := .Keys }}
-                                    {{ range $index, $keyEmpty := $keys.KeyEmpty }}
-                                    <div class="{{ $keyEmpty }}"></div>
-                                    {{ end }}
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
 
-                                    {{ if gt (len $keys.KeySpace) 0 }}
-                                    <div class="{{ $keys.KeySpace }} keyboardColor keySelector" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ else }}
-                                    <div class="keyboard-key keyboardColor keySelector" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
-                                    {{ end }}
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
 
-                                    {{ if $keys.Svg }}
-                                        <img src="/static/img/icons/{{ $keys.KeyName }}" width="16" height="16" alt="Icon" style="margin-top: 4px;"/>
-                                        {{ else }}
-                                        <span style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);">
-                                           {{ $keys.KeyName }}
-                                        </span>
-                                        {{ end }}
-                                    </div>
-                                    {{ end }}
+            <!-- K100 AIR WIRELESS -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Firmware -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtFirmware" }}</span>
+                                    <span class="meta-value">{{ .Device.Firmware }}</span>
                                 </div>
-                                {{ end }}
-                                <div>
-                                    <div style="float: left;width: 400px;">
-                                        <input type="color" id="keyColor" style="width: 100px;margin-top: 10px;height: 38px;padding: 0;float: left;">
-                                        <select class="form-select keyOptions" name="0" style="margin-top:10px;width: 150px;float: left;margin-left: 10px;">
-                                            <option value="0">{{ .Lang "txtCurrentKey" }}</option>
-                                            <option value="1">{{ .Lang "txtCurrentRow" }}</option>
-                                            <option value="2">{{ .Lang "txtAllKeys" }}</option>
-                                        </select>
-                                        <button class="btn btn-secondary" id="applyColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>Apply</span>
-                                        </button>
-                                    </div>
-                                    <div style="float: right;width: auto;">
-                                        <select class="form-select keyboardProfile" name="keyboardProfile" style="margin-top:10px;width: 150px;float: right;margin-left: 10px;">
-                                            {{ range $key := $device.DeviceProfile.Profiles }}
-                                            {{ if eq $key $device.DeviceProfile.Profile }}
+
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
                                             <option value="{{ $key }}" selected>{{ $key }}</option>
                                             {{ else }}
                                             <option value="{{ $key }}">{{ $key }}</option>
                                             {{ end }}
                                             {{ end }}
                                         </select>
-                                        <button class="btn btn-secondary" id="saveAsProfile" style="margin-top: 10px;margin-left: 10px;float: right;">
-                                            <span>{{ .Lang "txtSaveAs" }}</span>
-                                        </button>
-                                        <button class="btn btn-secondary" id="saveProfile" style="margin-top: 10px;margin-left: 10px;float: right">
-                                            <span>{{ .Lang "txtSave" }}</span>
-                                        </button>
-                                        <button class="btn btn-danger" id="deleteProfile" style="margin-top: 10px;margin-left: 10px;float: right">
-                                            <span>{{ .Lang "txtDelete" }}</span>
-                                        </button>
+                                    </label>
+                                </div>
+
+                                <!-- RGB Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="keyboardRgbProfile">
+                                        {{ $rgbPf := $device.DeviceProfile.RGBProfile }}
+                                        <select id="keyboardRgbProfile" class="form-select system-select compact auto-width keyboardRgbProfile" name="keyboardRgbProfile">
+                                            {{ range $key, $mode := $device.RGBModes }}
+                                            <option value="0;{{ $mode }}" {{ if eq $mode $rgbPf }} selected {{ end }}>{{ $mode }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Layout -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtLayout" }}</span>
+                                    <label for="keyLayout">
+                                        <select id="keyLayout" class="form-select system-select compact auto-width keyLayout" name="keyLayout">
+                                            {{ range $layout := $device.Layouts }}
+                                            <option value="{{ $layout }}" {{ if eq $device.DeviceProfile.Layout $layout }} selected {{ end }}>{{ $layout }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Pulling Rate -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtPollingRate" }}</span>
+                                    <label for="keyboardPollingRate">
+                                        <select id="keyboardPollingRate" class="form-select system-select compact max-width-120 keyboardPollingRate" name="keyboardPollingRate">
+                                            {{ range $key, $pr := $device.PollingRates }}
+                                            <option value="{{ $key }}" {{ if eq $key $device.DeviceProfile.PollingRate }} selected {{ end }}>{{ $pr }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Performance -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtPerformance" }}</span>
+                                    <label for="keyboardPerformance">
+                                        <button class="system-button compact keyboardPerformance" id="keyboardPerformance" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                    </label>
+                                </div>
+
+                                <!-- RGB Cluster -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtCluster" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="toggleRgbCluster" class="toggleRgbCluster" {{ if $deviceProfile.RGBCluster }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Control Dial -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtControlDial" }}</span>
+                                    <label for="controlDial">
+                                        <select id="controlDial" class="system-select auto-width compact controlDial" name="controlDial">
+                                            {{ range $key, $dialOptions := $device.ControlDialOptions }}
+                                            <option value="{{ $key }}" {{ if eq $device.DeviceProfile.ControlDial $key }} selected {{ end }}>{{ $dialOptions }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="system-select auto-width compact deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-10">
+                    <div class="card system-card text-center">
+                        <!-- Keyboard -->
+                        <div class="card-body">
+                            <div class="keyboard {{ $device.UIKeyboard }}" style="margin-top: 10px;margin-bottom: 10px;">
+                                {{ range $index, $keys := $keyboard.Row }}
+
+                                <!-- Vars -->
+                                {{ $rowClass := $device.UIKeyboardRow }}
+                                {{ $marginTop := "" }}
+
+                                <!-- Row config -->
+                                {{ if eq $keys.Top 65 }}
+                                {{ $marginTop = "keyboard-margin-top" }}
+                                {{ else if gt (len $keys.Css) 0 }}
+                                {{ $rowClass := $keys.Css }}
+                                {{ end }}
+
+                                <div class="{{ $rowClass }} {{ $marginTop }}">
+                                    {{ range $index, $keys := .Keys }}
+
+                                    <!-- Empty keys -->
+                                    {{ range $index, $keyEmpty := $keys.KeyEmpty }}
+                                    <div class="{{ $keyEmpty }}"></div>
+                                    {{ end }}
+
+                                    <!-- Empty area -->
+                                    {{ range $amount := $keys.Spacing }}
+                                    <div class="keyboard-key-empty"></div>
+                                    {{ end }}
+
+                                    <!-- Key css -->
+                                    {{ $keyCss := "keyboard-key" }}
+                                    {{ if gt (len $keys.KeySpace) 0 }}
+                                    {{ $keyCss = $keys.KeySpace }}
+                                    {{ end }}
+
+                                    <!-- Key color -->
+                                    {{ $color := $keys.Color }}
+
+                                    <!-- Key -->
+                                    <div class="{{ $keyCss }} keyboardColor keySelector {{ $keys.Css }}" data-info="{{ $index }};{{ $color.Red }};{{ $color.Green }};{{ $color.Blue }}">
+                                        {{ if $keys.NoColor }}
+                                        <span class="key-no-color">{{ $keys.KeyName }}</span>
+                                        {{ else }}
+                                        <span class="key-color" style="color: rgba({{ $color.Red }}, {{ $color.Green }}, {{ $color.Blue }}, 1);">{{ $keys.KeyName }}</span>
+                                        {{ end }}
                                     </div>
-                                    <div style="float: right;width: auto;" class="keyAssignmentsArea">
-                                        <button class="btn btn-secondary openKeyAssignmentsWithModifier" style="margin-top: 10px;margin-left: 10px;float: right;">
-                                            <span>{{ .Lang "txtKeyAssignments" }}</span>
-                                        </button>
+                                    {{ end }}
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+
+                        <!-- Keyboard control -->
+                        <div class="card-footer footer-split">
+                            <!-- Color control -->
+                            <div class="footer-left">
+                                <div class="settings-list">
+                                    <div class="settings-row">
+                                        <div class="system-color compact">
+                                            <label for="keyColor">
+                                                <input type="color" id="keyColor">
+                                            </label>
+                                        </div>
+                                        <label for="keyOptions">
+                                            <select id="keyOptions" class="form-select system-select compact auto-width keyOptions" name="keyOptions">
+                                                <option value="0">{{ .Lang "txtCurrentKey" }}</option>
+                                                <option value="1">{{ .Lang "txtCurrentRow" }}</option>
+                                                <option value="2">{{ .Lang "txtAllKeys" }}</option>
+                                            </select>
+                                        </label>
+                                        <button class="system-button center compact" id="applyColors">{{ .Lang "txtApply" }}</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Key / Profile control -->
+                            <div class="footer-right">
+                                <div class="settings-list">
+                                    <div class="settings-row">
+                                        <button class="system-button center compact openKeyAssignmentsWithModifier">{{ .Lang "txtKeyAssignments" }}</button>
+                                        <label for="keyOptions">
+                                            <select id="keyboardProfile" class="form-select system-select compact auto-width keyboardProfile" name="keyboardProfile">
+                                                {{ range $key := $device.DeviceProfile.Profiles }}
+                                                <option value="{{ $key }}" {{ if eq $key $device.DeviceProfile.Profile }} selected {{ end }}>{{ $key }}</option>
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                        <button class="system-button center compact" id="saveAsProfile">{{ .Lang "txtSaveAs" }}</button>
+                                        <button class="system-button center compact" id="saveProfile">{{ .Lang "txtSave" }}</button>
+                                        <button class="system-button danger center compact" id="deleteProfile">{{ .Lang "txtDelete" }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -200,13 +248,13 @@
                     </div>
                 </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

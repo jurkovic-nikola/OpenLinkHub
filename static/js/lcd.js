@@ -1,29 +1,5 @@
 "use strict";
-document.addEventListener("DOMContentLoaded", function () {
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
-
-    // Init toastr
-    const toast = CreateToastr();
-
+$(document).ready(function () {
     $("#gifUploadForm").on("submit", function (e) {
         e.preventDefault();
 

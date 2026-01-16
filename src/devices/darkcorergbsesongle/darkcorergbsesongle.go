@@ -1,8 +1,6 @@
 package darkcorergbsesongle
 
 // Package: CORSAIR DARK CORE RGB SE Wireless USB Receiver
-// This is the primary package for CORSAIR DARK CORE RGB SE Wireless USB Receiver.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -91,7 +89,7 @@ func (d *Device) addDevices() {
 
 	object := &common.Device{
 		ProductType: common.ProductTypeDarkCoreRgbSEW,
-		Product:     "DARK CORE RGB SE",
+		Product:     "DARK CORE SE",
 		Serial:      dev.Serial,
 		Firmware:    dev.Firmware,
 		Image:       "icon-mouse.svg",
@@ -99,7 +97,7 @@ func (d *Device) addDevices() {
 	}
 
 	d.SharedDevices(object)
-	d.AddPairedDevice(pid, d, object)
+	d.AddPairedDevice(pid, dev, object)
 }
 
 // createDevice will create new device register object
@@ -266,11 +264,9 @@ func (d *Device) initAvailableDevices() {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) error {
-	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x07
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
@@ -340,7 +336,6 @@ func (d *Device) backendListener() {
 
 				if data[0] == 0x04 {
 					status := d.getDeviceStatus()
-					fmt.Println(status)
 					if len(status) == 0 || status == nil {
 						continue
 					}

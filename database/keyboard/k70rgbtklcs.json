@@ -90,9 +90,9 @@
           "top": 0,
           "packetIndex": [3,9],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           },
           "keyEmpty": ["keyboard-key-empty", "keyboard-key-empty", "keyboard-key-empty"],
           "keySpace": "keyboard-key wide4",

@@ -1,195 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
+<script src="../static/js/cluster.js"></script>
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $device := .Device }}
-        {{ $languageCode := .LanguageCode }}
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4">
-                    <div class="ctn">
-                        <div class="row" style="width: 100%;">
-                            <div class="col-md-3" style="margin: 0 auto;">
-                                <div class="card mb-2">
-                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtDashboard" }}</div>
-                                    <div class="card-body">
-                                        <table style="width: 100%;">
-                                            <tbody>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowCpuInDashboard" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-cpu" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowGpuInDashboard" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-gpu" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowStorageInDashboard" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-storage" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowDevicesInDashboard" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-devices" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowTempInC" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-celsius" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowDeviceLabels" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-deviceLabels" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">{{ .Lang "txtShowBatterInfo" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input class="form-check-input" id="checkbox-battery" type="checkbox">
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height:40px;">Language</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <select class="form-select userLanguage" id="userLanguage">
-                                                        {{ range $k, $v := .Languages }}
-                                                        {{ if eq $languageCode $k }}
-                                                        <option value="{{ $k }}" selected>{{ $v.Name }}</option>
-                                                        {{ else }}
-                                                        <option value="{{ $k }}">{{ $v.Name }}</option>
-                                                        {{ end }}
-                                                        {{ end }}
-                                                    </select>
-                                                </th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
+
+<div class="container-fluid">
+    {{ $devs := .Devices }}
+    {{ $device := .Device }}
+    {{ $languageCode := .LanguageCode }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <!-- Settings -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-3">
+                    <div class="stack-gap-4">
+                        <!-- Dashboard Settings -->
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtDashboard" }}
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-list">
+                                    <!-- Temperature (C / F) -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtShowTempInC" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="checkbox-celsius">
+                                            <span class="toggle-track"></span>
+                                        </label>
                                     </div>
-                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                        <div class="input-group">
-                                            <button class="btn btn-primary" type="button" id="btnSaveDashboardSettings">{{ .Lang "txtSave" }}</button>
-                                        </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtShowTemperatureBar" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="checkbox-temperatureBar">
+                                            <span class="toggle-track"></span>
+                                        </label>
                                     </div>
-                                </div>
-                                <div class="card mb-2">
-                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtBackupRestore" }}</div>
-                                    <div class="card-body">
-                                        {{ .Lang "txtBackupInfo" }}
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtShowDeviceLabels" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="checkbox-deviceLabels">
+                                            <span class="toggle-track"></span>
+                                        </label>
                                     </div>
-                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                        <div class="input-group">
-                                            <div style="float: left;width: 20%;">
-                                                <button class="btn btn-primary" type="button" id="btnBackup">{{ .Lang "txtBackup" }}</button>
-                                            </div>
-                                            <div style="float: right;width: 80%;">
-                                                <form id="restoreForm" enctype="multipart/form-data">
-                                                    <div class="input-group">
-                                                        <input type="file" class="form-control" id="backupFile" name="backupFile" accept=".zip">
-                                                        <button class="btn btn-success" type="submit" id="btnRestore">
-                                                            {{ .Lang "txtRestore" }}
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
+
+                                    <!-- Language -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtLanguage" }}</span>
+                                        <label for="userLanguage">
+                                            <select id="userLanguage" class="form-select system-select auto-width compact userLanguage">
+                                                {{ range $k, $v := .Languages }}
+                                                {{ if eq $languageCode $k }}
+                                                <option value="{{ $k }}" selected>{{ $v.Name }}</option>
+                                                {{ else }}
+                                                <option value="{{ $k }}">{{ $v.Name }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
                                     </div>
-                                </div>
-                                <div class="card mb-2">
-                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtRgbScheduler" }}</div>
-                                    <div class="card-body">
-                                        <table style="width: 100%;">
-                                            <tbody>
-                                            <tr>
-                                                <th style="width: 80%;">{{ .Lang "txtEnable" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    {{ if .Scheduler.RGBControl }}
-                                                    <input class="form-check-input" id="rgbControl" type="checkbox" checked>
-                                                    {{ else }}
-                                                    <input class="form-check-input" id="rgbControl" type="checkbox">
-                                                    {{ end }}
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height: 50px;">{{ .Lang "txtRgbOffTime" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input type="time" id="rgbOff" name="rgbOff" value="{{ .Scheduler.RGBOff }}" class="form-control input-datepicker-autoclose datepicker-input" />
-                                                </th>
-                                            </tr>
-                                            <tr>
-                                                <th style="width: 80%;height: 50px;">{{ .Lang "rgbOnTime" }}</th>
-                                                <th style="width: 20%;text-align: right;">
-                                                    <input type="time" id="rgbOn" name="rgbOn" value="{{ .Scheduler.RGBOn }}" class="form-control input-datepicker-autoclose datepicker-input" />
-                                                </th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                        <div class="input-group">
-                                            <button class="btn btn-primary saveRgbControl">{{ .Lang "txtSave" }}</button>
-                                        </div>
+
+                                    <!-- Save settings -->
+                                    <div class="settings-row">
+                                        <button class="system-button" id="btnSaveDashboardSettings">{{ .Lang "txtSave" }}</button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-9" style="margin: 0 auto;">
-                                <div class="card mb-2">
-                                    <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtSupportedDevices" }}</div>
-                                    <div class="card-body">
-                                        <div class="table-responsive">
-                                            <table class="table text-sm" id="supported-devices" style="width: 100%;">
-                                                <thead>
-                                                <tr>
-                                                    <th>{{ .Lang "txtProductId" }}</th>
-                                                    <th>{{ .Lang "txtProductName" }}</th>
-                                                    <th>{{ .Lang "txtEnabled" }}</th>
-                                                </tr>
-                                                </thead>
-                                            </table>
-                                        </div>
+                        </div>
+
+                        <!-- Backup and restore -->
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtBackupRestore" }}
+                            </div>
+                            <div class="card-body text-left sentence-text">
+                                {{ .Lang "txtBackupInfo" }}
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-list">
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtBackup" }}</span>
+                                        <label class="system-toggle compact">
+                                            <button class="system-button success"
+                                                    type="button"
+                                                    id="btnBackup">{{ .Lang "txtBackup" }}
+                                            </button>
+                                        </label>
                                     </div>
-                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                        <div class="input-group">
-                                            <div style="float: left;">
-                                                <button class="btn btn-primary" type="button" id="btnSaveSupportedDevices">{{ .Lang "txtSave" }}</button>
-                                            </div>
-                                            <div style="display: flex; align-items: center; float: right; margin-left: 10px;">
-                                                <p style="margin: 0;">
-                                                    {{ .Lang "txtServiceRestartRequired" }}
-                                                </p>
-                                            </div>
-                                        </div>
+
+                                    <div class="settings-row">
+                                        <form id="restoreForm" enctype="multipart/form-data" class="file-form full-width">
+                                            <input type="file"
+                                                   class="system-input file-input"
+                                                   id="backupFile"
+                                                   name="backupFile"
+                                                   accept=".zip">
+                                            <button class="system-button danger" type="submit" id="btnRestore">
+                                                {{ .Lang "txtRestore" }}
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-3">
+                    <!-- RGB Scheduler -->
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Lang "txtRgbScheduler" }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Temperature (C / F) -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtEnable" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="rgbControl" {{ if .Scheduler.RGBControl }}checked{{end}}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgbOffTime" }}</span>
+                                    <label class="compact">
+                                        <input type="time"
+                                               id="rgbOff"
+                                               name="rgbOff"
+                                               value="{{ .Scheduler.RGBOff }}"
+                                               class="system-input system-time compact">
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "rgbOnTime" }}</span>
+                                    <label class="compact">
+                                        <input type="time"
+                                               id="rgbOn"
+                                               name="rgbOn"
+                                               value="{{ .Scheduler.RGBOn }}"
+                                               class="system-input system-time compact">
+                                    </label>
+                                </div>
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button saveRgbControl">{{ .Lang "txtSave" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Lang "txtSupportedDevices" }}
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="dataTable compact" id="dataTable" style="width: 100%;">
+                                    <thead>
+                                    <tr>
+                                        <th>{{ .Lang "txtProductId" }}</th>
+                                        <th>{{ .Lang "txtProductName" }}</th>
+                                        <th>{{ .Lang "txtEnabled" }}</th>
+                                    </tr>
+                                    </thead>
+                                </table>
+                            </div><br />
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis warning">{{ .Lang "txtServiceRestartRequired" }}</span>
+                                    <label class="system-toggle compact">
+                                        <button class="system-button" id="btnSaveSupportedDevices">{{ .Lang "txtSave" }}</button>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/dataTables.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/settings.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

@@ -1,0 +1,40 @@
+{{ define "temperature-bar" }}
+{{ $root := . }}
+{{ $dash := .Dashboard }}
+<!-- Temps -->
+<div class="row g-4 mb-4">
+    <!-- CPU -->
+    <div class="col-md-2">
+        <div class="card p-3">
+            <div class="card-title text-ellipsis">{{ $root.Lang "txtCpuTemperature" }}</div>
+            <div id="cpu_temp" class="stat text-warning text-ellipsis">{{ .CpuTemp }}</div>
+            <small class="text-ellipsis">{{ .SystemInfo.CPU.Model }}</small>
+        </div>
+    </div>
+
+    <!-- GPUs -->
+    {{ if .SystemInfo.GPU }}
+    {{ range .SystemInfo.GPU }}
+    <div class="col-md-2">
+        <div class="card p-3">
+            <div class="card-title text-ellipsis">{{ $root.Lang "txtGpuTemperature" }}</div>
+            <div id="gpu_temp_{{ .Index }}" class="stat text-warning text-ellipsis">{{ $dash.TemperatureToString .Temperature }}</div>
+            <small class="text-ellipsis">{{ .Model }}</small>
+        </div>
+    </div>
+    {{ end }}
+    {{ end }}
+
+    {{ if .SystemInfo.Storage }}
+    {{ range .SystemInfo.Storage }}
+    <div class="col-md-2">
+        <div class="card p-3">
+            <div class="card-title text-ellipsis">{{ $root.Lang "txtStorageTemperature" }}</div>
+            <div id="storage_temp-{{ .Key }}" class="stat text-warning text-ellipsis">{{ $dash.TemperatureToString .Temperature }}</div>
+            <small class="text-ellipsis">{{ .Model }}</small>
+        </div>
+    </div>
+    {{ end }}
+    {{ end }}
+</div>
+{{ end }}

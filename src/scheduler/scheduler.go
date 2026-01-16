@@ -61,30 +61,9 @@ func Init() {
 
 // SaveSchedulerSettings will save dashboard settings
 func SaveSchedulerSettings(data any) uint8 {
-	buffer, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(location, data); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to save scheduler data")
 		return 0
-	}
-
-	// Create profile filename
-	file, fileErr := os.Create(location)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to save device dashboard.")
-		return 0
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to save device dashboard.")
-		return 0
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to save device dashboard.")
 	}
 	return 1
 }

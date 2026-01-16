@@ -1,7 +1,13 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", function () {
+    // Global maximum amount of DPI stages
     const dpiStageAmount = 5;
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -10,44 +16,6 @@ document.addEventListener("DOMContentLoaded", function () {
             b: parseInt(result[3], 16)
         } : null;
     }
-
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
-
-    // Init toastr
-    const toast = CreateToastr();
-
-    $(function() {
-        for (let i = 0; i <= dpiStageAmount; i++) {
-            const stage = document.getElementById("stage" + i);
-            if (stage == null) {
-                continue
-            }
-
-            const stageValue = document.getElementById("stageValue" + i);
-            stage.oninput = function() {
-                stageValue.value = this.value;
-            }
-        }
-    });
 
     $('#defaultDPI').on('click', function () {
         for (let i = 0; i <= dpiStageAmount; i++) {
@@ -105,38 +73,40 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('#saveDPI').on('click', function () {
-        const deviceId = $("#deviceId").val();
+        const $btn = $(this);
+        $btn.prop('disabled', true);
 
+        const deviceId = $("#deviceId").val();
         const pf = {};
         let stages = {};
 
         pf["deviceId"] = deviceId;
+
         for (let i = 0; i <= dpiStageAmount; i++) {
             const stage = $("#stageValue" + i).val();
-            if (stage == null) {
-                continue
-            }
-
-            stages[i] =  parseInt(stage);
+            if (stage == null) continue;
+            stages[i] = parseInt(stage);
         }
-
         pf["stages"] = stages;
-        const json = JSON.stringify(pf, null, 2);
+
         $.ajax({
             url: '/api/mouse/dpi',
             type: 'POST',
-            data: json,
+            data: JSON.stringify(pf),
+            contentType: 'application/json',
             cache: false,
-            success: function(response) {
-                try {
-                    if (response.status === 1) {
-                        toast.success(response.message);
-                    } else {
-                        toast.warning(response.message);
-                    }
-                } catch (err) {
+            success: function (response) {
+                if (response?.status === 1) {
+                    toast.success(response.message);
+                } else {
                     toast.warning(response.message);
                 }
+            },
+            error: function () {
+                toast.error("Request failed");
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
             }
         });
     });
@@ -164,7 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        location.reload();
+                        toast.success(response.message);
                     } else {
                         toast.warning(response.message);
                     }
@@ -181,8 +151,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let colors = {};
         for (let i = 0; i < zones; i++) {
-            const zoneColor = $("#zoneColor"+i).val();
-            const zoneColorRgb = hexToRgb(zoneColor);
+            const $zoneColor = $("#zoneColor"+i).val();
+            if (!$zoneColor.length) continue;
+
+            const zoneColorRgb = hexToRgb($zoneColor);
             colors[i] = {red: zoneColorRgb.r, green: zoneColorRgb.g, blue: zoneColorRgb.b}
         }
 
@@ -340,34 +312,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('.mouseButtonOptimization').on('change', function () {
-        const deviceId = $("#deviceId").val();
-        const pf = {};
-        pf["deviceId"] = deviceId;
-        pf["buttonOptimization"] = parseInt($(this).val());
-        const json = JSON.stringify(pf, null, 2);
-
-        $('.mouseButtonOptimization').prop('disabled', true);
-        $.ajax({
-            url: '/api/mouse/buttonOptimization',
-            type: 'POST',
-            data: json,
-            cache: false,
-            success: function(response) {
-                try {
-                    if (response.status === 1) {
-                        toast.success(response.message);
-                    } else {
-                        toast.warning(response.message);
-                    }
-                } catch (err) {
-                    toast.warning(response.message);
-                }
-                $('.mouseButtonOptimization').prop('disabled', false);
-            }
-        });
-    });
-
     $('.defaultInfoToggle').on('click', function () {
         const modalElement = `
         <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel" aria-hidden="true">
@@ -426,7 +370,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the mouse action is sent when the button is released. When enabled, <b>Press and Hold</b> and <b>Sniper</b> can not be used.</span>
+                        <span>When enabled, the mouse action is sent when the button is released. When enabled, <b>Press and Hold</b> and <b>Sniper</b> can not be used.
+                        This value is ignored when <b>Mouse Tilt</b> is used. </span>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -523,6 +468,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('.saveKeyAssignment').on('click', function () {
+        const $btn = $(this);
         const deviceId = $("#deviceId").val();
         const keyIndex = $(this).attr("data-info");
         const enabled = $("#default_" + keyIndex).is(':checked');
@@ -535,17 +481,119 @@ document.addEventListener("DOMContentLoaded", function () {
             toast.warning('Press and Hold can not be used while On Release is enabled');
             return false;
         }
-        const pf = {};
-        pf["deviceId"] = deviceId;
-        pf["keyIndex"] = parseInt(keyIndex);
-        pf["enabled"] = enabled;
-        pf["pressAndHold"] = pressAndHold;
-        pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-        pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
-        pf["onRelease"] = onRelease;
-        const json = JSON.stringify(pf, null, 2);
+
+        // Disable button immediately
+        $btn.prop('disabled', true);
+
+        const pf = {
+            deviceId: deviceId,
+            keyIndex: parseInt(keyIndex),
+            enabled: enabled,
+            pressAndHold: pressAndHold,
+            keyAssignmentType: parseInt(keyAssignmentType),
+            keyAssignmentValue: parseInt(keyAssignmentValue),
+            onRelease: onRelease
+        };
+
         $.ajax({
             url: '/api/mouse/updateKeyAssignment',
+            type: 'POST',
+            data: JSON.stringify(pf),
+            cache: false,
+            success: function (response) {
+                if (response?.status === 1) {
+                    toast.success(response.message);
+                } else {
+                    toast.warning(response.message);
+                }
+            },
+            error: function () {
+                toast.error('Request failed');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
+    $(".toggleAngleSnapping").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/mouse/angleSnapping",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                angleSnapping: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".toggleButtonOptimization").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/mouse/buttonOptimization",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                buttonOptimization: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $('.mouseButtonOptimization').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["buttonOptimization"] = parseInt($(this).val());
+        const json = JSON.stringify(pf, null, 2);
+
+        $('.mouseButtonOptimization').prop('disabled', true);
+        $.ajax({
+            url: '/api/mouse/buttonOptimization',
             type: 'POST',
             data: json,
             cache: false,
@@ -559,7 +607,179 @@ document.addEventListener("DOMContentLoaded", function () {
                 } catch (err) {
                     toast.warning(response.message);
                 }
+                $('.mouseButtonOptimization').prop('disabled', false);
             }
         });
+    });
+
+    $(".toggleLeftHandMode").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/mouse/leftHandMode",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                leftHandMode: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    location.reload();
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".mouseLiftHeight").on("change", function () {
+        const value = $(this).val();
+        const deviceId = $("#deviceId").val();
+        
+        $.ajax({
+            url: "/api/mouse/liftHeight",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                liftHeight: parseInt(value)
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                toast.warning("Request failed");
+            }
+        });
+    });
+
+    $('#saveGestures').on('click', function () {
+        const $btn = $(this);
+        const deviceId = $("#deviceId").val();
+        const multiGestures = $(".toggleMultiGestures").prop("checked");
+        const pf = {};
+        let zoneTilts = {};
+
+        pf["deviceId"] = deviceId;
+        $btn.prop('disabled', true);
+        for (let i = 0; i < 4; i++) {
+            const tiltValue = $("#zoneTilt" + i).val();
+            if (tiltValue == null) {
+                continue
+            }
+
+            zoneTilts[i] =  parseInt(tiltValue);
+        }
+
+        $.ajax({
+            url: '/api/mouse/gestures',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                deviceId: deviceId,
+                multiGestures: multiGestures ? 1 : 0,
+                zoneTilts: zoneTilts
+            }),
+            cache: false,
+            success: function (response) {
+                if (response?.status === 1) {
+                    toast.success(response.message);
+                } else {
+                    toast.warning(response.message);
+                }
+            },
+            error: function () {
+                toast.error('Request failed');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
+    function updateDPISlider(el) {
+        const $slider = $(el);
+        const min = Number($slider.attr("min"));
+        const max = Number($slider.attr("max"));
+        const value = Number($slider.val());
+        const percent = ((value - min) / (max - min)) * 100;
+        $slider.css("--slider-progress", percent + "%");
+    }
+
+    function updateTiltSlider(el) {
+        const $slider = $(el);
+        const min = Number($slider.attr("min"));
+        const max = Number($slider.attr("max"));
+        const value = Number($slider.val());
+        const percent = ((value - min) / (max - min)) * 100;
+        $slider.css("--slider-progress", percent + "%");
+    }
+
+    $(".dpiSlider").each(function () {
+        const index = this.id.replace("stage", "");
+        $("#stageValue" + index).val(this.value);
+        updateDPISlider(this);
+    }).on("input", function () {
+        const index = this.id.replace("stage", "");
+        $("#stageValue" + index).val(this.value);
+        updateDPISlider(this);
+    });
+
+    $(".tiltSlider").each(function () {
+        const index = this.id.replace("zoneTilt", "");
+        $("#zoneTiltValue" + index).text(this.value + ' °');
+        updateTiltSlider(this);
+    }).on("input", function () {
+        const index = this.id.replace("zoneTilt", "");
+        $("#zoneTiltValue" + index).text(this.value + ' °');
+        updateTiltSlider(this);
+    });
+
+    function finalizeDPIInput(input) {
+        const index = input.id.replace("stageValue", "");
+        const $slider = $("#stage" + index);
+        if (!$slider.length) return;
+
+        let value = Number(input.value);
+        if (isNaN(value)) value = Number($slider.attr("min"));
+
+        const min = Number($slider.attr("min"));
+        const max = Number($slider.attr("max"));
+
+        value = clamp(value, min, max);
+
+        input.value = value;
+        $slider.val(value);
+        updateDPISlider($slider[0]);
+    }
+
+    $(".system-input input[type='text']").on("blur", function () {
+        finalizeDPIInput(this);
+    });
+
+    $(".system-input input[type='text']").on("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            finalizeDPIInput(this);
+            this.blur(); // optional, but feels right
+        }
     });
 });

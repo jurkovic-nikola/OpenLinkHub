@@ -1,29 +1,5 @@
 "use strict";
-
-document.addEventListener("DOMContentLoaded", function () {
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
-
-    // Init toastr
-    const toast = CreateToastr();
+$(document).ready(function () {
     let globalKeyId = 0;
 
     function componentToHex(c) {
@@ -80,7 +56,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-
     $('.keyboardPerformance').on('click', function () {
         const deviceId = $("#deviceId").val();
         const pf = {};
@@ -96,34 +71,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     if (response.status === 1) {
                         const data = response.data;
+
                         let modalElement = `
-                          <div class="modal fade text-start" id="keyboardPerformance" tabindex="-1" aria-labelledby="keyboardPerformance">
-                            <div class="modal-dialog">
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-500">
                               <div class="modal-content">
                                 <div class="modal-header">
-                                  <h5 class="modal-title" id="keyboardPerformance">Keyboard Performance</h5>
-                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  <h5 class="modal-title">Performance</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                  <form>
-                                    <div class="mb-3">
-                                        <table class="table mb-0">
-                                            <thead>
-                                            <tr>
-                                                <th style="text-align: left;">When Win Lock is ON</th>
-                                                <th style="text-align: right;"></th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                  </form>
+                                    <div class="settings-list"></div>
                                 </div>
+                        
                                 <div class="modal-footer">
                                   <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
                                   <button class="btn btn-primary" type="button" id="btnSaveKeyboardPerformance">Save</button>
                                 </div>
+                        
                               </div>
                             </div>
                           </div>
@@ -139,12 +104,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                     break;
                             }
                             var newRow = `
-                                <tr>
-                                    <th scope="row" style="text-align: left;">${value.name}</th>
-                                    <td style="text-align: right;">${element}</td>
-                                </tr>
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">${value.name}</span>
+                                    <label class="system-toggle compact">
+                                        ${element}
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
                             `;
-                            modal.find('.table tbody').append(newRow);
+                            modal.find('.settings-list').append(newRow);
                         });
 
                         modal.on('hidden.bs.modal', function () {
@@ -197,6 +165,175 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.keyboardFlashTap').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/keyboard/getFlashTap/' + deviceId,
+            type: 'GET',
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        let flashTapOptions = null;
+
+                        const data = response.data;
+                        const color = rgbToHex(data.color.red, data.color.green, data.color.blue);
+                        let modalElement = `
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-500">
+                              <div class="modal-content">
+                                <div class="modal-header">
+                                  <h5 class="modal-title">FlashTap</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Active</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="flashTapActive" ${data.active ? "checked" : ""}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Color</span>
+                                            <div class="system-color compact">
+                                                <label for="flashTapColor">
+                                                    <input type="color" id="flashTapColor" value="${color}">
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Mode</span>
+                                            <div class="no-padding-top">
+                                                <select class="system-select compact full-width flashTapMode" id="flashTapMode"></select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveFlashTap">Save</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        function loadFlashTapKeys(callback) {
+                            if (flashTapOptions) {
+                                callback && callback();
+                                return;
+                            }
+                            $.ajax({
+                                url: '/api/keyboard/getKeys/',
+                                type: 'POST',
+                                data: json,
+                                cache: false,
+                                success: function (resp) {
+                                    if (resp.status === 1) {
+                                        flashTapOptions = $();
+                                        $.each(resp.data, function (index, value) {
+                                            flashTapOptions = flashTapOptions.add(
+                                                new Option(value, index)
+                                            );
+                                        });
+                                        callback && callback();
+                                    }
+                                }
+                            });
+                        }
+
+                        loadFlashTapKeys(function () {
+                            $.each(data.keys, function (index, value) {
+                                var $row = $(`
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">KEY ${index}</span>
+                                        <div class="no-padding-top">
+                                            <select class="system-select compact full-width flashTapKey" id="flashTapKey${index}"></select>
+                                        </div>
+                                    </div>
+                                `);
+                                const $select = $row.find('.flashTapKey');
+                                $select.append(flashTapOptions.clone());
+                                if (value.Key !== undefined) {
+                                    $select.val(value.Key);
+                                }
+
+                                $select.find('option').filter(function () {
+                                    return $(this).text() === value.Name;
+                                }).prop('selected', true);
+
+                                modal.find('.settings-list').append($row);
+                            });
+                        });
+
+                        const modeValue = data.mode;
+                        const modes = data.modes;
+                        const $modeSelect = modal.find('#flashTapMode');
+                        $modeSelect.empty();
+                        $.each(modes, function (value, label) {
+                            $modeSelect.append(
+                                $('<option>', {
+                                    value: value,
+                                    text: label
+                                })
+                            );
+                        });
+                        $modeSelect.val(String(modeValue));
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveFlashTap').on('click', function () {
+                                const pf = {};
+                                const active = modal.find("#flashTapActive").is(':checked');
+                                const flashTapKey0 = parseInt(modal.find("#flashTapKey0").val());
+                                const flashTapKey1 = parseInt(modal.find("#flashTapKey1").val());
+                                const flashTapMode = parseInt(modal.find("#flashTapMode").val());
+                                let color = modal.find("#flashTapColor").val();
+                                color = hexToRgb(color);
+
+                                pf["deviceId"] = deviceId;
+                                pf["flashTapActive"] = active ? 1 : 0;
+                                pf["flashTapKeys"] = [flashTapKey0, flashTapKey1];
+                                pf["flashTapMode"] = flashTapMode;
+                                pf["flashTapColor"] = {red: color.r, green: color.g, blue: color.b};
+                                const json = JSON.stringify(pf, null, 2);
+                                console.log(json);
+
+                                $.ajax({
+                                    url: '/api/keyboard/setFlashTap',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.controlDialColors').on('click', function () {
         const deviceId = $("#deviceId").val();
         const pf = {};
@@ -212,37 +349,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     if (response.status === 1) {
                         const data = response.data;
+
                         let modalElement = `
-                          <div class="modal fade text-start" id="keyboardControlDial" tabindex="-1" aria-labelledby="keyboardControlDial">
-                            <div class="modal-dialog">
-                              <div class="modal-content">
-                                <div class="modal-header">
-                                  <h5 class="modal-title" id="keyboardControlDial">Control Dial Colors</h5>
-                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                  <form>
-                                    <div class="mb-3">
-                                        <table class="table mb-0">
-                                            <thead>
-                                            <tr>
-                                                <th style="text-align: left;">Option</th>
-                                                <th style="text-align: right;">Color</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                  </form>
-                                </div>
-                                <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveControlDialColors">Save</button>
+                            <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                              <div class="modal-dialog modal-custom modal-500">
+                                <div class="modal-content">
+                                  <div class="modal-header">
+                                    <h5 class="modal-title">Control Dial Colors</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                  </div>
+                                  <div class="modal-body">
+                                      <div class="settings-list"></div>
+                                  </div>
+                            
+                                  <div class="modal-footer">
+                                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                    <button class="btn btn-primary" type="button" id="btnSaveControlDialColors">Save</button>
+                                  </div>
+                            
                                 </div>
                               </div>
                             </div>
-                          </div>
                         `;
                         const modal = $(modalElement).modal('toggle');
 
@@ -250,12 +377,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             const color = rgbToHex(value.Color.red, value.Color.green, value.Color.blue);
                             const optionId = value.Id;
                             var newRow = `
-                                <tr>
-                                    <th scope="row" style="text-align: left;">${value.Name}</th>
-                                    <td style="text-align: right;"><input type="color" id="dial-color-${optionId}" value="${color}"></td>
-                                </tr>
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">${value.Name}</span>
+                                    <div class="system-color compact">
+                                        <label for="startColor">
+                                            <input type="color" id="dial-color-${optionId}" value="${color}">
+                                        </label>
+                                    </div>
+                                </div>
                             `;
-                            modal.find('.table tbody').append(newRow);
+                            modal.find('.settings-list').append(newRow);
                         });
 
                         modal.on('hidden.bs.modal', function () {
@@ -366,6 +497,38 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function noKeyActuation(deviceId, keyId) {
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyId"] = parseInt(keyId);
+        const json = JSON.stringify(pf, null, 2);
+
+        return new Promise((noChange, allowChange) => {
+            $.ajax({
+                url: '/api/keyboard/getKey/',
+                type: 'POST',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1 && response.data.noActuation === true) {
+                            noChange(true);
+                        } else if (response.data.onlyColor === true && response.data.modifier === false) {
+                            noChange(true);
+                        } else {
+                            noChange(false);
+                        }
+                    } catch (err) {
+                        noChange(false);
+                    }
+                },
+                error: function() {
+                    noChange(false);
+                }
+            });
+        });
+    }
+
     $('.device-selectable').click(function (e) {
         if ($(e.target).closest('button, select, input, .newLabel, .newRgbLabel').length > 0) {
             return;
@@ -408,26 +571,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             return false;
                         }
 
-                        let defaultCheckbox ='';
-                        if (data.default === true) {
-                            defaultCheckbox = '<input id="default" type="checkbox" checked/>';
-                        } else {
-                            defaultCheckbox = '<input id="default" type="checkbox"/>';
-                        }
+                        let defaultCheckbox = `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" id="default" ${data.default ? "checked" : ""}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
 
-                        let holdCheckbox ='';
-                        if (data.actionHold === true) {
-                            holdCheckbox = '<input id="pressAndHold" type="checkbox" checked/>';
-                        } else {
-                            holdCheckbox = '<input id="pressAndHold" type="checkbox"/>';
-                        }
+                        let holdCheckbox = `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" id="pressAndHold" ${data.actionHold ? "checked" : ""}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
 
                         let toggleDelayInput = '<input id="toggleDelay" type="text" value="' + data.toggleDelay + '"/>';
 
                         let modalElement = `
-                          <div class="modal fade text-start" id="setupKeyAssignments" tabindex="-1" aria-labelledby="setupKeyAssignments">
-                            <div class="modal-dialog modal-dialog-1000">
-                              <div class="modal-content" style="width: 1000px;">
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-1000">
+                              <div class="modal-content">
                                 <div class="modal-header">
                                   <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
                                   <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -435,10 +598,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 <div class="modal-body">
                                   <form>
                                     <div class="mb-3">
-                                        <table class="table mb-0">
+                                        <table class="dataTable text-sm">
                                             <thead>
                                             <tr>
-                                                <th style="text-align: left;">Key</th>
+                                                <th>Key</th>
                                                 <th>
                                                     Default
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
@@ -457,12 +620,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </thead>
                                             <tbody>
                                             <tr>
-                                                <th scope="row" style="text-align: left;">${data.keyName}</th>
+                                                <td class="key-assignments">${data.keyName}</td>
                                                 <td>${defaultCheckbox}</td>
                                                 <td>${holdCheckbox}</td>
-                                                <td><input class="form-control" id="toggleDelay" type="text" value="${data.toggleDelay}" style="width: 100px;"/></td>
-                                                <td><select class="form-select keyAssignmentType" id="keyAssignmentType"></select></td>
-                                                <td><select class="form-select" id="keyAssignmentValue"></select></td>
+                                                <td>
+                                                    <div class="system-input text-input compact">
+                                                        <label for="userProfileName">
+                                                            <input type="text" id="toggleDelay" autocomplete="off" value="${data.toggleDelay}">
+                                                        </label>
+                                                    </div>                                    
+                                                </td>
+                                                <td>
+                                                    <select class="system-select compact keyAssignmentType" id="keyAssignmentType"></select>
+                                                </td>
+                                                <td>
+                                                    <select class="system-select compact" id="keyAssignmentValue"></select>
+                                                </td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -470,8 +643,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                   </form>
                                 </div>
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveKeyAssignments">Save</button>
+                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="system-button" type="button" id="btnSaveKeyAssignments">Save</button>
                                 </div>
                               </div>
                             </div>
@@ -719,6 +892,224 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.openKeyActuation').on('click', function () {
+        if (globalKeyId === 0) {
+            toast.warning('Select a valid key');
+            return false;
+        }
+
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["keyId"] = parseInt(globalKeyId);
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/keyboard/getKey/',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        let data = response.data;
+                        if (data.onlyColor === true && data.modifier === false) {
+                            toast.warning('This object does not support Key Actuation');
+                            return false;
+                        }
+                        if (data.noActuation === true) {
+                            toast.warning('This object does not support Key Actuation');
+                            return false;
+                        }
+
+                        let modalElement = `
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-600">
+                              <div class="modal-content">
+                        
+                                <div class="modal-header">
+                                  <h5 class="modal-title">Setup Key Actuation - ${data.keyName}</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Apply to all keys</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="actuationAllKeys">
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="settings-row settings-actuation">
+                                            <span class="settings-label text-ellipsis">Actuation</span>
+                                            <div class="system-slider no-padding-top">
+                                                <input type="range" class="actuationPoint" id="actuationPoint" min="1" max="40" value="${data.actuationPoint}" step="1">
+                                            </div>
+                                            <span class="settings-label text-ellipsis" id="actuationValue">${data.actuationPoint / 10} mm</span>
+                                        </div>
+                                        
+                                        <div class="settings-row settings-actuation" id="primaryReset">
+                                            <span class="settings-label text-ellipsis">Actuation Reset</span>
+                                            <div class="system-slider no-padding-top">
+                                                <input type="range" class="actuationResetPoint" id="actuationResetPoint" min="1" max="40" value="${data.actuationResetPoint}" step="1">
+                                            </div>
+                                            <span class="settings-label text-ellipsis" id="actuationValueReset">${data.actuationResetPoint / 10} mm</span>
+                                        </div>
+
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Secondary Actuation Point</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="enableSecondaryActuationPoint" ${data.enableSecondaryActuationPoint ? "checked" : ""}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+                                        <div id="secondaryContainer">
+                                            <div class="settings-row settings-actuation" id="secondaryPoint">
+                                                <span class="settings-label text-ellipsis">Actuation</span>
+                                                <div class="system-slider no-padding-top">
+                                                    <input type="range" class="secondaryActuationPoint" id="secondaryActuationPoint" min="1" max="40" value="${data.secondaryActuationPoint}" step="1">
+                                                </div>
+                                                <span class="settings-label text-ellipsis" id="secondaryActuationValue">${data.secondaryActuationPoint / 10} mm</span>
+                                            </div>
+                                            
+                                            <div class="settings-row settings-actuation" id="secondaryReset">
+                                                <span class="settings-label text-ellipsis">Actuation Reset</span>
+                                                <div class="system-slider no-padding-top">
+                                                    <input type="range" class="secondaryActuationResetPoint" id="secondaryActuationResetPoint" min="1" max="40" value="${data.secondaryActuationResetPoint}" step="1">
+                                                </div>
+                                                <span class="settings-label text-ellipsis" id="secondaryActuationValueReset">${data.secondaryActuationResetPoint / 10} mm</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveActuationValue">Save</button>
+                                </div>
+                        
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            const enableSecondaryActuationPoint = $('#enableSecondaryActuationPoint');
+                            const container = $("#secondaryContainer");
+
+                            function updateSecondaryVisibility() {
+                                if (enableSecondaryActuationPoint.is(":checked")) {
+                                    container.stop(true, true).slideDown(150);
+                                } else {
+                                    container.stop(true, true).slideUp(150);
+                                }
+
+                                container
+                                    .find("input")
+                                    .prop("disabled", !enableSecondaryActuationPoint.is(":checked"));
+                            }
+
+                            updateSecondaryVisibility();
+                            enableSecondaryActuationPoint.on('change', function () {
+                                updateSecondaryVisibility();
+                            });
+
+                            function updateActuationSlider(el) {
+                                const $slider = $(el);
+                                const min = Number($slider.attr("min"));
+                                const max = Number($slider.attr("max"));
+                                const value = Number($slider.val());
+                                const percent = ((value - min) / (max - min)) * 100;
+                                $slider.css("--slider-progress", percent + "%");
+                            }
+
+                            $(".actuationPoint").each(function () {
+                                $("#actuationValue").html(this.value / 10 + " mm");
+                                updateActuationSlider(this);
+                            }).on("input", function () {
+                                $("#actuationValue").html(this.value / 10 + " mm");
+                                updateActuationSlider(this);
+                            });
+
+                            $(".actuationResetPoint").each(function () {
+                                $("#actuationValueReset").html(this.value / 10 + " mm");
+                                updateActuationSlider(this);
+                            }).on("input", function () {
+                                $("#actuationValueReset").html(this.value / 10 + " mm");
+                                updateActuationSlider(this);
+                            });
+
+                            $(".secondaryActuationPoint").each(function () {
+                                $("#secondaryActuationValue").html(this.value / 10 + " mm");
+                                updateActuationSlider(this);
+                            }).on("input", function () {
+                                $("#secondaryActuationValue").html(this.value / 10 + " mm");
+                                updateActuationSlider(this);
+                            });
+
+                            $(".secondaryActuationResetPoint").each(function () {
+                                $("#secondaryActuationValueReset").html(this.value + " mm");
+                                updateActuationSlider(this);
+                            }).on("input", function () {
+                                $("#secondaryActuationValueReset").html(this.value + " mm");
+                                updateActuationSlider(this);
+                            });
+
+                            modal.find('#btnSaveActuationValue').on('click', function () {
+                                const actuationAllKeys = modal.find("#actuationAllKeys").is(':checked');
+                                const actuationPoint = modal.find("#actuationPoint").val();
+                                const actuationResetPoint = modal.find("#actuationResetPoint").val();
+
+                                const enableSecondaryActuationPoint = modal.find("#enableSecondaryActuationPoint").is(':checked');
+                                const secondaryActuationPoint = modal.find("#secondaryActuationPoint").val();
+                                const secondaryActuationResetPoint = modal.find("#secondaryActuationResetPoint").val();
+
+                                const pf = {};
+                                pf["deviceId"] = deviceId;
+                                pf["keyIndex"] = parseInt(globalKeyId);
+                                pf["actuationAllKeys"] = actuationAllKeys;
+                                pf["actuationPoint"] = parseInt(actuationPoint);
+                                pf["actuationResetPoint"] = parseInt(actuationResetPoint);
+                                pf["enableSecondaryActuationPoint"] = enableSecondaryActuationPoint;
+                                pf["secondaryActuationPoint"] = parseInt(secondaryActuationPoint);
+                                pf["secondaryActuationResetPoint"] = parseInt(secondaryActuationResetPoint);
+
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/keyboard/updateActuation',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+
+                        })
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.openKeyAssignmentsWithModifier').on('click', function () {
         if (globalKeyId === 0) {
             toast.warning('Select a valid key');
@@ -745,31 +1136,31 @@ document.addEventListener("DOMContentLoaded", function () {
                             return false;
                         }
 
-                        let defaultCheckbox ='';
-                        if (data.default === true) {
-                            defaultCheckbox = '<input id="default" type="checkbox" checked/>';
-                        } else {
-                            defaultCheckbox = '<input id="default" type="checkbox"/>';
-                        }
+                        let defaultCheckbox = `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" id="default" ${data.default ? "checked" : ""}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
 
-                        let holdCheckbox ='';
-                        if (data.actionHold === true) {
-                            holdCheckbox = '<input id="pressAndHold" type="checkbox" checked/>';
-                        } else {
-                            holdCheckbox = '<input id="pressAndHold" type="checkbox"/>';
-                        }
+                        let holdCheckbox = `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" id="pressAndHold" ${data.actionHold ? "checked" : ""}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
 
-                        let retainCheckbox ='';
-                        if (data.retainOriginal === true) {
-                            retainCheckbox = '<input id="retainOriginal" type="checkbox" checked/>';
-                        } else {
-                            retainCheckbox = '<input id="retainOriginal" type="checkbox"/>';
-                        }
+                        let retainCheckbox = `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" id="retainOriginal" ${data.retainOriginal ? "checked" : ""}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
 
                         let modalElement = `
-                          <div class="modal fade text-start" id="setupKeyAssignments" tabindex="-1" aria-labelledby="setupKeyAssignments">
-                            <div class="modal-dialog modal-dialog-1200">
-                              <div class="modal-content" style="width: 1200px;">
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-1200">
+                              <div class="modal-content">
                                 <div class="modal-header">
                                   <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
                                   <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -777,10 +1168,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 <div class="modal-body">
                                   <form>
                                     <div class="mb-3">
-                                        <table class="table mb-0">
+                                        <table class="dataTable text-sm">
                                             <thead>
                                             <tr>
-                                                <th style="text-align: left;">Key</th>
+                                                <th>Key</th>
                                                 <th>
                                                     Default
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
@@ -804,14 +1195,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </thead>
                                             <tbody>
                                             <tr>
-                                                <th scope="row" style="text-align: left;">${data.keyName}</th>
+                                                <td class="key-assignments">${data.keyName}</td>
                                                 <td>${defaultCheckbox}</td>
                                                 <td>${holdCheckbox}</td>
-                                                <td><input class="form-control" id="toggleDelay" type="text" value="${data.toggleDelay}" style="width: 100px;"/></td>
+                                                <td>
+                                                    <div class="system-input text-input compact">
+                                                        <label for="toggleDelay">
+                                                            <input type="text" id="toggleDelay" autocomplete="off" value="${data.toggleDelay}">
+                                                        </label>
+                                                    </div>                                    
+                                                </td>
                                                 <td>${retainCheckbox}</td>
-                                                <td><select class="form-select keyAssignmentModifier" id="keyAssignmentModifier"></select></td>
-                                                <td><select class="form-select keyAssignmentType" id="keyAssignmentType"></select></td>
-                                                <td><select class="form-select" id="keyAssignmentValue"></select></td>
+                                                <td>
+                                                    <select class="system-select compact keyAssignmentModifier" id="keyAssignmentModifier"></select>
+                                                </td>
+                                                <td>
+                                                    <select class="system-select compact keyAssignmentType" id="keyAssignmentType"></select>
+                                                </td>
+                                                <td>
+                                                    <select class="system-select compact" id="keyAssignmentValue"></select>
+                                                </td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -819,8 +1222,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                   </form>
                                 </div>
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveKeyAssignments">Save</button>
+                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                  <button class="system-button" type="button" id="btnSaveKeyAssignments">Save</button>
                                 </div>
                               </div>
                             </div>
@@ -995,11 +1398,38 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">Retain Original</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <span>When enabled, the original key is sent first, following the user-defined value.</span>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+                            infoPressAndHold.on('hidden.bs.modal', function () {
+                                infoPressAndHold.data('bs.modal', null);
+                            })
+                        });
+
+                        modal.find('.toggleDelayInfoToggle').on('click', function () {
+                            const modalPressAndHold = `
+                                <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="infoToggleLabel">Toggle Delay</h5>
+                                                <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <span>
+                                                <b>Toggle Delay:</b><br /> Used only for the mouse Key Assignment type. When enabled, the action repeat is delayed by the defined period of time.
+                                                </span>
                                             </div>
                                             <div class="modal-footer">
                                                 <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
@@ -1176,75 +1606,91 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('.saveUserProfile').on('click', function () {
-        let modalElement = '<div class="modal fade text-start" id="newUserProfileModal" tabindex="-1" aria-labelledby="newUserProfileLabel" aria-hidden="true">';
-        modalElement+='<div class="modal-dialog">';
-        modalElement+='<div class="modal-content">';
-        modalElement+='<div class="modal-header">';
-        modalElement+='<h5 class="modal-title" id="newUserProfileLabel">Save user profile</h5>';
-        modalElement+='<button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>';
-        modalElement+='</div>';
-        modalElement+='<div class="modal-body">';
-        modalElement+='<form>';
-        modalElement+='<div class="mb-3">';
-        modalElement+='<label class="form-label" for="userProfileName">Profile Name</label>';
-        modalElement+='<input class="form-control" id="userProfileName" type="text" placeholder="Enter profile name (a-z, A-Z, 0-9, -)">';
-        modalElement+='</div>';
-        modalElement+='</form>';
-        modalElement+='</div>';
-        modalElement+='<div class="modal-footer">';
-        modalElement+='<button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>';
-        modalElement+='<button class="btn btn-primary" type="button" id="btnSaveUserProfile">Save</button>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        modalElement+='</div>';
+        const modalElement = `
+            <div class="modal fade text-start" id="systemModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-custom modal-600">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="newTempModalLabel">Save user profile</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body modal-title">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">Profile Name</span>
+                                    <div class="system-input text-input">
+                                        <label for="userProfileName">
+                                            <input type="text" id="userProfileName" autocomplete="off" placeholder="Enter profile name (a-z, A-Z, 0-9)">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="system-button" type="button" id="btnSaveUserProfile">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
         const modal = $(modalElement).modal('toggle');
 
         modal.on('hidden.bs.modal', function () {
             modal.data('bs.modal', null);
         })
 
-        modal.on('shown.bs.modal', function (e) {
+        modal.on('shown.bs.modal', function () {
             const userProfileName = modal.find('#userProfileName');
+            const saveBtn = modal.find('#btnSaveUserProfile');
+
             userProfileName.focus();
 
-            modal.find('#btnSaveUserProfile').on('click', function () {
-                const userProfileValue = userProfileName.val();
-                if (userProfileValue.length < 1) {
-                    toast.warning('Profile name can not be empty');
-                    return false
+            // Trigger save on Enter
+            userProfileName.on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // prevent form submit / modal close
+                    saveBtn.trigger('click');
                 }
-                const deviceId = $("#deviceId").val();
+            });
 
-                const pf = {};
-                pf["deviceId"] = deviceId;
-                pf["userProfileName"] = userProfileValue;
-                const json = JSON.stringify(pf, null, 2);
+            saveBtn.on('click', function () {
+                const userProfileValue = userProfileName.val();
+                if (userProfileValue.length < 3) {
+                    toast.warning('Profile name can not be empty');
+                    return false;
+                }
+
+                const deviceId = $("#deviceId").val();
+                const pf = {
+                    deviceId: deviceId,
+                    userProfileName: userProfileValue
+                };
 
                 $.ajax({
                     url: '/api/userProfile',
                     type: 'PUT',
-                    data: json,
+                    data: JSON.stringify(pf),
                     cache: false,
-                    success: function(response) {
-                        try {
-                            if (response.status === 1) {
-                                modal.modal('toggle');
-                                $('.userProfile').append($('<option>', {
-                                    value: userProfileValue,
-                                    text: userProfileValue
-                                }));
-                                toast.success(response.message);
-                            } else {
-                                toast.warning(response.message);
-                            }
-                        } catch (err) {
+                    success: function (response) {
+                        if (response.status === 1) {
+                            modal.modal('toggle');
+
+                            $('.userProfile').append(
+                                $('<option>', { value: userProfileValue, text: userProfileValue })
+                            );
+                            $('.deleteUserProfiles').append(
+                                $('<option>', { value: userProfileValue, text: userProfileValue })
+                            );
+
+                            toast.success(response.message);
+                        } else {
                             toast.warning(response.message);
                         }
                     }
                 });
             });
-        })
+        });
     });
 
     $('.moveLeft').on('click', function () {
@@ -1325,16 +1771,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const $label = $this.find('.labelValue');
 
         if ($label.find('input').length > 0) return;
-
         const originalText = $label.text().trim();
-        const $input = $('<input type="text" class="form-control form-control-sm" />')
-            .val(originalText)
-            .css({
-                'width': '100%',
-                'display': 'inline-block'
-            });
 
-        $label.empty().append($input);
+        const $inputWrapper = $(
+            '<div class="system-input text-input compact">' +
+            '<input type="text" autocomplete="off">' +
+            '</div>'
+        );
+
+        const $input = $inputWrapper.find('input');
+        $input.val(originalText);
+
+        $label.empty().append($inputWrapper);
         $input.focus();
 
         function saveLabelIfChanged() {
@@ -1399,16 +1847,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const $label = $this.find('.labelValue');
 
         if ($label.find('input').length > 0) return;
-
         const originalText = $label.text().trim();
-        const $input = $('<input type="text" class="form-control form-control-sm" />')
-            .val(originalText)
-            .css({
-                'width': '100%',
-                'display': 'inline-block'
-            });
 
-        $label.empty().append($input);
+        const $inputWrapper = $(
+            '<div class="system-input text-input compact">' +
+            '<input type="text" autocomplete="off">' +
+            '</div>'
+        );
+
+        const $input = $inputWrapper.find('input');
+        $input.val(originalText);
+
+        $label.empty().append($inputWrapper);
         $input.focus();
 
         function saveLabelIfChanged() {
@@ -1515,21 +1965,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
                     }
-                }
-            });
-
-            $.ajax({
-                url:'/api/cpuTemp',
-                type:'get',
-                success:function(result){
-                    $("#cpu_temp").html(result.data);
-                }
-            });
-            $.ajax({
-                url:'/api/gpuTemp',
-                type:'get',
-                success:function(result){
-                    $("#gpu_temp").html(result.data);
                 }
             });
         },1500);
@@ -1872,7 +2307,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        location.reload();
+                        /*location.reload();*/
                     } else {
                         toast.warning(response.message);
                     }
@@ -2004,10 +2439,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     if (response.status === 1) {
                         toast.success(response.message);
-                        if (parseInt(mode[1]) === 10) { // Animation
-                            $(".lcdImages").show();
+                        if (parseInt(mode[1]) === 10) {
+                            $(".lcdImagesHolder").show();
                         } else {
-                            $(".lcdImages").hide();
+                            $(".lcdImagesHolder").hide();
                         }
                     } else {
                         toast.warning(response.message);
@@ -2310,6 +2745,114 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('.commanderDuoOverride').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const channelId = $(this).attr("data-info");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(channelId);
+        pf["subDeviceId"] = 0;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/override/' + deviceId,
+            type: 'GET',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        $.each(response.data, function(key, value) {
+                            if (parseInt(key) === parseInt(channelId)) {
+                                let modalElement = `
+                                  <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-custom modal-500">
+                                      <div class="modal-content">
+                                
+                                        <div class="modal-header">
+                                          <h5 class="modal-title">LED Override</h5>
+                                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="settings-list">
+                                                <div class="settings-row">
+                                                    <span class="settings-label text-ellipsis">Enabled</span>
+                                                    <label class="system-toggle compact">
+                                                        <input type="checkbox" id="enabledCheckbox" ${value.Enabled ? "checked" : ""}>
+                                                        <span class="toggle-track"></span>
+                                                    </label>
+                                                </div>
+            
+                                                <div class="settings-row">
+                                                    <span class="settings-label text-ellipsis">LED Amount</span>
+                                                    <div class="system-input text-input">
+                                                        <label for="ledChannels">
+                                                            <input type="text" id="ledChannels" autocomplete="off" placeholder="Enter LED amount" value="${value.LedChannels}">
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                
+                                        <div class="modal-footer">
+                                          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                          <button class="btn btn-primary" type="button" id="btnSaveOverride">Save</button>
+                                        </div>
+                                
+                                      </div>
+                                    </div>
+                                  </div>
+                                `;
+                                const modal = $(modalElement).modal('toggle');
+                                modal.on('hidden.bs.modal', function () {
+                                    modal.data('bs.modal', null);
+                                    modal.remove();
+                                })
+
+                                modal.on('shown.bs.modal', function (e) {
+                                    modal.find('#btnSaveOverride').on('click', function () {
+                                        const pf = {};
+                                        const enabled = $("#enabledCheckbox").is(':checked');
+                                        const ledChannels = $("#ledChannels").val();
+
+                                        pf["deviceId"] = deviceId;
+                                        pf["channelId"] = parseInt(channelId);
+                                        pf["enabled"] = enabled;
+                                        pf["ledChannels"] = parseInt(ledChannels);
+
+                                        const json = JSON.stringify(pf, null, 2);
+                                        $.ajax({
+                                            url: '/api/color/override/update',
+                                            type: 'POST',
+                                            data: json,
+                                            cache: false,
+                                            success: function(response) {
+                                                try {
+                                                    if (response.status === 1) {
+                                                        toast.success(response.message);
+                                                    } else {
+                                                        toast.warning(response.message);
+                                                    }
+                                                } catch (err) {
+                                                    toast.warning(response.message);
+                                                }
+                                            }
+                                        });
+                                    });
+                                })
+                            }
+                        });
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.rgbOverride').on('click', function () {
         const deviceId = $("#deviceId").val();
         const channelId = $(this).attr("data-info");
@@ -2334,49 +2877,58 @@ document.addEventListener("DOMContentLoaded", function () {
                         const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
 
                         let modalElement = `
-                          <div class="modal fade text-start" id="rgbOverrideModel" tabindex="-1" aria-labelledby="rgbOverrideModel">
-                            <div class="modal-dialog modal-dialog-800">
-                              <div class="modal-content" style="width: 800px;">
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-500">
+                              <div class="modal-content">
+                        
                                 <div class="modal-header">
-                                  <h5 class="modal-title" id="rgbOverrideModel">RGB Override</h5>
-                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  <h5 class="modal-title">RGB Override</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                  <form>
-                                    <div class="mb-3">
-                                        <table class="table mb-0">
-                                            <thead>
-                                            <tr>
-                                                <th style="text-align: left;">Enabled</th>
-                                                <th style="text-align: left;">Start</th>
-                                                <th style="text-align: left;">End</th>
-                                                <th style="text-align: right;">Speed</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            <tr>
-                                                <th style="text-align: left;">
-                                                    <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
-                                                </th>
-                                                <th style="text-align: left;">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Enabled</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+    
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Start Color</span>
+                                            <div class="system-color">
+                                                <label for="startColor">
                                                     <input type="color" id="startColor" value="${startColor}">
-                                                </th>
-                                                <th style="text-align: left;">
-                                                    <input type="color" id="endColor" value="${endColor}">
-                                                </th>
-                                                <th style="text-align: right;">
-                                                    <input class="brightness-slider" type="range" id="speedSlider" name="speedSlider" style="margin-top: 5px;" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1" />
-                                                </th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">End Color</span>
+                                            <div class="system-color">
+                                                    <input type="color" class="system-color" id="endColor" value="${endColor}">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Speed</span>
+                                            <div class="system-slider no-padding-top">
+                                                <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
+                                                <label for="speedSlider" class="margin-lr-10">
+                                                    <input type="range" id="speedSlider" name="speedSlider" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1">
+                                                </label>
+                                                <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="Sloe" />
+                                            </div>
+                                        </div>
                                     </div>
-                                  </form>
                                 </div>
+                        
                                 <div class="modal-footer">
                                   <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
                                   <button class="btn btn-primary" type="button" id="btnSaveRgbOverride">Save</button>
                                 </div>
+                        
                               </div>
                             </div>
                           </div>
@@ -2389,6 +2941,25 @@ document.addEventListener("DOMContentLoaded", function () {
                         })
 
                         modal.on('shown.bs.modal', function (e) {
+                            const $speedSlider = modal.find("#speedSlider");
+                            const $speedSliderValue = modal.find("#speedSliderValue");
+
+                            function updateSpeedSlider() {
+                                const min = Number($speedSlider.attr("min"));
+                                const max = Number($speedSlider.attr("max"));
+                                const value = Number($speedSlider.val());
+
+                                const percent = ((value - min) / (max - min)) * 100;
+
+                                $speedSlider.css("--slider-progress", percent + "%");
+                                $speedSliderValue.text(value);
+                            }
+
+                            if ($speedSlider.length) {
+                                $speedSlider.on("input", updateSpeedSlider);
+                                updateSpeedSlider();
+                            }
+
                             modal.find('#btnSaveRgbOverride').on('click', function () {
                                 const pf = {};
                                 let startColorRgb = {}
@@ -2809,49 +3380,58 @@ document.addEventListener("DOMContentLoaded", function () {
                         const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
 
                         let modalElement = `
-                          <div class="modal fade text-start" id="rgbOverrideModel" tabindex="-1" aria-labelledby="rgbOverrideModel">
-                            <div class="modal-dialog modal-dialog-800">
-                              <div class="modal-content" style="width: 800px;">
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-500">
+                              <div class="modal-content">
+                        
                                 <div class="modal-header">
-                                  <h5 class="modal-title" id="rgbOverrideModel">RGB Override</h5>
-                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  <h5 class="modal-title">RGB Override</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                  <form>
-                                    <div class="mb-3">
-                                        <table class="table mb-0">
-                                            <thead>
-                                            <tr>
-                                                <th style="text-align: left;">Enabled</th>
-                                                <th style="text-align: left;">Start</th>
-                                                <th style="text-align: left;">End</th>
-                                                <th style="text-align: right;">Speed</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            <tr>
-                                                <th style="text-align: left;">
-                                                    <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
-                                                </th>
-                                                <th style="text-align: left;">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Enabled</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+    
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Start Color</span>
+                                            <div class="system-color">
+                                                <label for="startColor">
                                                     <input type="color" id="startColor" value="${startColor}">
-                                                </th>
-                                                <th style="text-align: left;">
-                                                    <input type="color" id="endColor" value="${endColor}">
-                                                </th>
-                                                <th style="text-align: right;">
-                                                    <input class="brightness-slider" type="range" id="speedSlider" name="speedSlider" style="margin-top: 5px;" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1" />
-                                                </th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">End Color</span>
+                                            <div class="system-color">
+                                                    <input type="color" class="system-color" id="endColor" value="${endColor}">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Speed</span>
+                                            <div class="system-slider no-padding-top">
+                                                <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
+                                                <label for="speedSlider" class="margin-lr-10">
+                                                    <input type="range" id="speedSlider" name="speedSlider" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1">
+                                                </label>
+                                                <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="Sloe" />
+                                            </div>
+                                        </div>
                                     </div>
-                                  </form>
                                 </div>
+                        
                                 <div class="modal-footer">
                                   <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
                                   <button class="btn btn-primary" type="button" id="btnSaveRgbOverrideLinkAdapter">Save</button>
                                 </div>
+                        
                               </div>
                             </div>
                           </div>
@@ -2864,6 +3444,25 @@ document.addEventListener("DOMContentLoaded", function () {
                         })
 
                         modal.on('shown.bs.modal', function (e) {
+                            const $speedSlider = modal.find("#speedSlider");
+                            const $speedSliderValue = modal.find("#speedSliderValue");
+
+                            function updateSpeedSlider() {
+                                const min = Number($speedSlider.attr("min"));
+                                const max = Number($speedSlider.attr("max"));
+                                const value = Number($speedSlider.val());
+
+                                const percent = ((value - min) / (max - min)) * 100;
+
+                                $speedSlider.css("--slider-progress", percent + "%");
+                                $speedSliderValue.text(value);
+                            }
+
+                            if ($speedSlider.length) {
+                                $speedSlider.on("input", updateSpeedSlider);
+                                updateSpeedSlider();
+                            }
+                            
                             modal.find('#btnSaveRgbOverrideLinkAdapter').on('click', function () {
                                 const pf = {};
                                 let startColorRgb = {}
@@ -2979,6 +3578,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
+        noKeyActuation(deviceId, keyId).then(result => {
+            if (result) {
+                $(".openKeyActuation").hide();
+            } else {
+                $(".openKeyActuation").show();
+            }
+        });
+
         const colorR = parseInt(keyInfo[1]);
         const colorG = parseInt(keyInfo[2]);
         const colorB = parseInt(keyInfo[3]);
@@ -2990,10 +3597,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const keyOption = $(".keyOptions").val();
             const keyColor = $('#keyColor').val();
             const rgb = hexToRgb(keyColor);
-            if (rgb.r === colorR && rgb.g === colorG && rgb.b === colorB) {
-                toast.warning('Old and new colors are identical');
-                return false;
-            }
 
             const pf = {};
             const color = {red:rgb.r, green:rgb.g, blue:rgb.b}
@@ -3040,10 +3643,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const miscOptions = $(".miscOptions").val();
             const miscColor = $('#miscColor').val();
             const rgb = hexToRgb(miscColor);
-            if (rgb.r === colorR && rgb.g === colorG && rgb.b === colorB) {
-                toast.warning('Old and new colors are identical');
-                return false;
-            }
 
             const pf = {};
             const color = {red:rgb.r, green:rgb.g, blue:rgb.b}
@@ -3074,28 +3673,34 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     $('#saveAsProfile').on('click', function () {
-        let modalElement = '<div class="modal fade text-start" id="newUserProfileModal" tabindex="-1" aria-labelledby="newUserProfileLabel" aria-hidden="true">';
-        modalElement+='<div class="modal-dialog">';
-        modalElement+='<div class="modal-content">';
-        modalElement+='<div class="modal-header">';
-        modalElement+='<h5 class="modal-title" id="newUserProfileLabel">Save keyboard profile</h5>';
-        modalElement+='<button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>';
-        modalElement+='</div>';
-        modalElement+='<div class="modal-body">';
-        modalElement+='<form>';
-        modalElement+='<div class="mb-3">';
-        modalElement+='<label class="form-label" for="userProfileName">Profile Name</label>';
-        modalElement+='<input class="form-control" id="userProfileName" type="text" placeholder="Enter profile name (a-z, A-Z, 0-9)">';
-        modalElement+='</div>';
-        modalElement+='</form>';
-        modalElement+='</div>';
-        modalElement+='<div class="modal-footer">';
-        modalElement+='<button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>';
-        modalElement+='<button class="btn btn-primary" type="button" id="btnSaveKeyboardProfile">Save</button>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        modalElement+='</div>';
-        modalElement+='</div>';
+        const modalElement = `
+            <div class="modal fade text-start" id="systemModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-custom modal-600">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="newTempModalLabel">Save user profile</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body modal-title">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">Profile Name</span>
+                                    <div class="system-input text-input">
+                                        <label for="userProfileName">
+                                            <input type="text" id="userProfileName" autocomplete="off" placeholder="Enter profile name (a-z, A-Z, 0-9)">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="system-button" type="button" id="btnSaveKeyboardProfile">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
         const modal = $(modalElement).modal('toggle');
 
         modal.on('hidden.bs.modal', function () {
@@ -3358,4 +3963,197 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    $('.debounceTime').on('change', function () {
+        const $el = $(this);
+        const deviceId = $("#deviceId").val();
+        const pf = {
+            deviceId: deviceId,
+            debounceTime: parseInt($el.val(), 10)
+        };
+        $el.prop('disabled', true);
+
+        $.ajax({
+            url: '/api/keyboard/debounceTime',
+            type: 'POST',
+            data: JSON.stringify(pf),
+            cache: false,
+            success: function (response) {
+                if (response?.status === 1) {
+                    toast.success(response.message);
+                } else {
+                    toast.warning(response?.message || 'Unknown response');
+                }
+            },
+            error: function () {
+                toast.error('Failed to update debounce time');
+            },
+            complete: function () {
+                // Always re-enable (success OR error)
+                $el.prop('disabled', false);
+            }
+        });
+    });
+
+    $(".toggleRgbCluster").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/color/setCluster",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                mode: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".toggleOpenRGB").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/color/setOpenRgbIntegration",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                mode: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".toggleAutoBrightness").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/keyboard/autoBrightness",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                autoBrightness: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".deleteUserProfile").on("click", function () {
+        const profile = $("#deleteUserProfiles").val();
+        const deviceId = $("#deviceId").val();
+
+        if (profile.length < 1) {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        if (profile === "none") {
+            toast.warning('Invalid profile selected');
+            return false;
+        }
+
+        if (profile === "default") {
+            toast.warning('Unable to delete default device profile. This profile is required.');
+            return false;
+        }
+
+        $.ajax({
+            url: "/api/userProfile/delete",
+            type: "DELETE",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                userProfileName: profile
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                    $('.userProfile option[value="' + profile + '"]').remove();
+                    $('#deleteUserProfiles option[value="' + profile + '"]').remove();
+                }
+            },
+            error() {
+                toast.warning("Request failed");
+            }
+        });
+    });
+
+    const $brightnessSlider = $("#brightnessSlider");
+    const $brightnessSliderValue = $("#brightnessSliderValue");
+    function updateSlider() {
+        const min = Number($brightnessSlider.attr("min"));
+        const max = Number($brightnessSlider.attr("max"));
+        const value = Number($brightnessSlider.val());
+
+        const percent = ((value - min) / (max - min)) * 100;
+
+        $brightnessSlider.css("--slider-progress", percent + "%");
+        $brightnessSliderValue.text(value + " %");
+    }
+
+    if ($brightnessSlider.length) {
+        $brightnessSlider.on("input", updateSlider);
+        updateSlider();
+    }
 });

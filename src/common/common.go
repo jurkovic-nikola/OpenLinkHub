@@ -5,8 +5,11 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"golang.org/x/image/draw"
 	"image"
+	"image/color"
 	"image/gif"
 	"io"
 	"math"
@@ -16,11 +19,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
-
-	"golang.org/x/image/draw"
-	"image/color"
 	"sync"
+	"time"
 )
 
 type Device struct {
@@ -94,7 +94,7 @@ const (
 	ProductTypeMakr75W              = 125
 	ProductTypeK95PlatinumXT        = 126
 	ProductTypeK70LUX               = 127
-	ProductTypeK65Rgb               = 128
+	ProductTypeK68Rgb               = 128
 	ProductTypeK57RgbWU             = 129
 	ProductTypeK70RgbRF             = 130
 	ProductTypeK55CoreTkl           = 131
@@ -102,6 +102,7 @@ const (
 	ProductTypeK70LUXRgb            = 133
 	ProductTypeStrafeRgbMk2         = 134
 	ProductTypeK65RM                = 135
+	ProductTypeK65Rgb               = 136
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203
@@ -147,6 +148,7 @@ const (
 	ProductTypeM65RgbElite          = 243
 	ProductTypeGlaiveRgbPro         = 244
 	ProductTypeGlaiveRgb            = 245
+	ProductTypeSabreV2Pro           = 246
 	ProductTypeVirtuosoXTW          = 300
 	ProductTypeVirtuosoXTWU         = 301
 	ProductTypeVirtuosoMAXW         = 302
@@ -847,4 +849,34 @@ func GenerateRandomMD5() string {
 	}
 	hash := md5.Sum(randomBytes)
 	return hex.EncodeToString(hash[:])
+}
+
+// SaveJsonData will save JSON data into a file
+func SaveJsonData(path string, data interface{}) error {
+	buffer, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	file, fileErr := os.Create(path)
+	if fileErr != nil {
+		return err
+	}
+
+	_, err = file.Write(buffer)
+	if err != nil {
+		return err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// InRange will validate if value is in range
+func InRange(v, min, max int) bool {
+	return v >= min && v <= max
 }

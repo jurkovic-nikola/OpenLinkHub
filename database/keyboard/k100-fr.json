@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k100-default",
@@ -486,7 +486,7 @@
             "green": 255,
             "blue": 255
           },
-          "keyEmpty": ["keyboard-key-empty", "keyboard-key-empty", "keyboard-key-empty"],
+          "keyEmpty": ["keyboard-key-empty"],
           "default": true,
           "keyData": [128],
           "keyHash": ["340282366920938463463374607431768211456"]
@@ -540,9 +540,9 @@
           "top": 20,
           "packetIndex": [570, 573, 576],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255,
+            "blue": 0,
             "brightness": 0,
             "Hex": ""
           },
@@ -659,7 +659,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [131],
           "keyHash": ["2722258935367507707706996859454145691648"],
           "default": true
@@ -680,7 +679,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [41],
           "keyHash": ["2199023255552"],
           "default": true
@@ -1129,7 +1127,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [132],
           "default": true,
           "keyHash": ["5444517870735015415413993718908291383296"]
@@ -1150,7 +1147,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [53],
           "default": true,
           "keyHash": ["9007199254740992"]
@@ -1622,7 +1618,6 @@
             "Hex": ""
           },
           "css": "top-32",
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [133],
           "default": true,
           "keyHash": ["10889035741470030830827987437816582766592"]
@@ -1644,7 +1639,6 @@
             "Hex": ""
           },
           "keySpace": "keyboard-key wide",
-          "keyEmpty": ["keyboard-key-empty"],
           "css": "top-32",
           "keyData": [43],
           "default": true,
@@ -2111,7 +2105,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [134],
           "default": true,
           "keyHash": ["21778071482940061661655974875633165533184"]
@@ -2133,7 +2126,6 @@
             "Hex": ""
           },
           "keySpace": "keyboard-key wide",
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [57],
           "default": true,
           "keyHash": ["144115188075855872"]
@@ -2521,7 +2513,6 @@
             "Hex": ""
           },
           "css": "top-32",
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [135],
           "default": true,
           "keyHash": ["43556142965880123323311949751266331066368"]
@@ -2543,7 +2534,6 @@
             "Hex": ""
           },
           "keySpace": "keyboard-key wide",
-          "keyEmpty": ["keyboard-key-empty"],
           "css": "top-32",
           "keyData": [106],
           "default": true,
@@ -2965,7 +2955,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": ["keyboard-key-empty"],
           "keyData": [136],
           "default": true,
           "keyHash": ["87112285931760246646623899502532662132736"]
@@ -2985,8 +2974,7 @@
           "keySpace": "keyboard-key wide",
           "default": true,
           "keyData": [105],
-          "keyHash": ["40564819207303340847894502572032"],
-          "keyEmpty": ["keyboard-key-empty"]
+          "keyHash": ["40564819207303340847894502572032"]
         },
         "147": {
           "keyName": "Super",

@@ -1,8 +1,6 @@
 package memory
 
 // Package: Memory
-// This is the primary package for memory control.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -155,7 +153,7 @@ var (
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
 	temperatureRegister   = byte(0x05)
 	basePath              = "/sys/bus/i2c/drivers/spd5118/"
-	rgbProfileUpgrade     = []string{"led", "nebula", "marquee", "spiralrainbow", "gradient"}
+	rgbProfileUpgrade     = []string{"led", "nebula", "marquee", "spiralrainbow", "gradient", "pastelrainbow", "pastelspiralrainbow"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -388,31 +386,8 @@ func (d *Device) loadRgb() {
 		profile := rgb.GetRGB()
 		profile.Device = d.Product
 
-		// Convert to JSON
-		buffer, err := json.MarshalIndent(profile, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -452,21 +427,9 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 	}
 
 	if save {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		if err := common.SaveJsonData(path, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
 			return
-		}
-
-		f, err := os.Create(path)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
-			return
-		}
-
-		_, err = f.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
 		}
 	}
 }
@@ -688,54 +651,11 @@ func (d *Device) getDevices() int {
 			if d.Debug {
 				logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
 			}
-			singleDigitSize := false
-			shift := 0
+
 			if vendor == "CM" { // Corsair Memory
 				line := dimmInfo[2:3]
-				size, e := strconv.Atoi(dimmInfo[3:6])
-				if e != nil {
-					size, e = strconv.Atoi(dimmInfo[3:5])
-					if e != nil {
-						size, e = strconv.Atoi(dimmInfo[3:4])
-						if e != nil {
-							continue
-						} else {
-							// Single digit DIMMs
-							singleDigitSize = true
-						}
-					}
-				} else {
-					shift = 1
-				}
-
-				if singleDigitSize {
-					shift = -1
-				}
-				memoryType, e := strconv.Atoi(dimmInfo[7+shift : 8+shift])
-				if e != nil {
-					continue
-				}
-				amount, e := strconv.Atoi(dimmInfo[9+shift : 10+shift])
-				if e != nil {
-					continue
-				}
-				speed, e := strconv.Atoi(dimmInfo[11+shift : 15+shift])
-				if e != nil {
-					continue
-				}
-				latency, e := strconv.Atoi(dimmInfo[16+shift : 18+shift])
-				if e != nil {
-					continue
-				}
-
 				if d.Debug {
-					logger.Log(logger.Fields{
-						"dimmInfoLine": line,
-						"memoryType":   memoryType,
-						"amount":       amount,
-						"speed":        speed,
-						"latency":      latency,
-					}).Info("Memory DIMM Info - Data")
+					logger.Log(logger.Fields{"dimmInfoLine": line}).Info("Memory DIMM Info - Data")
 				}
 
 				if config.GetConfig().MemoryType == 4 {
@@ -836,16 +756,12 @@ func (d *Device) getDevices() int {
 					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 				}
 
-				if size > 0 && amount > 0 {
+				if len(skuLine) > 0 {
 					device := &Devices{
 						ChannelId:         i,
 						DeviceId:          i,
 						Sku:               dimmInfo,
-						Size:              uint8(size / amount),
-						MemoryType:        memoryType,
-						Amount:            amount,
-						Speed:             speed,
-						Latency:           latency,
+						MemoryType:        config.GetConfig().MemoryType,
 						LedChannels:       uint8(ledChannels),
 						ColorRegister:     uint8(colorRegister),
 						Name:              skuLine,
@@ -1082,7 +998,6 @@ func (d *Device) saveDeviceProfile() {
 		RGBPerLed:          rgbPerLed,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
 		for _, device := range d.Devices {
 			rgbProfiles[device.ChannelId] = "static"
@@ -1112,32 +1027,20 @@ func (d *Device) saveDeviceProfile() {
 		}
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to close file handle")
-	}
 	d.loadDeviceProfiles()
 }
 
@@ -1548,7 +1451,7 @@ func (d *Device) setDeviceColor() {
 							buff = r.Output
 						}
 					}
-					// Send it
+
 					d.writeColor(buff, k)
 				}
 				time.Sleep(5 * time.Millisecond)
@@ -1557,7 +1460,7 @@ func (d *Device) setDeviceColor() {
 	}(lightChannels)
 }
 
-// writeColor will write data to the device
+// writeColor will write color data to the device
 func (d *Device) writeColor(data []byte, deviceId int) {
 	if d.DeviceProfile.OpenRGBIntegration {
 		return
@@ -1725,10 +1628,10 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.DeviceProfile.Brightness = mode
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1747,10 +1650,10 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 
 	if d.isRgbStatic() {
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor()
 	}
 	return 1
 }
@@ -1767,10 +1670,10 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 	d.saveDeviceProfile()
 	if d.isRgbStatic() {
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
-		d.setDeviceColor() // Restart RGB
+		d.setDeviceColor()
 	}
 	return 1
 }
@@ -1785,7 +1688,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 
 		// RGB reset
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
 
@@ -1806,35 +1709,37 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	return 0
 }
 
+// DeleteDeviceProfile deletes a device profile and its JSON file
+func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
+	profile, ok := d.UserProfiles[profileName]
+	if !ok {
+		return 0
+	}
+
+	if !common.IsValidExtension(profile.Path, ".json") {
+		return 0
+	}
+
+	if profile.Active {
+		return 2
+	}
+
+	if err := os.Remove(profile.Path); err != nil {
+		return 3
+	}
+
+	delete(d.UserProfiles, profileName)
+
+	return 1
+}
+
 // saveRgbProfile will save rgb profile data
 func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
 	rgbFilename := rgbDirectory + d.Serial + ".json"
 	if common.FileExists(rgbFilename) {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -1868,10 +1773,10 @@ func (d *Device) ProcessNewGradientColor(profileName string) (uint8, uint) {
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1, uint(nextID)
 }
 
@@ -1902,10 +1807,10 @@ func (d *Device) ProcessDeleteGradientColor(profileName string) (uint8, uint) {
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1, uint(maxKey)
 }
 
@@ -1933,10 +1838,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1974,10 +1879,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1999,10 +1904,10 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 	d.DeviceProfile.OpenRGBIntegration = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -2018,10 +1923,10 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	d.DeviceProfile.RGBCluster = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 
 	// For proper packet positioning
 	for k, device := range d.Devices {
@@ -2070,10 +1975,10 @@ func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool,
 	d.setRgbOverride(channelId, subDeviceId, *rgbOverride)
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 

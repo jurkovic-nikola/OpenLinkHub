@@ -1,0 +1,15 @@
+{{ define "404-no-device" }}
+{{ $root := . }}
+<div class="row g-4 mb-4 align-items-stretch">
+    <div class="col-md-12">
+        <div class="card error-card">
+            <div class="error-code">404</div>
+            <div class="error-title">{{ $root.Lang "txtDeviceNotFound" }}</div>
+            <div class="error-desc">{{ $root.Lang "txtResourceUnavailable" }}</div>
+            <button class="system-button" onclick="location.href='/'">
+                {{ $root.Lang "txtReturnToDashboard" }}
+            </button>
+        </div>
+    </div>
+</div>
+{{ end }}

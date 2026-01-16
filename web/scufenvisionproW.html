@@ -1,599 +1,519 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $root := . }}
-        {{ $devs := .Devices }}
-        {{ $rgbModes := .Device.RGBModes }}
-        {{ $emulationModes := .Device.ThumbStickModes }}
-        {{ $macros := .Macros }}
-        {{ $temperatures := .Temperatures }}
-        {{ $device := .Device }}
-        {{ $rgb := .Rgb }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <input type="hidden" id="zones" name="zones" value="1">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-controller.svg" width="46" height="46" alt="Device" />
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $emulationModes := .Device.ThumbStickModes }}
+    {{ $macros := .Macros }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $rgb := .Rgb }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="zones" name="zones" value="{{ $device.ZoneAmount }}">
+
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            {{ if eq .Device.Connected false }}
+            {{ template "404-no-device" . }}
+            {{ else }}
+
+            <!-- SCUF ENVISION PRO -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Firmware -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtFirmware" }}</span>
+                                    <span class="meta-value">{{ .Device.Firmware }}</span>
                                 </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <span title="{{ .Lang "txtConnectionSlipstream" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                    <i class="bi bi-wifi svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </span>
-                                    <span title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                    <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    {{ $device.BatteryLevel }} %
-                                    </span>
-                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select userProfile" name="userProfile">
-                                                {{ range $key, $profile := $device.UserProfiles }}
-                                                {{ if $profile.Active }}
-                                                <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $key }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
-                                        <li>
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select controllerRgbProfile" name="controllerRgbProfile">
-                                                {{ range $key, $mode := $rgbModes }}
-                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
-                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
-                                                {{ else }}
-                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtSleepTimer" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-clock-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select controllerSleepModes" name="sleepModes">
-                                                {{ range $key, $sleepMode := $device.SleepModes }}
-                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
-                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
-                                    <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding: 1rem 1rem;">
-                                <div class="row gy-12">
-                                    <div class="col-md-6 col-sm-6">
-                                        <div class="row">
-                                            <!-- Controller color start -->
-                                            <div class="col-md-4 col-sm-4">
-                                                <div class="card mb-4" data-info="1">
-                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                            <img src="/static/img/icons/icon-rgb.svg" width="46" height="46" alt="Device">
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right2">
-                                                            <span style="font-size: 13px;">{{ .Lang "txtControllerLEDs" }}</span><br>
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                <span class="labelValue">{{ .Lang "txtControllerColors" }}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;">
-                                                        <div style="text-align: center;">
-                                                            <div class="d-flex align-items-end justify-content-between">
-                                                                {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
-                                                                <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="margin:0 auto;">
-                                                                {{ end }}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary" type="button" id="saveZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Controller color end -->
 
-                                            <!-- Left Vibration Module start -->
-                                            <div class="col-md-4 col-sm-4">
-                                                <div class="card mb-4" data-info="1">
-                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                            <img src="/static/img/icons/icon-vibrate.svg" width="46" height="46" alt="Device">
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right2">
-                                                            <span style="font-size: 13px;">{{ .Lang "txtLeftVibrationModule" }}</span><br>
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                <span class="labelValue">{{ .Lang "txtVibrationModule" }}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 10%;">
-                                                                    <span id="leftVibrationVal">{{ $deviceProfile.LeftVibrationValue }}</span>
-                                                                </div>
-                                                                <div style="float: right;width: 80%;margin-top: 2px;">
-                                                                    <input class="brightness-slider" type="range" id="leftVibrationValue" name="leftVibrationValue" min="0" max="100" value="{{ $deviceProfile.LeftVibrationValue }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary" type="button" id="btnSaveLeftVibrationValue">{{ .Lang "txtSave" }}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Left Vibration Module end -->
-
-                                            <!-- Right Vibration Module start -->
-                                            <div class="col-md-4 col-sm-4">
-                                                <div class="card mb-4" data-info="1">
-                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                            <img src="/static/img/icons/icon-vibrate.svg" width="46" height="46" alt="Device">
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right2">
-                                                            <span style="font-size: 13px;">{{ .Lang "txtRightVibrationModule" }}</span><br>
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                <span class="labelValue">{{ .Lang "txtVibrationModule" }}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 10%;">
-                                                                    <span id="rightVibrationVal">{{ $deviceProfile.RightVibrationValue }}</span>
-                                                                </div>
-                                                                <div style="float: right;width: 80%;margin-top: 2px;">
-                                                                    <input class="brightness-slider" type="range" id="rightVibrationValue" name="rightVibrationValue" min="0" max="100" value="{{ $deviceProfile.RightVibrationValue }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary" type="button" id="btnSaveRightVibrationValue">{{ .Lang "txtSave" }}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Right Vibration Module end -->
-
-                                            <!-- Left Thumb Stick Emulation start -->
-                                            <div class="col-md-6 col-sm-6">
-                                                <div class="card mb-4" data-info="1">
-                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                            <img src="/static/img/icons/icon-thumbstick.svg" width="46" height="46" alt="Device">
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right2">
-                                                            <span style="font-size: 13px;">{{ .Lang "txtLeftThumbstick" }}</span><br>
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                <span class="labelValue">{{ .Lang "txtLeftThumbstickEmulation" }}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 70px;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 50%;text-align: left;">
-                                                                    <span style="margin-top: 5px;">{{ .Lang "txtEmulationMode" }}</span>
-                                                                </div>
-                                                                <div style="float: right;width: 50%;">
-                                                                    <select class="form-select leftThumbStickEmulationMode" id="leftThumbStickEmulationMode" name="leftThumbStickEmulationMode">
-                                                                        {{ range $key, $mode := $emulationModes }}
-                                                                        {{ if eq $key $device.DeviceProfile.LeftThumbStickMode }}
-                                                                        <option value="{{ $key }}" selected>{{ $mode }}</option>
-                                                                        {{ else }}
-                                                                        <option value="{{ $key }}">{{ $mode }}</option>
-                                                                        {{ end }}
-                                                                        {{ end }}
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensitivityInfoToggle"></i>
-                                                                    <span>{{ .Lang "txtSensitivityX" }} - <span id="leftThumbStickSensitivityX">{{ $deviceProfile.LeftThumbStickSensitivityX }}</span></span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    <input class="brightness-slider" type="range" id="leftThumbStickSensitivityValueX" name="leftThumbStickSensitivityValueX" min="5" max="50" value="{{ $deviceProfile.LeftThumbStickSensitivityX }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensitivityInfoToggle"></i>
-                                                                    <span>{{ .Lang "txtSensitivityY" }} - <span id="leftThumbStickSensitivityY">{{ $deviceProfile.LeftThumbStickSensitivityY }}</span></span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    <input class="brightness-slider" type="range" id="leftThumbStickSensitivityValueY" name="leftThumbStickSensitivityValueY" min="5" max="50" value="{{ $deviceProfile.LeftThumbStickSensitivityY }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensitivityInfoToggle"></i>
-                                                                    <span>{{ .Lang "txtInvertYAxis" }}</span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    {{ if $deviceProfile.LeftThumbStickInvertY }}
-                                                                        <input class="form-check-input" id="leftThumbStickInvertY" type="checkbox" style="float: right;" checked>
-                                                                    {{ else }}
-                                                                        <input class="form-check-input" id="leftThumbStickInvertY" type="checkbox" style="float: right;">
-                                                                    {{ end }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary" type="button" id="btnSaveLeftThumbstick">{{ .Lang "txtSave" }}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Left Thumb Stick Emulation end -->
-
-                                            <!-- Right Thumb Stick Emulation start -->
-                                            <div class="col-md-6 col-sm-6">
-                                                <div class="card mb-4" data-info="1">
-                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                            <img src="/static/img/icons/icon-thumbstick.svg" width="46" height="46" alt="Device">
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right2">
-                                                            <span style="font-size: 13px;">{{ .Lang "txtRightThumbstick" }}</span><br>
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                <span class="labelValue">{{ .Lang "txtRightThumbstickEmulation" }}</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 70px;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 50%;text-align: left;">
-                                                                    <span style="margin-top: 5px;">{{ .Lang "txtEmulationMode" }}</span>
-                                                                </div>
-                                                                <div style="float: right;width: 50%;">
-                                                                    <select class="form-select rightThumbStickEmulationMode" id="rightThumbStickEmulationMode" name="rightThumbStickEmulationMode">
-                                                                        {{ range $key, $mode := $emulationModes }}
-                                                                        {{ if eq $key $device.DeviceProfile.RightThumbStickMode }}
-                                                                        <option value="{{ $key }}" selected>{{ $mode }}</option>
-                                                                        {{ else }}
-                                                                        <option value="{{ $key }}">{{ $mode }}</option>
-                                                                        {{ end }}
-                                                                        {{ end }}
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensitivityInfoToggle"></i>
-                                                                    <span>{{ .Lang "txtSensitivityX" }} - <span id="rightThumbStickSensitivityX">{{ $deviceProfile.RightThumbStickSensitivityX }}</span></span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    <input class="brightness-slider" type="range" id="rightThumbStickSensitivityValueX" name="rightThumbStickSensitivityValueX" min="5" max="50" value="{{ $deviceProfile.RightThumbStickSensitivityX }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensitivityInfoToggle"></i>
-                                                                    <span>{{ .Lang "txtSensitivityY" }} - <span id="rightThumbStickSensitivityY">{{ $deviceProfile.RightThumbStickSensitivityY }}</span></span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    <input class="brightness-slider" type="range" id="rightThumbStickSensitivityValueY" name="rightThumbStickSensitivityValueY" min="5" max="50" value="{{ $deviceProfile.RightThumbStickSensitivityY }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy sensitivityInfoToggle"></i>
-                                                                    <span>{{ .Lang "txtInvertYAxis" }}</span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    {{ if $deviceProfile.RightThumbStickInvertY }}
-                                                                    <input class="form-check-input" id="rightThumbStickInvertY" type="checkbox" style="float: right;" checked>
-                                                                    {{ else }}
-                                                                    <input class="form-check-input" id="rightThumbStickInvertY" type="checkbox" style="float: right;">
-                                                                    {{ end }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary" type="button" id="btnSaveRightThumbstick">{{ .Lang "txtSave" }}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Right Thumb Stick Emulation end -->
-
-                                            <!-- Analog settings starts -->
-                                            {{ range $key, $leftTsSettings := $deviceProfile.AnalogData }}
-                                            <div class="col-md-6 col-sm-6">
-                                                <div class="card mb-4" data-info="1">
-                                                    <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                        <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                            {{ if eq $key 0 }}
-                                                            <img src="/static/img/icons/icon-thumbstick.svg" width="46" height="46" alt="Device">
-                                                            {{ else if eq $key 1 }}
-                                                            <img src="/static/img/icons/icon-thumbstick.svg" width="46" height="46" alt="Device">
-                                                            {{ else if eq $key 2 }}
-                                                            <img src="/static/img/icons/icon-trigger.svg" width="46" height="46" alt="Device">
-                                                            {{ else if eq $key 3 }}
-                                                            <img src="/static/img/icons/icon-trigger.svg" width="46" height="46" alt="Device">
-                                                            {{ end }}
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right2">
-                                                            {{ if eq $key 0 }}
-                                                            <span style="font-size: 13px;">{{ $root.Lang "txtLeftThumbstick" }}</span><br>
-                                                            {{ else if eq $key 1 }}
-                                                            <span style="font-size: 13px;">{{ $root.Lang "txtRightThumbstick" }}</span><br>
-                                                            {{ else if eq $key 2 }}
-                                                            <span style="font-size: 13px;">{{ $root.Lang "txtLeftTrigger" }}</span><br>
-                                                            {{ else if eq $key 3 }}
-                                                            <span style="font-size: 13px;">{{ $root.Lang "txtRightTrigger" }}</span><br>
-                                                            {{ end }}
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                {{ if eq $key 0 }}
-                                                                <span class="labelValue">{{ $root.Lang "txtLeftThumbstickSettings" }}</span>
-                                                                {{ else if eq $key 1 }}
-                                                                <span class="labelValue">{{ $root.Lang "txtRightThumbstickSettings" }}</span>
-                                                                {{ else if eq $key 2 }}
-                                                                <span class="labelValue">{{ $root.Lang "txtLeftTriggerSettings" }}</span>
-                                                                {{ else if eq $key 3 }}
-                                                                <span class="labelValue">{{ $root.Lang "txtRightTriggerSettings" }}</span>
-                                                                {{ end }}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 332px;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="width: 100%;">
-                                                                    <canvas id="graph_{{ $key }}" style="width: 100%; height: 300px; display: block;"></canvas>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};0">{{ $root.Lang "txtLinear" }}</button>
-                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};1" style="margin-left: 5px;">{{ $root.Lang "txtDynamic" }}</button>
-                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};2" style="margin-left: 5px;">{{ $root.Lang "txtExponential" }}</button>
-                                                            <button class="btn btn-primary btnDataCurvePreset" type="button" data-info="{{ $key }};3" style="margin-left: 5px;">{{ $root.Lang "txtAggressive" }}</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <span>{{ $root.Lang "txtDeadZoneMin" }} - <span class="deadZoneMin">{{ $leftTsSettings.DeadZoneMin }}</span> %</span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    <input class="brightness-slider deadZoneMinValue" type="range" id="deadZoneMinValue_{{ $key }}" min="2" max="15" value="{{ $leftTsSettings.DeadZoneMin }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;height: 55px;border-top: 1px solid #34373d !important;">
-                                                        <div style="text-align: center;">
-                                                            <div style="width: 100%;">
-                                                                <div style="float: left;width: 40%;text-align: left;margin-top:-1px;">
-                                                                    <span>{{ $root.Lang "txtDeadZoneMax" }} - <span class="deadZoneMax">{{ $leftTsSettings.DeadZoneMax }}</span> %</span>
-                                                                </div>
-                                                                <div style="float: right;width: 60%;margin-top: 1px;">
-                                                                    <input class="brightness-slider deadZoneMaxValue" type="range" id="deadZoneMaxValue_{{ $key }}" min="2" max="15" value="{{ $leftTsSettings.DeadZoneMax }}" style="margin-top:0" step="1" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                                                        <div class="input-group">
-                                                            <button class="btn btn-primary btnSaveAnalogSettings" id="btnSaveAnalogSettings_{{ $key }}" type="button" data-info="{{ $key }}">{{ $root.Lang "txtSave" }}</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Analog settings end -->
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="system-select auto-width compact userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            <option value="{{ $key }}" selected>{{ $key }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
                                             {{ end }}
-                                        </div>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
                                     </div>
-                                    <div class="col-md-6 col-sm-6">
-                                        <div class="row">
-                                            <!-- Controller mapping start -->
-                                            <div class="card mb-4" data-info="1" style="padding-left: 0;padding-right: 0;">
-                                                <div class="card-header border-bottom border-dash-dark-1" style="background-color: #161414;">
-                                                    <div class="ds-svg-placeholder-left" style="width: 46px;">
-                                                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device">
-                                                    </div>
-                                                    <div class="ds-svg-placeholder-right2">
-                                                        <span style="font-size: 13px;">{{ .Lang "txtKeyAssignment" }}</span><br>
-                                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                            <span class="labelValue">{{ .Lang "txtControllerMappings" }}</span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div class="card-body" style="padding: 1rem 1rem;">
-                                                    <div style="text-align: right;">
-                                                        <div class="d-flex align-items-end justify-content-between">
-                                                            <table class="table mb-0">
-                                                                <thead>
-                                                                <tr>
-                                                                    <th style="text-align: left;">{{ .Lang "txtKeyAssignment" }}</th>
-                                                                    <th>
-                                                                        Default
-                                                                        <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
-                                                                    </th>
-                                                                    <th>
-                                                                        {{ .Lang "txtPressAndHold" }}
-                                                                        <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
-                                                                    </th>
-                                                                    <th>{{ .Lang "txtAssignmentType" }}</th>
-                                                                    <th>{{ .Lang "txtAssignmentKey" }}</th>
-                                                                    <th></th>
-                                                                </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                {{ range $key, $value := $device.KeyAssignment }}
-                                                                {{ if eq $key 1 }}
-                                                                {{ continue }}
-                                                                {{ end }}
-                                                                <tr>
-                                                                    <th scope="row" style="text-align: left;">{{ $value.Name }}</th>
-                                                                    <td>
-                                                                        {{ if $value.Default }}
-                                                                        <input id="default_{{ $key }}" type="checkbox" checked/>
-                                                                        {{ else }}
-                                                                        <input id="default_{{ $key }}" type="checkbox" />
-                                                                        {{ end }}
-                                                                    </td>
-                                                                    <td>
-                                                                        {{ if $value.ActionHold }}
-                                                                        <input id="pressAndHold_{{ $key }}" type="checkbox" checked/>
-                                                                        {{ else }}
-                                                                        <input id="pressAndHold_{{ $key }}" type="checkbox" />
-                                                                        {{ end }}
-                                                                    </td>
-                                                                    <td>
-                                                                        <select class="form-select keyAssignmentType" id="keyAssignmentType_{{ $key }}">
-                                                                            {{ range $k, $v := $device.KeyAssignmentTypes }}
-                                                                            {{ if eq $value.ActionType $k }}
-                                                                            <option value="{{ $k }}" selected>{{ $v }}</option>
-                                                                            {{ else }}
-                                                                            <option value="{{ $k }}">{{ $v }}</option>
-                                                                            {{ end }}
-                                                                            {{ end }}
-                                                                        </select>
-                                                                    </td>
-                                                                    <td>
-                                                                        {{ if $value.IsMacro }}
-                                                                        <select class="form-select" id="keyAssignmentValue_{{ $key }}">
-                                                                            {{ range $k, $v := $macros }}
-                                                                            {{ if eq $value.ActionCommand $k }}
-                                                                            <option value="{{ $k }}" selected>{{ $v.Name }}</option>
-                                                                            {{ else }}
-                                                                            <option value="{{ $k }}">{{ $v.Name }}</option>
-                                                                            {{ end }}
-                                                                            {{ end }}
-                                                                        </select>
-                                                                        {{ else }}
-                                                                        <select class="form-select" id="keyAssignmentValue_{{ $key }}">
-                                                                            {{ range $k, $v := $device.InputActions }}
-                                                                            {{ if eq $value.ActionCommand $k }}
-                                                                            <option value="{{ $k }}" selected>{{ $v.Name }}</option>
-                                                                            {{ else }}
-                                                                            <option value="{{ $k }}">{{ $v.Name }}</option>
-                                                                            {{ end }}
-                                                                            {{ end }}
-                                                                        </select>
-                                                                        {{ end }}
-                                                                    </td>
-                                                                    <td style="text-align: right;">
-                                                                        <button class="btn btn-secondary saveKeyAssignment" data-info="{{ $key }}">
-                                                                            <span>{{ $root.Lang "txtSave" }}</span>
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                                {{ end }}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Controller mapping end -->
-                                        </div>
-                                    </div>
+                                </div>
+
+                                <!-- RGB Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="rgbProfile">
+                                        <select id="rgbProfile" class="system-select auto-width compact mouseRgbProfile" name="mouseRgbProfile">
+                                            {{ range $key, $mode := $rgbModes }}
+                                            {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                            <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
+                                            {{ else }}
+                                            <option value="0;{{ $mode }}">{{ $mode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                {{ if eq .Device.Usb false }}
+                                <!-- Sleep -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSleepTimer" }}</span>
+                                    <label for="sleepTimer">
+                                        <select id="sleepTimer" class="system-select auto-width compact controllerSleepModes" name="sleepModes">
+                                            {{ range $key, $sleepMode := $device.SleepModes }}
+                                            <option value="{{ $key }}" {{ if eq $device.DeviceProfile.SleepMode $key }} selected {{ end }}>{{ $sleepMode }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+                                {{ end }}
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="system-select auto-width compact deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-5">
+                    <div class="row g-4 mb-4 align-items-stretch">
+                        <!-- Zone Colors -->
+                        <div class="col-md-4">
+                            <div class="card system-card text-center" data-info="1">
+                                <div class="card-header">
+                                    {{ .Lang "txtControllerLEDs" }}
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtZone" }}: {{ $zone.Name }}</span>
+                                            <div class="system-color compact">
+                                                <label>
+                                                    <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}">
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {{ end }}
+                                    </div>
+                                </div>
+
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button" id="saveZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Left Vibration Module -->
+                        <div class="col-md-4">
+                            <div class="card system-card" data-info="1">
+                                <div class="card-header">
+                                    {{ .Lang "txtLeftVibrationModule" }}
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row settings-row-80-20">
+                                            <div class="system-slider no-padding-top">
+                                                <label for="brightnessSlider" class="full-width">
+                                                    <input
+                                                            type="range"
+                                                            id="leftVibrationValue"
+                                                            name="leftVibrationValue"
+                                                            class="system-slider-input"
+                                                            min="0"
+                                                            max="100"
+                                                            value="{{ $deviceProfile.LeftVibrationValue }}"
+                                                            step="1"
+                                                            data-value-target="#leftVibrationValueText"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div class="slider-value" id="leftVibrationValueText">{{ $deviceProfile.LeftVibrationValue }} %</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button" id="btnSaveLeftVibrationValue">{{ .Lang "txtSave" }}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Vibration Module -->
+                        <div class="col-md-4">
+                            <div class="card system-card text-center" data-info="1">
+                                <div class="card-header">
+                                    {{ .Lang "txtRightVibrationModule" }}
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row settings-row-80-20">
+                                            <div class="system-slider no-padding-top">
+                                                <label for="brightnessSlider" class="full-width">
+                                                    <input
+                                                            type="range"
+                                                            id="rightVibrationValue"
+                                                            name="rightVibrationValue"
+                                                            class="system-slider-input"
+                                                            min="0"
+                                                            max="100"
+                                                            value="{{ $deviceProfile.RightVibrationValue }}"
+                                                            step="1"
+                                                            data-value-target="#rightVibrationValueText"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div class="slider-value" id="rightVibrationValueText">{{ $deviceProfile.RightVibrationValue }} %</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button" id="btnSaveRightVibrationValue">{{ .Lang "txtSave" }}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Left Thumbstick Emulation -->
+                        <div class="col-md-6">
+                            <div class="card system-card text-center" data-info="1">
+                                <div class="card-header">
+                                    {{ .Lang "txtLeftThumbstickEmulation" }}
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtEmulationMode" }}</span>
+                                            <label for="leftThumbStickEmulationMode">
+                                                <select id="leftThumbStickEmulationMode" class="system-select auto-width compact leftThumbStickEmulationMode" name="leftThumbStickEmulationMode">
+                                                    {{ range $key, $mode := $emulationModes }}
+                                                    <option value="{{ $key }}" {{ if eq $key $device.DeviceProfile.LeftThumbStickMode }} selected {{ end}}>{{ $mode }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+
+                                        <div class="settings-row settings-row-30-50-20">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtSensitivityX" }}</span>
+                                            <div class="system-slider no-padding-top">
+                                                <label for="brightnessSlider" class="full-width">
+                                                    <input
+                                                            type="range"
+                                                            id="leftThumbStickSensitivityValueX"
+                                                            name="leftThumbStickSensitivityValueX"
+                                                            class="system-slider-input-no-percent"
+                                                            min="5"
+                                                            max="50"
+                                                            value="{{ $deviceProfile.LeftThumbStickSensitivityX }}"
+                                                            step="1"
+                                                            data-value-target="#leftThumbStickSensitivityX"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div class="slider-value" id="leftThumbStickSensitivityX">{{ $deviceProfile.LeftThumbStickSensitivityX }}</div>
+                                        </div>
+
+                                        <div class="settings-row settings-row-30-50-20">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtSensitivityY" }}</span>
+                                            <div class="system-slider no-padding-top">
+                                                <label for="brightnessSlider" class="full-width">
+                                                    <input
+                                                            type="range"
+                                                            id="leftThumbStickSensitivityValueY"
+                                                            name="leftThumbStickSensitivityValueY"
+                                                            class="system-slider-input-no-percent"
+                                                            min="5"
+                                                            max="50"
+                                                            value="{{ $deviceProfile.LeftThumbStickSensitivityY }}"
+                                                            step="1"
+                                                            data-value-target="#leftThumbStickSensitivityY"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div class="slider-value" id="leftThumbStickSensitivityY">{{ $deviceProfile.LeftThumbStickSensitivityY }}</div>
+                                        </div>
+
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtInvertYAxis" }}</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="leftThumbStickInvertY" {{ if $deviceProfile.LeftThumbStickInvertY }} checked {{ end }}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button" id="btnSaveLeftThumbstick">{{ .Lang "txtSave" }}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Thumbstick Emulation -->
+                        <div class="col-md-6">
+                            <div class="card system-card text-center" data-info="1">
+                                <div class="card-header">
+                                    {{ .Lang "txtRightThumbstickEmulation" }}
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtEmulationMode" }}</span>
+                                            <label for="rightThumbStickEmulationMode">
+                                                <select id="rightThumbStickEmulationMode" class="system-select auto-width compact rightThumbStickEmulationMode" name="rightThumbStickEmulationMode">
+                                                    {{ range $key, $mode := $emulationModes }}
+                                                    <option value="{{ $key }}" {{ if eq $key $device.DeviceProfile.RightThumbStickMode }} selected {{ end}}>{{ $mode }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+
+                                        <div class="settings-row settings-row-30-50-20">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtSensitivityX" }}</span>
+                                            <div class="system-slider no-padding-top">
+                                                <label for="brightnessSlider" class="full-width">
+                                                    <input
+                                                            type="range"
+                                                            id="rightThumbStickSensitivityValueX"
+                                                            name="rightThumbStickSensitivityValueX"
+                                                            class="system-slider-input-no-percent"
+                                                            min="5"
+                                                            max="50"
+                                                            value="{{ $deviceProfile.RightThumbStickSensitivityX }}"
+                                                            step="1"
+                                                            data-value-target="#RightThumbStickSensitivityX"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div class="slider-value" id="rightThumbStickSensitivityX">{{ $deviceProfile.RightThumbStickSensitivityX }}</div>
+                                        </div>
+
+                                        <div class="settings-row settings-row-30-50-20">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtSensitivityY" }}</span>
+                                            <div class="system-slider no-padding-top">
+                                                <label for="brightnessSlider" class="full-width">
+                                                    <input
+                                                            type="range"
+                                                            id="rightThumbStickSensitivityValueY"
+                                                            name="rightThumbStickSensitivityValueY"
+                                                            class="system-slider-input-no-percent"
+                                                            min="5"
+                                                            max="50"
+                                                            value="{{ $deviceProfile.RightThumbStickSensitivityY }}"
+                                                            step="1"
+                                                            data-value-target="#rightThumbStickSensitivityY"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div class="slider-value" id="rightThumbStickSensitivityY">{{ $deviceProfile.RightThumbStickSensitivityY }}</div>
+                                        </div>
+
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ .Lang "txtInvertYAxis" }}</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="rightThumbStickInvertY" {{ if $deviceProfile.RightThumbStickInvertY }} checked {{ end }}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button" id="btnSaveRightThumbstick">{{ .Lang "txtSave" }}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analog settings -->
+                        {{ range $key, $leftTsSettings := $deviceProfile.AnalogData }}
+
+                        {{ $headerText := "" }}
+                        {{ if eq $key 0 }}
+                            {{ $headerText = $root.Lang "txtLeftThumbstick" }}
+                        {{ else if eq $key 1 }}
+                            {{ $headerText = $root.Lang "txtRightThumbstick" }}
+                        {{ else if eq $key 2 }}
+                            {{ $headerText = $root.Lang "txtLeftTrigger" }}
+                        {{ else if eq $key 3 }}
+                            {{ $headerText = $root.Lang "txtRightTrigger" }}
+                        {{ end }}
+
+                        <div class="col-md-6">
+                            <div class="card system-card text-center" data-info="1">
+                                <div class="card-header">
+                                    {{ $headerText }}
+                                </div>
+                                <div class="card-body no-bottom-padding">
+                                    <div class="settings-list">
+                                        <canvas id="graph_{{ $key }}" style="width: 100%; height: 300px; display: block;"></canvas>
+                                    </div>
+                                </div>
+
+                                <div class="card-body text-left">
+                                    <button class="system-button secondary btnDataCurvePreset" data-info="{{ $key }};0">{{ $root.Lang "txtLinear" }}</button>
+                                    <button class="system-button secondary btnDataCurvePreset" data-info="{{ $key }};1">{{ $root.Lang "txtDynamic" }}</button>
+                                    <button class="system-button secondary btnDataCurvePreset" data-info="{{ $key }};2">{{ $root.Lang "txtExponential" }}</button>
+                                    <button class="system-button secondary btnDataCurvePreset" data-info="{{ $key }};3">{{ $root.Lang "txtAggressive" }}</button>
+                                </div>
+
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button btnSaveAnalogSettings" id="btnSaveAnalogSettings_{{ $key }}" data-info="{{ $key }}">{{ $root.Lang "txtSave" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card system-card text-center">
+                        <table class="dataTable text-sm">
+                            <!-- Header -->
+                            <thead>
+                            <tr>
+                                <th>{{ .Lang "txtKeyAssignment" }}</th>
+                                <th>
+                                    Default
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
+                                </th>
+                                <th>
+                                    {{ .Lang "txtPressAndHold" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                </th>
+                                <th>
+                                    {{ .Lang "txtOnRelease" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy onReleaseInfoToggle"></i>
+                                </th>
+                                <th>{{ .Lang "txtAssignmentType" }}</th>
+                                <th>{{ .Lang "txtAssignmentKey" }}</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+
+                            <!-- Body -->
+                            <tbody>
+                            {{ range $key, $value := $device.KeyAssignment }}
+                            {{ if eq $key 1 }}
+                            {{ continue }}
+                            {{ end }}
+                            <tr>
+                                <td class="key-assignments">{{ $value.Name }}</td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="default_{{ $key }}" {{ if $value.Default }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="pressAndHold_{{ $key }}" {{ if $value.ActionHold }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="onRelease_{{ $key }}" {{ if $value.OnRelease }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <select id="keyAssignmentType_{{ $key }}" class="system-select compact full-width keyAssignmentType">
+                                        {{ range $k, $v := $device.KeyAssignmentTypes }}
+                                        {{ if eq $value.ActionType $k }}
+                                        <option value="{{ $k }}" selected>{{ $v }}</option>
+                                        {{ else }}
+                                        <option value="{{ $k }}">{{ $v }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="keyAssignmentValue_{{ $key }}" class="system-select compact full-width">
+                                        {{ if $value.IsMacro }}
+                                        {{ range $k, $v := $macros }}
+                                        <option value="{{ $k }}" {{ if eq $value.ActionCommand $k }}selected{{ end }}>{{ $v.Name }}</option>
+                                        {{ end }}
+                                        {{ else }}
+                                        {{ range $k, $v := $device.InputActions }}
+                                        <option value="{{ $k }}" {{ if eq $value.ActionCommand $k }}selected{{ end }}>{{ $v.Name }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="system-button saveKeyAssignment" data-info="{{ $key }}">
+                                        <span>{{ $root.Lang "txtSave" }}</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            {{ end }}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+            {{ end }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
 <script src="/static/js/controller.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

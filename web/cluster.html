@@ -1,98 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $device := .Device }}
-        {{ $rgbModes := .Device.RGBModes }}
-        {{ $controllers := .Device.Controllers }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-cluster.svg" width="46" height="46" alt="Device" />
-                                </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">Run a single RGB Effect spanned across multiple devices</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
-                                        <li>
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select clusterRgbProfile" name="clusterRgbProfile">
-                                                {{ range $key, $mode := $rgbModes }}
-                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
-                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
-                                                {{ else }}
-                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
-                                <div class="mouse">
-                                    <div class="row">
-                                        <table class="table mb-0">
-                                            <thead>
-                                            <tr>
-                                                <th style="text-align: left;">Device</th>
-                                                <th>Serial</th>
-                                                <th>RGB Effect</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            {{ range $key, $value := $device.Controllers }}
-                                            <tr>
-                                                <th scope="row" style="text-align: left;">{{ $value.Product }}</th>
-                                                <td>{{ $value.Serial }}</td>
-                                                <td>{{ $device.DeviceProfile.RGBProfile }}</td>
-                                            </tr>
-                                            {{ end }}
-                                            </tbody>
-                                        </table>
+<div class="container-fluid">
+    {{ $devs := .Devices }}
+    {{ $device := .Device }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $controllers := .Device.Controllers }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <!-- Cluster -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
                                     </div>
+                                </div>
+
+                                <!-- RGB Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="clusterRgbProfile">
+                                        <select id="clusterRgbProfile" class="form-select system-select compact auto-width clusterRgbProfile" name="clusterRgbProfile">
+                                            {{ range $key, $mode := $rgbModes }}
+                                            {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                            <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
+                                            {{ else }}
+                                            <option value="0;{{ $mode }}">{{ $mode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-10">
+                    <div class="card system-card text-center">
+                        <div class="card-body">
+                            <table class="dataTable text-sm" id="table" style="width: 100%;">
+                                <thead>
+                                <tr>
+                                    <th>{{ .Lang "txtDevice" }}</th>
+                                    <th>{{ .Lang "txtDeviceSerial" }}</th>
+                                    <th>{{ .Lang "txtRgb" }}</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{ range $key, $value := $device.Controllers }}
+                                <tr>
+                                    <td>{{ $value.Product }}</td>
+                                    <td>{{ $value.Serial }}</td>
+                                    <td>{{ $device.DeviceProfile.RGBProfile }}</td>
+                                </tr>
+                                {{ end }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/cluster.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

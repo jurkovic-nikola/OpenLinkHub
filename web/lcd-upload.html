@@ -1,19 +1,19 @@
 {{ define "lcd-upload" }}
 <div class="col-md-2">
-    <div class="card mb-2">
-        <div class="card-header border-bottom border-dash-dark-1">{{ .Lang "txtUploadGifAnimation" }}</div>
+    <div class="card system-card text-center">
         <form id="gifUploadForm" enctype="multipart/form-data">
-            <div class="card-body">
-                <div class="card-body" style="padding: 0;">
-                    <div class="input-group">
-                        <input type="file" class="form-control" id="animationFile" name="animationFile" accept=".gif">
-                    </div>
-                </div>
+            <div class="card-header">
+                {{ .Lang "txtUploadGifAnimation" }}
             </div>
-            <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-                <div class="input-group">
-                    <button class="btn btn-primary uploadGifImage" id="uploadGifImage">{{ .Lang "txtUpload" }}</button>
-                </div>
+            <div class="card-body">
+                <input type="file"
+                       class="system-input file-input full-width"
+                       id="animationFile"
+                       name="animationFile"
+                       accept=".gif">
+            </div>
+            <div class="card-footer card-footer-left">
+                <button class="system-button uploadGifImage left" id="uploadGifImage">{{ .Lang "txtUpload" }}</button>
             </div>
         </form>
     </div>

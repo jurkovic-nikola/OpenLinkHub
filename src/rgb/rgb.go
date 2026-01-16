@@ -177,13 +177,7 @@ func interpolateColorsWithBrightness(c1, c2 Color, t float64) Color {
 	return *ModifyBrightness(color)
 }
 
-func normalize(r, g, b uint8) (float64, float64, float64) {
-	return float64(r) / 255,
-		float64(g) / 255,
-		float64(b) / 255
-}
-
-// Interpolate function to calculate the intermediate color
+// interpolate function to calculate the intermediate color
 func interpolate(
 	r1,
 	g1,

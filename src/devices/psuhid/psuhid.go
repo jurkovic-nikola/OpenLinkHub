@@ -1,8 +1,6 @@
 package psuhid
 
 // Package: CORSAIR HID PSUs
-// This is the primary package for CORSAIR HID PSUs.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -19,6 +17,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -26,30 +25,36 @@ import (
 )
 
 type Devices struct {
-	ChannelId          int     `json:"channelId"`
-	Type               byte    `json:"type"`
-	Model              byte    `json:"-"`
-	DeviceId           string  `json:"deviceId"`
-	Name               string  `json:"name"`
-	Description        string  `json:"description"`
-	Profile            string  `json:"profile"`
-	Label              string  `json:"label"`
-	Rpm                int16   `json:"rpm"`
-	Temperature        float32 `json:"temperature"`
-	Volts              float32 `json:"volts"`
-	Amps               float32 `json:"amps"`
-	Watts              float32 `json:"watts"`
-	TemperatureString  string  `json:"temperatureString"`
-	HasSpeed           bool
-	HasTemps           bool
-	HasWatts           bool
-	HasVolts           bool
-	HasAmps            bool
-	IsTemperatureProbe bool
-	IsPowerProbe       bool
-	ContainsPump       bool
-	Output             bool
-	Rail               bool
+	ChannelId            int     `json:"channelId"`
+	Type                 byte    `json:"type"`
+	Model                byte    `json:"-"`
+	DeviceId             string  `json:"deviceId"`
+	Name                 string  `json:"name"`
+	Description          string  `json:"description"`
+	Profile              string  `json:"profile"`
+	Label                string  `json:"label"`
+	Rpm                  int16   `json:"rpm"`
+	Volts                float32 `json:"volts"`
+	Amps                 float32 `json:"amps"`
+	Watts                float32 `json:"watts"`
+	Temperature          float32 `json:"temperature"`
+	TemperatureString    string  `json:"temperatureString"`
+	VrmTemperature       float32 `json:"vrmTemperature"`
+	VrmTemperatureString string  `json:"vrmTemperatureString"`
+	PsuTemperature       float32 `json:"psuTemperature"`
+	PsuTemperatureString string  `json:"psuTemperatureString"`
+	HasSpeed             bool
+	HasTemps             bool
+	HasWatts             bool
+	HasVolts             bool
+	HasAmps              bool
+	IsTemperatureProbe   bool
+	IsPowerProbe         bool
+	ContainsPump         bool
+	Output               bool
+	Rail                 bool
+	IsPSU                bool
+	MainPSU              bool
 }
 
 type DeviceProfile struct {
@@ -75,6 +80,7 @@ type Device struct {
 	FanModes      map[int]string
 	InputVoltage  float32
 	instance      *common.Device
+	IsPSU         bool
 }
 
 var (
@@ -132,6 +138,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			9:  "90 %",
 			10: "100 %",
 		},
+		IsPSU: true,
 	}
 
 	// Bootstrap
@@ -241,6 +248,9 @@ func (d *Device) getProductData() {
 
 	product := string(output[2:])
 	product = strings.ReplaceAll(product, "\x00", "")
+	product = strings.Replace(product, "CORSAIR ", "", -1)
+	product = strings.Replace(product, " PSU", "", -1)
+
 	d.Product = product
 
 	hash := md5.Sum([]byte(product))
@@ -309,8 +319,28 @@ func (d *Device) getDevices() int {
 	m := 0
 	var devices = make(map[int]*Devices)
 
+	// PSU Object
+	device := &Devices{
+		ChannelId: m,
+		DeviceId:  fmt.Sprintf("%s-%v", "Psu", m),
+		Name:      d.Product,
+		Rpm:       0,
+		Label:     "PSU",
+		MainPSU:   true,
+		HasSpeed:  false,
+	}
+	devices[m] = device
+	m++
+
 	// Fan
-	device := &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "Fan", m), Name: fmt.Sprintf("Fan %d", 1), Rpm: 0, HasSpeed: true, Label: "PSU Fan"}
+	device = &Devices{
+		ChannelId: m,
+		DeviceId:  fmt.Sprintf("%s-%v", "Fan", m),
+		Name:      fmt.Sprintf("Fan %d", 1),
+		Rpm:       0,
+		HasSpeed:  true,
+		Label:     "PSU Fan",
+	}
 	devices[m] = device
 	m++
 
@@ -318,31 +348,85 @@ func (d *Device) getDevices() int {
 	for i := 0; i < temperatureChannels; i++ {
 		switch i {
 		case 0:
-			device = &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "Probe", i), Name: "VRM Temperature", Temperature: 0, Description: "Probe", HasTemps: true, IsTemperatureProbe: true, Label: "Probe"}
+			device = &Devices{
+				ChannelId:          m,
+				DeviceId:           fmt.Sprintf("%s-%v", "Probe", i),
+				Name:               "VRM Temperature",
+				Temperature:        0,
+				Description:        "Probe",
+				HasTemps:           true,
+				IsTemperatureProbe: true,
+				Label:              "Probe",
+			}
 		case 1:
-			device = &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "Probe", i), Name: "PSU Temperature", Temperature: 0, Description: "Probe", HasTemps: true, IsTemperatureProbe: true, Label: "Probe"}
+			device = &Devices{
+				ChannelId:          m,
+				DeviceId:           fmt.Sprintf("%s-%v", "Probe", i),
+				Name:               "PSU Temperature",
+				Temperature:        0,
+				Description:        "Probe",
+				HasTemps:           true,
+				IsTemperatureProbe: true,
+				Label:              "Probe",
+			}
 		}
 		devices[m] = device
 		m++
 	}
 
 	// Power Out
-	device = &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "PowerOut", m), Name: "Power Out", Description: "Output Power", IsPowerProbe: true, Label: "Output Power", Output: true}
+	device = &Devices{
+		ChannelId:    m,
+		DeviceId:     fmt.Sprintf("%s-%v", "PowerOut", m),
+		Name:         "Power Out",
+		Description:  "Output Power",
+		IsPowerProbe: true,
+		Label:        "Output Power",
+		Output:       true,
+		IsPSU:        true,
+	}
 	devices[m] = device
 	m++
 
 	// 12V Current
-	device = &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "12vrail", m), Name: "12V Rail", Description: "Output Power", IsPowerProbe: true, Label: "12V Rail Stats", Rail: true}
+	device = &Devices{
+		ChannelId:    m,
+		DeviceId:     fmt.Sprintf("%s-%v", "12vrail", m),
+		Name:         "12V Rail",
+		Description:  "Output Power",
+		IsPowerProbe: true,
+		Label:        "12V Rail Stats",
+		Rail:         true,
+		IsPSU:        true,
+	}
 	devices[m] = device
 	m++
 
 	// 5V Current
-	device = &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "5vrail", m), Name: "5V Rail", Description: "Output Power", IsPowerProbe: true, Label: "5V Rail Stats", Rail: true}
+	device = &Devices{
+		ChannelId:    m,
+		DeviceId:     fmt.Sprintf("%s-%v", "5vrail", m),
+		Name:         "5V Rail",
+		Description:  "Output Power",
+		IsPowerProbe: true,
+		Label:        "5V Rail Stats",
+		Rail:         true,
+		IsPSU:        true,
+	}
 	devices[m] = device
 	m++
 
 	// 3V Current
-	device = &Devices{ChannelId: m, DeviceId: fmt.Sprintf("%s-%v", "3vrail", m), Name: "3V Rail", Description: "Output Power", IsPowerProbe: true, Label: "3V Rail Stats", Rail: true}
+	device = &Devices{
+		ChannelId:    m,
+		DeviceId:     fmt.Sprintf("%s-%v", "3vrail", m),
+		Name:         "3V Rail",
+		Description:  "Output Power",
+		IsPowerProbe: true,
+		Label:        "3V Rail Stats",
+		Rail:         true,
+		IsPSU:        true,
+	}
 	devices[m] = device
 	m++
 
@@ -353,7 +437,8 @@ func (d *Device) getDevices() int {
 // getDeviceData will fetch device data, from temperatures, fan speed, etc...
 func (d *Device) getDeviceData() {
 	m := 0
-	// Fan
+
+	// Main PSU
 	d.init()
 	buf := d.createPacket(cmdRead, dataFanSpeed, 0)
 	output, err := d.transfer(buf)
@@ -361,6 +446,54 @@ func (d *Device) getDeviceData() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 	}
 	rpm := common.FromLinear11(output)
+	if _, ok := d.Devices[m]; ok {
+		d.Devices[m].Rpm = int16(rpm)
+	}
+
+	// Temps
+	for i := 0; i < temperatureChannels; i++ {
+		d.init()
+		buf = d.createPacket(cmdRead, dataTempSensors[i], 0)
+		output, err = d.transfer(buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
+		}
+		temp := common.FromLinear11(output)
+		if _, ok := d.Devices[m]; ok {
+			if temp > 1 {
+				switch i {
+				case 0:
+					d.Devices[m].VrmTemperature = temp
+					d.Devices[m].VrmTemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
+				case 1:
+					d.Devices[m].PsuTemperature = temp
+					d.Devices[m].PsuTemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
+				}
+			}
+		}
+	}
+
+	// Power out
+	d.init()
+	buf = d.createPacket(cmdWrite, cmdSwitch, data12V)
+	output, err = d.transfer(buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
+	}
+
+	d.init()
+	buf = d.createPacket(cmdRead, dataPowerOut, 0)
+	output, err = d.transfer(buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
+	}
+	powerOutWatts := common.FromLinear11(output)
+	if _, ok := d.Devices[m]; ok {
+		d.Devices[m].Watts = powerOutWatts
+		d.Devices[m].HasWatts = true
+	}
+
+	m++
 	if _, ok := d.Devices[m]; ok {
 		d.Devices[m].Rpm = int16(rpm)
 	}
@@ -398,7 +531,7 @@ func (d *Device) getDeviceData() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 	}
-	powerOutWatts := common.FromLinear11(output)
+	powerOutWatts = common.FromLinear11(output)
 	if _, ok := d.Devices[m]; ok {
 		d.Devices[m].Watts = powerOutWatts
 		d.Devices[m].HasWatts = true
@@ -464,7 +597,6 @@ func (d *Device) saveDeviceProfile() {
 		Path:    profilePath,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
 		deviceProfile.Active = true
 		d.DeviceProfile = deviceProfile
@@ -473,33 +605,21 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.FanMode = d.DeviceProfile.FanMode
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to close file handle")
-	}
-	d.loadDeviceProfiles() // Reload
+	d.loadDeviceProfiles()
 }
 
 // loadDeviceProfiles will load custom user profiles
@@ -611,20 +731,16 @@ func (d *Device) setAutoRefresh() {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	// Create read buffer
 	bufferR := make([]byte, readBufferSize)
 
-	// Send command to a device
 	if _, err := d.dev.Write(buffer); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err

@@ -1,224 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $temperatures := .Temperatures }}
-        {{ $device := .Device }}
-        {{ $rgbModes := .Device.RGBModes }}
-        {{ $devices := $device.Devices }}
-        {{ $rgb := .Rgb }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <input type="hidden" id="zones" name="zones" value="6">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $devices := $device.Devices }}
+    {{ $rgb := .Rgb }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <!-- Memory -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ $device.SkuLine }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="form-select system-select auto-width compact userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            <option value="{{ $key }}" selected>{{ $key }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
                                 </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ $device.SkuLine }}</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select userProfile" style="line-height: 1;">
-                                                {{ range $key, $profile := $device.UserProfiles }}
-                                                {{ if $profile.Active }}
-                                                <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $key }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
-                                        <li>
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
-                                        </li>
-                                    </ul>
 
-                                    <button title="{{ .Lang "txtOpenRGBIntegration" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select openRgbIntegration" style="line-height: 1;">
-                                                {{ if $deviceProfile.OpenRGBIntegration }}
-                                                <option value="1" selected>Enabled</option>
-                                                <option value="0">Disabled</option>
-                                                {{ else }}
-                                                <option value="1">Enabled</option>
-                                                <option value="0" selected>Disabled</option>
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtRgbCluster" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <img src="/static/img/icons/icon-cluster.svg" width="18" height="18" class="bi svg-icon svg-icon-sm svg-icon-heavy" alt="{{ .Lang "txtRgbCluster" }}" />
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select rgbCluster" style="line-height: 1;">
-                                                {{ if $deviceProfile.RGBCluster }}
-                                                <option value="1" selected>Enabled</option>
-                                                <option value="0">Disabled</option>
-                                                {{ else }}
-                                                <option value="1">Enabled</option>
-                                                <option value="0" selected>Disabled</option>
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select globalRgb" style="line-height: 1;">
-                                                {{ range $key, $mode := $rgbModes }}
-                                                {{ if eq $mode $deviceProfile.MultiRGB }}
-                                                <option value="{{ $mode }}" selected>{{ $mode }}</option>
-                                                {{ else }}
-                                                <option value="{{ $mode }}">{{ $mode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
-                                    <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
-                                <div class="row">
-                                {{ range $device := $devices }}
-                                <div class="ram-container">
-                                    <div class="ram-title" style="float: left;">
-                                        {{ $device.Name }}
-                                    </div>
-                                    <div class="ram-stick">
-                                        <div class="memory-chip"></div>
-                                        <div class="memory-chip"></div>
-                                        <div class="memory-chip"></div>
-                                        <div class="memory-chip"></div>
-                                        <div class="memory-chip"></div>
-                                        <div class="memory-chip"></div>
-                                        <div class="contacts">
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                            <div class="contact"></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="ram-info">
-                                        <div class="info-row">
-                                            <div class="info-label">SKU</div>
-                                            <div class="info-value text-dash-color-2">{{ $device.Sku }}</div>
-                                        </div>
-                                        {{ if gt $device.Size 0 }}
-                                        <div class="info-row">
-                                            <div class="info-label">SIZE</div>
-                                            <div class="info-value text-dash-color-2">{{ $device.Size }} GB</div>
-                                        </div>
-                                        {{ end }}
-                                        <div class="info-row">
-                                            <div class="info-label">TYPE</div>
-                                            <div class="info-value text-dash-color-2">DDR{{ $device.MemoryType }}</div>
-                                        </div>
-                                        {{ if gt $device.Speed 0 }}
-                                        <div class="info-row">
-                                            <div class="info-label">SPEED</div>
-                                            <div class="info-value text-dash-color-2">{{ $device.Speed }} MHz</div>
-                                        </div>
-                                        {{ end }}
-                                        {{ if gt $device.Latency 0 }}
-                                        <div class="info-row">
-                                            <div class="info-label">LATENCY</div>
-                                            <div class="info-value text-dash-color-2">C{{ $device.Latency }}</div>
-                                        </div>
-                                        {{ end }}
-                                        {{ if gt $device.Temperature 0.00 }}
-                                        <div class="info-row">
-                                            <div class="info-label">TEMP</div>
-                                            <div class="info-value text-dash-color-2">{{ $device.TemperatureString }}</div>
-                                        </div>
-                                        {{ end }}
-
-                                        {{ if gt $device.LedChannels 0 }}
-                                        <div class="info-row" style="display: flex; align-items: center;">
-                                            <div class="info-label">RGB</div>
-                                            <div class="info-value">
-                                                <button class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-left: 5px;">
-                                                    <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                                </button>
-                                                <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                                    <li>
-                                                        <select class="form-select rgbProfile" name="{{ $device.DeviceId }}">
-                                                            {{ range $key, $mode := $rgbModes }}
-                                                            {{ if eq $mode $device.RGB }}
-                                                            <option value="{{ $device.ChannelId }};{{ $mode }}" selected>{{ $mode }}</option>
-                                                            {{ else }}
-                                                            <option value="{{ $device.ChannelId }};{{ $mode }}">{{ $mode }}</option>
-                                                            {{ end }}
-                                                            {{ end }}
-                                                        </select>
-                                                    </li>
-                                                </ul>
-                                                <button title="RGB Override" class="btn btn-secondary-empty rgbOverride" data-info="{{ $device.ChannelId }}" type="button" style="margin-left: 5px;">
-                                                    <i class="bi bi-lightbulb-off-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                                </button>
-                                                <button title="RGB per LED" class="btn btn-secondary-empty rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;memory" type="button" style="margin-left: 5px;">
-                                                    <i class="bi bi-lightbulb svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        {{ end }}
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
                                     </div>
                                 </div>
-                                {{ end }}
+
+                                <!-- RGB Cluster -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtCluster" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="toggleRgbCluster" class="toggleRgbCluster" {{ if $deviceProfile.RGBCluster }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- OpenRGB -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtOpenRGB" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" class="toggleOpenRGB" {{ if $deviceProfile.OpenRGBIntegration }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- RGB Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="globalRgb">
+                                        <select id="globalRgb" class="form-select system-select auto-width compact globalRgb" name="globalRgb">
+                                            {{ range $key, $mode := $rgbModes }}
+                                            {{ if eq $mode $deviceProfile.MultiRGB }}
+                                            <option value="{{ $mode }}" selected>{{ $mode }}</option>
+                                            {{ else }}
+                                            <option value="{{ $mode }}">{{ $mode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="form-select system-select auto-width compact deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-10">
+                    <div class="row">
+                        {{ range $device := $devices }}
+                        <div class="col-md-3">
+                            <div class="memory-card">
+                                <div class="memory-header">
+                                    <span class="memory-title">{{ $root.Lang "txtMemoryModule" }}</span>
+                                    <span class="memory-type">DDR{{ $device.MemoryType }}</span>
+                                </div>
+
+                                <!-- PCB -->
+                                <div class="memory-stick">
+                                    <div class="memory-chip"></div>
+                                    <div class="memory-chip"></div>
+                                    <div class="memory-chip"></div>
+                                    <div class="memory-chip"></div>
+                                    <div class="memory-chip"></div>
+                                    <div class="memory-chip"></div>
+                                    <div class="memory-contacts">
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                        <div class="memory-contact"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Specs -->
+                                <div class="settings-list no-border">
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtMemorySku" }}</span>
+                                        <span class="settings-label">{{ $device.Sku }}</span>
+                                    </div>
+
+                                    {{ if gt $device.Temperature 0.00 }}
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtTemperature" }}</span>
+                                        <span class="settings-label" id="temperature-{{ .DeviceId }}">{{ $device.TemperatureString }}</span>
+                                    </div>
+                                    {{ end }}
+
+                                    {{ if gt $device.LedChannels 0 }}
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgb" }}</span>
+                                        <label>
+                                            <select class="system-select auto-width compact rgbProfile" name="{{ $device.DeviceId }}">
+                                                {{ range $key, $mode := $rgbModes }}
+                                                <option value="{{ $device.ChannelId }};{{ $mode }}" {{ if eq $mode $device.RGB }}selected{{ end }}>
+                                                    {{ $mode }}
+                                                </option>
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbOverride" }}</span>
+                                        <button class="system-button compact rgbOverride" data-info="{{ $device.ChannelId }}">
+                                            Configure
+                                        </button>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbPerLed" }}</span>
+                                        <button class="system-button compact rgbPerLed"
+                                                data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;memory">
+                                            Configure
+                                        </button>
+                                    </div>
+                                    {{ end }}
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
-<script src="/static/js/headset.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

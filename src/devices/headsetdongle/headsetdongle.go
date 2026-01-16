@@ -1,8 +1,6 @@
 package headsetdongle
 
 // Package: Headset Dongle
-// This is the primary package for Corsair Headset Dongle.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -922,11 +920,9 @@ func (d *Device) backendListener() {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02
 	bufferW[2] = command
@@ -961,10 +957,8 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
 	}
 
-	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		if d.Debug {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
@@ -972,7 +966,6 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 		return bufferR, err
 	}
 
-	// Get data from a device
 	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
 		if d.Debug {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
@@ -984,11 +977,9 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller string) ([]byte, error) {
-	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02
 	bufferW[2] = command
@@ -998,16 +989,13 @@ func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller 
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	// Get data from a device
 	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 		return bufferR, err

@@ -4,7 +4,9 @@ import (
 	"OpenLinkHub/src/common"
 	"encoding/json"
 	"os"
+	"os/user"
 	"slices"
+	"strings"
 )
 
 type Configuration struct {
@@ -61,10 +63,13 @@ var (
 		"openRGBPort":               6743,
 		"enableOpenRGBTargetServer": false,
 	}
+	systemService = true
 )
 
 // Init will initialize a new config object
 func Init() {
+	setSystemService()
+
 	var configPath = ""
 
 	pwd, _ := os.Getwd()
@@ -88,6 +93,33 @@ func Init() {
 		panic(err.Error())
 	}
 	configuration.ConfigPath = configPath
+}
+
+// GetConfig will return structs.Configuration struct
+func GetConfig() Configuration {
+	return configuration
+}
+
+// UpdateSupportedDevices will update the Exclude slice based on the enabled flag for each product ID
+func UpdateSupportedDevices(productIds map[uint16]bool) uint8 {
+	for productId, enabled := range productIds {
+		if enabled {
+			if i := slices.Index(configuration.Exclude, productId); i != -1 {
+				configuration.Exclude = append(configuration.Exclude[:i], configuration.Exclude[i+1:]...)
+			}
+		} else {
+			if !slices.Contains(configuration.Exclude, productId) {
+				configuration.Exclude = append(configuration.Exclude, productId)
+			}
+		}
+	}
+	saveConfigSettings(configuration)
+	return 1
+}
+
+// IsSystemService will return true if service runs under system context
+func IsSystemService() bool {
+	return systemService
 }
 
 // upgradeFile will create or upgrade config file
@@ -182,24 +214,24 @@ func saveConfigSettings(data any) {
 	}
 }
 
-// GetConfig will return structs.Configuration struct
-func GetConfig() Configuration {
-	return configuration
-}
-
-// UpdateSupportedDevices will update the Exclude slice based on the enabled flag for each product ID
-func UpdateSupportedDevices(productIds map[uint16]bool) uint8 {
-	for productId, enabled := range productIds {
-		if enabled {
-			if i := slices.Index(configuration.Exclude, productId); i != -1 {
-				configuration.Exclude = append(configuration.Exclude[:i], configuration.Exclude[i+1:]...)
-			}
-		} else {
-			if !slices.Contains(configuration.Exclude, productId) {
-				configuration.Exclude = append(configuration.Exclude, productId)
-			}
-		}
+// setSystemService will check and set systemService state
+func setSystemService() {
+	uid := os.Getuid()
+	if uid < 1000 {
+		systemService = true
 	}
-	saveConfigSettings(configuration)
-	return 1
+
+	if os.Getenv("DISPLAY") != "" ||
+		os.Getenv("WAYLAND_DISPLAY") != "" ||
+		os.Getenv("XDG_SESSION_TYPE") != "" {
+		systemService = false
+	}
+
+	u, err := user.Current()
+	if err != nil {
+		systemService = true
+		return
+	}
+
+	systemService = !strings.HasPrefix(u.HomeDir, "/home/")
 }

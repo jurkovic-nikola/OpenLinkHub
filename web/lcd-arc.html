@@ -2,15 +2,16 @@
 {{ $arc := index .LCDProfiles 100 }}
 {{ $lcdSensors := .LCDSensors }}
 <div class="col-md-2">
-    <div class="card mb-2">
-        <div class="card-header border-bottom border-dash-dark-1">{{ $arc.Name }}</div>
+    <div class="card system-card text-center">
+        <div class="card-header">
+            {{ $arc.Name }}
+        </div>
         <div class="card-body">
-            <table style="width: 100%;">
-                <tbody>
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtSensor" }}</th>
-                    <th style="width: 50%">
-                        <select class="form-select sensorType" id="sensorType_{{ $arc.Id }}" style="width: auto;float: right;">
+            <div class="settings-list">
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtSensor" }}</span>
+                    <label>
+                        <select id="sensorType_{{ $arc.Id }}" class="form-select system-select auto-width sensorType compact" name="userProfile">
                             {{ range $k, $v := $lcdSensors }}
                             {{ if eq $k $arc.Sensor }}
                             <option value="{{ $k }}" selected>{{ $v }}</option>
@@ -19,72 +20,84 @@
                             {{ end }}
                             {{ end }}
                         </select>
-                    </th>
-                </tr>
+                    </label>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtMargin" }}</th>
-                    <th style="width: 50%">
-                        <input class="form-control" id="margin_{{ $arc.Id }}" type="text" value="{{ $arc.Margin }}">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtMargin" }}</span>
+                    <div class="system-input text-input max-width-100 compact">
+                        <label>
+                            <input type="text" id="margin_{{ $arc.Id }}" value="{{ $arc.Margin }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtThickness" }}</th>
-                    <th style="width: 50%">
-                        <input class="form-control" id="thickness_{{ $arc.Id }}" type="text" value="{{ $arc.Thickness }}">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtThickness" }}</span>
+                    <div class="system-input text-input max-width-100 compact">
+                        <label>
+                            <input type="text" id="thickness_{{ $arc.Id }}" value="{{ $arc.Thickness }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtBottomGap" }}</th>
-                    <th style="width: 50%">
-                        <input class="form-control" id="gapRadians_{{ $arc.Id }}" type="text" value="{{ $arc.GapRadians }}">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtBottomGap" }}</span>
+                    <div class="system-input text-input max-width-100 compact">
+                        <label>
+                            <input type="text" id="gapRadians_{{ $arc.Id }}" value="{{ $arc.GapRadians }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtBackground" }}</th>
-                    <th style="width: 50%">
-                        <input type="color" id="backgroundColor_{{ $arc.Id }}" value="{{ $arc.Background.Hex }}" style="float: right;">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtBackground" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="backgroundColor_{{ $arc.Id }}" value="{{ $arc.Background.Hex }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtBorderColor" }}</th>
-                    <th style="width: 50%">
-                        <input type="color" id="borderColor_{{ $arc.Id }}" value="{{ $arc.BorderColor.Hex }}" style="float: right;">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtBorderColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="borderColor_{{ $arc.Id }}" value="{{ $arc.BorderColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtStartColor" }}</th>
-                    <th style="width: 50%">
-                        <input type="color" id="startColor_{{ $arc.Id }}" value="{{ $arc.StartColor.Hex }}" style="float: right;">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtStartColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="startColor_{{ $arc.Id }}" value="{{ $arc.StartColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtEndColor" }}</th>
-                    <th style="width: 50%">
-                        <input type="color" id="endColor_{{ $arc.Id }}" value="{{ $arc.EndColor.Hex }}" style="float: right;">
-                    </th>
-                </tr>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtEndColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="endColor_{{ $arc.Id }}" value="{{ $arc.EndColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
 
-                <tr>
-                    <th style="width: 50%;height:50px;">{{ .Lang "txtTextColor" }}</th>
-                    <th style="width: 50%">
-                        <input type="color" id="textColor_{{ $arc.Id }}" value="{{ $arc.TextColor.Hex }}" style="float: right;">
-                    </th>
-                </tr>
-
-                </tbody>
-            </table>
-        </div>
-        <div class="card-body" style="padding: 1rem 1rem;border-top: 1px solid #34373d !important;">
-            <div class="input-group">
-                <button class="btn btn-primary saveArcProfile" data-info="{{ $arc.Id }}">{{ .Lang "txtSaveProfile" }}</button>
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtTextColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="textColor_{{ $arc.Id }}" value="{{ $arc.TextColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
             </div>
+        </div>
+        <div class="card-footer card-footer-left">
+            <button class="system-button saveArcProfile left"  data-info="{{ $arc.Id }}">{{ .Lang "txtSaveProfile" }}</button>
         </div>
     </div>
 </div>

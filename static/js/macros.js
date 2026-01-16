@@ -1,40 +1,7 @@
 "use strict";
-document.addEventListener("DOMContentLoaded", function () {
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
+$(document).ready(function () {
+    let allOptions = [];
 
-    function initSelect2() {
-        if (!$('#macroKeyId').hasClass("select2-hidden-accessible")) {
-            $('#macroKeyId').select2({
-                placeholder: 'Search...',
-                allowClear: true,
-                width: 'style'
-            });
-        }
-    }
-    
-    // Init toastr
-    const toast = CreateToastr();
-
-    // Init dataTable
     const dt = $('#table').DataTable(
         {
             order: [[0, 'asc']],
@@ -44,11 +11,24 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             paging: false,
             searching: false,
+            info: false,
             language: {
                 emptyTable: "No profile selected or profile has no macros defined. Select profile from left side or define macros"
             }
         }
     );
+
+
+    $('#addMacroValueModal').on('show.bs.modal', function () {
+        $('#macroType').val('0');
+        $('#macroText').val('');
+        $('#macroDelay').val('');
+        $('#macroKeySearch').val('');
+
+        $(".macroKeyId").hide();
+        $(".macroDelayId").hide();
+        $(".macroTextId").hide();
+    });
 
     $('#btnSaveNewMacroProfile').on('click', function(){
         const profile = $("#profileName").val();
@@ -183,10 +163,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                 break;
                         }
 
-                        const isChecked = item.actionHold === true ? 'checked' : '';
-                        const actionHold = '<input class="pressAndHold" type="checkbox" ' + isChecked + ' />';
+                        const actionHold = `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" class="pressAndHold" ${item.actionHold === true ? 'checked' : ''}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
 
-                        if (item.actionType === 5) { // 5 is always Delay option
+                        if (item.actionType === 5)
+                        { // 5 is always Delay option
                             dt.row.add([
                                 i,
                                 actionType,
@@ -195,36 +180,63 @@ document.addEventListener("DOMContentLoaded", function () {
                                 'N/A',
                                 'N/A',
                                 '' +
-                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 100%;">'
+                                `<input class="system-button danger deleteMacroValue" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="DELETE" style="width: 100%;">`
                             ]).draw();
-                        } else  if (item.actionType === 6) { // String
+                        }
+                    else
+                        if (item.actionType === 6) { // String
                             dt.row.add([
                                 i,
                                 actionType,
-                                '<pre id="macroText">' + item.actionText + '</pre>',
+                                `<span id="macroText" class="settings-label text-ellipsis">${item.actionText}</span>`,
                                 'N/A',
-                                '<input class="form-control actionRepeatValue" type="text" value="' +  item.actionRepeat + '" placeholder="Define how many times the action will be repeated.">',
-                                '<input class="form-control actionRepeatDelayValue" type="text" value="' +  item.actionRepeatDelay + '" placeholder="The amount of delay in milliseconds between the Repeat action.">',
-                                '<input class="btn btn-info updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE" style="width: 45%;">' +
-                                '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 45%;float:right;">'
+                                `<div class="system-input text-input">
+                                    <label for="profileName">
+                                        <input type="text" class="actionRepeatValue" value="${item.actionRepeat}" placeholder="Define how many times the action will be repeated.">
+                                    </label>
+                                </div>`,
+                                `<div class="system-input text-input">
+                                    <label for="profileName">
+                                        <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="The amount of delay in milliseconds between the Repeat action.">
+                                    </label>
+                                </div>`,
+                                `<div class="settings-list">
+                                    <div class="settings-row">
+                                        <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="UPDATE">
+                                        <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="DELETE">
+                                    </div>
+                                </div>`,
                             ]).draw();
                         } else {
                             // Render row if we have actual key
-                            getKeyName(item.actionCommand, function(result) {
+                            getKeyName(item.actionCommand, function (result) {
                                 dt.row.add([
                                     i,
                                     actionType,
                                     result,
                                     actionHold,
-                                    '<input class="form-control actionRepeatValue" type="text" value="' +  item.actionRepeat + '" placeholder="Define how many times the action will be repeated.">',
-                                    '<input class="form-control actionRepeatDelayValue" type="text" value="' +  item.actionRepeatDelay + '" placeholder="The amount of delay in milliseconds between the Repeat action.">',
-                                    '<input class="btn btn-info updateMacroValue" id="updateMacroValue" data-id="' + pf + ';' + i + '" type="button" value="UPDATE" style="width: 45%;">' +
-                                    '<input class="btn btn-danger deleteMacroValue" id="deleteMacroValue" data-id="' + pf + ';' + i + '" type="button" value="DELETE" style="width: 45%;float:right;">'
+                                    `<div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" class="actionRepeatValue" value="${item.actionRepeat}" placeholder="Define how many times the action will be repeated.">
+                                        </label>
+                                    </div>`,
+                                    `<div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="The amount of delay in milliseconds between the Repeat action.">
+                                        </label>
+                                    </div>`,
+                                    `<div class="settings-list">
+                                        <div class="settings-row">
+                                            <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="UPDATE">
+                                            <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="DELETE">
+                                        </div>
+                                    </div>`,
                                 ]).draw();
                             });
                         }
                     });
                     $("#deleteBtn").show();
+                    $("#addMacroValueBtn").show();
                     $("#newMacroValue").show();
                 }
             }
@@ -306,15 +318,16 @@ document.addEventListener("DOMContentLoaded", function () {
         })
     });
 
-    $('.macroList').on('click', function(){
+    $('.macroList').on('click', function () {
         const profile = $(this).attr('id');
-        $('.macroList').removeClass('selected-effect');
-        $(this).addClass('selected-effect');
+        $('.macroList').removeClass('selected');
+        $(this).addClass('selected');
+
         let pf = parseInt(profile);
         loadMacroValues(pf);
     });
 
-    $('#deleteMacroProfile').on('click', function(){
+    $('#deleteMacroProfile').on('click', function () {
         const macroId = $("#profile").val();
         const pf = {};
         pf["macroId"] = parseInt(macroId);
@@ -325,7 +338,7 @@ document.addEventListener("DOMContentLoaded", function () {
             type: 'DELETE',
             data: json,
             cache: false,
-            success: function(response) {
+            success: function (response) {
                 try {
                     if (response.status === 1) {
                         location.reload();
@@ -339,7 +352,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    $('#addMacroValue').on('click', function(){
+    $('#addMacroValue').on('click', function () {
         const macroId = $("#profile").val();
         const macroType = $("#macroType").val();
         const macroValue = $("#macroKeyId").val();
@@ -374,7 +387,7 @@ document.addEventListener("DOMContentLoaded", function () {
             type: 'POST',
             data: json,
             cache: false,
-            success: function(response) {
+            success: function (response) {
                 try {
                     if (response.status === 1) {
                         //location.reload();
@@ -389,56 +402,71 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $('#macroKeySearch').on('input', function () {
+        console.log('allOptions:', allOptions);
+        const query = $(this).val().toLowerCase();
+        console.log("Debug query", query)
+        const filtered = allOptions.filter(opt =>
+            opt.text.toLowerCase().includes(query)
+        );
+        console.log(filtered)
+        renderOptions(filtered);
+    });
+
+    function renderOptions(options) {
+        const select = $('#macroKeyId');
+        const currentValue = select.val();
+
+        select.empty();
+        options.forEach(opt => {
+            const option = $('<option>', {
+                value: opt.value,
+                text: opt.text
+            });
+
+            if (opt.value === currentValue) {
+                option.prop('selected', true);
+            }
+
+            select.append(option);
+        });
+        $(".macroKeyId").show();
+    }
+
+    function loadMacroOptions(url) {
+        return $.get(url).then(result => {
+            allOptions = Object.entries(result.data || {}).map(
+                ([key, value]) => ({
+                    value: key,
+                    text: value.Name
+                })
+            );
+            renderOptions(allOptions);
+        });
+    }
+
     $('#macroType').on('change', function () {
         const selectedValue = parseInt($(this).val());
 
-        // Always reset
-        $("#macroDelay, #macroText, #macroKeyId").hide();
-
-        // Destroy Select2 if active
-        if ($('#macroKeyId').hasClass("select2-hidden-accessible")) {
-            $('#macroKeyId').select2('destroy');
-        }
+        const mki = $(".macroKeyId")
+        const mdi = $(".macroDelayId")
+        const mti = $(".macroTextId")
+        mki.hide();
+        mdi.hide();
+        mti.hide();
 
         switch (selectedValue) {
             case 3:
-                $.ajax({
-                    url:'/api/input/keyboard',
-                    type:'get',
-                    success:function(result){
-                        let macroKeyId = $("#macroKeyId");
-                        macroKeyId.empty();
-                        $.each(result.data, function(index, value) {
-                            macroKeyId.append(
-                                $('<option>', { value: index, text: value.Name })
-                            );
-                        });
-                        macroKeyId.show();
-                        initSelect2();
-                    }
-                });
+                loadMacroOptions('/api/input/keyboard');
                 break;
             case 5:
-                $("#macroDelay").show();
+                mdi.show();
                 break;
             case 6:
-                $("#macroText").show();
+                mti.show();
                 break;
             case 9:
-                $.ajax({
-                    url:'/api/input/mouse',
-                    type:'get',
-                    success:function(result){
-                        let macroKeyId = $("#macroKeyId");
-                        macroKeyId.empty();
-                        $.each(result.data, function(index, value) {
-                            macroKeyId.append(
-                                $('<option>', { value: index, text: value.Name })
-                            );
-                        });
-                        macroKeyId.show();
-                    }
-                });
+                loadMacroOptions('/api/input/mouse');
                 break;
         }
     });
@@ -448,14 +476,14 @@ document.addEventListener("DOMContentLoaded", function () {
             url: '/api/macro/keyInfo/' + parseInt(keyIndex),
             type: 'GET',
             cache: false,
-            success: function(response) {
+            success: function (response) {
                 if (response.status === 1) {
                     callback(response.data);
                 } else {
                     callback('');
                 }
             },
-            error: function() {
+            error: function () {
                 callback('');
             }
         });

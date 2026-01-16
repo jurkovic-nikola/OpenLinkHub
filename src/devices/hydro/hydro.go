@@ -1,8 +1,6 @@
 package hydro
 
 // Package: CORSAIR Hydro AIOs
-// This is the primary package for CORSAIR Hydro AIO devices.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -20,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -160,13 +159,12 @@ var (
 	rgbProfileUpgrade          = []string{"gradient"}
 	rgbModes                   = []string{
 		"static",
-		"gradient",
 	}
 	supportedDevices = []SupportedDevice{
 		// 2 physical fans, 1 logical via daisy chain
-		{ProductId: 3080, Product: "H80i Hydro", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
-		{ProductId: 3081, Product: "H100i Hydro", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
-		{ProductId: 3082, Product: "H115i Hydro", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
+		{ProductId: 3080, Product: "H80i HYDRO", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
+		{ProductId: 3081, Product: "H100i HYDRO", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
+		{ProductId: 3082, Product: "H115i HYDRO", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
 	}
 	deviceList = []DeviceList{
 		{
@@ -257,7 +255,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
 		)
 	} else {
-		d.updateDeviceSpeed() // Update device speed
+		d.updateDeviceSpeed()
 	}
 	d.createDevice() // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
@@ -483,7 +481,7 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
-	d.setConfiguration() // Restart RGB
+	d.setConfiguration()
 	return 1
 }
 
@@ -495,7 +493,7 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 
 	d.DeviceProfile.BrightnessSlider = &value
 	d.saveDeviceProfile()
-	d.setConfiguration() // Restart RGB
+	d.setConfiguration()
 
 	return 1
 }
@@ -510,7 +508,7 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 	}
 
 	d.saveDeviceProfile()
-	d.setConfiguration() // Restart RGB
+	d.setConfiguration()
 	return 1
 }
 
@@ -543,30 +541,8 @@ func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
 	rgbFilename := rgbDirectory + d.Serial + ".json"
 	if common.FileExists(rgbFilename) {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -734,7 +710,6 @@ func (d *Device) saveDeviceProfile() {
 		OriginalBrightness: 100,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
 		for _, device := range d.Devices {
 			if device.LedChannels > 0 {
@@ -763,33 +738,21 @@ func (d *Device) saveDeviceProfile() {
 		}
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
-	}
-	d.loadDeviceProfiles() // Reload
+	d.loadDeviceProfiles()
 }
 
 // getDevices will fetch all devices connected to a hub
@@ -925,31 +888,8 @@ func (d *Device) loadRgb() {
 		profile := rgb.GetRGB()
 		profile.Device = d.Product
 
-		// Convert to JSON
-		buffer, err := json.MarshalIndent(profile, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -989,21 +929,9 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 	}
 
 	if save {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		if err := common.SaveJsonData(path, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
 			return
-		}
-
-		f, err := os.Create(path)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
-			return
-		}
-
-		_, err = f.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
 		}
 	}
 }
@@ -1018,24 +946,6 @@ func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
 		return &val
 	}
 	return nil
-}
-
-// getPumpSpeed will return pump speed
-func (d *Device) getPumpSpeed() uint16 {
-	buf := d.transfer(cmdGetDeviceData, nil)
-	fmt.Println(fmt.Sprintf("% 2x", buf))
-
-	fanRpm := binary.BigEndian.Uint16(buf[0:2])
-	pumpRpm := binary.BigEndian.Uint16(buf[8:10])
-	liquidTempCelsius := float32(buf[10]) + float32(buf[14])*0.1
-
-	fmt.Println("Temperature: ", liquidTempCelsius)
-	fmt.Println("Fan speed: ", fanRpm)
-	fmt.Println("Pump speed: ", pumpRpm)
-
-	d.Firmware = fmt.Sprintf("%d.%d.%d.%d", buf[3], buf[4], buf[5], buf[6])
-	fmt.Println(d.Firmware)
-	return binary.BigEndian.Uint16(buf[3:])
 }
 
 // getDeviceDataObject will get device data and return as DeviceDataObject
@@ -1415,7 +1325,6 @@ func (d *Device) transfer(command byte, data []byte) []byte {
 		return bufferR
 	}
 
-	// Get data from a device
 	if err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to read data from device")
 		return bufferR

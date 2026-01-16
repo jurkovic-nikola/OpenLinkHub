@@ -233,27 +233,9 @@ func SaveAnimation(value *Animation) uint8 {
 	animation = value
 	profile := config.GetConfig().ConfigPath + "/database/lcd/animation.json"
 
-	buffer, err := json.MarshalIndent(animation, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(profile, animation); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")
 		return 0
-	}
-
-	file, fileErr := os.Create(profile)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to create animation profile")
-		return 0
-	}
-
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write data")
-		return 0
-	}
-
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to close file handle")
 	}
 	return 1
 }

@@ -1,6 +1,5 @@
 "use strict";
-
-document.addEventListener("DOMContentLoaded", function () {
+$(document).ready(function () {
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -10,38 +9,38 @@ document.addEventListener("DOMContentLoaded", function () {
         } : null;
     }
 
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
+    function updateSlider(slider, percents = false) {
+        const $slider = $(slider);
+        const min = Number($slider.attr("min"));
+        const max = Number($slider.attr("max"));
+        const value = Number($slider.val());
+
+        const percent = ((value - min) / (max - min)) * 100;
+
+        // Update CSS variable
+        $slider.css("--slider-progress", percent + "%");
+
+        // Update linked value text
+        const target = $slider.data("value-target");
+        if (target) {
+            if (percents) {
+                $(target).text(value + " %");
+            } else {
+                $(target).text(value);
+            }
         }
-        return toastr
     }
 
-    // Init toastr
-    const toast = CreateToastr();
-
-    // Left vibration slider update
-    $('#leftVibrationValue').on('input change', function() {
-        $('#leftVibrationVal').text($(this).val());
+    $(".system-slider-input").each(function () {
+        updateSlider(this, true);
+    }).on("input", function () {
+        updateSlider(this, true);
     });
 
-    // Right vibration slider update
-    $('#rightVibrationValue').on('input change', function() {
-        $('#rightVibrationVal').text($(this).val());
+    $(".system-slider-input-no-percent").each(function () {
+        updateSlider(this);
+    }).on("input", function () {
+        updateSlider(this);
     });
 
     // Left thumb stick slider update - X

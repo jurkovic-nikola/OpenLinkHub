@@ -457,6 +457,68 @@ func getColorData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getPositionData returns device positions data
+func getPositionData(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{}
+	deviceId, valid := getVar("/api/position/", r)
+	if !valid {
+		resp = &Response{
+			Code:   http.StatusOK,
+			Status: 0,
+			Data:   language.GetValue("txtInvalidPosition"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetDevicePositions")
+		if len(results) > 0 {
+			resp = &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp = &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtInvalidPosition"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
+// getCommanderDuoOverride returns commander duo override
+func getCommanderDuoOverride(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{}
+	deviceId, valid := getVar("/api/color/override/", r)
+	if !valid {
+		resp = &Response{
+			Code:   http.StatusOK,
+			Status: 0,
+			Data:   language.GetValue("txtUnableToValidateRequest"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetCommanderDuoOverride")
+		if len(results) > 0 {
+			resp = &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp = &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtUnableToValidateRequest"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // getMediaKeys will return a map of media keys
 func getMediaKeys(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
@@ -587,6 +649,36 @@ func getKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getKeyboardFlashTap returns keyboard FlashTap data
+func getKeyboardFlashTap(w http.ResponseWriter, r *http.Request) {
+	deviceId, valid := getVar("/api/keyboard/getFlashTap/", r)
+	if !valid {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: language.GetValue("txtInvalidDeviceId"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetFlashTap")
+		if len(results) > 0 {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtNoFlashTapData"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // getControlDialColors returns list of control dial colors
 func getControlDialColors(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/api/keyboard/dial/getColors/", r)
@@ -615,6 +707,48 @@ func getControlDialColors(w http.ResponseWriter, r *http.Request) {
 			resp.Send(w)
 		}
 	}
+}
+
+// getEqualizers returns device equalizers
+func getEqualizers(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{}
+	deviceId, valid := getVar("/api/headset/getEqualizers/", r)
+	if !valid {
+		resp = &Response{
+			Code:   http.StatusOK,
+			Status: 0,
+			Data:   language.GetValue("txtInvalidPosition"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetEqualizers")
+		if len(results) > 0 {
+			resp = &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp = &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtInvalidPosition"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
+// updateDeviceEqualizers handles device equalizer update
+func updateDeviceEqualizers(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateDeviceEqualizer(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
 }
 
 // updateRgbProfile handles device rgb profile update
@@ -774,6 +908,17 @@ func saveUserProfile(w http.ResponseWriter, r *http.Request) {
 // changeUserProfile handles user profile change
 func changeUserProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeUserProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// deleteUserProfile handles user profile deletion
+func deleteUserProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteUserProfile(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1012,6 +1157,38 @@ func getDashboardSettings(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getDashboardDevices will get dashboard devices
+func getDashboardDevices(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Devices: dashboard.GetDevices(),
+	}
+	resp.Send(w)
+}
+
+// addDashboardDevice will add dashboard device
+func addDashboardDevice(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessAddDashboardDevice(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// removeDashboardDevice will remove dashboard device
+func removeDashboardDevice(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessRemoveDashboardDevice(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDashboardSettings handles dashboard settings change
 func setDashboardSettings(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDashboardSettingsChange(r)
@@ -1023,9 +1200,9 @@ func setDashboardSettings(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// setDashboardDevicePosition handles dashboard device position change
-func setDashboardDevicePosition(w http.ResponseWriter, r *http.Request) {
-	request := requests.ProcessDashboardDevicePositionChange(r)
+// setDashboardSidebar handles dashboard sidebar collapse persistence
+func setDashboardSidebar(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDashboardSidebarChange(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1144,9 +1321,64 @@ func changeButtonOptimization(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeLeftHandMode handles device left hand mode
+func changeLeftHandMode(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeLeftHandMode(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeLiftHeight handles device lift height change
+func changeLiftHeight(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeLiftHeight(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeAutoBrightness handles device auto brightness mode
+func changeAutoBrightness(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeAutoBrightness(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeDebounceTime handles device switch debounce time
+func changeDebounceTime(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeDebounceTime(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeKeyAssignment handles device key assignment update
 func changeKeyAssignment(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeKeyAssignment(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeKeyActuation handles device key assignment update
+func changeKeyActuation(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeKeyActuation(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1265,6 +1497,17 @@ func saveMouseDpi(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// saveMouseGestures handles mouse gestures save
+func saveMouseGestures(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessMouseGestureUpdate(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // saveMouseZoneColors handles mouse zone colors save
 func saveMouseZoneColors(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessMouseZoneColorsSave(r)
@@ -1364,9 +1607,20 @@ func newMacroProfileValue(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getKeyboardKey handles information about keyboard get
+// getGetKeyboardKey handles information about keyboard get
 func getGetKeyboardKey(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGetKeyboardKey(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// getGetKeyboardKeys handles information about keyboard get
+func getGetKeyboardKeys(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetKeyboardKeys(r)
 	resp := &Response{
 		Code:   request.Code,
 		Status: request.Status,
@@ -1378,6 +1632,17 @@ func getGetKeyboardKey(w http.ResponseWriter, r *http.Request) {
 // setKeyboardPerformance handles setting keyboard performance
 func setKeyboardPerformance(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetKeyboardPerformance(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setKeyboardFlashTap handles setting keyboard flash tap settings
+func setKeyboardFlashTap(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetKeyboardFlashTap(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1465,6 +1730,17 @@ func deleteDeviceGradientColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setCommanderDuoOverride handles deletion of gradient color
+func setCommanderDuoOverride(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessCommanderDuoOverride(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -1500,7 +1776,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Device = device
 	web.Lcd = lcd.GetLcdDevices()
@@ -1511,6 +1787,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.SystemInfo = systeminfo.GetInfo()
 	web.Stats = stats.GetAIOStats()
 	web.Macros = macro.GetProfiles()
+	web.Dashboard = dashboard.GetDashboard()
 
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
@@ -1535,7 +1812,7 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	deviceList := devices.GetDevices()
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = deviceList
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
@@ -1563,9 +1840,6 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	}
 	web.Page = "index"
 
-	// Add all devices to the list
-	dashboard.AddDeviceToOrderList(deviceList)
-
 	t := templates.GetTemplate()
 	for header := range headers {
 		w.Header().Set(headers[header].Key, headers[header].Value)
@@ -1585,13 +1859,16 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 // uiTemperatureOverview handles overview of temperature profiles
 func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.TemperatureProbes = devices.GetTemperatureProbes()
 	web.HwMonSensors = temperatures.GetExternalHwMonSensors()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "temperature"
 
 	t := templates.GetTemplate()
@@ -1619,13 +1896,16 @@ func uiTemperatureOverview(w http.ResponseWriter, _ *http.Request) {
 // uiTemperatureGraphOverview handles overview of graph temperature profiles
 func uiTemperatureGraphOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.TemperatureProbes = devices.GetTemperatureProbes()
 	web.HwMonSensors = temperatures.GetExternalHwMonSensors()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "temperature"
 
 	t := templates.GetTemplate()
@@ -1647,11 +1927,14 @@ func uiTemperatureGraphOverview(w http.ResponseWriter, _ *http.Request) {
 // uiSchedulerOverview handles overview of scheduler settings
 func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Scheduler = scheduler.GetScheduler()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "scheduler"
 	t := templates.GetTemplate()
 
@@ -1672,11 +1955,14 @@ func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
 // uiRgbEditor handles overview of RGB profiles
 func uiRgbEditor(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.RGBProfiles = devices.GetRgbProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "rgb"
 
 	t := templates.GetTemplate()
@@ -1698,11 +1984,14 @@ func uiRgbEditor(w http.ResponseWriter, _ *http.Request) {
 // uiRgbCluster handles overview of RGB Cluster
 func uiRgbCluster(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Device = devices.GetDevice("cluster")
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "rgbCluster"
 
 	t := templates.GetTemplate()
@@ -1725,11 +2014,14 @@ func uiRgbCluster(w http.ResponseWriter, _ *http.Request) {
 // uiColorOverview handles overview or RGB profiles
 func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Rgb = rgb.GetRgbProfiles()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "colors"
 	t := templates.GetTemplate()
 
@@ -1750,13 +2042,16 @@ func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 // uiMacrosOverview handles overview of macro profiles
 func uiMacrosOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.TemperatureProbes = devices.GetTemperatureProbes()
 	web.Macros = macro.GetProfiles()
 	web.InputActions = inputmanager.GetInputActions()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "macros"
 
 	t := templates.GetTemplate()
@@ -1778,7 +2073,7 @@ func uiMacrosOverview(w http.ResponseWriter, _ *http.Request) {
 // uiLcdOverview handles overview of LCD profiles
 func uiLcdOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.TemperatureProbes = devices.GetTemperatureProbes()
 	web.LCDProfiles = lcd.GetCustomLcdProfiles()
@@ -1786,6 +2081,9 @@ func uiLcdOverview(w http.ResponseWriter, _ *http.Request) {
 	web.InputActions = inputmanager.GetInputActions()
 	web.BuildInfo = version.GetBuildInfo()
 	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "lcd"
 
 	t := templates.GetTemplate()
@@ -1808,7 +2106,7 @@ func uiLcdOverview(w http.ResponseWriter, _ *http.Request) {
 // uiSettings handles index page
 func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
-	web.Title = "Device Dashboard"
+	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Scheduler = scheduler.GetScheduler()
 	web.BuildInfo = version.GetBuildInfo()
@@ -1816,6 +2114,9 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web.Dashboard = dashboard.GetDashboard()
 	web.Languages = language.GetLanguages()
 	web.LanguageCode = dashboard.GetDashboard().LanguageCode
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Page = "settings"
 
 	t := templates.GetTemplate()
@@ -1903,6 +2204,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/", http.MethodGet, getColor)
 	handleFunc(r, "/api/color/zone/", http.MethodGet, getZoneColor)
 	handleFunc(r, "/api/color/profile/", http.MethodGet, getColorData)
+	handleFunc(r, "/api/color/override/", http.MethodGet, getCommanderDuoOverride)
 	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
 	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
 	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
@@ -1912,13 +2214,17 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/", http.MethodGet, getMacro)
 	handleFunc(r, "/api/macro/keyInfo/", http.MethodGet, getKeyName)
 	handleFunc(r, "/api/dashboard", http.MethodGet, getDashboardSettings)
+	handleFunc(r, "/api/dashboard/devices/get", http.MethodGet, getDashboardDevices)
 	handleFunc(r, "/api/keyboard/assignmentsTypes/", http.MethodGet, getKeyAssignmentTypes)
 	handleFunc(r, "/api/keyboard/assignmentsModifiers/", http.MethodGet, getKeyAssignmentModifiers)
 	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
+	handleFunc(r, "/api/keyboard/getFlashTap/", http.MethodGet, getKeyboardFlashTap)
 	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
 	handleFunc(r, "/api/keyboard/dial/getColors/", http.MethodGet, getControlDialColors)
 	handleFunc(r, "/api/getSupportedDevices", http.MethodGet, getSupportedDevices)
 	handleFunc(r, "/api/backup", http.MethodGet, backup.PerformBackup)
+	handleFunc(r, "/api/position/", http.MethodGet, getPositionData)
+	handleFunc(r, "/api/headset/getEqualizers/", http.MethodGet, getEqualizers)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -1937,6 +2243,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
 	handleFunc(r, "/api/color/gradient/add", http.MethodPost, newDeviceGradientColor)
 	handleFunc(r, "/api/color/gradient/delete", http.MethodPost, deleteDeviceGradientColor)
+	handleFunc(r, "/api/color/override/update", http.MethodPost, setCommanderDuoOverride)
 	handleFunc(r, "/api/hub/strip", http.MethodPost, setDeviceStrip)
 	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)
 	handleFunc(r, "/api/hub/type", http.MethodPost, setExternalHubDeviceType)
@@ -1949,9 +2256,10 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/lcd/image", http.MethodPost, setDeviceLcdImage)
 	handleFunc(r, "/api/brightness", http.MethodPost, changeBrightness)
 	handleFunc(r, "/api/brightness/gradual", http.MethodPost, changeBrightnessGradual)
-	handleFunc(r, "/api/position", http.MethodPost, changePosition)
+	handleFunc(r, "/api/position/update", http.MethodPost, changePosition)
 	handleFunc(r, "/api/dashboard/update", http.MethodPost, setDashboardSettings)
-	handleFunc(r, "/api/dashboard/position", http.MethodPost, setDashboardDevicePosition)
+	handleFunc(r, "/api/dashboard/sidebar", http.MethodPost, setDashboardSidebar)
+	handleFunc(r, "/api/dashboard/devices/add", http.MethodPost, addDashboardDevice)
 	handleFunc(r, "/api/argb", http.MethodPost, setARGBDevice)
 	handleFunc(r, "/api/keyboard/color", http.MethodPost, setKeyboardColor)
 	handleFunc(r, "/api/misc/color", http.MethodPost, setMiscColor)
@@ -1962,15 +2270,20 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/dial", http.MethodPost, changeControlDial)
 	handleFunc(r, "/api/keyboard/sleep", http.MethodPost, changeSleepMode)
 	handleFunc(r, "/api/keyboard/pollingRate", http.MethodPost, changePollingRate)
+	handleFunc(r, "/api/keyboard/autoBrightness", http.MethodPost, changeAutoBrightness)
+	handleFunc(r, "/api/keyboard/debounceTime", http.MethodPost, changeDebounceTime)
 	handleFunc(r, "/api/scheduler/rgb", http.MethodPost, changeRgbScheduler)
 	handleFunc(r, "/api/psu/speed", http.MethodPost, changePsuFanMode)
 	handleFunc(r, "/api/mouse/dpi", http.MethodPost, saveMouseDpi)
+	handleFunc(r, "/api/mouse/gestures", http.MethodPost, saveMouseGestures)
 	handleFunc(r, "/api/mouse/zoneColors", http.MethodPost, saveMouseZoneColors)
 	handleFunc(r, "/api/mouse/dpiColors", http.MethodPost, saveMouseDpiColors)
 	handleFunc(r, "/api/mouse/sleep", http.MethodPost, changeSleepMode)
 	handleFunc(r, "/api/mouse/pollingRate", http.MethodPost, changePollingRate)
 	handleFunc(r, "/api/mouse/angleSnapping", http.MethodPost, changeAngleSnapping)
 	handleFunc(r, "/api/mouse/buttonOptimization", http.MethodPost, changeButtonOptimization)
+	handleFunc(r, "/api/mouse/leftHandMode", http.MethodPost, changeLeftHandMode)
+	handleFunc(r, "/api/mouse/liftHeight", http.MethodPost, changeLiftHeight)
 	handleFunc(r, "/api/mouse/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/headset/zoneColors", http.MethodPost, saveHeadsetZoneColors)
 	handleFunc(r, "/api/headset/sleep", http.MethodPost, changeSleepMode)
@@ -1978,8 +2291,11 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/led/update", http.MethodPost, updateDeviceLed)
 	handleFunc(r, "/api/macro/newValue", http.MethodPost, newMacroProfileValue)
 	handleFunc(r, "/api/keyboard/getKey/", http.MethodPost, getGetKeyboardKey)
+	handleFunc(r, "/api/keyboard/getKeys/", http.MethodPost, getGetKeyboardKeys)
 	handleFunc(r, "/api/keyboard/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
+	handleFunc(r, "/api/keyboard/updateActuation", http.MethodPost, changeKeyActuation)
 	handleFunc(r, "/api/keyboard/setPerformance", http.MethodPost, setKeyboardPerformance)
+	handleFunc(r, "/api/keyboard/setFlashTap", http.MethodPost, setKeyboardFlashTap)
 	handleFunc(r, "/api/macro/updateValue", http.MethodPost, updateMacroValue)
 	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
 	handleFunc(r, "/api/setSupportedDevices", http.MethodPost, setSupportedDevices)
@@ -1989,6 +2305,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/headset/sidetone", http.MethodPost, changeSidetone)
 	handleFunc(r, "/api/headset/sidetoneValue", http.MethodPost, changeSidetoneValue)
 	handleFunc(r, "/api/headset/wheelOption", http.MethodPost, changeWheelOption)
+	handleFunc(r, "/api/headset/equalizer", http.MethodPost, updateDeviceEqualizers)
 	handleFunc(r, "/api/controller/vibration", http.MethodPost, changeControllerVibration)
 	handleFunc(r, "/api/controller/zoneColors", http.MethodPost, saveControllerZoneColors)
 	handleFunc(r, "/api/controller/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
@@ -2011,6 +2328,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/value", http.MethodDelete, deleteMacroValue)
 	handleFunc(r, "/api/temperatures/delete", http.MethodDelete, deleteTemperatureProfile)
 	handleFunc(r, "/api/macro/profile", http.MethodDelete, deleteMacroProfile)
+	handleFunc(r, "/api/userProfile/delete", http.MethodDelete, deleteUserProfile)
+	handleFunc(r, "/api/dashboard/devices/delete", http.MethodDelete, removeDashboardDevice)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

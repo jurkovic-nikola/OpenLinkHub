@@ -1,30 +1,5 @@
 "use strict";
-
-document.addEventListener("DOMContentLoaded", function () {
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
-
-    // Init toastr
-    const toast = CreateToastr();
-
+$(document).ready(function () {
     $('.clusterRgbProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
@@ -93,4 +68,22 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    const $brightnessSlider = $("#brightnessSlider");
+    const $brightnessSliderValue = $("#brightnessSliderValue");
+    function updateSlider() {
+        const min = Number($brightnessSlider.attr("min"));
+        const max = Number($brightnessSlider.attr("max"));
+        const value = Number($brightnessSlider.val());
+
+        const percent = ((value - min) / (max - min)) * 100;
+
+        $brightnessSlider.css("--slider-progress", percent + "%");
+        $brightnessSliderValue.text(value + " %");
+    }
+
+    if ($brightnessSlider.length) {
+        $brightnessSlider.on("input", updateSlider);
+        updateSlider();
+    }
 });

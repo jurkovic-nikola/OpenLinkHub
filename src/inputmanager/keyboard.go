@@ -147,6 +147,111 @@ func InputControlKeyboardHold(controlType uint16, press bool) {
 	}
 }
 
+// InputControlCtrlEnd emulates Ctrl + End
+func InputControlCtrlEnd() {
+	if virtualKeyboardFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
+		return
+	}
+
+	var events []inputEvent
+
+	events = append(events, createInputEventHold(keyLeftCtrl, true)...)
+	events = append(events, createInputEvent(keyEnd, false)...)
+	events = append(events, createInputEventHold(keyLeftCtrl, false)...)
+
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualKeyboardFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit Ctrl+End")
+			return
+		}
+	}
+}
+
+// InputControlZoomReset will reset zoom to default (Ctrl + 0)
+func InputControlZoomReset() {
+	if virtualKeyboardFile == nil {
+		logger.Log(nil).Error("Virtual keyboard is not present")
+		return
+	}
+
+	pressCtrl := inputEvent{
+		Type:  evKey,
+		Code:  keyLeftCtrl,
+		Value: 1,
+	}
+	pressZero := inputEvent{
+		Type:  evKey,
+		Code:  keyNumber0,
+		Value: 1,
+	}
+	releaseZero := inputEvent{
+		Type:  evKey,
+		Code:  keyNumber0,
+		Value: 0,
+	}
+	releaseCtrl := inputEvent{
+		Type:  evKey,
+		Code:  keyLeftCtrl,
+		Value: 0,
+	}
+	sync := inputEvent{
+		Type:  evSyn,
+		Code:  0,
+		Value: 0,
+	}
+
+	events := []inputEvent{
+		pressCtrl, sync,
+		pressZero, sync,
+		releaseZero, sync,
+		releaseCtrl, sync,
+	}
+
+	for _, e := range events {
+		if err := writeVirtualEvent(virtualKeyboardFile, &e); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit zoom reset")
+			return
+		}
+	}
+}
+
+// InputControlScrollHorizontalReset moves view to the far left (Home)
+func InputControlScrollHorizontalReset() {
+	if virtualKeyboardFile == nil {
+		logger.Log(nil).Error("Virtual keyboard is not present")
+		return
+	}
+
+	pressHome := inputEvent{
+		Type:  evKey,
+		Code:  keyHome,
+		Value: 1,
+	}
+	releaseHome := inputEvent{
+		Type:  evKey,
+		Code:  keyHome,
+		Value: 0,
+	}
+	sync := inputEvent{
+		Type:  evSyn,
+		Code:  0,
+		Value: 0,
+	}
+
+	events := []inputEvent{
+		pressHome, sync,
+		releaseHome, sync,
+	}
+
+	for _, e := range events {
+		if err := writeVirtualEvent(virtualKeyboardFile, &e); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to reset horizontal scroll")
+			return
+		}
+	}
+}
+
 // InputControlKeyboardText will send given text string to keyboard
 func InputControlKeyboardText(text string) {
 	if virtualKeyboardFile == nil {

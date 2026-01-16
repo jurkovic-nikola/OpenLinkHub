@@ -131,9 +131,9 @@
           "keySpace": "keyboard-key wide3",
           "onlyColor": true,
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         },
         "10": {
@@ -146,9 +146,9 @@
           "keySpace": "keyboard-key wide4",
           "onlyColor": true,
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         },
         "11": {
@@ -161,9 +161,9 @@
           "keySpace": "keyboard-key wide3",
           "onlyColor": true,
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255
+            "blue": 0
           }
         },
         "12": {

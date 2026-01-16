@@ -112,27 +112,9 @@ func SaveArc(value *Arc) uint8 {
 	arc = value
 	profile := config.GetConfig().ConfigPath + "/database/lcd/arc.json"
 
-	buffer, err := json.MarshalIndent(arc, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(profile, arc); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")
 		return 0
-	}
-
-	file, fileErr := os.Create(profile)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to create update arc profile")
-		return 0
-	}
-
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write data")
-		return 0
-	}
-
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to close file handle")
 	}
 	return 1
 }

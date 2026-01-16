@@ -1,41 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-404.svg" width="46" height="46" alt="Device" />
-                                </div>
-                                <div class="ds-svg-placeholder-left" style="width:90%;margin-left: 30px;">
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 15px;">
-                                        <span style="color: #37929d !important;text-align: center;width: 100%;">{{ .Lang "txtDeviceNotAvailable" }}</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        {{ template "footer" . }}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            {{ template "404-no-device" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

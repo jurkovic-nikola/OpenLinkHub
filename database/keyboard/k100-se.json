@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k100-default",
@@ -489,8 +489,6 @@
             "blue": 255
           },
           "keyEmpty": [
-            "keyboard-key-empty",
-            "keyboard-key-empty",
             "keyboard-key-empty"
           ],
           "default": true,
@@ -560,9 +558,9 @@
             576
           ],
           "color": {
-            "red": 0,
+            "red": 255,
             "green": 255,
-            "blue": 255,
+            "blue": 0,
             "brightness": 0,
             "Hex": ""
           },
@@ -705,9 +703,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             131
           ],
@@ -732,9 +727,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             41
           ],
@@ -1273,9 +1265,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             132
           ],
@@ -1300,9 +1289,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             53
           ],
@@ -1862,9 +1848,6 @@
             "Hex": ""
           },
           "css": "top-32",
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             133
           ],
@@ -1890,9 +1873,6 @@
             "Hex": ""
           },
           "keySpace": "keyboard-key wide",
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "css": "top-32",
           "keyData": [
             43
@@ -2447,9 +2427,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             134
           ],
@@ -2475,9 +2452,6 @@
             "Hex": ""
           },
           "keySpace": "keyboard-key wide",
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             57
           ],
@@ -2943,9 +2917,6 @@
             "Hex": ""
           },
           "css": "top-32",
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             135
           ],
@@ -2971,9 +2942,6 @@
             "Hex": ""
           },
           "keySpace": "keyboard-key wide",
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "css": "top-32",
           "keyData": [
             106
@@ -3477,9 +3445,6 @@
             "brightness": 0,
             "Hex": ""
           },
-          "keyEmpty": [
-            "keyboard-key-empty"
-          ],
           "keyData": [
             136
           ],
@@ -3509,9 +3474,6 @@
           ],
           "keyHash": [
             "40564819207303340847894502572032"
-          ],
-          "keyEmpty": [
-            "keyboard-key-empty"
           ]
         },
         "147": {

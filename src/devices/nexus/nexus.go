@@ -1,8 +1,6 @@
 package nexus
 
 // Package: CORSAIR iCUE NEXUS
-// This is the primary package for CORSAIR iCUE NEXUS
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -34,6 +32,7 @@ import (
 	"image/jpeg"
 	_ "image/png"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -649,9 +648,7 @@ func (d *Device) saveDeviceProfile() {
 		Path:    profilePath,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
-		// RGB, Label
 		deviceProfile.Label = "Companion Touch Screen"
 		deviceProfile.LCDMode = "cpu-info"
 		deviceProfile.Active = true
@@ -671,34 +668,21 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.DynamicMode = d.DeviceProfile.DynamicMode
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
-	}
-
-	d.loadDeviceProfiles() // Reload
+	d.loadDeviceProfiles()
 }
 
 // calculateStringXY will calculate X,Y and center text
@@ -1127,7 +1111,6 @@ func (d *Device) transfer(buffer []byte) {
 		binary.LittleEndian.PutUint16(bufferW[6:8], uint16(len(chunk)))
 		copy(bufferW[8:], chunk)
 
-		// Send it
 		if _, err := d.dev.Write(bufferW); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 			break

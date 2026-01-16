@@ -16,6 +16,26 @@ var (
 	keyboards = map[string]Keyboard{}
 )
 
+type FlashTapKey struct {
+	Name    string
+	KeyData int
+}
+type FlashTap struct {
+	Active int                 `json:"active"`
+	Mode   int                 `json:"mode"`
+	Modes  map[int]string      `json:"modes"`
+	Keys   map[int]FlashTapKey `json:"keys"`
+	Color  rgb.Color           `json:"color"`
+}
+
+type KeyActuation struct {
+	ActuationAllKeys              bool
+	ActuationPoint                byte
+	ActuationResetPoint           byte
+	EnableSecondaryActuationPoint bool
+	SecondaryActuationPoint       byte
+	SecondaryActuationResetPoint  byte
+}
 type Keyboard struct {
 	Version             int           `json:"version"`
 	Key                 string        `json:"key"`
@@ -96,6 +116,12 @@ type Key struct {
 	BluetoothProfile2             bool      `json:"bluetoothProfile2"`
 	BluetoothProfile3             bool      `json:"bluetoothProfile3"`
 	SlipstreamProfile             bool      `json:"slipstreamProfile"`
+	ActuationPoint                byte      `json:"actuationPoint"`
+	ActuationResetPoint           byte      `json:"actuationResetPoint"`
+	EnableSecondaryActuationPoint bool      `json:"enableSecondaryActuationPoint"`
+	SecondaryActuationPoint       byte      `json:"secondaryActuationPoint"`
+	SecondaryActuationResetPoint  byte      `json:"secondaryActuationResetPoint"`
+	NoActuation                   bool      `json:"noActuation"`
 }
 
 // Init will load and initialize keyboard data

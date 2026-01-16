@@ -1,55 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $device := .Device }}
-        <input type="hidden" id="deviceId" name="deviceId" value="">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row justify-content-center">
-                    <div class="col-lg-12" style="text-align: center;">
-                        {{ range $key, $value := .RGBProfiles }}
-                        {{ if eq $value nil }}
-                        {{ continue }}
-                        {{ end }}
-                        <div class="btn btn-secondary rgbList justify-content-center" id="{{ $key }}" style="margin-left: 10px;margin-top: 1px;">
-                            <a style="color: #a1a1a1;" href="#">
-                                <img src="/static/img/icons/icon-rgb.svg" width="25" height="25" alt="MM700 RGB" class="top-px">
-                                <span class="navigation-text">{{ $value.Device }}</span>
-                            </a>
+
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $device := .Device }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <!-- RGB Editor -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ $root.Lang "txtRgbDevices" }}
                         </div>
-                        {{ end }}
-                        <div class="progress" style="height: 1px;margin-top: 10px;">
-                            <div class="progress-bar bg-dash-color-5" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                {{ range $key, $value := .RGBProfiles }}
+                                {{ if eq $value nil }}
+                                {{ continue }}
+                                {{ end }}
+                                <div class="settings-row rgbList" id="{{ $key }}">
+                                    <span class="settings-label text-ellipsis">{{ $value.Device }}</span>
+                                    <span class="settings-label text-ellipsis"></span>
+                                </div>
+                                {{ end }}
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row justify-content-center" style="margin-top: 10px;">
-                    <div class="col-lg-12" style="text-align: center;">
-                        <input type="hidden" id="profile" name="profile" value="">
-                        <div class="col-lg-12" style="text-align: center;">
-                            <div class="row justify-content-center" id="rgbDivList"></div>
-                        </div>
-                    </div>
+                <div class="col-md-10">
+                    <div class="row g-4 mb-4 align-items-start" id="rgbDivList"></div>
                 </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/jquery-ui.min.js"></script>
-<script src="/static/js/dataTables.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/rgb.js"></script>
+<script src="/static/js/sidebar.js"></script>
+<script src="/static/js/jquery-ui.min.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

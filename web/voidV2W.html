@@ -1,196 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $temperatures := .Temperatures }}
-        {{ $device := .Device }}
-        {{ $rgbModes := .Device.RGBModes }}
-        {{ $rgb := .Rgb }}
-        {{ $profile := $device.DeviceProfile.Profile }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <input type="hidden" id="zones" name="zones" value="2">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        {{ if eq .Device.Connected false }}
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-headphone.svg" width="46" height="46" alt="Device" />
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $rgb := .Rgb }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="zones" name="zones" value="2">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            {{ if eq .Device.Connected false }}
+            {{ template "404-no-device" . }}
+            {{ else }}
+
+            <!-- VIRTUOSO MAX -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Firmware -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtFirmware" }}</span>
+                                    <span class="meta-value">{{ .Device.Firmware }}</span>
                                 </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
-                                    </p>
+
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            <option value="{{ $key }}" selected>{{ $key }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
                                 </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
-                                    <span>Device is not connected!</span><br />
+
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- RGB Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="rgbProfile">
+                                        <select id="rgbProfile" class="form-select system-select compact auto-width miscRgbProfile" name="miscRgbProfile">
+                                            {{ range $key, $mode := $rgbModes }}
+                                            {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                            <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
+                                            {{ else }}
+                                            <option value="0;{{ $mode }}">{{ $mode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Sleep -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSleep" }}</span>
+                                    <label for="sleepModes">
+                                        <select id="sleepModes" class="form-select system-select compact auto-width headsetSleepModes" name="sleepModes">
+                                            {{ range $key, $sleepMode := $device.SleepModes }}
+                                            {{ if eq $device.DeviceProfile.SleepMode $key }}
+                                            <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $sleepMode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Sidetone -->
+                                <div class="settings-row">
+                                    <span title='{{ .Lang "txtSidetone" }}' class="settings-label text-ellipsis">{{ .Lang "txtSidetone" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" class="toggleSidetone" {{ if $deviceProfile.SideTone }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Side tone value -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSidetoneValue" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="sideToneValue" name="sideToneValue" min="1" max="100" value="{{ $deviceProfile.SideToneValue }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="sideToneValueText">{{ $deviceProfile.SideToneValue }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="form-select system-select compact auto-width deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
                                 </div>
                             </div>
                         </div>
-                        {{ else }}
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-headphone.svg" width="46" height="46" alt="Device" />
-                                </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <span title="{{ .Lang "txtConnectionSlipstream" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-wifi svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </span>
-                                    <span title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                        {{ $device.BatteryLevel }} %
-                                    </span>
-                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select userProfile" name="userProfile">
-                                                {{ range $key, $profile := $device.UserProfiles }}
-                                                {{ if $profile.Active }}
-                                                <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $key }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtBrightness" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-brightness-high svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
-                                        <li>
-                                            <input class="brightness-slider" type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" style="margin-top:0" step="5" />
-                                        </li>
-                                    </ul>
-
-                                    <button title="{{ .Lang "txtRgbProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-lightbulb-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select headsetRgbProfile" name="headsetRgbProfile">
-                                                {{ range $key, $mode := $rgbModes }}
-                                                {{ if eq $mode $device.DeviceProfile.RGBProfile }}
-                                                <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
-                                                {{ else }}
-                                                <option value="0;{{ $mode }}">{{ $mode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtSleepTimer" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-clock-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select headsetSleepModes" name="sleepModes">
-                                                {{ range $key, $sleepMode := $device.SleepModes }}
-                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
-                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-
-                                    <button title="{{ .Lang "txtSidetone" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-mic svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select sideToneMode" name="sideToneMode">
-                                                {{ range $key, $value := $device.SideToneModes }}
-                                                {{ if eq $device.DeviceProfile.SideTone $key }}
-                                                <option value="{{ $key }}" selected>{{ $value }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $value }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-
-                                    <button title="{{ .Lang "txtSidetoneValue" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-headphones svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="background-color: transparent;border: 0;">
-                                        <li>
-                                            <input class="brightness-slider" type="range" id="sideToneValue" name="sideToneValue" min="0" max="100" value="{{ $deviceProfile.SideToneValue }}" style="margin-top:0" step="1" />
-                                        </li>
-                                    </ul>
-
-                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
-                                {{ if eq "headset" $device.DeviceProfile.RGBProfile }}
-                                <div class="mouse">
-                                    <div class="row">
-                                        <div class="row" style="margin: 10px auto 0;">
-                                            {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
-                                            <div class="col-md-3 col-sm-6">
-                                                <div class="card mb-4">
-                                                    <div style="margin-top: 10px;">
-                                                        <span style="margin-bottom: 10px;">{{ $zone.Name }}</span>
-                                                        <div>
-                                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {{ end }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div style="margin: 0 auto;">
-                                    <div style="float: left;width: 530px;">
-                                        <button class="btn btn-secondary" id="saveZoneColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                            <span>{{ .Lang "txtSaveZoneColors" }}</span>
-                                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Lang "txtRgb" }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $root.Lang "txtZone" }}: {{ $zone.Name }}</span>
+                                    <div class="system-color compact">
+                                        <label>
+                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}">
+                                        </label>
                                     </div>
                                 </div>
                                 {{ end }}
                             </div>
                         </div>
-                        {{ end }}
+
+                        <div class="card-footer card-footer-left">
+                            <button class="system-button" id="saveZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+            {{ end }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
 <script src="/static/js/headset.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

@@ -1,161 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $devs := .Devices }}
-        {{ $device := .Device }}
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4">
-                    <div class="col-lg-2">
-                        <div class="card newTemp" data-bs-toggle="modal" data-bs-target="#newTempModal" style="margin-bottom: 20px;">
-                            <div class="card-body">
-                                <div class="row gx-12">
-                                    <div class="col-12">
-                                        <div>
-                                            <p class="text-xl fw-normal mb-0">{{ .Lang "txtNewMacro" }}</p>
-                                            <p class="text-uppercase text-sm fw-light mb-2">{{ .Lang "txtCreateNewMacro" }}</p>
-                                            <div class="progress" style="height: 2px">
-                                                <div class="progress-bar bg-dash-color-1" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal fade text-start" id="newTempModal" tabindex="-1" aria-labelledby="newTempModalLabel" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="newTempModalLabel">{{ .Lang "txtNewMacroProfile" }}</h5>
-                                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form>
-                                            <div class="mb-3">
-                                                <label class="form-label" for="profileName">{{ .Lang "txtProfileName" }}</label>
-                                                <input class="form-control" id="profileName" type="text" placeholder="{{ .Lang "txtProfileNameDesc" }}">
-                                            </div>
-                                        </form>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
-                                        <button class="btn btn-primary" type="button" id="btnSaveNewMacroProfile">{{ .Lang "txtCreate" }}</button>
-                                    </div>
-                                </div>
-                            </div>
+
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $device := .Device }}
+    <input type="hidden" id="profile" name="profile" value="">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <div class="modal fade text-start" id="deleteTempModal" tabindex="-1" aria-labelledby="deleteTempModal" aria-hidden="true">
+                <div class="modal-dialog modal-custom modal-600">
+                    <div class="modal-content">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ .Lang "txtDeleteMacroProfile" }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
 
-                        <div class="modal fade text-start" id="deleteTempModal" tabindex="-1" aria-labelledby="newTempModalLabel" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="deleteTempModalLabel">{{ .Lang "txtDeleteMacroProfile" }}</h5>
-                                        <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-1">
-                                            <p>{{ .Lang "txtDeleteMacroProfileConfirm" }}</p>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
-                                        <button class="btn btn-danger" type="button" id="deleteMacroProfile">{{ .Lang "txtDelete" }}</button>
-                                    </div>
+                        <div class="modal-body delete-warning">
+                            <div class="warning-icon">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                            <div class="warning-text">
+                                <h6 class="warning-title">
+                                    {{ .Lang "txtDeleteMacroProfile" }}
+                                </h6>
+                                <p class="warning-message">
+                                    {{ .Lang "txtDeleteMacroProfileConfirm" }}
+                                </p>
+                                <div class="warning-box">
+                                    <i class="bi bi-info-circle"></i>
+                                    <span>
+                                        {{ .Lang "txtDeleteMacroProfileDesc" }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
-                        {{ range $key, $value := .Macros }}
-                        <div class="card macroList" id="{{ $key }}" style="margin-bottom: 20px;">
-                            <div class="card-body">
-                                <div class="row gx-12">
-                                    <div class="col-12">
-                                            <div>
-                                                <p class="text-xl fw-normal mb-0">{{ $value.Name }}</p>
-                                                <div class="progress" style="height: 2px">
-                                                    <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="modal-footer">
+                            <button class="system-button btn-secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
+                            <button class="system-button danger" type="button" id="deleteMacroProfile">{{ .Lang "txtDelete" }}</button>
                         </div>
-                        {{ end }}
-                    </div>
-                    <input type="hidden" id="profile" name="profile" value="">
-                    <div class="col-lg-10">
-                        <div style="margin-bottom: 10px;display: none;height: 40px;" id="newMacroValue">
-                            <select class="form-select macroType" id="macroType" style="width: auto;float: left;">
-                                <option value="0" selected>{{ .Lang "txtNone" }}</option>
-                                <option value="3">{{ .Lang "txtKeyboard" }}</option>
-                                <option value="9">{{ .Lang "txtMouse" }}</option>
-                                <option value="5">{{ .Lang "txtDelay" }}</option>
-                                <option value="6">{{ .Lang "txtText" }}</option>
-                            </select>
-                            <div class="input-container">
-                                <select class="form-select macroKeyId" id="macroKeyId" style="width: auto;float: left;margin-left: 15px;display: none;">
-                                    <option value="0" selected>{{ .Lang "txtNone" }}</option>
-                                </select>
-                            </div>
-                            <input class="form-control" id="macroDelay" type="text" placeholder="Delay (in milliseconds)" style="width: auto;margin-left: 15px;float: left;display: none;">
-                            <textarea class="form-control"
-                                      id="macroText"
-                                      placeholder="Enter macro text..."
-                                      rows="3"
-                                      style="width: 300px; height: 37px; margin-left: 15px; float: left; display: none; resize: vertical;"></textarea>
-                            <button class="btn btn-success" type="button" id="addMacroValue" style="width: auto;margin-left: 15px;float: left;">{{ .Lang "txtAddMacroValue" }}</button>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="row gx-5">
-                                    <div class="table-responsive">
-                                        <table class="table text-sm" id="table" style="width: 100%;">
-                                            <thead>
-                                            <tr>
-                                                <th>{{ .Lang "txtId" }}</th>
-                                                <th>{{ .Lang "txtMacroType" }}</th>
-                                                <th>{{ .Lang "txtMacroValue" }}</th>
-                                                <th>
-                                                    {{ .Lang "txtPressAndHold" }}
-                                                    <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldMacroInfoToggle"></i>
-                                                </th>
-                                                <th>
-                                                    {{ .Lang "txtActionRepeat" }}
-                                                    <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatMacroInfoToggle"></i>
-                                                </th>
-                                                <th>
-                                                    {{ .Lang "txtActionRepeatDelay" }}
-                                                    <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatDelayInfoToggle"></i>
-                                                </th>
-                                                <th style="width:20%;">{{ .Lang "txtOptions" }}</th>
-                                            </tr>
-                                            </thead>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <br/>
-                        <button class="btn btn-danger" type="button" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#deleteTempModal" style="display:none">{{ .Lang "txtDeleteProfile" }}</button>
                     </div>
                 </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+
+            <div class="modal fade text-start" id="newMacroModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-custom modal-600">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="newTempModalLabel">{{ .Lang "txtNewMacroProfile" }}</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body modal-title">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfileName" }}</span>
+                                    <div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" id="profileName" placeholder="{{ .Lang "txtProfileNameDesc" }}">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
+                            <button class="system-button" type="button" id="btnSaveNewMacroProfile">{{ .Lang "txtDelete" }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade text-start" id="addMacroValueModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-custom modal-700">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addMacroValueModalLabel">{{ .Lang "txtAddMacroValue" }}</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body modal-title">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtMacroType" }}</span>
+                                    <label>
+                                        <select id="macroType" class="form-select system-select auto-width macroType compact">
+                                            <option value="0" selected>{{ .Lang "txtNone" }}</option>
+                                            <option value="3">{{ .Lang "txtKeyboard" }}</option>
+                                            <option value="9">{{ .Lang "txtMouse" }}</option>
+                                            <option value="5">{{ .Lang "txtDelay" }}</option>
+                                            <option value="6">{{ .Lang "txtText" }}</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row macroKeyId">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtMacroValue" }}</span>
+                                    <div class="system-input text-input compact">
+                                        <label for="macroKeySearch">
+                                            <input
+                                                    type="text"
+                                                    id="macroKeySearch"
+                                                    placeholder="Search key..."
+                                                    autocomplete="off">
+                                        </label>
+                                    </div>
+                                    <label>
+                                        <select id="macroKeyId" class="form-select system-select auto-width compact">
+                                            <option value="0" selected>{{ .Lang "txtNone" }}</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row macroDelayId">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtMacroDelay" }}</span>
+                                    <div class="system-input text-input compact">
+                                        <label for="macroDelay">
+                                            <input
+                                                    type="text"
+                                                    id="macroDelay"
+                                                    placeholder="{{ .Lang "txtDelayInMilliseconds" }}"
+                                                    autocomplete="off">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="settings-row macroTextId">
+                                    <div class="system-input text-area">
+                                        <label for="macroText" class="input-label">
+                                            <textarea class="monospace" id="macroText"></textarea>
+                                        </label>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="system-button" type="button" id="addMacroValue">{{ .Lang "txtAddMacroValue" }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Macros -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card margin-top-20-all newTemp" data-bs-toggle="modal" data-bs-target="#newMacroModal">
+                        <div class="card-header">
+                            {{ .Lang "txtNewMacro" }}
+                        </div>
+                        <div class="card-body">
+                            {{ .Lang "txtCreateNewMacro" }}
+                        </div>
+                    </div>
+
+                    <div class="card system-card text-center top-10">
+                        <div class="card-header">
+                            {{ $root.Lang "txtMacros" }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                {{ range $key, $value := .Macros }}
+                                <div class="settings-row macroList" id="{{ $key }}">
+                                    <span class="settings-label text-ellipsis">{{ $value.Name }}</span>
+                                    <span class="settings-label text-ellipsis"></span>
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-10">
+                    <div class="card system-card text-center">
+                        <div class="card-body">
+                            <table class="dataTable text-sm" id="table" style="width: 100%;">
+                                <thead>
+                                <tr>
+                                    <th>{{ .Lang "txtId" }}</th>
+                                    <th>{{ .Lang "txtMacroType" }}</th>
+                                    <th>{{ .Lang "txtMacroValue" }}</th>
+                                    <th>
+                                        {{ .Lang "txtPressAndHold" }}
+                                        <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldMacroInfoToggle"></i>
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtActionRepeat" }}
+                                        <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatMacroInfoToggle"></i>
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtActionRepeatDelay" }}
+                                        <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatDelayInfoToggle"></i>
+                                    </th>
+                                    <th style="width:20%;">{{ .Lang "txtOptions" }}</th>
+                                </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                    <button class="system-button danger top-10" type="button" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#deleteTempModal" style="display:none">{{ .Lang "txtDeleteProfile" }}</button>
+                    <button class="system-button" type="button" id="addMacroValueBtn" data-bs-toggle="modal" data-bs-target="#addMacroValueModal" style="display:none">{{ .Lang "txtAddMacroValue" }}</button>
+                </div>
+            </div>
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/select2.js"></script>
-<script src="/static/js/dataTables.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/sidebar.js"></script>
 <script src="/static/js/macros.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

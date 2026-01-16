@@ -1,303 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $root := . }}
-        {{ $devs := .Devices }}
-        {{ $rgbModes := .Device.RGBModes }}
-        {{ $macros := .Macros }}
-        {{ $temperatures := .Temperatures }}
-        {{ $device := .Device }}
-        {{ $rgb := .Rgb }}
-        {{ $profile := $device.DeviceProfile.Profile }}
-        {{ $deviceProfile := .Device.DeviceProfile }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <input type="hidden" id="zones" name="zones" value="0">
-        <input type="hidden" id="dpis" name="dpis" value="4">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        {{ if eq .Device.Connected false }}
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $macros := .Macros }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $rgb := .Rgb }}
+    {{ $profile := $device.DeviceProfile.Profile }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="zones" name="zones" value="{{ $device.ZoneAmount }}">
+    <input type="hidden" id="dpis" name="dpis" value="{{ $device.DPIAmount }}">
+
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            {{ if eq .Device.Connected false }}
+            {{ template "404-no-device" . }}
+            {{ else }}
+
+            <!-- KATAR PRO WIRELESS -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Firmware -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtFirmware" }}</span>
+                                    <span class="meta-value">{{ .Device.Firmware }}</span>
                                 </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
-                                    </p>
+
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="system-select auto-width compact userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            <option value="{{ $key }}" selected>{{ $key }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
                                 </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;margin-top: 11px;">
-                                    <span>Device is not connected!</span><br />
+
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
+                                    </div>
+                                </div>
+
+                                {{ if .Device.Usb }}
+                                <!-- Polling Rate -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtPollingRate" }}</span>
+                                    <label for="pollingRate">
+                                        <select id="pollingRate" class="system-select max-width-120 compact mousePollingRate" name="mousePollingRate">
+                                            {{ range $key, $pr := $device.PollingRates }}
+                                            {{ if eq $key $device.DeviceProfile.PollingRate }}
+                                            <option value="{{ $key }}" selected>{{ $pr }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $pr }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+                                {{ end }}
+
+                                {{ if eq .Device.Usb false }}
+                                <!-- Sleep -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSleepTimer" }}</span>
+                                    <label for="sleepTimer">
+                                        <select id="sleepTimer" class="system-select auto-width compact mouseSleepModes" name="sleepModes">
+                                            {{ range $key, $sleepMode := $device.SleepModes }}
+                                            {{ if eq $device.DeviceProfile.SleepMode $key }}
+                                            <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $sleepMode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+                                {{ end }}
+
+                                <!-- Button Response Optimization -->
+                                <div class="settings-row">
+                                    <span title="{{ .Lang "txtButtonResponseOptimization" }}" class="settings-label text-ellipsis">{{ .Lang "txtButtonResponseOptimization" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" class="toggleButtonOptimization" {{ if $deviceProfile.ButtonOptimization }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="system-select auto-width compact deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
                                 </div>
                             </div>
                         </div>
-                        {{ else }}
-                        <div class="card mb-4">
-                            <div class="card-header border-bottom border-dash-dark-1">
-                                <div class="ds-svg-placeholder-left">
-                                    <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
-                                </div>
-                                <div class="ds-svg-placeholder-left" style="width:auto;margin-left: 30px;">
-                                    <span>{{ .Device.Product }}</span><br />
-                                    <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                        <span style="color: #37929d !important;">{{ .Lang "txtFirmware" }}: {{ .Device.Firmware }}</span>
-                                    </p>
-                                </div>
-                                <div class="ds-svg-placeholder-right" style="width:auto;margin-left: 30px;">
-                                    <span title="{{ .Lang "txtConnectionSlipstream" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-wifi svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </span>
-                                    <span title="{{ .Lang "txtBatteryLevel" }}" class="btn btn-secondary-empty" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-battery-full svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                        {{ $device.BatteryLevel }} %
-                                    </span>
-                                    <button title="{{ .Lang "txtUserProfile" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-person-dash svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select userProfile" name="userProfile">
-                                                {{ range $key, $profile := $device.UserProfiles }}
-                                                {{ if $profile.Active }}
-                                                <option value="{{ $key }}" selected>{{ $key }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $key }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtSleepTimer" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-clock-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select mouseSleepModes" name="sleepModes">
-                                                {{ range $key, $sleepMode := $device.SleepModes }}
-                                                {{ if eq $device.DeviceProfile.SleepMode $key }}
-                                                <option value="{{ $key }}" selected>{{ $sleepMode }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $sleepMode }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <button title="{{ .Lang "txtButtonResponseOptimization" }}" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-menu-button-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select mouseButtonOptimization" name="mouseButtonOptimization">
-                                                {{ range $key, $sm := $device.SwitchModes }}
-                                                {{ if eq $key $device.DeviceProfile.ButtonOptimization }}
-                                                <option value="{{ $key }}" selected>{{ $sm }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $sm }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    <!--
-                                    <button title="Polling Rate" class="btn btn-secondary-empty dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="margin-top: 5px;">
-                                        <i class="bi bi-usb-plug-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark shadow-sm" style="">
-                                        <li>
-                                            <select class="form-select mousePollingRate" name="mousePollingRate">
-                                                {{ range $key, $pr := $device.PollingRates }}
-                                                {{ if eq $key $device.DeviceProfile.PollingRate }}
-                                                <option value="{{ $key }}" selected>{{ $pr }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $pr }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
-                                        </li>
-                                    </ul>
-                                    -->
-                                    <button title="{{ .Lang "txtSaveUserProfile" }}" class="btn btn-secondary-empty saveUserProfile" type="button" style="margin-top: 5px;">
-                                        <i class="bi bi-save2-fill svg-icon svg-icon-sm svg-icon-heavy"></i>
-                                    </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stack-gap-4">
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtDpi" }}
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-list">
+                                    {{ range $key, $pf := $device.DeviceProfile.Profiles }}
+                                    <div class="settings-row settings-dpi">
+                                        <span class="settings-label text-ellipsis">{{ $pf.Name }}</span>
+                                        <div class="system-slider no-padding-top">
+                                            <input type="range" class="dpiSlider" id="stage{{ $key }}" name="dpiSlider" min="{{ $device.MinDPI }}" max="{{ $device.MaxDPI }}" value="{{ $pf.Value }}" step="100">
+                                        </div>
+                                        <div class="system-input text-input max-width-100 compact">
+                                            <label>
+                                                <input id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}" autocomplete="off">
+                                            </label>
+                                        </div>
+                                        <div class="system-color compact vertical-align">
+                                            <label>
+                                                <input type="color" id="dpiColor{{ $key }}" value="{{ $pf.Color.Hex }}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {{ end }}
                                 </div>
                             </div>
-                            <div class="card-body" style="padding: 1rem 1rem;margin: 0 auto;">
-                                <div class="row gy-12">
-                                    <div class="col-md-6 col-sm-6">
-                                        <div class="mouse" style="width: auto">
-                                            <div class="row">
-                                                {{ range $key, $pf := $device.DeviceProfile.Profiles }}
-                                                <div style="margin-top: 10px;">
-                                                    <div class="dpi-left">
-                                                        <p style="color: rgba({{ $pf.Color.Red }}, {{ $pf.Color.Green }}, {{ $pf.Color.Blue }}, 1);">
-                                                            {{ $pf.Name }}
-                                                        </p>
-                                                    </div>
-                                                    <div class="dpi-middle">
-                                                        <input type="range" min="200" max="10000" value="{{ $pf.Value }}" class="slider" id="stage{{ $key }}">
-                                                    </div>
-                                                    <div class="dpi-right">
-                                                        <input class="form-control" id="stageValue{{ $key }}" type="text" value="{{ $pf.Value }}">
-                                                    </div>
-                                                </div>
-                                                {{ end }}
-
-                                                <div class="row" style="margin: 10px auto 0;">
-                                                    {{ range $key, $dpiZone := $device.DeviceProfile.Profiles }}
-                                                    <div class="col-md-3 col-sm-6">
-                                                        <div class="card mb-4">
-                                                            <div style="margin-top: 10px;">
-                                                                <span style="margin-bottom: 10px;">DPI: {{ $dpiZone.Name }}</span>
-                                                                <div>
-                                                                    <input type="color" id="dpiColor{{ $key }}" value="{{ $dpiZone.Color.Hex }}" style="padding: 0;margin-bottom: 15px;">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    {{ end }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style="margin: 0 auto;">
-                                            <div style="float: left;width: 530px;">
-                                                <button class="btn btn-secondary" id="default5DPI" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                                    <span>{{ .Lang "defaultValue" }}</span>
-                                                </button>
-                                                <button class="btn btn-secondary" id="saveDPI" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                                    <span>{{ .Lang "txtSaveDpi" }}</span>
-                                                </button>
-                                                <button class="btn btn-secondary" id="saveDpiColors" style="margin-top: 10px;float: left;margin-left: 10px;">
-                                                    <span>{{ .Lang "txtSaveDpiColors" }}</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 col-sm-6">
-                                        <div class="mouse" style="width: auto">
-                                            <div class="row">
-                                                <table class="table mb-0">
-                                                    <thead>
-                                                    <tr>
-                                                        <th style="text-align: left;">{{ .Lang "txtKeyAssignment" }}</th>
-                                                        <th>
-                                                            {{ .Lang "defaultValue" }}
-                                                            <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
-                                                        </th>
-                                                        <th>
-                                                            {{ .Lang "txtPressAndHold" }}
-                                                            <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
-                                                        </th>
-                                                        <th>
-                                                            {{ .Lang "txtOnRelease" }}
-                                                            <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy onReleaseInfoToggle"></i>
-                                                        </th>
-                                                        <th>{{ .Lang "txtAssignmentType" }}</th>
-                                                        <th>{{ .Lang "txtAssignmentKey" }}</th>
-                                                        <th></th>
-                                                    </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                    {{ range $key, $value := $device.KeyAssignment }}
-                                                    {{ if eq $key 1 }}
-                                                    {{ continue }}
-                                                    {{ end }}
-                                                    <tr>
-                                                        <th scope="row" style="text-align: left;">{{ $value.Name }}</th>
-                                                        <td>
-                                                            {{ if $value.Default }}
-                                                            <input id="default_{{ $key }}" type="checkbox" checked/>
-                                                            {{ else }}
-                                                            <input id="default_{{ $key }}" type="checkbox" />
-                                                            {{ end }}
-                                                        </td>
-                                                        <td>
-                                                            {{ if $value.ActionHold }}
-                                                            <input id="pressAndHold_{{ $key }}" type="checkbox" checked/>
-                                                            {{ else }}
-                                                            <input id="pressAndHold_{{ $key }}" type="checkbox" />
-                                                            {{ end }}
-                                                        </td>
-                                                        <td>
-                                                            {{ if $value.OnRelease }}
-                                                            <input id="onRelease_{{ $key }}" type="checkbox" checked/>
-                                                            {{ else }}
-                                                            <input id="onRelease_{{ $key }}" type="checkbox" />
-                                                            {{ end }}
-                                                        </td>
-                                                        <td>
-                                                            <select class="form-select keyAssignmentType" id="keyAssignmentType_{{ $key }}">
-                                                                {{ range $k, $v := $device.KeyAssignmentTypes }}
-                                                                {{ if eq $value.ActionType $k }}
-                                                                <option value="{{ $k }}" selected>{{ $v }}</option>
-                                                                {{ else }}
-                                                                <option value="{{ $k }}">{{ $v }}</option>
-                                                                {{ end }}
-                                                                {{ end }}
-                                                            </select>
-                                                        </td>
-                                                        <td>
-                                                            {{ if $value.IsMacro }}
-                                                            <select class="form-select" id="keyAssignmentValue_{{ $key }}">
-                                                                {{ range $k, $v := $macros }}
-                                                                {{ if eq $value.ActionCommand $k }}
-                                                                <option value="{{ $k }}" selected>{{ $v.Name }}</option>
-                                                                {{ else }}
-                                                                <option value="{{ $k }}">{{ $v.Name }}</option>
-                                                                {{ end }}
-                                                                {{ end }}
-                                                            </select>
-                                                            {{ else }}
-                                                            <select class="form-select" id="keyAssignmentValue_{{ $key }}">
-                                                                {{ range $k, $v := $device.InputActions }}
-                                                                {{ if eq $value.ActionCommand $k }}
-                                                                <option value="{{ $k }}" selected>{{ $v.Name }}</option>
-                                                                {{ else }}
-                                                                <option value="{{ $k }}">{{ $v.Name }}</option>
-                                                                {{ end }}
-                                                                {{ end }}
-                                                            </select>
-                                                            {{ end }}
-                                                        </td>
-                                                        <td style="text-align: right;">
-                                                            <button class="btn btn-secondary saveKeyAssignment" data-info="{{ $key }}">
-                                                                <span>{{ $root.Lang "txtSave" }}</span>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    {{ end }}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="card-footer card-footer-left">
+                                <button class="system-button" id="saveDPI">{{ .Lang "txtSaveDpi" }}</button>
+                                <button class="system-button" id="saveDpiColors">{{ .Lang "txtSaveDpiColors" }}</button>
                             </div>
                         </div>
-                        {{ end }}
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card system-card text-center">
+                        <table class="dataTable text-sm">
+                            <!-- Header -->
+                            <thead>
+                            <tr>
+                                <th>{{ .Lang "txtKeyAssignment" }}</th>
+                                <th>
+                                    Default
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
+                                </th>
+                                <th>
+                                    {{ .Lang "txtPressAndHold" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                </th>
+                                <th>
+                                    {{ .Lang "txtOnRelease" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy onReleaseInfoToggle"></i>
+                                </th>
+                                <th>{{ .Lang "txtAssignmentType" }}</th>
+                                <th>{{ .Lang "txtAssignmentKey" }}</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+
+                            <!-- Body -->
+                            <tbody>
+                            {{ range $key, $value := $device.KeyAssignment }}
+                            {{ if eq $key 1 }}
+                            {{ continue }}
+                            {{ end }}
+                            <tr>
+                                <td class="key-assignments">{{ $value.Name }}</td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="default_{{ $key }}" {{ if $value.Default }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="pressAndHold_{{ $key }}" {{ if $value.ActionHold }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="onRelease_{{ $key }}" {{ if $value.OnRelease }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <select id="keyAssignmentType_{{ $key }}" class="system-select compact full-width keyAssignmentType">
+                                        {{ range $k, $v := $device.KeyAssignmentTypes }}
+                                        {{ if eq $value.ActionType $k }}
+                                        <option value="{{ $k }}" selected>{{ $v }}</option>
+                                        {{ else }}
+                                        <option value="{{ $k }}">{{ $v }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="keyAssignmentValue_{{ $key }}" class="system-select compact full-width">
+                                        {{ if $value.IsMacro }}
+                                        {{ range $k, $v := $macros }}
+                                        <option value="{{ $k }}" {{ if eq $value.ActionCommand $k }}selected{{ end }}>{{ $v.Name }}</option>
+                                        {{ end }}
+                                        {{ else }}
+                                        {{ range $k, $v := $device.InputActions }}
+                                        <option value="{{ $k }}" {{ if eq $value.ActionCommand $k }}selected{{ end }}>{{ $v.Name }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="system-button saveKeyAssignment" data-info="{{ $key }}">
+                                        <span>{{ $root.Lang "txtSave" }}</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            {{ end }}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+            {{ end }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/overview.js"></script>
 <script src="/static/js/mouse.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

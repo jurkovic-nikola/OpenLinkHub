@@ -752,5 +752,49 @@
         "total": 18
       }
     }
+  },
+  {
+    "index":   36,
+    "name":    "LC100 Starter Kit",
+    "total":   81,
+    "command": 1,
+    "devices": {
+      "0": {
+        "name": "LC100 Triangle 1",
+        "total": 9
+      },
+      "1": {
+        "name": "LC100 Triangle 2",
+        "total": 9
+      },
+      "2": {
+        "name": "LC100 Triangle 3",
+        "total": 9
+      },
+      "3": {
+        "name": "LC100 Triangle 4",
+        "total": 9
+      },
+      "4": {
+        "name": "LC100 Triangle 5",
+        "total": 9
+      },
+      "5": {
+        "name": "LC100 Triangle 6",
+        "total": 9
+      },
+      "6": {
+        "name": "LC100 Triangle 7",
+        "total": 9
+      },
+      "7": {
+        "name": "LC100 Triangle 8",
+        "total": 9
+      },
+      "8": {
+        "name": "LC100 Triangle 9",
+        "total": 9
+      }
+    }
   }
 ]

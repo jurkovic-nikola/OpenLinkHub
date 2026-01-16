@@ -1,8 +1,6 @@
 package nautilusLcd
 
 // Package: CORSAIR Nautilus LCD Cap
-// This is the primary package for CORSAIR Nautilus LCD Cap.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -20,6 +18,7 @@ import (
 	"fmt"
 	"github.com/sstallion/go-hid"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -59,7 +58,6 @@ type Device struct {
 	DeviceProfile     *DeviceProfile
 	OriginalProfile   *DeviceProfile
 	TemperatureProbes *[]TemperatureProbe
-	activeRgb         *rgb.ActiveRGB
 	ledProfile        *led.Device
 	Template          string
 	HasLCD            bool
@@ -188,10 +186,6 @@ func (d *Device) Stop() {
 	d.Exit = true
 
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
-
 	d.timer.Stop()
 	d.lcdTimer.Stop()
 	var once sync.Once
@@ -232,9 +226,6 @@ func (d *Device) Stop() {
 func (d *Device) StopDirty() uint8 {
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
-	if d.activeRgb != nil {
-		d.activeRgb.Stop()
-	}
 
 	d.timer.Stop()
 	d.lcdTimer.Stop()
@@ -421,12 +412,8 @@ func (d *Device) saveDeviceProfile() {
 		Path:    profilePath,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
-		// RGB, Label
 		deviceProfile.Label = "LCD Cap"
-
-		// LCD
 		if d.HasLCD {
 			deviceProfile.LCDMode = 2
 			deviceProfile.LCDRotation = 0
@@ -448,34 +435,21 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
-	}
-
-	d.loadDeviceProfiles() // Reload
+	d.loadDeviceProfiles()
 }
 
 // getDeviceFirmware will get device firmware
@@ -501,12 +475,6 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = currentProfile
 		d.saveDeviceProfile()
 
-		// RGB reset
-		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
-			d.activeRgb = nil
-		}
-
 		newProfile := profile
 		newProfile.Active = true
 		d.DeviceProfile = newProfile
@@ -514,6 +482,30 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// DeleteDeviceProfile deletes a device profile and its JSON file
+func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
+	profile, ok := d.UserProfiles[profileName]
+	if !ok {
+		return 0
+	}
+
+	if !common.IsValidExtension(profile.Path, ".json") {
+		return 0
+	}
+
+	if profile.Active {
+		return 2
+	}
+
+	if err := os.Remove(profile.Path); err != nil {
+		return 3
+	}
+
+	delete(d.UserProfiles, profileName)
+
+	return 1
 }
 
 // UpdateDeviceLcd will update device LCD
@@ -624,30 +616,8 @@ func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
 	rgbFilename := rgbDirectory + d.Serial + ".json"
 	if common.FileExists(rgbFilename) {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -937,7 +907,7 @@ func (d *Device) transfer(buffer []byte) {
 		}
 		bufferW := make([]byte, lcdBufferSize)
 		bufferW[0] = 0x02
-		bufferW[1] = 0x05 // LCD data
+		bufferW[1] = 0x05
 
 		// The last packet needs to end with 0x01 in order for display to render data
 		if len(chunk) < maxLCDBufferSizePerRequest {

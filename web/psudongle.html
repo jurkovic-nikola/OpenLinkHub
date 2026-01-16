@@ -1,127 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        {{ $root := . }}
-        {{ $devs := .Devices }}
-        {{ $temperatures := .Temperatures }}
-        {{ $device := .Device }}
-        {{ $fanModes := .Device.FanModes }}
-        {{ $fanMode := .Device.DeviceProfile.FanMode }}
-        {{ $devices := $device.Devices }}
-        <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                <div class="row gy-4" style="margin-top: 10px;">
-                    <div class="row">
-                        {{ range $device := $devices }}
-                        <div style="width: auto;min-width: 250px;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left">
-                                        {{ if $device.IsTemperatureProbe }}
-                                        <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
-                                        {{ else if $device.IsPowerProbe }}
-                                        <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
-                                        {{ else }}
-                                        <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
-                                        {{ end }}
-                                    </div>
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $fanModes := .Device.FanModes }}
+    {{ $fanMode := .Device.DeviceProfile.FanMode }}
+    {{ $devices := $device.Devices }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
 
-                                    <div style="width: auto;margin-left: 60px;">
-                                        <span style="font-size: 13px;">{{ $device.Name }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                            <span>{{ $device.Label }}</span>
-                                        </p>
-                                    </div>
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <!-- LINK SYSTEM HUB -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ $device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                {{ range $device := $devices }}
+                                {{ if $device.MainPSU }}
+                                {{ continue }}
+                                {{ end }}
+
+                                <!-- Speed -->
+                                {{ if $device.HasSpeed }}
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $root.Lang "txtSpeed" }}</span>
+                                    <span class="meta-value" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</span>
                                 </div>
-                                <div class="card-body" style="padding: 1rem 1rem;">
-                                    {{ if $device.HasTemps }}
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtTemp" }}</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="temperature-{{ .DeviceId }}">{{ $device.TemperatureString }}</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    {{ end }}
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $root.Lang "txtProfile" }}</span>
+                                    <label>
+                                        <select class="form-select system-select compact auto-width fanProfile" name="{{ $device.DeviceId }}">
+                                            {{ range $key, $value := $fanModes }}
+                                            <option value="{{ $key }}" {{ if eq $fanMode $key }} selected {{ end }}>{{ $value }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+                                {{ end }}
 
-                                    {{ if $device.HasSpeed }}
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtSpeed" }}</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    {{ end }}
+                                <!-- Temperatures -->
+                                {{ if $device.HasTemps }}
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $device.Name }}</span>
+                                    <span class="meta-value" id="temperature-{{ .DeviceId }}">{{ $device.TemperatureString }}</span>
+                                </div>
+                                {{ end }}
 
-                                    {{ if $device.HasWatts }}
-                                    <div class="d-flex align-items-end justify-content-between mb-2">
-                                        <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtWatts" }}</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="watts-{{ .DeviceId }}">{{ $device.Watts }} W</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    {{ end }}
+                                <!-- Power Out -->
+                                {{ if eq $device.Name "Power Out" }}
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $device.Name }}</span>
+                                    <span class="meta-value" id="watts-{{ .DeviceId }}">{{ $device.Watts }} W</span>
+                                </div>
+                                {{ end }}
 
-                                    {{ if $device.HasAmps }}
-                                    <div class="d-flex align-items-end justify-content-between mb-2" {{ if $device.HasAmps }} style="margin-top: 10px;" {{ end }}>
-                                        <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtAmps" }}</p>
-                                        </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="amps-{{ .DeviceId }}" style="margin-top: 5px;">{{ $device.Amps }} A</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    {{ end }}
+                                {{ end }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-10">
+                    <div class="row g-4 mb-4 align-items-start">
+                        {{ range $device := $devices }}
+                        {{ if $device.HasSpeed }}
+                        {{ continue }}
+                        {{ else if $device.HasTemps }}
+                        {{ continue }}
+                        {{ else if eq $device.Name "Power Out" }}
+                        {{ continue }}
+                        {{ else if $device.MainPSU }}
+                        {{ continue }}
+                        {{ end }}
+                        <div class="col-md-2">
+                            <div class="card system-card">
+                                <div class="card-header header-split">
+                                    <span class="header-left">
+                                        {{ $device.Name }}
+                                    </span>
+                                    <span class="header-right">
+                                        <span class="labelValue">{{ $device.Label }}</span>
+                                    </span>
+                                </div>
 
-                                    {{ if $device.HasVolts }}
-                                    <div class="d-flex align-items-end justify-content-between mb-2" {{ if $device.HasVolts }} style="margin-top: 10px;" {{ end }}>
-                                        <div class="me-2">
-                                            <p class="text-sm text-uppercase text-gray-600 lh-1 mb-0">{{ $root.Lang "txtVolts" }}</p>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <!-- Watts -->
+                                        {{ if $device.HasWatts }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtWatts" }}</span>
+                                            <span class="meta-value" id="watts-{{ .DeviceId }}">{{ $device.Watts }} W</span>
                                         </div>
-                                        <p class="text-sm lh-1 mb-0 text-dash-color-2" id="volts-{{ .DeviceId }}" style="margin-top: 5px;">{{ $device.Volts }} V</p>
-                                    </div>
-                                    <div class="progress" style="height: 3px">
-                                        <div class="progress-bar bg-dash-color-5" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    {{ end }}
+                                        {{ end }}
 
-                                    {{ if $device.HasSpeed }}
-                                    <div class="custom-device-block">
-                                        <div class="custom-float-20-left">
-                                            <i class="bi bi-thermometer-half svg-icon svg-icon-sm svg-icon-heavy"></i>
+                                        <!-- Amps -->
+                                        {{ if $device.HasAmps }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtAmps" }}</span>
+                                            <span class="meta-value" id="amps-{{ .DeviceId }}">{{ $device.Amps }} A</span>
                                         </div>
-                                        <div class="custom-float-80-right">
-                                            <select class="form-select fanProfile" name="{{ $device.DeviceId }}" style="line-height: 1;margin-top: 10px;">
-                                                {{ range $key, $value := $fanModes }}
-                                                {{ if eq $fanMode $key }}
-                                                <option value="{{ $key }}" selected>{{ $value }}</option>
-                                                {{ else }}
-                                                <option value="{{ $key }}">{{ $value }}</option>
-                                                {{ end }}
-                                                {{ end }}
-                                            </select>
+                                        {{ end }}
+
+                                        <!-- Volts -->
+                                        {{ if $device.HasVolts }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtVolts" }}</span>
+                                            <span class="meta-value" id="volts-{{ .DeviceId }}">{{ $device.Volts }} V</span>
                                         </div>
+                                        {{ end }}
+
                                     </div>
-                                    {{ end }}
                                 </div>
                             </div>
                         </div>
@@ -129,13 +134,13 @@
                     </div>
                 </div>
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
 <script src="/static/js/psu.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

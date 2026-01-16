@@ -1,8 +1,6 @@
 package lcd
 
 // Package: LCD Controller
-// This is the primary package for LCD pump covers.
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -486,7 +484,7 @@ func PerformGifUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to write file", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Load image in cache
 	loadImage(savePath, ImageFormatGif)
 
@@ -571,7 +569,7 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 		x, y := calculateStringXY(100, v)
 		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
 	} else {
-		v := fmt.Sprintf("%v %s", leftValue, "%")
+		v := fmt.Sprintf("%.1f %s", leftValue, "%")
 		x, y := calculateStringXY(100, v)
 		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
 	}
@@ -611,7 +609,6 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
 	}
 
-	// Send it
 	var b bytes.Buffer
 	err := jpeg.Encode(&b, arcImage, nil)
 	if err != nil {
@@ -780,7 +777,6 @@ func GenerateArcScreenImage(arcType, sensor, value int) []byte {
 		drawColorString(x, y+120, 40, "[ % ]", img, arc.TextColor)
 	}
 
-	// Send it
 	var b bytes.Buffer
 	err := jpeg.Encode(&b, img, nil)
 	if err != nil {

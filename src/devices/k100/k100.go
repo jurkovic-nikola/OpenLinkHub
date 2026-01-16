@@ -1,8 +1,6 @@
 package k100
 
 // Package: K100 RGB
-// This is the primary package for K100 RGB
-// All device actions are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -22,6 +20,7 @@ import (
 	"github.com/sstallion/go-hid"
 	"math/big"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sort"
@@ -48,6 +47,7 @@ type DeviceProfile struct {
 	BrightnessLevel   uint16
 	Profiles          []string
 	ControlDial       int
+	DebounceTime      int
 	ControlDialColors map[int]*rgb.Color
 	RGBCluster        bool
 	DisableAltTab     bool
@@ -80,6 +80,7 @@ type Device struct {
 	GpuTemp            float32
 	Layouts            []string
 	ControlDialOptions map[int]string
+	DebounceTimes      map[int]string
 	Rgb                *rgb.RGB
 	rgbMutex           sync.RWMutex
 	Exit               bool
@@ -88,6 +89,7 @@ type Device struct {
 	autoRefreshChan    chan struct{}
 	keepAliveChan      chan struct{}
 	mutex              sync.Mutex
+	deviceLock         sync.Mutex
 	UIKeyboard         string
 	UIKeyboardRow      string
 	KeyboardKey        *keyboards.Key
@@ -111,6 +113,14 @@ var (
 		0: {0x01, 0x02, 0x00},
 		1: {0x01, 0x6d, 0x00},
 	}
+	cmdInitDebounce = map[int][]byte{
+		0: {0x01, 0x09, 0x00, 0x01},
+		1: {0x01, 0x39, 0x00, 0x01},
+	}
+	cmdDebounceTime = map[int][]byte{
+		0: {0x01, 0x0a, 0x00},
+		1: {0x01, 0x38, 0x00},
+	}
 	cmdGetFirmware          = []byte{0x02, 0x13}
 	dataTypeSetColor        = []byte{0x12, 0x00}
 	dataTypeSubColor        = []byte{0x07, 0x00}
@@ -121,6 +131,7 @@ var (
 	cmdOpenEndpoint         = []byte{0x0d, 0x02, 0x02}
 	cmdCloseEndpoint        = []byte{0x05, 0x01, 0x02}
 	cmdKeyAssignment        = []byte{0x06, 0x02}
+	cmdKeepAlive            = []byte{0x12}
 	deviceRefreshInterval   = 1000
 	deviceKeepAlive         = 20000
 	transferTimeout         = 500
@@ -134,7 +145,7 @@ var (
 	KeyAssignment           = 138
 	keyboardKey             = "k100-default"
 	defaultLayout           = "k100-default-US"
-	rgbProfileUpgrade       = []string{"gradient"}
+	rgbProfileUpgrade       = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
 	rgbModes                = []string{
 		"circle",
 		"circleshift",
@@ -195,7 +206,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		keepAliveChan:   make(chan struct{}),
 		autoRefreshChan: make(chan struct{}),
 		UIKeyboard:      "keyboard-8",
-		UIKeyboardRow:   "keyboard-row-29",
+		UIKeyboardRow:   "keyboard-row-26",
 		PollingRates: map[int]string{
 			0: "Not Set",
 			1: "125 Hz / 8 msec",
@@ -220,6 +231,17 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			17: "Screen Brightness +",
 			18: "Screen Brightness -",
 		},
+		DebounceTimes: map[int]string{
+			1: "1ms",
+			2: "2ms",
+			3: "3ms",
+			4: "4ms",
+			5: "5ms",
+			6: "6ms",
+			7: "7ms",
+			8: "8ms",
+			9: "9ms",
+		},
 		MacroTracker: make(map[int]macro.Tracker),
 	}
 
@@ -239,6 +261,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.backendListener()        // Control listener
 	d.setupClusterController() // RGB Cluster
 	d.setupPerformance()       // Performance
+	d.setDebounceTime()        // Switch debounce time
 	d.createDevice()           // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
@@ -327,6 +350,9 @@ func (d *Device) StopDirty() uint8 {
 
 // setupKeyAssignment will setup keyboard keys
 func (d *Device) setupKeyAssignment() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.DeviceProfile == nil {
 		return
 	}
@@ -385,31 +411,8 @@ func (d *Device) loadRgb() {
 		rotator.Brightness = 1
 		profile.Profiles["rotator"] = rotator
 
-		// Convert to JSON
-		buffer, err := json.MarshalIndent(profile, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -449,21 +452,9 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 	}
 
 	if save {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+		if err := common.SaveJsonData(path, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
 			return
-		}
-
-		f, err := os.Create(path)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save rgb profile")
-			return
-		}
-
-		_, err = f.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
 		}
 	}
 }
@@ -492,7 +483,10 @@ func (d *Device) getDebugMode() {
 
 // setupPerformance will set up keyboard performance mode
 func (d *Device) setupPerformance() {
+	d.deviceLock.Lock()
+
 	if d.DeviceProfile == nil {
+		d.deviceLock.Unlock()
 		return
 	}
 
@@ -521,8 +515,7 @@ func (d *Device) setupPerformance() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 	}
-	d.setupKeyAssignment()
-
+	// Key control
 	control := make([]byte, 3)
 	if d.DeviceProfile.Performance {
 		control = []byte{0x45, 0x00, 0x01}
@@ -535,11 +528,26 @@ func (d *Device) setupPerformance() {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 	}
 
-	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
-		d.activeRgb = nil
+	d.deviceLock.Unlock()
+	d.setupKeyAssignment()
+
+	if d.isRgbStatic() {
+		if !d.DeviceProfile.RGBCluster {
+			if d.activeRgb != nil {
+				d.activeRgb.Exit <- true
+				d.activeRgb = nil
+			}
+			d.setDeviceColor()
+		}
 	}
-	d.setDeviceColor() // Restart RGB
+}
+
+// isRgbStatic will return if RGB effect is static
+func (d *Device) isRgbStatic() bool {
+	if d.DeviceProfile.RGBProfile == "keyboard" || d.DeviceProfile.RGBProfile == "static" {
+		return true
+	}
+	return false
 }
 
 // getManufacturer will return device manufacturer
@@ -596,8 +604,6 @@ func (d *Device) initLeds() {
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
-	// We need to wait around 500 ms for physical ports to re-initialize
-	// After that we can grab any new connected / disconnected device values
 	time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
 }
 
@@ -612,9 +618,7 @@ func (d *Device) saveDeviceProfile() {
 		Path:    profilePath,
 	}
 
-	// First save, assign saved profile to a device
 	if d.DeviceProfile == nil {
-		// RGB, Label
 		deviceProfile.RGBProfile = "keyboard"
 		deviceProfile.Label = "Keyboard"
 		deviceProfile.Active = true
@@ -636,7 +640,14 @@ func (d *Device) saveDeviceProfile() {
 			6: {Red: 0, Green: 0, Blue: 255},
 			7: {Red: 255, Green: 0, Blue: 0},
 		}
+		deviceProfile.DebounceTime = 1
 	} else {
+		if d.DeviceProfile.DebounceTime == 0 {
+			deviceProfile.DebounceTime = 1
+		} else {
+			deviceProfile.DebounceTime = d.DeviceProfile.DebounceTime
+		}
+
 		if len(d.DeviceProfile.Layout) == 0 {
 			deviceProfile.Layout = "US"
 		} else {
@@ -707,34 +718,21 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Performance = d.DeviceProfile.Performance
 	}
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(deviceProfile, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
 		return
 	}
 
-	// Create profile filename
-	file, fileErr := os.Create(deviceProfile.Path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": fileErr, "location": deviceProfile.Path}).Error("Unable to create new device profile")
-		return
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write data")
-		return
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Fatal("Unable to close file handle")
-	}
-
-	d.loadDeviceProfiles() // Reload
+	d.loadDeviceProfiles()
 }
 
 // loadDeviceProfiles will load custom user profiles
@@ -820,10 +818,13 @@ func (d *Device) getDeviceProfile() {
 
 // keepAlive will keep a device alive
 func (d *Device) keepAlive() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
-	_, err := d.transfer([]byte{0x12}, nil)
+	_, err := d.transfer(cmdKeepAlive, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 	}
@@ -885,30 +886,8 @@ func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
 	rgbFilename := rgbDirectory + d.Serial + ".json"
 	if common.FileExists(rgbFilename) {
-		buffer, err := json.MarshalIndent(d.Rgb, "", "    ")
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to encode RGB json")
-			return
-		}
-
-		// Create profile filename
-		file, err := os.Create(rgbFilename)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to create RGB json file")
-			return
-		}
-
-		// Write JSON buffer to file
-		_, err = file.Write(buffer)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to write to RGB json file")
-			return
-		}
-
-		// Close file
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": rgbFilename}).Warn("Unable to close RGB json file")
+		if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": rgbFilename}).Error("Unable to write rgb profile data")
 			return
 		}
 	}
@@ -916,13 +895,16 @@ func (d *Device) saveRgbProfile() {
 
 // UpdatePollingRate will set device polling rate
 func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if _, ok := d.PollingRates[pullingRate]; ok {
 		if d.DeviceProfile == nil {
 			return 0
 		}
 		d.Exit = true
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
 		time.Sleep(40 * time.Millisecond)
@@ -970,10 +952,10 @@ func (d *Device) ProcessNewGradientColor(profileName string) (uint8, uint) {
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1, uint(nextID)
 }
 
@@ -1004,10 +986,10 @@ func (d *Device) ProcessDeleteGradientColor(profileName string) (uint8, uint) {
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1, uint(maxKey)
 }
 
@@ -1035,10 +1017,10 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1060,10 +1042,10 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	d.DeviceProfile.RGBProfile = profile // Set profile
 	d.saveDeviceProfile()                // Save profile
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 
 }
@@ -1097,10 +1079,10 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	d.DeviceProfile.RGBCluster = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 
 	if enabled {
 		clusterController := &common.ClusterController{
@@ -1122,10 +1104,10 @@ func (d *Device) ChangeDeviceBrightness(mode uint8) uint8 {
 	d.DeviceProfile.Brightness = mode
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1139,7 +1121,7 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 
 		// RGB reset
 		if d.activeRgb != nil {
-			d.activeRgb.Exit <- true // Exit current RGB mode
+			d.activeRgb.Exit <- true
 			d.activeRgb = nil
 		}
 
@@ -1176,7 +1158,7 @@ func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
 				d.saveDeviceProfile()
 				// RGB reset
 				if d.activeRgb != nil {
-					d.activeRgb.Exit <- true // Exit current RGB mode
+					d.activeRgb.Exit <- true
 					d.activeRgb = nil
 				}
 				d.setDeviceColor()
@@ -1245,7 +1227,7 @@ func (d *Device) UpdateKeyboardProfile(profileName string) uint8 {
 	d.saveDeviceProfile()
 	// RGB reset
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
 	d.setDeviceColor()
@@ -1286,10 +1268,10 @@ func (d *Device) UpdateControlDial(value int) uint8 {
 	d.DeviceProfile.ControlDial = value
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1323,7 +1305,7 @@ func (d *Device) DeleteKeyboardProfile(profileName string) uint8 {
 	d.saveDeviceProfile()
 	// RGB reset
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
 	d.setDeviceColor()
@@ -1413,10 +1395,10 @@ func (d *Device) ProcessSetKeyboardControlDialColors(colors map[int]rgb.Color) u
 
 	d.saveDeviceProfile()
 	if d.activeRgb != nil {
-		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor() // Restart RGB
+	d.setDeviceColor()
 	return 1
 }
 
@@ -1562,10 +1544,10 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 						}
 						d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowIndex].Keys[keyIndex] = key
 						if d.activeRgb != nil {
-							d.activeRgb.Exit <- true // Exit current RGB mode
+							d.activeRgb.Exit <- true
 							d.activeRgb = nil
 						}
-						d.setDeviceColor() // Restart RGB
+						d.setDeviceColor()
 						return 1
 					}
 				}
@@ -1597,10 +1579,10 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowId].Keys[keyIndex] = key
 			}
 			if d.activeRgb != nil {
-				d.activeRgb.Exit <- true // Exit current RGB mode
+				d.activeRgb.Exit <- true
 				d.activeRgb = nil
 			}
-			d.setDeviceColor() // Restart RGB
+			d.setDeviceColor()
 			return 1
 		}
 	case 2:
@@ -1617,10 +1599,10 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 				}
 			}
 			if d.activeRgb != nil {
-				d.activeRgb.Exit <- true // Exit current RGB mode
+				d.activeRgb.Exit <- true
 				d.activeRgb = nil
 			}
-			d.setDeviceColor() // Restart RGB
+			d.setDeviceColor()
 			return 1
 		}
 	}
@@ -1640,6 +1622,65 @@ func (d *Device) setBrightnessLevel() {
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change brightness")
 			}
+		}
+	}
+}
+
+// UpdateDebounceTime will update switch debounce value
+func (d *Device) UpdateDebounceTime(debounceTime int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if debounceTime < 1 || debounceTime > 9 {
+		return 0
+	}
+
+	if d.DeviceProfile.DebounceTime == debounceTime {
+		return 0
+	}
+
+	d.DeviceProfile.DebounceTime = debounceTime
+	d.saveDeviceProfile()
+	d.setDebounceTime()
+	return 1
+}
+
+// setDebounceTime sets the switch debounce time on the device
+func (d *Device) setDebounceTime() {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	profile := d.DeviceProfile
+	if profile == nil {
+		return
+	}
+
+	if profile.DebounceTime < 0 || profile.DebounceTime > 9 {
+		return
+	}
+
+	initOK := false
+	for _, cmd := range cmdInitDebounce {
+		if _, err := d.transfer(cmd, nil); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to init switch debounce time")
+			continue
+		}
+		initOK = true
+	}
+
+	if !initOK {
+		return
+	}
+
+	const base = 30
+	val := byte(base + profile.DebounceTime)
+
+	buf := []byte{val}
+
+	for _, cmd := range cmdDebounceTime {
+		if _, err := d.transfer(cmd, buf); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to set switch debounce time")
 		}
 	}
 }
@@ -1871,7 +1912,6 @@ func (d *Device) setDeviceColor() {
 					}
 				}
 
-				// Send it
 				d.writeColor(buf)
 				time.Sleep(20 * time.Millisecond)
 			}
@@ -1879,10 +1919,11 @@ func (d *Device) setDeviceColor() {
 	}(d.LEDChannels)
 }
 
-// writeColor will write data to the device with a specific endpoint.
-// writeColor does not require endpoint closing and opening like normal Write requires.
-// Endpoint is open only once. Once the endpoint is open, color can be sent continuously.
+// writeColor will write color data to the device
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1904,17 +1945,14 @@ func (d *Device) writeColor(data []byte) {
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], data)
 
-	// Split packet into chunks
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
 		if i == 0 {
-			// Initial packet is using cmdWriteColor
 			_, err := d.transfer(cmdWriteColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
-			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
 			_, err := d.transfer(dataTypeSubColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
@@ -1925,6 +1963,9 @@ func (d *Device) writeColor(data []byte) {
 
 // writeColorCluster will write data to the device from cluster client
 func (d *Device) writeColorCluster(data []byte, _ int) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if !d.DeviceProfile.RGBCluster {
 		return
 	}
@@ -1945,6 +1986,9 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 		}
 	}
 
+	// Control dial
+	copy(buf[546:567], d.getControlDialColor())
+
 	if d.DeviceProfile.Performance {
 		buf[6] = 255
 		buf[7] = 255
@@ -1959,17 +2003,14 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)
 	copy(buffer[headerWriteSize+len(dataTypeSetColor):], buf)
 
-	// Split packet into chunks
 	chunks := common.ProcessMultiChunkPacket(buffer, maxBufferSizePerRequest)
 	for i, chunk := range chunks {
 		if i == 0 {
-			// Initial packet is using cmdWriteColor
 			_, err := d.transfer(cmdWriteColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 			}
 		} else {
-			// Chunks don't use cmdWriteColor, they use static dataTypeSubColor
 			_, err := d.transfer(dataTypeSubColor, chunk)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
@@ -1980,11 +2021,9 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	// Packet control, mandatory for this device
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	// Create write buffer
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x08
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
@@ -1993,16 +2032,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
 	}
 
-	// Create read buffer
 	bufferR := make([]byte, bufferSize)
 
-	// Send command to a device
 	if _, err := d.dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	// Get data from a device
 	if _, err := d.dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
@@ -2260,7 +2296,6 @@ func (d *Device) writeKeyAssignment(data []byte) {
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)
 
-	// Open endpoint
 	_, err := d.transfer(cmdOpenEndpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to open write endpoint")
@@ -2273,7 +2308,6 @@ func (d *Device) writeKeyAssignment(data []byte) {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to color endpoint")
 	}
 
-	// Close endpoint
 	_, err = d.transfer(cmdCloseEndpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close write endpoint")

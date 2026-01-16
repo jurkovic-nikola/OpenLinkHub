@@ -1,0 +1,80 @@
+{{ define "sidebar" }}
+{{ $dev := .Device }}
+
+<!-- Sidebar -->
+<aside class="sidebar p-3 d-flex flex-column {{ if .Dashboard.SidebarCollapsed }}collapsed{{ end }}">
+    <!-- Top -->
+    <button class="system-button secondary mb-3" id="sidebarToggle">☰</button>
+    <div>
+        {{ $menu := .Slice
+        ( .Dict "page" "lcd" "url" "/lcd" "icon" "icon-lcd.svg" "alt" "LCD" "lang" "txtLcd" )
+        ( .Dict "page" "macros" "url" "/macros" "icon" "icon-macro.svg" "alt" "Macros" "lang" "txtMacros" )
+        ( .Dict "page" "rgbCluster" "url" "/rgbCluster" "icon" "icon-cluster.svg" "alt" "RGB Cluster" "lang" "txtRgbCluster" )
+        ( .Dict "page" "rgb" "url" "/rgb" "icon" "icon-rgb.svg" "alt" "RGB Editor" "lang" "txtRgbEditor" )
+        ( .Dict "page" "temperature" "url" "/temperature" "icon" "icon-temperature.svg" "alt" "Temperature Profiles" "lang" "txtProfiles" )
+        ( .Dict "page" "settings" "url" "/settings" "icon" "icon-settings.svg" "alt" "Settings" "lang" "txtSettings" )
+        }}
+        <h6 class="sidebar-title mb-4">
+            {{ .Title }}
+        </h6>
+        <nav class="nav flex-column sidebar-nav">
+            <!-- Dashboard -->
+            <a class='nav-link {{ if eq .Page "index" }}active{{ end }}' href="/" data-label="{{ .Lang "txtDashboard" }}">
+            <img src="/static/img/icons/icon-dashboard.svg" class="sidebar-icon" alt="">
+            {{ .Lang "txtDashboard" }}
+            </a>
+
+            <!-- Devices -->
+            {{ range .Devices }}
+            {{ if eq .Hidden true }}
+            {{ continue }}
+            {{ end }}
+            <a class="nav-link {{ if eq $dev.Serial .Serial }}active{{ end }}" href="/device/{{ .Serial }}" data-label="{{ .Product }}">
+                <img src="/static/img/icons/{{ .Image }}" alt="{{ .Product }}" class="sidebar-icon">
+                <span class="sidebar-text">{{ .Product }}</span>
+                
+                <!-- Add a battery on each device for easy parsing later on. It's invisible by default -->
+                <span class="battery battery-full" title="Battery 92%" id="batteryLevel_{{ .Serial }}">
+                  <svg viewBox="0 0 24 12" class="battery-icon">
+                    <rect x="1" y="1" width="20" height="10" rx="2" ry="2" />
+                    <rect x="21" y="4" width="2" height="4" rx="1" />
+                    <rect class="battery-level" x="3" y="3" width="16" height="6" />
+                  </svg>
+                </span>
+            </a>
+            {{ end }}
+        </nav>
+    </div>
+
+    <!-- Bottom -->
+    <div class="mt-auto">
+        <div class="divider"></div>
+        <nav class="nav flex-column sidebar-nav">
+            <!-- Bottom Links -->
+            {{ range $menu }}
+            <a class="nav-link {{ if eq $.Page .page }}active{{ end }}" href="{{ .url }}" data-label="{{ $.Lang .lang }}" >
+                <img src="/static/img/icons/{{ .icon }}" class="sidebar-icon" alt="{{ .alt }}">
+                {{ $.Lang .lang }}
+            </a>
+            {{ end }}
+
+            <!-- GitHub Page -->
+            <a class="nav-link" href="https://github.com/jurkovic-nikola/OpenLinkHub" target="_blank" data-label="GitHub">
+                <img src="/static/img/icons/icon-github.svg" class="sidebar-icon" alt="">
+                GitHub
+            </a>
+        </nav>
+        <div class="divider"></div>
+        <div class="sidebar-meta">
+            <div class="meta-row">
+                <span class="meta-label">{{ .Lang "txtBuild" }}</span>
+                <span class="meta-value">{{ .BuildInfo.Revision }}</span>
+            </div>
+            <div class="meta-row">
+                <span class="meta-label">{{ .Lang "txtVersion" }}</span>
+                <span class="meta-value">{{ .BuildInfo.BuildVersion }}</span>
+            </div>
+        </div>
+    </div>
+</aside>
+{{ end }}

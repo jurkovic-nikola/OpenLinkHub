@@ -1,353 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
-{{ template "header" . }}
+{{ template "head" . }}
 <body>
-<div class="d-flex align-items-stretch">
-    <div class="page-content">
-        <div class="bg-dash-dark-2 py-4">
-            <div class="container-fluid">
-                {{ template "navigation" . }}
-            </div>
-        </div>
 
-        <section class="pt-0 pt-sm-4">
-            <div class="container-fluid">
-                {{ $root := . }}
-                {{ $deviceList := $root.Devices }}
-                {{ $battery := .BatteryStats }}
-                {{ $dash := .Dashboard }}
-                {{ if $dash.ShowDevices }}
-                    {{ range $position, $devId := $dash.DeviceOrder }}
-                        {{ $product := index $deviceList $devId }}
-                        {{ if $product }}
-                            {{ $productType := $product.ProductType }}
-                            {{ $dev := $product.GetDevice }}
-                            {{ if $dev }}
-                                {{ $devices := $dev.Devices }}
-                                {{ if eq $productType 9 }}
-                                    {{ continue }}
-                                {{ end }}
-                                <div class="row gy-4" style="margin-bottom: 20px;">
-                                    <div class="bg-dash-dark-2 py-4 box-info">
-                                        <div class="container-fluid dashboard-device-name-left">
-                                            <h2 class="h5 mb-0">{{ $dev.Product }}</h2>
-                                        </div>
-                                        <div class="dashboard-device-name-right">
-                                            {{ if ne $position 1 }}
-                                            <span class="bi bi-arrow-up svg-icon svg-icon-sm svg-icon-heavy moveDown" data-info="{{ $dev.Serial }}"></span>
-                                            {{ end }}
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $deviceList := $root.Devices }}
+    {{ $battery := .BatteryStats }}
+    {{ $dash := .Dashboard }}
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
 
-                                            {{ $length := len $dash.DeviceOrder }}{{ if ne $position $length }}
-                                            <span class="bi bi-arrow-down svg-icon svg-icon-sm svg-icon-heavy moveUp" data-info="{{ $dev.Serial }}"></span>
-                                            {{ end }}
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        {{ if eq (len $devices) 0 }}
-                                            {{ if $dev.HasLCD }}
-                                                <div style="width: 370px;">
-                                                    <div class="card mb-4">
-                                                        <div class="card-header border-bottom border-dash-dark-1">
-                                                            <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
-                                                                <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
-                                                            </div>
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
 
-                                                            <div class="ds-svg-placeholder-left left-20-auto">
-                                                                <span style="font-size: 13px;">{{ $product.Product }}</span><br />
-                                                                {{ if $dash.ShowLabels }}
-                                                                <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                    <span>{{ $dev.DeviceProfile.Label }}</span>
-                                                                </p>
-                                                                {{ end }}
-                                                            </div>
+            <!-- Dashboard -->
+            <div class="row align-items-start">
+                <!-- Device placeholder -->
+                <div id="system-cards" class="device-placeholder"></div>
 
-                                                            <div class="ds-svg-placeholder-right left-20-auto-text-right">
-                                                                <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                    {{ if gt $dev.Temperature 0.00 }}
-                                                                    <span class="text-dash-color-2" id="temperature-0">{{ $dev.TemperatureString }}</span>
-                                                                    {{ end }}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            {{ end }}
-                                        {{ else }}
-                                            {{ range $device := $devices }}
-                                            <div style="width: auto;min-width: 370px;">
-                                                <div class="card mb-4">
-                                                    <div class="card-header border-bottom border-dash-dark-1">
-                                                        <div class="ds-svg-placeholder-left size-46-46">
-                                                            {{ if $device.ContainsPump }}
-                                                            <img src="/static/img/icons/icon-pump.svg" width="46" height="46" alt="Device" />
-                                                            {{ else if and (eq $device.IsTemperatureProbe true) (eq $device.HasSpeed false) }}
-                                                            <img src="/static/img/icons/icon-temperature.svg" width="46" height="46" alt="Device" />
-                                                            {{ else if and (eq $productType 501) (eq $device.HasSpeed false) }}
-                                                            <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
-                                                            {{ else if and (eq $productType 502) (eq $device.HasSpeed false) }}
-                                                            <img src="/static/img/icons/icon-power.svg" width="46" height="46" alt="Device" />
-                                                            {{ else if and (eq $productType 8) (eq $device.HasSpeed false) }}
-                                                            <img src="/static/img/icons/icon-ram.svg" width="46" height="46" alt="Device" />
-                                                            {{ else if and (eq $productType 0) (eq $device.IsPSU true) }}
-                                                            <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
-                                                            {{ else }}
-                                                            <img src="/static/img/icons/icon-fan.svg" width="46" height="46" alt="Device" />
-                                                            {{ end }}
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-left left-20-auto">
-                                                            {{ if $dash.ShowLabels }}
-                                                            <span class="custom-device-name">{{ $device.Name }}</span><br />
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                <span>{{ $device.Label }}</span>
-                                                            </p>
-                                                            {{ else }}
-                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">{{ $device.Name }}</span><br />
-                                                            {{ end }}
-                                                        </div>
-
-                                                        <div class="ds-svg-placeholder-right left-20-auto-text-right">
-                                                            {{ if $device.HasSpeed }}
-                                                                {{ if $device.HasTemps }}
-                                                                    <span class="text-dash-color-2-custom" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
-                                                                {{ else }}
-                                                                    <span class="text-dash-color-2-custom-15" id="speed-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Rpm }} RPM</span><br />
-                                                                {{ end }}
-                                                            {{ end }}
-
-                                                            {{ if $device.HasTemps }}
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;">
-                                                                {{ if gt $device.Temperature 0.00 }}
-                                                                    {{ if $device.HasSpeed }}
-                                                                        <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
-                                                                    {{ else if eq $productType 8 }}
-                                                                        <span class="text-dash-color-2-custom" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
-                                                                    {{ else }}
-                                                                        <span class="text-dash-color-2-custom-15" id="temp-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.TemperatureString }}</span>
-                                                                    {{ end }}
-                                                                {{ end }}
-                                                            </p>
-                                                            {{ end }}
-
-                                                            <!-- PSU -->
-                                                            {{ if or (eq $productType 501) (eq $productType 502) }}
-                                                            {{ if and (eq $device.HasSpeed false) (eq $device.HasTemps false) }}
-                                                            {{ if $device.Output }}
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3">
-                                                                <span class="text-dash-color-2-custom-15" id="watts-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Watts }} W</span><br />
-                                                            </p>
-                                                            {{ else }}
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3">
-                                                                <span class="text-dash-color-2-custom" id="watts-{{ $dev.Serial }}-{{ $device.ChannelId }}">{{ $device.Watts }} W</span><br />
-                                                                <span class="text-dash-color-2-custom" id="volts-{{ $dev.Serial }}-{{ $device.ChannelId }}" style="margin-top: 5px;">{{ $device.Volts }} V</span><br />
-                                                                <span class="text-dash-color-2-custom" id="amps-{{ $dev.Serial }}-{{ $device.ChannelId }}" style="margin-top: 5px;">{{ $device.Amps }} A</span><br />
-                                                            </p>
-                                                            {{ end }}
-                                                            {{ end }}
-                                                            {{ end }}
-
-                                                            <!-- Memory -->
-                                                            {{ if eq $productType 8 }}
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3">
-                                                                <span class="text-dash-color-2-custom">{{ $device.Size }} GB</span><br />
-                                                                <span class="text-dash-color-2-custom">{{ $device.Speed }} MHz</span><br />
-                                                            </p>
-                                                            {{ end }}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {{ if and (eq $productType 0) $device.IsPSU }}
-                                            <div style="width: auto;min-width: 370px;">
-                                                <div class="card mb-4">
-                                                    <div class="card-header border-bottom border-dash-dark-1">
-                                                        <div class="ds-svg-placeholder-left size-46-46">
-                                                            <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-left left-20-auto">
-                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">Output Power</span><br />
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-right left-20-auto-text-right">
-                                                            <span class="text-dash-color-2-custom-15" id="powerOut-{{ $device.ChannelId }}">{{ $device.PowerOut }} W</span><br />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {{ range $vk, $val := $device.Volts }}
-                                            {{ $volts := index $device.Volts $vk }}
-                                            {{ $amps := index $device.Amps $vk }}
-                                            {{ $watts := index $device.Watts $vk }}
-                                            <div style="width: auto;min-width: 370px;">
-                                                <div class="card mb-4">
-                                                    <div class="card-header border-bottom border-dash-dark-1">
-                                                        <div class="ds-svg-placeholder-left size-46-46">
-                                                            <img src="/static/img/icons/icon-psu.svg" width="46" height="46" alt="Device" />
-                                                        </div>
-                                                        <div class="ds-svg-placeholder-left left-20-auto">
-                                                            {{ if eq $vk 0 }}
-                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">3.3V Rail</span>
-                                                            {{ else if eq $vk 1 }}
-                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">5V Rail</span>
-                                                            {{ else if eq $vk 2 }}
-                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">12V Rail</span>
-                                                            {{ else }}
-                                                            <span class="custom-device-name-no-label" style="margin-top: 16px;">N/A Rail</span>
-                                                            {{ end }}
-                                                        </div>
-
-                                                        <div class="ds-svg-placeholder-right left-20-auto-text-right">
-                                                            <p class="text-md-start lh-1 mb-0 text-dash-color-3">
-                                                                <span class="text-dash-color-2-custom" id="psuVolts-{{ $vk }}">{{ $volts.ValueString }} V</span><br />
-                                                                <span class="text-dash-color-2-custom" id="psuAmps-{{ $vk }}" style="margin-top: 3px;">{{ $amps.ValueString }} A</span><br />
-                                                                <span class="text-dash-color-2-custom" id="psuWatts-{{ $vk }}" style="margin-top: 3px;">{{ $watts.ValueString }} W</span><br />
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {{ end }}
-                                            {{ end }}
-
-                                            {{ end }}
+                <!-- Add new device -->
+                <div id="system-cards-add" class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-body">
+                            <div class="add-device-widget">
+                                <div class="add-device-icon">
+                                    <i class="bi bi-plus-lg"></i>
+                                </div>
+                                <div class="add-device-title">
+                                    {{ $root.Lang "txtAddDeviceToDashboard" }}
+                                </div>
+                                <label class="add-device-select">
+                                    <select class="system-select" id="dashboardDeviceSelect">
+                                        <option selected disabled>{{ $root.Lang "txtSelectDevice" }}</option>
+                                        {{ range .Devices }}
+                                        {{ if eq .Hidden true }}
+                                        {{ continue }}
                                         {{ end }}
-                                    </div>
-                                </div>
-                            {{ end }}
-                        {{ end }}
-                    {{ end }}
-                {{ end }}
 
-                <div class="row gy-4">
-                    <div class="bg-dash-dark-2 py-4 box-info">
-                        <div class="container-fluid">
-                            <h2 class="h5 mb-0">{{ $root.Lang "txtTempSensors" }}</h2>
-                        </div>
-                    </div>
-                    <div class="row">
-                        {{ if .Dashboard.ShowCpu }}
-                        <!-- CPU -->
-                        <div style="width: auto;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
-                                        <img src="/static/img/icons/icon-cpu.svg" width="46" height="46" alt="Device" />
+                                        {{ if .GetDevice }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </label>
+                                <label class="full-width">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <button class="system-button btn-accent add-device-btn addDeviceToDashboard" id="addDeviceToDashboard">
+                                                {{ $root.Lang "txtSave" }}
+                                            </button>
+                                            <button class="system-button danger add-device-btn deleteDeviceFromDashboard" id="deleteDeviceFromDashboard">
+                                                {{ $root.Lang "txtDelete" }}
+                                            </button>
+                                        </div>
                                     </div>
-
-                                    <div class="ds-svg-placeholder-left" style="margin-left: 20px;width:auto">
-                                        <span style="font-size: 13px;">{{ .SystemInfo.CPU.Model }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">{{ $root.Lang "txtTemperature" }}</span>
-                                            <span id="cpu_temp" class="temp-right-30 text-dash-color-2-custom-4">{{ .CpuTemp }}</span><br />
-                                        </p>
-                                    </div>
-                                </div>
+                                </label>
                             </div>
                         </div>
-                        {{ end }}
-
-                        {{ if .Dashboard.ShowGpu }}
-                        <!-- GPU -->
-                        {{ if .SystemInfo.GPU }}
-                        {{ range .SystemInfo.GPU }}
-                        <div style="width: auto;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
-                                        <img src="/static/img/icons/icon-gpu.svg" width="46" height="46" alt="Device" />
-                                    </div>
-
-                                    <div class="ds-svg-placeholder-left" style="margin-left: 20px;width:auto;min-width: 150px;">
-                                        <span style="font-size: 13px;">{{ .Model }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">{{ $root.Lang "txtTemperature" }}</span>
-                                            <span id="gpu_temp_{{ .Index }}" class="temp-right-30 text-dash-color-2-custom-4">{{ .TemperatureString }}</span><br />
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
-                        {{ end }}
-                        {{ end }}
-
-                        {{ if .Dashboard.ShowDisk }}
-                        <!-- Storage -->
-                        {{ if .SystemInfo.Storage }}
-                        {{ range .SystemInfo.Storage }}
-
-                        <div style="width: auto;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
-                                        <img src="/static/img/icons/icon-storage.svg" width="46" height="46" alt="Device" />
-                                    </div>
-
-                                    <div class="ds-svg-placeholder-right" style="margin-left: 20px;min-width: 200px">
-                                        <span style="font-size: 13px;">{{ .Model }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">{{ $root.Lang "txtTemperature" }}</span>
-                                            <span id="storage_temp-{{ .Key }}" class="temp-right-30 text-dash-color-2-custom-4">{{ $dash.TemperatureToString .Temperature }}</span><br />
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
-                        {{ end }}
-                        {{ end }}
                     </div>
                 </div>
-
-                {{ if .Dashboard.ShowBattery }}
-                {{ $length := len $battery }}
-                {{ if gt $length 0 }}
-                <div class="row gy-4">
-                    <div class="bg-dash-dark-2 py-4 box-info">
-                        <div class="container-fluid">
-                            <h2 class="h5 mb-0">{{ $root.Lang "txtBatteryLevels" }}</h2>
-                        </div>
-                    </div>
-                    <div class="row">
-                        {{ range $key, $value := $battery }}
-                        <div style="width: auto;">
-                            <div class="card mb-4">
-                                <div class="card-header border-bottom border-dash-dark-1">
-                                    <div class="ds-svg-placeholder-left" style="width: 46px;height: 46px;">
-                                        {{ if eq $value.DeviceType 0 }}
-                                        <img src="/static/img/icons/icon-keyboard.svg" width="46" height="46" alt="Device" />
-                                        {{ else if eq $value.DeviceType 1 }}
-                                        <img src="/static/img/icons/icon-mouse.svg" width="46" height="46" alt="Device" />
-                                        {{ else if eq $value.DeviceType 2 }}
-                                        <img src="/static/img/icons/icon-headphone.svg" width="46" height="46" alt="Device" />
-                                        {{ else if eq $value.DeviceType 3 }}
-                                        <img src="/static/img/icons/icon-controller.svg" width="46" height="46" alt="Device" />
-                                        {{ else }}
-                                        <img src="/static/img/icons/icon-device.svg" width="46" height="46" alt="Device" />
-                                        {{ end }}
-                                    </div>
-
-                                    <div class="ds-svg-placeholder-right" style="margin-left: 20px;min-width: 200px">
-                                        <span style="font-size: 13px;">{{ $value.Device }}</span><br />
-                                        <p class="text-md-start lh-1 mb-0 text-dash-color-3" style="margin-top: 5px;width: 100%">
-                                            <span class="temp-left-70">{{ $root.Lang "txtLevel" }}</span>
-                                            <span id="battery_level-{{ $key }}" class="temp-right-30 text-dash-color-2-custom-4">{{ $value.Level }} %</span><br />
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
-                    </div>
-                </div>
-                {{ end }}
-                {{ end }}
             </div>
-        </section>
-        {{ template "footer" . }}
+        </main>
     </div>
 </div>
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/jquery-3.7.1.min.js"></script>
-<script src="/static/js/toastr.min.js"></script>
+<script src="/static/js/sidebar.js"></script>
 <script src="/static/js/index.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 </body>
 </html>

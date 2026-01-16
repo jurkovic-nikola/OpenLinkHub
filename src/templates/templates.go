@@ -58,6 +58,20 @@ func (w Web) Lang(key string) string {
 	return language.GetValue(key)
 }
 
+// Dict is called from template files
+func (w Web) Dict(values ...any) map[string]any {
+	m := make(map[string]any)
+	for i := 0; i < len(values); i += 2 {
+		m[values[i].(string)] = values[i+1]
+	}
+	return m
+}
+
+// Slice is called from template files
+func (w Web) Slice(values ...any) []any {
+	return values
+}
+
 // Init will parse all templates
 func Init() {
 	var templateList []string

@@ -225,27 +225,8 @@ func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, a
 
 // SaveProfile saves macro profile
 func SaveProfile(path string, data Macro) {
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(path, data); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save macro data")
 		return
-	}
-
-	file, fileErr := os.Create(path)
-	if fileErr != nil {
-		logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to save nacro profile")
-		return
-	}
-
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to write data")
-		return
-	}
-
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to close file handle")
 	}
 }

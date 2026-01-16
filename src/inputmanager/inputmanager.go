@@ -29,6 +29,9 @@ type KeyAssignment struct {
 	ToggleDelay    uint16 `json:"toggleDelay"`
 	ProfileSwitch  bool   `json:"profileSwitch"`
 	OnRelease      bool   `json:"onRelease"`
+	IsTilt         bool   `json:"isTilt"`
+	TiltToggle     bool   `json:"tiltToggle"`
+	TiltIndex      int    `json:"tiltIndex"`
 }
 
 type InputAction struct {

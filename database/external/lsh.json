@@ -244,7 +244,8 @@
     "temperatureProbe": false,
     "linkAdapter": false,
     "cpuBlock": false,
-    "hasSpeed": true
+    "hasSpeed": true,
+    "vrmCooler": true
   },
   {
     "deviceId": 17,

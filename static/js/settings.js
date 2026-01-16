@@ -1,32 +1,7 @@
 "use strict";
-
-document.addEventListener("DOMContentLoaded", function () {
-    function CreateToastr() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": true,
-            "onclick": null,
-            "showDuration": 300,
-            "hideDuration": 1000,
-            "timeOut": 7000,
-            "extendedTimeout": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut",
-        }
-        return toastr
-    }
-
-    // Init toastr
-    const toast = CreateToastr();
-
+$(document).ready(function () {
     // Init dataTable
-    const dt = $('#supported-devices').DataTable(
+    const dt = $('#dataTable').DataTable(
         {
             order: [[0, 'asc']],
             select: {
@@ -36,7 +11,8 @@ document.addEventListener("DOMContentLoaded", function () {
             paging: true,
             searching: true,
             language: {
-                emptyTable: "Supported device list"
+                emptyTable: "Supported device list",
+                searchPlaceholder: "Search for device..."
             },
             layout: {
                 topStart: null,
@@ -60,7 +36,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     orderable: false,
                     render: function(data, type, row, meta) {
                         const checked = data ? 'checked' : '';
-                        return `<input type="checkbox" class="device-checkbox" data-id="${row.ProductId}" ${checked}/>`;
+                        return `
+                            <label class="system-toggle compact">
+                                <input type="checkbox" class="device-checkbox" data-id="${row.ProductId}" ${checked}>
+                                <span class="toggle-track"></span>
+                            </label>
+                        `;
                     }
                 }
             ]
@@ -141,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    $('#supported-devices').on('change', '.device-checkbox', function() {
+    dt.on('change', '.device-checkbox', function() {
         const productId = $(this).data('id');
         const enabled = $(this).prop('checked');
 
@@ -188,6 +169,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const checkboxDeviceLabels = $('#checkbox-deviceLabels');
     const checkboxCelsius = $('#checkbox-celsius');
     const checkboxBattery = $('#checkbox-battery');
+    const checkboxTemperatureBar = $('#checkbox-temperatureBar');
 
     function loadDashboardSettings() {
         // Load current settings
@@ -218,6 +200,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (response.dashboard.showBattery === true) {
                         checkboxBattery.attr('Checked','Checked');
                     }
+                    if (response.dashboard.temperatureBar === true) {
+                        checkboxTemperatureBar.attr('Checked','Checked');
+                    }
                 }
             }
         });
@@ -230,6 +215,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const v_checkboxDeviceLabels = checkboxDeviceLabels.is(':checked');
             const v_checkboxCelsius = checkboxCelsius.is(':checked');
             const v_checkboxBattery = checkboxBattery.is(':checked');
+            const v_checkboxTemperatureBar = checkboxTemperatureBar.is(':checked');
             const v_languageCode = $("#userLanguage").val();
 
             console.log(v_languageCode);
@@ -242,6 +228,7 @@ document.addEventListener("DOMContentLoaded", function () {
             pf["showLabels"] = v_checkboxDeviceLabels;
             pf["celsius"] = v_checkboxCelsius;
             pf["showBattery"] = v_checkboxBattery;
+            pf["temperatureBar"] = v_checkboxTemperatureBar;
             pf["languageCode"] = v_languageCode;
 
             const json = JSON.stringify(pf, null, 2);

@@ -69,6 +69,7 @@ type TemperatureProfileData struct {
 	ChannelId          int                  `json:"channelId"`
 	Linear             bool                 `json:"linear"`
 	GPUIndex           uint8                `json:"gpuIndex"`
+	SensorString       string               `json:"sensorString"`
 	Hidden             bool
 }
 
@@ -116,6 +117,19 @@ var (
 	temperatures      *Temperatures
 	cpuPackages       = []string{"k10temp", "zenpower", "coretemp"}
 	defaultTempFile   = "temp1_input"
+	sensorList        = map[uint8]string{
+		SensorTypeCPU:                "CPU",
+		SensorTypeGPU:                "GPU",
+		SensorTypeLiquidTemperature:  "Liquid",
+		SensorTypeStorage:            "Storage",
+		SensorTypeTemperatureProbe:   "Probe",
+		SensorTypeCpuGpu:             "CPU + GPU",
+		SensorTypeExternalHwMon:      "External HwMon",
+		SensorTypeExternalExecutable: "External Executable",
+		SensorTypeMultiGPU:           "Multi GPU",
+		SensorTypeGlobalTemperature:  "Global Temperature",
+		SensorTypePSU:                "PSU",
+	}
 
 	// Defaults
 	profileQuiet = TemperatureProfileData{
@@ -630,7 +644,13 @@ func GetTemperatureGraph(profile string) map[int]PointData {
 func GetTemperatureProfiles() map[string]TemperatureProfileData {
 	mutex.Lock()
 	defer mutex.Unlock()
-	return temperatures.Profiles
+
+	profileList := map[string]TemperatureProfileData{}
+	for key, value := range temperatures.Profiles {
+		value.SensorString = sensorList[value.Sensor]
+		profileList[key] = value
+	}
+	return profileList
 }
 
 // getHwMonDirectoryByDeviceName return hwmon path for given device
@@ -706,30 +726,9 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 func saveProfileToDisk(profile string, values TemperatureProfileData) error {
 	profileLocation := location + profile + ".json"
 
-	// Convert to JSON
-	buffer, err := json.MarshalIndent(values, "", "    ")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to convert to json format")
+	if err := common.SaveJsonData(profileLocation, values); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profileLocation}).Error("Unable to save temperature profile data")
 		return err
-	}
-
-	// Create profile filename
-	file, err := os.Create(profileLocation)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to create new filename")
-	}
-
-	// Write JSON buffer to file
-	_, err = file.Write(buffer)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": profile, "caller": "saveProfileToDisk()"}).Error("Unable to write data")
-		return err
-	}
-
-	// Close file
-	err = file.Close()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location, "caller": "saveProfileToDisk()"}).Error("Unable to close file handle")
 	}
 
 	LoadUserProfiles(profiles)

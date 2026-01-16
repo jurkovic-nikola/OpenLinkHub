@@ -20,6 +20,7 @@ database/macros/*.json
 database/led/*.json
 database/lcd/*.json
 database/scheduler.json
+database/audio.json
 org.openlinkhub.OpenLinkHub.json
 .flatpak-builder/
 flatpak/

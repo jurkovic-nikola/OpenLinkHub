@@ -1,7 +1,7 @@
 FROM golang:1.23.8-bullseye AS build
 ARG GIT_TAG
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y libudev-dev i2c-tools
+RUN apt-get update && apt-get install -y libudev-dev i2c-tools libpipewire-0.3-dev pkg-config
 RUN mkdir -p /opt/OpenLinkHub
 
 WORKDIR /app

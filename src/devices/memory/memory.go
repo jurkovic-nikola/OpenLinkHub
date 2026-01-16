@@ -551,7 +551,9 @@ func (d *Device) getDevices() int {
 		}
 
 		if config.GetConfig().MemoryType == 5 {
-			if config.GetConfig().DecodeMemorySku {
+			// When RamTempViaHwmon is enabled, we probe color addresses (0x18-0x1f) instead of SPD addresses (0x50-0x57)
+			// The I2C Legacy Mode activation and direct SKU decoding should be skipped as they only work on SPD addresses
+			if config.GetConfig().DecodeMemorySku && !config.GetConfig().RamTempViaHwmon {
 				if d.getEnhancementKit(dimmInfoAddresses[i]) {
 					logger.Log(logger.Fields{"register": dimmInfoAddresses[i]}).Warn("You can not use decodeMemorySku with Light Enhancement Kit in configuration")
 					continue
@@ -586,7 +588,11 @@ func (d *Device) getDevices() int {
 		}
 		var buf []byte
 
-		if config.GetConfig().DecodeMemorySku {
+		// Skip direct SKU decoding when RamTempViaHwmon is enabled for DDR5
+		// because we're probing RGB controller addresses which don't have SPD data
+		skipDirectDecode := config.GetConfig().RamTempViaHwmon && config.GetConfig().MemoryType == 5
+
+		if config.GetConfig().DecodeMemorySku && !skipDirectDecode {
 			time.Sleep(1 * time.Millisecond)
 			// Check SKU 1st letter, must match to C = Corsair
 			check, err := smbus.ReadRegister(d.dev.File, dimmInfoAddresses[i], skuRangeLow)
@@ -622,8 +628,30 @@ func (d *Device) getDevices() int {
 
 		if modules != nil && len(modules) > 0 {
 			// If modules are available, we can fetch memory SKU from them
-			// For now we'll just use the SKU of the first module
-			memorySku := modules[0].SKU
+			// When RamTempViaHwmon is enabled, we need to match the color address index
+			// to the correct module based on its ColorIndex (derived from SPD address)
+			memorySku := ""
+			if config.GetConfig().RamTempViaHwmon && config.GetConfig().MemoryType == 5 {
+				// Find module with matching ColorIndex
+				for _, mod := range modules {
+					if mod.ColorIndex == i {
+						memorySku = mod.SKU
+						if d.Debug {
+							logger.Log(logger.Fields{"colorIndex": i, "i2cAddress": fmt.Sprintf("0x%02x", mod.I2CAddress), "sku": memorySku}).Info("Matched module to color index")
+						}
+						break
+					}
+				}
+				// If no matching module found, use first module as fallback
+				if len(memorySku) < 1 && len(modules) > 0 {
+					memorySku = modules[0].SKU
+					if d.Debug {
+						logger.Log(logger.Fields{"colorIndex": i, "fallbackSku": memorySku}).Info("No matching module found, using first module")
+					}
+				}
+			} else {
+				memorySku = modules[0].SKU
+			}
 			buf = []byte(memorySku)
 		} else {
 			// This is where memory SKU cannot be fetched

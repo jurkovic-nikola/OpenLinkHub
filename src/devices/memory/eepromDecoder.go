@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -22,9 +23,10 @@ const (
 // The struct can be extended to include more attributes as needed.
 type RAMModule struct {
 	// Hardware metadata
-	EEPROMPath string // Path to the EEPROM within hwmon device directory
-	SKU        string // SKU is the part number or identifier for the RAM module
-
+	EEPROMPath   string // Path to the EEPROM within hwmon device directory
+	SKU          string // SKU is the part number or identifier for the RAM module
+	I2CAddress   uint8  // I2C address of the SPD hub (e.g., 0x51, 0x53)
+	ColorIndex   int    // Index into colorAddresses array (SPD address - 0x50)
 }
 
 // parseSKUInfo Reads the byte range the SKU/Part Number is normally found at and filters out non-printable ASCII characters
@@ -40,10 +42,44 @@ func parseSKUInfo(m *RAMModule, spd []byte) {
 
 }
 
+// extractI2CAddress extracts the I2C address from the EEPROM path
+// Path format: /sys/class/hwmon/hwmonX/device/eeprom
+// Device symlink points to: ../../i2c-1/1-0051 (where 0051 is the hex address)
+func extractI2CAddress(eepromPath string) (uint8, int) {
+	// Resolve the device symlink to get the real path
+	devicePath := filepath.Dir(eepromPath)
+	realPath, err := filepath.EvalSymlinks(devicePath)
+	if err != nil {
+		return 0, -1
+	}
+
+	// Extract the I2C address from the path (e.g., "1-0051" -> 0x51)
+	base := filepath.Base(realPath)
+	parts := strings.Split(base, "-")
+	if len(parts) != 2 {
+		return 0, -1
+	}
+
+	// Parse the hex address (e.g., "0051" -> 0x51)
+	addr, err := strconv.ParseUint(parts[1], 16, 8)
+	if err != nil {
+		return 0, -1
+	}
+
+	// Calculate color index: SPD address 0x50-0x57 maps to color index 0-7
+	colorIndex := int(addr) - 0x50
+	if colorIndex < 0 || colorIndex > 7 {
+		colorIndex = -1
+	}
+
+	return uint8(addr), colorIndex
+}
+
 // parseSPDModule Parse the SPD data from the EEPROM file.
 func parseSPDModule(path string, spd []byte) RAMModule {
 	var m RAMModule
 	m.EEPROMPath = path
+	m.I2CAddress, m.ColorIndex = extractI2CAddress(path)
 	parseSKUInfo(&m, spd)
 	return m
 }

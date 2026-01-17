@@ -60,10 +60,14 @@ $ sudo dnf install OpenLinkHub
 # Required packages (deb)
 $ sudo apt-get install libudev-dev
 $ sudo apt-get install usbutils
+$ sudo apt-get install libpipewire-0.3-dev
+$ sudo apt-get install pkg-config
 
 # Required packages (rpm)
 $ sudo dnf install libudev-devel
 $ sudo dnf install usbutils
+$ sudo dnf install pipewire-devel
+$ sudo dnf install pkg-config
 ```
 Or use the provided devcontainer in VScode. This is useful for immutable distributions.
 ### 2. Build & install

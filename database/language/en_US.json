@@ -518,6 +518,11 @@
     "txtInvalidSecondaryActuationValue": "Invalid secondary actuation value. The value must be at least 4 points less than the primary actuation value",
     "txtFlashTap": "FlashTap",
     "txtNoFlashTapData": "Unable to get FlashTap data",
-    "txtFlashTapUpdated": "FlashTap is successfully updated"
+    "txtFlashTapUpdated": "FlashTap is successfully updated",
+    "txtVirtualAudio": "Virtual Audio",
+    "txtOutputDevice": "Output Device",
+    "txtSetTargetDevice": "Set Target Device",
+    "txtTargetDeviceSet": "Target audio device is successfully updated",
+    "txtUnableToSetTargetDevice": "Unable to set target audio device"
   }
 }

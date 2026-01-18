@@ -518,6 +518,11 @@
     "txtInvalidSecondaryActuationValue": "Valor de atuação secundária inválido. O valor deve ser pelo menos 4 pontos menor que o valor de atuação primária",
     "txtFlashTap": "FlashTap",
     "txtNoFlashTapData": "Não foi possível obter os dados do FlashTap",
-    "txtFlashTapUpdated": "O FlashTap foi atualizado com sucesso"
+    "txtFlashTapUpdated": "O FlashTap foi atualizado com sucesso",
+    "txtVirtualAudio": "Áudio virtual",
+    "txtOutputDevice": "Dispositivo de saída",
+    "txtSetTargetDevice": "Definir dispositivo de destino",
+    "txtTargetDeviceSet": "O dispositivo de áudio de destino foi atualizado com sucesso",
+    "txtUnableToSetTargetDevice": "Não é possível definir o dispositivo de áudio de destino"
   }
 }

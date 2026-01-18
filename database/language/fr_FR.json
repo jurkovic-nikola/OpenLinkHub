@@ -518,6 +518,11 @@
         "txtInvalidSecondaryActuationValue": "Valeur d’actionnement secondaire non valide. La valeur doit être au moins inférieure de 4 points à la valeur d’actionnement principale",
         "txtFlashTap": "FlashTap",
         "txtNoFlashTapData": "Impossible d’obtenir les données FlashTap",
-        "txtFlashTapUpdated": "FlashTap a été mis à jour avec succès"
+        "txtFlashTapUpdated": "FlashTap a été mis à jour avec succès",
+        "txtVirtualAudio": "Audio virtuel",
+        "txtOutputDevice": "Périphérique de sortie",
+        "txtSetTargetDevice": "Définir le périphérique cible",
+        "txtTargetDeviceSet": "Le périphérique audio cible a été mis à jour avec succès",
+        "txtUnableToSetTargetDevice": "Impossible de définir le périphérique audio cible"
     }
 }

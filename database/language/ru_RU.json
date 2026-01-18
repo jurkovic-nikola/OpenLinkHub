@@ -518,6 +518,11 @@
         "txtInvalidSecondaryActuationValue": "Недопустимое вторичное значние срабатывания. Значение должно быть как минимум на 4 пункта меньше основного значения срабатывания",
         "txtFlashTap": "FlashTap",
         "txtNoFlashTapData": "Невозможно получить данные FlashTap",
-        "txtFlashTapUpdated": "FlashTap успешно обновлён"
+        "txtFlashTapUpdated": "FlashTap успешно обновлён",
+        "txtVirtualAudio": "Виртуальное аудио",
+        "txtOutputDevice": "Устройство вывода",
+        "txtSetTargetDevice": "Установить целевое устройство",
+        "txtTargetDeviceSet": "Целевое аудиоустройство успешно обновлено",
+        "txtUnableToSetTargetDevice": "Невозможно установить целевое аудиоустройство"
     }
 }

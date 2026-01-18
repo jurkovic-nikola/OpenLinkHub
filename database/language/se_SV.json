@@ -518,6 +518,11 @@
     "txtInvalidSecondaryActuationValue": "Ogiltigt sekundärt aktiveringsvärde. Värdet måste vara minst 4 punkter lägre än det primära aktiveringsvärdet",
     "txtFlashTap": "FlashTap",
     "txtNoFlashTapData": "Det gick inte att hämta FlashTap-data",
-    "txtFlashTapUpdated": "FlashTap har uppdaterats"
+    "txtFlashTapUpdated": "FlashTap har uppdaterats",
+    "txtVirtualAudio": "Virtuellt ljud",
+    "txtOutputDevice": "Utmatningsenhet",
+    "txtSetTargetDevice": "Ange målenhet",
+    "txtTargetDeviceSet": "Målljudenheten har uppdaterats",
+    "txtUnableToSetTargetDevice": "Det går inte att ange målljudenhet"
   }
 }

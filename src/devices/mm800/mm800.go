@@ -1379,6 +1379,10 @@ func (d *Device) setDeviceColor() {
 					}
 				}
 
+				if len(buff) == 0 {
+					continue
+				}
+				
 				for _, rows := range d.DeviceProfile.Mousepad.Row {
 					for _, keys := range rows.Zones {
 						for _, packetIndex := range keys.PacketIndex {

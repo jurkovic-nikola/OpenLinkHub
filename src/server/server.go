@@ -1820,24 +1820,6 @@ func uiIndex(w http.ResponseWriter, _ *http.Request) {
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
 	web.Dashboard = dashboard.GetDashboard()
 	web.BatteryStats = stats.GetBatteryStats()
-	web.RGBModes = []string{
-		"circle",
-		"circleshift",
-		"colorpulse",
-		"colorshift",
-		"colorwarp",
-		"cpu-temperature",
-		"flickering",
-		"gpu-temperature",
-		"off",
-		"rainbow",
-		"rotator",
-		"spinner",
-		"static",
-		"storm",
-		"watercolor",
-		"wave",
-	}
 	web.Page = "index"
 
 	t := templates.GetTemplate()
@@ -2117,6 +2099,25 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web.Dashboard = dashboard.GetDashboard()
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
+	web.RGBModes = []string{
+		"circle",
+		"circleshift",
+		"colorpulse",
+		"colorshift",
+		"colorwarp",
+		"cpu-temperature",
+		"flickering",
+		"gpu-temperature",
+		"off",
+		"rainbow",
+		"pastelrainbow",
+		"rotator",
+		"spinner",
+		"static",
+		"storm",
+		"watercolor",
+		"wave",
+	}
 	web.Page = "settings"
 
 	t := templates.GetTemplate()

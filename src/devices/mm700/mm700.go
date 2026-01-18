@@ -1310,10 +1310,20 @@ func (d *Device) setDeviceColor() {
 						r.Rainbow(startTime)
 						buff = append(buff, r.Output...)
 					}
+				case "pastelrainbow":
+					{
+						r.PastelRainbow(startTime)
+						buff = append(buff, r.Output...)
+					}
 				case "spiralrainbow":
 					{
 						r.SpiralRainbow(startTime)
 						buff = append(buff, r.Output...)
+					}
+				case "pastelspiralrainbow":
+					{
+						r.PastelSpiralRainbow(startTime)
+						buff = r.Output
 					}
 				case "watercolor":
 					{
@@ -1394,6 +1404,10 @@ func (d *Device) setDeviceColor() {
 						r.Colorwarp(&startTime, d.activeRgb)
 						buff = append(buff, r.Output...)
 					}
+				}
+
+				if len(buff) == 0 {
+					continue
 				}
 
 				for _, rows := range d.DeviceProfile.Stand.Row {

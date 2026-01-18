@@ -72,6 +72,19 @@
                                         </label>
                                     </div>
 
+                                    <!-- Global RGB -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                        <label for="allDevicesRgb">
+                                            <select id="allDevicesRgb" class="form-select system-select auto-width compact allDevicesRgb">
+                                                <option value="none">None</option>
+                                                {{ range $key, $mode := .RGBModes }}
+                                                <option value="{{ $mode }}">{{ $mode }}</option>
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
                                     <!-- Save settings -->
                                     <div class="settings-row">
                                         <button class="system-button" id="btnSaveDashboardSettings">{{ .Lang "txtSave" }}</button>
@@ -125,7 +138,6 @@
                         </div>
                         <div class="card-body">
                             <div class="settings-list">
-                                <!-- Temperature (C / F) -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtEnable" }}</span>
                                     <label class="system-toggle compact">

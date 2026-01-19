@@ -548,6 +548,14 @@
         "txtMacroValueDeleted": "La valeur de la macro a été supprimée avec succès",
         "txtMacroValueUpdated": "La valeur de la macro a été mise à jour avec succès",
         "txtRepeatAmount": "Définit le nombre de fois que l’action sera répétée",
-        "txtRepeatDelay": "La durée du délai en millisecondes entre les actions de répétition"
+        "txtRepeatDelay": "La durée du délai en millisecondes entre les actions de répétition",
+        "txtRepeatDelayInfo": "The amount of delay in milliseconds between the Repeat action. This is only valid if Repeat is greater than 1.",
+        "txtRepeatInfo": "Define the amount of time macro action will be triggered. Value is from 0 to 100.",
+        "txtPressAndHoldInfo": "When enabled, the keyboard continuously sends action until macro chain is finished. You need to have at least 1 Press and Hold un-checked in order to finish the macro.",
+        "txtSelectMacroType": "Sélectionnez le type de macro",
+        "txtSelectMacroValue": "Sélectionnez la valeur de la macro",
+        "txtNoMacroDelayMs": "Le délai de la macro nécessite la définition d’un délai en millisecondes",
+        "txtLedOverride": "Forçage LED",
+        "txtInvalidProfileSelected": "Profil sélectionné non valide"
     }
 }

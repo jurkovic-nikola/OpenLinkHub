@@ -548,6 +548,14 @@
     "txtMacroValueDeleted": "Vrijednost makroa je uspješno obrisana",
     "txtMacroValueUpdated": "Vrijednost makroa je uspješno ažurirana",
     "txtRepeatAmount": "Određuje koliko će se puta radnja ponoviti",
-    "txtRepeatDelay": "Količina odgode u milisekundama između ponavljanja radnje"
+    "txtRepeatDelay": "Količina odgode u milisekundama između ponavljanja radnje",
+    "txtRepeatDelayInfo": "Količina odgode u milisekundama između ponavljanja radnje. Vrijedi samo ako je broj ponavljanja veći od 1.",
+    "txtRepeatInfo": "Određuje koliko će se puta makro radnja pokrenuti. Vrijednost je od 0 do 100.",
+    "txtPressAndHoldInfo": "Kada je omogućeno, tipkovnica kontinuirano šalje radnju dok se lanac makronaredbi ne završi. Kako bi se makro završio, barem jedna opcija pritisni i drži mora biti isključena.",
+    "txtSelectMacroType": "Odaberite vrstu makroa",
+    "txtSelectMacroValue": "Odaberite vrijednost makroa",
+    "txtNoMacroDelayMs": "Odgoda makroa zahtijeva definiranje odgode u milisekundama",
+    "txtLedOverride": "LED premošćivanje",
+    "txtInvalidProfileSelected": "Odabran je nevažeći profil"
   }
 }

@@ -548,6 +548,14 @@
     "txtMacroValueDeleted": "O valor da macro foi excluído com sucesso",
     "txtMacroValueUpdated": "O valor da macro foi atualizado com sucesso",
     "txtRepeatAmount": "Define quantas vezes a ação será repetida",
-    "txtRepeatDelay": "A quantidade de atraso em milissegundos entre as ações de repetição"
+    "txtRepeatDelay": "A quantidade de atraso em milissegundos entre as ações de repetição",
+    "txtRepeatDelayInfo": "A quantidade de atraso em milissegundos entre as ações de repetição. Válido apenas se a repetição for maior que 1.",
+    "txtRepeatInfo": "Define quantas vezes a ação da macro será acionada. O valor varia de 0 a 100.",
+    "txtPressAndHoldInfo": "Quando ativado, o teclado envia a ação continuamente até que a cadeia de macros seja finalizada. É necessário ter pelo menos uma opção de pressionar e segurar desmarcada para concluir a macro.",
+    "txtSelectMacroType": "Selecione o tipo de macro",
+    "txtSelectMacroValue": "Selecione o valor da macro",
+    "txtNoMacroDelayMs": "O atraso da macro requer a definição de um atraso em milissegundos",
+    "txtLedOverride": "Substituição de LED",
+    "txtInvalidProfileSelected": "Perfil selecionado inválido"
   }
 }

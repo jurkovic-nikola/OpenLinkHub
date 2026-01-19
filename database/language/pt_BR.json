@@ -523,6 +523,9 @@
     "txtOutputDevice": "Dispositivo de saída",
     "txtSetTargetDevice": "Definir dispositivo de destino",
     "txtTargetDeviceSet": "O dispositivo de áudio de destino foi atualizado com sucesso",
-    "txtUnableToSetTargetDevice": "Não é possível definir o dispositivo de áudio de destino"
+    "txtUnableToSetTargetDevice": "Não é possível definir o dispositivo de áudio de destino",
+    "txtVirtualAudioUpdated": "O áudio virtual foi atualizado com sucesso",
+    "txtUnableToUpdateVirtualAudio": "Não é possível atualizar o áudio virtual",
+    "txtVirtualAudioUnavailable": "O áudio virtual não está disponível no modo de contexto do sistema. Migre o serviço para o modo de contexto do usuário para habilitar o áudio virtual"
   }
 }

@@ -523,6 +523,9 @@
         "txtOutputDevice": "Périphérique de sortie",
         "txtSetTargetDevice": "Définir le périphérique cible",
         "txtTargetDeviceSet": "Le périphérique audio cible a été mis à jour avec succès",
-        "txtUnableToSetTargetDevice": "Impossible de définir le périphérique audio cible"
+        "txtUnableToSetTargetDevice": "Impossible de définir le périphérique audio cible",
+        "txtVirtualAudioUpdated": "L’audio virtuel a été mis à jour avec succès",
+        "txtUnableToUpdateVirtualAudio": "Impossible de mettre à jour l’audio virtuel",
+        "txtVirtualAudioUnavailable": "L’audio virtuel n’est pas disponible en mode contexte système. Veuillez migrer votre service vers le mode contexte utilisateur afin d’activer l’audio virtuel"
     }
 }

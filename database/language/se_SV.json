@@ -523,6 +523,9 @@
     "txtOutputDevice": "Utmatningsenhet",
     "txtSetTargetDevice": "Ange målenhet",
     "txtTargetDeviceSet": "Målljudenheten har uppdaterats",
-    "txtUnableToSetTargetDevice": "Det går inte att ange målljudenhet"
+    "txtUnableToSetTargetDevice": "Det går inte att ange målljudenhet",
+    "txtVirtualAudioUpdated": "Virtuellt ljud har uppdaterats",
+    "txtUnableToUpdateVirtualAudio": "Det går inte att uppdatera virtuellt ljud",
+    "txtVirtualAudioUnavailable": "Virtuellt ljud är inte tillgängligt i systemkontextläge. Migrera tjänsten till användarkontextläge för att aktivera virtuellt ljud."
   }
 }

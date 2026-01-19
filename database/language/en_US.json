@@ -523,6 +523,9 @@
     "txtOutputDevice": "Output Device",
     "txtSetTargetDevice": "Set Target Device",
     "txtTargetDeviceSet": "Target audio device is successfully updated",
-    "txtUnableToSetTargetDevice": "Unable to set target audio device"
+    "txtUnableToSetTargetDevice": "Unable to set target audio device",
+    "txtVirtualAudioUpdated": "Virtual Audio is successfully updated",
+    "txtUnableToUpdateVirtualAudio": "Unable to update Virtual Audio",
+    "txtVirtualAudioUnavailable": "Virtual Audio is not available in system context mode. Please migrate your service to user context mode in order to enable Virtual Audio"
   }
 }

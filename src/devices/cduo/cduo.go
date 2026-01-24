@@ -1775,12 +1775,14 @@ func (d *Device) getLedDevices() {
 
 			leds.Total = int(numLEDs)
 			leds.Command = command
-			if override, valid := d.DeviceProfile.CommanderDuoOverride[i]; valid {
-				if override.Enabled {
-					if override.LedChannels > 50 {
-						override.LedChannels = 50
+			if d.DeviceProfile != nil && d.DeviceProfile.CommanderDuoOverride != nil {
+				if override, valid := d.DeviceProfile.CommanderDuoOverride[i]; valid {
+					if override.Enabled {
+						if override.LedChannels > 50 {
+							override.LedChannels = 50
+						}
+						leds.Total = int(override.LedChannels)
 					}
-					leds.Total = int(override.LedChannels)
 				}
 			}
 			leds.Name = fmt.Sprintf("ARGB Channel %d", i+1)

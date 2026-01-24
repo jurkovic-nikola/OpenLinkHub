@@ -41,9 +41,12 @@ type Web struct {
 	Rgb               map[string]rgb.Profile
 	SystemInfo        interface{}
 	Stats             interface{}
+	AudioSettings     interface{}
+	OutputDevices     interface{}
 	CpuTemp           string
 	GpuTemp           string
 	Page              string
+	SystemService     bool
 	StorageTemp       []temperatures.StorageTemperatures
 	BuildInfo         *version.BuildInfo
 	Dashboard         dashboard.Dashboard

@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
@@ -161,6 +162,9 @@ type Payload struct {
 	FlashTapKeys                  []int                 `json:"flashTapKeys"`
 	FlashTapMode                  int                   `json:"flashTapMode"`
 	FlashTapColor                 rgb.Color             `json:"flashTapColor"`
+	OutputDeviceDesc              string                `json:"outputDeviceDesc"`
+	OutputDeviceName              string                `json:"outputDeviceName"`
+	OutputDeviceSerial            int                   `json:"outputDeviceSerial"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -3041,6 +3045,71 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtDashboardSettingsUpdated"), Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToSaveDashboardSettings"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessAudioSettingsChange will process POST request from a client for virtual audio settings change
+func ProcessAudioSettingsChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	val := audio.GetAudio()
+	val.Enabled = req.Enabled
+	status := audio.UpdateAudio(val)
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtUnableToUpdateVirtualAudio"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtVirtualAudioUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateVirtualAudio"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessAudioOutputDeviceChange will process POST request from a client for virtual audio settings change
+func ProcessAudioOutputDeviceChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.OutputDeviceSerial < 0 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.OutputDeviceName) < 1 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.OutputDeviceDesc) < 1 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+	
+	val := audio.GetAudio()
+	val.SinkName = req.OutputDeviceName
+	val.SinkDesc = req.OutputDeviceDesc
+	val.SinkSerial = req.OutputDeviceSerial
+
+	status := audio.UpdateTargetDevice(val)
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtUnableToSetTargetDevice"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtTargetDeviceSet"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToSetTargetDevice"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessDashboardSidebarChange will process POST request from a client for dashboard sidebar change

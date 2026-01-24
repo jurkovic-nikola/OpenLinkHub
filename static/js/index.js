@@ -1,5 +1,38 @@
 "use strict";
 $(document).ready(function () {
+    window.i18n = {
+        locale: null,
+        values: {},
+
+        setTranslations: function (locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+
+        t: function (key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+            loadDevices();
+        },
+        error: function () {
+            console.error('Failed to load translations');
+            loadDevices();
+        }
+    });
+
     let showLabels = false;
 
     function loadDevices() {
@@ -64,9 +97,9 @@ $(document).ready(function () {
                 `;
 
                 if (dev.device.Temperature > 0) {
-                    let tempString = "Temperature";
+                    let tempString = i18n.t('txtTemperature');
                     if (dev.device.AIO || dev.device.IsCpuBlock) {
-                        tempString = "Liquid";
+                        tempString = i18n.t('txtLiquidTemp');
                     }
                     html += `
                                 <div class="settings-row">
@@ -106,15 +139,15 @@ $(document).ready(function () {
                 if (device.MainPSU) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Speed</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                     <span class="meta-value" id="speed-${dev.device.serial}-${device.channelId}">${device.rpm} RPM</span>
                                 </div>
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">VRM Temperature</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtVrmTemperature')}</span>
                                     <span class="meta-value" id="vrm-temp-${dev.device.serial}-${device.channelId}">${device.vrmTemperatureString}</span>
                                 </div>
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">PSU Temperature</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtPsuTemperature')}</span>
                                     <span class="meta-value" id="psu-temp-${dev.device.serial}-${device.channelId}">${device.psuTemperatureString}</span>
                                 </div>
                             `;
@@ -124,7 +157,7 @@ $(document).ready(function () {
                 if (device.HasWatts) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Watts</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtWatts')}</span>
                                     <span class="meta-value" id="watts-${dev.device.serial}-${device.channelId}">${device.watts} W</span>
                                 </div>
                             `;
@@ -133,7 +166,7 @@ $(document).ready(function () {
                 if (device.HasAmps) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Amps</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtAmps')}</span>
                                     <span class="meta-value" id="amps-${dev.device.serial}-${device.channelId}">${device.amps} A</span>
                                 </div>
                             `;
@@ -142,7 +175,7 @@ $(document).ready(function () {
                 if (device.HasVolts) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Volts</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtVolts')}</span>
                                     <span class="meta-value" id="volts-${dev.device.serial}-${device.channelId}">${device.volts} V</span>
                                 </div>
                             `;
@@ -157,6 +190,9 @@ $(document).ready(function () {
             });
         } else {
             $.each(dev.device.devices, function (_, device) {
+                if (device.HasSpeed === false && device.HasTemps === false) {
+                    return
+                }
                 let cssClass = "col-md-2";
                 if (device.volts) {
                     cssClass = "col-md-3";
@@ -177,9 +213,9 @@ $(document).ready(function () {
                 `;
 
                 if (device.temperature > 0) {
-                    let tempString = "Temperature";
+                    let tempString = i18n.t('txtTemperature');
                     if (device.AIO || device.IsCpuBlock) {
-                        tempString = "Liquid";
+                        tempString = i18n.t('txtLiquidTemp');
                     }
                     html += `
                                 <div class="settings-row">
@@ -192,7 +228,7 @@ $(document).ready(function () {
                 if (device.HasSpeed) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Speed</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                     <span class="meta-value" id="speed-${dev.device.serial}-${device.channelId}">${device.rpm} RPM</span>
                                 </div>
                             `;
@@ -201,7 +237,7 @@ $(document).ready(function () {
                 if (device.speed > 0) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Speed</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                     <span class="meta-value">${device.speed} MHz</span>
                                 </div>
                             `;
@@ -210,8 +246,8 @@ $(document).ready(function () {
                 if (device.size > 0) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Size</span>
-                                    <span class="meta-value">${device.size} GZ</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtMemorySize')}</span>
+                                    <span class="meta-value">${device.size} GG</span>
                                 </div>
                             `;
                 }
@@ -219,7 +255,7 @@ $(document).ready(function () {
                 if (device.HasWatts) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Watts</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtWatts')}</span>
                                     <span class="meta-value" id="watts-${dev.device.serial}-${device.channelId}">${device.watts} W</span>
                                 </div>
                             `;
@@ -228,7 +264,7 @@ $(document).ready(function () {
                 if (device.HasAmps) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Amps</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtAmps')}</span>
                                     <span class="meta-value" id="amps-${dev.device.serial}-${device.channelId}">${device.amps} A</span>
                                 </div>
                             `;
@@ -237,7 +273,7 @@ $(document).ready(function () {
                 if (device.HasVolts) {
                     html += `
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Volts</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtVolts')}</span>
                                     <span class="meta-value" id="volts-${dev.device.serial}-${device.channelId}">${device.volts} V</span>
                                 </div>
                             `;
@@ -246,7 +282,7 @@ $(document).ready(function () {
                 if (device.volts) {
                     html += `
                                 <div class="settings-row settings-row-equal">
-                                    <span class="settings-label text-ellipsis">Output</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtOutput')}</span>
                                     <span class="meta-value text-right" id="powerOut-${device.channelId}">${device.powerOutString} W</span>
                                 </div>
                         `;
@@ -457,5 +493,4 @@ $(document).ready(function () {
     }
 
     loadDashboardSettings();
-    loadDevices();
 });

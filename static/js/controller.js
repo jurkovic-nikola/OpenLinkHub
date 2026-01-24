@@ -78,7 +78,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -275,14 +275,14 @@ $(document).ready(function () {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoToggleLabel">Mouse Default Action</h5>
+                        <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtMouseDefaultAction')}</h5>
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the controller performs its default key action. This checkbox ignores all user custom assignments.</span>
+                        <span>${i18n.t('txtControllerDefaultActionInfo')}</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                     </div>
                 </div>
             </div>
@@ -299,14 +299,14 @@ $(document).ready(function () {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoToggleLabel">Sensitivity X, Y</h5>
+                        <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtSensitivityXY')}</h5>
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>This value is used only for Mouse emulation mode.</span>
+                        <span>${i18n.t('txtSensitivityXYInfo')}</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                     </div>
                 </div>
             </div>
@@ -323,14 +323,14 @@ $(document).ready(function () {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                        <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtPressAndHold')}</h5>
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the controller continuously sends action until the button is released.</span>
+                        <span>${i18n.t('txtPressAndHoldController')}</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                     </div>
                 </div>
             </div>

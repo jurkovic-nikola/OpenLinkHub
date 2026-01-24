@@ -4,6 +4,7 @@
 <body>
 
 <div class="container-fluid">
+    {{ $root := . }}
     {{ $devs := .Devices }}
     {{ $temperatures := .Temperatures }}
     {{ $device := .Device }}
@@ -205,37 +206,60 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-10">
+                <div class="col-md-3">
                     <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Lang "txtRgb" }}
+                        </div>
                         <div class="card-body">
-                            <div class="headset-view">
-                                <input type="color" id="colorPicker" class="color-picker">
-                                <!-- LEFT -->
-                                <div class="earcup">
-                                    <div class="earcup-ring">
-                                        <div class="ring-segment seg-1" id="zoneColor_0" data-seg="1"></div>
-                                        <div class="ring-segment seg-2" id="zoneColor_1" data-seg="2"></div>
-                                        <div class="ring-segment seg-3" id="zoneColor_2" data-seg="3"></div>
+                            <div class="settings-list">
+                                {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $root.Lang "txtZone" }}: {{ $zone.Name }}</span>
+                                    <div class="system-color compact">
+                                        <label>
+                                            <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}">
+                                        </label>
                                     </div>
-                                    <div class="earcup-center">L</div>
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+
+                        <div class="card-footer card-footer-left">
+                            <button class="system-button" id="saveZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-7">
+                    <div class="card system-card text-center">
+                        <div class="card-header">{{ .Lang "txtEqualizer" }}</div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-1">
+                                    <div class="eq-scale">
+                                        <span>+12</span>
+                                        <span>0</span>
+                                        <span>-12</span>
+                                    </div>
                                 </div>
 
-                                <!-- RIGHT -->
-                                <div class="earcup">
-                                    <div class="earcup-ring">
-                                        <div class="ring-segment seg-1" id="zoneColor_3" data-seg="1"></div>
-                                        <div class="ring-segment seg-2" id="zoneColor_4" data-seg="2"></div>
-                                        <div class="ring-segment seg-3" id="zoneColor_5" data-seg="3"></div>
+                                {{ range $key, $equalizer := $device.DeviceProfile.Equalizers }}
+                                <div class="col-md-1">
+                                    <div class="eq-band">
+                                        <label id="stageValue{{ $key }}">{{ $equalizer.Value }}</label>
+                                        <div class="eq-slider-wrap">
+                                            <input class="eq-slider" type="range" min="-12" max="12" value="{{ $equalizer.Value }}" id="stage{{ $key }}">
+                                        </div>
+                                        <label>{{ $equalizer.Name }}</label>
                                     </div>
-                                    <div class="earcup-center">R</div>
                                 </div>
-
+                                {{ end }}
                             </div>
-                            <div class="canvas-bottom">
-                                <div class="system-input system-color inline-controls">
-                                    <button class="system-button" id="saveHeadsetZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
-                                </div>
-                            </div>
+                        </div>
+                        <div class="card-footer card-footer-left">
+                            <button class="system-button" id="saveEqualizers">{{ .Lang "txtSave" }}</button>
                         </div>
                     </div>
                 </div>

@@ -318,14 +318,14 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoToggleLabel">Mouse Default Action</h5>
+                        <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtMouseDefaultAction')}</h5>
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the mouse performs its default key action. This checkbox ignores all user custom assignments.</span>
+                        <span>${i18n.t('txtMouseDefaultActionInfo')}</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                     </div>
                 </div>
             </div>
@@ -342,14 +342,14 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                        <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtPressAndHold')}</h5>
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the mouse continuously sends action until the button is released.</span>
+                        <span>${i18n.t('txtPressAndHoldMouse')}</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                     </div>
                 </div>
             </div>
@@ -366,15 +366,14 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="infoToggleLabel">On Release</h5>
+                        <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtOnRelease')}</h5>
                         <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <span>When enabled, the mouse action is sent when the button is released. When enabled, <b>Press and Hold</b> and <b>Sniper</b> can not be used.
-                        This value is ignored when <b>Mouse Tilt</b> is used. </span>
+                        <span>${i18n.t('txtOnReleaseInfo')}</span>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                     </div>
                 </div>
             </div>
@@ -478,7 +477,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const keyAssignmentValue = $("#keyAssignmentValue_" + keyIndex).val();
 
         if (onRelease === true && pressAndHold === true) {
-            toast.warning('Press and Hold can not be used while On Release is enabled');
+            toast.warning(i18n.t('txtPressAndHoldBlocked'));
             return false;
         }
 
@@ -518,7 +517,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $(".toggleAngleSnapping").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -552,7 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $(".toggleButtonOptimization").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -614,7 +613,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $(".toggleLeftHandMode").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 

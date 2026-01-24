@@ -193,6 +193,69 @@ $(document).ready(function () {
         });
     });
 
+    $('.enableVirtualAudio').on('click', function () {
+        const v_virtualAudio = $("#virtualAudio").is(':checked');
+
+        const pf = {};
+        pf["enabled"] = v_virtualAudio;
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/audio/update',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.setTargetDevice').on('click', function () {
+        const outputDevice = $("#outputDevice").val();
+        const data = outputDevice.split(";");
+
+        if (data.length < 2) {
+            toast.warning('Invalid target device');
+            return false;
+        }
+
+        const deviceSerial = parseInt(data[2]);
+        const deviceDesc = data[1];
+        const deviceName = data[0];
+        
+        const pf = {};
+        pf["outputDeviceSerial"] = deviceSerial;
+        pf["outputDeviceName"] = deviceName;
+        pf["outputDeviceDesc"] = deviceDesc;
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/audio/outputDevice',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     const checkboxCpu = $('#checkbox-cpu');
     const checkboxGpu = $('#checkbox-gpu');
     const checkboxStorage = $('#checkbox-storage');

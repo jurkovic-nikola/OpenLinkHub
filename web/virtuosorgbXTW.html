@@ -191,20 +191,32 @@
                 </div>
                 <div class="col-md-7">
                     <div class="card system-card text-center">
+                        <div class="card-header">{{ .Lang "txtEqualizer" }}</div>
                         <div class="card-body">
-                            <div class="headset-view">
-                                <input type="color" id="colorPicker" class="color-picker">
-                                <!-- LEFT -->
-                                <div class="earcup">
-                                    <div class="earcup-center color0">LOGO</div>
+                            <div class="row align-items-center">
+                                <div class="col-md-1">
+                                    <div class="eq-scale">
+                                        <span>+12</span>
+                                        <span>0</span>
+                                        <span>-12</span>
+                                    </div>
                                 </div>
 
-                                <!-- RIGHT -->
-                                <div class="earcup">
-
-                                    <div class="earcup-center color0">LOGO</div>
+                                {{ range $key, $equalizer := $device.DeviceProfile.Equalizers }}
+                                <div class="col-md-1">
+                                    <div class="eq-band">
+                                        <label id="stageValue{{ $key }}">{{ $equalizer.Value }}</label>
+                                        <div class="eq-slider-wrap">
+                                            <input class="eq-slider" type="range" min="-12" max="12" value="{{ $equalizer.Value }}" id="stage{{ $key }}">
+                                        </div>
+                                        <label>{{ $equalizer.Name }}</label>
+                                    </div>
                                 </div>
+                                {{ end }}
                             </div>
+                        </div>
+                        <div class="card-footer card-footer-left">
+                            <button class="system-button" id="saveEqualizers">{{ .Lang "txtSave" }}</button>
                         </div>
                     </div>
                 </div>

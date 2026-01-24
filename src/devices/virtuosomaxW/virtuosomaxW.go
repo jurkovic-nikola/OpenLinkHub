@@ -5,6 +5,7 @@ package virtuosomaxW
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
@@ -388,6 +389,7 @@ func (d *Device) Connect() {
 		d.setupDefaultButtons()     // Default button actions
 		d.setupMicIndicatorStatus() // Mic indicator LED
 		d.configureHeadset()        // Headset config
+		d.setEqualizer()            // Equalizer
 	}
 }
 
@@ -1029,6 +1031,25 @@ func (d *Device) saveDeviceProfile() {
 	d.loadDeviceProfiles()
 }
 
+// setEqualizer will set audio equalizer
+func (d *Device) setEqualizer() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.Equalizers == nil {
+		return
+	}
+
+	if !audio.GetAudio().Enabled {
+		return
+	}
+
+	for k, v := range d.DeviceProfile.Equalizers {
+		audio.SetBand(k, v.Value)
+	}
+}
+
 // GetEqualizers will return equalizers
 func (d *Device) GetEqualizers() interface{} {
 	if d.DeviceProfile == nil || d.DeviceProfile.Equalizers == nil {
@@ -1074,7 +1095,11 @@ func (d *Device) UpdateEqualizer(values map[int]float64) uint8 {
 
 	if updated > 0 {
 		d.saveDeviceProfile()
-		fmt.Println(tmp)
+		if len(tmp) > 0 && audio.GetAudio().Enabled {
+			for k, v := range tmp {
+				audio.SetBand(k, v)
+			}
+		}
 		return 1
 	} else {
 		return 2

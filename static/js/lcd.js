@@ -1,5 +1,36 @@
 "use strict";
 $(document).ready(function () {
+    window.i18n = {
+        locale: null,
+        values: {},
+
+        setTranslations: function (locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+
+        t: function (key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+        },
+        error: function () {
+            console.error('Failed to load translations');
+        }
+    });
+
     $("#gifUploadForm").on("submit", function (e) {
         e.preventDefault();
 
@@ -9,7 +40,8 @@ $(document).ready(function () {
         var formData = new FormData();
         var file = $("#animationFile")[0].files[0];
         if (!file) {
-            toast.warning('Please select a .gif file first!');
+            toast.warning(i18n.t('txtSelectGifImage'));
+            btn.prop("disabled", false)
             return;
         }
         formData.append("animationFile", file);
@@ -126,14 +158,14 @@ $(document).ready(function () {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="infoToggleLabel">Workers</h5>
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtWorkers')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <span>The amount of CPU workers used to render animation. More workers will make the animation transition smoother but at the cost of higher CPU usage. The minimum is 1 worker and the maximum is 16.</span>
+                            <span>${i18n.t('txtCpuWorkersInfo')}</span>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                         </div>
                     </div>
                 </div>
@@ -151,14 +183,14 @@ $(document).ready(function () {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="infoToggleLabel">Workers</h5>
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtFrameDelay')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <span>Use frame delay for animations that have a frame delay of 0 and play too fast. Value is from 0 to 100. This option requires a service restart.</span>
+                            <span>${i18n.t('txtFrameDelayInfo')}</span>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                         </div>
                     </div>
                 </div>

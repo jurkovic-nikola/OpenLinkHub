@@ -1,5 +1,36 @@
 "use strict";
 $(document).ready(function () {
+    window.i18n = {
+        locale: null,
+        values: {},
+
+        setTranslations: function (locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+
+        t: function (key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+        },
+        error: function () {
+            console.error('Failed to load translations');
+        }
+    });
+
     let globalKeyId = 0;
 
     function componentToHex(c) {
@@ -77,7 +108,7 @@ $(document).ready(function () {
                             <div class="modal-dialog modal-custom modal-500">
                               <div class="modal-content">
                                 <div class="modal-header">
-                                  <h5 class="modal-title">Performance</h5>
+                                  <h5 class="modal-title">${i18n.t('txtPerformance')}</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
@@ -85,8 +116,8 @@ $(document).ready(function () {
                                 </div>
                         
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveKeyboardPerformance">Save</button>
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveKeyboardPerformance">${i18n.t('txtSave')}</button>
                                 </div>
                         
                               </div>
@@ -187,20 +218,20 @@ $(document).ready(function () {
                             <div class="modal-dialog modal-custom modal-500">
                               <div class="modal-content">
                                 <div class="modal-header">
-                                  <h5 class="modal-title">FlashTap</h5>
+                                  <h5 class="modal-title">${i18n.t('txtFlashTap')}</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="settings-list">
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Active</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEnable')}</span>
                                             <label class="system-toggle compact">
                                                 <input type="checkbox" id="flashTapActive" ${data.active ? "checked" : ""}>
                                                 <span class="toggle-track"></span>
                                             </label>
                                         </div>
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Color</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtColor')}</span>
                                             <div class="system-color compact">
                                                 <label for="flashTapColor">
                                                     <input type="color" id="flashTapColor" value="${color}">
@@ -208,7 +239,7 @@ $(document).ready(function () {
                                             </div>
                                         </div>
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Mode</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtModes')}</span>
                                             <div class="no-padding-top">
                                                 <select class="system-select compact full-width flashTapMode" id="flashTapMode"></select>
                                             </div>
@@ -216,8 +247,8 @@ $(document).ready(function () {
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveFlashTap">Save</button>
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveFlashTap">${i18n.t('txtSave')}</button>
                                 </div>
                               </div>
                             </div>
@@ -253,7 +284,7 @@ $(document).ready(function () {
                             $.each(data.keys, function (index, value) {
                                 var $row = $(`
                                     <div class="settings-row">
-                                        <span class="settings-label text-ellipsis">KEY ${index}</span>
+                                        <span class="settings-label text-ellipsis">${i18n.t('txtKey')} ${index}</span>
                                         <div class="no-padding-top">
                                             <select class="system-select compact full-width flashTapKey" id="flashTapKey${index}"></select>
                                         </div>
@@ -355,7 +386,7 @@ $(document).ready(function () {
                               <div class="modal-dialog modal-custom modal-500">
                                 <div class="modal-content">
                                   <div class="modal-header">
-                                    <h5 class="modal-title">Control Dial Colors</h5>
+                                    <h5 class="modal-title">${i18n.t('txtControlDialColors')}</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                   </div>
                                   <div class="modal-body">
@@ -363,8 +394,8 @@ $(document).ready(function () {
                                   </div>
                             
                                   <div class="modal-footer">
-                                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                    <button class="btn btn-primary" type="button" id="btnSaveControlDialColors">Save</button>
+                                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                    <button class="btn btn-primary" type="button" id="btnSaveControlDialColors">${i18n.t('txtSave')}</button>
                                   </div>
                             
                                 </div>
@@ -547,7 +578,7 @@ $(document).ready(function () {
 
     $('.openKeyAssignments').on('click', function () {
         if (globalKeyId === 0) {
-            toast.warning('Select a valid key');
+            toast.warning(i18n.t('txtSelectValidKey'));
             return false;
         }
 
@@ -567,7 +598,7 @@ $(document).ready(function () {
                     if (response.status === 1) {
                         let data = response.data;
                         if (data.onlyColor === true) {
-                            toast.warning('This object does not support Key Assignments');
+                            toast.warning(i18n.t('txtNoKeyAssignments'));
                             return false;
                         }
 
@@ -589,10 +620,10 @@ $(document).ready(function () {
 
                         let modalElement = `
                           <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-custom modal-1000">
+                            <div class="modal-dialog modal-custom modal-1200">
                               <div class="modal-content">
                                 <div class="modal-header">
-                                  <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
+                                  <h5 class="modal-title" id="setupKeyAssignments">${i18n.t('txtKeyAssignment')} - ${data.keyName}</h5>
                                   <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
@@ -601,21 +632,21 @@ $(document).ready(function () {
                                         <table class="dataTable text-sm">
                                             <thead>
                                             <tr>
-                                                <th>Key</th>
+                                                <th>${i18n.t('txtKey')}</th>
                                                 <th>
-                                                    Default
+                                                    ${i18n.t('defaultValue')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Press and Hold / Toggle
+                                                    ${i18n.t('txtPressHoldToggle')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Toggle Delay (ms)
+                                                    ${i18n.t('txtToggleDelayMs')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy toggleDelayInfoToggle"></i>
                                                 </th>
-                                                <th>Type</th>
-                                                <th>Value</th>
+                                                <th>${i18n.t('txtType')}</th>
+                                                <th>${i18n.t('txtValue')}</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -643,8 +674,8 @@ $(document).ready(function () {
                                   </form>
                                 </div>
                                 <div class="modal-footer">
-                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="system-button" type="button" id="btnSaveKeyAssignments">Save</button>
+                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="system-button" type="button" id="btnSaveKeyAssignments">${i18n.t('txtSave')}</button>
                                 </div>
                               </div>
                             </div>
@@ -764,14 +795,14 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Keyboard Default Action</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtKeyboardDefaultAction')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <span>When enabled, the keyboard performs its default key action. This checkbox ignores all user custom assignments.</span>
+                                                <span>${i18n.t('txtKeyboardDefaultActionInfo')}</span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -789,17 +820,17 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtPressAndHold')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <span>
-                                                <b>Press and Hold:</b><br />When enabled, the keyboard continuously sends an action until the key is released.<br /><br />
-                                                <b>Toggle:</b><br /> Used only for the mouse Key Assignment type. When enabled, the action is repeated until the key is pressed again.
+                                                <b>${i18n.t('txtPressAndHold')}:</b><br />${i18n.t('txtPressAndHoldInfoKeyboard')}<br /><br />
+                                                <b>${i18n.t('txtToggle')}:</b><br /> ${i18n.t('txtPressAndHoldInfoKeyboardToggle')}
                                                 </span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -817,16 +848,16 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Toggle Delay</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtToggleDelayMs')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <span>
-                                                <b>Toggle Delay:</b><br /> Used only for the mouse Key Assignment type. When enabled, the action repeat is delayed by the defined period of time.
+                                                <b>${i18n.t('txtToggleDelayMs')}:</b><br /> ${i18n.t('txtToggleDelayInfo')}
                                                 </span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -894,7 +925,7 @@ $(document).ready(function () {
 
     $('.openKeyActuation').on('click', function () {
         if (globalKeyId === 0) {
-            toast.warning('Select a valid key');
+            toast.warning(i18n.t('txtSelectValidKey'));
             return false;
         }
 
@@ -914,11 +945,11 @@ $(document).ready(function () {
                     if (response.status === 1) {
                         let data = response.data;
                         if (data.onlyColor === true && data.modifier === false) {
-                            toast.warning('This object does not support Key Actuation');
+                            toast.warning(i18n.t('txtNoKeyActuation'));
                             return false;
                         }
                         if (data.noActuation === true) {
-                            toast.warning('This object does not support Key Actuation');
+                            toast.warning(i18n.t('txtNoKeyActuation'));
                             return false;
                         }
 
@@ -928,13 +959,13 @@ $(document).ready(function () {
                               <div class="modal-content">
                         
                                 <div class="modal-header">
-                                  <h5 class="modal-title">Setup Key Actuation - ${data.keyName}</h5>
+                                  <h5 class="modal-title">${i18n.t('txtKeyActuation')} - ${data.keyName}</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="settings-list">
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Apply to all keys</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtApplyAllKeys')}</span>
                                             <label class="system-toggle compact">
                                                 <input type="checkbox" id="actuationAllKeys">
                                                 <span class="toggle-track"></span>
@@ -942,7 +973,7 @@ $(document).ready(function () {
                                         </div>
                                         
                                         <div class="settings-row settings-actuation">
-                                            <span class="settings-label text-ellipsis">Actuation</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtActuation')}</span>
                                             <div class="system-slider no-padding-top">
                                                 <input type="range" class="actuationPoint" id="actuationPoint" min="1" max="40" value="${data.actuationPoint}" step="1">
                                             </div>
@@ -950,7 +981,7 @@ $(document).ready(function () {
                                         </div>
                                         
                                         <div class="settings-row settings-actuation" id="primaryReset">
-                                            <span class="settings-label text-ellipsis">Actuation Reset</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtActuationReset')}</span>
                                             <div class="system-slider no-padding-top">
                                                 <input type="range" class="actuationResetPoint" id="actuationResetPoint" min="1" max="40" value="${data.actuationResetPoint}" step="1">
                                             </div>
@@ -958,7 +989,7 @@ $(document).ready(function () {
                                         </div>
 
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Secondary Actuation Point</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSecondaryActuation')}</span>
                                             <label class="system-toggle compact">
                                                 <input type="checkbox" id="enableSecondaryActuationPoint" ${data.enableSecondaryActuationPoint ? "checked" : ""}>
                                                 <span class="toggle-track"></span>
@@ -966,7 +997,7 @@ $(document).ready(function () {
                                         </div>
                                         <div id="secondaryContainer">
                                             <div class="settings-row settings-actuation" id="secondaryPoint">
-                                                <span class="settings-label text-ellipsis">Actuation</span>
+                                                <span class="settings-label text-ellipsis">${i18n.t('txtActuation')}</span>
                                                 <div class="system-slider no-padding-top">
                                                     <input type="range" class="secondaryActuationPoint" id="secondaryActuationPoint" min="1" max="40" value="${data.secondaryActuationPoint}" step="1">
                                                 </div>
@@ -974,7 +1005,7 @@ $(document).ready(function () {
                                             </div>
                                             
                                             <div class="settings-row settings-actuation" id="secondaryReset">
-                                                <span class="settings-label text-ellipsis">Actuation Reset</span>
+                                                <span class="settings-label text-ellipsis">${i18n.t('txtActuationReset')}</span>
                                                 <div class="system-slider no-padding-top">
                                                     <input type="range" class="secondaryActuationResetPoint" id="secondaryActuationResetPoint" min="1" max="40" value="${data.secondaryActuationResetPoint}" step="1">
                                                 </div>
@@ -985,8 +1016,8 @@ $(document).ready(function () {
                                 </div>
                         
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveActuationValue">Save</button>
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveActuationValue">${i18n.t('txtSave')}</button>
                                 </div>
                         
                               </div>
@@ -1112,7 +1143,7 @@ $(document).ready(function () {
 
     $('.openKeyAssignmentsWithModifier').on('click', function () {
         if (globalKeyId === 0) {
-            toast.warning('Select a valid key');
+            toast.warning(i18n.t('txtSelectValidKey'));
             return false;
         }
 
@@ -1132,7 +1163,7 @@ $(document).ready(function () {
                     if (response.status === 1) {
                         let data = response.data;
                         if (data.onlyColor === true) {
-                            toast.warning('This object does not support Key Assignments');
+                            toast.warning(i18n.t('txtNoKeyAssignments'));
                             return false;
                         }
 
@@ -1159,10 +1190,10 @@ $(document).ready(function () {
 
                         let modalElement = `
                           <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-custom modal-1200">
+                            <div class="modal-dialog modal-custom modal-1300">
                               <div class="modal-content">
                                 <div class="modal-header">
-                                  <h5 class="modal-title" id="setupKeyAssignments">Setup Key Assignment - ${data.keyName}</h5>
+                                  <h5 class="modal-title" id="setupKeyAssignments">${i18n.t('txtKeyAssignment')} - ${data.keyName}</h5>
                                   <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
@@ -1171,26 +1202,26 @@ $(document).ready(function () {
                                         <table class="dataTable text-sm">
                                             <thead>
                                             <tr>
-                                                <th>Key</th>
+                                                <th>${i18n.t('txtKey')}</th>
                                                 <th>
-                                                    Default
+                                                    ${i18n.t('defaultValue')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Press and Hold / Toggle
+                                                    ${i18n.t('txtPressHoldToggle')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Toggle Delay (ms)
+                                                    ${i18n.t('txtToggleDelayMs')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy toggleDelayInfoToggle"></i>
                                                 </th>
                                                 <th>
-                                                    Original
+                                                    ${i18n.t('txtOriginal')}
                                                     <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy originalInfoToggle"></i>
                                                 </th>
-                                                <th>Modifier</th>
-                                                <th>Type</th>
-                                                <th>Value</th>
+                                                <th>${i18n.t('txtModifier')}</th>
+                                                <th>${i18n.t('txtType')}</th>
+                                                <th>${i18n.t('txtValue')}</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -1222,8 +1253,8 @@ $(document).ready(function () {
                                   </form>
                                 </div>
                                 <div class="modal-footer">
-                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="system-button" type="button" id="btnSaveKeyAssignments">Save</button>
+                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="system-button" type="button" id="btnSaveKeyAssignments">${i18n.t('txtSave')}</button>
                                 </div>
                               </div>
                             </div>
@@ -1347,14 +1378,14 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Keyboard Default Action</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtKeyboardDefaultAction')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <span>When enabled, the keyboard performs its default key action. This checkbox ignores all user custom assignments.</span>
+                                                <span>${i18n.t('txtKeyboardDefaultActionInfo')}</span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1372,15 +1403,15 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtPressAndHold')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <span>Press and Hold: <br />When enabled, the keyboard continuously sends an action until the key is released. <br />
-                                                Toggle: In the case of a mouse action, the action is repeated until the key is pressed again.</span>
+                                                <span>${i18n.t('txtPressAndHold')}: <br />${i18n.t('txtPressAndHoldInfoKeyboard')} <br />
+                                                ${i18n.t('txtToggle')}: ${i18n.t('txtToggleMouseAction')}</span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1398,14 +1429,14 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Retain Original</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtRetainOriginal')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <span>When enabled, the original key is sent first, following the user-defined value.</span>
+                                                <span>${i18n.t('txtRetainOriginalInfo')}</span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1423,16 +1454,16 @@ $(document).ready(function () {
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="infoToggleLabel">Toggle Delay</h5>
+                                                <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtToggleDelayMs')}</h5>
                                                 <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <span>
-                                                <b>Toggle Delay:</b><br /> Used only for the mouse Key Assignment type. When enabled, the action repeat is delayed by the defined period of time.
+                                                <b>${i18n.t('txtToggleDelayMs')}:</b><br /> ${i18n.t('txtToggleDelayInfo')}
                                                 </span>
                                             </div>
                                             <div class="modal-footer">
-                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                                                <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1506,7 +1537,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const userProfileValue = $(this).val();
         if (userProfileValue.length < 1) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -1541,7 +1572,7 @@ $(document).ready(function () {
         const brightnessValue = parseInt(brightness);
 
         if (brightnessValue < 0 || brightnessValue > 3) {
-            toast.warning('Invalid brightness selected');
+            toast.warning(i18n.t('txtInvalidBrightness'));
             return false;
         }
 
@@ -1576,7 +1607,7 @@ $(document).ready(function () {
         const brightnessValue = parseInt(brightness);
 
         if (brightnessValue < 0 || brightnessValue > 100) {
-            toast.warning('Invalid brightness selected');
+            toast.warning(i18n.t('txtInvalidBrightness'));
             return false;
         }
 
@@ -1611,24 +1642,24 @@ $(document).ready(function () {
                 <div class="modal-dialog modal-custom modal-600">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="newTempModalLabel">Save user profile</h5>
+                            <h5 class="modal-title" id="newTempModalLabel">${i18n.t('txtSaveUserProfile')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body modal-title">
                             <div class="settings-list">
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Profile Name</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtProfileName')}</span>
                                     <div class="system-input text-input">
                                         <label for="userProfileName">
-                                            <input type="text" id="userProfileName" autocomplete="off" placeholder="Enter profile name (a-z, A-Z, 0-9)">
+                                            <input type="text" id="userProfileName" autocomplete="off" placeholder="${i18n.t('txtProfileOnlyLettersNumbers')}">
                                         </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
-                            <button class="system-button" type="button" id="btnSaveUserProfile">Save</button>
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                            <button class="system-button" type="button" id="btnSaveUserProfile">${i18n.t('txtSave')}</button>
                         </div>
                     </div>
                 </div>
@@ -1657,7 +1688,7 @@ $(document).ready(function () {
             saveBtn.on('click', function () {
                 const userProfileValue = userProfileName.val();
                 if (userProfileValue.length < 3) {
-                    toast.warning('Profile name can not be empty');
+                    toast.warning(i18n.t('txtProfileNameTooShort'));
                     return false;
                 }
 
@@ -1698,7 +1729,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
 
         if (data.length < 2 || data.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -1733,7 +1764,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
 
         if (data.length < 2 || data.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -1794,7 +1825,7 @@ $(document).ready(function () {
             }
 
             if (newLabel.length < 1) {
-                toast.warning('Device label cannot be empty');
+                toast.warning(i18n.t('txtDeviceLabelEmpty'));
                 $label.text(originalText);
                 return;
             }
@@ -1815,14 +1846,14 @@ $(document).ready(function () {
                 contentType: 'application/json',
                 success: function (response) {
                     if (response.status === 1) {
-                        toast.success("Label updated");
+                        toast.success(i18n.t('txtDeviceLabelApplied'));
                     } else {
                         toast.warning(response.message);
                         $label.text(originalText);
                     }
                 },
                 error: function () {
-                    toast.warning("Failed to update label");
+                    toast.warning(i18n.t('txtUnableToApplyLabel'));
                     $label.text(originalText);
                 }
             });
@@ -1870,7 +1901,7 @@ $(document).ready(function () {
             }
 
             if (newLabel.length < 1) {
-                toast.warning('Device label cannot be empty');
+                toast.warning(i18n.t('txtDeviceLabelEmpty'));
                 $label.text(originalText);
                 return;
             }
@@ -1891,14 +1922,14 @@ $(document).ready(function () {
                 contentType: 'application/json',
                 success: function (response) {
                     if (response.status === 1) {
-                        toast.success("Label updated");
+                        toast.success(i18n.t('txtDeviceLabelApplied'));
                     } else {
                         toast.warning(response.message);
                         $label.text(originalText);
                     }
                 },
                 error: function () {
-                    toast.warning("Failed to update label");
+                    toast.warning(i18n.t('txtUnableToApplyLabel'));
                     $label.text(originalText);
                 }
             });
@@ -1976,7 +2007,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2151,7 +2182,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2218,7 +2249,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 3 || profile.length > 3) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2254,7 +2285,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2288,7 +2319,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2322,7 +2353,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2356,7 +2387,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const stripData = $(this).val().split(";");
         if (stripData.length < 2 || stripData.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2390,7 +2421,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const stripData = $(this).val().split(";");
         if (stripData.length < 2 || stripData.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -2771,13 +2802,13 @@ $(document).ready(function () {
                                       <div class="modal-content">
                                 
                                         <div class="modal-header">
-                                          <h5 class="modal-title">LED Override</h5>
+                                          <h5 class="modal-title">${i18n.t('txtLedOverride')}</h5>
                                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
                                             <div class="settings-list">
                                                 <div class="settings-row">
-                                                    <span class="settings-label text-ellipsis">Enabled</span>
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtEnable')}</span>
                                                     <label class="system-toggle compact">
                                                         <input type="checkbox" id="enabledCheckbox" ${value.Enabled ? "checked" : ""}>
                                                         <span class="toggle-track"></span>
@@ -2785,7 +2816,7 @@ $(document).ready(function () {
                                                 </div>
             
                                                 <div class="settings-row">
-                                                    <span class="settings-label text-ellipsis">LED Amount</span>
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtLedAmount')}</span>
                                                     <div class="system-input text-input">
                                                         <label for="ledChannels">
                                                             <input type="text" id="ledChannels" autocomplete="off" placeholder="Enter LED amount" value="${value.LedChannels}">
@@ -2796,8 +2827,8 @@ $(document).ready(function () {
                                         </div>
                                 
                                         <div class="modal-footer">
-                                          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                          <button class="btn btn-primary" type="button" id="btnSaveOverride">Save</button>
+                                          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                          <button class="btn btn-primary" type="button" id="btnSaveOverride">${i18n.t('txtSave')}</button>
                                         </div>
                                 
                                       </div>
@@ -2882,13 +2913,13 @@ $(document).ready(function () {
                               <div class="modal-content">
                         
                                 <div class="modal-header">
-                                  <h5 class="modal-title">RGB Override</h5>
+                                  <h5 class="modal-title">${i18n.t('txtRgbOverride')}</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="settings-list">
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Enabled</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEnable')}</span>
                                             <label class="system-toggle compact">
                                                 <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
                                                 <span class="toggle-track"></span>
@@ -2896,7 +2927,7 @@ $(document).ready(function () {
                                         </div>
     
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Start Color</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
                                             <div class="system-color">
                                                 <label for="startColor">
                                                     <input type="color" id="startColor" value="${startColor}">
@@ -2905,14 +2936,14 @@ $(document).ready(function () {
                                         </div>
                                         
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">End Color</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
                                             <div class="system-color">
                                                     <input type="color" class="system-color" id="endColor" value="${endColor}">
                                             </div>
                                         </div>
                                         
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Speed</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                             <div class="system-slider no-padding-top">
                                                 <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
                                                 <label for="speedSlider" class="margin-lr-10">
@@ -2925,8 +2956,8 @@ $(document).ready(function () {
                                 </div>
                         
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveRgbOverride">Save</button>
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveRgbOverride">${i18n.t('txtSave')}</button>
                                 </div>
                         
                               </div>
@@ -3295,8 +3326,8 @@ $(document).ready(function () {
                                   ${containerHtml}
                                 </div>
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveLedData">Save</button>
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveLedData">${i18n.t('txtSave')}</button>
                                 </div>
                               </div>
                             </div>
@@ -3385,13 +3416,13 @@ $(document).ready(function () {
                               <div class="modal-content">
                         
                                 <div class="modal-header">
-                                  <h5 class="modal-title">RGB Override</h5>
+                                  <h5 class="modal-title">${i18n.t('txtRgbOverride')}</h5>
                                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="settings-list">
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Enabled</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEnable')}</span>
                                             <label class="system-toggle compact">
                                                 <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
                                                 <span class="toggle-track"></span>
@@ -3399,7 +3430,7 @@ $(document).ready(function () {
                                         </div>
     
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Start Color</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
                                             <div class="system-color">
                                                 <label for="startColor">
                                                     <input type="color" id="startColor" value="${startColor}">
@@ -3408,14 +3439,14 @@ $(document).ready(function () {
                                         </div>
                                         
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">End Color</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
                                             <div class="system-color">
                                                     <input type="color" class="system-color" id="endColor" value="${endColor}">
                                             </div>
                                         </div>
                                         
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">Speed</span>
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                             <div class="system-slider no-padding-top">
                                                 <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
                                                 <label for="speedSlider" class="margin-lr-10">
@@ -3428,8 +3459,8 @@ $(document).ready(function () {
                                 </div>
                         
                                 <div class="modal-footer">
-                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                  <button class="btn btn-primary" type="button" id="btnSaveRgbOverrideLinkAdapter">Save</button>
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveRgbOverrideLinkAdapter">${i18n.t('txtSave')}</button>
                                 </div>
                         
                               </div>
@@ -3551,7 +3582,7 @@ $(document).ready(function () {
                 }
             });
         } else {
-            toast.warning('Key selection is required');
+            toast.warning(i18n.t('txtInvalidKeyOptionSelected'));
         }
     });
 
@@ -3678,24 +3709,24 @@ $(document).ready(function () {
                 <div class="modal-dialog modal-custom modal-600">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="newTempModalLabel">Save user profile</h5>
+                            <h5 class="modal-title" id="newTempModalLabel">${i18n.t('txtSaveUserProfile')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body modal-title">
                             <div class="settings-list">
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Profile Name</span>
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtProfileName')}</span>
                                     <div class="system-input text-input">
                                         <label for="userProfileName">
-                                            <input type="text" id="userProfileName" autocomplete="off" placeholder="Enter profile name (a-z, A-Z, 0-9)">
+                                            <input type="text" id="userProfileName" autocomplete="off" placeholder="${i18n.t('txtProfileOnlyLettersNumbers')}">
                                         </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
-                            <button class="system-button" type="button" id="btnSaveKeyboardProfile">Save</button>
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                            <button class="system-button" type="button" id="btnSaveKeyboardProfile">${i18n.t('txtSave')}</button>
                         </div>
                     </div>
                 </div>
@@ -3714,7 +3745,7 @@ $(document).ready(function () {
             modal.find('#btnSaveKeyboardProfile').on('click', function () {
                 const keyboardProfileValue = keyboardProfileName.val();
                 if (keyboardProfileValue.length < 1) {
-                    toast.warning('Profile name can not be empty');
+                    toast.warning(i18n.t('txtInvalidProfileName'));
                     return false
                 }
                 const deviceId = $("#deviceId").val();
@@ -3997,7 +4028,7 @@ $(document).ready(function () {
 
     $(".toggleRgbCluster").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -4031,7 +4062,7 @@ $(document).ready(function () {
 
     $(".toggleOpenRGB").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -4065,7 +4096,7 @@ $(document).ready(function () {
 
     $(".toggleAutoBrightness").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -4102,17 +4133,17 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
 
         if (profile.length < 1) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
         if (profile === "none") {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
         if (profile === "default") {
-            toast.warning('Unable to delete default device profile. This profile is required.');
+            toast.warning(i18n.t('txtUnableToDeleteDefaultProfile'));
             return false;
         }
 

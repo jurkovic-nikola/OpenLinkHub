@@ -1,5 +1,36 @@
 "use strict";
 $(document).ready(function () {
+    window.i18n = {
+        locale: null,
+        values: {},
+
+        setTranslations: function (locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+
+        t: function (key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+        },
+        error: function () {
+            console.error('Failed to load translations');
+        }
+    });
+
     function componentToHex(c) {
         const hex = c.toString(16);
         return hex.length === 1 ? "0" + hex : hex;
@@ -56,7 +87,7 @@ $(document).ready(function () {
                                         <img src="/static/img/icons/rgb/${index}.svg" width="64" height="64" alt="Device" />
                                     </div>
                                     <div class="card-footer">
-                                        <button class="system-button center configureRgbMode" id="${index}">Configure</button>
+                                        <button class="system-button center configureRgbMode" id="${index}">${i18n.t('txtConfigure')}</button>
                                     </div>
                                 </div>
                             </div>
@@ -216,13 +247,13 @@ $(document).ready(function () {
                                         } else {
                                             colorHtmlElement = `
                                                 <div class="settings-row">
-                                                    <span class="settings-label text-ellipsis">Start Color</span>
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
                                                     <div class="system-input system-color">
                                                         <input type="color" class="rgb-color-start" id="startColor_${profile}" value="${startColor}">
                                                     </div>
                                                 </div>
                                                 <div class="settings-row">
-                                                    <span class="settings-label text-ellipsis">End Color</span>
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
                                                     <div class="system-input system-color">
                                                         <input type="color" class="rgb-color-end" id="endColor_${profile}" value="${endColor}">
                                                     </div>
@@ -241,22 +272,22 @@ $(document).ready(function () {
                                                         <div class="settings-list">
                                                             ${colorHtmlElement}
                                                             <div class="settings-row">
-                                                                <span class="settings-label text-ellipsis">Speed</span>
+                                                                <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                                                 ${speedSliderHtml}
                                                             </div>
                                                             <div class="settings-row">
-                                                                <span class="settings-label text-ellipsis">Direction (Slipstream Only)</span>
+                                                                <span class="settings-label text-ellipsis">${i18n.t('txtSlipstreamDirection')}</span>
                                                                 ${rgbDirectionHtml}
                                                             </div>
                                                             <div class="settings-row">
-                                                                <span class="settings-label text-ellipsis">Alternate Colors (Slipstream Only)</span>
+                                                                <span class="settings-label text-ellipsis">${i18n.t('txtSlipstreamAlternateColors')}</span>
                                                                 ${alternateColorsHtml}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
-                                                      <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
-                                                      <button class="system-button saveRgbProfile" type="button" id="${profile}">Save</button>
+                                                      <button class="system-button secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                                      <button class="system-button saveRgbProfile" type="button" id="${profile}">${i18n.t('txtSave')}</button>
                                                     </div>
                                                 </div>
                                             </div>

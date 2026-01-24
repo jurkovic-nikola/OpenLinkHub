@@ -5,6 +5,7 @@ package virtuosorgbXTWU
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
@@ -207,6 +208,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.setAutoRefresh()     // Set auto device refresh
 	d.backendListener()    // Control listener
 	d.createDevice()       // Device register
+	d.setEqualizer()       // Equalizer
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -946,6 +948,81 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles()
+}
+
+// setEqualizer will set audio equalizer
+func (d *Device) setEqualizer() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.Equalizers == nil {
+		return
+	}
+
+	if !audio.GetAudio().Enabled {
+		return
+	}
+
+	for k, v := range d.DeviceProfile.Equalizers {
+		audio.SetBand(k, v.Value)
+	}
+}
+
+// GetEqualizers will return equalizers
+func (d *Device) GetEqualizers() interface{} {
+	if d.DeviceProfile == nil || d.DeviceProfile.Equalizers == nil {
+		return nil
+	}
+	return d.DeviceProfile.Equalizers
+}
+
+// UpdateEqualizer will update device equalizer
+func (d *Device) UpdateEqualizer(values map[int]float64) uint8 {
+	tmp := map[int]float64{}
+
+	if d.DeviceProfile == nil || d.DeviceProfile.Equalizers == nil {
+		return 0
+	}
+
+	updated := 0
+
+	for key, value := range values {
+		if key < 1 || key > 10 {
+			continue
+		}
+
+		if value > 12 || value < -12 {
+			value = 0
+		}
+
+		equalizer, ok := d.DeviceProfile.Equalizers[key]
+		if !ok {
+			continue
+		}
+
+		if equalizer.Value == value {
+			continue
+		}
+
+		equalizer.Value = value
+		d.DeviceProfile.Equalizers[key] = equalizer
+
+		tmp[key] = value
+		updated++
+	}
+
+	if updated > 0 {
+		d.saveDeviceProfile()
+		if len(tmp) > 0 && audio.GetAudio().Enabled {
+			for k, v := range tmp {
+				audio.SetBand(k, v)
+			}
+		}
+		return 1
+	} else {
+		return 2
+	}
 }
 
 // setCpuTemperature will store current CPU temperature

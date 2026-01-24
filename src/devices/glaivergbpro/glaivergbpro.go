@@ -247,6 +247,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.saveDeviceProfile()      // Save profile
 	d.getDeviceFirmware()      // Firmware
 	d.setSoftwareMode()        // Activate software mode
+	d.setAngleSnapping()       // Angle snapping
 	d.updateMouseDPI()         // Update DPI
 	d.setDeviceColor()         // Device color
 	d.toggleDPI()              // DPI
@@ -551,6 +552,22 @@ func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
 	return 0
 }
 
+// UpdateAngleSnapping will update angle snapping mode
+func (d *Device) UpdateAngleSnapping(angleSnappingMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.AngleSnapping == angleSnappingMode {
+		return 0
+	}
+
+	d.DeviceProfile.AngleSnapping = angleSnappingMode
+	d.saveDeviceProfile()
+	d.setAngleSnapping()
+	return 1
+}
+
 // ProcessNewGradientColor will create new gradient color
 func (d *Device) ProcessNewGradientColor(profileName string) (uint8, uint) {
 	if d.GetRgbProfile(profileName) == nil {
@@ -774,7 +791,7 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 		clusterController := &common.ClusterController{
 			Product:      d.Product,
 			Serial:       d.Serial,
-			LedChannels:  uint32(d.LEDChannels),
+			LedChannels:  uint32(d.ChangeableLedChannels),
 			WriteColorEx: d.writeColorCluster,
 		}
 

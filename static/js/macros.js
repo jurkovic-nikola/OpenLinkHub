@@ -1,9 +1,42 @@
 "use strict";
 $(document).ready(function () {
+    let dt = null;
+    window.i18n = {
+        locale: null,
+        values: {},
+        setTranslations(locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+        t(key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success(response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+            initDataTable();
+        },
+        error() {
+            console.warn('Translations failed to load, using fallback text');
+            initDataTable();
+        }
+    });
+
     let allOptions = [];
 
-    const dt = $('#table').DataTable(
-        {
+    function initDataTable() {
+        if (dt) return;
+        dt = $('#table').DataTable({
             order: [[0, 'asc']],
             select: {
                 style: 'os',
@@ -13,11 +46,13 @@ $(document).ready(function () {
             searching: false,
             info: false,
             language: {
-                emptyTable: "No profile selected or profile has no macros defined. Select profile from left side or define macros"
+                emptyTable: i18n.t(
+                    'txtNoMacros',
+                    'No profile selected or profile has no macros defined. Select profile from left side or define macros'
+                )
             }
-        }
-    );
-
+        });
+    }
 
     $('#addMacroValueModal').on('show.bs.modal', function () {
         $('#macroType').val('0');
@@ -33,7 +68,7 @@ $(document).ready(function () {
     $('#btnSaveNewMacroProfile').on('click', function(){
         const profile = $("#profileName").val();
         if (profile.length < 3) {
-            toast.warning('Enter your profile name. Minimum length is 3 characters');
+            toast.warning(i18n.t('txtProfileNameTooShort'));
             return false;
         }
 
@@ -67,7 +102,7 @@ $(document).ready(function () {
         const macro = macroInfo.split(";");
 
         if (macro.length !== 2) {
-            toast.warning('Invalid macro profile selected');
+            toast.warning(i18n.t('txtInvalidMacroProfile'));
             return false;
         }
 
@@ -84,7 +119,7 @@ $(document).ready(function () {
             success: function(response) {
                 if (response.status === 1) {
                     dt.row($btn.closest('tr')).remove().draw();
-                    toast.success("Macro value deleted successfully.");
+                    toast.success(i18n.t('txtMacroValueDeleted'));
                 } else {
                     toast.warning(response.message);
                 }
@@ -102,7 +137,7 @@ $(document).ready(function () {
         const actionRepeatDelayValue = $row.find('.actionRepeatDelayValue').val();
 
         if (macro.length !== 2) {
-            toast.warning('Invalid macro profile selected');
+            toast.warning(i18n.t('txtInvalidMacroProfile'));
             return false;
         }
 
@@ -121,7 +156,7 @@ $(document).ready(function () {
             cache: false,
             success: function(response) {
                 if (response.status === 1) {
-                    toast.success("Macro value successfully updated.");
+                    toast.success(i18n.t('txtMacroValueUpdated'));
                 } else {
                     toast.warning(response.message);
                 }
@@ -202,8 +237,8 @@ $(document).ready(function () {
                                 </div>`,
                                 `<div class="settings-list">
                                     <div class="settings-row">
-                                        <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="UPDATE">
-                                        <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="DELETE">
+                                        <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtUpdate')}">
+                                        <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtDelete')}">
                                     </div>
                                 </div>`,
                             ]).draw();
@@ -217,18 +252,18 @@ $(document).ready(function () {
                                     actionHold,
                                     `<div class="system-input text-input">
                                         <label for="profileName">
-                                            <input type="text" class="actionRepeatValue" value="${item.actionRepeat}" placeholder="Define how many times the action will be repeated.">
+                                            <input type="text" class="actionRepeatValue" value="${item.actionRepeat}" placeholder="${i18n.t('txtRepeatAmount')}">
                                         </label>
                                     </div>`,
                                     `<div class="system-input text-input">
                                         <label for="profileName">
-                                            <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="The amount of delay in milliseconds between the Repeat action.">
+                                            <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="${i18n.t('txtRepeatDelay')}">
                                         </label>
                                     </div>`,
                                     `<div class="settings-list">
                                         <div class="settings-row">
-                                            <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="UPDATE">
-                                            <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="DELETE">
+                                            <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtUpdate')}">
+                                            <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtDelete')}">
                                         </div>
                                     </div>`,
                                 ]).draw();
@@ -249,14 +284,14 @@ $(document).ready(function () {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="infoToggleLabel">Press and Hold</h5>
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtPressAndHold')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <span>When enabled, the keyboard continuously sends action until macro chain is finished. You need to have at least 1 Press and Hold un-checked in order to finish the macro.</span>
+                            <span>${i18n.t('txtPressAndHoldInfo')}</span>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                         </div>
                     </div>
                 </div>
@@ -274,14 +309,14 @@ $(document).ready(function () {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="infoToggleLabel">Repeat</h5>
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtActionRepeat')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <span>Define the amount of time macro action will be triggered. Value is from 0 to 100.</span>
+                            <span>${i18n.t('txtRepeatInfo')}</span>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                         </div>
                     </div>
                 </div>
@@ -299,14 +334,14 @@ $(document).ready(function () {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="infoToggleLabel">Repeat Delay</h5>
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtActionRepeatDelay')}</h5>
                             <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <span>The amount of delay in milliseconds between the Repeat action. This is only valid if Repeat is greater than 1. </span>
+                            <span>${i18n.t('txtRepeatDelayInfo')}</span>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
                         </div>
                     </div>
                 </div>
@@ -360,17 +395,17 @@ $(document).ready(function () {
         const macroText = $("#macroText").val();
 
         if (parseInt(macroType) === 0) {
-            toast.warning('Select macro type');
+            toast.warning(i18n.t('txtSelectMacroType'));
             return false;
         }
 
         if (parseInt(macroType) === 3 && parseInt(macroValue) === 0) {
-            toast.warning('Select macro value');
+            toast.warning(i18n.t('txtSelectMacroValue'));
             return false;
         }
 
         if (parseInt(macroType) === 5 && parseInt(macroDelay) < 1) {
-            toast.warning('Macro delay requires definition of delay in milliseconds');
+            toast.warning(i18n.t('txtNoMacroDelayMs'));
             return false;
         }
 

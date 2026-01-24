@@ -49,4 +49,5 @@ func Start() {
 func Stop() {
 	devices.Stop()      // Devices
 	inputmanager.Stop() // Cleanup virtual devices
+	audio.StopAudio()   // Virtual Audio
 }

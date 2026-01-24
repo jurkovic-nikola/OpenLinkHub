@@ -74,6 +74,9 @@ func GetLanguages() map[string]Language {
 
 // GetLanguage will return Language with given key
 func GetLanguage(key string) *Language {
+	if len(key) == 0 {
+		key = dashboard.GetDashboard().LanguageCode
+	}
 	if lang, ok := languages[key]; ok {
 		return &lang
 	}

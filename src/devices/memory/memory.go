@@ -2185,7 +2185,7 @@ func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister
 			}
 			buf = append(buf, d.calculateChecksum(buf))
 			if d.Debug {
-				logger.Log(logger.Fields{"colorPacket": fmt.Sprint("% 2x", buf)}).Info("Memory Color")
+				logger.Log(logger.Fields{"colorPacket": fmt.Sprintf("% 2x", buf)}).Info("Memory Color")
 			}
 			if len(buf) > 32 {
 				// We have more than 10 LEDs, we need to chunk packet and increment color register.

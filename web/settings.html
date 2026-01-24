@@ -8,6 +8,7 @@
     {{ $devs := .Devices }}
     {{ $device := .Device }}
     {{ $languageCode := .LanguageCode }}
+    {{ $audio := .AudioSettings }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
     <div class="row">
         <!-- Sidebar -->
@@ -131,46 +132,92 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <!-- RGB Scheduler -->
-                    <div class="card system-card text-center">
-                        <div class="card-header">
-                            {{ .Lang "txtRgbScheduler" }}
+                    <div class="stack-gap-4">
+                        <!-- RGB Scheduler -->
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtRgbScheduler" }}
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-list">
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtEnable" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="rgbControl" {{ if .Scheduler.RGBControl }}checked{{end}}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtRgbOffTime" }}</span>
+                                        <label class="compact">
+                                            <input type="time"
+                                                   id="rgbOff"
+                                                   name="rgbOff"
+                                                   value="{{ .Scheduler.RGBOff }}"
+                                                   class="system-input system-time compact">
+                                        </label>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "rgbOnTime" }}</span>
+                                        <label class="compact">
+                                            <input type="time"
+                                                   id="rgbOn"
+                                                   name="rgbOn"
+                                                   value="{{ .Scheduler.RGBOn }}"
+                                                   class="system-input system-time compact">
+                                        </label>
+                                    </div>
+                                    <!-- Save profile -->
+                                    <div class="settings-row">
+                                        <button class="system-button saveRgbControl">{{ .Lang "txtSave" }}</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="settings-list">
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtEnable" }}</span>
-                                    <label class="system-toggle compact">
-                                        <input type="checkbox" id="rgbControl" {{ if .Scheduler.RGBControl }}checked{{end}}>
-                                        <span class="toggle-track"></span>
-                                    </label>
-                                </div>
 
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgbOffTime" }}</span>
-                                    <label class="compact">
-                                        <input type="time"
-                                               id="rgbOff"
-                                               name="rgbOff"
-                                               value="{{ .Scheduler.RGBOff }}"
-                                               class="system-input system-time compact">
-                                    </label>
-                                </div>
 
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "rgbOnTime" }}</span>
-                                    <label class="compact">
-                                        <input type="time"
-                                               id="rgbOn"
-                                               name="rgbOn"
-                                               value="{{ .Scheduler.RGBOn }}"
-                                               class="system-input system-time compact">
-                                    </label>
+                        <!-- Virtual Audio -->
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtVirtualAudio" }}
+                            </div>
+                            <div class="card-body text-left">
+                                {{ if .SystemService }}
+                                <span class="settings-label text-warning">{{ .Lang "txtVirtualAudioUnavailable" }}</span>
+                                {{ else }}
+                                <div class="settings-list">
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtEnable" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="virtualAudio" {{ if $audio.Enabled }}checked{{end}}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+
+                                    {{ if $audio.Enabled }}
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtOutputDevice" }}</span>
+                                        <label for="outputDevice">
+                                            <select id="outputDevice" class="form-select system-select max-width-300 compact outputDevice">
+                                                {{ range $k, $v := .OutputDevices }}
+                                                <option value="{{ $v.Name }};{{ $v.Desc }};{{ $v.Serial }}" {{ if eq $audio.SinkDesc $v.Desc }}selected{{end}}>{{ $v.Desc }}</option>
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+                                    {{ end }}
+
+                                    <!-- Enable virtual audio -->
+                                    <div class="settings-row">
+                                        <button class="system-button enableVirtualAudio">{{ .Lang "txtSave" }}</button>
+                                        {{ if $audio.Enabled }}
+                                        <button class="system-button setTargetDevice">{{ .Lang "txtSetTargetDevice" }}</button>
+                                        {{ end }}
+                                    </div>
                                 </div>
-                                <!-- Save profile -->
-                                <div class="settings-row">
-                                    <button class="system-button saveRgbControl">{{ .Lang "txtSave" }}</button>
-                                </div>
+                                {{ end }}
                             </div>
                         </div>
                     </div>

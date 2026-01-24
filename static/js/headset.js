@@ -45,7 +45,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -220,7 +220,7 @@ $(document).ready(function () {
         const sidetoneValue = parseInt(sidetone);
 
         if (sidetoneValue < 0 || sidetoneValue > 100) {
-            toast.warning('Invalid sidetone value');
+            toast.warning(i18n.t('txtInvalidSidetone'));
             return false;
         }
 
@@ -255,12 +255,12 @@ $(document).ready(function () {
         const wheelId = parseInt($(this).data('wheel-id'));
 
         if (wheelOption < 1 || wheelOption > 2) {
-            toast.warning('Invalid wheel option');
+            toast.warning(i18n.t('txtInvalidWheelValue'));
             return false;
         }
 
         if (wheelId < 1 || wheelId > 2) {
-            toast.warning('Invalid wheel id');
+            toast.warning(i18n.t('txtInvalidWheelValue'));
             return false;
         }
 
@@ -292,7 +292,7 @@ $(document).ready(function () {
 
     $(".toggleMuteIndicators").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -326,7 +326,7 @@ $(document).ready(function () {
 
     $(".toggleSidetone").on("change", function () {
         const $toggle = $(this);
-        const previousState = !$toggle.prop("checked"); // because it already flipped
+        const previousState = !$toggle.prop("checked");
         const newState = $toggle.prop("checked");
         const deviceId = $("#deviceId").val();
 
@@ -432,11 +432,7 @@ $(document).ready(function () {
             deviceId: deviceId,
             equalizers: equalizers
         };
-
-        let json = JSON.stringify(pf);
-
-        console.log(json);
-
+        
         $.ajax({
             url: '/api/headset/equalizer',
             type: 'POST',

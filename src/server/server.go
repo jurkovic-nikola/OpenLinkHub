@@ -1,6 +1,7 @@
 package server
 
 import (
+	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/backup"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
@@ -740,6 +741,16 @@ func getEqualizers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getLanguageData will return language data
+func getLanguageData(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   language.GetLanguage(""),
+	}
+	resp.Send(w)
+}
+
 // updateDeviceEqualizers handles device equalizer update
 func updateDeviceEqualizers(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateDeviceEqualizer(r)
@@ -1192,6 +1203,28 @@ func removeDashboardDevice(w http.ResponseWriter, r *http.Request) {
 // setDashboardSettings handles dashboard settings change
 func setDashboardSettings(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDashboardSettingsChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setAudioSettings handles Virtual Audio settings change
+func setAudioSettings(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessAudioSettingsChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setAudioOutputDeviceSettings handles Virtual Audio output device settings change
+func setAudioOutputDeviceSettings(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessAudioOutputDeviceChange(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -2099,6 +2132,9 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web.Dashboard = dashboard.GetDashboard()
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
+	web.AudioSettings = audio.GetAudio()
+	web.OutputDevices = audio.GetSinks()
+	web.SystemService = config.IsSystemService()
 	web.RGBModes = []string{
 		"circle",
 		"circleshift",
@@ -2226,6 +2262,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/backup", http.MethodGet, backup.PerformBackup)
 	handleFunc(r, "/api/position/", http.MethodGet, getPositionData)
 	handleFunc(r, "/api/headset/getEqualizers/", http.MethodGet, getEqualizers)
+	handleFunc(r, "/api/language/", http.MethodGet, getLanguageData)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -2314,6 +2351,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/controller/getGraph", http.MethodPost, getControllerGraph)
 	handleFunc(r, "/api/controller/setGraph", http.MethodPost, setControllerGraph)
 	handleFunc(r, "/api/controller/sleep", http.MethodPost, changeControllerSleepMode)
+	handleFunc(r, "/api/audio/update", http.MethodPost, setAudioSettings)
+	handleFunc(r, "/api/audio/outputDevice", http.MethodPost, setAudioOutputDeviceSettings)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

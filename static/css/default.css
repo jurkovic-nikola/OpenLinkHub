@@ -237,6 +237,14 @@ body {
     max-width: 200px;
 }
 
+.max-width-250 {
+    max-width: 250px;
+}
+
+.max-width-300 {
+    max-width: 300px;
+}
+
 .stack-gap-4 > * + * {
     margin-top: 1.5rem;
 }
@@ -689,6 +697,14 @@ transition: stroke-dashoffset 0.6s ease;
 
 .modal-1200 {
     width: 1200px;
+}
+
+.modal-1300 {
+    width: 1300px;
+}
+
+.modal-1400 {
+    width: 1400px;
 }
 
 @media (max-width: 1200px) {
@@ -3012,10 +3028,10 @@ table.dataTable.compact tbody td {
     border-radius: 999px;
     background: linear-gradient(
             to right,
-            var(--eq-track) 0%,
-            var(--eq-track) 50%,
-            var(--eq-positive) 50%,
-            var(--eq-positive) 100%
+            var(--green) 0%,
+            var(--green) var(--slider-progress, 50%),
+            #2a2a2b var(--slider-progress, 50%),
+            #2a2a2b 100%
     );
 }
 

@@ -1,8 +1,43 @@
 "use strict";
 $(document).ready(function () {
-    // Init dataTable
-    const dt = $('#table').DataTable(
-        {
+    let dt = null;
+
+    window.i18n = {
+        locale: null,
+        values: {},
+
+        setTranslations: function (locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+
+        t: function (key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+            initDataTable();
+        },
+        error: function () {
+            console.error('Failed to load translations');
+            initDataTable();
+        }
+    });
+
+    function initDataTable() {
+        if (dt) return;
+        dt = $('#table').DataTable({
             order: [[1, 'asc']],
             select: {
                 style: 'os',
@@ -12,10 +47,13 @@ $(document).ready(function () {
             paging: false,
             searching: false,
             language: {
-                emptyTable: "No profile selected. Select profile from left side"
+                emptyTable: i18n.t(
+                    'txtNoTempProfileSelected',
+                    'No profile selected. Select profile from left side'
+                )
             }
-        }
-    );
+        });
+    }
 
     document.addEventListener('click', function (e) {
         if (e.target.closest('.delete-speed-profile')) {
@@ -36,7 +74,7 @@ $(document).ready(function () {
         const sensor = $("#sensor").val();
 
         if (profile.length < 3) {
-            toast.warning('Enter your profile name. Minimum length is 3 characters');
+            toast.warning(i18n.t('txtProfileNameTooShort'));
             return false;
         }
 
@@ -208,8 +246,8 @@ $(document).ready(function () {
                     let pump = response.data[0].points;
                     let fans = response.data[1].points;
 
-                    renderCanvas('graphPump', pump, "Pump Speed (%)", maxValue, "updatePump", 0);
-                    renderCanvas('graphFans', fans, "Fan Speed (%)", maxValue, "updateFans", 1);
+                    renderCanvas('graphPump', pump, i18n.t('txtPumpSpeed'), maxValue, "updatePump", 0);
+                    renderCanvas('graphFans', fans, i18n.t('txtFanSpeed'), maxValue, "updateFans", 1);
                 }
             }
         });
@@ -294,7 +332,7 @@ $(document).ready(function () {
 
             ctx.fillStyle = "#ccc";
             ctx.font = "14px sans-serif";
-            ctx.fillText("Temperature (°C)", width / 2, height-25);
+            ctx.fillText(i18n.t('txtTemperatureInC'), width / 2, height-25);
             ctx.fillText(label, width / 2, 25);
             ctx.save();
 
@@ -544,9 +582,9 @@ $('.sensorInfoToggle').on('click', function () {
       <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-custom modal-1000">
           <div class="modal-content">
-    
+
             <div class="modal-header">
-              <h5 class="modal-title">Temperature Sensors</h5>
+              <h5 class="modal-title">${i18n.t('txtTemperatureSensors')}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
     
@@ -554,53 +592,53 @@ $('.sensorInfoToggle').on('click', function () {
                 <div class="settings-list">
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">CPU</span>
-                        <span class="settings-label text-ellipsis">Utilizes the CPU as a temperature source. It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorCpuInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">GPU</span>
-                        <span class="settings-label text-ellipsis">Utilizes the GPU as a temperature source. It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorGpuInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">Liquid Temperature (AIO)</span>
-                        <span class="settings-label text-ellipsis">Utilizes the AIO temperature sensor as a temperature source. It can be applied only to AIO device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorLiquidTempInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">Storage Temperature</span>
-                        <span class="settings-label text-ellipsis">Utilizes the storage temperature sensor as a temperature source. It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorStorageInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">Temperature Probe</span>
-                        <span class="settings-label text-ellipsis">Utilizes the temperature probe sensor as a temperature source. It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorTemperatureProbeInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">CPU + GPU</span>
-                        <span class="settings-label text-ellipsis">Utilizes the CPU and GPU as temperature source, higher number wins. It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorCpuGpuInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">External HWMON</span>
-                        <span class="settings-label text-ellipsis">Utilizes the external hwmon device as temperature source, It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorHwMonInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">External binary</span>
-                        <span class="settings-label text-ellipsis">Utilizes the external binary as temperature source, It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorExternalBinaryInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">Multi GPU</span>
-                        <span class="settings-label text-ellipsis">Utilizes the single GPU from multiple GPUs as temperature source, It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorMultiGpuInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">Global Temperature Probe</span>
-                        <span class="settings-label text-ellipsis">Utilizes the single temperature probe as temperature source, It can be applied to any device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorGlobalTemperatureProbeInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">PSU</span>
-                        <span class="settings-label text-ellipsis">Utilizes the single temperature probe from PSU source. This is only valid for PSUs with built-in Link System Hub device.</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorPsuInfo')}</span>
                     </div>
                 </div>
             </div>
     
             <div class="modal-footer">
-              <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button class="btn btn-secondary" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
             </div>
     
           </div>
@@ -620,14 +658,14 @@ $('.zeroRpmToggle').on('click', function () {
           <div class="modal-content">
     
             <div class="modal-header">
-              <h5 class="modal-title">Zero RPM Mode</h5>
+              <h5 class="modal-title">${i18n.t('txtZeroRpmMode')}</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
     
             <div class="modal-body">
                 <div class="settings-list">
                     <div class="settings-row">
-                        <span class="settings-label text-ellipsis">Available Devices</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtAvailableDevices')}</span>
                         <span class="settings-label text-ellipsis">
                             LINK SYSTEM HUB<br />
                             COMMANDER CORE XT<br />
@@ -639,7 +677,7 @@ $('.zeroRpmToggle').on('click', function () {
             </div>
     
             <div class="modal-footer">
-              <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button class="btn btn-secondary" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
             </div>
     
           </div>

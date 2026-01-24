@@ -1,10 +1,41 @@
 "use strict";
 $(document).ready(function () {
+    window.i18n = {
+        locale: null,
+        values: {},
+
+        setTranslations: function (locale, values) {
+            this.locale = locale;
+            this.values = values || {};
+        },
+
+        t: function (key, fallback = '') {
+            return this.values[key] ?? fallback ?? key;
+        }
+    };
+
+    $.ajax({
+        url: '/api/language',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1 && response.data) {
+                i18n.setTranslations(
+                    response.data.code,
+                    response.data.values
+                );
+            }
+        },
+        error: function () {
+            console.error('Failed to load translations');
+        }
+    });
+
     $('.clusterRgbProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val().split(";");
         if (profile.length < 2 || profile.length > 2) {
-            toast.warning('Invalid profile selected');
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
             return false;
         }
 
@@ -40,7 +71,7 @@ $(document).ready(function () {
         const brightnessValue = parseInt(brightness);
 
         if (brightnessValue < 0 || brightnessValue > 100) {
-            toast.warning('Invalid brightness selected');
+            toast.warning(i18n.t('txtInvalidBrightness'));
             return false;
         }
 

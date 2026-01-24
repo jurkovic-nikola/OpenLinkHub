@@ -145,8 +145,15 @@
                         {{ range $device := $devices }}
                         <div class="col-md-2">
                             <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
-                                <div class="card-header">
-                                    {{ $device.Name }}
+                                <div class="card-header header-split">
+                                    <span class="header-left">
+                                        {{ $device.Name }}
+                                    </span>
+                                    <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                    <span class="header-right newLabel">
+                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                        <span class="labelValue">{{ $device.Label }}</span>
+                                    </span>
                                 </div>
                                 <div class="card-body">
                                     <div class="settings-list">
@@ -191,8 +198,15 @@
                         {{ range $device := $rgbDevices }}
                         <div class="col-md-2">
                             <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
-                                <div class="card-header">
-                                    {{ $device.Name }}
+                                <div class="card-header header-split">
+                                    <span class="header-left">
+                                        {{ $device.Name }}
+                                    </span>
+                                    <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                    <span class="header-right newRgbLabel">
+                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                        <span class="labelValue">{{ $device.Label }}</span>
+                                    </span>
                                 </div>
                                 <div class="card-body">
                                     <div class="settings-list">

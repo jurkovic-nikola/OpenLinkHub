@@ -3036,6 +3036,7 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 	dash.TemperatureBar = req.TemperatureBar
 	dash.LanguageCode = req.LanguageCode
 	dash.ShowLabels = req.ShowLabels
+	dash.Theme = req.Theme
 
 	status := dashboard.SaveDashboardSettings(dash, true)
 	switch status {
@@ -3096,7 +3097,7 @@ func ProcessAudioOutputDeviceChange(r *http.Request) *Payload {
 	if len(req.OutputDeviceDesc) < 1 {
 		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
 	}
-	
+
 	val := audio.GetAudio()
 	val.SinkName = req.OutputDeviceName
 	val.SinkDesc = req.OutputDeviceDesc

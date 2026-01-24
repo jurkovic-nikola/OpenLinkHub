@@ -599,6 +599,7 @@
     "txtOnReleaseInfo": "Kada je omogućeno, radnja miša se šalje kada se gumb otpusti. Kada je omogućeno, opcije Pritisni i drži i Sniper ne mogu se koristiti. Ova se vrijednost zanemaruje kada se koristi nagib miša.",
     "txtPressAndHoldBlocked": "Pritisni i drži ne može se koristiti dok je omogućeno Pri otpuštanju",
     "txtSlipstreamDirection": "Smjer (samo Slipstream)",
-    "txtSlipstreamAlternateColors": "Naizmjenične boje (samo Slipstream)"
+    "txtSlipstreamAlternateColors": "Naizmjenične boje (samo Slipstream)",
+    "txtStyle": "Stil"
   }
 }

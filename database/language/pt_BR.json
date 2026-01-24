@@ -599,6 +599,7 @@
     "txtOnReleaseInfo": "Quando ativado, a ação do mouse é enviada quando o botão é solto. Quando ativado, Pressionar e segurar e Sniper não podem ser usados. Este valor é ignorado quando a inclinação do mouse é utilizada.",
     "txtPressAndHoldBlocked": "Pressionar e segurar não pode ser usado enquanto Ao soltar estiver ativado",
     "txtSlipstreamDirection": "Direção (somente Slipstream)",
-    "txtSlipstreamAlternateColors": "Cores alternadas (somente Slipstream)"
+    "txtSlipstreamAlternateColors": "Cores alternadas (somente Slipstream)",
+    "txtStyle": "Estilo"
   }
 }

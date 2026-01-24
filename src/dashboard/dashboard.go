@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"slices"
+	"strings"
 )
 
 type Dashboard struct {
@@ -25,6 +27,8 @@ type Dashboard struct {
 	LanguageCode     string   `json:"languageCode"`
 	PageTitle        string   `json:"pageTitle"`
 	Devices          []string `json:"devices"`
+	Theme            string   `json:"theme"`
+	Themes           []string `json:"themes"`
 }
 
 var (
@@ -39,6 +43,7 @@ var (
 		"pageTitle":        "OPENLINKHUB WebUI",
 		"sidebarCollapsed": false,
 		"devices":          []string{},
+		"theme":            "default",
 	}
 )
 
@@ -60,6 +65,7 @@ func Init() {
 	if err = json.NewDecoder(file).Decode(&dashboard); err != nil {
 		panic(err.Error())
 	}
+	loadThemes()
 }
 
 // upgradeFile will perform json file upgrade or create initial file
@@ -82,6 +88,7 @@ func upgradeFile() {
 			LanguageCode:     "en_US",
 			PageTitle:        "OPENLINKHUB WebUI",
 			Devices:          []string{},
+			Theme:            "default",
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")
@@ -126,6 +133,37 @@ func upgradeFile() {
 		} else {
 			logger.Log(logger.Fields{"file": location}).Info("Nothing to upgrade.")
 		}
+	}
+}
+
+// loadThemes will load CSS themes
+func loadThemes() {
+	dashboard.Themes = nil
+
+	themesPath := config.GetConfig().ConfigPath + "/static/css/themes/"
+	files, err := os.ReadDir(themesPath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": themesPath}).Fatal("Unable to read content of a folder")
+	}
+
+	for _, fi := range files {
+		if fi.IsDir() {
+			continue // Exclude folders if any
+		}
+
+		// Define a full path of filename
+		themeLocation := themesPath + fi.Name()
+
+		// Check if filename has .json extension
+		if !common.IsValidExtension(themeLocation, ".css") {
+			continue
+		}
+
+		fileName := strings.Split(fi.Name(), ".")[0]
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+			continue
+		}
+		dashboard.Themes = append(dashboard.Themes, fileName)
 	}
 }
 

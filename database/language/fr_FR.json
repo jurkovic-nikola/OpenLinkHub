@@ -599,6 +599,7 @@
         "txtOnReleaseInfo": "Lorsqu’elle est activée, l’action de la souris est envoyée lorsque le bouton est relâché. Lorsqu’elle est activée, les options Appuyer et maintenir et Sniper ne peuvent pas être utilisées. Cette valeur est ignorée lorsque l’inclinaison de la souris est utilisée.",
         "txtPressAndHoldBlocked": "L’option Appuyer et maintenir ne peut pas être utilisée lorsque l’option Au relâchement est activée",
         "txtSlipstreamDirection": "Direction (Slipstream uniquement)",
-        "txtSlipstreamAlternateColors": "Couleurs alternées (Slipstream uniquement)"
+        "txtSlipstreamAlternateColors": "Couleurs alternées (Slipstream uniquement)",
+        "txtStyle": "Style"
     }
 }

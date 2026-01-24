@@ -1,4 +1,4 @@
-FROM golang:1.23.8-bullseye AS build
+FROM golang:1.23.8-bookworm AS build
 ARG GIT_TAG
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y libudev-dev i2c-tools libpipewire-0.3-dev pkg-config
@@ -11,11 +11,11 @@ WORKDIR /app/OpenLinkHub
 RUN if [ -n "$GIT_TAG" ]; then git checkout "$GIT_TAG"; fi
 RUN go build .
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-    apt-get install -y libudev-dev pciutils usbutils udev i2c-tools && \
+    apt-get install -y libpipewire-0.3-0 libudev-dev pciutils usbutils udev i2c-tools && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

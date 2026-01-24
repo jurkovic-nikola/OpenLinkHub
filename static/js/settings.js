@@ -311,6 +311,7 @@ $(document).ready(function () {
             const v_checkboxBattery = checkboxBattery.is(':checked');
             const v_checkboxTemperatureBar = checkboxTemperatureBar.is(':checked');
             const v_languageCode = $("#userLanguage").val();
+            const v_theme = $("#theme").val();
 
             console.log(v_languageCode);
 
@@ -324,9 +325,11 @@ $(document).ready(function () {
             pf["showBattery"] = v_checkboxBattery;
             pf["temperatureBar"] = v_checkboxTemperatureBar;
             pf["languageCode"] = v_languageCode;
+            pf["theme"] = v_theme;
 
             const json = JSON.stringify(pf, null, 2);
 
+            console.log(json)
             $.ajax({
                 url: '/api/dashboard/update',
                 type: 'POST',

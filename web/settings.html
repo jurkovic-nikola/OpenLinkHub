@@ -9,6 +9,7 @@
     {{ $device := .Device }}
     {{ $languageCode := .LanguageCode }}
     {{ $audio := .AudioSettings }}
+    {{ $dash := .Dashboard }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
     <div class="row">
         <!-- Sidebar -->
@@ -67,6 +68,22 @@
                                                 <option value="{{ $k }}" selected>{{ $v.Name }}</option>
                                                 {{ else }}
                                                 <option value="{{ $k }}">{{ $v.Name }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <!-- Style -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtStyle" }}</span>
+                                        <label for="theme">
+                                            <select id="theme" class="form-select system-select auto-width compact theme">
+                                                {{ range $v := .Dashboard.Themes }}
+                                                {{ if eq $dash.Theme $v }}
+                                                <option value="{{ $v }}" selected>{{ $v }}</option>
+                                                {{ else }}
+                                                <option value="{{ $v }}">{{ $v }}</option>
                                                 {{ end }}
                                                 {{ end }}
                                             </select>
@@ -176,7 +193,6 @@
                                 </div>
                             </div>
                         </div>
-
 
                         <!-- Virtual Audio -->
                         <div class="card system-card text-center">

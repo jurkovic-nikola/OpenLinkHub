@@ -599,6 +599,7 @@
     "txtOnReleaseInfo": "När den är aktiverad skickas musåtgärden när knappen släpps. När den är aktiverad kan Tryck och håll och Sniper inte användas. Detta värde ignoreras när muslutning används.",
     "txtPressAndHoldBlocked": "Tryck och håll kan inte användas när Vid släpp är aktiverat",
     "txtSlipstreamDirection": "Riktning (endast Slipstream)",
-    "txtSlipstreamAlternateColors": "Växlande färger (endast Slipstream)"
+    "txtSlipstreamAlternateColors": "Växlande färger (endast Slipstream)",
+    "txtStyle": "Stil"
   }
 }

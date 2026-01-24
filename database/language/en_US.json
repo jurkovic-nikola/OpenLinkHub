@@ -599,6 +599,7 @@
     "txtOnReleaseInfo": "When enabled, the mouse action is sent when the button is released. When enabled, Press and Hold and Sniper can not be used. This value is ignored when Mouse Tilt is used.",
     "txtPressAndHoldBlocked": "Press and Hold can not be used while On Release is enabled",
     "txtSlipstreamDirection": "Direction (Slipstream Only)",
-    "txtSlipstreamAlternateColors": "Alternate Colors (Slipstream Only)"
+    "txtSlipstreamAlternateColors": "Alternate Colors (Slipstream Only)",
+    "txtStyle": "Style"
   }
 }

@@ -1,3 +1,76 @@
+## 2026-01-25
+
+* reset color on device amount change (0fe6897)
+* commander pro external rgb strips https://github.com/jurkovic-nikola/OpenLinkHub/issues/304 (d0372ef)
+* lc100 on commander pro - https://github.com/jurkovic-nikola/OpenLinkHub/issues/304 (4fd3a06)
+
+## 2026-01-24
+
+* add support for themes https://github.com/jurkovic-nikola/OpenLinkHub/issues/303 (58265f6)
+* Update codeql.yml (73754d0)
+* Update codeql.yml (3643496)
+* codeql.yml (49b90e9)
+* language update, features, fixes (20fe9e8)
+* device labels https://github.com/jurkovic-nikola/OpenLinkHub/issues/301 (ab4ed2e)
+* block override on initial start https://github.com/jurkovic-nikola/OpenLinkHub/issues/301 (5e5205f)
+
+## 2026-01-23
+
+* https://github.com/jurkovic-nikola/OpenLinkHub/issues/299 fixup (29ffeae)
+
+## 2026-01-19
+
+* language update (f53849a)
+* language update (ee6ad02)
+* wrong translation key https://github.com/jurkovic-nikola/OpenLinkHub/issues/295 (086bbb7)
+* language update (018918b)
+
+## 2026-01-18
+
+* fixups (9ebe239)
+* language update (1f8e6c9)
+
+## 2026-01-17
+
+* readme update (47d1c33)
+
+## 2026-01-16
+
+* docker update (477c7d1)
+* workflow update (481c35b)
+* old debug (cf68e1e)
+* ui / device changes (3da256b)
+
+## 2026-01-11
+
+* missing api links (04f56a7)
+* remove old files (c47372e)
+* readme update (32b474a)
+
+## 2026-01-10
+
+* Merge pull request #287 from Beet4/main (80abf69)
+
+## 2026-01-09
+
+* Add Swedish (SE) keyboard layout for Corsair K100 (de581e0)
+
+## 2026-01-08
+
+* Merge pull request #286 from LJspice/dockerfile-local (7bcf30f)
+
+## 2026-01-07
+
+* Change dockerfile to use existing local repo Previously, repo was cloned from github (f1464ec)
+
+## 2026-01-04
+
+* Merge pull request #285 from maduranma/add-pastel-watercolor-spectrum (1a060d2)
+
+## 2025-12-30
+
+* Added Corsair's pastel watercolor spectrum (74c6b85)
+
 ## 2025-12-23
 
 * readme update (ce755a5)

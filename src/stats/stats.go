@@ -55,8 +55,8 @@ func UpdateBatteryStats(serial, device string, level uint16, deviceType uint8) {
 	}
 }
 
-// UpdateAIOStats will update AIO stats
-func UpdateAIOStats(serial, name, temp, speed, label string, channelId int, temperature float32) {
+// UpdateDeviceStats will update device stats
+func UpdateDeviceStats(serial, name, temp, speed, label string, channelId int, temperature float32) {
 	statsMutex.Lock()
 	defer statsMutex.Unlock()
 
@@ -86,7 +86,7 @@ func UpdateAIOStats(serial, name, temp, speed, label string, channelId int, temp
 func GetDeviceTemperature(serial string, channelId int) float32 {
 	statsMutex.RLock()
 	defer statsMutex.RUnlock()
-	
+
 	if data, ok := stats[serial]; ok {
 		if value, found := data.Devices[channelId]; found {
 			return value.Temperature

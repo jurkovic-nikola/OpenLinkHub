@@ -205,6 +205,11 @@ var (
 			Name:  "HD LED Strip",
 			Total: 10,
 		},
+		{
+			Index: 8,
+			Name:  "LC100 Triangle",
+			Total: 9,
+		},
 	}
 )
 
@@ -233,6 +238,9 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 			4: "4 Devices",
 			5: "5 Devices",
 			6: "6 Devices",
+			7: "7 Devices",
+			8: "8 Devices",
+			9: "9 Devices",
 		},
 		activeRgb: make(map[int]*rgb.ActiveRGB, 2),
 		Brightness: map[int]string{
@@ -1289,7 +1297,7 @@ func (d *Device) getDeviceData() {
 		if value.Rpm > 0 || value.Temperature > 0 {
 			rpmString := fmt.Sprintf("%v RPM", value.Rpm)
 			temperatureString := dashboard.GetDashboard().TemperatureToString(value.Temperature)
-			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
+			stats.UpdateDeviceStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
 		}
 	}
 }
@@ -2021,12 +2029,15 @@ func (d *Device) updateDeviceSpeed() {
 	}()
 }
 
-// writeColor will write color data to the device
 func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 	d.deviceLock.Lock()
 	defer d.deviceLock.Unlock()
 
 	if d.Exit {
+		return
+	}
+
+	if _, err := d.transfer(cmdPortState, []byte{portId, 0x02}); err != nil {
 		return
 	}
 
@@ -2043,12 +2054,27 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 		channels[2][i] = data[base+2]
 	}
 
-	colorNames := []string{"red", "green", "blue"}
+	channelChunks := make([][][]byte, 3)
+	maxChunks := 0
 
-	for c, channelData := range channels {
-		chunks := common.ProcessMultiChunkPacket(channelData, maxBufferSizePerRequest)
+	for c := 0; c < 3; c++ {
+		channelChunks[c] = common.ProcessMultiChunkPacket(
+			channels[c],
+			maxBufferSizePerRequest,
+		)
+		if len(channelChunks[c]) > maxChunks {
+			maxChunks = len(channelChunks[c])
+		}
+	}
 
-		for i, chunk := range chunks {
+	for i := 0; i < maxChunks; i++ {
+		for c := 0; c < 3; c++ {
+			if i >= len(channelChunks[c]) {
+				continue
+			}
+
+			chunk := channelChunks[c][i]
+
 			packet := make([]byte, len(chunk)+4)
 			packet[0] = portId
 			packet[1] = byte(i * maxBufferSizePerRequest)
@@ -2057,14 +2083,13 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 			copy(packet[4:], chunk)
 
 			if _, err := d.transfer(cmdWriteColor, packet); err != nil {
-				logger.Log(logger.Fields{"error": err}).Errorf("Unable to write %s color to device", colorNames[c])
+				logger.Log(logger.Fields{"error": err}).Errorf("Unable to write color channel %d", c)
+				return
 			}
 		}
 	}
+
 	if _, err := d.transfer(cmdRefresh, []byte{0xff}); err != nil {
-		return
-	}
-	if _, err := d.transfer(cmdPortState, []byte{portId, 0x02}); err != nil {
 		return
 	}
 }

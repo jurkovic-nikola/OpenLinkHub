@@ -693,7 +693,7 @@ func (d *Device) getTemperatureProbeData() {
 
 	d.Temperature = temp
 	d.TemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
-	stats.UpdateAIOStats(d.Serial, d.Product, d.TemperatureString, "", d.DeviceProfile.Label, 0, d.Temperature)
+	stats.UpdateDeviceStats(d.Serial, d.Product, d.TemperatureString, "", d.DeviceProfile.Label, 0, d.Temperature)
 }
 
 // getDeviceFirmware will get device firmware

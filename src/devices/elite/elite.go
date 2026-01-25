@@ -1970,7 +1970,7 @@ func (d *Device) getDeviceData() {
 
 			rpmString := fmt.Sprintf("%v RPM", d.Devices[deviceList[device].Index].Rpm)
 
-			stats.UpdateAIOStats(
+			stats.UpdateDeviceStats(
 				d.Serial,
 				d.Devices[deviceList[device].Index].Name,
 				d.Devices[deviceList[device].Index].TemperatureString,

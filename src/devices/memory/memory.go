@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
+	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
@@ -2106,7 +2107,7 @@ func (d *Device) calculateTemperature(temp uint16) float64 {
 func (d *Device) setTemperatures() {
 	d.CpuTemp = temperatures.GetCpuTemperature()
 	d.GpuTemp = temperatures.GetGpuTemperature()
-	for _, device := range d.Devices {
+	for key, device := range d.Devices {
 		if device.HasTemps {
 			if d.Exit {
 				return
@@ -2137,6 +2138,16 @@ func (d *Device) setTemperatures() {
 					temperatures.SetMemoryTemperature(device.ChannelId, float32(temperature))
 				}
 			}
+			
+			stats.UpdateDeviceStats(
+				d.Serial,
+				device.Name,
+				d.Devices[device.ChannelId].TemperatureString,
+				"",
+				device.Label,
+				key,
+				d.Devices[device.ChannelId].Temperature,
+			)
 		}
 	}
 }

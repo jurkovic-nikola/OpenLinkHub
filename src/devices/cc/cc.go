@@ -2069,7 +2069,7 @@ func (d *Device) getDeviceData() {
 			if value.Rpm > 0 {
 				rpmString = fmt.Sprintf("%v RPM", value.Rpm)
 			}
-			stats.UpdateAIOStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
+			stats.UpdateDeviceStats(d.Serial, value.Name, temperatureString, rpmString, value.Label, key, value.Temperature)
 		}
 	}
 }

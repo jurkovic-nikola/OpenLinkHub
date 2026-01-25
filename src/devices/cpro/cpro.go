@@ -35,6 +35,7 @@ type ExternalLedDevice struct {
 	Name    string
 	Total   int
 	Command byte
+	Amount  int
 }
 
 type ExternalHubData struct {
@@ -169,48 +170,6 @@ var (
 		"watercolor",
 		"wave",
 	}
-	externalLedDevices = []ExternalLedDevice{
-		{
-			Index: 1,
-			Name:  "HD RGB Series Fan",
-			Total: 12,
-		},
-		{
-			Index: 2,
-			Name:  "LL RGB Series Fan",
-			Total: 16,
-		},
-		{
-			Index: 3,
-			Name:  "ML PRO RGB Series Fan",
-			Total: 4,
-		},
-		{
-			Index: 4,
-			Name:  "QL RGB Series Fan",
-			Total: 34,
-		},
-		{
-			Index: 5,
-			Name:  "8-LED Series Fan",
-			Total: 8,
-		},
-		{
-			Index: 6,
-			Name:  "SP RGB Series Fan (1 LED)",
-			Total: 1,
-		},
-		{
-			Index: 7,
-			Name:  "HD LED Strip",
-			Total: 10,
-		},
-		{
-			Index: 8,
-			Name:  "LC100 Triangle",
-			Total: 9,
-		},
-	}
 )
 
 // Init will initialize a new device
@@ -227,9 +186,8 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:               dev,
-		Template:          "cpro.html",
-		ExternalLedDevice: externalLedDevices,
+		dev:      dev,
+		Template: "cpro.html",
 		ExternalLedDeviceAmount: map[int]string{
 			0: "No Device",
 			1: "1 Device",
@@ -260,6 +218,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d.getManufacturer()     // Manufacturer
 	d.getProduct()          // Product
 	d.getSerial()           // Serial
+	d.loadExternalDevices() // External metadata
 	d.loadRgb()             // Load RGB
 	d.loadDeviceProfiles()  // Load all device profiles
 	d.getDeviceFirmware()   // Firmware
@@ -404,6 +363,111 @@ func (d *Device) StopDirty() uint8 {
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 	return 1
+}
+
+// loadExternalDevices will load external device definitions
+func (d *Device) loadExternalDevices() {
+	externalDevicesFile := pwd + "/database/external/cpro.json"
+	if common.FileExists(externalDevicesFile) {
+		file, err := os.Open(externalDevicesFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+			return
+		}
+		if err = json.NewDecoder(file).Decode(&d.ExternalLedDevice); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to decode external devices metadata")
+			return
+		}
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": externalDevicesFile, "serial": d.Serial}).Warn("Failed to close external devices metadata")
+		}
+	} else {
+		logger.Log(logger.Fields{"serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
+		d.ExternalLedDevice = []ExternalLedDevice{
+			{
+				Index: 0,
+				Name:  "No Device",
+				Total: 0,
+			},
+			{
+				Index: 1,
+				Name:  "HD RGB Series Fan",
+				Total: 12,
+			},
+			{
+				Index: 2,
+				Name:  "LL RGB Series Fan",
+				Total: 16,
+			},
+			{
+				Index: 3,
+				Name:  "ML PRO RGB Series Fan",
+				Total: 4,
+			},
+			{
+				Index: 4,
+				Name:  "QL RGB Series Fan",
+				Total: 34,
+			},
+			{
+				Index: 5,
+				Name:  "8-LED Series Fan",
+				Total: 8,
+			},
+			{
+				Index: 6,
+				Name:  "SP RGB Series Fan (1 LED)",
+				Total: 1,
+			},
+			{
+				Index: 7,
+				Name:  "HD LED Strip",
+				Total: 10,
+			},
+			{
+				Index: 8,
+				Name:  "LC100 Triangle",
+				Total: 9,
+			},
+			{
+				Index:  9,
+				Name:   "LS Aurora 350 mm",
+				Total:  40,
+				Amount: 5,
+			},
+			{
+				Index:  10,
+				Name:   "LS Aurora 430 mm",
+				Total:  49,
+				Amount: 4,
+			},
+			{
+				Index:  11,
+				Name:   "LS100 250 mm",
+				Total:  15,
+				Amount: 9,
+			},
+			{
+				Index:  12,
+				Name:   "LS100 350 mm",
+				Total:  21,
+				Amount: 6,
+			},
+			{
+				Index:  13,
+				Name:   "LS100 450 mm",
+				Total:  27,
+				Amount: 5,
+			},
+			{
+				Index:  14,
+				Name:   "LS100 1.4 m",
+				Total:  84,
+				Amount: 1,
+			},
+		}
+	}
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -1463,7 +1527,7 @@ func (d *Device) getDevices() int {
 
 // getExternalLedDevice will return ExternalLedDevice based on given device index
 func (d *Device) getExternalLedDevice(index int) *ExternalLedDevice {
-	for _, externalLedDevice := range externalLedDevices {
+	for _, externalLedDevice := range d.ExternalLedDevice {
 		if externalLedDevice.Index == index {
 			return &externalLedDevice
 		}
@@ -1530,15 +1594,19 @@ func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) uint8 {
 // UpdateExternalHubDeviceAmount will update device amount connected to an external-LED hub and trigger RGB reset
 func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint8 {
 	if d.DeviceProfile != nil {
-		if _, ok := d.DeviceProfile.ExternalHubs[portId]; ok {
+		if hub, ok := d.DeviceProfile.ExternalHubs[portId]; ok {
 			// Store current amount
 			currentAmount := d.DeviceProfile.ExternalHubs[portId].ExternalHubDeviceAmount
 
+			if deviceType := d.getExternalLedDevice(hub.ExternalHubDeviceType); deviceType != nil {
+				if deviceType.Amount != 0 && externalDevices > deviceType.Amount {
+					logger.Log(logger.Fields{"serial": d.Serial, "portId": portId}).Info("You have exceeded maximum amount of supported LED channels.")
+					return 2
+				}
+			}
+
 			// Init number of LED channels
 			lightChannels := 0
-
-			// Set new device amount
-			d.DeviceProfile.ExternalHubs[portId].ExternalHubDeviceAmount = externalDevices
 
 			// Validate the maximum number of LED channels
 			for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {

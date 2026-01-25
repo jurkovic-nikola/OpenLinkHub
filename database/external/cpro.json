@@ -1,0 +1,83 @@
+[
+  {
+    "index":  0,
+    "name":   "No Device",
+    "total":  0
+  },
+  {
+    "index":  1,
+    "name":   "HD RGB Series Fan",
+    "total":  12
+  },
+  {
+    "index":  2,
+    "name":   "LL RGB Series Fan",
+    "total":  16
+  },
+  {
+    "index":  3,
+    "name":   "ML PRO RGB Series Fan",
+    "total":  4
+  },
+  {
+    "index":  4,
+    "name":   "QL RGB Series Fan",
+    "total":  34
+  },
+  {
+    "index":  5,
+    "name":   "8-LED Series Fan",
+    "total":  8
+  },
+  {
+    "index":  6,
+    "name":   "SP RGB Series Fan (1 LED)",
+    "total":  1
+  },
+  {
+    "index":  7,
+    "name":   "HD LED Strip",
+    "total":  10
+  },
+  {
+    "index":  8,
+    "name":   "LC100 Triangle",
+    "total":  10
+  },
+  {
+    "index":  9,
+    "name":   "LS Aurora 350 mm",
+    "total":  40,
+    "amount": 5
+  },
+  {
+    "index":  10,
+    "name":   "LS Aurora 430 mm",
+    "total":  49,
+    "amount": 4
+  },
+  {
+    "index":  11,
+    "name":   "LS100 250 mm",
+    "total":  15,
+    "amount": 9
+  },
+  {
+    "index":  12,
+    "name":   "LS100 350 mm",
+    "total":  21,
+    "amount": 6
+  },
+  {
+    "index":  13,
+    "name":   "LS100 450 mm",
+    "total":  27,
+    "amount": 5
+  },
+  {
+    "index":  14,
+    "name":   "LS100 1.4 m",
+    "total":  84,
+    "amount": 1
+  }
+]

@@ -1595,6 +1595,14 @@ func (d *Device) UpdateExternalHubDeviceType(portId, externalType int) uint8 {
 func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint8 {
 	if d.DeviceProfile != nil {
 		if hub, ok := d.DeviceProfile.ExternalHubs[portId]; ok {
+			for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+				if d.activeRgb[i] != nil {
+					d.activeRgb[i].Exit <- true
+					d.activeRgb[i] = nil
+				}
+			}
+			d.resetColor()
+
 			// Store current amount
 			currentAmount := d.DeviceProfile.ExternalHubs[portId].ExternalHubDeviceAmount
 
@@ -1635,6 +1643,54 @@ func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint
 		}
 	}
 	return 0
+}
+
+// resetColor will reset current color and set everything to 0
+func (d *Device) resetColor() {
+	// Reset
+	reset := map[int][]byte{}
+	var buffer []byte
+
+	// Get the number of LED channels we have
+	lightChannels := 0
+	for _, device := range d.Devices {
+		if device.LedChannels > 0 {
+			lightChannels += int(device.LedChannels)
+		}
+	}
+
+	// Do we have any RGB component in the system?
+	if lightChannels == 0 {
+		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
+		return
+	}
+
+	// Reset all channels
+	color := &rgb.Color{
+		Red:        0,
+		Green:      0,
+		Blue:       0,
+		Brightness: 0,
+	}
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		externalHub := d.DeviceProfile.ExternalHubs[i]
+		lightChannels = 0
+		for _, device := range d.Devices {
+			if device.PortId == externalHub.PortId {
+				lightChannels += int(device.LedChannels)
+			}
+		}
+		for i := 0; i < lightChannels; i++ {
+			reset[i] = []byte{
+				byte(color.Red),
+				byte(color.Green),
+				byte(color.Blue),
+			}
+		}
+
+		buffer = rgb.SetColor(reset)
+		d.writeColor(buffer, lightChannels, externalHub.PortId)
+	}
 }
 
 // setDeviceColor will activate and set device RGB

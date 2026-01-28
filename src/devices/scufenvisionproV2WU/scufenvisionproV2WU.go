@@ -117,6 +117,10 @@ type Device struct {
 	Usb                   bool
 	Connected             bool
 	ZoneAmount            int
+	leftTriggerArmed      bool
+	rightTriggerArmed     bool
+	leftTriggerPressed    bool
+	rightTriggerPressed   bool
 }
 
 var (
@@ -135,6 +139,7 @@ var (
 	cmdOpenKeyAssignmentEndpoint = []byte{0x0d, 0x01, 0x02}
 	cmdOpenAnalogDataEndpoint    = []byte{0x0d, 0x01, 0x2b}
 	cmdOpenWriteEndpoint         = []byte{0x0d, 0x00, 0x01}
+	cmdActivateTriggerBackend    = []byte{0xc0, 0x00, 0x01}
 	cmdBeginWrite                = []byte{0x09, 0x01}
 	cmdWrite                     = []byte{0x06, 0x01}
 	cmdWriteNext                 = []byte{0x07, 0x01}
@@ -172,6 +177,8 @@ var (
 	keyAmountLen            = 32
 	deviceKeepAlive         = 20000
 	deviceRefreshInterval   = 1000
+	triggerMax              = uint16(512)
+	triggerRelease          = uint16(450)
 	maxBufferSizePerRequest = 60
 	rgbProfileUpgrade       = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
 	rgbModes                = []string{
@@ -265,6 +272,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 	d.setSoftwareMode()          // Activate software mode
 	d.getBatterLevel()           // Battery level
 	d.initLeds()                 // Init LED ports
+	d.initTriggerEndpoint()      // Trigger endpoint
 	d.setDeviceColor()           // Device color
 	d.setVibrationModuleValues() // Vibration module
 	d.setupAnalogDevices()       // Analog devices
@@ -1770,6 +1778,14 @@ func (d *Device) initLeds() {
 	}
 }
 
+// initTriggerEndpoint will initialize left and right trigger endpoint
+func (d *Device) initTriggerEndpoint() {
+	_, err := d.transfer(cmdInitWrite, cmdActivateTriggerBackend)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to initialize device trigger endpoint")
+	}
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, d.LEDChannels*3)
@@ -2196,6 +2212,40 @@ func (d *Device) getAnalogData() []byte {
 	return data
 }
 
+// processTriggers will process left and right trigger
+func (d *Device) processTriggers(packet []byte) {
+	left := binary.LittleEndian.Uint16(packet[4:6])
+	right := binary.LittleEndian.Uint16(packet[6:8])
+
+	if left >= triggerMax {
+		if d.leftTriggerArmed {
+			d.leftTriggerArmed = false
+			d.leftTriggerPressed = true
+			d.triggerKeyAssignment(2048)
+		}
+	} else if left < triggerRelease {
+		if d.leftTriggerPressed {
+			d.leftTriggerPressed = false
+			d.triggerKeyAssignment(0)
+		}
+		d.leftTriggerArmed = true
+	}
+
+	if right >= triggerMax {
+		if d.rightTriggerArmed {
+			d.rightTriggerArmed = false
+			d.rightTriggerPressed = true
+			d.triggerKeyAssignment(4096)
+		}
+	} else if right < triggerRelease {
+		if d.rightTriggerPressed {
+			d.rightTriggerPressed = false
+			d.triggerKeyAssignment(0)
+		}
+		d.rightTriggerArmed = true
+	}
+}
+
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
@@ -2227,6 +2277,10 @@ func (d *Device) backendListener() {
 					if val > 0 {
 						d.BatteryLevel = val
 					}
+				}
+
+				if data[0] == 0x03 && data[2] == 0x0a {
+					d.processTriggers(data)
 				}
 
 				if data[0] == 0x03 && data[2] == 0x02 {

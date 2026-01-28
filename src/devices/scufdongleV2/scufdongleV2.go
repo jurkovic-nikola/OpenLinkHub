@@ -464,6 +464,14 @@ func (d *Device) backendListener() {
 					}
 				}
 
+				if data[0] == 0x03 && data[2] == 0x0a {
+					for _, value := range d.PairedDevices {
+						if dev, found := value.(*scufenvisionproV2W.Device); found {
+							dev.ProcessTriggers(data)
+						}
+					}
+				}
+
 				if data[0] == 0x03 && data[2] == 0x02 {
 					for _, value := range d.PairedDevices {
 						if dev, found := value.(*scufenvisionproV2W.Device); found {

@@ -117,6 +117,10 @@ type Device struct {
 	instance              *common.Device
 	Usb                   bool
 	ZoneAmount            int
+	leftTriggerArmed      bool
+	rightTriggerArmed     bool
+	leftTriggerPressed    bool
+	rightTriggerPressed   bool
 }
 
 var (
@@ -136,6 +140,7 @@ var (
 	cmdOpenKeyAssignmentEndpoint = []byte{0x0d, 0x01, 0x02}
 	cmdOpenAnalogDataEndpoint    = []byte{0x0d, 0x01, 0x2b}
 	cmdOpenWriteEndpoint         = []byte{0x0d, 0x00, 0x01}
+	cmdActivateTriggerBackend    = []byte{0xc0, 0x00, 0x01}
 	cmdBeginWrite                = []byte{0x09, 0x01}
 	cmdWrite                     = []byte{0x06, 0x01}
 	cmdWriteNext                 = []byte{0x07, 0x01}
@@ -172,6 +177,8 @@ var (
 	keyAmount               = 30
 	keyAmountLen            = 32
 	deviceRefreshInterval   = 1000
+	triggerMax              = uint16(512)
+	triggerRelease          = uint16(450)
 	scufVendorId            = uint16(11925)
 	maxBufferSizePerRequest = 60
 	rgbProfileUpgrade       = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
@@ -276,6 +283,7 @@ func (d *Device) Connect() {
 		d.setSoftwareMode()          // Activate software mode
 		d.getBatterLevel()           // Battery level
 		d.initLeds()                 // Init LED ports
+		d.initTriggerEndpoint()      // Trigger endpoint
 		d.setDeviceColor()           // Device color
 		d.setVibrationModuleValues() // Vibration module
 		d.setupAnalogDevices()       // Analog devices
@@ -1753,6 +1761,14 @@ func (d *Device) initLeds() {
 	}
 }
 
+// initTriggerEndpoint will initialize left and right trigger endpoint
+func (d *Device) initTriggerEndpoint() {
+	_, err := d.transfer(cmdInitWrite, cmdActivateTriggerBackend)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to initialize device trigger endpoint")
+	}
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, d.LEDChannels*3)
@@ -2164,6 +2180,40 @@ func (d *Device) getAnalogData() []byte {
 		}
 	}
 	return data
+}
+
+// ProcessTriggers will process left and right trigger
+func (d *Device) ProcessTriggers(packet []byte) {
+	left := binary.LittleEndian.Uint16(packet[4:6])
+	right := binary.LittleEndian.Uint16(packet[6:8])
+
+	if left >= triggerMax {
+		if d.leftTriggerArmed {
+			d.leftTriggerArmed = false
+			d.leftTriggerPressed = true
+			d.TriggerKeyAssignment(2048)
+		}
+	} else if left < triggerRelease {
+		if d.leftTriggerPressed {
+			d.leftTriggerPressed = false
+			d.TriggerKeyAssignment(0)
+		}
+		d.leftTriggerArmed = true
+	}
+
+	if right >= triggerMax {
+		if d.rightTriggerArmed {
+			d.rightTriggerArmed = false
+			d.rightTriggerPressed = true
+			d.TriggerKeyAssignment(4096)
+		}
+	} else if right < triggerRelease {
+		if d.rightTriggerPressed {
+			d.rightTriggerPressed = false
+			d.TriggerKeyAssignment(0)
+		}
+		d.rightTriggerArmed = true
+	}
 }
 
 func (d *Device) decodeStick(data []byte) (int16, int16) {

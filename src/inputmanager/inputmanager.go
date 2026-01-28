@@ -622,7 +622,9 @@ func CreateVirtualKeyboard(productId uint16) {
 		err := createVirtualKeyboard(vendorId, productId)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to create virtual keyboard")
+			return
 		}
+		logger.Log(logger.Fields{}).Info("Virtual keyboard successfully created")
 	}
 }
 
@@ -632,7 +634,9 @@ func CreateVirtualMouse(productId uint16) {
 		err := createVirtualMouse(vendorId, productId)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to create virtual keyboard")
+			return
 		}
+		logger.Log(logger.Fields{}).Info("Virtual mouse successfully created")
 	}
 }
 

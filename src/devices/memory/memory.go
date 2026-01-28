@@ -140,8 +140,7 @@ var crcTable = [256]uint8{
 }
 
 const (
-	transferTypeColor       = 0
-	transferTypeTemperature = 1
+	transferTypeColor = 0
 )
 
 var (
@@ -150,10 +149,9 @@ var (
 	cmdActivations        = []byte{0x36, 0x37} // SPA0 and SPA1
 	maximumRegisters      = 8
 	colorAddresses        = []byte{0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f} // DDR4
-	temperatureAddresses  = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR4
+	temperatureAddresses  = []string{"0018", "0019", "001a", "001b", "001c", "001d", "001e", "001f"}
 	dimmInfoAddresses     = []byte{0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57} // DDR4, DDR5
-	temperatureRegister   = byte(0x05)
-	basePath              = "/sys/bus/i2c/drivers/spd5118/"
+	basePath              = "/sys/bus/i2c/drivers"
 	rgbProfileUpgrade     = []string{"led", "nebula", "marquee", "spiralrainbow", "gradient", "pastelrainbow", "pastelspiralrainbow"}
 	rgbModes              = []string{
 		"circle",
@@ -184,9 +182,7 @@ var (
 
 func Init(_, _ uint16, _, path string) *common.Device {
 	if config.GetConfig().MemoryType == 5 {
-		temperatureAddresses = dimmInfoAddresses                                // DDR5
 		colorAddresses = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR5
-		temperatureRegister = byte(0x31)                                        // DDR5 temperature register
 	}
 
 	if config.GetConfig().RamTempViaHwmon {
@@ -320,7 +316,7 @@ func (d *Device) Stop() {
 				static[i] = []byte{0, 0, 0}
 			}
 			buffer := rgb.SetColor(static)
-			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
+			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister)
 		}
 	}
 
@@ -334,39 +330,39 @@ func (d *Device) Stop() {
 }
 
 // getHwMonTemperatureFile will get hwmon
-func (d *Device) getHwMonTemperatureFile(baseId int) string {
+func (d *Device) getHwMonTemperatureFile(baseId int, driver string) string {
+	basePath := filepath.Join(basePath, driver)
+
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "path": basePath}).Warn("Failed to read directory")
 		return ""
 	}
 
 	for _, entry := range entries {
-		i2cPath := filepath.Join(basePath, entry.Name())
-		i2cDevice := filepath.Join(i2cPath, "name")
-		deviceName, err := os.ReadFile(i2cDevice)
+		devicePath := filepath.Join(basePath, entry.Name())
+		namePath := filepath.Join(devicePath, "name")
+
+		data, err := os.ReadFile(namePath)
 		if err != nil {
 			continue
 		}
-		name := strings.TrimSpace(string(deviceName))
-		if name != "spd5118" {
+
+		name := strings.TrimSpace(string(data))
+		if name != driver {
 			continue
 		}
-		if strings.Contains(entry.Name(), strconv.Itoa(baseId)) {
-			hwmonRoot := filepath.Join(i2cPath, "hwmon")
-			hwmonFolders, err := filepath.Glob(filepath.Join(hwmonRoot, "hwmon*"))
-			if err != nil {
-				continue
-			}
 
-			for _, hwmonFolder := range hwmonFolders {
-				files, err := filepath.Glob(filepath.Join(hwmonFolder, "temp*_input"))
-				if err != nil {
-					continue
-				}
-				if len(files) > 0 {
-					return files[0]
-				}
+		if !strings.Contains(entry.Name(), strconv.Itoa(baseId)) {
+			continue
+		}
+
+		hwmonRoot := filepath.Join(devicePath, "hwmon")
+		hwmonFolders, _ := filepath.Glob(filepath.Join(hwmonRoot, "hwmon*"))
+
+		for _, hwmonFolder := range hwmonFolders {
+			temps, _ := filepath.Glob(filepath.Join(hwmonFolder, "temp*_input"))
+			if len(temps) > 0 {
+				return temps[0]
 			}
 		}
 	}
@@ -477,16 +473,51 @@ func (d *Device) getEnhancementKit(address byte) bool {
 
 // getTemperature will read hwmon temperature file
 func (d *Device) getTemperature(filePath string) (float32, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return 0, err
+	if config.GetConfig().MemoryType == 5 {
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return 0, err
+		}
+		raw := strings.TrimSpace(string(data))
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			return 0, err
+		}
+		return float32(value) / 1000.0, nil
+	} else {
+		entries, err := os.ReadDir(filePath)
+		if err != nil {
+			return 0, fmt.Errorf("reading hwmon dir: %w", err)
+		}
+
+		var hwmonDir string
+		for _, e := range entries {
+			if e.IsDir() && strings.HasPrefix(e.Name(), "hwmon") {
+				hwmonDir = e.Name()
+				break
+			}
+		}
+
+		if hwmonDir == "" {
+			return 0, fmt.Errorf("no hwmon directory found in %s", filePath)
+		}
+
+		tempPath := filepath.Join(filePath, hwmonDir, "temp1_input")
+		data, err := os.ReadFile(tempPath)
+		if err != nil {
+			return 0, fmt.Errorf("reading temp1_input: %w", err)
+		}
+
+		// sysfs files usually end with newline
+		valueStr := strings.TrimSpace(string(data))
+		tempMilliC, err := strconv.Atoi(valueStr)
+		if err != nil {
+			return 0, fmt.Errorf("parsing temperature: %w", err)
+		}
+
+		return float32(tempMilliC) / 1000.0, nil
 	}
-	raw := strings.TrimSpace(string(data))
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, err
-	}
-	return float32(value) / 1000.0, nil
+
 }
 
 // getDevices will get a list of DIMMs
@@ -712,19 +743,8 @@ func (d *Device) getDevices() int {
 					}
 				}
 
-				hasTemp := false
 				temperature := 0.0
 				temperatureString := ""
-
-				// Temperature
-				temp := d.transfer(nil, temperatureAddresses[i], 0, 0, transferTypeTemperature)
-				if temp < 1 {
-					// No sensor
-				} else {
-					temperature = d.calculateTemperature(temp)
-					temperatureString = dashboard.GetDashboard().TemperatureToString(float32(temperature))
-					hasTemp = true
-				}
 
 				label := "Set Label"
 				if d.DeviceProfile != nil {
@@ -770,7 +790,6 @@ func (d *Device) getDevices() int {
 						TemperatureString: temperatureString,
 						Label:             label,
 						RGB:               rgbProfile,
-						HasTemps:          hasTemp,
 					}
 
 					if len(d.SkuLine) < 1 {
@@ -787,17 +806,31 @@ func (d *Device) getDevices() int {
 
 					if config.GetConfig().RamTempViaHwmon {
 						if !d.getEnhancementKit(dimmInfoAddresses[i]) {
-							hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice)
-							if len(hwmonTemperatureFile) > 0 {
-								device.HwmonPath = hwmonTemperatureFile
-								hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
+							if config.GetConfig().MemoryType == 5 {
+								hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice, "spd5118")
+								if len(hwmonTemperatureFile) > 0 {
+									device.HwmonPath = hwmonTemperatureFile
+									hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
+									if err == nil {
+										device.Temperature = hwmonTemp
+										device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
+										device.HasTemps = true
+									}
+								}
+								baseDevice += i + 1
+							} else {
+								device.HwmonPath = fmt.Sprintf(
+									"/sys/bus/i2c/drivers/jc42/%d-%s/hwmon",
+									d.getI2cSensor(),
+									temperatureAddresses[i],
+								)
+								hwmonTemp, err := d.getTemperature(device.HwmonPath)
 								if err == nil {
 									device.Temperature = hwmonTemp
 									device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
 									device.HasTemps = true
 								}
 							}
-							baseDevice += i + 1
 						}
 					}
 
@@ -813,6 +846,17 @@ func (d *Device) getDevices() int {
 
 	d.Devices = devices
 	return len(devices)
+}
+
+// getI2cSensor will return i2c device number
+func (d *Device) getI2cSensor() int {
+	parts := strings.Split(d.Path, "-")
+	n, err := strconv.Atoi(parts[len(parts)-1])
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to get i2c device number")
+		return 0
+	}
+	return n
 }
 
 // loadDeviceProfiles will load custom user profiles
@@ -1184,7 +1228,7 @@ func (d *Device) setDeviceColor() {
 			static[i] = []byte{byte(0), byte(0), byte(0)}
 		}
 		buffer = rgb.SetColor(static)
-		d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
+		d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister)
 		time.Sleep(5 * time.Millisecond)
 	}
 
@@ -1236,7 +1280,7 @@ func (d *Device) setDeviceColor() {
 				}
 			}
 			buffer = rgb.SetColor(static)
-			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister, transferTypeColor)
+			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister)
 			time.Sleep(10 * time.Millisecond)
 		}
 		return
@@ -1466,7 +1510,7 @@ func (d *Device) writeColor(data []byte, deviceId int) {
 	if d.DeviceProfile.OpenRGBIntegration {
 		return
 	}
-	d.transfer(data, colorAddresses[deviceId], d.Devices[deviceId].LedChannels, d.Devices[deviceId].ColorRegister, transferTypeColor)
+	d.transfer(data, colorAddresses[deviceId], d.Devices[deviceId].LedChannels, d.Devices[deviceId].ColorRegister)
 }
 
 // writeColorEx will write data to the device from OpenRGB client
@@ -1554,7 +1598,7 @@ func (d *Device) startQueueWorker() {
 
 			for _, channelId := range keys {
 				data := packetMap[channelId]
-				d.transfer(data, colorAddresses[channelId], d.Devices[channelId].LedChannels, d.Devices[channelId].ColorRegister, transferTypeColor)
+				d.transfer(data, colorAddresses[channelId], d.Devices[channelId].LedChannels, d.Devices[channelId].ColorRegister)
 				_ = channelId
 			}
 			d.deviceLock.Unlock()
@@ -2118,27 +2162,7 @@ func (d *Device) setTemperatures() {
 					device.Temperature = hwmonTemp
 					device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
 				}
-			} else {
-				// Temperature
-				temp := d.transfer(
-					nil,
-					temperatureAddresses[device.ChannelId],
-					0,
-					0, transferTypeTemperature,
-				)
-				if temp < 1 {
-					// No sensor
-				} else {
-					temperature := d.calculateTemperature(temp)
-					temperatureString := dashboard.GetDashboard().TemperatureToString(float32(temperature))
-					d.Devices[device.ChannelId].Temperature = float32(temperature)
-					d.Devices[device.ChannelId].TemperatureString = temperatureString
-
-					// Update temperature data
-					temperatures.SetMemoryTemperature(device.ChannelId, float32(temperature))
-				}
 			}
-			
 			stats.UpdateDeviceStats(
 				d.Serial,
 				device.Name,
@@ -2171,6 +2195,46 @@ func (d *Device) setAutoRefresh() {
 	}()
 }
 
+func readJC42Temp(bus int, addr string) (int, error) {
+	basePath := fmt.Sprintf(
+		"/sys/bus/i2c/drivers/jc42/%d-%s/hwmon",
+		bus,
+		addr,
+	)
+
+	entries, err := os.ReadDir(basePath)
+	if err != nil {
+		return 0, fmt.Errorf("reading hwmon dir: %w", err)
+	}
+
+	var hwmonDir string
+	for _, e := range entries {
+		if e.IsDir() && strings.HasPrefix(e.Name(), "hwmon") {
+			hwmonDir = e.Name()
+			break
+		}
+	}
+
+	if hwmonDir == "" {
+		return 0, fmt.Errorf("no hwmon directory found in %s", basePath)
+	}
+
+	tempPath := filepath.Join(basePath, hwmonDir, "temp1_input")
+	data, err := os.ReadFile(tempPath)
+	if err != nil {
+		return 0, fmt.Errorf("reading temp1_input: %w", err)
+	}
+
+	// sysfs files usually end with newline
+	valueStr := strings.TrimSpace(string(data))
+	tempMilliC, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return 0, fmt.Errorf("parsing temperature: %w", err)
+	}
+
+	return tempMilliC, nil
+}
+
 // calculateChecksum will calculate CRC checksum
 func (d *Device) calculateChecksum(data []byte) byte {
 	var val uint8 = 0
@@ -2181,52 +2245,39 @@ func (d *Device) calculateChecksum(data []byte) byte {
 }
 
 // transfer will transfer data to a i2c device
-func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister uint8, transferType int) uint16 {
+func (d *Device) transfer(buffer []byte, address, ledDevices byte, colorRegister uint8) uint16 {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	switch transferType {
-	case transferTypeColor:
-		{
-			// RGB
-			var buf []byte
-			buf = append(buf, ledDevices)
-			for i := 0; i < len(buffer); i++ {
-				buf = append(buf, buffer[i])
-			}
-			buf = append(buf, d.calculateChecksum(buf))
+	// RGB
+	var buf []byte
+	buf = append(buf, ledDevices)
+	for i := 0; i < len(buffer); i++ {
+		buf = append(buf, buffer[i])
+	}
+	buf = append(buf, d.calculateChecksum(buf))
+	if d.Debug {
+		logger.Log(logger.Fields{"colorPacket": fmt.Sprintf("% 2x", buf)}).Info("Memory Color")
+	}
+	if len(buf) > 32 {
+		// We have more than 10 LEDs, we need to chunk packet and increment color register.
+		// This is relevant for DOMINATOR PLATINUM RGB that has 12 LEDs.
+		chunks := common.ProcessMultiChunkPacket(buf, 32)
+		for _, chunk := range chunks {
 			if d.Debug {
-				logger.Log(logger.Fields{"colorPacket": fmt.Sprintf("% 2x", buf)}).Info("Memory Color")
+				logger.Log(logger.Fields{"colorPacket": fmt.Sprint("% 2x", chunk)}).Info("Memory Color - Chunk")
 			}
-			if len(buf) > 32 {
-				// We have more than 10 LEDs, we need to chunk packet and increment color register.
-				// This is relevant for DOMINATOR PLATINUM RGB that has 12 LEDs.
-				chunks := common.ProcessMultiChunkPacket(buf, 32)
-				for _, chunk := range chunks {
-					if d.Debug {
-						logger.Log(logger.Fields{"colorPacket": fmt.Sprint("% 2x", chunk)}).Info("Memory Color - Chunk")
-					}
-					err := smbus.WriteBlockData(d.dev.File, address, colorRegister, chunk)
-					if err != nil {
-						logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")
-					}
-					colorRegister += 1
-					time.Sleep(1 * time.Millisecond)
-				}
-			} else {
-				err := smbus.WriteBlockData(d.dev.File, address, colorRegister, buf)
-				if err != nil {
-					logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")
-				}
+			err := smbus.WriteBlockData(d.dev.File, address, colorRegister, chunk)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")
 			}
+			colorRegister += 1
+			time.Sleep(1 * time.Millisecond)
 		}
-	case transferTypeTemperature:
-		{
-			// Temperature
-			temp, err := smbus.ReadWord(d.dev.File, address, temperatureRegister)
-			if err == nil {
-				return temp
-			}
+	} else {
+		err := smbus.WriteBlockData(d.dev.File, address, colorRegister, buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "address": address}).Error("Unable to write to i2c register")
 		}
 	}
 	return 0

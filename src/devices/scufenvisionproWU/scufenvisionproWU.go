@@ -1653,6 +1653,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LeftThumbStickInvertY = d.DeviceProfile.LeftThumbStickInvertY
 		deviceProfile.RightThumbStickInvertY = d.DeviceProfile.RightThumbStickInvertY
 		deviceProfile.AnalogData = d.DeviceProfile.AnalogData
+		deviceProfile.KeyAssignmentHash = d.DeviceProfile.KeyAssignmentHash
 	}
 
 	// Fix profile paths if folder database/ folder is moved

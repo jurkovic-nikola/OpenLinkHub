@@ -940,7 +940,7 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 }
 
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 {
+func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, _ []int) uint8 {
 	switch keyOption {
 	case 0:
 		{
@@ -1382,7 +1382,7 @@ func (d *Device) setDeviceColor() {
 				if len(buff) == 0 {
 					continue
 				}
-				
+
 				for _, rows := range d.DeviceProfile.Mousepad.Row {
 					for _, keys := range rows.Zones {
 						for _, packetIndex := range keys.PacketIndex {

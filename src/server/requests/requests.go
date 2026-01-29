@@ -68,6 +68,7 @@ type Payload struct {
 	OnRelease                     bool                  `json:"onRelease"`
 	DeviceType                    int                   `json:"deviceType"`
 	KeyOption                     int                   `json:"keyOption"`
+	Keys                          []int                 `json:"keys"`
 	AreaOption                    int                   `json:"areaOption"`
 	KeyId                         int                   `json:"keyId"`
 	AreaId                        int                   `json:"areaId"`
@@ -155,6 +156,7 @@ type Payload struct {
 	ActuationAllKeys              bool                  `json:"actuationAllKeys"`
 	ActuationPoint                byte                  `json:"actuationPoint"`
 	ActuationResetPoint           byte                  `json:"actuationResetPoint"`
+	EnableActuationPointReset     bool                  `json:"enableActuationPointReset"`
 	EnableSecondaryActuationPoint bool                  `json:"enableSecondaryActuationPoint"`
 	SecondaryActuationPoint       byte                  `json:"secondaryActuationPoint"`
 	SecondaryActuationResetPoint  byte                  `json:"secondaryActuationResetPoint"`
@@ -1766,6 +1768,7 @@ func ProcessChangeKeyActuation(r *http.Request) *Payload {
 	keyActuation := keyboards.KeyActuation{
 		ActuationAllKeys:              req.ActuationAllKeys,
 		ActuationPoint:                req.ActuationPoint,
+		EnableActuationPointReset:     req.EnableActuationPointReset,
 		ActuationResetPoint:           req.ActuationResetPoint,
 		EnableSecondaryActuationPoint: req.EnableSecondaryActuationPoint,
 		SecondaryActuationPoint:       req.SecondaryActuationPoint,
@@ -2888,8 +2891,12 @@ func ProcessKeyboardColor(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidKeySelected"), Code: http.StatusOK, Status: 0}
 	}
 
-	if req.KeyOption < 0 || req.KeyOption > 2 {
+	if req.KeyOption < 0 || req.KeyOption > 3 {
 		return &Payload{Message: language.GetValue("txtInvalidKeyOptionSelected"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.KeyOption == 3 && len(req.Keys) == 0 {
+		return &Payload{Message: language.GetValue("txtInvalidKeySelected"), Code: http.StatusOK, Status: 0}
 	}
 
 	results := devices.CallDeviceMethod(
@@ -2898,6 +2905,7 @@ func ProcessKeyboardColor(r *http.Request) *Payload {
 		req.KeyId,
 		req.KeyOption,
 		req.Color,
+		req.Keys,
 	)
 
 	if len(results) > 0 {

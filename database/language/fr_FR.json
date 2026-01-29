@@ -600,6 +600,8 @@
         "txtPressAndHoldBlocked": "L’option Appuyer et maintenir ne peut pas être utilisée lorsque l’option Au relâchement est activée",
         "txtSlipstreamDirection": "Direction (Slipstream uniquement)",
         "txtSlipstreamAlternateColors": "Couleurs alternées (Slipstream uniquement)",
-        "txtStyle": "Style"
+        "txtStyle": "Style",
+        "txtSelectedKeys": "Touches sélectionnées",
+        "txtEnableResetPoint": "Activer le point de réinitialisation"
     }
 }

@@ -28,6 +28,11 @@ import (
 	"time"
 )
 
+type KeyPos struct {
+	Row int
+	Col int
+}
+
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
 	Active          bool
@@ -1262,8 +1267,23 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 	return 0
 }
 
+// buildKeyIndexMap will build keyboard map with rows and columns
+func (d *Device) buildKeyIndexMap() map[int]KeyPos {
+	keyIndexMap := make(map[int]KeyPos)
+	keyboard := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]
+	for r, row := range keyboard.Row {
+		for c := range row.Keys {
+			keyIndexMap[c] = KeyPos{
+				Row: r,
+				Col: c,
+			}
+		}
+	}
+	return keyIndexMap
+}
+
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 {
+func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, selections []int) uint8 {
 	switch keyOption {
 	case 0:
 		{
@@ -1338,6 +1358,40 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 			}
 			d.setDeviceColor()
 			return 1
+		}
+	case 3:
+		{
+			updated := 0
+			keyIndexMap := d.buildKeyIndexMap()
+			for _, val := range selections {
+				pos, ok := keyIndexMap[val]
+				if !ok {
+					continue
+				}
+
+				key, valid := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[pos.Row].Keys[pos.Col]
+				if !valid {
+					continue
+				}
+
+				key.Color = rgb.Color{
+					Red:   color.Red,
+					Green: color.Green,
+					Blue:  color.Blue,
+				}
+
+				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[pos.Row].Keys[pos.Col] = key
+				updated++
+			}
+
+			if updated > 0 {
+				if d.activeRgb != nil {
+					d.activeRgb.Exit <- true
+					d.activeRgb = nil
+				}
+				d.setDeviceColor()
+				return 1
+			}
 		}
 	}
 	return 0

@@ -600,6 +600,8 @@
     "txtPressAndHoldBlocked": "Tryck och håll kan inte användas när Vid släpp är aktiverat",
     "txtSlipstreamDirection": "Riktning (endast Slipstream)",
     "txtSlipstreamAlternateColors": "Växlande färger (endast Slipstream)",
-    "txtStyle": "Stil"
+    "txtStyle": "Stil",
+    "txtSelectedKeys": "Valda tangenter",
+    "txtEnableResetPoint": "Aktivera återställningspunkt"
   }
 }

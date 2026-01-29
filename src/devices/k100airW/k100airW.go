@@ -1532,7 +1532,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 }
 
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(_, keyOption int, color rgb.Color) uint8 {
+func (d *Device) UpdateDeviceColor(_, keyOption int, color rgb.Color, _ []int) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}

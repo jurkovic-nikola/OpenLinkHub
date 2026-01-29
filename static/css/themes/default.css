@@ -2655,7 +2655,7 @@ table.dataTable.compact tbody td {
 }
 
 .keyboard-key.active {
-    background: linear-gradient(180deg, #272727, #1a1a1a);
+    /*background: linear-gradient(180deg, #272727, #1a1a1a);*/
 }
 
 .keyboard-key-empty {
@@ -2914,7 +2914,7 @@ table.dataTable.compact tbody td {
 .keyboard-key.right-led-11 { height: calc(var(--kb-key) * 0.5); margin-top: calc(var(--kb-key) * 0.5); }
 
 .keySelector.active {
-    border: 1px solid;
+    /*border: 1px solid #bf8d19;*/
 }
 
 .enter-custom {

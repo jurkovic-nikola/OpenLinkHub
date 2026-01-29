@@ -600,6 +600,8 @@
     "txtPressAndHoldBlocked": "Pressionar e segurar não pode ser usado enquanto Ao soltar estiver ativado",
     "txtSlipstreamDirection": "Direção (somente Slipstream)",
     "txtSlipstreamAlternateColors": "Cores alternadas (somente Slipstream)",
-    "txtStyle": "Estilo"
+    "txtStyle": "Estilo",
+    "txtSelectedKeys": "Teclas selecionadas",
+    "txtEnableResetPoint": "Ativar ponto de redefinição"
   }
 }

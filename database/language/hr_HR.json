@@ -600,6 +600,8 @@
     "txtPressAndHoldBlocked": "Pritisni i drži ne može se koristiti dok je omogućeno Pri otpuštanju",
     "txtSlipstreamDirection": "Smjer (samo Slipstream)",
     "txtSlipstreamAlternateColors": "Naizmjenične boje (samo Slipstream)",
-    "txtStyle": "Stil"
+    "txtStyle": "Stil",
+    "txtSelectedKeys": "Odabrane tipke",
+    "txtEnableResetPoint": "Omogući točku resetiranja"
   }
 }

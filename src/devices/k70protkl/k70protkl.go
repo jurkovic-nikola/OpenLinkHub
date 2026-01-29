@@ -29,6 +29,11 @@ import (
 	"time"
 )
 
+type KeyPos struct {
+	Row int
+	Col int
+}
+
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
 	Active          bool
@@ -480,6 +485,7 @@ func (d *Device) setupKeyActuation() {
 	}
 
 	keyActuationData := make(map[byte][]byte)
+	keyActuationConfig := make(map[byte][]bool)
 
 	for _, row := range keyboard.Row {
 		for _, key := range row.Keys {
@@ -497,6 +503,13 @@ func (d *Device) setupKeyActuation() {
 				key.SecondaryActuationPoint,
 				key.SecondaryActuationResetPoint,
 			}
+
+			keyActuationConfig[packetId] = []bool{
+				true,
+				key.EnableActuationPointReset,
+				key.EnableSecondaryActuationPoint,
+				key.EnableActuationPointReset,
+			}
 		}
 	}
 
@@ -506,6 +519,8 @@ func (d *Device) setupKeyActuation() {
 
 		for _, keyActuation := range keyActuations {
 			actuation := byte(0x14)
+			status := byte(0x01)
+
 			switch i {
 			case 0:
 				actuation = byte(0x14)
@@ -520,9 +535,18 @@ func (d *Device) setupKeyActuation() {
 			if v, valid := keyActuationData[keyActuation]; valid {
 				actuation = v[i]
 			}
+
+			if v, valid := keyActuationConfig[keyActuation]; valid {
+				if v[i] {
+					status = byte(0x01)
+				} else {
+					status = byte(0x00)
+				}
+			}
+
 			buf = append(buf,
 				keyActuation,
-				0x01,
+				status,
 				actuation,
 			)
 		}
@@ -1838,6 +1862,7 @@ func (d *Device) UpdateDeviceKeyActuation(keyIndex int, keyActuation keyboards.K
 	allKeys := keyActuation.ActuationAllKeys
 	primary := keyActuation.ActuationPoint
 	primaryReset := keyActuation.ActuationResetPoint
+	enableReset := keyActuation.EnableActuationPointReset
 	enableSecondary := keyActuation.EnableSecondaryActuationPoint
 	secondary := keyActuation.SecondaryActuationPoint
 	secondaryReset := keyActuation.SecondaryActuationResetPoint
@@ -1882,6 +1907,7 @@ func (d *Device) UpdateDeviceKeyActuation(keyIndex int, keyActuation keyboards.K
 					key.ActuationPoint == primary &&
 						key.ActuationResetPoint == primaryReset &&
 						key.EnableSecondaryActuationPoint == enableSecondary &&
+						key.EnableActuationPointReset == enableReset &&
 						(!enableSecondary ||
 							(key.SecondaryActuationPoint == secondary &&
 								key.SecondaryActuationResetPoint == secondaryReset))
@@ -1893,6 +1919,7 @@ func (d *Device) UpdateDeviceKeyActuation(keyIndex int, keyActuation keyboards.K
 				key.ActuationPoint = primary
 				key.ActuationResetPoint = primaryReset
 				key.EnableSecondaryActuationPoint = enableSecondary
+				key.EnableActuationPointReset = enableReset
 
 				if enableSecondary {
 					key.SecondaryActuationPoint = secondary
@@ -1914,6 +1941,7 @@ func (d *Device) UpdateDeviceKeyActuation(keyIndex int, keyActuation keyboards.K
 						key.ActuationPoint == primary &&
 							key.ActuationResetPoint == primaryReset &&
 							key.EnableSecondaryActuationPoint == enableSecondary &&
+							key.EnableActuationPointReset == enableReset &&
 							(!enableSecondary ||
 								(key.SecondaryActuationPoint == secondary &&
 									key.SecondaryActuationResetPoint == secondaryReset))
@@ -1925,6 +1953,8 @@ func (d *Device) UpdateDeviceKeyActuation(keyIndex int, keyActuation keyboards.K
 					key.ActuationPoint = primary
 					key.ActuationResetPoint = primaryReset
 					key.EnableSecondaryActuationPoint = enableSecondary
+					key.EnableActuationPointReset = enableReset
+
 					if enableSecondary {
 						key.SecondaryActuationPoint = secondary
 						key.SecondaryActuationResetPoint = secondaryReset
@@ -1944,8 +1974,23 @@ func (d *Device) UpdateDeviceKeyActuation(keyIndex int, keyActuation keyboards.K
 	return 6
 }
 
+// buildKeyIndexMap will build keyboard map with rows and columns
+func (d *Device) buildKeyIndexMap() map[int]KeyPos {
+	keyIndexMap := make(map[int]KeyPos)
+	keyboard := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]
+	for r, row := range keyboard.Row {
+		for c := range row.Keys {
+			keyIndexMap[c] = KeyPos{
+				Row: r,
+				Col: c,
+			}
+		}
+	}
+	return keyIndexMap
+}
+
 // UpdateDeviceColor will update device color based on selected input
-func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 {
+func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, selections []int) uint8 {
 	switch keyOption {
 	case 0:
 		{
@@ -2020,6 +2065,40 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color) uint8 
 			}
 			d.setDeviceColor()
 			return 1
+		}
+	case 3:
+		{
+			updated := 0
+			keyIndexMap := d.buildKeyIndexMap()
+			for _, val := range selections {
+				pos, ok := keyIndexMap[val]
+				if !ok {
+					continue
+				}
+
+				key, valid := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[pos.Row].Keys[pos.Col]
+				if !valid {
+					continue
+				}
+
+				key.Color = rgb.Color{
+					Red:   color.Red,
+					Green: color.Green,
+					Blue:  color.Blue,
+				}
+
+				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[pos.Row].Keys[pos.Col] = key
+				updated++
+			}
+
+			if updated > 0 {
+				if d.activeRgb != nil {
+					d.activeRgb.Exit <- true
+					d.activeRgb = nil
+				}
+				d.setDeviceColor()
+				return 1
+			}
 		}
 	}
 	return 0

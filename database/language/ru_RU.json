@@ -600,6 +600,8 @@
         "txtPressAndHoldBlocked": "Функция «Нажать и удерживать» не может использоваться, пока включено действие «При отпускании»",
         "txtSlipstreamDirection": "Направление (только Slipstream)",
         "txtSlipstreamAlternateColors": "Чередование цветов (только Slipstream)",
-        "txtStyle": "Стиль"
+        "txtStyle": "Стиль",
+        "txtSelectedKeys": "Выбранные клавиши",
+        "txtEnableResetPoint": "Включить точку сброса"
     }
 }

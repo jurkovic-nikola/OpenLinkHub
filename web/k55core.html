@@ -14,6 +14,7 @@
     {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
 
     <div class="row">
         <!-- Sidebar -->
@@ -174,7 +175,7 @@
                                     {{ end }}
 
                                     <!-- Key -->
-                                    <div class="{{ $keyCss }} {{ $keys.ExtraCss }} keyboardColor keySelector {{ $keys.Css }}" data-info="{{ $index }};{{ $color.Color.Red }};{{ $color.Color.Green }};{{ $color.Color.Blue }}">
+                                    <div class="{{ $keyCss }} {{ $keys.ExtraCss }} keyboardColor device-selectable {{ $keys.Css }}" data-info="{{ $index }};{{ $color.Color.Red }};{{ $color.Color.Green }};{{ $color.Color.Blue }}">
                                         {{ if $keys.NoColor }}
                                         <span class="key-no-color">{{ $keys.KeyName }}</span>
                                         {{ else }}

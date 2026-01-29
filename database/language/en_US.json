@@ -600,6 +600,8 @@
     "txtPressAndHoldBlocked": "Press and Hold can not be used while On Release is enabled",
     "txtSlipstreamDirection": "Direction (Slipstream Only)",
     "txtSlipstreamAlternateColors": "Alternate Colors (Slipstream Only)",
-    "txtStyle": "Style"
+    "txtStyle": "Style",
+    "txtSelectedKeys": "Selected Keys",
+    "txtEnableResetPoint": "Enable Reset Point"
   }
 }

@@ -31,8 +31,6 @@ $(document).ready(function () {
         }
     });
 
-    let globalKeyId = 0;
-
     function componentToHex(c) {
         const hex = c.toString(16);
         return hex.length === 1 ? "0" + hex : hex;
@@ -48,14 +46,6 @@ $(document).ready(function () {
             b: parseInt(result[3], 16)
         } : null;
     }
-
-    const keySelector = document.querySelectorAll('.keySelector');
-    keySelector.forEach(div => {
-        div.addEventListener('click', () => {
-            keySelector.forEach(s => s.classList.remove('active'));
-            div.classList.add('active');
-        });
-    });
 
     function fetchAssignmentTypes(deviceId, selectedType, callback) {
         $.ajax({
@@ -334,8 +324,6 @@ $(document).ready(function () {
                                 pf["flashTapMode"] = flashTapMode;
                                 pf["flashTapColor"] = {red: color.r, green: color.g, blue: color.b};
                                 const json = JSON.stringify(pf, null, 2);
-                                console.log(json);
-
                                 $.ajax({
                                     url: '/api/keyboard/setFlashTap',
                                     type: 'POST',
@@ -577,7 +565,24 @@ $(document).ready(function () {
     });
 
     $('.openKeyAssignments').on('click', function () {
-        if (globalKeyId === 0) {
+        const selectedDevices = $("#selectedDevices").val();
+        let selectedDevicesArray = [];
+        let lastIndex = null;
+
+        if (selectedDevices != null) {
+            if (selectedDevices.length > 0) {
+                selectedDevicesArray = selectedDevices
+                    .split(',')
+                    .map(str => parseInt(str.trim(), 10))
+                    .filter(num => !isNaN(num)); // Ensure valid numbers only
+
+                lastIndex = selectedDevicesArray.at(-1) ?? null;
+            } else if (selectedDevices.length === 1) {
+                lastIndex = parseInt(selectedDevices);
+            }
+        }
+
+        if (lastIndex === null) {
             toast.warning(i18n.t('txtSelectValidKey'));
             return false;
         }
@@ -585,7 +590,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const pf = {};
         pf["deviceId"] = deviceId;
-        pf["keyId"] = parseInt(globalKeyId);
+        pf["keyId"] = parseInt(lastIndex);
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -884,7 +889,7 @@ $(document).ready(function () {
 
                                 const pf = {};
                                 pf["deviceId"] = deviceId;
-                                pf["keyIndex"] = parseInt(globalKeyId);
+                                pf["keyIndex"] = parseInt(lastIndex);
                                 pf["enabled"] = enabled;
                                 pf["pressAndHold"] = pressAndHold;
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
@@ -924,7 +929,24 @@ $(document).ready(function () {
     });
 
     $('.openKeyActuation').on('click', function () {
-        if (globalKeyId === 0) {
+        const selectedDevices = $("#selectedDevices").val();
+        let selectedDevicesArray = [];
+        let lastIndex = null;
+
+        if (selectedDevices != null) {
+            if (selectedDevices.length > 0) {
+                selectedDevicesArray = selectedDevices
+                    .split(',')
+                    .map(str => parseInt(str.trim(), 10))
+                    .filter(num => !isNaN(num)); // Ensure valid numbers only
+
+                lastIndex = selectedDevicesArray.at(-1) ?? null;
+            } else if (selectedDevices.length === 1) {
+                lastIndex = parseInt(selectedDevices);
+            }
+        }
+
+        if (lastIndex === null) {
             toast.warning(i18n.t('txtSelectValidKey'));
             return false;
         }
@@ -932,7 +954,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const pf = {};
         pf["deviceId"] = deviceId;
-        pf["keyId"] = parseInt(globalKeyId);
+        pf["keyId"] = parseInt(lastIndex);
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -980,6 +1002,14 @@ $(document).ready(function () {
                                             <span class="settings-label text-ellipsis" id="actuationValue">${data.actuationPoint / 10} mm</span>
                                         </div>
                                         
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEnableResetPoint')}</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="enableActuationPointReset" ${data.enableActuationPointReset ? "checked" : ""}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+                                        
                                         <div class="settings-row settings-actuation" id="primaryReset">
                                             <span class="settings-label text-ellipsis">${i18n.t('txtActuationReset')}</span>
                                             <div class="system-slider no-padding-top">
@@ -995,6 +1025,7 @@ $(document).ready(function () {
                                                 <span class="toggle-track"></span>
                                             </label>
                                         </div>
+                                        
                                         <div id="secondaryContainer">
                                             <div class="settings-row settings-actuation" id="secondaryPoint">
                                                 <span class="settings-label text-ellipsis">${i18n.t('txtActuation')}</span>
@@ -1086,27 +1117,28 @@ $(document).ready(function () {
                             });
 
                             $(".secondaryActuationResetPoint").each(function () {
-                                $("#secondaryActuationValueReset").html(this.value + " mm");
+                                $("#secondaryActuationValueReset").html(this.value / 10 + " mm");
                                 updateActuationSlider(this);
                             }).on("input", function () {
-                                $("#secondaryActuationValueReset").html(this.value + " mm");
+                                $("#secondaryActuationValueReset").html(this.value / 10 + " mm");
                                 updateActuationSlider(this);
                             });
 
                             modal.find('#btnSaveActuationValue').on('click', function () {
                                 const actuationAllKeys = modal.find("#actuationAllKeys").is(':checked');
                                 const actuationPoint = modal.find("#actuationPoint").val();
+                                const enableActuationPointReset = modal.find("#enableActuationPointReset").is(':checked');
                                 const actuationResetPoint = modal.find("#actuationResetPoint").val();
-
                                 const enableSecondaryActuationPoint = modal.find("#enableSecondaryActuationPoint").is(':checked');
                                 const secondaryActuationPoint = modal.find("#secondaryActuationPoint").val();
                                 const secondaryActuationResetPoint = modal.find("#secondaryActuationResetPoint").val();
 
                                 const pf = {};
                                 pf["deviceId"] = deviceId;
-                                pf["keyIndex"] = parseInt(globalKeyId);
+                                pf["keyIndex"] = parseInt(lastIndex);
                                 pf["actuationAllKeys"] = actuationAllKeys;
                                 pf["actuationPoint"] = parseInt(actuationPoint);
+                                pf["enableActuationPointReset"] = enableActuationPointReset;
                                 pf["actuationResetPoint"] = parseInt(actuationResetPoint);
                                 pf["enableSecondaryActuationPoint"] = enableSecondaryActuationPoint;
                                 pf["secondaryActuationPoint"] = parseInt(secondaryActuationPoint);
@@ -1142,7 +1174,24 @@ $(document).ready(function () {
     });
 
     $('.openKeyAssignmentsWithModifier').on('click', function () {
-        if (globalKeyId === 0) {
+        const selectedDevices = $("#selectedDevices").val();
+        let selectedDevicesArray = [];
+        let lastIndex = null;
+
+        if (selectedDevices != null) {
+            if (selectedDevices.length > 0) {
+                selectedDevicesArray = selectedDevices
+                    .split(',')
+                    .map(str => parseInt(str.trim(), 10))
+                    .filter(num => !isNaN(num)); // Ensure valid numbers only
+
+                lastIndex = selectedDevicesArray.at(-1) ?? null;
+            } else if (selectedDevices.length === 1) {
+                lastIndex = parseInt(selectedDevices);
+            }
+        }
+
+        if (lastIndex === null) {
             toast.warning(i18n.t('txtSelectValidKey'));
             return false;
         }
@@ -1150,7 +1199,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const pf = {};
         pf["deviceId"] = deviceId;
-        pf["keyId"] = parseInt(globalKeyId);
+        pf["keyId"] = parseInt(lastIndex);
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -1492,7 +1541,7 @@ $(document).ready(function () {
 
                                 const pf = {};
                                 pf["deviceId"] = deviceId;
-                                pf["keyIndex"] = parseInt(globalKeyId);
+                                pf["keyIndex"] = parseInt(lastIndex);
                                 pf["enabled"] = enabled;
                                 pf["pressAndHold"] = pressAndHold;
                                 pf["keyAssignmentOriginal"] = retainOriginal;
@@ -3622,7 +3671,6 @@ $(document).ready(function () {
         const colorB = parseInt(keyInfo[3]);
         const hex = rgbToHex(colorR, colorG, colorB);
         $("#keyColor").val('' + hex + '');
-        globalKeyId = keyId;
 
         applyButton.on('click', function () {
             const keyOption = $(".keyOptions").val();
@@ -3631,9 +3679,23 @@ $(document).ready(function () {
 
             const pf = {};
             const color = {red:rgb.r, green:rgb.g, blue:rgb.b}
+
+            const selectedDevices = $("#selectedDevices").val();
+            let selectedDevicesArray = [];
+
+            if (selectedDevices != null) {
+                if (selectedDevices.length > 0) {
+                    selectedDevicesArray = selectedDevices
+                        .split(',')
+                        .map(str => parseInt(str.trim(), 10))
+                        .filter(num => !isNaN(num)); // Ensure valid numbers only
+                }
+            }
+
             pf["deviceId"] = deviceId;
             pf["keyId"] = keyId;
             pf["keyOption"] = parseInt(keyOption);
+            pf["keys"] = selectedDevicesArray;
             pf["color"] = color;
 
             const json = JSON.stringify(pf, null, 2);

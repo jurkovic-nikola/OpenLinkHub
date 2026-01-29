@@ -14,6 +14,7 @@
     {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
 
     <div class="row">
         <!-- Sidebar -->
@@ -162,7 +163,7 @@
                                     {{ end }}
 
                                     <!-- Key -->
-                                    <div class="{{ if gt (len $keys.Css) 0 }}{{ $keys.Css }} {{ else }} keyboard-key {{ end }} keyboardColor keySelector" style="font-size: 12px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
+                                    <div class="{{ if gt (len $keys.Css) 0 }}{{ $keys.Css }} {{ else }} keyboard-key {{ end }} keyboardColor device-selectable" style="font-size: 12px;" data-info="{{ $index }};{{ $keys.Color.Red }};{{ $keys.Color.Green }};{{ $keys.Color.Blue }}">
                                         <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $keys.Color.Red }}, {{ $keys.Color.Green }}, {{ $keys.Color.Blue }}, 1);text-align: center;">
                                             {{ $keys.KeyName }}
 
@@ -194,6 +195,7 @@
                                                 <option value="0">{{ .Lang "txtCurrentKey" }}</option>
                                                 <option value="1">{{ .Lang "txtCurrentRow" }}</option>
                                                 <option value="2">{{ .Lang "txtAllKeys" }}</option>
+                                                <option value="3">{{ .Lang "txtSelectedKeys" }}</option>
                                             </select>
                                         </label>
                                         <button class="system-button center compact" id="applyColors">{{ .Lang "txtApply" }}</button>

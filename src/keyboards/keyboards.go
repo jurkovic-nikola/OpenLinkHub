@@ -31,6 +31,7 @@ type FlashTap struct {
 type KeyActuation struct {
 	ActuationAllKeys              bool
 	ActuationPoint                byte
+	EnableActuationPointReset     bool
 	ActuationResetPoint           byte
 	EnableSecondaryActuationPoint bool
 	SecondaryActuationPoint       byte
@@ -118,6 +119,7 @@ type Key struct {
 	SlipstreamProfile             bool      `json:"slipstreamProfile"`
 	ActuationPoint                byte      `json:"actuationPoint"`
 	ActuationResetPoint           byte      `json:"actuationResetPoint"`
+	EnableActuationPointReset     bool      `json:"enableActuationPointReset"`
 	EnableSecondaryActuationPoint bool      `json:"enableSecondaryActuationPoint"`
 	SecondaryActuationPoint       byte      `json:"secondaryActuationPoint"`
 	SecondaryActuationResetPoint  byte      `json:"secondaryActuationResetPoint"`

@@ -1199,16 +1199,16 @@ func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
 					return 2
 				}
 
-				d.DeviceProfile.Keyboards["default"] = keyboardLayout
-				d.DeviceProfile.Layout = layout
-				d.saveDeviceProfile()
-				d.setKeyAmount()
-
 				// RGB reset
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true
 					d.activeRgb = nil
 				}
+				
+				d.DeviceProfile.Keyboards["default"] = keyboardLayout
+				d.DeviceProfile.Layout = layout
+				d.saveDeviceProfile()
+				d.setKeyAmount()
 				d.setDeviceColor()
 				d.setupPerformance()
 				return 1

@@ -240,11 +240,8 @@
 
                                         {{ if $device.ContainsPump }}
                                         {{ $tempLang = $root.Lang "txtLiquid" }}
-                                        {{ else if $device.IsCpuBlock }}
-                                        {{ $tempLang = $root.Lang "txtLiquid" }}
                                         {{ end }}
-
-
+                                        
                                         <!-- Temperature -->
                                         {{ if gt $device.Temperature 0.00 }}
                                         <div class="settings-row">

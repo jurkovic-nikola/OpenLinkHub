@@ -53,6 +53,8 @@ $ sudo dnf install OpenLinkHub
 ### 1. Requisitos
 - libudev-dev
 - usbutils
+- libpipewire-dev
+- pkg-config
 - go 1.23.8 - https://go.dev/dl/
 ```bash
 # Pacotes necessários (deb)

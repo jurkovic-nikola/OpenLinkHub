@@ -2347,6 +2347,14 @@ func (d *Device) backendListener() {
 					continue
 				}
 
+				if data[1] == 0x01 || data[2] == 0x0f {
+					val := binary.LittleEndian.Uint16(data[4:6])
+					if val > 0 {
+						d.BatteryLevel = val / 10
+						stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
+					}
+				}
+
 				// FN color change
 				functionKey := data[17] == 0x04
 				if functionKey != d.FunctionKey {

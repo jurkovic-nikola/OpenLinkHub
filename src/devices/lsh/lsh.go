@@ -169,6 +169,7 @@ type Devices struct {
 	LCDSerial          string
 	SubDevices         map[int]LinkAdapter
 	DeviceCode         byte
+	TitanAIO           bool
 }
 
 type Device struct {
@@ -2940,8 +2941,14 @@ func (d *Device) updateDeviceSpeed() {
 							fans = 20
 						}
 						if d.Devices[k].AIO {
-							if pump < 50 {
-								pump = 70
+							if d.Devices[k].TitanAIO {
+								if pump < 31 {
+									pump = 31
+								}
+							} else {
+								if pump < 50 {
+									pump = 70
+								}
 							}
 						} else {
 							if pump < 20 {
@@ -3629,6 +3636,10 @@ func (d *Device) getDevices() int {
 
 		if d.Debug {
 			logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("getDevices()")
+		}
+
+		if deviceMeta.DeviceId == 17 {
+			device.TitanAIO = true
 		}
 
 		devices[i] = device

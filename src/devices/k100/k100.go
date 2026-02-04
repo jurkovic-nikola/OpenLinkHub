@@ -702,7 +702,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
-		if deviceProfile.ControlDialColors == nil {
+		if d.DeviceProfile.ControlDialColors == nil {
 			deviceProfile.ControlDialColors = map[int]*rgb.Color{
 				1: {Red: 255, Green: 255, Blue: 255},
 				2: {Red: 0, Green: 255, Blue: 255},

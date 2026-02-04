@@ -209,7 +209,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		Connected: true,
 		dev:       dev,
 		Path:      path,
-		Template:  "darkstarWU.html",
+		Template:  "darkstarW.html",
 		VendorId:  vendorId,
 		ProductId: productId,
 		Firmware:  "n/a",

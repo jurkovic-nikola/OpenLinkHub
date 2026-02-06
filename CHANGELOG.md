@@ -1,5 +1,52 @@
+## 2026-02-06
+
+* support for k70 core https://github.com/jurkovic-nikola/OpenLinkHub/issues/323 (94773e1)
+
+## 2026-02-04
+
+* k100 air macro key repeat https://github.com/jurkovic-nikola/OpenLinkHub/issues/321 (ead66fa)
+* k100 dial colors https://github.com/jurkovic-nikola/OpenLinkHub/issues/322 (7e268e7)
+* wrong template name https://github.com/jurkovic-nikola/OpenLinkHub/issues/320 (2d2638b)
+
+## 2026-02-02
+
+* k65 plus battery levels https://github.com/jurkovic-nikola/OpenLinkHub/issues/316 (fa32f11)
+* titan minimum pump speed https://github.com/jurkovic-nikola/OpenLinkHub/issues/315 (98423be)
+* Merge pull request #314 from PabloGS/main (8110781)
+
+## 2026-02-01
+
+* Update German translations for control dial and backup (20992ce)
+* Update German translations for error messages (66aee50)
+* Update German translations for various strings (c38b0c7)
+
+## 2026-01-31
+
+* cc speed profiles only for devices with speed (ea9511f)
+* readme update (a74c824)
+* cc template fixup (fe26df0)
+
+## 2026-01-30
+
+* ccxt template issue https://github.com/jurkovic-nikola/OpenLinkHub/issues/310 (8233ead)
+* k70 pro mini de layout (2684e75)
+* DE translation diff (daa7205)
+* Merge pull request #309 from PabloGS/main (5402090)
+* German translation (39f263d)
+
+## 2026-01-29
+
+* multi key selection https://github.com/jurkovic-nikola/OpenLinkHub/issues/308 (c03ca98)
+
+## 2026-01-28
+
+* jc42 for ddr4 temps (fb441b1)
+* triggers - https://github.com/jurkovic-nikola/OpenLinkHub/issues/306 (707b767)
+* https://github.com/jurkovic-nikola/OpenLinkHub/issues/306 (2b88095)
+
 ## 2026-01-25
 
+* changelog (15f427e)
 * reset color on device amount change (0fe6897)
 * commander pro external rgb strips https://github.com/jurkovic-nikola/OpenLinkHub/issues/304 (d0372ef)
 * lc100 on commander pro - https://github.com/jurkovic-nikola/OpenLinkHub/issues/304 (4fd3a06)

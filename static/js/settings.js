@@ -313,8 +313,6 @@ $(document).ready(function () {
             const v_languageCode = $("#userLanguage").val();
             const v_theme = $("#theme").val();
 
-            console.log(v_languageCode);
-
             const pf = {};
             pf["showCpu"] = v_checkboxCpu;
             pf["showGpu"] = v_checkboxGpu;
@@ -329,7 +327,6 @@ $(document).ready(function () {
 
             const json = JSON.stringify(pf, null, 2);
 
-            console.log(json)
             $.ajax({
                 url: '/api/dashboard/update',
                 type: 'POST',

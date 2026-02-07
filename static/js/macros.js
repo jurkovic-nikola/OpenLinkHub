@@ -438,13 +438,10 @@ $(document).ready(function () {
     });
 
     $('#macroKeySearch').on('input', function () {
-        console.log('allOptions:', allOptions);
         const query = $(this).val().toLowerCase();
-        console.log("Debug query", query)
         const filtered = allOptions.filter(opt =>
             opt.text.toLowerCase().includes(query)
         );
-        console.log(filtered)
         renderOptions(filtered);
     });
 

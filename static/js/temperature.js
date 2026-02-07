@@ -150,7 +150,6 @@ $(document).ready(function () {
             url: '/api/temperatures/' + profile,
             dataType: 'JSON',
             success: function(response) {
-                console.log(response)
                 if (response.code === 0) {
                     toast.warning(response.message);
                 } else {

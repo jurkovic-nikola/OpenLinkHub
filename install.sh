@@ -30,6 +30,8 @@ else
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
 After=sleep.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 User=$USER_TO_CHECK
@@ -38,6 +40,7 @@ WorkingDirectory=/opt/$PRODUCT
 ExecStart=/opt/$PRODUCT/$PRODUCT
 ExecReload=/bin/kill -s HUP \$MAINPID
 RestartSec=5
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
@@ -75,6 +78,8 @@ cat > $SYSTEMD_FILE <<- EOM
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
 After=sleep.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 User=$USER_TO_CHECK
@@ -83,6 +88,7 @@ WorkingDirectory=/opt/$PRODUCT
 ExecStart=/opt/$PRODUCT/$PRODUCT
 ExecReload=/bin/kill -s HUP \$MAINPID
 RestartSec=10
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

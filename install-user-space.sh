@@ -51,13 +51,15 @@ cat > "$SYSTEMD_FILE" <<- EOM
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
 After=default.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 WorkingDirectory=$CURRENT_DIR
 ExecStart=$CURRENT_DIR/$PRODUCT
 ExecReload=/bin/kill -s HUP \$MAINPID
 RestartSec=5
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=default.target

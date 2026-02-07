@@ -1,7 +1,6 @@
 package usb
 
 // Package: usb
-// Package for low level communication with legacy Corsair AIO devices that are not HID compatible
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 

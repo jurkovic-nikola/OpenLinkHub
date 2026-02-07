@@ -1,8 +1,6 @@
 package openrgb
 
 // Package: OpenRGB TCP Target Server
-// This is the primary package for OpenRGB Client integration with OpenLinkHub.
-// All RGB updates are controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 

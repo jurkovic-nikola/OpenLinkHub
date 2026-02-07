@@ -1,5 +1,9 @@
 package systray
 
+// Package: systray
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/stats"

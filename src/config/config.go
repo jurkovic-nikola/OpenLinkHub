@@ -1,5 +1,9 @@
 package config
 
+// Package: config
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"encoding/json"

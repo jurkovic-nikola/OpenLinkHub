@@ -1,5 +1,9 @@
 package inputmanager
 
+// Package: inputmanager
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/logger"
 	"os"

@@ -1,8 +1,6 @@
 package cluster
 
 // Package: cluster
-// This is the primary package for RGB cluster.
-// Cluster RGB is controlled from this package.
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
@@ -96,7 +94,7 @@ func (d *Device) Stop() {
 	if d == nil {
 		return
 	}
-	
+
 	d.Exit = true
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
 

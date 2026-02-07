@@ -1,5 +1,9 @@
 package controller
 
+// Package: controller
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/config"

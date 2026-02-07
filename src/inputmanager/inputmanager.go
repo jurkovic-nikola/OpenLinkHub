@@ -1,8 +1,6 @@
 package inputmanager
 
-// Package: Input Manager
-// This is the primary package for handling user inputs.
-// All device input actions are controlled from this package.
+// Package: inputmanager
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 

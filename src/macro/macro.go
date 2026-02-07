@@ -1,5 +1,9 @@
 package macro
 
+// Package: macro
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"

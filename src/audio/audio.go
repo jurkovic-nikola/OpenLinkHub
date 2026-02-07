@@ -1,5 +1,9 @@
 package audio
 
+// Package: audio
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 /*
 #cgo pkg-config: libpipewire-0.3
 #cgo LDFLAGS: -lm

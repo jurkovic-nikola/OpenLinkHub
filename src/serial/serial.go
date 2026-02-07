@@ -1,7 +1,6 @@
 package serial
 
 // Package: serial
-// Package for low level communication with ttyUSB devices
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 

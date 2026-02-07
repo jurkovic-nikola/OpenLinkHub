@@ -432,7 +432,6 @@ func (d *Device) backendListener() {
 					value := data[5]
 					d.setDeviceStatus(value)
 				} else {
-					//fmt.Println(fmt.Sprintf("% 2x", data))
 					if data[0] == 0x03 && data[2] == 0x01 && data[3] == 0xa6 {
 						for _, value := range d.PairedDevices {
 							if dev, found := value.(*voidV2W.Device); found {

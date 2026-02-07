@@ -541,7 +541,6 @@ func (d *Device) setHardwareMode() {
 func (d *Device) setSoftwareMode() {
 	err := d.transfer(cmdWrite, cmdSoftwareMode, nil)
 	if err != nil {
-		fmt.Println(err)
 		logger.Log(logger.Fields{"error": err}).Fatal("Unable to change device mode")
 	}
 }

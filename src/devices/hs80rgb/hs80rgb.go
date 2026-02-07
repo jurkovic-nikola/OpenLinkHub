@@ -1339,7 +1339,6 @@ func (d *Device) backendListener() {
 					continue
 				}
 
-				fmt.Println(fmt.Sprintf("Device: % 2x", data))
 				if data[0] == 0x64 {
 					if data[1] == 0x02 || data[2] == 0x80 || data[2] == 0x00 {
 						d.NotifyMuteChanged()

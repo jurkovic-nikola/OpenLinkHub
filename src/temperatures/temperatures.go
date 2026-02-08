@@ -1051,6 +1051,10 @@ func GetExternalHwMonSensors() interface{} {
 			continue
 		}
 		sensorName := strings.TrimSpace(string(nameBytes))
+		if sensorName == "corsaircpro" {
+			// Don't enumerate this sensor
+			continue
+		}
 
 		files, err := os.ReadDir(hwmonPath)
 		if err != nil {

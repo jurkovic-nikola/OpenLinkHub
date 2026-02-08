@@ -464,6 +464,10 @@ func InitManual(productId uint16, key string) {
 	}
 
 	if device.ProductId > 0 && len(device.Path) > 0 {
+		if slices.Contains(config.GetConfig().Exclude, productId) {
+			logger.Log(logger.Fields{"productId": productId}).Warn("Product excluded via config.json")
+			return
+		}
 		initializeDevice(productId, device.Serial, device.Path)
 	}
 }

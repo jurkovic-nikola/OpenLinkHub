@@ -223,6 +223,7 @@ func setSystemService() {
 	uid := os.Getuid()
 	if uid < 1000 {
 		systemService = true
+		return
 	}
 
 	if os.Getenv("DISPLAY") != "" ||

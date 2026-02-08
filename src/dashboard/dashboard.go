@@ -70,6 +70,10 @@ func Init() {
 		panic(err.Error())
 	}
 	loadThemes()
+
+	if len(dashboard.Theme) == 0 {
+		dashboard.Theme = "default"
+	}
 }
 
 // upgradeFile will perform json file upgrade or create initial file

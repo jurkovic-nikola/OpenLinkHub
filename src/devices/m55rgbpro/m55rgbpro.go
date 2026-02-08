@@ -685,7 +685,7 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	return 1
 }
 
-// setupOpenRGBController will create Cluster Controller for RGB Cluster
+// setupClusterController will create Cluster Controller for RGB Cluster
 func (d *Device) setupClusterController() {
 	if d.DeviceProfile == nil {
 		return

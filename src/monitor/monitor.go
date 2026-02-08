@@ -186,7 +186,7 @@ func Init() {
 							Serial:    serial,
 						}
 
-						time.Sleep(5000 * time.Millisecond)
+						time.Sleep(7000 * time.Millisecond)
 						if slices.Contains(longSleep, pid) {
 							time.Sleep(2000 * time.Millisecond)
 						}

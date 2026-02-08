@@ -122,6 +122,7 @@ var (
 	cmdKeepAlive          = []byte{0x12}
 	cmdSetPollingRate     = []byte{0x01, 0x01, 0x00}
 	cmdPerformance        = []byte{0x01, 0xe1, 0x00}
+	cmdSetupPerformance   = []byte{0x01, 0x4a, 0x00}
 	cmdWritePerformance   = []byte{0x01}
 	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x02}
 	cmdActuationEndpoints = map[int][]byte{
@@ -744,7 +745,7 @@ func (d *Device) setupPerformance() {
 
 	buf := make([]byte, 1)
 	buf[0] = base
-	_, err := d.transfer(cmdPerformance, buf)
+	_, err := d.transfer(cmdSetupPerformance, buf)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 	}
@@ -755,6 +756,11 @@ func (d *Device) setupPerformance() {
 		control = []byte{0x45, 0x00, 0x01}
 	} else {
 		control = []byte{0x45, 0x00, 0x00}
+	}
+
+	_, err = d.transfer(cmdPerformance, []byte{control[2]})
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to setup keyboard performance")
 	}
 
 	_, err = d.transfer(cmdWritePerformance, control)

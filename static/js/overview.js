@@ -2011,9 +2011,19 @@ $(document).ready(function () {
                         if (length > 0) {
                             $.each(result.device.devices, function( index, value ) {
                                 const elementSpeedId = "#speed-" + value.deviceId;
+                                const elementGpuSpeedId = "#gpuSpeed-" + value.deviceId;
                                 const elementTemperatureId = "#temperature-" + value.deviceId;
+                                const elementGpuTemperatureId = "#gpuTemperature-" + value.deviceId;
                                 $(elementSpeedId).html(value.rpm + " RPM");
                                 $(elementTemperatureId).html(value.temperatureString);
+
+                                if (elementGpuSpeedId !== null) {
+                                    $(elementGpuSpeedId).html(value.gpuRpm + " RPM");
+                                }
+
+                                if (elementGpuTemperatureId !== null) {
+                                    $(elementGpuTemperatureId).html(value.gpuTemperatureString);
+                                }
 
                                 if (value.IsPSU) {
                                     const elementPowerOut = "#powerOut-" + value.channelId;
@@ -2933,6 +2943,155 @@ $(document).ready(function () {
         });
     });
 
+    $('.rgbTemperatureProbe').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const channelId = $(this).attr("data-info");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(channelId);
+        pf["subDeviceId"] = 0;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/devices/probes/' + deviceId,
+            type: 'GET',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        const data = response.data;
+                        let modalElement = `
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-500">
+                              <div class="modal-content">
+                        
+                                <div class="modal-header">
+                                  <h5 class="modal-title">${i18n.t('txtTemperatureProbe')}</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSensor')}</span>
+                                            <div class="no-padding-top">
+                                                <select class="system-select compact full-width temperatureProbeData" id="temperatureProbeData"></select>
+                                            </div>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtMinTemp')}</span>
+                                            <div class="system-input text-input compact">
+                                                <label for="macroKeySearch">
+                                                    <input type="text" id="rgbMinTemp" autocomplete="off" value="">
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtMaxTemp')}</span>
+                                            <div class="system-input text-input compact">
+                                                <label for="macroKeySearch">
+                                                    <input type="text" id="rgbMaxTemp" autocomplete="off" value="">
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveTemperatureProbe">${i18n.t('txtSave')}</button>
+                                </div>
+                        
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            const rgbMinTemp = modal.find("#rgbMinTemp");
+                            const rgbMaxTemp = modal.find("#rgbMaxTemp");
+
+                            const $modeSelect = modal.find('#temperatureProbeData');
+                            $modeSelect.empty();
+
+                            $modeSelect.append(
+                                $('<option>', {
+                                    value: 0,
+                                    text: "None"
+                                })
+                            );
+
+                            $.each(data, function (value, label) {
+                                $modeSelect.append(
+                                    $('<option>', {
+                                        value: label.ChannelId,
+                                        text: label.Name
+                                    })
+                                );
+                            });
+
+                            $.ajax({
+                                url: '/api/devices/channel',
+                                type: 'POST',
+                                data: json,
+                                cache: false,
+                                success: function (resp) {
+                                    if (resp.status === 1) {
+                                        rgbMinTemp.val(resp.data.minTemp);
+                                        rgbMaxTemp.val(resp.data.maxTemp);
+                                        $modeSelect.val(resp.data.probeId);
+                                    }
+                                }
+                            });
+
+                            modal.find('#btnSaveTemperatureProbe').on('click', function () {
+                                const pf = {};
+                                let probeChannelId = $("#temperatureProbeData").val();
+
+                                pf["deviceId"] = deviceId;
+                                pf["channelId"] = parseInt(channelId);
+                                pf["subDeviceId"] = 0;
+                                pf["probeChannelId"] = parseInt(probeChannelId);
+                                pf["rgbMinTemp"] = parseFloat(rgbMinTemp.val());
+                                pf["rgbMaxTemp"] = parseFloat(rgbMaxTemp.val());
+
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/color/setTemperatureProbe',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.rgbOverride').on('click', function () {
         const deviceId = $("#deviceId").val();
         const channelId = $(this).attr("data-info");
@@ -3311,6 +3470,12 @@ $(document).ready(function () {
             case "elite": {
                 // Elite coolers
                 switch (ledAmount) {
+                    case 4: {
+                        frontOuter = [0,1,2,3];
+                        wrapperDiv.innerHTML = `<div class="device-container-strip" id="container"></div>`;
+                        const container = wrapperDiv.querySelector('#container');
+                        createLinearLEDs(container, frontOuter, 15, data, 10, 9);
+                    } break;
                     case 16: {
                         if (subDevice) {
                             frontInner = [0,1,2,3];

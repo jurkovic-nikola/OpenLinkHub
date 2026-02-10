@@ -602,6 +602,8 @@
     "txtSlipstreamAlternateColors": "Växlande färger (endast Slipstream)",
     "txtStyle": "Stil",
     "txtSelectedKeys": "Valda tangenter",
-    "txtEnableResetPoint": "Aktivera återställningspunkt"
+    "txtEnableResetPoint": "Aktivera återställningspunkt",
+    "txtGpuLiquid": "GPU-vätska",
+    "txtGpuPump": "GPU-pump"
   }
 }

@@ -10,11 +10,10 @@
     {{ $device := .Device }}
     {{ $rgbModes := .Device.RGBModes }}
     {{ $devices := $device.Devices }}
-    {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $rgbDevices := $device.RgbDevices }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $rgb := .Rgb }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-    <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
     <div class="row">
         <!-- Sidebar -->
         {{ template "sidebar" . }}
@@ -26,7 +25,7 @@
             {{ template "temperature-bar" . }}
             {{ end }}
 
-            <!-- MM700 -->
+            <!-- ELITE AIOs -->
             <div class="row g-4 mb-4 align-items-start">
                 <div class="col-md-2">
                     <div class="card system-card text-center">
@@ -98,21 +97,6 @@
                                     </label>
                                 </div>
 
-                                <!-- Speed Profile -->
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSpeed" }}</span>
-                                    <label for="globalSpeedProfile">
-                                        <select id="globalSpeedProfile" class="form-select system-select compact auto-width globalTempProfile" name="globalTempProfile">
-                                            {{ range $key, $pf := $temperatures }}
-                                            {{ if $pf.Hidden }}
-                                            {{ continue }}
-                                            {{ end }}
-                                            <option value="{{ $key }}" {{ if eq $deviceProfile.MultiProfile $key }}selected {{ end }}>{{ $key }}</option>
-                                            {{ end }}
-                                        </select>
-                                    </label>
-                                </div>
-
                                 <!-- Delete user profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
@@ -140,35 +124,25 @@
                     </div>
                 </div>
                 <div class="col-md-10">
-                    <!-- PWM Channels -->
                     <div class="row g-4 mb-4 align-items-start">
-                        {{ range $device := $devices }}
+                    {{ range $device := $devices }}
                         <div class="col-md-2">
-                            <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
-                                <div class="card-header header-split">
-                                    <span class="header-left">
-                                        {{ $device.Name }}
-                                    </span>
-                                    <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                    <span class="header-right newLabel">
-                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                        <span class="labelValue">{{ $device.Label }}</span>
-                                    </span>
+                            <div class="card system-card text-center">
+                                <div class="card-header">
+                                    {{ $device.Name }}
                                 </div>
                                 <div class="card-body">
                                     <div class="settings-list">
-                                        <!-- Temperature probes -->
                                         {{ if $device.HasTemps }}
-                                        {{ if gt $device.Temperature 0.00 }}
+                                        <!-- Temperature -->
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtTemperature" }}</span>
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtLiquid" }}</span>
                                             <span class="meta-value" id="temperature-{{ .DeviceId }}">{{ $device.TemperatureString }}</span>
                                         </div>
                                         {{ end }}
-                                        {{ end }}
 
-                                        <!-- Speed -->
                                         {{ if $device.HasSpeed }}
+                                        <!-- Speed -->
                                         <div class="settings-row">
                                             <span class="settings-label text-ellipsis">{{ $root.Lang "txtSpeed" }}</span>
                                             <span class="meta-value" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</span>
@@ -177,81 +151,99 @@
                                             <span class="settings-label text-ellipsis">{{ $root.Lang "txtProfile" }}</span>
                                             <label>
                                                 <select class="form-select system-select compact auto-width tempProfile" name="{{ $device.DeviceId }}">
+                                                    {{ if $device.PumpModes }}
+                                                    {{ range $key, $value := $device.PumpModes }}
+                                                    {{ if eq $device.Profile $value }}
+                                                    <option value="{{ $device.ChannelId }};{{ $value }}" selected>{{ $value }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $value }}">{{ $value }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
+                                                    {{ else }}
                                                     {{ range $key, $pf := $temperatures }}
                                                     {{ if $pf.Hidden }}
                                                     {{ continue }}
                                                     {{ end }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" {{ if eq $device.Profile $key }} selected {{ end }}>{{ $key }}</option>
+                                                    {{ if eq $device.Profile $key }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}" selected>{{ $key }}</option>
+                                                    {{ else }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}">{{ $key }}</option>
+                                                    {{ end }}
+                                                    {{ end }}
                                                     {{ end }}
                                                 </select>
                                             </label>
+                                        </div>
+                                        {{ end }}
+
+                                        {{ if $device.HasGpuTemperatures }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtGpuLiquid" }}</span>
+                                            <span class="meta-value" id="gpuTemperature-{{ .DeviceId }}">{{ $device.GpuTemperatureString }}</span>
+                                        </div>
+                                        {{ end }}
+
+                                        {{ if $device.HasGpuSpeed }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtGpuPump" }}</span>
+                                            <span class="meta-value" id="gpuSpeed-{{ .DeviceId }}">{{ $device.GpuRpm }} RPM</span>
                                         </div>
                                         {{ end }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {{ end }}
+                    {{ end }}
+                    {{ range $device := $rgbDevices }}
+                    <div class="col-md-2">
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ $device.Name }}
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-list">
+                                    {{ if gt $device.LedChannels 0 }}
+                                    <!-- RGB -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgb" }}</span>
+                                        <label>
+                                            <select class="form-select system-select compact auto-width rgbProfile" name="{{ $device.DeviceId }}">
+                                                {{ range $key, $mode := $rgbModes }}
+                                                {{ if eq $mode $device.RGB }}
+                                                <option value="{{ $device.ChannelId }};{{ $mode }}" selected>{{ $mode }}</option>
+                                                {{ else }}
+                                                <option value="{{ $device.ChannelId }};{{ $mode }}">{{ $mode }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <!-- RGB Override -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbOverride" }}</span>
+                                        <label>
+                                            <button class="system-button rgbOverride" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                        </label>
+                                    </div>
+
+                                    <!-- RGB per LED -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbPerLed" }}</span>
+                                        <label>
+                                            {{ if $device.ContainsPump }}
+                                            <button class="system-button rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;0;elite" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                            {{ else }}
+                                            <button class="system-button rgbPerLed" data-info="{{ $device.Name }};{{ $device.ChannelId }};{{ $device.LedChannels }};0;1;elite" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                            {{ end }}
+                                        </label>
+                                    </div>
+                                    {{ end }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <!-- RGB Channels -->
-                    <div class="row g-4 mb-4 align-items-start">
-                        {{ range $device := $rgbDevices }}
-                        <div class="col-md-2">
-                            <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
-                                <div class="card-header header-split">
-                                    <span class="header-left">
-                                        {{ $device.Name }}
-                                    </span>
-                                    <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                    <span class="header-right newRgbLabel">
-                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                        <span class="labelValue">{{ $device.Label }}</span>
-                                    </span>
-                                </div>
-                                <div class="card-body">
-                                    <div class="settings-list">
-                                        {{ if gt $device.LedChannels 0 }}
-                                        <!-- RGB -->
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgb" }}</span>
-                                            <label>
-                                                <select class="form-select system-select compact auto-width rgbProfile" name="{{ $device.DeviceId }}">
-                                                    {{ range $key, $mode := $rgbModes }}
-                                                    <option value="{{ $device.ChannelId }};{{ $mode }}" {{ if eq $mode $device.RGB }} selected{{ end }}>{{ $mode }}</option>
-                                                    {{ end }}
-                                                </select>
-                                            </label>
-                                        </div>
-
-                                        <!-- Port configuration -->
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtConfigure" }}</span>
-                                            <label>
-                                                <button class="system-button compact commanderDuoOverride" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
-                                            </label>
-                                        </div>
-                                        
-                                        <!-- RGB Override -->
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbOverride" }}</span>
-                                            <label>
-                                                <button class="system-button compact rgbOverride" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
-                                            </label>
-                                        </div>
-
-                                        <!-- Sensors -->
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtSensor" }}</span>
-                                            <label>
-                                                <button class="system-button compact rgbTemperatureProbe" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
-                                            </label>
-                                        </div>
-                                        {{ end }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
+                    {{ end }}
                     </div>
                 </div>
             </div>
@@ -259,6 +251,7 @@
     </div>
 </div>
 <script src="/static/js/overview.js"></script>
+<script src="/static/js/devices/mm700.js"></script>
 <script src="/static/js/sidebar.js"></script>
 {{ if .Dashboard.TemperatureBar }}
 <script src="/static/js/temperature-bar.js"></script>

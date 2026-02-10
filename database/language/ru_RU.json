@@ -602,6 +602,8 @@
         "txtSlipstreamAlternateColors": "Чередование цветов (только Slipstream)",
         "txtStyle": "Стиль",
         "txtSelectedKeys": "Выбранные клавиши",
-        "txtEnableResetPoint": "Включить точку сброса"
+        "txtEnableResetPoint": "Включить точку сброса",
+        "txtGpuLiquid": "Жидкость GPU",
+        "txtGpuPump": "Помпа GPU"
     }
 }

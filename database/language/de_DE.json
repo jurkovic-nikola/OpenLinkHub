@@ -602,6 +602,8 @@
     "txtSlipstreamAlternateColors": "Abwechselnde Farben (nur Slipstream)",
     "txtStyle": "Stil",
     "txtSelectedKeys": "Ausgewählte Tasten",
-    "txtEnableResetPoint": "Rücksetzpunkt aktivieren"
+    "txtEnableResetPoint": "Rücksetzpunkt aktivieren",
+    "txtGpuLiquid": "GPU-Flüssigkeit",
+    "txtGpuPump": "GPU-Pumpe"
   }
 }

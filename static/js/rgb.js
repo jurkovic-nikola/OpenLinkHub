@@ -248,14 +248,36 @@ $(document).ready(function () {
                                             colorHtmlElement = `
                                                 <div class="settings-row">
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
-                                                    <div class="system-input system-color">
+                                                    <div class="system-input system-color no-padding-top">
                                                         <input type="color" class="rgb-color-start" id="startColor_${profile}" value="${startColor}">
                                                     </div>
                                                 </div>
                                                 <div class="settings-row">
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
-                                                    <div class="system-input system-color">
+                                                    <div class="system-input system-color no-padding-top">
                                                         <input type="color" class="rgb-color-end" id="endColor_${profile}" value="${endColor}">
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }
+
+                                        let temperatureHtmlElement = '';
+                                        if (profile === "probe-temperature") {
+                                            temperatureHtmlElement = `                                    
+                                                <div class="settings-row">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtMinTemp')}</span>
+                                                    <div class="system-input text-input compact">
+                                                        <label for="macroKeySearch">
+                                                            <input type="text" id="rgbMinTemp_${profile}" autocomplete="off" value="${data.minTemp}">
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="settings-row">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtMaxTemp')}</span>
+                                                    <div class="system-input text-input compact">
+                                                        <label for="macroKeySearch">
+                                                            <input type="text" id="rgbMaxTemp_${profile}" autocomplete="off" value="${data.maxTemp}">
+                                                        </label>
                                                     </div>
                                                 </div>
                                             `;
@@ -271,6 +293,7 @@ $(document).ready(function () {
                                                     <div class="modal-body">
                                                         <div class="settings-list">
                                                             ${colorHtmlElement}
+                                                            ${temperatureHtmlElement}
                                                             <div class="settings-row">
                                                                 <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
                                                                 ${speedSliderHtml}
@@ -586,6 +609,13 @@ $(document).ready(function () {
                                                         };
                                                     });
                                                     pf["colorZones"] = output;
+                                                }
+
+                                                if (profile === "probe-temperature") {
+                                                    const rgbMinTemp = $("#rgbMinTemp_" + profile).val();
+                                                    const rgbMaxTemp = $("#rgbMaxTemp_" + profile).val();
+                                                    pf["rgbMinTemp"] = parseFloat(rgbMinTemp);
+                                                    pf["rgbMaxTemp"] = parseFloat(rgbMaxTemp);
                                                 }
 
                                                 const json = JSON.stringify(pf, null, 2);

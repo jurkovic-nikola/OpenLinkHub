@@ -234,6 +234,28 @@ $(document).ready(function () {
                             `;
                 }
 
+                if (device.gpuTemperature > 0) {
+                    let tempString = i18n.t('txtTemperature');
+                    if (device.AIO || device.IsCpuBlock) {
+                        tempString = i18n.t('txtGpuLiquid');
+                    }
+                    html += `
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">${tempString}</span>
+                                    <span class="meta-value" id="gpuTemp-${dev.device.serial}-${device.channelId}">${device.gpuTemperatureString}</span>
+                                </div>
+                            `;
+                }
+
+                if (device.gpuRpm > 0) {
+                    html += `
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">${i18n.t('txtGpuPump')}</span>
+                                    <span class="meta-value" id="gpuSpeed-${dev.device.serial}-${device.channelId}">${device.gpuRpm} RPM</span>
+                                </div>
+                            `;
+                }
+
                 if (device.speed > 0) {
                     html += `
                                 <div class="settings-row">

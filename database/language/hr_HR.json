@@ -602,6 +602,8 @@
     "txtSlipstreamAlternateColors": "Naizmjenične boje (samo Slipstream)",
     "txtStyle": "Stil",
     "txtSelectedKeys": "Odabrane tipke",
-    "txtEnableResetPoint": "Omogući točku resetiranja"
+    "txtEnableResetPoint": "Omogući točku resetiranja",
+    "txtGpuLiquid": "GPU tekućina",
+    "txtGpuPump": "GPU pumpa"
   }
 }

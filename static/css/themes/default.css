@@ -946,6 +946,10 @@ transition: stroke-dashoffset 0.6s ease;
     margin-top: 0;
 }
 
+.system-input.no-padding-top {
+    margin-top: 0;
+}
+
 .margin-lr-10 {
     margin-left: 10px;
     margin-right: 10px;

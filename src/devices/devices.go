@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cduo"
+	"OpenLinkHub/src/devices/cone"
 	"OpenLinkHub/src/devices/cpro"
 	"OpenLinkHub/src/devices/darkcorergbproWU"
 	"OpenLinkHub/src/devices/darkcorergbproseWU"
@@ -260,6 +261,7 @@ func ResetSpeedProfiles(profile string) {
 			device.ProductType == common.ProductTypeCPro ||
 			device.ProductType == common.ProductTypeElite ||
 			device.ProductType == common.ProductTypeHydro ||
+			device.ProductType == common.ProductTypeCorsairOne ||
 			device.ProductType == common.ProductTypePlatinum {
 			CallDeviceMethod(device.Serial, "ResetSpeedProfiles", profile)
 		}
@@ -291,6 +293,7 @@ func GetTemperatureProbes() interface{} {
 			device.ProductType == common.ProductTypeElite ||
 			device.ProductType == common.ProductTypeXC7 ||
 			device.ProductType == common.ProductTypeHydro ||
+			device.ProductType == common.ProductTypeCorsairOne ||
 			device.ProductType == common.ProductTypePlatinum {
 			res := CallDeviceMethod(device.Serial, "GetTemperatureProbes")
 			if res != nil && len(res) > 0 {
@@ -632,6 +635,7 @@ var deviceRegisterMap = map[uint16]Product{
 	3117:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},                // iCUE H100i RGB PRO XT
 	3105:  {0, 0, "iCUE H115i RGB PRO XT", elite.Init, nil},                // iCUE H115i RGB PRO XT
 	3106:  {0, 0, "iCUE H150i RGB PRO XT", elite.Init, nil},                // iCUE H150i RGB PRO XT
+	3092:  {0, 0, "CORSAIR ONE", cone.Init, nil},                           // CORSAIR ONE
 	3095:  {0, 0, "H115i RGB PLATINUM", elite.Init, nil},                   // H115i RGB PLATINUM
 	3096:  {0, 0, "H100i RGB PLATINUM", elite.Init, nil},                   // H100i RGB PLATINUM
 	3097:  {0, 0, "H100i RGB PLATINUM SE", elite.Init, nil},                // H100i RGB PLATINUM SE

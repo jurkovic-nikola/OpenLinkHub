@@ -602,6 +602,8 @@
         "txtSlipstreamAlternateColors": "Couleurs alternées (Slipstream uniquement)",
         "txtStyle": "Style",
         "txtSelectedKeys": "Touches sélectionnées",
-        "txtEnableResetPoint": "Activer le point de réinitialisation"
+        "txtEnableResetPoint": "Activer le point de réinitialisation",
+        "txtGpuLiquid": "Liquide GPU",
+        "txtGpuPump": "Pompe GPU"
     }
 }

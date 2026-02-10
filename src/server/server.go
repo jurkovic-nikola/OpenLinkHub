@@ -745,6 +745,37 @@ func getEqualizers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getTemperatureProbes returns device temperature probes
+func getTemperatureProbes(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{}
+	deviceId, valid := getVar("/api/devices/probes/", r)
+	if !valid {
+		resp = &Response{
+			Code:   http.StatusOK,
+			Status: 0,
+			Data:   language.GetValue("txtInvalidDeviceId"),
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetTemperatureProbes")
+		if len(results) > 0 {
+			resp = &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp = &Response{
+				Code:    http.StatusOK,
+				Status:  0,
+				Message: language.GetValue("txtInvalidDeviceId"),
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // getLanguageData will return language data
 func getLanguageData(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
@@ -1044,6 +1075,17 @@ func getRgbOverride(w http.ResponseWriter, r *http.Request) {
 // getRgbOverride return RGB override for given device
 func setRgbOverride(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetRgbOverride(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setTemperatureProbe return RGB override for given temperature probe
+func setTemperatureProbe(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetRgbTemperatureProbe(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1778,6 +1820,17 @@ func setCommanderDuoOverride(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getChannelData handles getting device channel data
+func getChannelData(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetChannelDevice(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -2267,6 +2320,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/position/", http.MethodGet, getPositionData)
 	handleFunc(r, "/api/headset/getEqualizers/", http.MethodGet, getEqualizers)
 	handleFunc(r, "/api/language/", http.MethodGet, getLanguageData)
+	handleFunc(r, "/api/devices/probes/", http.MethodGet, getTemperatureProbes)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -2278,6 +2332,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/linkAdapter/bulk", http.MethodPost, setLinkAdapterBulkColor)
 	handleFunc(r, "/api/color/getOverride", http.MethodPost, getRgbOverride)
 	handleFunc(r, "/api/color/setOverride", http.MethodPost, setRgbOverride)
+	handleFunc(r, "/api/color/setTemperatureProbe", http.MethodPost, setTemperatureProbe)
 	handleFunc(r, "/api/color/getLedData", http.MethodPost, getLedData)
 	handleFunc(r, "/api/color/setLedData", http.MethodPost, setLedData)
 	handleFunc(r, "/api/color/setOpenRgbIntegration", http.MethodPost, setOpenRgbIntegration)
@@ -2357,6 +2412,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/controller/sleep", http.MethodPost, changeControllerSleepMode)
 	handleFunc(r, "/api/audio/update", http.MethodPost, setAudioSettings)
 	handleFunc(r, "/api/audio/outputDevice", http.MethodPost, setAudioOutputDeviceSettings)
+	handleFunc(r, "/api/devices/channel", http.MethodPost, getChannelData)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

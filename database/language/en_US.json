@@ -602,6 +602,8 @@
     "txtSlipstreamAlternateColors": "Alternate Colors (Slipstream Only)",
     "txtStyle": "Style",
     "txtSelectedKeys": "Selected Keys",
-    "txtEnableResetPoint": "Enable Reset Point"
+    "txtEnableResetPoint": "Enable Reset Point",
+    "txtGpuLiquid": "GPU Liquid",
+    "txtGpuPump": "GPU Pump"
   }
 }

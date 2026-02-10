@@ -171,6 +171,9 @@ type Payload struct {
 	OutputDeviceDesc              string                `json:"outputDeviceDesc"`
 	OutputDeviceName              string                `json:"outputDeviceName"`
 	OutputDeviceSerial            int                   `json:"outputDeviceSerial"`
+	RgbMinTemp                    float64               `json:"rgbMinTemp"`
+	RgbMaxTemp                    float64               `json:"rgbMaxTemp"`
+	ProbeChannelId                int                   `json:"probeChannelId"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -618,6 +621,18 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtInvalidSpeed"), Code: http.StatusOK, Status: 0}
 	}
 
+	if req.RgbMinTemp < 0 || req.RgbMinTemp > 100 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.RgbMaxTemp < 0 || req.RgbMaxTemp > 100 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.RgbMaxTemp < req.RgbMinTemp {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
 	startColor := req.StartColor
 	startColor.Brightness = 1
 
@@ -630,8 +645,8 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 		StartColor:      startColor,
 		MiddleColor:     rgb.Color{},
 		EndColor:        endColor,
-		MinTemp:         0,
-		MaxTemp:         0,
+		MinTemp:         req.RgbMinTemp,
+		MaxTemp:         req.RgbMaxTemp,
 		AlternateColors: req.AlternateColors,
 		RgbDirection:    req.RgbDirection,
 		Gradients:       req.ColorZones,
@@ -3834,6 +3849,52 @@ func ProcessGetKeyboardKeys(r *http.Request) *Payload {
 	}
 }
 
+// ProcessGetChannelDevice will process getting channel device data
+func ProcessGetChannelDevice(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetChannelDevice",
+		req.ChannelId,
+	)
+
+	if len(results) > 0 {
+		return &Payload{
+			Data:   results[0].Interface(),
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNonExistingDevice"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
 // ProcessSetKeyboardPerformance will process setting keyboard performance
 func ProcessSetKeyboardPerformance(r *http.Request) *Payload {
 	req := &Payload{}
@@ -4039,6 +4100,74 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		req.StartColor,
 		req.EndColor,
 		req.Speed,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtRgbOverrideUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetRgbTemperatureProbe will process setting RGB temperature probe override
+func ProcessSetRgbTemperatureProbe(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ProbeChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ProbeChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.RgbMinTemp < 0 || req.RgbMinTemp > 100 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.RgbMaxTemp < 0 || req.RgbMaxTemp > 100 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.RgbMaxTemp < req.RgbMinTemp {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetRgbTemperatureProfile",
+		req.ChannelId,
+		req.SubDeviceId,
+		req.ProbeChannelId,
+		req.RgbMinTemp,
+		req.RgbMaxTemp,
 	)
 
 	if len(results) > 0 {

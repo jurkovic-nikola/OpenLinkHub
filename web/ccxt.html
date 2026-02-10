@@ -257,7 +257,6 @@
                                             <span class="settings-label text-ellipsis">{{ $root.Lang "txtSpeed" }}</span>
                                             <span class="meta-value" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</span>
                                         </div>
-                                        {{ end }}
 
                                         <div class="settings-row">
                                             <span class="settings-label text-ellipsis">{{ $root.Lang "txtProfile" }}</span>
@@ -272,6 +271,7 @@
                                                 </select>
                                             </label>
                                         </div>
+                                        {{ end }}
                                     </div>
                                 </div>
                             </div>
@@ -318,6 +318,14 @@
                                             <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbOverride" }}</span>
                                             <label>
                                                 <button class="system-button compact rgbOverride" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                            </label>
+                                        </div>
+
+                                        <!-- Sensors -->
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtSensor" }}</span>
+                                            <label>
+                                                <button class="system-button compact rgbTemperatureProbe" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
                                             </label>
                                         </div>
                                         {{ end }}

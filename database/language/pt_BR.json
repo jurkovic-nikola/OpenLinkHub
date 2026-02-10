@@ -602,6 +602,8 @@
     "txtSlipstreamAlternateColors": "Cores alternadas (somente Slipstream)",
     "txtStyle": "Estilo",
     "txtSelectedKeys": "Teclas selecionadas",
-    "txtEnableResetPoint": "Ativar ponto de redefinição"
+    "txtEnableResetPoint": "Ativar ponto de redefinição",
+    "txtGpuLiquid": "Líquido da GPU",
+    "txtGpuPump": "Bomba da GPU"
   }
 }

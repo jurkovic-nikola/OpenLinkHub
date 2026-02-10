@@ -276,6 +276,26 @@
       "minTemp": 20,
       "maxTemp": 80
     },
+    "probe-temperature": {
+      "profileName": "Probe Temperature",
+      "speed": 4,
+      "brightness": 1,
+      "smoothness": 40,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "end": {
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 0.5
+      },
+      "minTemp": 0,
+      "maxTemp": 60
+    },
     "static": {
       "profileName": "Static",
       "speed": 4,

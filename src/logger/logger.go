@@ -150,6 +150,26 @@ func levelFromString(level string) common.LogLevel {
 	}
 }
 
+// normalizeFields will normalize JSON fields
+func normalizeFields(fields Fields) Fields {
+	out := make(Fields, len(fields))
+
+	for k, v := range fields {
+		switch val := v.(type) {
+		case error:
+			if val != nil {
+				out[k] = val.Error()
+			} else {
+				out[k] = nil
+			}
+		default:
+			out[k] = v
+		}
+	}
+
+	return out
+}
+
 // logWithLevel writes the log entry if level >= configured logLevel
 func (e *Entry) logWithLevel(level, msg string) {
 	if levelFromString(level) < logLevel {
@@ -160,7 +180,8 @@ func (e *Entry) logWithLevel(level, msg string) {
 	e.fields["level"] = level
 	e.fields["message"] = msg
 
-	data, err := json.Marshal(e.fields)
+	normalized := normalizeFields(e.fields)
+	data, err := json.Marshal(normalized)
 	if err != nil {
 		if _, e := fmt.Fprintf(os.Stderr, "Failed to marshal log entry: %v\n", err); e != nil {
 			panic("Unable to write to stderr: " + e.Error())

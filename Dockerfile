@@ -15,7 +15,7 @@ FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-    apt-get install -y libpipewire-0.3-0 libudev-dev pciutils usbutils udev i2c-tools && \
+    apt-get install -y libpipewire-0.3-0 libudev-dev pciutils usbutils udev i2c-tools pulseaudio-utils && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

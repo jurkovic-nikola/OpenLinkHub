@@ -1,5 +1,27 @@
+## 2026-02-10
+
+* logger fixup (2ba17eb)
+* udev rules (17d82d5)
+* bulk: - support for corsair one - commander duo rgb for temperature probe - commander core xt rgb temperature probe (02e8690)
+
+## 2026-02-08
+
+* include all possible names (4e90707)
+* skip processing of corsair_cpro kernel module https://github.com/jurkovic-nikola/OpenLinkHub/issues/319 (b898485)
+* delay device reinit, default theme (8474483)
+* exclude devices in runtime https://github.com/jurkovic-nikola/OpenLinkHub/issues/327 (9c0f8b7)
+
+## 2026-02-07
+
+* docs update (2916754)
+* cleanup (026b494)
+* console cleanup (9644433)
+* header update (1bf53fe)
+* systemd restart update (a6f2f41)
+
 ## 2026-02-06
 
+* changelog (00bfd09)
 * support for k70 core https://github.com/jurkovic-nikola/OpenLinkHub/issues/323 (94773e1)
 
 ## 2026-02-04

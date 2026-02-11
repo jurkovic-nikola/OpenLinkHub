@@ -116,7 +116,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-10">
+                <div class="col-md-4">
                     <div class="card system-card text-center">
                         <div class="card-body">
                             <!-- Top row (logo) -->
@@ -155,19 +155,25 @@
 
                                 <!-- Middle -->
                                 <div class="col-md-4 d-flex align-items-center justify-content-center">
-                                    <div class="system-input system-color inline-controls">
-                                        <label for="miscColor">
+                                    <div class="system-input system-color d-flex flex-column align-items-center gap-2">
+                                        <div class="d-flex gap-2 align-items-center">
                                             <input type="color" value="#22c55e" id="miscColor">
-                                        </label>
-                                        <label>
+
                                             <select class="form-select system-select auto-width miscOptions">
                                                 <option value="0">{{ .Lang "txtCurrentArea" }}</option>
                                                 <option value="1">{{ .Lang "txtCurrentRow" }}</option>
                                                 <option value="2">{{ .Lang "txtAllRows" }}</option>
                                             </select>
-                                        </label>
-                                        <button class="system-button" id="applyColors">{{ .Lang "txtApply" }}</button>
-                                        <button class="system-button" id="saveProfile">{{ .Lang "txtSave" }}</button>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button class="system-button" id="applyColors">
+                                                {{ .Lang "txtApply" }}
+                                            </button>
+                                            <button class="system-button" id="saveProfile">
+                                                {{ .Lang "txtSave" }}
+                                            </button>
+                                        </div>
+
                                     </div>
                                 </div>
 
@@ -194,6 +200,37 @@
                                     <div class="card p-3 st100 miscColor" id="st100_9"></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card system-card text-center">
+                        <div class="card-header">{{ .Lang "txtEqualizer" }}</div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-1">
+                                    <div class="eq-scale">
+                                        <span>+12</span>
+                                        <span>0</span>
+                                        <span>-12</span>
+                                    </div>
+                                </div>
+
+                                {{ range $key, $equalizer := $device.DeviceProfile.Equalizers }}
+                                <div class="col-md-1">
+                                    <div class="eq-band">
+                                        <label id="stageValue{{ $key }}">{{ $equalizer.Value }}</label>
+                                        <div class="eq-slider-wrap">
+                                            <input class="eq-slider" type="range" min="-12" max="12" value="{{ $equalizer.Value }}" id="stage{{ $key }}">
+                                        </div>
+                                        <label>{{ $equalizer.Name }}</label>
+                                    </div>
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                        <div class="card-footer card-footer-left">
+                            <button class="system-button" id="saveEqualizers">{{ .Lang "txtSave" }}</button>
                         </div>
                     </div>
                 </div>

@@ -5,6 +5,7 @@ package st100
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -58,6 +59,11 @@ type ZoneColor struct {
 	PacketIndex int
 }
 
+type Equalizer struct {
+	Name  string
+	Value float64
+}
+
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
 	Active             bool
@@ -70,6 +76,7 @@ type DeviceProfile struct {
 	RGBProfile         string
 	Label              string
 	Stand              *Stand
+	Equalizers         map[int]Equalizer
 	RGBCluster         bool
 }
 
@@ -543,7 +550,36 @@ func (d *Device) saveDeviceProfile() {
 				},
 			},
 		}
+		deviceProfile.Equalizers = map[int]Equalizer{
+			1:  {Name: "32", Value: 0},
+			2:  {Name: "64", Value: 0},
+			3:  {Name: "125", Value: 0},
+			4:  {Name: "250", Value: 0},
+			5:  {Name: "500", Value: 0},
+			6:  {Name: "1K", Value: 0},
+			7:  {Name: "2K", Value: 0},
+			8:  {Name: "4K", Value: 0},
+			9:  {Name: "8K", Value: 0},
+			10: {Name: "16K", Value: 0},
+		}
 	} else {
+		if d.DeviceProfile.Equalizers == nil {
+			deviceProfile.Equalizers = map[int]Equalizer{
+				1:  {Name: "32", Value: 0},
+				2:  {Name: "64", Value: 0},
+				3:  {Name: "125", Value: 0},
+				4:  {Name: "250", Value: 0},
+				5:  {Name: "500", Value: 0},
+				6:  {Name: "1K", Value: 0},
+				7:  {Name: "2K", Value: 0},
+				8:  {Name: "4K", Value: 0},
+				9:  {Name: "8K", Value: 0},
+				10: {Name: "16K", Value: 0},
+			}
+		} else {
+			deviceProfile.Equalizers = d.DeviceProfile.Equalizers
+		}
+
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
 			d.DeviceProfile.BrightnessSlider = &defaultBrightness
@@ -580,6 +616,81 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles()
+}
+
+// setEqualizer will set audio equalizer
+func (d *Device) setEqualizer() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.Equalizers == nil {
+		return
+	}
+
+	if !audio.GetAudio().Enabled {
+		return
+	}
+
+	for k, v := range d.DeviceProfile.Equalizers {
+		audio.SetBand(k, v.Value)
+	}
+}
+
+// GetEqualizers will return equalizers
+func (d *Device) GetEqualizers() interface{} {
+	if d.DeviceProfile == nil || d.DeviceProfile.Equalizers == nil {
+		return nil
+	}
+	return d.DeviceProfile.Equalizers
+}
+
+// UpdateEqualizer will update device equalizer
+func (d *Device) UpdateEqualizer(values map[int]float64) uint8 {
+	tmp := map[int]float64{}
+
+	if d.DeviceProfile == nil || d.DeviceProfile.Equalizers == nil {
+		return 0
+	}
+
+	updated := 0
+
+	for key, value := range values {
+		if key < 1 || key > 10 {
+			continue
+		}
+
+		if value > 12 || value < -12 {
+			value = 0
+		}
+
+		equalizer, ok := d.DeviceProfile.Equalizers[key]
+		if !ok {
+			continue
+		}
+
+		if equalizer.Value == value {
+			continue
+		}
+
+		equalizer.Value = value
+		d.DeviceProfile.Equalizers[key] = equalizer
+
+		tmp[key] = value
+		updated++
+	}
+
+	if updated > 0 {
+		d.saveDeviceProfile()
+		if len(tmp) > 0 && audio.GetAudio().Enabled {
+			for k, v := range tmp {
+				audio.SetBand(k, v)
+			}
+		}
+		return 1
+	} else {
+		return 2
+	}
 }
 
 // loadDeviceProfiles will load custom user profiles

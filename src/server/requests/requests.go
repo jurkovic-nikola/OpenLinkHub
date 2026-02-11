@@ -2979,6 +2979,7 @@ func ProcessMiscColor(r *http.Request) *Payload {
 		req.AreaId,
 		req.AreaOption,
 		req.Color,
+		req.Keys,
 	)
 
 	if len(results) > 0 {

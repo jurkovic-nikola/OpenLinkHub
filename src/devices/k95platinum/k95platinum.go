@@ -177,7 +177,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		PollingRates: map[int]string{
 			0: "Not Set",
 			8: "125 Hz / 8 msec",
-			4: "250 Hu / 4 msec",
+			4: "250 Hz / 4 msec",
 			2: "500 Hz / 2 msec",
 			1: "1000 Hz / 1 msec",
 		},

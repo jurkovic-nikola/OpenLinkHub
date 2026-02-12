@@ -213,7 +213,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 		PollingRates: map[int]string{
 			0: "Not Set",
 			1: "125 Hz / 8 msec",
-			2: "250 Hu / 4 msec",
+			2: "250 Hz / 4 msec",
 			3: "500 Hz / 2 msec",
 			4: "1000 Hz / 1 msec",
 			5: "2000 Hz / 0.5 msec",

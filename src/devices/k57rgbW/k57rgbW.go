@@ -7,6 +7,7 @@ package k57rgbW
 import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
 	"OpenLinkHub/src/logger"
@@ -102,6 +103,7 @@ type Device struct {
 	mouseLoopMutex         sync.Mutex
 	mouseLoopStopCh        chan struct{}
 	Usb                    bool
+	dispatch               dispatcher.DeviceDispatcher
 }
 
 var (
@@ -222,6 +224,11 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	return d
+}
+
+// SetDispatcher will set device dispatcher
+func (d *Device) SetDispatcher(ds dispatcher.DeviceDispatcher) {
+	d.dispatch = ds
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -2221,6 +2228,11 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool) {
 			case 1, 3:
 				inputmanager.InputControlKeyboard(d.KeyboardKey.ActionCommand, d.PressLoop)
 				break
+			case 8:
+				if d.dispatch != nil {
+					d.dispatch(d.KeyboardKey.DeviceId, "CallSniperMode", d.PressLoop)
+				}
+				break
 			}
 		}
 		d.KeyboardKey = nil
@@ -2290,6 +2302,14 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool) {
 				d.KeyboardKey = key
 			}
 			inputmanager.InputControlKeyboard(key.ActionCommand, key.ActionHold)
+			break
+		case 8:
+			if key.ActionHold {
+				d.KeyboardKey = key
+			}
+			if d.dispatch != nil && len(d.KeyboardKey.DeviceId) > 0 {
+				d.dispatch(key.DeviceId, "CallSniperMode", key.ActionHold)
+			}
 			break
 		case 9:
 			if key.ActionHold {

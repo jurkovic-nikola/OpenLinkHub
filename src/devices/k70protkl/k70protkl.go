@@ -2706,6 +2706,7 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 				if d.dispatch != nil {
 					d.dispatch(d.KeyboardKey.DeviceId, "CallSniperMode", d.PressLoop)
 				}
+				break
 			}
 		}
 		d.KeyboardKey = nil
@@ -2799,9 +2800,10 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 			if key.ActionHold {
 				d.KeyboardKey = key
 			}
-			if d.dispatch != nil {
+			if d.dispatch != nil && len(d.KeyboardKey.DeviceId) > 0 {
 				d.dispatch(key.DeviceId, "CallSniperMode", key.ActionHold)
 			}
+			break
 		case 9:
 			if key.ActionHold {
 				d.mouseLoopMutex.Lock()

@@ -1354,6 +1354,13 @@ func (d *Device) ModifyDpi() {
 	d.toggleDPI()
 }
 
+// CallSniperMode calls sniper mode from outside of this device
+func (d *Device) CallSniperMode(active bool) {
+	if d.Connected {
+		d.sniperMode(active)
+	}
+}
+
 // sniperMode will set mouse DPI to sniper mode
 func (d *Device) sniperMode(active bool) {
 	d.SniperMode = active

@@ -124,7 +124,7 @@ var (
 	cmdPerformance        = []byte{0x01, 0xe1, 0x00}
 	cmdSetupPerformance   = []byte{0x01, 0x4a, 0x00}
 	cmdWritePerformance   = []byte{0x01}
-	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x02}
+	cmdOpenEndpoint       = []byte{0x0d, 0x02, 0x02}
 	cmdActuationEndpoints = map[int][]byte{
 		0: {0x0d, 0x02, 0x32},
 		1: {0x0d, 0x02, 0x38},
@@ -138,9 +138,8 @@ var (
 		1: {0x01, 0xff, 0x00},
 	}
 	cmdFlashTapMode      = []byte{0x01, 0xfc, 0x00}
-	cmdCloseEndpoint     = []byte{0x05, 0x01, 0x00}
-	cmdCloseKeyEndpoint  = []byte{0x05, 0x01, 0x02}
-	cmdKeyAssignment     = []byte{0x06, 0x00}
+	cmdCloseEndpoint     = []byte{0x05, 0x01, 0x02}
+	cmdKeyAssignment     = []byte{0x06, 0x02}
 	dataTypeKeyActuation = []byte{0x30, 0x00}
 
 	deviceRefreshInterval   = 1000
@@ -2898,7 +2897,7 @@ func (d *Device) writeKeyActuation(endpoint, data []byte) {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to endpoint")
 	}
 
-	_, err = d.transfer(cmdCloseKeyEndpoint, nil)
+	_, err = d.transfer(cmdCloseEndpoint, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to close write endpoint")
 		return

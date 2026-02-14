@@ -165,6 +165,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -187,6 +188,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -209,6 +211,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -231,6 +234,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 
 				d.SharedDevices(object)
@@ -276,6 +280,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -298,6 +303,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -320,6 +326,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -342,6 +349,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -364,6 +372,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -386,6 +395,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -408,6 +418,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -430,6 +441,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -452,6 +464,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
@@ -497,6 +510,7 @@ func (d *Device) addDevices() {
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
 					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 				}
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)

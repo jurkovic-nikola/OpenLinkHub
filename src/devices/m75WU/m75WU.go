@@ -288,6 +288,7 @@ func (d *Device) createDevice() {
 		Firmware:    d.Firmware,
 		Image:       "icon-mouse.svg",
 		Instance:    d,
+		DeviceType:  common.DeviceTypeMouse,
 	}
 }
 

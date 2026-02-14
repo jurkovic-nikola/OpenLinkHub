@@ -94,6 +94,7 @@ func (d *Device) addDevices() {
 		Firmware:    dev.Firmware,
 		Image:       "icon-mouse.svg",
 		Instance:    dev,
+		DeviceType:  common.DeviceTypeMouse,
 	}
 
 	d.SharedDevices(object)

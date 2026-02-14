@@ -786,6 +786,16 @@ func getLanguageData(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getMouseDevice will return a map of mouse devices
+func getMouseDevice(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   devices.GetMouse(),
+	}
+	resp.Send(w)
+}
+
 // updateDeviceEqualizers handles device equalizer update
 func updateDeviceEqualizers(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateDeviceEqualizer(r)
@@ -2321,6 +2331,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/headset/getEqualizers/", http.MethodGet, getEqualizers)
 	handleFunc(r, "/api/language/", http.MethodGet, getLanguageData)
 	handleFunc(r, "/api/devices/probes/", http.MethodGet, getTemperatureProbes)
+	handleFunc(r, "/api/devices/mouse", http.MethodGet, getMouseDevice)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)

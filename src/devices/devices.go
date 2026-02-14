@@ -376,6 +376,21 @@ func GetDevices() map[string]*common.Device {
 	return devices
 }
 
+// GetMouse will return all available mouse devices
+func GetMouse() map[string]string {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	val := make(map[string]string)
+
+	for key, device := range devices {
+		if device.DeviceType == common.DeviceTypeMouse {
+			val[key] = device.Product
+		}
+	}
+	return val
+}
+
 // GetDevicesEx will return all available devices with partial data
 func GetDevicesEx() map[string]*common.Device {
 	out := make(map[string]*common.Device)

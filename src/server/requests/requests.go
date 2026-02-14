@@ -101,6 +101,7 @@ type Payload struct {
 	KeyAssignmentModifier         uint8                 `json:"keyAssignmentModifier"`
 	KeyAssignmentOriginal         bool                  `json:"keyAssignmentOriginal"`
 	KeyAssignmentValue            uint16                `json:"keyAssignmentValue"`
+	KeyAssignmentValueString      string                `json:"keyAssignmentValueString"`
 	MuteIndicator                 int                   `json:"muteIndicator"`
 	NoiseCancellation             int                   `json:"noiseCancellation"`
 	SideTone                      int                   `json:"sideTone"`
@@ -1721,6 +1722,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		Default:        req.Enabled,
 		ActionType:     req.KeyAssignmentType,
 		ActionCommand:  req.KeyAssignmentValue,
+		DeviceId:       req.KeyAssignmentValueString, // Sniper
 		ActionHold:     req.PressAndHold,
 		IsMacro:        req.KeyAssignmentType == 10,
 		ModifierKey:    req.KeyAssignmentModifier,

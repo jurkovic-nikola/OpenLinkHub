@@ -30,6 +30,7 @@ type KeyAssignment struct {
 	IsTilt         bool   `json:"isTilt"`
 	TiltToggle     bool   `json:"tiltToggle"`
 	TiltIndex      int    `json:"tiltIndex"`
+	DeviceId       string `json:"deviceId"`
 }
 
 type InputAction struct {

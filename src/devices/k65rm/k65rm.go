@@ -207,6 +207,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			0:  "None",
 			1:  "Media Keys",
 			3:  "Keyboard",
+			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
 		},
@@ -1457,6 +1458,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 				key.Default = keyAssignment.Default
 				key.ActionType = keyAssignment.ActionType
 				key.ActionCommand = keyAssignment.ActionCommand
+				key.DeviceId = keyAssignment.DeviceId
 				key.ActionHold = keyAssignment.ActionHold
 				key.ModifierKey = keyAssignment.ModifierKey
 				key.RetainOriginal = keyAssignment.RetainOriginal

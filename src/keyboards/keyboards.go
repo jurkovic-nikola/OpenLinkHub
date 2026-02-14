@@ -128,6 +128,7 @@ type Key struct {
 	SecondaryActuationPoint       byte      `json:"secondaryActuationPoint"`
 	SecondaryActuationResetPoint  byte      `json:"secondaryActuationResetPoint"`
 	NoActuation                   bool      `json:"noActuation"`
+	DeviceId                      string    `json:"deviceId"`
 }
 
 // Init will load and initialize keyboard data

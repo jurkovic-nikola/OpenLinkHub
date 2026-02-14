@@ -699,6 +699,7 @@ $(document).ready(function () {
                             $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                         } else {
                             let url = '';
+                            let sniper = false;
                             switch (data.actionType) {
                                 case 1: {
                                     url = '/api/input/media';
@@ -706,6 +707,11 @@ $(document).ready(function () {
                                     break;
                                 case 3: {
                                     url = '/api/input/keyboard';
+                                }
+                                    break;
+                                case 8: {
+                                    url = '/api/devices/mouse';
+                                    sniper = true;
                                 }
                                     break;
                                 case 9: {
@@ -725,7 +731,11 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $.each(result.data, function( index, value ) {
                                         const displayName = value.Name || value.name;
-                                        $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                        if (sniper) {
+                                            $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
+                                        } else {
+                                            $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                        }
                                     });
                                 }
                             });
@@ -760,6 +770,20 @@ $(document).ready(function () {
                                             $(keyAssignmentValue).empty();
                                             $.each(result.data, function( index, value ) {
                                                 $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                    break;
+                                case 8: { // Sniper
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            console.log(result)
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
                                             });
                                         }
                                     });
@@ -893,7 +917,11 @@ $(document).ready(function () {
                                 pf["enabled"] = enabled;
                                 pf["pressAndHold"] = pressAndHold;
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-                                pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                if (parseInt(keyAssignmentType) === 8) {
+                                    pf["keyAssignmentValueString"] = keyAssignmentValue;
+                                } else {
+                                    pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                }
                                 pf["toggleDelay"] = parseInt(toggleDelay);
 
                                 const json = JSON.stringify(pf, null, 2);
@@ -1326,6 +1354,7 @@ $(document).ready(function () {
                             $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                         } else {
                             let url = '';
+                            let sniper = false;
                             switch (data.actionType) {
                                 case 1: {
                                     url = '/api/input/media';
@@ -1333,6 +1362,11 @@ $(document).ready(function () {
                                     break;
                                 case 3: {
                                     url = '/api/input/keyboard';
+                                }
+                                    break;
+                                case 8: {
+                                    url = '/api/devices/mouse';
+                                    sniper = true;
                                 }
                                     break;
                                 case 9: {
@@ -1352,7 +1386,11 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $.each(result.data, function( index, value ) {
                                         const displayName = value.Name || value.name;
-                                        $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                        if (sniper) {
+                                            $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
+                                        } else {
+                                            $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                        }
                                     });
                                 }
                             });
@@ -1387,6 +1425,20 @@ $(document).ready(function () {
                                             $(keyAssignmentValue).empty();
                                             $.each(result.data, function( index, value ) {
                                                 $(keyAssignmentValue).append($('<option>', { value: index, text: value.Name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                    break;
+                                case 8: { // Sniper
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            console.log(result)
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
                                             });
                                         }
                                     });
@@ -1547,7 +1599,11 @@ $(document).ready(function () {
                                 pf["keyAssignmentOriginal"] = retainOriginal;
                                 pf["keyAssignmentModifier"] = parseInt(keyAssignmentModifier);
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-                                pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                if (parseInt(keyAssignmentType) === 8) {
+                                    pf["keyAssignmentValueString"] = keyAssignmentValue;
+                                } else {
+                                    pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
+                                }
                                 pf["toggleDelay"] = parseInt(toggleDelay);
 
                                 const json = JSON.stringify(pf, null, 2);

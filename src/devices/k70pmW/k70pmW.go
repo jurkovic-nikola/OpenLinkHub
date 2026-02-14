@@ -216,6 +216,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			0:  "None",
 			1:  "Media Keys",
 			3:  "Keyboard",
+			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
 		},
@@ -1204,7 +1205,7 @@ func (d *Device) ChangeKeyboardLayout(layout string) uint8 {
 					d.activeRgb.Exit <- true
 					d.activeRgb = nil
 				}
-				
+
 				d.DeviceProfile.Keyboards["default"] = keyboardLayout
 				d.DeviceProfile.Layout = layout
 				d.saveDeviceProfile()
@@ -1478,6 +1479,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 				key.Default = keyAssignment.Default
 				key.ActionType = keyAssignment.ActionType
 				key.ActionCommand = keyAssignment.ActionCommand
+				key.DeviceId = keyAssignment.DeviceId
 				key.ActionHold = keyAssignment.ActionHold
 				key.ModifierKey = keyAssignment.ModifierKey
 				key.RetainOriginal = keyAssignment.RetainOriginal

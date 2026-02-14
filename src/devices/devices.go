@@ -107,6 +107,7 @@ import (
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/voidV2dongle"
 	"OpenLinkHub/src/devices/xc7"
+	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/openrgb"
@@ -155,6 +156,7 @@ var (
 	deviceList          = make(map[string]Device)
 	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093, 7168}
 	initWG              sync.WaitGroup
+	Dispatch            dispatcher.DeviceDispatcher = CallDeviceMethod
 )
 
 // Stop will stop all active devices
@@ -329,8 +331,10 @@ func addDevice(device *common.Device) {
 	}
 
 	mutex.Lock()
-	defer mutex.Unlock()
 	devices[device.Serial] = device
+	mutex.Unlock()
+
+	CallDeviceMethod(device.Serial, "SetDispatcher", Dispatch)
 }
 
 // CallDeviceMethod will call device method based on method name and arguments

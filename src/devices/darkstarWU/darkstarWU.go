@@ -2698,6 +2698,11 @@ func (d *Device) triggerTiltAssignment(value uint32) {
 	}
 }
 
+// CallSniperMode calls sniper mode from outside of this device
+func (d *Device) CallSniperMode(active bool) {
+	d.sniperMode(active)
+}
+
 // sniperMode will set mouse DPI to sniper mode
 func (d *Device) sniperMode(active bool) {
 	d.SniperMode = active

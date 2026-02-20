@@ -7,6 +7,7 @@ package inputmanager
 import (
 	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/logger"
+	"encoding/binary"
 	"errors"
 	"os"
 	"slices"
@@ -59,6 +60,11 @@ type inputID struct {
 	Vendor  uint16
 	Product uint16
 	Version uint16
+}
+
+type byteReader struct {
+	b []byte
+	i int
 }
 
 const (
@@ -247,6 +253,7 @@ const (
 )
 
 var (
+	EvIocGrab                      = ion(uintptr('E'), 0x90, 4)
 	uIBeginFFUpload                = iowr(UiIOCType, 200, unsafe.Sizeof(uinputFFUpload{}))
 	uIEndFFUpload                  = iow(UiIOCType, 201, unsafe.Sizeof(uinputFFUpload{}))
 	uIBeginFFErase                 = iowr(UiIOCType, 202, unsafe.Sizeof(uinputFFErase{}))
@@ -690,13 +697,12 @@ var shiftedToBase = map[rune]rune{
 // Init will fetch an input device
 func Init() {
 	buildInputActions()
-	CreateVirtualKeyboard(productId)
-	CreateVirtualMouse(productId)
-	CreateVirtualGamepad(productId)
+	CreateVirtualKeyboard()
+	CreateVirtualMouse()
 }
 
 // CreateVirtualKeyboard will create new keyboard based on given productId
-func CreateVirtualKeyboard(productId uint16) {
+func CreateVirtualKeyboard() {
 	if virtualKeyboardFile == nil {
 		err := createVirtualKeyboard(vendorId, productId)
 		if err != nil {
@@ -708,7 +714,7 @@ func CreateVirtualKeyboard(productId uint16) {
 }
 
 // CreateVirtualMouse will create new mouse based on given productId
-func CreateVirtualMouse(productId uint16) {
+func CreateVirtualMouse() {
 	if virtualMouseFile == nil {
 		err := createVirtualMouse(vendorId, productId)
 		if err != nil {
@@ -720,7 +726,7 @@ func CreateVirtualMouse(productId uint16) {
 }
 
 // CreateVirtualGamepad will create new mouse based on given productId
-func CreateVirtualGamepad(productId uint16) {
+func CreateVirtualGamepad() {
 	if virtualGamepadFile == nil {
 		err := createVirtualGamepad(vendorId, productId)
 		if err != nil {
@@ -918,3 +924,40 @@ func ioc(dir, typ, nr, size uintptr) uintptr {
 }
 func iow(typ, nr, size uintptr) uintptr  { return ioc(iocWrite, typ, nr, size) }
 func iowr(typ, nr, size uintptr) uintptr { return ioc(iocRead|iocWrite, typ, nr, size) }
+func ion(typ, nr, size uintptr) uintptr  { return ioc(iocWrite, typ, nr, size) }
+func IocTlInt(fd uintptr, req uintptr, val int) error {
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, req, uintptr(val))
+	if errno != 0 {
+		return errno
+	}
+	return nil
+}
+
+func readBytes(b []byte) *byteReader { return &byteReader{b: b} }
+func (r *byteReader) Read(p []byte) (int, error) {
+	if r.i >= len(r.b) {
+		return 0, syscall.EINVAL
+	}
+	n := copy(p, r.b[r.i:])
+	r.i += n
+	return n, nil
+}
+
+// ReadEvent blocks until it reads exactly one input_event.
+func ReadEvent(d *os.File) (inputEvent, error) {
+	var ev inputEvent
+	size := int(unsafe.Sizeof(ev))
+
+	buf := make([]byte, size)
+	n, err := d.Read(buf)
+	if err != nil {
+		return ev, err
+	}
+	if n != size {
+		return ev, errors.New("short read from evdev")
+	}
+	if err := binary.Read(readBytes(buf), binary.LittleEndian, &ev); err != nil {
+		return ev, err
+	}
+	return ev, nil
+}

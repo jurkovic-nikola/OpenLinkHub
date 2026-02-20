@@ -309,3 +309,8 @@ func InputControlMove(x, y int32) {
 		}
 	}
 }
+
+// GetVirtualMouse will return virtual mouse pointer
+func GetVirtualMouse() *os.File {
+	return virtualMouseFile
+}

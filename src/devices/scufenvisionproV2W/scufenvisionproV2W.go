@@ -284,6 +284,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 // setGamepadSerial will set gamepad serial to inputmanager
 func (d *Device) setGamepadSerial() {
 	inputmanager.SetGamepadSerial(d.Serial)
+	inputmanager.CreateVirtualGamepad()
 }
 
 // SetConnected will change connected status

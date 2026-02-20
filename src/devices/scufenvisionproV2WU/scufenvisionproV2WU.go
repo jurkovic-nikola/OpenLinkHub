@@ -309,6 +309,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device { // Set gl
 // setGamepadSerial will set gamepad serial to inputmanager
 func (d *Device) setGamepadSerial() {
 	inputmanager.SetGamepadSerial(d.Serial)
+	inputmanager.CreateVirtualGamepad()
 }
 
 // GetRgbProfiles will return RGB profiles for a target device

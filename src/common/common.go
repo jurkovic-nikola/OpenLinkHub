@@ -58,6 +58,11 @@ type CurveData struct {
 	Y uint8 `json:"y"`
 }
 
+type ByteReaderStruct struct {
+	b []byte
+	i int
+}
+
 const (
 	ProductTypeLinkHub              = 0
 	ProductTypeCC                   = 1
@@ -896,4 +901,37 @@ func SaveJsonData(path string, data interface{}) error {
 // InRange will validate if value is in range
 func InRange(v, min, max int) bool {
 	return v >= min && v <= max
+}
+
+// RealPath will resolve symlinks to an absolute canonical path
+func RealPath(path string) (string, error) {
+	// Resolve symlinks to an absolute canonical path
+	return filepath.EvalSymlinks(path)
+}
+
+// FindEventsByHidraw will find input even with given hidrawX device
+func FindEventsByHidraw(hidrawPath string) ([]string, error) {
+	hidSys := filepath.Join("/sys/class/hidraw", filepath.Base(hidrawPath), "device")
+	hidInterfacePath, err := RealPath(hidSys)
+	if err != nil {
+		return nil, err
+	}
+
+	sysClassEvents, err := filepath.Glob("/sys/class/input/event*")
+	if err != nil {
+		return nil, err
+	}
+
+	var out []string
+	for _, sysClassEvent := range sysClassEvents {
+		evDevPath, err := RealPath(filepath.Join(sysClassEvent, "device"))
+		if err != nil {
+			continue
+		}
+
+		if strings.HasPrefix(evDevPath, hidInterfacePath) || strings.HasPrefix(hidInterfacePath, evDevPath) {
+			out = append(out, filepath.Join("/dev/input", filepath.Base(sysClassEvent)))
+		}
+	}
+	return out, nil
 }

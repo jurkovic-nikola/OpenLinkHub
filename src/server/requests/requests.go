@@ -1839,6 +1839,11 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtSniperNotAllowedOnRelease"), Code: http.StatusOK, Status: 0}
 	}
 
+	if !keyAssignment.ActionHold && keyAssignment.ActionType == 8 {
+		// Sniper requires a Press and Hold
+		return &Payload{Message: language.GetValue("txtSniperPressAndHold"), Code: http.StatusOK, Status: 0}
+	}
+
 	results := devices.CallDeviceMethod(
 		req.DeviceId,
 		"UpdateDeviceKeyAssignment",

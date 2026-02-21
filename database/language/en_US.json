@@ -612,6 +612,7 @@
     "txtMotionSync": "Motion Sync",
     "txtMotionSyncChanged": "Device motion sync successfully changed",
     "txtInvalidMotionSync": "Invalid motion sync option",
-    "txtUnableToChangeMotionSync": "Unable to change motion sync"
+    "txtUnableToChangeMotionSync": "Unable to change motion sync",
+    "txtSniperPressAndHold": "Press and Hold is required for Sniper mode"
   }
 }

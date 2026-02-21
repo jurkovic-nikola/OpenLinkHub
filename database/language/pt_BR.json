@@ -612,6 +612,7 @@
     "txtMotionSync": "Sincronização de movimento",
     "txtMotionSyncChanged": "A sincronização de movimento do dispositivo foi alterada com sucesso",
     "txtInvalidMotionSync": "Opção de sincronização de movimento inválida",
-    "txtUnableToChangeMotionSync": "Não é possível alterar a sincronização de movimento"
+    "txtUnableToChangeMotionSync": "Não é possível alterar a sincronização de movimento",
+    "txtSniperPressAndHold": "Pressionar e segurar é necessário para o modo Sniper"
   }
 }

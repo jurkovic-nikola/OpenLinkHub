@@ -612,6 +612,7 @@
     "txtMotionSync": "Rörelsesynkronisering",
     "txtMotionSyncChanged": "Enhetens rörelsesynkronisering har ändrats",
     "txtInvalidMotionSync": "Ogiltigt alternativ för rörelsesynkronisering",
-    "txtUnableToChangeMotionSync": "Det går inte att ändra rörelsesynkronisering"
+    "txtUnableToChangeMotionSync": "Det går inte att ändra rörelsesynkronisering",
+    "txtSniperPressAndHold": "Tryck och håll krävs för Sniper-läge"
   }
 }

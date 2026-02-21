@@ -118,6 +118,8 @@ type Device struct {
 	instance           *common.Device
 	Usb                bool
 	Connected          bool
+	stopRepeat         chan struct{}
+	stopRepeatMutex    sync.Mutex
 	MinDPI             int
 	MaxDPI             int
 	ZoneAmount         int
@@ -1314,9 +1316,47 @@ func (d *Device) triggerKeyAssignment(value byte) {
 
 						switch v.ActionType {
 						case 1, 3:
-							inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+							if v.ActionRepeat > 0 && !v.ActionHold {
+								d.stopRepeatMutex.Lock()
+								if d.stopRepeat != nil {
+									close(d.stopRepeat)
+								}
+
+								d.stopRepeat = make(chan struct{})
+								localStop := d.stopRepeat
+								d.stopRepeatMutex.Unlock()
+
+								go func() {
+									for z := 0; z < int(v.ActionRepeat); z++ {
+										select {
+										case <-localStop:
+											return
+										default:
+											inputmanager.InputControlKeyboard(v.ActionCommand, false)
+										}
+										if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+											time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+										}
+									}
+								}()
+							} else {
+								inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+							}
+							break
 						case 9:
-							inputmanager.InputControlMouse(v.ActionCommand)
+							if v.ActionRepeat > 0 && !v.ActionHold {
+								for z := 0; z < int(v.ActionRepeat); z++ {
+									inputmanager.InputControlMouse(v.ActionCommand)
+									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+									}
+								}
+							} else if v.ActionHold && v.ActionRepeat == 0 {
+								inputmanager.InputControlMouseHold(v.ActionCommand, v.ActionHold)
+							} else {
+								inputmanager.InputControlMouse(v.ActionCommand)
+							}
+							break
 						case 5:
 							if v.ActionDelay > 0 {
 								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)

@@ -612,6 +612,7 @@
         "txtMotionSync": "Synchronisation de mouvement",
         "txtMotionSyncChanged": "La synchronisation de mouvement de l’appareil a été modifiée avec succès",
         "txtInvalidMotionSync": "Option de synchronisation de mouvement non valide",
-        "txtUnableToChangeMotionSync": "Impossible de modifier la synchronisation de mouvement"
+        "txtUnableToChangeMotionSync": "Impossible de modifier la synchronisation de mouvement",
+        "txtSniperPressAndHold": "Appuyer et maintenir est requis pour le mode Sniper"
     }
 }

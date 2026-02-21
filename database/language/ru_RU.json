@@ -612,6 +612,7 @@
         "txtMotionSync": "Синхронизация движения",
         "txtMotionSyncChanged": "Синхронизация движения устройства успешно изменена",
         "txtInvalidMotionSync": "Недопустимый параметр синхронизации движения",
-        "txtUnableToChangeMotionSync": "Невозможно изменить синхронизацию движения"
+        "txtUnableToChangeMotionSync": "Невозможно изменить синхронизацию движения",
+        "txtSniperPressAndHold": "Для режима Sniper требуется функция «Нажать и удерживать»"
     }
 }

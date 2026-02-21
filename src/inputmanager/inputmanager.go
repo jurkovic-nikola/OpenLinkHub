@@ -5,6 +5,7 @@ package inputmanager
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/logger"
 	"encoding/binary"
@@ -727,13 +728,15 @@ func CreateVirtualMouse() {
 
 // CreateVirtualGamepad will create new mouse based on given productId
 func CreateVirtualGamepad() {
-	if virtualGamepadFile == nil {
-		err := createVirtualGamepad(vendorId, productId)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to create virtual keyboard")
-			return
+	if config.GetConfig().EnableGamepad {
+		if virtualGamepadFile == nil {
+			err := createVirtualGamepad(vendorId, productId)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err}).Error("Failed to create virtual keyboard")
+				return
+			}
+			logger.Log(logger.Fields{}).Info("Virtual gamepad successfully created")
 		}
-		logger.Log(logger.Fields{}).Info("Virtual gamepad successfully created")
 	}
 }
 

@@ -148,7 +148,8 @@ xdg-open http://127.0.0.1:27003
   "graphProfiles": false,
   "ramTempViaHwmon": false,
   "nvidiaGpuIndex": [0],
-  "defaultNvidiaGPU": 0
+  "defaultNvidiaGPU": 0,
+  "enableGamepad": true
 }
 ```
 - listenPort: HTTP server port.
@@ -181,6 +182,7 @@ xdg-open http://127.0.0.1:27003
 - nvidiaGpuIndex: NVIDIA multi-gpu setup.
 - defaultNvidiaGPU: default index of NVIDIA GPU, default is 0.
   - If you use vfio-pci/pass-through, you have to set it to -1 to avoid conflicts with NVIDIA modules.
+- enableGamepad: Enable or disable Virtual Gamepad used for SCUF controllers.
 
 ### 7. Progressive Web App (PWA) UI
 The web UI supports installation as a progressive web app (PWA). With a supported browser, this allows the UI to appear as a standalone application.

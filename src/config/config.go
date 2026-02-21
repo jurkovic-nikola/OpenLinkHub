@@ -42,6 +42,7 @@ type Configuration struct {
 	DefaultNvidiaGPU          int      `json:"defaultNvidiaGPU"`
 	OpenRGBPort               int      `json:"openRGBPort"`
 	EnableOpenRGBTargetServer bool     `json:"enableOpenRGBTargetServer"`
+	EnableGamepad             bool     `json:"enableGamepad"`
 }
 
 var (
@@ -64,6 +65,7 @@ var (
 		"defaultNvidiaGPU":          0,
 		"openRGBPort":               6743,
 		"enableOpenRGBTargetServer": false,
+		"enableGamepad":             true,
 	}
 	systemService = true
 )
@@ -155,6 +157,7 @@ func upgradeFile(cfg string) {
 			DefaultNvidiaGPU:          0,
 			OpenRGBPort:               6743,
 			EnableOpenRGBTargetServer: false,
+			EnableGamepad:             true,
 		}
 		saveConfigSettings(value)
 	} else {

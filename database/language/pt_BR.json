@@ -604,6 +604,14 @@
     "txtSelectedKeys": "Teclas selecionadas",
     "txtEnableResetPoint": "Ativar ponto de redefinição",
     "txtGpuLiquid": "Líquido da GPU",
-    "txtGpuPump": "Bomba da GPU"
+    "txtGpuPump": "Bomba da GPU",
+    "txtRippleControl": "Controle de ondulação",
+    "txtRippleControlChanged": "O controle de ondulação do dispositivo foi alterado com sucesso",
+    "txtInvalidRippleControl": "Opção de controle de ondulação inválida",
+    "txtUnableToChangeRippleControl": "Não é possível alterar o controle de ondulação",
+    "txtMotionSync": "Sincronização de movimento",
+    "txtMotionSyncChanged": "A sincronização de movimento do dispositivo foi alterada com sucesso",
+    "txtInvalidMotionSync": "Opção de sincronização de movimento inválida",
+    "txtUnableToChangeMotionSync": "Não é possível alterar a sincronização de movimento"
   }
 }

@@ -91,6 +91,8 @@ type Payload struct {
 	LiftHeight                    int                   `json:"liftHeight"`
 	MultiGestures                 int                   `json:"multiGestures"`
 	AngleSnapping                 int                   `json:"angleSnapping"`
+	RippleControl                 int                   `json:"rippleControl"`
+	MotionSync                    int                   `json:"motionSync"`
 	AutoBrightness                int                   `json:"autoBrightness"`
 	PressAndHold                  bool                  `json:"pressAndHold"`
 	ActionRepeatValue             uint8                 `json:"actionRepeatValue"`
@@ -1458,6 +1460,98 @@ func ProcessChangeAngleSnapping(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeAngleSnapping"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeRippleControl will process POST request from a client for ripple control change
+func ProcessChangeRippleControl(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.RippleControl < 0 || req.RippleControl > 1 {
+		return &Payload{Message: language.GetValue("txtInvalidRippleControl"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateRippleControl",
+		req.RippleControl,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtRippleControlChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRippleControl"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeRippleControl"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeMotionSync will process POST request from a client for motion sync change
+func ProcessChangeMotionSync(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MotionSync < 0 || req.MotionSync > 1 {
+		return &Payload{Message: language.GetValue("txtInvalidMotionSync"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateMotionSync",
+		req.MotionSync,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtMotionSyncChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeMotionSync"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeMotionSync"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeAutoBrightness will process POST request from a client for auto brightness mode change

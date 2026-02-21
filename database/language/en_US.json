@@ -604,6 +604,14 @@
     "txtSelectedKeys": "Selected Keys",
     "txtEnableResetPoint": "Enable Reset Point",
     "txtGpuLiquid": "GPU Liquid",
-    "txtGpuPump": "GPU Pump"
+    "txtGpuPump": "GPU Pump",
+    "txtRippleControl": "Ripple Control",
+    "txtRippleControlChanged": "Device ripple control successfully changed",
+    "txtInvalidRippleControl": "Invalid ripple control option",
+    "txtUnableToChangeRippleControl": "Unable to change ripple control",
+    "txtMotionSync": "Motion Sync",
+    "txtMotionSyncChanged": "Device motion sync successfully changed",
+    "txtInvalidMotionSync": "Invalid motion sync option",
+    "txtUnableToChangeMotionSync": "Unable to change motion sync"
   }
 }

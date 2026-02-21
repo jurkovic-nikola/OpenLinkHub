@@ -549,6 +549,74 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $(".toggleRippleControl").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked");
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/mouse/rippleControl",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                rippleControl: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".toggleMotionSync").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked");
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/mouse/motionSync",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                motionSync: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
     $(".toggleButtonOptimization").on("change", function () {
         const $toggle = $(this);
         const previousState = !$toggle.prop("checked");

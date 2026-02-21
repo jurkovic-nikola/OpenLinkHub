@@ -604,6 +604,14 @@
         "txtSelectedKeys": "Выбранные клавиши",
         "txtEnableResetPoint": "Включить точку сброса",
         "txtGpuLiquid": "Жидкость GPU",
-        "txtGpuPump": "Помпа GPU"
+        "txtGpuPump": "Помпа GPU",
+        "txtRippleControl": "Управление рябью",
+        "txtRippleControlChanged": "Управление рябью устройства успешно изменено",
+        "txtInvalidRippleControl": "Недопустимый параметр управления рябью",
+        "txtUnableToChangeRippleControl": "Невозможно изменить управление рябью",
+        "txtMotionSync": "Синхронизация движения",
+        "txtMotionSyncChanged": "Синхронизация движения устройства успешно изменена",
+        "txtInvalidMotionSync": "Недопустимый параметр синхронизации движения",
+        "txtUnableToChangeMotionSync": "Невозможно изменить синхронизацию движения"
     }
 }

@@ -604,6 +604,14 @@
         "txtSelectedKeys": "Touches sélectionnées",
         "txtEnableResetPoint": "Activer le point de réinitialisation",
         "txtGpuLiquid": "Liquide GPU",
-        "txtGpuPump": "Pompe GPU"
+        "txtGpuPump": "Pompe GPU",
+        "txtRippleControl": "Contrôle d’ondulation",
+        "txtRippleControlChanged": "Le contrôle d’ondulation de l’appareil a été modifié avec succès",
+        "txtInvalidRippleControl": "Option de contrôle d’ondulation non valide",
+        "txtUnableToChangeRippleControl": "Impossible de modifier le contrôle d’ondulation",
+        "txtMotionSync": "Synchronisation de mouvement",
+        "txtMotionSyncChanged": "La synchronisation de mouvement de l’appareil a été modifiée avec succès",
+        "txtInvalidMotionSync": "Option de synchronisation de mouvement non valide",
+        "txtUnableToChangeMotionSync": "Impossible de modifier la synchronisation de mouvement"
     }
 }

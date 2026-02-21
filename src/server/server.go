@@ -1442,6 +1442,28 @@ func changeLiftHeight(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeRippleControl handles device ripple control mode
+func changeRippleControl(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeRippleControl(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeMotionSync handles device ripple control mode
+func changeMotionSync(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeMotionSync(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeAutoBrightness handles device auto brightness mode
 func changeAutoBrightness(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeAutoBrightness(r)
@@ -2400,6 +2422,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/mouse/sleep", http.MethodPost, changeSleepMode)
 	handleFunc(r, "/api/mouse/pollingRate", http.MethodPost, changePollingRate)
 	handleFunc(r, "/api/mouse/angleSnapping", http.MethodPost, changeAngleSnapping)
+	handleFunc(r, "/api/mouse/rippleControl", http.MethodPost, changeRippleControl)
+	handleFunc(r, "/api/mouse/motionSync", http.MethodPost, changeMotionSync)
 	handleFunc(r, "/api/mouse/buttonOptimization", http.MethodPost, changeButtonOptimization)
 	handleFunc(r, "/api/mouse/leftHandMode", http.MethodPost, changeLeftHandMode)
 	handleFunc(r, "/api/mouse/liftHeight", http.MethodPost, changeLiftHeight)

@@ -604,6 +604,14 @@
     "txtSelectedKeys": "Odabrane tipke",
     "txtEnableResetPoint": "Omogući točku resetiranja",
     "txtGpuLiquid": "GPU tekućina",
-    "txtGpuPump": "GPU pumpa"
+    "txtGpuPump": "GPU pumpa",
+    "txtRippleControl": "Kontrola valova",
+    "txtRippleControlChanged": "Kontrola valova uređaja uspješno je promijenjena",
+    "txtInvalidRippleControl": "Nevažeća opcija kontrole valova",
+    "txtUnableToChangeRippleControl": "Nije moguće promijeniti kontrolu valova",
+    "txtMotionSync": "Sinkronizacija pokreta",
+    "txtMotionSyncChanged": "Sinkronizacija pokreta uređaja uspješno je promijenjena",
+    "txtInvalidMotionSync": "Nevažeća opcija sinkronizacije pokreta",
+    "txtUnableToChangeMotionSync": "Nije moguće promijeniti sinkronizaciju pokreta"
   }
 }

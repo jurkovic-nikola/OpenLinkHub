@@ -604,6 +604,14 @@
     "txtSelectedKeys": "Ausgewählte Tasten",
     "txtEnableResetPoint": "Rücksetzpunkt aktivieren",
     "txtGpuLiquid": "GPU-Flüssigkeit",
-    "txtGpuPump": "GPU-Pumpe"
+    "txtGpuPump": "GPU-Pumpe",
+    "txtRippleControl": "Wellensteuerung",
+    "txtRippleControlChanged": "Die Wellensteuerung des Geräts wurde erfolgreich geändert",
+    "txtInvalidRippleControl": "Ungültige Wellensteuerungsoption",
+    "txtUnableToChangeRippleControl": "Die Wellensteuerung konnte nicht geändert werden",
+    "txtMotionSync": "Bewegungssynchronisation",
+    "txtMotionSyncChanged": "Die Bewegungssynchronisation des Geräts wurde erfolgreich geändert",
+    "txtInvalidMotionSync": "Ungültige Bewegungssynchronisationsoption",
+    "txtUnableToChangeMotionSync": "Die Bewegungssynchronisation konnte nicht geändert werden"
   }
 }

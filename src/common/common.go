@@ -58,11 +58,6 @@ type CurveData struct {
 	Y uint8 `json:"y"`
 }
 
-type ByteReaderStruct struct {
-	b []byte
-	i int
-}
-
 const (
 	ProductTypeLinkHub              = 0
 	ProductTypeCC                   = 1

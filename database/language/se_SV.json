@@ -604,6 +604,14 @@
     "txtSelectedKeys": "Valda tangenter",
     "txtEnableResetPoint": "Aktivera återställningspunkt",
     "txtGpuLiquid": "GPU-vätska",
-    "txtGpuPump": "GPU-pump"
+    "txtGpuPump": "GPU-pump",
+    "txtRippleControl": "Kruskontroll",
+    "txtRippleControlChanged": "Enhetens kruskontroll har ändrats",
+    "txtInvalidRippleControl": "Ogiltigt alternativ för kruskontroll",
+    "txtUnableToChangeRippleControl": "Det går inte att ändra kruskontroll",
+    "txtMotionSync": "Rörelsesynkronisering",
+    "txtMotionSyncChanged": "Enhetens rörelsesynkronisering har ändrats",
+    "txtInvalidMotionSync": "Ogiltigt alternativ för rörelsesynkronisering",
+    "txtUnableToChangeMotionSync": "Det går inte att ändra rörelsesynkronisering"
   }
 }

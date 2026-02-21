@@ -145,7 +145,8 @@ xdg-open http://127.0.0.1:27003
   "graphProfiles": false,
   "ramTempViaHwmon": false,
   "nvidiaGpuIndex": [0],
-  "defaultNvidiaGPU": 0
+  "defaultNvidiaGPU": 0,
+  "enableGamepad": true,
 }
 ```
 - listenPort: Porta do servidor HTTP.
@@ -178,6 +179,7 @@ xdg-open http://127.0.0.1:27003
 - nvidiaGpuIndex: Configuração multi GPU NVIDIA.
 - defaultNvidiaGPU: índice padrão da GPU NVIDIA, padrão é 0.
   - Se usar vfio-pci/pass-through, você tem que definir como -1 para evitar conflitos com módulos nvidia.
+- enableGamepad: Ativar ou desativar o gamepad virtual usado para controladores SCUF.
 
 ### 7. Interface de Aplicativo Web Progressiva (PWA)
 A interface web suporta instalação como aplicativo web progressivo (PWA). Com um navegador suportado, isso permite que a interface apareça como um aplicativo independente.

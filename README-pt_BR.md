@@ -15,6 +15,7 @@ Gerencie iluminação RGB, velocidades de ventiladores, métricas do sistema, be
 - Se precisar de menu na bandeja do sistema - https://github.com/jurkovic-nikola/openlinkhub-tray
 - [Lista de dispositivos suportados](docs/supported-devices.md)
 - [SCUF Controller Audio Config](docs/scuf-controller.md)
+- [KDE System Monitor Sensor Face](https://github.com/jurkovic-nikola/openlinkhub-sensorfaces)
 
 ![Interface Web](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 

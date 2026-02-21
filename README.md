@@ -17,6 +17,7 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and
 - If you need system tray menu - https://github.com/jurkovic-nikola/openlinkhub-tray
 - [Supported device list](docs/supported-devices.md)
 - [SCUF Controller Audio Config](docs/scuf-controller.md)
+- [KDE System Monitor Sensor Face](https://github.com/jurkovic-nikola/openlinkhub-sensorfaces)
 
 ![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 

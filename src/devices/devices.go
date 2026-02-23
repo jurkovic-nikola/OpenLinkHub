@@ -58,6 +58,7 @@ import (
 	"OpenLinkHub/src/devices/k70protkl"
 	"OpenLinkHub/src/devices/k70rgbRF"
 	"OpenLinkHub/src/devices/k70rgbtklcs"
+	"OpenLinkHub/src/devices/k95"
 	"OpenLinkHub/src/devices/k95platinum"
 	"OpenLinkHub/src/devices/k95platinumXT"
 	"OpenLinkHub/src/devices/katarpro"
@@ -721,6 +722,7 @@ var deviceRegisterMap = map[uint16]Product{
 	6984:  {1, 0, "STRAFE RGB MK2", strafergbmk2.Init, nil},                // STRAFE RGB MK2
 	11024: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB
 	11025: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB
+	6929:  {1, 0, "K95", k95.Init, nil},                                    // K95
 	6957:  {1, 0, "K95 PLATINUM", k95platinum.Init, nil},                   // K95 PLATINUM
 	7049:  {1, 0, "K95 PLATINUM XT", k95platinumXT.Init, nil},              // K95 PLATINUM XT
 	6991:  {1, 0, "K68 RGB", k68rgb.Init, nil},                             // K68 RGB

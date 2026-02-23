@@ -109,6 +109,7 @@ const (
 	ProductTypeStrafeRgbMk2         = 134
 	ProductTypeK65RM                = 135
 	ProductTypeK65Rgb               = 136
+	ProductTypeK95                  = 137
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203
@@ -219,6 +220,13 @@ const (
 	ColorModePerLed
 	ColorModeSpecific
 	ColorModeRandom
+)
+
+const (
+	mainInput         = 0x08
+	globalReportSize  = 0x07
+	globalReportCount = 0x09
+	globalReportID    = 0x08
 )
 
 type OpenRGBSegment struct {
@@ -929,4 +937,76 @@ func FindEventsByHidraw(hidrawPath string) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+// MaxHIDInputReport will return the maximum number of bytes of HID Input report
+func MaxHIDInputReport(rd []byte) int {
+	reportSizeBits := 0
+	reportCount := 0
+	curReportID := 0
+	maxByID := map[int]int{}
+	hasReportIDs := false
+
+	for i := 0; i < len(rd); {
+		b := rd[i]
+		if b == 0xFE {
+			if i+2 >= len(rd) {
+				break
+			}
+			dataLen := int(rd[i+1])
+			i += 3 + dataLen
+			continue
+		}
+
+		sizeCode := int(b & 0x03)
+		size := sizeCode
+		if sizeCode == 3 {
+			size = 4
+		}
+		itemType := (b >> 2) & 0x03
+		tag := (b >> 4) & 0x0F
+
+		if i+1+size > len(rd) {
+			break
+		}
+
+		val := 0
+		for j := 0; j < size; j++ {
+			val |= int(rd[i+1+j]) << (8 * j)
+		}
+
+		switch itemType {
+		case 1:
+			switch tag {
+			case globalReportSize:
+				reportSizeBits = val
+			case globalReportCount:
+				reportCount = val
+			case globalReportID:
+				curReportID = val
+				hasReportIDs = true
+			}
+
+		case 0:
+			if tag == mainInput {
+				bits := reportSizeBits * reportCount
+				bts := (bits + 7) / 8
+				if bts > maxByID[curReportID] {
+					maxByID[curReportID] = bts
+				}
+			}
+		}
+		i += 1 + size
+	}
+
+	maxSize := 0
+	for _, v := range maxByID {
+		if v > maxSize {
+			maxSize = v
+		}
+	}
+	if hasReportIDs && maxSize > 0 {
+		return maxSize + 1
+	}
+	return maxSize
 }

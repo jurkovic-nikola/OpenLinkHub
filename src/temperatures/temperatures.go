@@ -1052,7 +1052,10 @@ func GetExternalHwMonSensors() interface{} {
 		}
 		sensorName := strings.TrimSpace(string(nameBytes))
 		if sensorName == "corsaircpro" || sensorName == "corsair_cpro" || sensorName == "corsair-cpro" {
-			// Don't enumerate this sensor
+			continue
+		}
+
+		if sensorName == "corsairpsu" || sensorName == "corsair_psu" || sensorName == "corsair-psu" {
 			continue
 		}
 

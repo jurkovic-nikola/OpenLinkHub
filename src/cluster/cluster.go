@@ -459,7 +459,7 @@ func (d *Device) setDeviceColor() {
 				}
 				buff := d.generateRgbEffect(lightChannels, &startTime, d.DeviceProfile.RGBProfile)
 				d.distributeColors(buff)
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(20 * time.Millisecond)
 			}
 		}
 	}()

@@ -56,6 +56,9 @@ type DeviceProfile struct {
 	SpeedProfiles        map[int]string
 	RGBProfiles          map[int]string
 	Labels               map[int]string
+	RGBProbes            map[int]int
+	MinTemps             map[int]float64
+	MaxTemps             map[int]float64
 	Positions            []string
 	ExternalAdapter      map[int]int
 	LCDModes             map[int]uint8
@@ -146,6 +149,9 @@ type Devices struct {
 	VrmProfile         string           `json:"vrmProfile"`
 	RGB                string           `json:"rgb"`
 	Label              string           `json:"label"`
+	ProbeId            int              `json:"probeId"`
+	MinTemp            float64          `json:"minTemp"`
+	MaxTemp            float64          `json:"maxTemp"`
 	PortId             uint8            `json:"portId"`
 	Volts              map[int]RailData `json:"volts"`
 	Amps               map[int]RailData `json:"amps"`
@@ -300,6 +306,7 @@ var (
 		"marquee",
 		"nebula",
 		"off",
+		"probe-temperature",
 		"rainbow",
 		"pastelrainbow",
 		"rotarystack",
@@ -323,6 +330,7 @@ var (
 		"gradient",
 		"pastelrainbow",
 		"pastelspiralrainbow",
+		"probe-temperature",
 	}
 )
 
@@ -1008,6 +1016,10 @@ func (d *Device) saveDeviceProfile() {
 	rgbOverride := make(map[int]map[int]RGBOverride, len(d.Devices))
 	rgbPerLed := make(map[int]map[int]map[int]rgb.Color, len(d.Devices))
 	commanderDuoOverride := make(map[int]CommanderDuoOverride, len(d.Devices))
+	rgbProbes := make(map[int]int, len(d.Devices))
+	minTemps := make(map[int]float64, len(d.Devices))
+	maxTemps := make(map[int]float64, len(d.Devices))
+
 	var positions []string
 
 	if d.DeviceProfile == nil || d.DeviceProfile.RGBOverride == nil {
@@ -1022,7 +1034,9 @@ func (d *Device) saveDeviceProfile() {
 		speedProfiles[device.ChannelId] = device.Profile
 		rgbProfiles[device.ChannelId] = device.RGB
 		labels[device.ChannelId] = device.Label
-
+		rgbProbes[device.ChannelId] = device.ProbeId
+		minTemps[device.ChannelId] = device.MinTemp
+		maxTemps[device.ChannelId] = device.MaxTemp
 		if device.ContainsPump || device.AIO {
 			lcdDevices[device.ChannelId] = device.LCDSerial
 		}
@@ -1203,6 +1217,9 @@ func (d *Device) saveDeviceProfile() {
 		SpeedProfiles:      speedProfiles,
 		RGBProfiles:        rgbProfiles,
 		Labels:             labels,
+		RGBProbes:          rgbProbes,
+		MinTemps:           minTemps,
+		MaxTemps:           maxTemps,
 		Path:               profilePath,
 		BrightnessSlider:   &defaultBrightness,
 		OriginalBrightness: 100,
@@ -1230,6 +1247,9 @@ func (d *Device) saveDeviceProfile() {
 			}
 			rgbProfiles[device.ChannelId] = "static"
 			labels[device.ChannelId] = "Set Label"
+			rgbProbes[device.ChannelId] = 0
+			minTemps[device.ChannelId] = 0
+			maxTemps[device.ChannelId] = 60
 			devicePositions[m] = device.DeviceId
 			m++
 		}
@@ -1499,6 +1519,49 @@ func (d *Device) GetDevicePositions() []string {
 	}
 
 	return d.DeviceProfile.Positions
+}
+
+// ProcessGetChannelDevice will return channel device data
+func (d *Device) ProcessGetChannelDevice(channelId int) *Devices {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+
+	if _, ok := d.Devices[channelId]; !ok {
+		return nil
+	}
+	return d.Devices[channelId]
+}
+
+// ProcessSetRgbTemperatureProfile will update RGB temperature probe settings
+func (d *Device) ProcessSetRgbTemperatureProfile(channelId, _ int, probeChannelId int, minTemp, maxTemp float64) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if _, ok := d.Devices[channelId]; !ok {
+		return 0
+	}
+
+	if _, ok := d.Devices[probeChannelId]; !ok {
+		return 0
+	}
+
+	device := d.Devices[probeChannelId]
+	if !device.IsTemperatureProbe && !device.ContainsPump {
+		return 0
+	}
+
+	d.Devices[channelId].ProbeId = probeChannelId
+	d.Devices[channelId].MinTemp = minTemp
+	d.Devices[channelId].MaxTemp = maxTemp
+	d.saveDeviceProfile()
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+	return 1
 }
 
 // GetCommanderDuoOverride will get commander duo override data
@@ -2122,6 +2185,19 @@ func (d *Device) getTemperatureProbe() {
 	d.TemperatureProbes = &probes
 }
 
+// getTemperatureProbeTemperature will return temperature probe temperature
+func (d *Device) getTemperatureProbeTemperature(channelId int) float32 {
+	if device, ok := d.Devices[channelId]; ok {
+		if device.IsTemperatureProbe {
+			return device.Temperature
+		}
+		if device.ContainsPump || device.AIO {
+			return device.Temperature
+		}
+	}
+	return 0
+}
+
 // saveRgbProfile will save rgb profile data
 func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -2229,6 +2305,8 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	pf.EndColor = profile.EndColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
+	pf.MinTemp = profile.MinTemp
+	pf.MaxTemp = profile.MaxTemp
 
 	d.Rgb.Profiles[profileName] = *pf
 	d.saveRgbProfile()
@@ -3443,6 +3521,9 @@ func (d *Device) getDevices() int {
 		// Get a persistent speed profile. Fallback to Normal is anything fails
 		speedProfile := "Normal"
 		label := "Set Label"
+		probeId := 0
+		minTemp := 0.0
+		maxTemp := 60.0
 		if d.DeviceProfile != nil {
 			// Profile is set
 			if sp, ok := d.DeviceProfile.SpeedProfiles[i]; ok {
@@ -3461,6 +3542,24 @@ func (d *Device) getDevices() int {
 			if lb, ok := d.DeviceProfile.Labels[i]; ok {
 				if len(lb) > 0 {
 					label = lb
+				}
+			}
+
+			if probe, ok := d.DeviceProfile.RGBProbes[i]; ok {
+				if probe > 0 {
+					probeId = probe
+				}
+			}
+
+			if minTemps, ok := d.DeviceProfile.MinTemps[i]; ok {
+				if minTemps >= 0 {
+					minTemp = minTemps
+				}
+			}
+
+			if maxTemps, ok := d.DeviceProfile.MaxTemps[i]; ok {
+				if maxTemps > 0 {
+					maxTemp = maxTemps
 				}
 			}
 		} else {
@@ -3554,6 +3653,9 @@ func (d *Device) getDevices() int {
 			IsCommanderDuo:     deviceMeta.CommanderDuo,
 			IsPSU:              deviceMeta.Psu,
 			IsVrmCooler:        deviceMeta.VrmCooler,
+			ProbeId:            probeId,
+			MinTemp:            minTemp,
+			MaxTemp:            maxTemp,
 		}
 
 		if device.IsLinkAdapter {
@@ -4362,6 +4464,23 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 		{
 			r.Temperature(float64(d.GpuTemp))
 			buff = r.Output
+		}
+	case "probe-temperature":
+		{
+			r.MinTemp = profile.MinTemp
+			r.MaxTemp = profile.MaxTemp
+
+			if d.Devices[k].MinTemp >= 0 {
+				r.MinTemp = d.Devices[k].MinTemp
+			}
+
+			if d.Devices[k].MaxTemp > 0 {
+				r.MaxTemp = d.Devices[k].MaxTemp
+			}
+
+			probeTemp := d.getTemperatureProbeTemperature(d.Devices[k].ProbeId)
+			r.Temperature(float64(probeTemp))
+			buff = append(buff, r.Output...)
 		}
 	case "colorpulse":
 		{

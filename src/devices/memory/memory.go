@@ -1394,7 +1394,7 @@ func (d *Device) setDeviceColor() {
 
 					d.writeColor(buff, k)
 				}
-				time.Sleep(5 * time.Millisecond)
+				time.Sleep(20 * time.Millisecond)
 			}
 		}
 	}(lightChannels)

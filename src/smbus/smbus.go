@@ -7,6 +7,7 @@ package smbus
 import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -40,6 +41,13 @@ type i2cCommand struct {
 type Connection struct {
 	File *os.File
 }
+
+type cacheKey struct {
+	addr uint8
+	reg  uint8
+}
+
+var cacheData = map[cacheKey][]byte{}
 
 // GetSmBus will return selected SMBus
 func GetSmBus() (*SmBus, error) {
@@ -100,26 +108,15 @@ func Open(device string) (*Connection, error) {
 	return &Connection{File: f}, nil
 }
 
-// WriteRegister will write byte to a register
-func WriteRegister(f *os.File, address, register, value uint8) error {
-	if err := ioctl(f.Fd(), i2cSlave, uintptr(address)); err != nil {
-		return err
-	}
-
-	var cmd = i2cCommand{
-		mode:    i2cWrite,
-		command: register,
-		length:  i2cByteData,
-		pointer: unsafe.Pointer(&value),
-	}
-	ptr := unsafe.Pointer(&cmd)
-	return ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
-}
-
 // WriteBlockData will write a byte array to register
 func WriteBlockData(f *os.File, address, register uint8, buf []byte) error {
 	if len(buf) > int(i2csmBusMax) {
 		return errors.New("buffer is too long for this type")
+	}
+
+	k := cacheKey{addr: address, reg: register}
+	if prev, ok := cacheData[k]; ok && bytes.Equal(prev, buf) {
+		return nil
 	}
 
 	if err := ioctl(f.Fd(), i2cSlave, uintptr(address)); err != nil {
@@ -137,7 +134,13 @@ func WriteBlockData(f *os.File, address, register uint8, buf []byte) error {
 		pointer: unsafe.Pointer(&data[0]),
 	}
 	ptr := unsafe.Pointer(&cmd)
-	return ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
+	err := ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
+	if err == nil {
+		cp := make([]byte, len(buf))
+		copy(cp, buf)
+		cacheData[k] = cp
+	}
+	return err
 }
 
 // ReadRegister will read byte from a register

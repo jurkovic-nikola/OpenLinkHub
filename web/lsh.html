@@ -293,6 +293,14 @@
                                                 {{ end }}
                                             </label>
                                         </div>
+
+                                        <!-- Sensors -->
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtSensor" }}</span>
+                                            <label>
+                                                <button class="system-button compact rgbTemperatureProbe" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                            </label>
+                                        </div>
                                         {{ end }}
 
                                         {{ end }}

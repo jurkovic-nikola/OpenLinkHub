@@ -4619,9 +4619,11 @@ func (d *Device) getLedDevices() {
 			if device, ok := d.Devices[i]; ok {
 				if device.IsCommanderDuo {
 					device.LedChannels = uint8(numLEDs)
-					if override, valid := d.DeviceProfile.CommanderDuoOverride[device.ChannelId]; valid {
-						if override.Enabled {
-							device.LedChannels = override.LedChannels
+					if d.DeviceProfile != nil && d.DeviceProfile.CommanderDuoOverride != nil {
+						if override, valid := d.DeviceProfile.CommanderDuoOverride[device.ChannelId]; valid {
+							if override.Enabled {
+								device.LedChannels = override.LedChannels
+							}
 						}
 					}
 					d.Devices[i] = device

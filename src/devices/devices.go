@@ -159,7 +159,7 @@ var (
 	interfaceId         = 0
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
-	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093, 7168}
+	legacyDevices       = []uint16{3074, 3075, 3076, 3079, 3080, 3081, 3082, 3090, 3091, 3093, 7168}
 	initWG              sync.WaitGroup
 	Dispatch            dispatcher.DeviceDispatcher = CallDeviceMethod
 )
@@ -644,11 +644,19 @@ var deviceRegisterMap = map[uint16]Product{
 	3135:  {0, 0, "iCUE LINK SYSTEM HUB", lsh.Init, nil},                   // iCUE Link System Hub
 	3122:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                     // iCUE COMMANDER Core
 	3100:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                     // iCUE COMMANDER Core
+	3101:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                     // iCUE COMMANDER Core v3
+	3132:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                     // iCUE COMMANDER Core v4
+	3133:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                     // iCUE COMMANDER Core v5
+	3134:  {0, 0, "iCUE COMMANDER Core", cc.Init, nil},                     // iCUE COMMANDER Core v6
 	3114:  {0, 0, "iCUE COMMANDER CORE XT", ccxt.Init, nil},                // iCUE COMMANDER CORE XT
 	3158:  {0, 0, "iCUE COMMANDER DUO", cduo.Init, nil},                    // iCUE COMMANDER DUO (USB)
 	3090:  {0, 0, "H150i PLATINUM", platinum.Init, nil},                    // H150i PLATINUM
 	3091:  {0, 0, "H115i PLATINUM", platinum.Init, nil},                    // H115i PLATINUM
 	3093:  {0, 0, "H100i PLATINUM", platinum.Init, nil},                    // H100i PLATINUM
+	3074:  {0, 0, "H80i GT", hydro.Init, nil},                              // H80i GT (Asetek legacy)
+	3075:  {0, 0, "H100i GTX", hydro.Init, nil},                            // H100i GTX (Asetek legacy)
+	3076:  {0, 0, "H110i GT", hydro.Init, nil},                             // H110i GT (Asetek legacy)
+	3079:  {0, 0, "H110i GTX", hydro.Init, nil},                            // H110i GTX (Asetek legacy)
 	3080:  {0, 0, "H80i HYDRO", hydro.Init, nil},                           // H80i HYDRO
 	3081:  {0, 0, "H100i HYDRO", hydro.Init, nil},                          // H100i HYDRO
 	3082:  {0, 0, "H115i HYDRO", hydro.Init, nil},                          // H115i HYDRO
@@ -657,6 +665,7 @@ var deviceRegisterMap = map[uint16]Product{
 	3127:  {0, 0, "iCUE H150i ELITE RGB", elite.Init, nil},                 // iCUE H150i ELITE RGB
 	3136:  {0, 0, "iCUE H100i ELITE RGB White", elite.Init, nil},           // iCUE H100i ELITE RGB White
 	3137:  {0, 0, "iCUE H150i ELITE RGB White", elite.Init, nil},           // iCUE H150i ELITE RGB White
+	3113:  {0, 0, "iCUE H60i RGB PRO XT", elite.Init, nil},                 // iCUE H60i RGB PRO XT
 	3104:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},                // iCUE H100i RGB PRO XT
 	3117:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},                // iCUE H100i RGB PRO XT
 	3105:  {0, 0, "iCUE H115i RGB PRO XT", elite.Init, nil},                // iCUE H115i RGB PRO XT
@@ -666,9 +675,11 @@ var deviceRegisterMap = map[uint16]Product{
 	3096:  {0, 0, "H100i RGB PLATINUM", elite.Init, nil},                   // H100i RGB PLATINUM
 	3097:  {0, 0, "H100i RGB PLATINUM SE", elite.Init, nil},                // H100i RGB PLATINUM SE
 	3098:  {0, 0, "LIGHTING NODE CORE", lncore.Init, nil},                  // Lighting Node CORE
+	3102:  {0, 0, "LS100 LIGHTING KIT", lncore.Init, nil},                  // LS100 Smart Lighting Kit
 	3083:  {0, 0, "LIGHTING NODE PRO", lnpro.Init, nil},                    // Lighting Node Pro
 	3088:  {0, 0, "COMMANDER PRO", cpro.Init, nil},                         // Commander Pro
 	7424:  {0, 0, "COMMANDER PRO 1000D", cpro.Init, nil},                   // Obsidian 1000D Hub (Commander Pro)
+	7428:  {0, 0, "SPEC OMEGA RGB", lncore.Init, nil},                      // SPEC OMEGA RGB Case
 	3138:  {0, 0, "XC7 ELITE LCD", xc7.Init, nil},                          // XC7 ELITE LCD CPU Water Block
 	3159:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},               // Nautilus LCD Cap
 	3157:  {0, 0, "NAUTILUS LCD CAP", nautilusLcd.Init, nil},               // Nautilus LCD Cap
@@ -684,8 +695,10 @@ var deviceRegisterMap = map[uint16]Product{
 	7174:  {0, 0, "HX850i", psuhid.Init, nil},                              // HX850i Power Supply
 	7175:  {0, 0, "HX1000i", psuhid.Init, nil},                             // HX1000i Power Supply
 	7176:  {0, 0, "HX1200i", psuhid.Init, nil},                             // HX1200i Power Supply
-	7181:  {0, 0, "RM1000i", psuhid.Init, nil},                             // RM1000i Power Supply
+	7178:  {0, 0, "RM650i", psuhid.Init, nil},                               // RM650i Power Supply
+	7179:  {0, 0, "RM750i", psuhid.Init, nil},                              // RM750i Power Supply
 	7180:  {0, 0, "RM850i", psuhid.Init, nil},                              // RM850i Power Supply
+	7181:  {0, 0, "RM1000i", psuhid.Init, nil},                             // RM1000i Power Supply
 	7207:  {0, 0, "HX1200i", psuhid.Init, nil},                             // HX1200i Power Supply
 	7054:  {0, 0, "iCUE NEXUS", nexus.Init, nil},                           // iCUE NEXUS
 	7127:  {1, 0, "K65 PRO MINI", k65pm.Init, nil},                         // K65 PRO MINI
@@ -706,23 +719,30 @@ var deviceRegisterMap = map[uint16]Product{
 	7073:  {1, 0, "K55 RGB PRO XT", k55proXT.Init, nil},                    // K55 RGB PRO XT
 	7022:  {1, 0, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                  // K57 RGB WIRELESS
 	7072:  {1, 0, "K60 RGB PRO", k60rgbpro.Init, nil},                      // K60 RGB PRO
+	7085:  {1, 0, "K60 RGB PRO LOW PROFILE", k60rgbpro.Init, nil},          // K60 RGB PRO Low Profile
+	7111:  {1, 0, "K60 RGB PRO TKL", k60rgbpro.Init, nil},                  // K60 RGB PRO TKL Black
+	7149:  {1, 0, "K60 RGB PRO TKL", k60rgbpro.Init, nil},                  // K60 RGB PRO TKL White
 	7104:  {1, 0, "K70 MAX", k70max.Init, nil},                             // K70 MAX
 	7108:  {1, 0, "K70 PRO", k70pro.Init, nil},                             // K70 PRO
 	7110:  {1, 0, "K70 PRO", k70pro.Init, nil},                             // K70 PRO
 	7091:  {1, 0, "K70 PRO", k70pro.Init, nil},                             // K70 PRO
 	7124:  {1, 0, "K70 PRO", k70pro.Init, nil},                             // K70 PRO
 	6966:  {1, 0, "K70 LUX", k70lux.Init, nil},                             // K70 LUX
+	6931:  {1, 0, "K70 RGB", k70luxrgb.Init, nil},                           // K70 RGB (original)
 	6963:  {1, 0, "K70 LUX RGB", k70luxrgb.Init, nil},                      // K70 LUX RGB
 	6968:  {1, 0, "K70 RGB RAPIDFIRE", k70rgbRF.Init, nil},                 // K70 RGB RAPIDFIRE
 	6985:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                         // K70 RGB MK2
 	6997:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                         // K70 RGB MK2
 	7019:  {1, 0, "K70 RGB MK2", k70mk2.Init, nil},                         // K70 RGB MK2
+	6967:  {1, 0, "K65 LUX RGB", k65rgb.Init, nil},                          // K65 LUX RGB
 	6935:  {1, 0, "K65 RGB", k65rgb.Init, nil},                             // K65 RGB
 	6969:  {1, 0, "K65 RGB RAPIDFIRE", k65rgbRF.Init, nil},                 // K65 RGB RAPIDFIRE
+	6944:  {1, 0, "STRAFE RGB", strafergbmk2.Init, nil},                    // STRAFE RGB
 	6984:  {1, 0, "STRAFE RGB MK2", strafergbmk2.Init, nil},                // STRAFE RGB MK2
 	11024: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB
 	11025: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB
 	6929:  {1, 0, "K95", k95.Init, nil},                                    // K95
+	7042:  {1, 0, "K95 RGB PLATINUM SE", k95platinum.Init, nil},             // K95 RGB PLATINUM SE
 	6957:  {1, 0, "K95 PLATINUM", k95platinum.Init, nil},                   // K95 PLATINUM
 	7049:  {1, 0, "K95 PLATINUM XT", k95platinumXT.Init, nil},              // K95 PLATINUM XT
 	6991:  {1, 0, "K68 RGB", k68rgb.Init, nil},                             // K68 RGB
@@ -732,6 +752,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7037:  {1, 0, "K100", k100.Init, nil},                                  // K100
 	11012: {1, 0, "MAKR 75", makr75WU.Init, nil},                           // MAKR 75
 	7059:  {1, 0, "KATAR PRO", katarpro.Init, nil},                         // KATAR PRO Gaming Mouse
+	7098:  {1, 0, "KATAR PRO V2", katarpro.Init, nil},                      // KATAR PRO V2 Gaming Mouse
 	7084:  {1, 0, "KATAR PRO XT", katarproxt.Init, nil},                    // KATAR PRO XT Gaming Mouse
 	7005:  {1, 0, "IRONCLAW RGB", ironclaw.Init, nil},                      // IRONCLAW RGB Gaming Mouse
 	6987:  {1, 0, "DARK CORE RGB SE", darkcorergbseWU.Init, nil},           // DARK CORE RGB SE
@@ -755,13 +776,17 @@ var deviceRegisterMap = map[uint16]Product{
 	7070:  {1, 0, "M65 RGB ULTRA", m65rgbultra.Init, nil},                  // M65 RGB ULTRA Gaming Mouse
 	7093:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},       // M65 RGB ULTRA WIRELESS Gaming Mouse
 	7126:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},       // M65 RGB ULTRA WIRELESS Gaming Mouse
+	6930:  {1, 0, "M65 RGB", m65rgbelite.Init, nil},                         // M65 RGB Gaming Mouse (original)
+	6958:  {1, 0, "M65 PRO RGB", m65rgbelite.Init, nil},                    // M65 PRO RGB Gaming Mouse
 	7002:  {1, 0, "M65 RGB ELITE", m65rgbelite.Init, nil},                  // M65 RGB ELITE Gaming Mouse
+	6972:  {1, 0, "HARPOON RGB", harpoonrgbpro.Init, nil},                  // HARPOON RGB Gaming Mouse (original)
 	7029:  {1, 0, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},              // HARPOON RGB PRO Gaming Mouse
 	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                          // HARPOON Gaming Mouse
 	7004:  {1, 0, "NIGHTSWORD RGB", nightswordrgb.Init, nil},               // NIGHTSWORD RGB Gaming Mouse
 	7028:  {1, 0, "GLAIVE RGB PRO", glaivergbpro.Init, nil},                // GLAIVE RGB PRO Gaming Mouse
 	6964:  {1, 0, "GLAIVE RGB", glaivergb.Init, nil},                       // GLAIVE RGB Gaming Mouse
 	7064:  {1, 0, "SABRE RGB PRO WIRELESS", sabrergbproWU.Init, nil},       // SABRE RGB PRO WIRELESS Gaming Mouse
+	6959:  {1, 0, "SABRE RGB", harpoonrgbpro.Init, nil},                    // SABRE RGB Gaming Mouse (legacy, 1 zone)
 	7033:  {1, 0, "SABRE RGB PRO", sabrergbpro.Init, nil},                  // SABRE RGB PRO
 	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                    // SABRE PRO CS
 	11048: {1, 0, "SABRE V2 PRO", sabrev2proWU.Init, nil},                  // SABRE V2 PRO
@@ -771,6 +796,8 @@ var deviceRegisterMap = map[uint16]Product{
 	2625:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                        // VIRTUOSO USB Gaming Headset
 	2696:  {3, 0, "HS80 RGB USB", hs80rgb.Init, nil},                       // HS80 RGB USB Gaming Headset
 	2665:  {3, 0, "HS80 RGB WIRELESS", hs80rgbWU.Init, nil},                // HS80 RGB WIRELESS Gaming Headset
+	7013:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver v1
+	7014:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver v2
 	7132:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	7039:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // CORSAIR DARK CORE RGB PRO SE Gaming Dongle
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver

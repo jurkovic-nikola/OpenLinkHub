@@ -391,9 +391,10 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 		}
 	}
 
-	// There are 2 CCs. One has a packet size of 64 and the other has 96.
-	// This matters only for RGB operations due to packet chunking.
-	if productId == 3100 { // 0c1c
+	// Commander Core variants have different packet sizes.
+	// PID 3100 (0x0C1C) and 3101 (0x0C1D) use 96-byte packets.
+	// PID 3122 (0x0C32) and newer variants (3132-3134) use 64-byte packets.
+	if productId == 3100 || productId == 3101 { // 0x0C1C, 0x0C1D
 		bufferSize = 96
 		bufferSizeWrite = bufferSize + 1
 		maxBufferSizePerRequest = 93

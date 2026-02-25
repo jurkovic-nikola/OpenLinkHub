@@ -161,7 +161,11 @@ var (
 		"static",
 	}
 	supportedDevices = []SupportedDevice{
-		// 2 physical fans, 1 logical via daisy chain
+		// Asetek legacy coolers - all use 0x82/0x02 endpoints, 1 logical fan channel
+		{ProductId: 3074, Product: "H80i GT", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
+		{ProductId: 3075, Product: "H100i GTX", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
+		{ProductId: 3076, Product: "H110i GT", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
+		{ProductId: 3079, Product: "H110i GTX", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
 		{ProductId: 3080, Product: "H80i HYDRO", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
 		{ProductId: 3081, Product: "H100i HYDRO", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},
 		{ProductId: 3082, Product: "H115i HYDRO", Fans: 1, FanLeds: 0, PumpLeds: 1, EndpointIn: 0x82, EndpointOut: 0x02},

@@ -266,6 +266,7 @@ var (
 		{ProductId: 3095, Product: "H115i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
 		{ProductId: 3096, Product: "H100i RGB PLATINUM", Fans: 2, FanLeds: 4, PumpLeds: 16},
 		{ProductId: 3097, Product: "H100i RGB PLATINUM SE", Fans: 2, FanLeds: 16, PumpLeds: 16},
+		{ProductId: 3113, Product: "iCUE H60i RGB PRO XT", Fans: 1, FanLeds: 0, PumpLeds: 16},
 		{ProductId: 3104, Product: "iCUE H100i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},
 		{ProductId: 3117, Product: "iCUE H100i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},
 		{ProductId: 3105, Product: "iCUE H115i RGB PRO XT", Fans: 2, FanLeds: 0, PumpLeds: 16},

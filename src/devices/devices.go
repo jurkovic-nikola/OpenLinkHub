@@ -105,6 +105,8 @@ import (
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/strafergbmk2"
+	"OpenLinkHub/src/devices/vanguard96"
+	"OpenLinkHub/src/devices/vanguard96pro"
 	"OpenLinkHub/src/devices/virtuosoSEWU"
 	"OpenLinkHub/src/devices/virtuosoWU"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
@@ -731,6 +733,8 @@ var deviceRegisterMap = map[uint16]Product{
 	7109:  {1, 0, "K100", k100.Init, nil},                                  // K100
 	7037:  {1, 0, "K100", k100.Init, nil},                                  // K100
 	11012: {1, 0, "MAKR 75", makr75WU.Init, nil},                           // MAKR 75
+	11022: {2, 0, "VANGUARD 96 PRO", vanguard96pro.Init, nil},              // VANGUARD 96 PRO
+	11021: {2, 0, "VANGUARD 96", vanguard96.Init, nil},                     // VANGUARD 96
 	7059:  {1, 0, "KATAR PRO", katarpro.Init, nil},                         // KATAR PRO Gaming Mouse
 	7084:  {1, 0, "KATAR PRO XT", katarproxt.Init, nil},                    // KATAR PRO XT Gaming Mouse
 	7005:  {1, 0, "IRONCLAW RGB", ironclaw.Init, nil},                      // IRONCLAW RGB Gaming Mouse

@@ -79,5 +79,73 @@
     "name":   "LS100 1.4 m",
     "total":  84,
     "amount": 1
+  },
+  {
+    "index":   15,
+    "name":    "XD7 Pump / Res Combo",
+    "total":   36,
+    "amount": 1
+  },
+  {
+    "index":   16,
+    "name":    "CX7 / XC9 CPU Block",
+    "total":   16,
+    "amount": 1
+  },
+  {
+    "index":   17,
+    "name":    "XC5 PRO / XC8 PRO CPU Block",
+    "total":   8,
+    "amount": 1
+  },
+  {
+    "index":   18,
+    "name":    "XD5 Pump / Res Combo",
+    "total":   10,
+    "amount": 1
+  },
+  {
+    "index":   19,
+    "name":    "GPU Block",
+    "total":   16,
+    "amount": 1
+  },
+  {
+    "index":   20,
+    "name":    "XD3 Pump / Res Combo",
+    "total":   16,
+    "amount": 1
+  },
+  {
+    "index":   21,
+    "name":    "XH305i RGB PRO",
+    "total":   26,
+    "amount": 1,
+    "devices": {
+      "0": {
+        "name": "XD5 Pump / Res Combo",
+        "total": 10
+      },
+      "1": {
+        "name": "XC7 RGB PRO",
+        "total": 16
+      }
+    }
+  },
+  {
+    "index":   22,
+    "name":    "XH305i RGB",
+    "total":   26,
+    "amount": 1,
+    "devices": {
+      "0": {
+        "name": "XD5 Pump / Res Combo",
+        "total": 10
+      },
+      "1": {
+        "name": "XC7 RGB",
+        "total": 16
+      }
+    }
   }
 ]

@@ -92,8 +92,8 @@ type ImageData struct {
 }
 
 type Frames struct {
-	Buffer []byte
-	Delay  float64
+	Buffer []byte  `json:"-"`
+	Delay  float64 `json:"-"`
 }
 
 type AnimationFrames struct {

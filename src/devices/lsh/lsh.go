@@ -226,9 +226,9 @@ type Device struct {
 	lcdDevices             map[string]*LCD
 	LinkAdapter            []LinkAdapter
 	HasLinkAdapter         bool
-	LedDeviceTypes         []byte
+	LedDeviceTypes         []byte `json:"-"`
 	LedDeviceTypeLength    byte
-	LedDeviceTypeLed       []byte
+	LedDeviceTypeLed       []byte `json:"-"`
 	supportedDevices       []SupportedDevice
 	RGBModes               []string
 	pumpInnerLedStartIndex int

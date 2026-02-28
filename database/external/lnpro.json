@@ -1,38 +1,68 @@
 [
     {
       "index": 1,
-      "name":  "HD RGB Series Fan",
+      "name": "HD RGB Series Fan",
       "total": 12
     },
     {
       "index": 2,
-      "name":  "LL RGB Series Fan",
+      "name": "LL RGB Series Fan",
       "total": 16
     },
     {
       "index": 3,
-      "name":  "ML PRO RGB Series Fan",
+      "name": "ML PRO RGB Series Fan",
       "total": 4
     },
     {
       "index": 4,
-      "name":  "QL RGB Series Fan",
+      "name": "QL RGB Series Fan",
       "total": 34
     },
     {
       "index": 5,
-      "name":  "8-LED Series Fan",
+      "name": "8-LED Series Fan",
       "total": 8
     },
     {
       "index": 6,
-      "name":  "SP RGB Series Fan (1 LED)",
+      "name": "SP RGB Series Fan (1 LED)",
       "total": 1
     },
     {
       "index": 7,
-      "name":  "LC100 Accent Triangle",
+      "name": "LC100 Accent Triangle",
       "total": 9,
       "triangle": true
+    },
+    {
+      "index": 8,
+      "name": "XD7 Pump / Res Combo",
+      "total": 36
+    },
+    {
+      "index": 9,
+      "name": "CX7 / XC9 CPU Block",
+      "total": 16
+    },
+    {
+      "index": 10,
+      "name": "XC5 PRO / XC8 PRO CPU Block",
+      "total": 8
+    },
+    {
+      "index": 11,
+      "name": "XD5 Pump / Res Combo",
+      "total": 10
+    },
+    {
+      "index": 12,
+      "name": "GPU Block",
+      "total": 16
+    },
+    {
+      "index": 13,
+      "name": "XD3 Pump / Res Combo",
+      "total": 16
     }
 ]

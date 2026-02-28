@@ -2452,13 +2452,6 @@ func (d *Device) TriggerKeyAssignment(value []byte) {
 			return
 		}
 
-		// Sub-action keys with FN combination
-		if key.HasSubAction && functionKey && key.FnActionCommand > 0 && key.Default {
-			d.addToMacroTracker(0, key.FnActionCommand, key.ActionType)
-			inputmanager.InputControlKeyboard(key.FnActionCommand, true)
-			return
-		}
-
 		// Default action
 		if key.Default {
 			return

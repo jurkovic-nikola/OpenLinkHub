@@ -228,7 +228,7 @@
             "blue": 0
           },
           "default": true,
-          "keyData": [41, 57, 56],
+          "keyData": [41, 59, 58],
           "keyHash": ["2199023255552"]
         },
         "14": {
@@ -245,11 +245,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [30, 57, 56],
-          "keyHash": ["1073741824"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 46
+          "keyData": [30, 59, 58],
+          "keyHash": ["1073741824"]
         },
         "15": {
           "keyName": "2",
@@ -265,11 +262,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [31, 57, 56],
-          "keyHash": ["2147483648"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 47
+          "keyData": [31, 59, 58],
+          "keyHash": ["2147483648"]
         },
         "16": {
           "keyName": "3",
@@ -285,11 +279,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [32, 57, 56],
-          "keyHash": ["4294967296"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 48
+          "keyData": [32, 59, 58],
+          "keyHash": ["4294967296"]
         },
         "17": {
           "keyName": "4",
@@ -305,11 +296,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [33, 57, 56],
-          "keyHash": ["8589934592"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 49
+          "keyData": [33, 59, 58],
+          "keyHash": ["8589934592"]
         },
         "18": {
           "keyName": "5",
@@ -325,11 +313,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [34, 57, 56],
-          "keyHash": ["17179869184"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 50
+          "keyData": [34, 59, 58],
+          "keyHash": ["17179869184"]
         },
         "19": {
           "keyName": "6",
@@ -345,11 +330,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [35, 57, 56],
-          "keyHash": ["34359738368"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 51
+          "keyData": [35, 59, 58],
+          "keyHash": ["34359738368"]
         },
         "20": {
           "keyName": "7",
@@ -365,11 +347,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [36, 57, 56],
-          "keyHash": ["68719476736"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 52
+          "keyData": [36, 59, 58],
+          "keyHash": ["68719476736"]
         },
         "21": {
           "keyName": "8",
@@ -385,11 +364,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [37, 57, 56],
-          "keyHash": ["137438953472"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 53
+          "keyData": [37, 59, 58],
+          "keyHash": ["137438953472"]
         },
         "22": {
           "keyName": "9",
@@ -405,11 +381,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [38, 57, 56],
-          "keyHash": ["274877906944"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 54
+          "keyData": [38, 59, 58],
+          "keyHash": ["274877906944"]
         },
         "23": {
           "keyName": "0",
@@ -425,11 +398,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [39, 57, 56],
-          "keyHash": ["549755813888"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 55
+          "keyData": [39, 59, 58],
+          "keyHash": ["549755813888"]
         },
         "24": {
           "keyName": "-",
@@ -445,11 +415,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [45, 57, 56],
-          "keyHash": ["35184372088832"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 56
+          "keyData": [45, 59, 58],
+          "keyHash": ["35184372088832"]
         },
         "25": {
           "keyName": "=",
@@ -465,11 +432,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [46, 57, 56],
-          "keyHash": ["70368744177664"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 57
+          "keyData": [46, 59, 58],
+          "keyHash": ["70368744177664"]
         },
         "26": {
           "keyName": "<---",
@@ -485,11 +449,8 @@
           },
           "css": "keyboard-key wide3",
           "default": true,
-          "keyData": [42, 57, 56],
-          "keyHash": ["4398046511104"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 88
+          "keyData": [42, 59, 58],
+          "keyHash": ["4398046511104"]
         },
         "27": {
           "keyName": "",
@@ -555,7 +516,7 @@
           },
           "css": "keyboard-key wide",
           "default": true,
-          "keyData": [43, 57, 56],
+          "keyData": [43, 59, 58],
           "keyHash": ["8796093022208"]
         },
         "31": {
@@ -669,11 +630,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [24, 57, 56],
-          "keyHash": ["16777216"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 126
+          "keyData": [24, 59, 58],
+          "keyHash": ["16777216"]
         },
         "38": {
           "keyName": "I",
@@ -688,11 +646,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [12, 57, 56],
-          "keyHash": ["4096"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 74
+          "keyData": [12, 59, 58],
+          "keyHash": ["4096"]
         },
         "39": {
           "keyName": "O",
@@ -707,11 +662,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [18, 57, 56],
-          "keyHash": ["262144"],
-          "hasSubAction": true,
-          "fnActionType": 1,
-          "fnActionCommand": 5
+          "keyData": [18, 59, 58],
+          "keyHash": ["262144"]
         },
         "40": {
           "keyName": "P",
@@ -726,11 +678,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [19, 57, 56],
-          "keyHash": ["524288"],
-          "hasSubAction": true,
-          "fnActionType": 1,
-          "fnActionCommand": 6
+          "keyData": [19, 59, 58],
+          "keyHash": ["524288"]
         },
         "41": {
           "keyName": "[ {",
@@ -745,11 +694,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [47, 57, 56],
-          "keyHash": ["140737488355328"],
-          "hasSubAction": true,
-          "fnActionType": 1,
-          "fnActionCommand": 7
+          "keyData": [47, 59, 58],
+          "keyHash": ["140737488355328"]
         },
         "42": {
           "keyName": "] }",
@@ -764,11 +710,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [48, 57, 56],
-          "keyHash": ["281474976710656"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 85
+          "keyData": [48, 59, 58],
+          "keyHash": ["281474976710656"]
         },
         "43": {
           "keyName": "\\ |",
@@ -950,11 +893,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [11, 57, 56],
-          "keyHash": ["2048"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 127
+          "keyData": [11, 59, 58],
+          "keyHash": ["2048"]
         },
         "54": {
           "keyName": "J",
@@ -969,11 +909,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [13, 57, 56],
-          "keyHash": ["8192"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 82
+          "keyData": [13, 59, 58],
+          "keyHash": ["8192"]
         },
         "55": {
           "keyName": "K",
@@ -988,11 +925,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [14, 57, 56],
-          "keyHash": ["16384"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 83
+          "keyData": [14, 59, 58],
+          "keyHash": ["16384"]
         },
         "56": {
           "keyName": "L",
@@ -1007,11 +941,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [15, 57, 56],
-          "keyHash": ["32768"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 84
+          "keyData": [15, 59, 58],
+          "keyHash": ["32768"]
         },
         "57": {
           "keyName": "; :",
@@ -1026,11 +957,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [51, 57, 56],
-          "keyHash": ["2251799813685248"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 90
+          "keyData": [51, 59, 58],
+          "keyHash": ["2251799813685248"]
         },
         "58": {
           "keyName": "' ''",
@@ -1045,11 +973,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [52, 57, 56],
-          "keyHash": ["4503599627370496"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 87
+          "keyData": [52, 59, 58],
+          "keyHash": ["4503599627370496"]
         },
         "59": {
           "keyName": "ENTER",
@@ -1235,11 +1160,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [17, 57, 56],
-          "keyHash": ["131072"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 86
+          "keyData": [17, 59, 58],
+          "keyHash": ["131072"]
         },
         "70": {
           "keyName": "M",
@@ -1254,11 +1176,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [16, 57, 56],
-          "keyHash": ["65536"],
-          "hasSubAction": true,
-          "fnActionType": 3,
-          "fnActionCommand": 89
+          "keyData": [16, 59, 58],
+          "keyHash": ["65536"]
         },
         "71": {
           "keyName": ", <",
@@ -1273,11 +1192,8 @@
             "blue": 255
           },
           "default": true,
-          "hasSubAction": true,
-          "keyData": [54, 57, 56],
-          "keyHash": ["18014398509481984"],
-          "fnActionType": 1,
-          "fnActionCommand": 3
+          "keyData": [54, 59, 58],
+          "keyHash": ["18014398509481984"]
         },
         "72": {
           "keyName": ". >",
@@ -1292,11 +1208,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [55, 57, 56],
-          "hasSubAction": true,
-          "keyHash": ["36028797018963968"],
-          "fnActionType": 1,
-          "fnActionCommand": 2
+          "keyData": [55, 59, 58],
+          "keyHash": ["36028797018963968"]
         },
         "73": {
           "keyName": "/ ?",
@@ -1311,11 +1224,8 @@
             "blue": 255
           },
           "default": true,
-          "keyData": [56, 57, 56],
-          "hasSubAction": true,
-          "keyHash": ["72057594037927936"],
-          "fnActionType": 1,
-          "fnActionCommand": 1
+          "keyData": [56, 59, 58],
+          "keyHash": ["72057594037927936"]
         },
         "74": {
           "keyName": "SHIFT",

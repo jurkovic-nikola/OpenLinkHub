@@ -2153,6 +2153,40 @@ $(document).ready(function () {
         });
     });
 
+    $('.operatingMode').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const profile = $(this).val().split(";");
+        if (profile.length < 2 || profile.length > 2) {
+            toast.warning(i18n.t('txtInvalidProfileSelected'));
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(profile[0]);
+        pf["operatingMode"] = parseInt(profile[1]);
+
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/operatingMode',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                        $("#selectedProfile_" + parseInt(profile[0])).html(profile[1]);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.globalTempProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
         const profile = $(this).val();

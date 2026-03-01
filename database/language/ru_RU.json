@@ -613,6 +613,8 @@
         "txtMotionSyncChanged": "Синхронизация движения устройства успешно изменена",
         "txtInvalidMotionSync": "Недопустимый параметр синхронизации движения",
         "txtUnableToChangeMotionSync": "Невозможно изменить синхронизацию движения",
-        "txtSniperPressAndHold": "Для режима Sniper требуется функция «Нажать и удерживать»"
+        "txtSniperPressAndHold": "Для режима Sniper требуется функция «Нажать и удерживать»",
+        "txtPwmModeChanged": "Режим работы PWM успешно изменён",
+        "txtUnableToChangePwmMode": "Невозможно изменить режим работы PWM"
     }
 }

@@ -883,6 +883,17 @@ func setDeviceSpeed(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setOperatingMode handles PWM operating mode
+func setOperatingMode(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessOperatingMode(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceLabel handles device label changes
 func setDeviceLabel(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLabelChange(r)
@@ -2370,6 +2381,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
 	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
 	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)
+	handleFunc(r, "/api/operatingMode", http.MethodPost, setOperatingMode)
 	handleFunc(r, "/api/color", http.MethodPost, setDeviceColor)
 	handleFunc(r, "/api/color/global", http.MethodPost, setGlobalDeviceColor)
 	handleFunc(r, "/api/color/linkAdapter", http.MethodPost, setLinkAdapterColor)

@@ -55,6 +55,7 @@ type Payload struct {
 	Workers                       int                   `json:"workers"`
 	FrameDelay                    int                   `json:"frameDelay"`
 	Profile                       string                `json:"profile"`
+	OperatingMode                 int                   `json:"operatingMode"`
 	Label                         string                `json:"label"`
 	Static                        bool                  `json:"static"`
 	AlternateColors               bool                  `json:"alternateColors"`
@@ -565,6 +566,49 @@ func ProcessChangeSpeed(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToApplySpeedProfile"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessOperatingMode will process POST request from a client for PWM header operating mode
+func ProcessOperatingMode(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.OperatingMode < 1 || req.OperatingMode > 2 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	// Run it
+	results := devices.CallDeviceMethod(req.DeviceId, "UpdateOperatingMode", req.ChannelId, req.OperatingMode)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangePwmMode"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtPwmModeChanged"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangePwmMode"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessUpdateRgbProfile will process POST request from a client for RGB profile update

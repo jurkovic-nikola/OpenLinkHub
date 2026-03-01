@@ -613,6 +613,8 @@
     "txtMotionSyncChanged": "Sinkronizacija pokreta uređaja uspješno je promijenjena",
     "txtInvalidMotionSync": "Nevažeća opcija sinkronizacije pokreta",
     "txtUnableToChangeMotionSync": "Nije moguće promijeniti sinkronizaciju pokreta",
-    "txtSniperPressAndHold": "Pritisni i drži je potrebno za Sniper način"
+    "txtSniperPressAndHold": "Pritisni i drži je potrebno za Sniper način",
+    "txtPwmModeChanged": "PWM način rada je uspješno promijenjen",
+    "txtUnableToChangePwmMode": "Nije moguće promijeniti PWM način rada"
   }
 }

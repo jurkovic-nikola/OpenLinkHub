@@ -80,6 +80,7 @@ import (
 	"OpenLinkHub/src/devices/memory"
 	"OpenLinkHub/src/devices/mm700"
 	"OpenLinkHub/src/devices/mm800"
+	"OpenLinkHub/src/devices/motherboard"
 	"OpenLinkHub/src/devices/nautilusLcd"
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreWU"
@@ -117,6 +118,7 @@ import (
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/motherboards"
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
@@ -596,6 +598,16 @@ func Init() {
 			}
 		} else {
 			logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
+		}
+	}
+
+	// Motherboard
+	if config.GetConfig().EnableMotherboard {
+		mobo := motherboards.GetMotherboard()
+		if mobo == nil || len(motherboards.GetMotherboardPath()) == 0 {
+			logger.Log(logger.Fields{}).Warn("Unable to get motherboard")
+		} else {
+			devices[motherboards.GetMotherboardSerial()] = motherboard.Init()
 		}
 	}
 

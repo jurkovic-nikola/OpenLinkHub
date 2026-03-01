@@ -17,6 +17,7 @@ import (
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/monitor"
+	"OpenLinkHub/src/motherboards"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server"
@@ -42,6 +43,7 @@ func Start() {
 	inputmanager.Init() // Input Manager
 	stats.Init()        // Statistics
 	macro.Init()        // Macro
+	motherboards.Init() // Motherboards
 	devices.Init()      // Devices
 	monitor.Init()      // Monitor
 	language.Init()     // Language

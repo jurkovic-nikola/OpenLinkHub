@@ -613,6 +613,8 @@
     "txtMotionSyncChanged": "Die Bewegungssynchronisation des Geräts wurde erfolgreich geändert",
     "txtInvalidMotionSync": "Ungültige Bewegungssynchronisationsoption",
     "txtUnableToChangeMotionSync": "Die Bewegungssynchronisation konnte nicht geändert werden",
-    "txtSniperPressAndHold": "„Drücken und halten“ ist für den Sniper-Modus erforderlich"
+    "txtSniperPressAndHold": "„Drücken und halten“ ist für den Sniper-Modus erforderlich",
+    "txtPwmModeChanged": "Der PWM-Betriebsmodus wurde erfolgreich geändert",
+    "txtUnableToChangePwmMode": "Der PWM-Betriebsmodus konnte nicht geändert werden"
   }
 }

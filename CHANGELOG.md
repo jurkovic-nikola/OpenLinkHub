@@ -1,3 +1,95 @@
+## 2026-02-28
+
+* k70 pro mini fixups (f55d712)
+
+## 2026-02-27
+
+* commander pro rgb devices (92747c4)
+* docs, udev update (a1ec951)
+* k65 plus wireless https://github.com/jurkovic-nikola/OpenLinkHub/issues/343 (a9f60db)
+
+## 2026-02-26
+
+* support for vanguard 96, vanguard 96 pro (6cd04b0)
+
+## 2026-02-25
+
+* Merge pull request #342 from zorrobyte/fix/nil-deviceprofile-getLedDevices (7c45009)
+* Fix nil pointer dereference in getLedDevices() on first startup (3440e75)
+* bulk: - LINK System Hub rgb per temperature probe - Delay cluster rgb generation by 20ms - Delay memory rgb updates by 20ms - Cache static memory packets (ec44bab)
+
+## 2026-02-24
+
+* dont process corsair_psu hwmon sensors (1a1a19c)
+
+## 2026-02-23
+
+* missing file (11758bf)
+* support for k95 (41aa7c3)
+
+## 2026-02-21
+
+* readme update (f4c5621)
+* sniper press and hold (33c355c)
+* support for sabre v2 pro, ability to enable / disable gamepad in config (2fd2d2d)
+
+## 2026-02-20
+
+* create gamepad only if scuf exists https://github.com/jurkovic-nikola/OpenLinkHub/issues/337 (8758a1a)
+
+## 2026-02-19
+
+* header update (632699c)
+* support for DARK CORE RGB PRO SE Gaming Dongle (155499f)
+* missing indicator on initial profile (361b98f)
+
+## 2026-02-18
+
+* config cleanup (1b852fa)
+* memory cleanup (566b7b7)
+* v1 docs (87e41eb)
+* typo (3cf71d8)
+* cleanup of old code, docs update (14dbd7e)
+
+## 2026-02-17
+
+* support for k65 rgb rapidfire (abb8670)
+* k65 rgb mini fr layout (9dddfa9)
+* remove debug data (87dbd81)
+* missing update (cbf521d)
+* gamepad vibration (c25c993)
+
+## 2026-02-16
+
+* scuf gamepad (19eec8b)
+
+## 2026-02-15
+
+* k70 pro tkl de layout (6f07d9d)
+
+## 2026-02-14
+
+* trigger sniper for all keyboards (d8d32cb)
+* device dispatcher, mouse sniper mode from keyboard (d04e8a9)
+* load / save sniper key assignments (1a197c2)
+* mouse device type (6a839b4)
+* k70 pro tkl endpoints (70beb3f)
+* Merge pull request #331 from PabloGS/main (21c95fc)
+
+## 2026-02-13
+
+* German Translation Fixes (6c361ae)
+
+## 2026-02-12
+
+* typo (cf040e6)
+
+## 2026-02-11
+
+* install pulseaudio-utils for docker (53e01f1)
+* st100 fixup (e24930d)
+* docs update (3381510)
+
 ## 2026-02-10
 
 * logger fixup (2ba17eb)

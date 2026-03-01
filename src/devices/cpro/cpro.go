@@ -36,6 +36,7 @@ type ExternalLedDevice struct {
 	Total   int
 	Command byte
 	Amount  int
+	Devices map[int]ExternalLedDevice
 }
 
 type ExternalHubData struct {
@@ -1486,36 +1487,73 @@ func (d *Device) getDevices() int {
 			externalDeviceType := d.getExternalLedDevice(externalHub.ExternalHubDeviceType)
 			if externalDeviceType != nil {
 				LedChannels := uint8(externalDeviceType.Total)
-				for z := 0; z < externalHub.ExternalHubDeviceAmount; z++ {
-					rgbProfile := "static"
-					label := "Set Label"
+				if externalDeviceType.Devices != nil && len(externalDeviceType.Devices) > 0 {
+					for z := 0; z < len(externalDeviceType.Devices); z++ {
+						kitDeviceName := externalDeviceType.Devices[z].Name
+						ledAmount := externalDeviceType.Devices[z].Total
 
-					if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
-						if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
-							// Speed profile exists in configuration
-							rgbProfile = rp
+						rgbProfile := "static"
+						label := "Set Label"
+
+						if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
+							if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+								// Speed profile exists in configuration
+								rgbProfile = rp
+							}
 						}
-					}
 
-					if lb, ok := d.DeviceProfile.Labels[m]; ok {
-						label = lb
-					}
+						if lb, ok := d.DeviceProfile.Labels[m]; ok {
+							label = lb
+						}
 
-					device := &Devices{
-						ChannelId:   m,
-						DeviceId:    fmt.Sprintf("%s-%v", "LED", m),
-						Name:        externalDeviceType.Name,
-						Description: "LED",
-						HubId:       d.Serial,
-						LedChannels: LedChannels,
-						RGB:         rgbProfile,
-						PortId:      externalHub.PortId,
-						HasSpeed:    false,
-						HasTemps:    false,
-						Label:       label,
+						device := &Devices{
+							ChannelId:   m,
+							DeviceId:    fmt.Sprintf("%s-%v", "LED", m),
+							Name:        kitDeviceName,
+							Description: "LED",
+							HubId:       d.Serial,
+							LedChannels: uint8(ledAmount),
+							RGB:         rgbProfile,
+							PortId:      externalHub.PortId,
+							HasSpeed:    false,
+							HasTemps:    false,
+							Label:       label,
+						}
+						devices[m] = device
+						m++
 					}
-					devices[m] = device
-					m++
+				} else {
+					for z := 0; z < externalHub.ExternalHubDeviceAmount; z++ {
+						rgbProfile := "static"
+						label := "Set Label"
+
+						if rp, ok := d.DeviceProfile.RGBProfiles[m]; ok {
+							if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
+								// Speed profile exists in configuration
+								rgbProfile = rp
+							}
+						}
+
+						if lb, ok := d.DeviceProfile.Labels[m]; ok {
+							label = lb
+						}
+
+						device := &Devices{
+							ChannelId:   m,
+							DeviceId:    fmt.Sprintf("%s-%v", "LED", m),
+							Name:        externalDeviceType.Name,
+							Description: "LED",
+							HubId:       d.Serial,
+							LedChannels: LedChannels,
+							RGB:         rgbProfile,
+							PortId:      externalHub.PortId,
+							HasSpeed:    false,
+							HasTemps:    false,
+							Label:       label,
+						}
+						devices[m] = device
+						m++
+					}
 				}
 			}
 		}

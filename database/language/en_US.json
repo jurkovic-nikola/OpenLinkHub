@@ -613,6 +613,8 @@
     "txtMotionSyncChanged": "Device motion sync successfully changed",
     "txtInvalidMotionSync": "Invalid motion sync option",
     "txtUnableToChangeMotionSync": "Unable to change motion sync",
-    "txtSniperPressAndHold": "Press and Hold is required for Sniper mode"
+    "txtSniperPressAndHold": "Press and Hold is required for Sniper mode",
+    "txtPwmModeChanged": "PWM operating mode is successfully changed",
+    "txtUnableToChangePwmMode": "Unable to change PWM operating mode"
   }
 }

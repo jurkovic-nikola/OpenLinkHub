@@ -16,6 +16,9 @@ Gerencie iluminação RGB, velocidades de ventiladores, métricas do sistema, be
 - [Lista de dispositivos suportados](docs/supported-devices.md)
 - [SCUF Controller Audio Config](docs/scuf-controller.md)
 - [KDE System Monitor Sensor Face](https://github.com/jurkovic-nikola/openlinkhub-sensorfaces)
+- [Memória DDR4 / DDR5](docs/memory-configuration_pt-BR.md)
+- [Placa-mãe PWM](docs/motherboard-pwm.md)
+- [Integração OpenRGB](openrgb/README.md)
 
 ![Interface Web](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 
@@ -148,6 +151,8 @@ xdg-open http://127.0.0.1:27003
   "nvidiaGpuIndex": [0],
   "defaultNvidiaGPU": 0,
   "enableGamepad": true,
+  "enableMotherboard": false,
+  "motherboardBiosOnExit": false
 }
 ```
 - listenPort: Porta do servidor HTTP.
@@ -181,14 +186,13 @@ xdg-open http://127.0.0.1:27003
 - defaultNvidiaGPU: índice padrão da GPU NVIDIA, padrão é 0.
   - Se usar vfio-pci/pass-through, você tem que definir como -1 para evitar conflitos com módulos nvidia.
 - enableGamepad: Ativar ou desativar o gamepad virtual usado para controladores SCUF.
+- enableMotherboard: Habilita o controle dos conectores PWM da placa-mãe.
+- motherboardBiosOnExit: Alterna os conectores PWM para o modo BIOS quando o programa é encerrado.
 
 ### 7. Interface de Aplicativo Web Progressiva (PWA)
 A interface web suporta instalação como aplicativo web progressivo (PWA). Com um navegador suportado, isso permite que a interface apareça como um aplicativo independente.
 Navegadores baseados em Chromium suportam PWAs, Firefox atualmente não.
 GNOME 'Web,' também conhecido como 'Epiphany' é uma boa opção para PWAs em sistemas GNOME.
-
-### 8. Integração OpenRGB
-[Veja detalhes](openrgb/README-pt_BR.md)
 
 ## Desinstalação
 ```bash
@@ -235,10 +239,6 @@ $ docker run --network host --privileged openlinkhub
 ## RGB
 - Configuração RGB está localizada no arquivo `database/rgb/seu-dispositivo-serial.json`
 - RGB pode ser configurado via Editor RGB no Painel
-
 ## API
 - OpenLinkHub vem com servidor HTTP integrado para visão geral e controle de dispositivos.
 - Documentação está disponível em [API Page](api/README.md)
-
-## Memória - DDR4 / DDR5
-[Ver detalhes](docs/memory-configuration_pt-BR.md)

@@ -18,6 +18,9 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and
 - [Supported device list](docs/supported-devices.md)
 - [SCUF Controller Audio Config](docs/scuf-controller.md)
 - [KDE System Monitor Sensor Face](https://github.com/jurkovic-nikola/openlinkhub-sensorfaces)
+- [Memory DDR4 / DDR5](docs/memory-configuration.md)
+- [Motherboard PWM](docs/motherboard-pwm.md)
+- [OpenRGB Integration](openrgb/README.md)
 
 ![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 
@@ -150,7 +153,9 @@ xdg-open http://127.0.0.1:27003
   "ramTempViaHwmon": false,
   "nvidiaGpuIndex": [0],
   "defaultNvidiaGPU": 0,
-  "enableGamepad": true
+  "enableGamepad": true,
+  "enableMotherboard": false,
+  "motherboardBiosOnExit": false
 }
 ```
 - listenPort: HTTP server port.
@@ -184,14 +189,13 @@ xdg-open http://127.0.0.1:27003
 - defaultNvidiaGPU: default index of NVIDIA GPU, default is 0.
   - If you use vfio-pci/pass-through, you have to set it to -1 to avoid conflicts with NVIDIA modules.
 - enableGamepad: Enable or disable Virtual Gamepad used for SCUF controllers.
+- enableMotherboard: Enable control of motherboard PWM headers.
+- motherboardBiosOnExit: Switch PWM headers to BIOS mode when program exits.
 
 ### 7. Progressive Web App (PWA) UI
 The web UI supports installation as a progressive web app (PWA). With a supported browser, this allows the UI to appear as a standalone application.
 Chromium-based browsers support PWAs; Firefox currently does not.
 GNOME 'Web,' also known as 'Epiphany', is a good option for PWAs on GNOME systems.
-
-### 8. OpenRGB Integration
-[See details](openrgb/README.md)
 
 ## Uninstall
 ```bash
@@ -238,10 +242,6 @@ $ docker run --network host --privileged openlinkhub
 ## RGB
 - RGB configuration is located at `database/rgb/your-device-serial.json` file
 - RGB can be configured via the RGB Editor in the Dashboard
-
 ## API
 - OpenLinkHub ships with a built-in HTTP server for device overview and control.
 - Documentation is available at [API Page](api/README.md)
-
-## Memory - DDR4 / DDR5
-[See details](docs/memory-configuration.md)

@@ -43,6 +43,8 @@ type Configuration struct {
 	OpenRGBPort               int      `json:"openRGBPort"`
 	EnableOpenRGBTargetServer bool     `json:"enableOpenRGBTargetServer"`
 	EnableGamepad             bool     `json:"enableGamepad"`
+	EnableMotherboard         bool     `json:"enableMotherboard"`
+	MotherboardBiosOnExit     bool     `json:"motherboardBiosOnExit"`
 }
 
 var (
@@ -66,6 +68,8 @@ var (
 		"openRGBPort":               6743,
 		"enableOpenRGBTargetServer": false,
 		"enableGamepad":             true,
+		"enableMotherboard":         false,
+		"motherboardBiosOnExit":     false,
 	}
 	systemService = true
 )
@@ -158,6 +162,8 @@ func upgradeFile(cfg string) {
 			OpenRGBPort:               6743,
 			EnableOpenRGBTargetServer: false,
 			EnableGamepad:             true,
+			EnableMotherboard:         false,
+			MotherboardBiosOnExit:     false,
 		}
 		saveConfigSettings(value)
 	} else {

@@ -613,6 +613,8 @@
     "txtMotionSyncChanged": "Enhetens rörelsesynkronisering har ändrats",
     "txtInvalidMotionSync": "Ogiltigt alternativ för rörelsesynkronisering",
     "txtUnableToChangeMotionSync": "Det går inte att ändra rörelsesynkronisering",
-    "txtSniperPressAndHold": "Tryck och håll krävs för Sniper-läge"
+    "txtSniperPressAndHold": "Tryck och håll krävs för Sniper-läge",
+    "txtPwmModeChanged": "PWM-driftläget har ändrats",
+    "txtUnableToChangePwmMode": "Det går inte att ändra PWM-driftläget"
   }
 }

@@ -26,7 +26,7 @@ start() {
 		log_end_msg 1
 		exit 1
 	}
-	start-stop-daemon --start --chdir /opt/OpenLinkHub --background --make-pidfile --pidfile $PIDFILE --exec /opt/OpenLinkHub/OpenLinkHub
+	start-stop-daemon --start --chuid "${USER}:${GROUP}" --chdir /opt/OpenLinkHub --background --make-pidfile --pidfile $PIDFILE --exec /opt/OpenLinkHub/OpenLinkHub
 	if [ $? -ne 0 ]; then
 		log_end_msg 1
 		exit 1
@@ -54,7 +54,7 @@ status() {
 
 reload() {
 	log_daemon_msg "Reloading $DESC" "$prog"
-	/bin/kill -s HUP $MAINPID
+	/bin/kill -s HUP "$( cat $PIDFILE )"
 	if [ $? -ne 0 ]; then
 		log_end_msg 1
 		exit 1

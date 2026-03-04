@@ -587,18 +587,16 @@ func Init() {
 	}
 
 	// Memory
-	if config.GetConfig().Memory {
-		sm, err := smbus.GetSmBus()
-		if err == nil {
-			if len(sm.Path) > 0 {
-				deviceList[sm.Path] = Device{
-					ProductId: 0,
-					Path:      sm.Path,
-				}
+	sm, err := smbus.GetSmBus()
+	if err == nil {
+		if len(sm.Path) > 0 {
+			deviceList[sm.Path] = Device{
+				ProductId: 0,
+				Path:      sm.Path,
 			}
-		} else {
-			logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
 		}
+	} else {
+		logger.Log(logger.Fields{"error": err}).Warn("No valid I2C devices found")
 	}
 
 	// Motherboard

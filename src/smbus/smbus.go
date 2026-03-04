@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -71,12 +72,62 @@ func GetSmBus() (*SmBus, error) {
 		return nil, errors.New("no devices")
 	}
 
-	for _, device := range devices {
-		if device == config.GetConfig().MemorySmBus {
+	sort.Strings(devices)
+	configured := config.GetConfig().MemorySmBus
+	if len(configured) > 0 {
+		for _, device := range devices {
+			if device != configured {
+				continue
+			}
+
 			dev := fmt.Sprintf("%s%s", dir, device)
 			f, err := Open(dev)
 			if err != nil {
 				logger.Log(logger.Fields{"device": dev, "error": err}).Error("Unable to open i2c device")
+				break
+			}
+
+			err = f.File.Close()
+			if err != nil {
+				logger.Log(logger.Fields{"device": dev, "error": err}).Error("Unable to close i2c device")
+			}
+			return &SmBus{Path: dev}, nil
+		}
+	}
+
+	for _, device := range devices {
+		dev := fmt.Sprintf("%s%s", dir, device)
+		f, err := Open(dev)
+		if err != nil {
+			logger.Log(logger.Fields{"device": dev, "error": err}).Error("Unable to open i2c device")
+			continue
+		}
+
+		foundSPD := false
+		for addr := uint8(0x50); addr <= 0x57; addr++ {
+			_, err = ReadRegister(f.File, addr, 0x00)
+			if err == nil {
+				foundSPD = true
+				break
+			}
+		}
+
+		closeErr := f.File.Close()
+		if closeErr != nil {
+			logger.Log(logger.Fields{"device": dev, "error": closeErr}).Error("Unable to close i2c device")
+		}
+
+		if foundSPD {
+			logger.Log(logger.Fields{"device": dev}).Info("Auto-detected SMBus device for memory")
+			return &SmBus{Path: dev}, nil
+		}
+	}
+
+	for _, device := range devices {
+		if strings.HasPrefix(device, "i2c-") {
+			dev := fmt.Sprintf("%s%s", dir, device)
+			f, err := Open(dev)
+			if err != nil {
 				continue
 			}
 
@@ -84,6 +135,8 @@ func GetSmBus() (*SmBus, error) {
 			if err != nil {
 				logger.Log(logger.Fields{"device": dev, "error": err}).Error("Unable to close i2c device")
 			}
+
+			logger.Log(logger.Fields{"device": dev}).Info("Using first accessible i2c device for memory")
 			return &SmBus{Path: dev}, nil
 		}
 	}

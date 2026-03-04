@@ -45,6 +45,7 @@ func parseSPDModule(path string, spd []byte) RAMModule {
 	var m RAMModule
 	m.EEPROMPath = path
 	parseSKUInfo(&m, spd)
+	m.SKU = strings.TrimSpace(m.SKU)
 	return m
 }
 

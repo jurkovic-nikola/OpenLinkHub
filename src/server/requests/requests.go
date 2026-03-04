@@ -1335,7 +1335,7 @@ func ProcessChangeSleepMode(r *http.Request) *Payload {
 		}
 	}
 
-	if req.SleepMode < 1 || req.SleepMode > 60 {
+	if req.SleepMode < 0 || req.SleepMode > 60 {
 		return &Payload{Message: language.GetValue("txtInvalidSleepOption"), Code: http.StatusOK, Status: 0}
 	}
 

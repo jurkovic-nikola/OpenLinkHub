@@ -100,27 +100,30 @@ type Device struct {
 }
 
 var (
-	pwd                   = ""
-	cmdSoftwareMode       = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode       = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetFirmware        = []byte{0x02, 0x13}
-	cmdWriteColor         = []byte{0x06, 0x00}
-	cmdOpenEndpoint       = []byte{0x0d, 0x00, 0x01}
-	cmdOpenWriteEndpoint  = []byte{0x01, 0x0d, 0x00, 0x01}
-	cmdSleep              = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
-	cmdHeartbeat          = []byte{0x12}
-	cmdBatteryLevel       = []byte{0x02, 0x0f}
-	cmdSidetoneMode       = []byte{0x01, 0x46, 0x00}
-	cmdSidetone           = []byte{0x01, 0x47, 0x00}
-	cmdMicStatus          = []byte{0x02, 0x8e}
-	bufferSize            = 64
-	bufferSizeWrite       = bufferSize + 1
-	headerSize            = 3
-	headerWriteSize       = 4
-	deviceKeepAlive       = 20000
-	deviceRefreshInterval = 1000
-	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
-	rgbModes              = []string{
+	pwd                       = ""
+	cmdSoftwareMode           = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode           = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetFirmware            = []byte{0x02, 0x13}
+	cmdWriteColor             = []byte{0x06, 0x00}
+	cmdOpenEndpoint           = []byte{0x0d, 0x00, 0x01}
+	cmdOpenWriteEndpoint      = []byte{0x01, 0x0d, 0x00, 0x01}
+	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00}
+	cmdSleep                  = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
+	cmdHeartbeat              = []byte{0x12}
+	cmdBatteryLevel           = []byte{0x02, 0x0f}
+	cmdSidetoneMode           = []byte{0x01, 0x46, 0x00}
+	cmdSidetone               = []byte{0x01, 0x47, 0x00}
+	cmdMicStatus              = []byte{0x02, 0x8e}
+	cmdEnable                 = []byte{0x01}
+	cmdDisable                = []byte{0x00}
+	bufferSize                = 64
+	bufferSizeWrite           = bufferSize + 1
+	headerSize                = 3
+	headerWriteSize           = 4
+	deviceKeepAlive           = 20000
+	deviceRefreshInterval     = 1000
+	rgbProfileUpgrade         = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
+	rgbModes                  = []string{
 		"colorpulse",
 		"colorshift",
 		"colorwarp",
@@ -167,6 +170,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		},
 		Product: "VIRTUOSO XT",
 		SleepModes: map[int]string{
+			0:  "Off",
 			1:  "1 minute",
 			5:  "5 minutes",
 			10: "10 minutes",
@@ -1133,28 +1137,37 @@ func (d *Device) setKeepAlive() {
 func (d *Device) setSleepTimer() uint8 {
 	if d.DeviceProfile != nil {
 		changed := 0
-		_, err := d.transfer(cmdOpenWriteEndpoint, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
-		}
-
-		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
-
-		for i := 0; i < 2; i++ {
-			command := cmdSleep[i]
-			_, err = d.transfer(command, buf)
+		if d.DeviceProfile.SleepMode == 0 {
+			_, err := d.transfer(cmdOpenSleepWriteEndpoint, cmdDisable)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-				continue
+				return 0
 			}
-			changed++
-		}
-
-		if changed > 0 {
 			return 1
+		} else {
+			_, err := d.transfer(cmdOpenSleepWriteEndpoint, cmdEnable)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
+
+			buf := make([]byte, 4)
+			sleep := d.DeviceProfile.SleepMode * (60 * 1000)
+			binary.LittleEndian.PutUint32(buf, uint32(sleep))
+
+			for i := 0; i < 2; i++ {
+				command := cmdSleep[i]
+				_, err = d.transfer(command, buf)
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+					continue
+				}
+				changed++
+			}
+
+			if changed > 0 {
+				return 1
+			}
 		}
 	}
 	return 0

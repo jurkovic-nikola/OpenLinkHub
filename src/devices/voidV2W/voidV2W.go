@@ -110,7 +110,7 @@ var (
 	cmdWriteColor             = []byte{0x06, 0x00}
 	cmdWrite                  = []byte{0x06, 0x01}
 	cmdOpenColorEndpoint      = []byte{0x0d, 0x00, 0x22}
-	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
+	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00}
 	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
 	cmdSleep                  = []byte{0x01, 0x0e, 0x00}
 	cmdBatteryLevel           = []byte{0x02, 0x0f}
@@ -120,6 +120,8 @@ var (
 	cmdNoiseCancellation      = []byte{0x01, 0xd1, 0x00}
 	cmdSidetoneMode           = []byte{0x01, 0x46, 0x00}
 	cmdSidetone               = []byte{0x01, 0x47, 0x00}
+	cmdEnable                 = []byte{0x01}
+	cmdDisable                = []byte{0x00}
 	bufferSize                = 64
 	bufferSizeWrite           = bufferSize + 1
 	headerSize                = 3
@@ -1052,22 +1054,31 @@ func (d *Device) setSleepTimer() uint8 {
 		return 0
 	}
 	if d.DeviceProfile != nil {
-		_, err := d.transfer(cmdOpenSleepWriteEndpoint, nil)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
-		}
+		if d.DeviceProfile.SleepMode == 0 {
+			_, err := d.transfer(cmdOpenSleepWriteEndpoint, cmdDisable)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
+			return 1
+		} else {
+			_, err := d.transfer(cmdOpenSleepWriteEndpoint, cmdEnable)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
 
-		buf := make([]byte, 4)
-		sleep := d.DeviceProfile.SleepMode * (60 * 1000)
-		binary.LittleEndian.PutUint32(buf, uint32(sleep))
+			buf := make([]byte, 4)
+			sleep := d.DeviceProfile.SleepMode * (60 * 1000)
+			binary.LittleEndian.PutUint32(buf, uint32(sleep))
 
-		_, err = d.transfer(cmdSleep, buf)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
-			return 0
+			_, err = d.transfer(cmdSleep, buf)
+			if err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to change device sleep timer")
+				return 0
+			}
+			return 1
 		}
-		return 1
 	}
 	return 0
 }

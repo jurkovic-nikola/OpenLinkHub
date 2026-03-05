@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 6,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k95platinum-default",
@@ -334,6 +334,7 @@
             70
           ],
           "default": true,
+          "actionType": 12,
           "keyEmpty": [
             "keyboard-key-empty",
             "keyboard-key-empty",

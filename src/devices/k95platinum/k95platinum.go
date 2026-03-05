@@ -33,6 +33,15 @@ type KeyPos struct {
 	Col int
 }
 
+type LedData struct {
+	DeviceId          string            `json:"deviceId"`
+	ActiveUserProfile string            `json:"activeUserProfile"`
+	KeyboardProfile   string            `json:"keyboardProfile"`
+	RgbProfile        string            `json:"rgbProfile"`
+	Layout            string            `json:"layout"`
+	Keys              map[int]rgb.Color `json:"keys"`
+}
+
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
 	Active             bool
@@ -95,10 +104,12 @@ type Device struct {
 	KeyAssignmentTypes map[int]string
 	MacroTracker       map[int]macro.Tracker
 	RGBModes           []string
+	LedData            map[int]rgb.Color `json:"-"`
 	instance           *common.Device
 	mouseLoopActive    bool
 	mouseLoopMutex     sync.Mutex
 	mouseLoopStopCh    chan struct{}
+	ledDataMutex       sync.RWMutex
 	dispatch           dispatcher.DeviceDispatcher
 }
 
@@ -192,6 +203,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			10: "Macro",
 		},
 		MacroTracker: make(map[int]macro.Tracker),
+		LedData:      make(map[int]rgb.Color),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -442,6 +454,37 @@ func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
 // GetDeviceTemplate will return device template name
 func (d *Device) GetDeviceTemplate() string {
 	return d.Template
+}
+
+// GetDeviceLedData will return a live LED state for keyboard keys
+func (d *Device) GetDeviceLedData() interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+
+	activeUserProfile := ""
+	for profileName, profile := range d.UserProfiles {
+		if profile != nil && profile.Active {
+			activeUserProfile = profileName
+			break
+		}
+	}
+
+	d.ledDataMutex.RLock()
+	keys := make(map[int]rgb.Color, len(d.LedData))
+	for keyId, color := range d.LedData {
+		keys[keyId] = color
+	}
+	d.ledDataMutex.RUnlock()
+
+	return LedData{
+		DeviceId:          d.Serial,
+		ActiveUserProfile: activeUserProfile,
+		KeyboardProfile:   d.DeviceProfile.Profile,
+		RgbProfile:        d.DeviceProfile.RGBProfile,
+		Layout:            d.DeviceProfile.Layout,
+		Keys:              keys,
+	}
 }
 
 // getManufacturer will return device manufacturer
@@ -1077,6 +1120,55 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// rotateDeviceProfile will rotate and activate next user profile
+func (d *Device) rotateDeviceProfile() {
+	if d.DeviceProfile == nil || len(d.UserProfiles) == 0 {
+		return
+	}
+
+	profileNames := make([]string, 0, len(d.UserProfiles))
+	customProfiles := make([]string, 0, len(d.UserProfiles))
+	hasDefault := false
+	currentName := ""
+	for name, profile := range d.UserProfiles {
+		if profile == nil {
+			continue
+		}
+		if name == "default" {
+			hasDefault = true
+		} else {
+			customProfiles = append(customProfiles, name)
+		}
+		if profile.Active {
+			currentName = name
+		}
+	}
+
+	sort.Strings(customProfiles)
+	if hasDefault {
+		profileNames = append(profileNames, "default")
+	}
+	profileNames = append(profileNames, customProfiles...)
+
+	if len(profileNames) < 2 {
+		return
+	}
+
+	if len(currentName) == 0 {
+		d.ChangeDeviceProfile(profileNames[0])
+		return
+	}
+
+	currentIndex := common.IndexOfString(profileNames, currentName)
+	if currentIndex < 0 {
+		d.ChangeDeviceProfile(profileNames[0])
+		return
+	}
+
+	nextIndex := (currentIndex + 1) % len(profileNames)
+	d.ChangeDeviceProfile(profileNames[nextIndex])
 }
 
 // DeleteDeviceProfile deletes a device profile and its JSON file
@@ -1776,6 +1868,9 @@ func (d *Device) writeColor(data map[int][]byte) {
 		data[1][9] = 0
 		data[2][9] = 0
 	}
+
+	d.saveLedData(data)
+
 	for i := 0; i < len(data); i++ {
 		chunks := common.ProcessMultiChunkPacket(data[i], maximumPacketSize)
 		for m, chunk := range chunks {
@@ -1802,6 +1897,52 @@ func (d *Device) writeColor(data map[int][]byte) {
 		}
 		time.Sleep(time.Millisecond * 2)
 	}
+}
+
+// saveLedData will cache latest written LED state for live UI updates
+func (d *Device) saveLedData(data map[int][]byte) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	keyboard, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]
+	if !ok || keyboard == nil {
+		return
+	}
+
+	redChannel, redOk := data[0]
+	greenChannel, greenOk := data[1]
+	blueChannel, blueOk := data[2]
+	if !redOk || !greenOk || !blueOk {
+		return
+	}
+
+	colors := make(map[int]rgb.Color)
+	for _, row := range keyboard.Row {
+		for keyId, key := range row.Keys {
+			if len(key.PacketIndex) < 1 {
+				continue
+			}
+
+			packetIndex := key.PacketIndex[0]
+			if packetIndex < 0 ||
+				packetIndex >= len(redChannel) ||
+				packetIndex >= len(greenChannel) ||
+				packetIndex >= len(blueChannel) {
+				continue
+			}
+
+			colors[keyId] = rgb.Color{
+				Red:   float64(redChannel[packetIndex]),
+				Green: float64(greenChannel[packetIndex]),
+				Blue:  float64(blueChannel[packetIndex]),
+			}
+		}
+	}
+
+	d.ledDataMutex.Lock()
+	d.LedData = colors
+	d.ledDataMutex.Unlock()
 }
 
 // getListenerData will listen for keyboard events and return data on success or nil on failure.
@@ -1947,7 +2088,7 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 		d.releaseMacroTracker()
 	}
 
-	changed := d.ModifierIndex != val
+	changed := d.ModifierIndex == nil || d.ModifierIndex.Cmp(val) != 0
 	if changed {
 		if d.KeyboardKey != nil {
 			switch d.KeyboardKey.ActionType {
@@ -1997,6 +2138,14 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 				d.activeRgb = nil
 			}
 			d.setDeviceColor()
+			return
+		}
+
+		// Profile switch
+		if key.ActionType == 12 {
+			if changed {
+				d.rotateDeviceProfile()
+			}
 			return
 		}
 

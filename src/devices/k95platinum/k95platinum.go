@@ -5,6 +5,7 @@ package k95platinum
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dispatcher"
@@ -60,6 +61,7 @@ type DeviceProfile struct {
 	Profile            string
 	PollingRate        int
 	Profiles           []string
+	RGBCluster         bool
 	DisableAltTab      bool
 	DisableAltF4       bool
 	DisableShiftTab    bool
@@ -218,7 +220,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.setDeviceColor()     // Device color
 	d.setupPerformance()   // Performance
 	d.backendListener()    // Control buttons
-	d.createDevice()       // Device register
+	d.setupClusterController()
+	d.createDevice() // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -728,6 +731,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Profile = d.DeviceProfile.Profile
 		deviceProfile.Profiles = d.DeviceProfile.Profiles
 		deviceProfile.Keyboards = d.DeviceProfile.Keyboards
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.PollingRate = d.DeviceProfile.PollingRate
 		deviceProfile.DisableAltTab = d.DeviceProfile.DisableAltTab
@@ -1023,9 +1027,17 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 
 // UpdateRgbProfile will update device RGB profile
 func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
 	if d.GetRgbProfile(profile) == nil {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
+	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 5
 	}
 
 	if profile == "off" {
@@ -1045,6 +1057,55 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	d.setDeviceColor()
 	return 1
 
+}
+
+// setupClusterController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	clusterController := &common.ClusterController{
+		Product:      d.Product,
+		Serial:       d.Serial,
+		LedChannels:  uint32(d.LEDChannels),
+		WriteColorEx: d.writeColorCluster,
+	}
+
+	cluster.Get().AddDeviceController(clusterController)
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+
+	if enabled {
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       d.Serial,
+			LedChannels:  uint32(d.LEDChannels),
+			WriteColorEx: d.writeColorCluster,
+		}
+
+		cluster.Get().AddDeviceController(clusterController)
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
+	return 1
 }
 
 // ChangeDeviceBrightness will change device brightness
@@ -1646,6 +1707,12 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
+		return
+	}
+
 	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
 		d.DeviceProfile.RGBProfile = "keyboard"
 	}
@@ -1897,6 +1964,39 @@ func (d *Device) writeColor(data map[int][]byte) {
 		}
 		time.Sleep(time.Millisecond * 2)
 	}
+}
+
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, _ int) {
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	var buf = make(map[int][]byte, colorPackets)
+	for i := 0; i < colorPackets; i++ {
+		buf[i] = make([]byte, d.LEDChannels)
+	}
+
+	for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+		for _, keys := range rows.Keys {
+			for _, packetIndex := range keys.PacketIndex {
+				if packetIndex >= d.LEDChannels {
+					continue
+				}
+
+				base := packetIndex * 3
+				if base+2 >= len(data) {
+					continue
+				}
+
+				buf[0][packetIndex] = data[base]
+				buf[1][packetIndex] = data[base+1]
+				buf[2][packetIndex] = data[base+2]
+			}
+		}
+	}
+
+	d.writeColor(buf)
 }
 
 // saveLedData will cache latest written LED state for live UI updates

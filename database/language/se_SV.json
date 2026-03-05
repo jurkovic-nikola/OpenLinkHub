@@ -615,6 +615,10 @@
     "txtUnableToChangeMotionSync": "Det går inte att ändra rörelsesynkronisering",
     "txtSniperPressAndHold": "Tryck och håll krävs för Sniper-läge",
     "txtPwmModeChanged": "PWM-driftläget har ändrats",
-    "txtUnableToChangePwmMode": "Det går inte att ändra PWM-driftläget"
+    "txtUnableToChangePwmMode": "Det går inte att ändra PWM-driftläget",
+    "txtSelectImage": "Välj bildfil",
+    "txtFileTooLarge": "Bilden är för stor",
+    "txtInvalidImageType": "Ogiltig bild",
+    "txtUploadImage": "Ladda upp bild"
   }
 }

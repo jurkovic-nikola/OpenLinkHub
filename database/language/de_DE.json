@@ -615,6 +615,10 @@
     "txtUnableToChangeMotionSync": "Die Bewegungssynchronisation konnte nicht geändert werden",
     "txtSniperPressAndHold": "„Drücken und halten“ ist für den Sniper-Modus erforderlich",
     "txtPwmModeChanged": "Der PWM-Betriebsmodus wurde erfolgreich geändert",
-    "txtUnableToChangePwmMode": "Der PWM-Betriebsmodus konnte nicht geändert werden"
+    "txtUnableToChangePwmMode": "Der PWM-Betriebsmodus konnte nicht geändert werden",
+    "txtSelectImage": "Bilddatei auswählen",
+    "txtFileTooLarge": "Das Bild ist zu groß",
+    "txtInvalidImageType": "Ungültiges Bild",
+    "txtUploadImage": "Bild hochladen"
   }
 }

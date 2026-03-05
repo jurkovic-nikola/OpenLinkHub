@@ -34,16 +34,34 @@ $(document).ready(function () {
     $("#gifUploadForm").on("submit", function (e) {
         e.preventDefault();
 
-        var btn = $("#uploadGifImage");
-        btn.prop("disabled", true)
+        const btn = $("#uploadGifImage");
+        btn.prop("disabled", true);
 
-        var formData = new FormData();
-        var file = $("#animationFile")[0].files[0];
+        const fileInput = $("#animationFile")[0];
+        const file = fileInput?.files?.[0];
+
         if (!file) {
-            toast.warning(i18n.t('txtSelectGifImage'));
-            btn.prop("disabled", false)
+            toast.warning(i18n.t('txtSelectImage'));
+            btn.prop("disabled", false);
             return;
         }
+
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            toast.warning(i18n.t('txtFileTooLarge'));
+            btn.prop("disabled", false);
+            return;
+        }
+
+        const allowedExt = ["gif", "jpg", "jpeg", "webp", "bmp"];
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        if (!allowedExt.includes(ext)) {
+            toast.warning(i18n.t('txtInvalidImageType'));
+            btn.prop("disabled", false);
+            return;
+        }
+
+        const formData = new FormData();
         formData.append("animationFile", file);
 
         $.ajax({
@@ -53,16 +71,16 @@ $(document).ready(function () {
             processData: false,
             contentType: false,
             success: function (response) {
-                btn.prop("disabled", false)
+                btn.prop("disabled", false);
                 if (response.status === 1) {
                     location.reload();
                 } else {
-                    toast.warning(response.message);
+                    toast.warning(response.message || "Upload failed");
                 }
             },
             error: function (xhr) {
-                btn.prop("disabled", false)
-                toast.warning("Upload failed: " + xhr.responseText);
+                btn.prop("disabled", false);
+                toast.warning("Upload failed: " + (xhr.responseText || ""));
             }
         });
     });

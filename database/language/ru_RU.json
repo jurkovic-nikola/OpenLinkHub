@@ -615,6 +615,10 @@
         "txtUnableToChangeMotionSync": "Невозможно изменить синхронизацию движения",
         "txtSniperPressAndHold": "Для режима Sniper требуется функция «Нажать и удерживать»",
         "txtPwmModeChanged": "Режим работы PWM успешно изменён",
-        "txtUnableToChangePwmMode": "Невозможно изменить режим работы PWM"
+        "txtUnableToChangePwmMode": "Невозможно изменить режим работы PWM",
+        "txtSelectImage": "Выберите файл изображения",
+        "txtFileTooLarge": "Изображение слишком большое",
+        "txtInvalidImageType": "Недопустимое изображение",
+        "txtUploadImage": "Загрузить изображение"
     }
 }

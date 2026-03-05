@@ -10,7 +10,7 @@ import (
 func (r *ActiveRGB) Flickering(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
 	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*1000), 1.0)
-	
+
 	if progress >= 1.0 {
 		*startTime = time.Now() // Reset startTime to the current time
 		elapsed = 0             // Reset elapsed time
@@ -18,11 +18,16 @@ func (r *ActiveRGB) Flickering(startTime *time.Time) {
 	}
 
 	buf := map[int][]byte{}
+	randRange := r.LightChannels * int(math.Ceil(r.RgbModeSpeed))
+	if randRange < 1 {
+		randRange = 1
+	}
+
 	for j := 0; j < r.LightChannels; j++ {
 		t := float64(j) / float64(r.LightChannels) // Calculate interpolation factor
 		colors := interpolateColors(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
 		if len(r.Buffer) > 0 {
-			if rand.Intn(r.LightChannels*int(r.RgbModeSpeed)) == 1 {
+			if rand.Intn(randRange) == 1 {
 				r.Buffer[j] = 0
 				r.Buffer[j+r.ColorOffset] = 0
 				r.Buffer[j+(r.ColorOffset*2)] = 0
@@ -32,7 +37,7 @@ func (r *ActiveRGB) Flickering(startTime *time.Time) {
 				r.Buffer[j+(r.ColorOffset*2)] = byte(colors.Blue)
 			}
 		} else {
-			if rand.Intn(r.LightChannels*int(r.RgbModeSpeed)) == 1 {
+			if rand.Intn(randRange) == 1 {
 				buf[j] = []byte{0, 0, 0}
 			} else {
 				buf[j] = []byte{

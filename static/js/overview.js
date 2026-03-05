@@ -2487,7 +2487,7 @@ $(document).ready(function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        /*location.reload();*/
+                        location.reload();
                     } else {
                         toast.warning(response.message);
                     }
@@ -3897,6 +3897,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const keyInfo = $(this).attr("data-info").split(";");
         const keyId = parseInt(keyInfo[0]);
+        $(".keyOptions").val("0");
         noColorChange(deviceId, keyId).then(result => {
             if (result) {
                 $(".keyColorArea").hide();

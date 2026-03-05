@@ -170,11 +170,23 @@
                                     {{ $color := $keys.Color }}
 
                                     <!-- Key -->
-                                    <div class="{{ $keyCss }} keyboardColor device-selectable {{ $keys.Css }}" data-info="{{ $index }};{{ $color.Red }};{{ $color.Green }};{{ $color.Blue }}">
+                                    <div class="{{ $keyCss }} keyboardColor device-selectable {{ $keys.Css }}" style="font-size: 12px;" data-info="{{ $index }};{{ $color.Red }};{{ $color.Green }};{{ $color.Blue }}">
                                         {{ if $keys.NoColor }}
-                                        <span class="key-no-color">{{ $keys.KeyName }}</span>
+                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba(255, 255, 255, 1);text-align: center;line-height: 1.05;">
+                                            {{ $keys.KeyName }}
+                                            {{ if gt (len $keys.SubKeyName) 0 }}
+                                            <br />
+                                            {{ $keys.SubKeyName }}
+                                            {{ end }}
+                                        </span>
                                         {{ else }}
-                                        <span class="key-color" style="color: rgba({{ $color.Red }}, {{ $color.Green }}, {{ $color.Blue }}, 1);">{{ $keys.KeyName }}</span>
+                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $color.Red }}, {{ $color.Green }}, {{ $color.Blue }}, 1);text-align: center;line-height: 1.05;">
+                                            {{ $keys.KeyName }}
+                                            {{ if gt (len $keys.SubKeyName) 0 }}
+                                            <br />
+                                            {{ $keys.SubKeyName }}
+                                            {{ end }}
+                                        </span>
                                         {{ end }}
                                     </div>
                                     {{ end }}

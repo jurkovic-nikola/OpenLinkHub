@@ -322,6 +322,9 @@ func (d *Device) setupKeyAssignment() {
 			if key.OnlyColor {
 				continue
 			}
+			if len(key.KeyData) < 2 {
+				continue
+			}
 			keyMap[key.KeyData[1]] = val
 		}
 	}
@@ -599,11 +602,26 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Layout = "US"
 		deviceProfile.PollingRate = 4
 	} else {
+		if d.DeviceProfile.BrightnessSlider != nil && *d.DeviceProfile.BrightnessSlider > 100 {
+			*d.DeviceProfile.BrightnessSlider = defaultBrightness
+		}
+		if d.DeviceProfile.OriginalBrightness > 100 {
+			d.DeviceProfile.OriginalBrightness = defaultBrightness
+		}
+
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
 			d.DeviceProfile.BrightnessSlider = &defaultBrightness
 		} else {
 			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
+		}
+
+		if d.DeviceProfile.OriginalBrightness == 0 {
+			if d.DeviceProfile.BrightnessSlider != nil && *d.DeviceProfile.BrightnessSlider > 0 {
+				d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+			} else {
+				d.DeviceProfile.OriginalBrightness = defaultBrightness
+			}
 		}
 
 		if len(d.DeviceProfile.Layout) == 0 {
@@ -618,10 +636,33 @@ func (d *Device) saveDeviceProfile() {
 		if layout == nil {
 			return
 		}
-		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
+
+		validKeyData := true
+		currentVersion := 0
+		if d.DeviceProfile.Keyboards["default"] == nil {
+			validKeyData = false
+		} else {
+			currentVersion = d.DeviceProfile.Keyboards["default"].Version
+			for _, row := range d.DeviceProfile.Keyboards["default"].Row {
+				for _, key := range row.Keys {
+					if key.OnlyColor {
+						continue
+					}
+					if len(key.KeyData) < 2 {
+						validKeyData = false
+						break
+					}
+				}
+				if !validKeyData {
+					break
+				}
+			}
+		}
+
+		if !validKeyData || currentVersion != layout.Version {
 			logger.Log(
 				logger.Fields{
-					"current":  d.DeviceProfile.Keyboards["default"].Version,
+					"current":  currentVersion,
 					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
@@ -630,7 +671,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			logger.Log(
 				logger.Fields{
-					"current":  d.DeviceProfile.Keyboards["default"].Version,
+					"current":  currentVersion,
 					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
@@ -943,6 +984,15 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
 		return 0
 	}
+
+	if profile == "off" {
+		if d.DeviceProfile.BrightnessSlider != nil && *d.DeviceProfile.BrightnessSlider > 0 {
+			d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		}
+	} else {
+		d.restoreKeyboardBrightness()
+	}
+
 	d.DeviceProfile.RGBProfile = profile // Set profile
 	d.saveDeviceProfile()                // Save profile
 	if d.activeRgb != nil {
@@ -973,6 +1023,9 @@ func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	}
 
 	d.DeviceProfile.BrightnessSlider = &value
+	if value > 0 {
+		d.DeviceProfile.OriginalBrightness = value
+	}
 	d.saveDeviceProfile()
 
 	if d.activeRgb != nil {
@@ -1324,6 +1377,26 @@ func (d *Device) buildKeyIndexMap() map[int]KeyPos {
 	return keyIndexMap
 }
 
+// restoreKeyboardBrightness will ensure keyboard profile can display colors after leaving off profile
+func (d *Device) restoreKeyboardBrightness() {
+	defaultBrightness := uint8(100)
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.OriginalBrightness == 0 {
+		if d.DeviceProfile.BrightnessSlider != nil && *d.DeviceProfile.BrightnessSlider > 0 {
+			d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
+		} else {
+			d.DeviceProfile.OriginalBrightness = defaultBrightness
+		}
+	}
+
+	if d.DeviceProfile.BrightnessSlider == nil || *d.DeviceProfile.BrightnessSlider == 0 {
+		d.DeviceProfile.BrightnessSlider = &d.DeviceProfile.OriginalBrightness
+	}
+}
+
 // UpdateDeviceColor will update device color based on selected input
 func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, selections []int) uint8 {
 	if d.DeviceProfile == nil {
@@ -1349,6 +1422,9 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, select
 							Brightness: 0,
 						}
 						d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowIndex].Keys[keyIndex] = key
+						d.DeviceProfile.RGBProfile = "keyboard"
+						d.restoreKeyboardBrightness()
+						d.saveDeviceProfile()
 						if d.activeRgb != nil {
 							d.activeRgb.Exit <- true
 							d.activeRgb = nil
@@ -1387,6 +1463,9 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, select
 				}
 				d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowId].Keys[keyIndex] = key
 			}
+			d.DeviceProfile.RGBProfile = "keyboard"
+			d.restoreKeyboardBrightness()
+			d.saveDeviceProfile()
 			if d.activeRgb != nil {
 				d.activeRgb.Exit <- true
 				d.activeRgb = nil
@@ -1411,6 +1490,9 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, select
 					d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row[rowIndex].Keys[keyIndex] = key
 				}
 			}
+			d.DeviceProfile.RGBProfile = "keyboard"
+			d.restoreKeyboardBrightness()
+			d.saveDeviceProfile()
 			if d.activeRgb != nil {
 				d.activeRgb.Exit <- true
 				d.activeRgb = nil
@@ -1444,6 +1526,9 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, select
 			}
 
 			if updated > 0 {
+				d.DeviceProfile.RGBProfile = "keyboard"
+				d.restoreKeyboardBrightness()
+				d.saveDeviceProfile()
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true
 					d.activeRgb = nil
@@ -1686,7 +1771,7 @@ func (d *Device) writeColor(data map[int][]byte) {
 	}
 
 	// Always override Lock color
-	if d.DeviceProfile.Performance {
+	if d.DeviceProfile.Performance && d.DeviceProfile.RGBProfile != "off" {
 		data[0][9] = 255
 		data[1][9] = 0
 		data[2][9] = 0
@@ -1862,7 +1947,8 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 		d.releaseMacroTracker()
 	}
 
-	if d.ModifierIndex != val {
+	changed := d.ModifierIndex != val
+	if changed {
 		if d.KeyboardKey != nil {
 			switch d.KeyboardKey.ActionType {
 			case 1, 3:
@@ -1890,11 +1976,20 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 
 		// Brightness
 		if key.ActionType == 11 {
-			if *d.DeviceProfile.BrightnessSlider >= 100 {
-				*d.DeviceProfile.BrightnessSlider = 0
-			} else {
-				*d.DeviceProfile.BrightnessSlider += 20
+			if !changed || d.DeviceProfile.BrightnessSlider == nil {
+				return
 			}
+
+			if *d.DeviceProfile.BrightnessSlider >= 100 {
+				*d.DeviceProfile.BrightnessSlider = 20
+			} else {
+				next := *d.DeviceProfile.BrightnessSlider + 20
+				if next > 100 {
+					next = 100
+				}
+				*d.DeviceProfile.BrightnessSlider = next
+			}
+			d.DeviceProfile.OriginalBrightness = *d.DeviceProfile.BrightnessSlider
 
 			d.saveDeviceProfile()
 			if d.activeRgb != nil {

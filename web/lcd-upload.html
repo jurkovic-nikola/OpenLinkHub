@@ -3,14 +3,14 @@
     <div class="card system-card text-center">
         <form id="gifUploadForm" enctype="multipart/form-data">
             <div class="card-header">
-                {{ .Lang "txtUploadGifAnimation" }}
+                {{ .Lang "txtUploadImage" }}
             </div>
             <div class="card-body">
                 <input type="file"
                        class="system-input file-input full-width"
                        id="animationFile"
                        name="animationFile"
-                       accept=".gif">
+                       accept=".gif,.jpg,.jpeg,.webp,.bmp,image/gif,image/jpeg,image/webp,image/bmp">
             </div>
             <div class="card-footer card-footer-left">
                 <button class="system-button uploadGifImage left" id="uploadGifImage">{{ .Lang "txtUpload" }}</button>

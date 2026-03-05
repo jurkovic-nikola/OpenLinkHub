@@ -392,13 +392,13 @@ func interpolateColor(c1, c2 color.RGBA, t float64) color.RGBA {
 	}
 }
 
-// PerformGifUpload will handle GIF upload
-func PerformGifUpload(w http.ResponseWriter, r *http.Request) {
+// PerformImageUpload will handle image upload
+func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 	const maxUploadSize = 5 * 1024 * 1024 // 5MB
 	var validFilename = regexp.MustCompile(`^[A-Za-z0-9]+$`)
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Use POST to upload GIF file", http.StatusMethodNotAllowed)
+		http.Error(w, "Use POST to upload image file", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -416,54 +416,105 @@ func PerformGifUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func(file multipart.File) {
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to close file")
+		if cerr := file.Close(); cerr != nil {
+			logger.Log(logger.Fields{"error": cerr}).Error("Failed to close file")
 		}
 	}(file)
 
-	if strings.ToLower(filepath.Ext(handler.Filename)) != ".gif" {
-		http.Error(w, "Invalid file type. Only .gif allowed", http.StatusBadRequest)
-		return
-	}
-
+	ext := strings.ToLower(filepath.Ext(handler.Filename))
 	name := strings.TrimSuffix(filepath.Base(handler.Filename), filepath.Ext(handler.Filename))
 	if !validFilename.MatchString(name) {
 		http.Error(w, "Invalid filename. Only letters and numbers allowed", http.StatusBadRequest)
 		return
 	}
 
-	// Read header bytes
+	type decoderFn func(r io.Reader) error
+	specs := map[string]struct {
+		mime   string
+		decode decoderFn
+		format uint8
+	}{
+		".gif": {
+			mime: "image/gif",
+			decode: func(r io.Reader) error {
+				_, err := gif.Decode(r)
+				return err
+			},
+			format: ImageFormatGif,
+		},
+		".jpg": {
+			mime: "image/jpeg",
+			decode: func(r io.Reader) error {
+				_, err := jpeg.Decode(r)
+				return err
+			},
+			format: ImageFormatJpg,
+		},
+		".jpeg": {
+			mime: "image/jpeg",
+			decode: func(r io.Reader) error {
+				_, err := jpeg.Decode(r)
+				return err
+			},
+			format: ImageFormatJpg,
+		},
+		".webp": {
+			mime: "image/webp",
+			decode: func(r io.Reader) error {
+				_, err := webp.Decode(r)
+				return err
+			},
+			format: ImageFormatWebp,
+		},
+		".bmp": {
+			mime: "image/bmp",
+			decode: func(r io.Reader) error {
+				_, err := bmp.Decode(r)
+				return err
+			},
+			format: ImageFormatBmp,
+		},
+	}
+
+	spec, ok := specs[ext]
+	if !ok {
+		http.Error(w, "Invalid file type. Only .gif, .jpg, .jpeg, .webp, .bmp allowed", http.StatusBadRequest)
+		return
+	}
+
 	header := make([]byte, 512)
-	if _, err = file.Read(header); err != nil {
+	if _, err := file.Read(header); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to inspect file")
 		http.Error(w, "Unable to inspect file", http.StatusBadRequest)
 		return
 	}
 
-	if http.DetectContentType(header) != "image/gif" {
-		http.Error(w, "Invalid file. Must be a GIF image", http.StatusBadRequest)
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Seek failed")
+		http.Error(w, "Unable to inspect file", http.StatusBadRequest)
 		return
 	}
 
-	_, err = file.Seek(0, io.SeekStart)
-	if err != nil {
+	detected := http.DetectContentType(header)
+	if detected != spec.mime {
+		logger.Log(logger.Fields{"detected": detected, "expected": spec.mime}).Error("MIME mismatch")
+		http.Error(w, "Invalid file content for extension", http.StatusBadRequest)
 		return
 	}
 
-	if _, err = gif.Decode(file); err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Corrupted or invalid GIF")
-		http.Error(w, "Corrupted or invalid GIF", http.StatusBadRequest)
+	if err := spec.decode(file); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Corrupted or invalid image")
+		http.Error(w, "Corrupted or invalid image", http.StatusBadRequest)
 		return
 	}
 
-	_, err = file.Seek(0, io.SeekStart)
-	if err != nil {
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Seek failed")
+		http.Error(w, "Unable to save file", http.StatusBadRequest)
 		return
 	}
 
-	// Final safe filename (no traversal risk)
-	filename := name + ".gif"
+	filename := name + ext
 	savePath := filepath.Join(images, filename)
 
 	out, err := os.Create(savePath)
@@ -473,43 +524,38 @@ func PerformGifUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func(out *os.File) {
-		err = out.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to close file")
+		if cerr := out.Close(); cerr != nil {
+			logger.Log(logger.Fields{"error": cerr}).Error("Failed to close file")
 		}
 	}(out)
 
-	if _, err = io.Copy(out, file); err != nil {
+	if _, err := io.Copy(out, file); err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Failed to write file")
 		http.Error(w, "Failed to write file", http.StatusInternalServerError)
 		return
 	}
 
-	// Load image in cache
-	loadImage(savePath, ImageFormatGif)
+	loadImage(savePath, spec.format)
 
-	status := LoadAnimation(name)
-	switch status {
-	case 0:
-		logger.Log(logger.Fields{}).Error("Failed to reload animations")
-		http.Error(w, "Failed to reload animations", http.StatusInternalServerError)
-		break
-	case 1:
-		w.Header().Set("Content-Type", "application/json")
-		err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":  1,
-			"message": "GIF uploaded successfully",
-		})
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to send response")
+	if spec.format == ImageFormatGif {
+		status := LoadAnimation(name)
+		switch status {
+		case 0:
+			http.Error(w, "Failed to reload animations", http.StatusInternalServerError)
+			return
+		case 2:
+			http.Error(w, "Animation is already loaded", http.StatusConflict)
 			return
 		}
-		break
-	case 2:
-		logger.Log(logger.Fields{}).Error("Animation is already loaded")
-		http.Error(w, "Animation is already loaded", http.StatusInternalServerError)
-		break
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"status":  1,
+		"message": "Image uploaded successfully",
+		"name":    name,
+		"format":  spec.format,
+	})
 }
 
 // GetCustomLcdProfiles will return list of LCD profiles currently supported by the product. This list is defined

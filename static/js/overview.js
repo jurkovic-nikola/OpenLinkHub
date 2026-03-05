@@ -548,6 +548,20 @@ $(document).ready(function () {
         });
     }
 
+    function syncKeyboardSelectionMode() {
+        const keyOptions = $(".keyOptions");
+        if (keyOptions.length === 0 || $(".keyboardColor").length === 0) {
+            return;
+        }
+
+        const selectedKeys = $(".keyboardColor.device-selected").length;
+        if (selectedKeys > 1) {
+            keyOptions.val("3");
+        } else {
+            keyOptions.val("0");
+        }
+    }
+
     $('.device-selectable').click(function (e) {
         if ($(e.target).closest('button, select, input, .newLabel, .newRgbLabel').length > 0) {
             return;
@@ -562,6 +576,8 @@ $(document).ready(function () {
         $('#selectedDevices').val(
             deviceSelected.length ? deviceSelected.join(',') : ''
         );
+
+        syncKeyboardSelectionMode();
     });
 
     $('.openKeyAssignments').on('click', function () {
@@ -4137,7 +4153,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const keyInfo = $(this).attr("data-info").split(";");
         const keyId = parseInt(keyInfo[0]);
-        $(".keyOptions").val("0");
+        syncKeyboardSelectionMode();
         noColorChange(deviceId, keyId).then(result => {
             if (result) {
                 $(".keyColorArea").hide();

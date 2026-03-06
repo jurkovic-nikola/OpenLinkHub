@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k95platinum-default",
@@ -291,6 +291,8 @@
           "packetIndex": [126],
           "keyData": [132, 70],
           "default": true,
+          "profileSwitch": true,
+          "actionType": 12,
           "keyEmpty": [
             "keyboard-key-empty",
             "keyboard-key-empty",

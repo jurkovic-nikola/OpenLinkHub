@@ -115,6 +115,7 @@ type Device struct {
 	Path              string
 	queue             chan map[int][]byte
 	SkuLine           string
+	RuntimeMemoryType int
 	instance          *common.Device
 }
 
@@ -174,8 +175,10 @@ var (
 )
 
 func Init(_, _ uint16, _, path string) *common.Device {
-	if config.GetConfig().MemoryType == 5 {
-		colorAddresses = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR5
+	mt := config.GetConfig().MemoryType
+	if mt != 4 && mt != 5 {
+		logger.Log(logger.Fields{"memoryType": mt, "device": path}).Error("Invalid memory type")
+		return nil
 	}
 
 	// Set global working directory
@@ -200,15 +203,17 @@ func Init(_, _ uint16, _, path string) *common.Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product:         "Memory",
-		Serial:          serial,
-		LEDChannels:     0,
-		timer:           &time.Ticker{},
-		autoRefreshChan: make(chan struct{}),
-		enhancementKits: make(map[byte]bool, 8),
-		Path:            path,
+		Product:           "Memory",
+		Serial:            serial,
+		LEDChannels:       0,
+		timer:             &time.Ticker{},
+		autoRefreshChan:   make(chan struct{}),
+		enhancementKits:   make(map[byte]bool, 8),
+		Path:              path,
+		RuntimeMemoryType: mt,
 	}
 
+	d.setRuntimeMemoryType(mt)
 	d.getDebugMode()       // Debug mode
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
@@ -228,6 +233,13 @@ func Init(_, _ uint16, _, path string) *common.Device {
 	d.createDevice()           // Device register
 
 	return d.instance
+}
+
+func (d *Device) setRuntimeMemoryType(memoryType int) {
+	d.RuntimeMemoryType = memoryType
+	if memoryType == 5 {
+		colorAddresses = []byte{0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f} // DDR5
+	}
 }
 
 // createDevice will create new device register object
@@ -462,7 +474,7 @@ func (d *Device) getEnhancementKit(address byte) bool {
 
 // getTemperature will read hwmon temperature file
 func (d *Device) getTemperature(filePath string) (float32, error) {
-	if config.GetConfig().MemoryType == 5 {
+	if d.RuntimeMemoryType == 5 {
 		data, err := os.ReadFile(filePath)
 		if err != nil {
 			return 0, err
@@ -516,7 +528,7 @@ func (d *Device) getDevices() int {
 	baseDevice := 51
 
 	// DDR5
-	if config.GetConfig().MemoryType == 5 {
+	if d.RuntimeMemoryType == 5 {
 		modules = NewMemoryModules()
 	}
 
@@ -542,25 +554,34 @@ func (d *Device) getDevices() int {
 		}
 
 		if d.Debug {
-			logger.Log(logger.Fields{"memoryType": config.GetConfig().MemoryType}).Info("Probing address")
+			logger.Log(logger.Fields{"memoryType": d.RuntimeMemoryType}).Info("Probing address")
 		}
 
-		var buf []byte
-
-		if modules != nil && len(modules) > 0 {
-			// If modules are available, we can fetch memory SKU from them
-			// For now we'll just use the SKU of the first module
-			memorySku := modules[0].SKU
-			buf = []byte(memorySku)
+		memorySku := ""
+		if modules == nil || len(modules) == 0 {
+			logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("No decoded memory SKU available")
 		} else {
-			// This is where memory SKU cannot be fetched
-			memorySku := config.GetConfig().MemorySku
+			// If modules are available, use decoded memory SKU from SPD data.
+			memorySku = strings.TrimSpace(modules[0].SKU)
 			if len(memorySku) < 1 {
-				logger.Log(logger.Fields{}).Warn("decodeMemorySku set to false without memorySku value")
-				continue
+				logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("Decoded memory SKU is empty")
 			}
-			buf = []byte(memorySku)
 		}
+
+		// Fallback to configured memory SKU for setups where decoded SKU is unavailable.
+		if len(memorySku) < 1 {
+			memorySku = strings.TrimSpace(config.GetConfig().MemorySku)
+			if len(memorySku) > 0 {
+				logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("Using configured memorySku fallback")
+			}
+		}
+
+		if len(memorySku) < 1 {
+			logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("No memory SKU available. Skipping register")
+			continue
+		}
+
+		buf := []byte(memorySku)
 		if len(buf) > 15 {
 			// https://help.corsair.com/hc/en-us/articles/8528259685901-RAM-How-to-Read-the-CORSAIR-memory-part-number
 			// https://help.corsair.com/hc/en-us/articles/360051011331-RAM-DDR4-memory-module-dimensions
@@ -585,7 +606,7 @@ func (d *Device) getDevices() int {
 					logger.Log(logger.Fields{"dimmInfoLine": line}).Info("Memory DIMM Info - Data")
 				}
 
-				if config.GetConfig().MemoryType == 4 {
+				if d.RuntimeMemoryType == 4 {
 					// DDR4
 					switch line {
 					case "U":
@@ -677,7 +698,7 @@ func (d *Device) getDevices() int {
 						ChannelId:         i,
 						DeviceId:          i,
 						Sku:               dimmInfo,
-						MemoryType:        config.GetConfig().MemoryType,
+						MemoryType:        d.RuntimeMemoryType,
 						LedChannels:       uint8(ledChannels),
 						ColorRegister:     uint8(colorRegister),
 						Name:              skuLine,
@@ -701,7 +722,7 @@ func (d *Device) getDevices() int {
 
 					if config.GetConfig().RamTempViaHwmon {
 						if !d.getEnhancementKit(colorAddresses[i]) {
-							if config.GetConfig().MemoryType == 5 {
+							if d.RuntimeMemoryType == 5 {
 								hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice, "spd5118")
 								if len(hwmonTemperatureFile) > 0 {
 									device.HwmonPath = hwmonTemperatureFile

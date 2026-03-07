@@ -292,7 +292,6 @@
           "keyData": [132, 70],
           "default": true,
           "profileSwitch": true,
-          "actionType": 12,
           "keyEmpty": [
             "keyboard-key-empty",
             "keyboard-key-empty",

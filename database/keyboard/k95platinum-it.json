@@ -335,7 +335,6 @@
           ],
           "default": true,
           "profileSwitch": true,
-          "actionType": 12,
           "keyEmpty": [
             "keyboard-key-empty",
             "keyboard-key-empty",

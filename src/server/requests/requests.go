@@ -1866,7 +1866,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		ModifierKey:    req.KeyAssignmentModifier,
 		RetainOriginal: req.KeyAssignmentOriginal,
 		ToggleDelay:    req.ToggleDelay,
-		ProfileSwitch:  req.KeyAssignmentType == 12,
+		ProfileSwitch:  req.KeyAssignmentType == 19,
 		OnRelease:      req.OnRelease,
 	}
 

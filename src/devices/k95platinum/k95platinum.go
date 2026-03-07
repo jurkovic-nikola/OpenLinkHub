@@ -204,6 +204,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
+			19: "Profile Switch",
 		},
 		MacroTracker: make(map[int]macro.Tracker),
 		LedData:      make(map[int]rgb.Color),
@@ -2216,7 +2217,7 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 		}
 
 		// Profile switch
-		if key.Default && (key.ProfileSwitch || key.ActionType == 12) {
+		if key.ProfileSwitch {
 			if changed {
 				d.rotateDeviceProfile()
 			}

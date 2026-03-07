@@ -795,6 +795,7 @@ var deviceRegisterMap = map[uint16]Product{
 	11050: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // Sabre v2 Pro Ultralight Wireless Dongle
 	7041:  {1, 0, "DARK CORE RGB PRO Gaming Dongle", nil, slipstream.Init}, // DARK CORE RGB PRO Gaming Dongle
 	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS
+	10755: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS XBOX
 	2711:  {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},            // HS80 MAX WIRELESS
 	10767: {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},            // HS80 MAX WIRELESS
 	6993:  {1, 0, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},       // DARK CORE RGB SE Wireless USB Receiver

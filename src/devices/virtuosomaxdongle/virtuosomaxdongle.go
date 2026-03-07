@@ -112,7 +112,7 @@ func (d *Device) createDevice() {
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	switch d.Devices.ProductId {
-	case 10752:
+	case 10752, 10753:
 		{
 			dev := virtuosomaxW.Init(
 				d.Devices.VendorId,
@@ -219,11 +219,23 @@ func (d *Device) GetDevice() *hid.Device {
 
 // getDevice will get paired devices
 func (d *Device) getDevice() {
-	d.Devices = &Devices{
-		Endpoint:  0x09,
-		Serial:    d.Serial + "W",
-		VendorId:  d.VendorId,
-		ProductId: 10752,
+	switch d.ProductId {
+	case 10755:
+		d.Devices = &Devices{
+			Endpoint:  0x09,
+			Serial:    d.Serial + "W",
+			VendorId:  d.VendorId,
+			ProductId: 10753,
+		}
+		break
+	case 10754:
+		d.Devices = &Devices{
+			Endpoint:  0x09,
+			Serial:    d.Serial + "W",
+			VendorId:  d.VendorId,
+			ProductId: 10752,
+		}
+		break
 	}
 }
 

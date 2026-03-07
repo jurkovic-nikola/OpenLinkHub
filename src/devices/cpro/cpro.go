@@ -976,6 +976,18 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 		return 0
 	}
 
+	lc := 0
+	for _, device := range d.Devices {
+		if device.LedChannels > 0 {
+			lc += int(device.LedChannels)
+		}
+	}
+
+	if lc == 0 {
+		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No compatible RGB devices found. RGB Cluster is unavailable")
+		return 0
+	}
+
 	d.DeviceProfile.RGBCluster = enabled
 	d.saveDeviceProfile() // Save profile
 	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {

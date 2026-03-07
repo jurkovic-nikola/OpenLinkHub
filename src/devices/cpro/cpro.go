@@ -5,6 +5,7 @@ package cpro
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
@@ -53,6 +54,7 @@ type DeviceProfile struct {
 	Brightness         uint8
 	BrightnessSlider   *uint8
 	OriginalBrightness uint8
+	RGBCluster         bool
 	RGBProfiles        map[int]string
 	SpeedProfiles      map[int]string
 	ExternalHubs       map[int]*ExternalHubData
@@ -231,6 +233,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d.setDefaults()         // Set default speed value
 	d.setAutoRefresh()      // Set auto device refresh
 	d.setDeviceColor(true)  // Device color
+	d.setupClusterController()
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
@@ -885,6 +888,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
+	if d.DeviceProfile.RGBCluster {
+		return 5
+	}
+
 	hasPump := false
 
 	for _, device := range d.Devices {
@@ -925,6 +932,90 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		}
 	}
 	d.setDeviceColor(true)
+	return 1
+}
+
+// setupClusterController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		externalHub := d.DeviceProfile.ExternalHubs[i]
+		lightChannels := 0
+		for _, device := range d.Devices {
+			if device.PortId == externalHub.PortId && device.LedChannels > 0 {
+				lightChannels += int(device.LedChannels)
+			}
+		}
+
+		if lightChannels < 1 {
+			continue
+		}
+
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       fmt.Sprintf("%s-%d", d.Serial, externalHub.PortId),
+			LedChannels:  uint32(lightChannels),
+			WriteColorEx: d.writeColorCluster,
+			ChannelId:    int(externalHub.PortId),
+		}
+
+		cluster.Get().AddDeviceController(clusterController)
+	}
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		if d.activeRgb[i] != nil {
+			d.activeRgb[i].Exit <- true
+			d.activeRgb[i] = nil
+		}
+	}
+	d.setDeviceColor(true)
+
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		externalHub := d.DeviceProfile.ExternalHubs[i]
+		serial := fmt.Sprintf("%s-%d", d.Serial, externalHub.PortId)
+
+		if enabled {
+			lightChannels := 0
+			for _, device := range d.Devices {
+				if device.PortId == externalHub.PortId && device.LedChannels > 0 {
+					lightChannels += int(device.LedChannels)
+				}
+			}
+
+			if lightChannels < 1 {
+				continue
+			}
+
+			clusterController := &common.ClusterController{
+				Product:      d.Product,
+				Serial:       serial,
+				LedChannels:  uint32(lightChannels),
+				WriteColorEx: d.writeColorCluster,
+				ChannelId:    int(externalHub.PortId),
+			}
+
+			cluster.Get().AddDeviceController(clusterController)
+		} else {
+			cluster.Get().RemoveDeviceControllerBySerial(serial)
+		}
+	}
+
 	return 1
 }
 
@@ -1273,6 +1364,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -1748,6 +1840,12 @@ func (d *Device) setDeviceColor(resetColor bool) {
 	// Do we have any RGB component in the system?
 	if lightChannels == 0 {
 		logger.Log(logger.Fields{}).Info("No RGB compatible devices found")
+		return
+	}
+
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
 		return
 	}
 
@@ -2254,6 +2352,24 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 	if _, err := d.transfer(cmdRefresh, []byte{0xff}); err != nil {
 		return
 	}
+}
+
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, index int) {
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	if d.Exit {
+		return
+	}
+
+	lightChannels := len(data) / 3
+	if lightChannels < 1 {
+		return
+	}
+
+	d.writeColor(data, lightChannels, byte(index))
 }
 
 // transfer will send data to a device and retrieve device output

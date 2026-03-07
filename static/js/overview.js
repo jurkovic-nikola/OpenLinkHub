@@ -548,6 +548,20 @@ $(document).ready(function () {
         });
     }
 
+    function syncKeyboardSelectionMode() {
+        const keyOptions = $(".keyOptions");
+        if (keyOptions.length === 0 || $(".keyboardColor").length === 0) {
+            return;
+        }
+
+        const selectedKeys = $(".keyboardColor.device-selected").length;
+        if (selectedKeys > 1) {
+            keyOptions.val("3");
+        } else {
+            keyOptions.val("0");
+        }
+    }
+
     $('.device-selectable').click(function (e) {
         if ($(e.target).closest('button, select, input, .newLabel, .newRgbLabel').length > 0) {
             return;
@@ -562,6 +576,8 @@ $(document).ready(function () {
         $('#selectedDevices').val(
             deviceSelected.length ? deviceSelected.join(',') : ''
         );
+
+        syncKeyboardSelectionMode();
     });
 
     $('.openKeyAssignments').on('click', function () {
@@ -2051,6 +2067,249 @@ $(document).ready(function () {
         });
     });
 
+    let lastSyncedUserProfile = "";
+    let lastSyncedKeyboardProfile = "";
+    let lastSyncedKeyboardLayout = "";
+
+    function syncProfileSelectors(device) {
+        if (!device || !device.DeviceProfile) {
+            return;
+        }
+
+        const deviceProfile = device.DeviceProfile;
+        const userProfiles = device.userProfiles || {};
+        let activeUserProfile = "";
+
+        $.each(userProfiles, function(name, profile) {
+            if (profile && profile.Active) {
+                activeUserProfile = name;
+                return false;
+            }
+        });
+
+        if (activeUserProfile.length > 0) {
+            const userProfile = $('.userProfile');
+            if (userProfile.length > 0 && userProfile.val() !== activeUserProfile) {
+                userProfile.val(activeUserProfile);
+            }
+        }
+
+        const keyboardProfile = $('.keyboardProfile');
+        if (keyboardProfile.length > 0 && Array.isArray(deviceProfile.Profiles)) {
+            const incomingProfiles = deviceProfile.Profiles.map(String);
+            const currentProfiles = keyboardProfile.find('option').map(function() {
+                return $(this).val();
+            }).get();
+
+            const hasChangedProfiles =
+                incomingProfiles.length !== currentProfiles.length ||
+                incomingProfiles.some((value, index) => currentProfiles[index] !== value);
+
+            if (hasChangedProfiles) {
+                keyboardProfile.empty();
+                $.each(incomingProfiles, function(_, profileName) {
+                    keyboardProfile.append($('<option>', { value: profileName, text: profileName }));
+                });
+            }
+
+            if (typeof deviceProfile.Profile === "string" && keyboardProfile.val() !== deviceProfile.Profile) {
+                keyboardProfile.val(deviceProfile.Profile);
+            }
+        }
+
+        const keyboardRgbProfile = $('.keyboardRgbProfile');
+        if (keyboardRgbProfile.length > 0 && typeof deviceProfile.RGBProfile === "string") {
+            const rgbProfileValue = "0;" + deviceProfile.RGBProfile;
+            if (keyboardRgbProfile.find('option[value="' + rgbProfileValue + '"]').length > 0) {
+                keyboardRgbProfile.val(rgbProfileValue);
+            }
+        }
+
+        const keyLayout = $('.keyLayout');
+        if (keyLayout.length > 0 && typeof deviceProfile.Layout === "string") {
+            if (keyLayout.find('option[value="' + deviceProfile.Layout + '"]').length > 0) {
+                keyLayout.val(deviceProfile.Layout);
+            }
+        }
+
+        const keyboardProfileChanged =
+            lastSyncedUserProfile !== activeUserProfile ||
+            lastSyncedKeyboardProfile !== deviceProfile.Profile ||
+            lastSyncedKeyboardLayout !== deviceProfile.Layout;
+
+        if (keyboardProfileChanged) {
+            syncKeyboardView(deviceProfile);
+        }
+
+        lastSyncedUserProfile = activeUserProfile;
+        lastSyncedKeyboardProfile = deviceProfile.Profile || "";
+        lastSyncedKeyboardLayout = deviceProfile.Layout || "";
+    }
+
+    function syncKeyboardView(deviceProfile) {
+        if (!deviceProfile || !deviceProfile.Keyboards || !deviceProfile.Profile) {
+            return;
+        }
+
+        const keyboard = deviceProfile.Keyboards[deviceProfile.Profile];
+        if (!keyboard || !keyboard.Row || $('.keyboardColor').length === 0) {
+            return;
+        }
+
+        const keyMap = {};
+        $('.keyboardColor').each(function () {
+            const dataInfo = ($(this).attr('data-info') || "").split(";");
+            if (dataInfo.length > 0) {
+                keyMap[dataInfo[0]] = $(this);
+            }
+        });
+
+        $.each(keyboard.Row, function(_, row) {
+            if (!row || !row.Keys) {
+                return;
+            }
+
+            $.each(row.Keys, function(keyId, key) {
+                const keyElement = keyMap[String(keyId)];
+                if (!keyElement || keyElement.length === 0 || !key || !key.Color) {
+                    return;
+                }
+
+                const red = parseInt(key.Color.Red) || 0;
+                const green = parseInt(key.Color.Green) || 0;
+                const blue = parseInt(key.Color.Blue) || 0;
+
+                keyElement.attr('data-info', keyId + ";" + red + ";" + green + ";" + blue);
+
+                const label = keyElement.find('span');
+                if (label.length > 0) {
+                    if (typeof key.SubKeyName === "string" && key.SubKeyName.length > 0) {
+                        label.html((key.KeyName || "") + "<br />" + key.SubKeyName);
+                    } else {
+                        label.text(key.KeyName || "");
+                    }
+
+                    if (key.NoColor === true) {
+                        label.css('color', 'rgba(255, 255, 255, 1)');
+                    } else {
+                        label.css('color', 'rgba(' + red + ', ' + green + ', ' + blue + ', 1)');
+                    }
+                }
+            });
+        });
+    }
+
+    function syncKeyboardLiveState(ledData) {
+        if (!ledData) {
+            return;
+        }
+
+        if (typeof ledData.activeUserProfile === "string" && ledData.activeUserProfile.length > 0) {
+            const userProfile = $('.userProfile');
+            if (userProfile.length > 0 && userProfile.val() !== ledData.activeUserProfile) {
+                userProfile.val(ledData.activeUserProfile);
+            }
+        }
+
+        if (typeof ledData.keyboardProfile === "string" && ledData.keyboardProfile.length > 0) {
+            const keyboardProfile = $('.keyboardProfile');
+            if (keyboardProfile.length > 0 && keyboardProfile.find('option[value="' + ledData.keyboardProfile + '"]').length > 0) {
+                if (keyboardProfile.val() !== ledData.keyboardProfile) {
+                    keyboardProfile.val(ledData.keyboardProfile);
+                }
+            }
+        }
+
+        if (typeof ledData.rgbProfile === "string" && ledData.rgbProfile.length > 0) {
+            const keyboardRgbProfile = $('.keyboardRgbProfile');
+            const rgbValue = "0;" + ledData.rgbProfile;
+            if (keyboardRgbProfile.length > 0 && keyboardRgbProfile.find('option[value="' + rgbValue + '"]').length > 0) {
+                if (keyboardRgbProfile.val() !== rgbValue) {
+                    keyboardRgbProfile.val(rgbValue);
+                }
+            }
+        }
+
+        if (typeof ledData.layout === "string" && ledData.layout.length > 0) {
+            const keyLayout = $('.keyLayout');
+            if (keyLayout.length > 0 && keyLayout.find('option[value="' + ledData.layout + '"]').length > 0) {
+                if (keyLayout.val() !== ledData.layout) {
+                    keyLayout.val(ledData.layout);
+                }
+            }
+        }
+
+        if (!ledData.keys || $('.keyboardColor').length === 0) {
+            return;
+        }
+
+        const keyMap = {};
+        $('.keyboardColor').each(function () {
+            const dataInfo = ($(this).attr('data-info') || "").split(";");
+            if (dataInfo.length > 0) {
+                keyMap[dataInfo[0]] = $(this);
+            }
+        });
+
+        $.each(ledData.keys, function(keyId, color) {
+            const keyElement = keyMap[String(keyId)];
+            if (!keyElement || keyElement.length === 0 || !color) {
+                return;
+            }
+
+            const red = Math.max(0, Math.min(255, Math.round(color.red || 0)));
+            const green = Math.max(0, Math.min(255, Math.round(color.green || 0)));
+            const blue = Math.max(0, Math.min(255, Math.round(color.blue || 0)));
+
+            const dataInfo = (keyElement.attr('data-info') || "").split(";");
+            const originalKeyId = dataInfo.length > 0 ? dataInfo[0] : keyId;
+            keyElement.attr('data-info', originalKeyId + ";" + red + ";" + green + ";" + blue);
+
+            const label = keyElement.find('span');
+            if (label.length > 0) {
+                label.css('color', 'rgba(' + red + ', ' + green + ', ' + blue + ', 1)');
+            }
+        });
+    }
+
+    function autoRefreshKeyboardLive() {
+        if ($('.keyboardColor').length === 0) {
+            return;
+        }
+
+        let pendingRequest = false;
+        setInterval(function () {
+            if (pendingRequest) {
+                return;
+            }
+
+            const liveToggle = $(".toggleKeyboardLiveSync");
+            if (liveToggle.length > 0 && !liveToggle.is(":checked")) {
+                return;
+            }
+
+            const deviceId = $("#deviceId").val();
+            if (!deviceId || deviceId.length === 0) {
+                return;
+            }
+
+            pendingRequest = true;
+            $.ajax({
+                url: '/api/led/' + deviceId,
+                type: 'GET',
+                cache: false,
+                success: function (response) {
+                    if (response && response.status === 1 && response.data) {
+                        syncKeyboardLiveState(response.data);
+                    }
+                },
+                complete: function () {
+                    pendingRequest = false;
+                }
+            });
+        }, 100);
+    }
+
     function autoRefresh() {
         setInterval(function(){
             const deviceId = $("#deviceId").val()
@@ -2058,6 +2317,7 @@ $(document).ready(function () {
                 url:'/api/devices/' + deviceId,
                 type:'get',
                 success:function(result){
+                    syncProfileSelectors(result.device);
                     if (result.device.devices == null) {
                         // Single device, e.g CPU block
                         const elementTemperatureId = "#temperature-0";
@@ -2117,6 +2377,7 @@ $(document).ready(function () {
     }
 
     autoRefresh();
+    autoRefreshKeyboardLive();
 
     $('.tempProfile').on('change', function () {
         const deviceId = $("#deviceId").val();
@@ -2487,7 +2748,7 @@ $(document).ready(function () {
             success: function(response) {
                 try {
                     if (response.status === 1) {
-                        /*location.reload();*/
+                        location.reload();
                     } else {
                         toast.warning(response.message);
                     }
@@ -3897,6 +4158,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const keyInfo = $(this).attr("data-info").split(";");
         const keyId = parseInt(keyInfo[0]);
+        syncKeyboardSelectionMode();
         noColorChange(deviceId, keyId).then(result => {
             if (result) {
                 $(".keyColorArea").hide();
@@ -4353,6 +4615,40 @@ $(document).ready(function () {
 
         $.ajax({
             url: "/api/color/setCluster",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                mode: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
+    $(".toggleKeyboardLiveSync").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked");
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/keyboard/liveSync",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify({

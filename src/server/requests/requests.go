@@ -1866,6 +1866,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		ModifierKey:    req.KeyAssignmentModifier,
 		RetainOriginal: req.KeyAssignmentOriginal,
 		ToggleDelay:    req.ToggleDelay,
+		ProfileSwitch:  req.KeyAssignmentType == 12,
 		OnRelease:      req.OnRelease,
 	}
 
@@ -4522,6 +4523,39 @@ func ProcessSetRgbCluster(r *http.Request) *Payload {
 	}
 
 	return &Payload{Message: language.GetValue("txtRgbClusterError"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetKeyboardLiveSync will process setting data for keyboard live RGB sync
+func ProcessSetKeyboardLiveSync(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) < 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	enabled := req.Mode == 1
+	results := devices.CallDeviceMethod(req.DeviceId, "ProcessSetKeyboardLiveSync", enabled)
+	if len(results) > 0 && results[0].Uint() == 1 {
+		return &Payload{Message: language.GetValue("txtKeyboardProfileSaved"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToSaveKeyboardProfile"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessSetKeyboardControlDialColors will process setting keyboard control dial colors

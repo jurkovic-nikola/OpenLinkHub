@@ -1169,6 +1169,17 @@ func setRgbCluster(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setKeyboardLiveSync saves keyboard live RGB sync state
+func setKeyboardLiveSync(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetKeyboardLiveSync(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceHardwareColor handles device hardware color changes
 func setDeviceHardwareColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessHardwareChangeColor(r)
@@ -2393,6 +2404,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/setLedData", http.MethodPost, setLedData)
 	handleFunc(r, "/api/color/setOpenRgbIntegration", http.MethodPost, setOpenRgbIntegration)
 	handleFunc(r, "/api/color/setCluster", http.MethodPost, setRgbCluster)
+	handleFunc(r, "/api/keyboard/liveSync", http.MethodPost, setKeyboardLiveSync)
 	handleFunc(r, "/api/color/hardware", http.MethodPost, setDeviceHardwareColor)
 	handleFunc(r, "/api/color/gradient/add", http.MethodPost, newDeviceGradientColor)
 	handleFunc(r, "/api/color/gradient/delete", http.MethodPost, deleteDeviceGradientColor)

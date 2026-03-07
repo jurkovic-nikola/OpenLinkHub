@@ -116,6 +116,7 @@ type Key struct {
 	ModifierPacketValue           uint8     `json:"modifierPacketValue"`
 	ModifierShift                 byte      `json:"modifierShift"`
 	RetainOriginal                bool      `json:"retainOriginal"`
+	ProfileSwitch                 bool      `json:"profileSwitch"`
 	OverrideBackground            bool      `json:"overrideBackground"`
 	BluetoothProfile1             bool      `json:"bluetoothProfile1"`
 	BluetoothProfile2             bool      `json:"bluetoothProfile2"`

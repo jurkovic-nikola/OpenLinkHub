@@ -103,6 +103,24 @@
                                     </label>
                                 </div>
 
+                                <!-- RGB Cluster -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtCluster" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="toggleRgbCluster" class="toggleRgbCluster" {{ if $deviceProfile.RGBCluster }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Live RGB Sync -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">Live RGB Sync</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="toggleKeyboardLiveSync" class="toggleKeyboardLiveSync" {{ if $deviceProfile.KeyboardLiveSync }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
                                 <!-- Delete user profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
@@ -170,11 +188,23 @@
                                     {{ $color := $keys.Color }}
 
                                     <!-- Key -->
-                                    <div class="{{ $keyCss }} keyboardColor device-selectable {{ $keys.Css }}" data-info="{{ $index }};{{ $color.Red }};{{ $color.Green }};{{ $color.Blue }}">
+                                    <div class="{{ $keyCss }} keyboardColor device-selectable {{ $keys.Css }}" style="font-size: 12px;" data-info="{{ $index }};{{ $color.Red }};{{ $color.Green }};{{ $color.Blue }}">
                                         {{ if $keys.NoColor }}
-                                        <span class="key-no-color">{{ $keys.KeyName }}</span>
+                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba(255, 255, 255, 1);text-align: center;line-height: 1.05;">
+                                            {{ $keys.KeyName }}
+                                            {{ if gt (len $keys.SubKeyName) 0 }}
+                                            <br />
+                                            {{ $keys.SubKeyName }}
+                                            {{ end }}
+                                        </span>
                                         {{ else }}
-                                        <span class="key-color" style="color: rgba({{ $color.Red }}, {{ $color.Green }}, {{ $color.Blue }}, 1);">{{ $keys.KeyName }}</span>
+                                        <span class="{{ $keyboard.UppercaseClass }}" style="color: rgba({{ $color.Red }}, {{ $color.Green }}, {{ $color.Blue }}, 1);text-align: center;line-height: 1.05;">
+                                            {{ $keys.KeyName }}
+                                            {{ if gt (len $keys.SubKeyName) 0 }}
+                                            <br />
+                                            {{ $keys.SubKeyName }}
+                                            {{ end }}
+                                        </span>
                                         {{ end }}
                                     </div>
                                     {{ end }}

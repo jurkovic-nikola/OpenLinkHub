@@ -619,6 +619,7 @@
     "txtSelectImage": "Välj bildfil",
     "txtFileTooLarge": "Bilden är för stor",
     "txtInvalidImageType": "Ogiltig bild",
-    "txtUploadImage": "Ladda upp bild"
+    "txtUploadImage": "Ladda upp bild",
+    "txtLiveRgbSync": "Live RGB"
   }
 }

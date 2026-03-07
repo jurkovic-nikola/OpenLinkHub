@@ -619,6 +619,7 @@
     "txtSelectImage": "Select image file",
     "txtFileTooLarge": "Image is too large",
     "txtInvalidImageType": "Invalid image",
-    "txtUploadImage": "Upload Image"
+    "txtUploadImage": "Upload Image",
+    "txtLiveRgbSync": "Live RGB"
   }
 }

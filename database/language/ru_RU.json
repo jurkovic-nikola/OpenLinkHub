@@ -619,6 +619,7 @@
         "txtSelectImage": "Выберите файл изображения",
         "txtFileTooLarge": "Изображение слишком большое",
         "txtInvalidImageType": "Недопустимое изображение",
-        "txtUploadImage": "Загрузить изображение"
+        "txtUploadImage": "Загрузить изображение",
+        "txtLiveRgbSync": "RGB в реальном времени"
     }
 }

@@ -619,6 +619,7 @@
     "txtSelectImage": "Odaberite slikovnu datoteku",
     "txtFileTooLarge": "Slika je prevelika",
     "txtInvalidImageType": "Nevažeća slika",
-    "txtUploadImage": "Prenesi sliku"
+    "txtUploadImage": "Prenesi sliku",
+    "txtLiveRgbSync": "RGB uživo"
   }
 }

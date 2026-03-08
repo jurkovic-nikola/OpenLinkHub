@@ -2550,6 +2550,7 @@ func (d *Device) startQueueWorker() {
 				d.writeColor(data, lightChannels, byte(channelId))
 				_ = channelId
 			}
+			time.Sleep(20 * time.Millisecond)
 		}
 	}()
 }

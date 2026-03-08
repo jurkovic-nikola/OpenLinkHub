@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/temperatures"
@@ -55,6 +56,7 @@ type DeviceProfile struct {
 	BrightnessSlider   *uint8
 	OriginalBrightness uint8
 	RGBCluster         bool
+	OpenRGBIntegration bool
 	RGBProfiles        map[int]string
 	SpeedProfiles      map[int]string
 	ExternalHubs       map[int]*ExternalHubData
@@ -74,6 +76,7 @@ type Device struct {
 	Manufacturer            string                    `json:"manufacturer"`
 	Product                 string                    `json:"product"`
 	Serial                  string                    `json:"serial"`
+	Path                    string                    `json:"path"`
 	Firmware                string                    `json:"firmware"`
 	Devices                 map[int]*Devices          `json:"devices"`
 	UserProfiles            map[string]*DeviceProfile `json:"userProfiles"`
@@ -97,6 +100,7 @@ type Device struct {
 	mutex                   sync.Mutex
 	deviceLock              sync.Mutex
 	RGBModes                []string
+	queue                   chan map[int][]byte
 	instance                *common.Device
 }
 
@@ -176,7 +180,7 @@ var (
 )
 
 // Init will initialize a new device
-func Init(vendorId, productId uint16, serial, _ string) *common.Device {
+func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -191,6 +195,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d := &Device{
 		dev:      dev,
 		Template: "cpro.html",
+		Path:     path,
 		ExternalLedDeviceAmount: map[int]string{
 			0: "No Device",
 			1: "1 Device",
@@ -218,22 +223,23 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	}
 
 	// Bootstrap
-	d.getManufacturer()     // Manufacturer
-	d.getProduct()          // Product
-	d.getSerial()           // Serial
-	d.loadExternalDevices() // External metadata
-	d.loadRgb()             // Load RGB
-	d.loadDeviceProfiles()  // Load all device profiles
-	d.getDeviceFirmware()   // Firmware
-	d.getDevices()          // Get devices connected to a hub
-	d.setFanMode()          // Set default fan mode
-	d.saveDeviceProfile()   // Create device profile
-	d.getTemperatureProbe() // Devices with temperature probes
-	d.setColorEndpoint()    // Setup lightning
-	d.setDefaults()         // Set default speed value
-	d.setAutoRefresh()      // Set auto device refresh
-	d.setDeviceColor(true)  // Device color
-	d.setupClusterController()
+	d.getManufacturer()        // Manufacturer
+	d.getProduct()             // Product
+	d.getSerial()              // Serial
+	d.loadExternalDevices()    // External metadata
+	d.loadRgb()                // Load RGB
+	d.loadDeviceProfiles()     // Load all device profiles
+	d.getDeviceFirmware()      // Firmware
+	d.getDevices()             // Get devices connected to a hub
+	d.setFanMode()             // Set default fan mode
+	d.saveDeviceProfile()      // Create device profile
+	d.getTemperatureProbe()    // Devices with temperature probes
+	d.setColorEndpoint()       // Setup lightning
+	d.setDefaults()            // Set default speed value
+	d.setAutoRefresh()         // Set auto device refresh
+	d.setDeviceColor(true)     // Device color
+	d.setupOpenRGBController() // OpenRGB Controller
+	d.setupClusterController() // RGB Cluster
 	if config.GetConfig().Manual {
 		fmt.Println(
 			fmt.Sprintf("[%s [%s]] Manual flag enabled. Process will not monitor temperature or adjust fan speed.", d.Serial, d.Product),
@@ -241,7 +247,8 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	} else {
 		d.updateDeviceSpeed()
 	}
-	d.createDevice() // Device register
+	d.createDevice()     // Device register
+	d.startQueueWorker() // Queue
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -888,6 +895,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
 	if d.DeviceProfile.RGBCluster {
 		return 5
 	}
@@ -970,10 +981,68 @@ func (d *Device) setupClusterController() {
 	}
 }
 
+// setupOpenRGBController will create RGBController object for OpenRGB Client Integration
+func (d *Device) setupOpenRGBController() {
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		externalHub := d.DeviceProfile.ExternalHubs[i]
+		serial := fmt.Sprintf("%s-%d", d.Serial, externalHub.PortId)
+
+		lightChannels := 0
+		for _, device := range d.Devices {
+			if device.PortId == externalHub.PortId && device.LedChannels > 0 {
+				lightChannels += int(device.LedChannels)
+			}
+		}
+
+		if lightChannels < 1 {
+			openrgb.RemoveDeviceControllerBySerial(serial)
+			continue
+		}
+
+		portId := fmt.Sprintf("%s - LED Port %d", d.Product, externalHub.PortId+1)
+		controller := &common.OpenRGBController{
+			Name:         portId,
+			Vendor:       "Corsair", // Static value
+			Description:  "OpenLinkHub Backend Device",
+			FwVersion:    d.Firmware,
+			Serial:       serial,
+			Location:     fmt.Sprintf("HID: %s-%d", d.Path, externalHub.PortId),
+			Zones:        nil,
+			Colors:       make([]byte, lightChannels*3),
+			ActiveMode:   0,
+			ChannelId:    int(externalHub.PortId),
+			WriteColorEx: d.writeColorEx,
+			DeviceType:   common.DeviceTypeCooler,
+			ColorMode:    common.ColorModePerLed,
+		}
+
+		for _, device := range d.Devices {
+			if device.PortId == externalHub.PortId && device.LedChannels > 0 {
+				zone := common.OpenRGBZone{
+					Name:     device.Name,
+					NumLEDs:  uint32(device.LedChannels),
+					ZoneType: common.ZoneTypeLinear,
+				}
+				controller.Zones = append(controller.Zones, zone)
+			}
+		}
+
+		ctrl := openrgb.GetDeviceController(serial)
+		if ctrl == nil {
+			openrgb.AddDeviceController(controller)
+		} else {
+			openrgb.UpdateDeviceController(serial, controller)
+		}
+	}
+}
+
 // ProcessSetRgbCluster will update OpenRGB integration status
 func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
+	}
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 2
 	}
 
 	lc := 0
@@ -1205,6 +1274,34 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 	return 0
 }
 
+// ProcessSetOpenRgbIntegration will update OpenRGB integration status
+func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 2
+	}
+
+	d.DeviceProfile.OpenRGBIntegration = enabled
+	d.saveDeviceProfile() // Save profile
+
+	// RGB reset
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		if d.activeRgb[i] != nil {
+			d.activeRgb[i].Exit <- true
+			d.activeRgb[i] = nil
+		}
+	}
+	d.setDeviceColor(true)
+
+	if enabled {
+		d.setupOpenRGBController()
+	}
+	return 1
+}
+
 // DeleteDeviceProfile deletes a device profile and its JSON file
 func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
 	profile, ok := d.UserProfiles[profileName]
@@ -1377,6 +1474,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -1891,6 +1989,12 @@ func (d *Device) setDeviceColor(resetColor bool) {
 		}
 	}
 
+	// OpenRGB
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to OpenRGB client")
+		return
+	}
+
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.
@@ -2366,6 +2470,32 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 	}
 }
 
+// writeColorEx will write data to the device from OpenRGB client
+func (d *Device) writeColorEx(data []byte, index int) {
+	if !d.DeviceProfile.OpenRGBIntegration {
+		return
+	}
+	if d.Exit {
+		return
+	}
+
+	// Copy data to avoid race conditions
+	copyData := make([]byte, len(data))
+	copy(copyData, data)
+
+	// Create a map with the index as the key
+	packetMap := map[int][]byte{
+		index: copyData,
+	}
+
+	// Try to queue it without blocking
+	select {
+	case d.queue <- packetMap:
+	default:
+		// Queue full — drop packet silently (same as your original)
+	}
+}
+
 // writeColorCluster will write data to the device from cluster client
 func (d *Device) writeColorCluster(data []byte, index int) {
 	if !d.DeviceProfile.RGBCluster {
@@ -2382,6 +2512,46 @@ func (d *Device) writeColorCluster(data []byte, index int) {
 	}
 
 	d.writeColor(data, lightChannels, byte(index))
+}
+
+// clearQueue will clear queue
+func (d *Device) clearQueue() {
+	for {
+		select {
+		case <-d.queue:
+		default:
+			return
+		}
+	}
+}
+
+// startQueueWorker will initialize queue system and control packet flow towards the device
+func (d *Device) startQueueWorker() {
+	d.queue = make(chan map[int][]byte, 8)
+
+	go func() {
+		for packetMap := range d.queue {
+			if d.Exit {
+				return
+			}
+
+			keys := make([]int, 0, len(packetMap))
+			for k := range packetMap {
+				keys = append(keys, k)
+			}
+			sort.Ints(keys)
+
+			for _, channelId := range keys {
+				data := packetMap[channelId]
+				lightChannels := len(data) / 3
+				if lightChannels < 1 {
+					return
+				}
+				d.writeColor(data, lightChannels, byte(channelId))
+				_ = channelId
+			}
+		}
+	}()
 }
 
 // transfer will send data to a device and retrieve device output

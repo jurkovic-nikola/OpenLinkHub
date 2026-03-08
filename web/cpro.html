@@ -79,6 +79,15 @@
                                         </label>
                                     </div>
 
+                                    <!-- OpenRGB -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtOpenRGB" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" class="toggleOpenRGB" {{ if $deviceProfile.OpenRGBIntegration }} checked {{ end }}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+
                                     <!-- Delete user profile -->
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>

@@ -509,6 +509,9 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status === 1) {
                     showLabels = response.dashboard.showLabels;
+                    if (response.dashboard.addDeviceToDashboard !== true) {
+                        $("#system-cards-add").hide();
+                    }
                 }
             }
         });

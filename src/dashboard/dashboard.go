@@ -18,36 +18,38 @@ import (
 )
 
 type Dashboard struct {
-	ShowCpu          bool     `json:"showCpu"`
-	ShowDisk         bool     `json:"showDisk"`
-	ShowGpu          bool     `json:"showGpu"`
-	ShowDevices      bool     `json:"showDevices"`
-	VerticalUi       bool     `json:"verticalUi"`
-	Celsius          bool     `json:"celsius"`
-	ShowLabels       bool     `json:"showLabels"`
-	ShowBattery      bool     `json:"showBattery"`
-	TemperatureBar   bool     `json:"temperatureBar"`
-	SidebarCollapsed bool     `json:"sidebarCollapsed"`
-	LanguageCode     string   `json:"languageCode"`
-	PageTitle        string   `json:"pageTitle"`
-	Devices          []string `json:"devices"`
-	Theme            string   `json:"theme"`
-	Themes           []string `json:"themes"`
+	ShowCpu              bool     `json:"showCpu"`
+	ShowDisk             bool     `json:"showDisk"`
+	ShowGpu              bool     `json:"showGpu"`
+	ShowDevices          bool     `json:"showDevices"`
+	VerticalUi           bool     `json:"verticalUi"`
+	Celsius              bool     `json:"celsius"`
+	ShowLabels           bool     `json:"showLabels"`
+	ShowBattery          bool     `json:"showBattery"`
+	TemperatureBar       bool     `json:"temperatureBar"`
+	AddDeviceToDashboard bool     `json:"addDeviceToDashboard"`
+	SidebarCollapsed     bool     `json:"sidebarCollapsed"`
+	LanguageCode         string   `json:"languageCode"`
+	PageTitle            string   `json:"pageTitle"`
+	Devices              []string `json:"devices"`
+	Theme                string   `json:"theme"`
+	Themes               []string `json:"themes"`
 }
 
 var (
 	location  = ""
 	dashboard Dashboard
 	upgrade   = map[string]any{
-		"celsius":          true,
-		"showLabels":       true,
-		"showBattery":      false,
-		"languageCode":     "en_US",
-		"temperatureBar":   true,
-		"pageTitle":        "OPENLINKHUB WebUI",
-		"sidebarCollapsed": false,
-		"devices":          []string{},
-		"theme":            "default",
+		"celsius":              true,
+		"showLabels":           true,
+		"showBattery":          false,
+		"languageCode":         "en_US",
+		"temperatureBar":       true,
+		"addDeviceToDashboard": true,
+		"pageTitle":            "OPENLINKHUB WebUI",
+		"sidebarCollapsed":     false,
+		"devices":              []string{},
+		"theme":                "default",
 	}
 )
 
@@ -83,20 +85,21 @@ func upgradeFile() {
 
 		// File isn't found, create initial one
 		dash := &Dashboard{
-			ShowCpu:          true,
-			ShowDisk:         true,
-			ShowGpu:          true,
-			ShowDevices:      false,
-			VerticalUi:       false,
-			Celsius:          true,
-			ShowLabels:       true,
-			ShowBattery:      false,
-			TemperatureBar:   true,
-			SidebarCollapsed: false,
-			LanguageCode:     "en_US",
-			PageTitle:        "OPENLINKHUB WebUI",
-			Devices:          []string{},
-			Theme:            "default",
+			ShowCpu:              true,
+			ShowDisk:             true,
+			ShowGpu:              true,
+			ShowDevices:          false,
+			VerticalUi:           false,
+			Celsius:              true,
+			ShowLabels:           true,
+			ShowBattery:          false,
+			TemperatureBar:       true,
+			AddDeviceToDashboard: true,
+			SidebarCollapsed:     false,
+			LanguageCode:         "en_US",
+			PageTitle:            "OPENLINKHUB WebUI",
+			Devices:              []string{},
+			Theme:                "default",
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")

@@ -3208,6 +3208,7 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 	dash := dashboard.GetDashboard()
 	dash.Celsius = req.Celsius
 	dash.TemperatureBar = req.TemperatureBar
+	dash.AddDeviceToDashboard = req.AddDeviceToDashboard
 	dash.LanguageCode = req.LanguageCode
 	dash.ShowLabels = req.ShowLabels
 	dash.Theme = req.Theme

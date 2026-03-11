@@ -359,7 +359,6 @@ func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) [
 
 	method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
 	if !method.IsValid() {
-		logger.Log(logger.Fields{"method": methodName, "device": device.Product}).Warn("Method not found or not supported for this device type")
 		return nil
 	}
 

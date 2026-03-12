@@ -43,8 +43,7 @@ type Devices struct {
 }
 
 type Device struct {
-	dev            *hid.Device
-	listener       *hid.Device
+	slipstream     *common.Slipstream
 	Manufacturer   string `json:"manufacturer"`
 	Product        string `json:"product"`
 	Serial         string `json:"serial"`
@@ -63,8 +62,6 @@ type Device struct {
 	timerSleep     *time.Ticker
 	keepAliveChan  chan struct{}
 	sleepChan      chan struct{}
-	mutex          sync.Mutex
-	deviceLock     sync.Mutex
 	instance       *common.Device
 }
 
@@ -97,9 +94,14 @@ func Init(vendorId, productId uint16, _, path string, callback func(device *comm
 		return nil
 	}
 
+	slipstream := &common.Slipstream{
+		Dev:   dev,
+		Mutex: sync.Mutex{},
+	}
+
 	// Init new struct with HID device
 	d := &Device{
-		dev:            dev,
+		slipstream:     slipstream,
 		VendorId:       vendorId,
 		ProductId:      productId,
 		PairedDevices:  make(map[uint16]any),
@@ -153,7 +155,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -176,7 +178,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -199,7 +201,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -222,7 +224,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -246,7 +248,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -268,7 +270,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -291,7 +293,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -314,7 +316,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -337,7 +339,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -360,7 +362,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -383,7 +385,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -406,7 +408,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -429,7 +431,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -452,7 +454,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -475,7 +477,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 					d.Serial,
@@ -498,7 +500,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -521,7 +523,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -543,7 +545,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -565,7 +567,7 @@ func (d *Device) addDevices() {
 					value.VendorId,
 					d.ProductId,
 					value.ProductId,
-					d.dev,
+					d.slipstream,
 					value.Endpoint,
 					value.Serial,
 				)
@@ -816,8 +818,8 @@ func (d *Device) Stop() {
 
 	time.Sleep(500 * time.Millisecond)
 	d.setHardwareMode()
-	if d.dev != nil {
-		err := d.dev.Close()
+	if d.slipstream.Dev != nil {
+		err := d.slipstream.Dev.Close()
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 		}
@@ -843,7 +845,7 @@ func (d *Device) AddPairedDevice(productId uint16, device any, dev *common.Devic
 
 // GetDevice will return HID device
 func (d *Device) GetDevice() *hid.Device {
-	return d.dev
+	return d.slipstream.Dev
 }
 
 // getDevices will get a list of paired devices
@@ -891,7 +893,7 @@ func (d *Device) getDevices() {
 
 // getSerial will return device serial number
 func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
+	serial, err := d.slipstream.Dev.GetSerialNbr()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get device serial number")
 	}
@@ -900,7 +902,7 @@ func (d *Device) getSerial() {
 
 // getManufacturer will return device manufacturer
 func (d *Device) getManufacturer() {
-	manufacturer, err := d.dev.GetMfrStr()
+	manufacturer, err := d.slipstream.Dev.GetMfrStr()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get manufacturer")
 	}
@@ -909,7 +911,7 @@ func (d *Device) getManufacturer() {
 
 // getProduct will return device name
 func (d *Device) getProduct() {
-	product, err := d.dev.GetProductStr()
+	product, err := d.slipstream.Dev.GetProductStr()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get product")
 	}
@@ -1641,9 +1643,6 @@ func (d *Device) setDeviceOnline(deviceType int) {
 
 // setDeviceStatus will set device status
 func (d *Device) setDeviceStatus(status byte) {
-	d.deviceLock.Lock()
-	defer d.deviceLock.Unlock()
-
 	switch status {
 	case 0x00: // ALl offline
 		d.setDevicesOffline()
@@ -1673,7 +1672,6 @@ func (d *Device) monitorDevice() {
 			select {
 			case <-d.timerKeepAlive.C:
 				{
-					d.deviceLock.Lock()
 					if d.Exit {
 						return
 					}
@@ -1702,7 +1700,6 @@ func (d *Device) monitorDevice() {
 							d.setDeviceBatteryLevelByProductId(value.ProductId, val/10)
 						}
 					}
-					d.deviceLock.Unlock()
 				}
 			case <-d.keepAliveChan:
 				return
@@ -1785,7 +1782,7 @@ func (d *Device) sleepMonitor() {
 // ReadWithTimeout is mandatory due to the nature of listening for events
 func (d *Device) getListenerData() []byte {
 	data := make([]byte, bufferSize)
-	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
+	n, err := d.slipstream.Listener.ReadWithTimeout(data, 100*time.Millisecond)
 	if err != nil || n == 0 {
 		return nil
 	}
@@ -1796,12 +1793,12 @@ func (d *Device) getListenerData() []byte {
 func (d *Device) backendListener() {
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 2 {
+			if info.InterfaceNbr == 2 && info.SerialNbr == d.Serial {
 				listener, err := hid.OpenPath(info.Path)
 				if err != nil {
 					return err
 				}
-				d.listener = listener
+				d.slipstream.Listener = listener
 			}
 			return nil
 		})
@@ -1816,7 +1813,7 @@ func (d *Device) backendListener() {
 			select {
 			default:
 				if d.Exit {
-					err = d.listener.Close()
+					err = d.slipstream.Listener.Close()
 					if err != nil {
 						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Failed to close listener")
 						return
@@ -1974,8 +1971,8 @@ func (d *Device) backendListener() {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.slipstream.Mutex.Lock()
+	defer d.slipstream.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = command
@@ -1986,13 +1983,13 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 	}
 
 	reports := make([]byte, 1)
-	err := d.dev.SetNonblock(true)
+	err := d.slipstream.Dev.SetNonblock(true)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
 	}
 
 	for {
-		n, err := d.dev.Read(reports)
+		n, err := d.slipstream.Dev.Read(reports)
 		if err != nil {
 			if n < 0 {
 				//
@@ -2005,21 +2002,21 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	err = d.dev.SetNonblock(false)
+	err = d.slipstream.Dev.SetNonblock(false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
 	}
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.slipstream.Dev.Write(bufferW); err != nil {
 		if d.Debug {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		}
 		return bufferR, err
 	}
 
-	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
+	if _, err := d.slipstream.Dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
 		if d.Debug {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		}
@@ -2030,8 +2027,8 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller string) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.slipstream.Mutex.Lock()
+	defer d.slipstream.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = command
@@ -2043,12 +2040,12 @@ func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller 
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.slipstream.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
+	if _, err := d.slipstream.Dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 		return bufferR, err
 	}

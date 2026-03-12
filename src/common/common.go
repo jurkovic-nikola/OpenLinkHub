@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"golang.org/x/image/draw"
 	"image"
 	"image/color"
@@ -26,6 +27,12 @@ import (
 	"sync"
 	"time"
 )
+
+type Slipstream struct {
+	Dev      *hid.Device
+	Listener *hid.Device
+	Mutex    sync.Mutex
+}
 
 type Device struct {
 	ProductType uint16

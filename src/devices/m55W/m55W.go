@@ -15,7 +15,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -56,8 +55,7 @@ type DPIProfile struct {
 
 type Device struct {
 	Debug                 bool
-	dev                   *hid.Device
-	listener              *hid.Device
+	dev                   *common.Slipstream
 	Manufacturer          string `json:"manufacturer"`
 	Product               string `json:"product"`
 	Serial                string `json:"serial"`
@@ -85,7 +83,8 @@ type Device struct {
 	Endpoint              byte
 	SleepModes            map[int]string
 	Connected             bool
-	mutex                 sync.Mutex
+	deviceLock            sync.Mutex
+	macroMutex            sync.Mutex
 	Exit                  bool
 	KeyAssignment         map[int]inputmanager.KeyAssignment
 	InputActions          map[uint16]inputmanager.InputAction
@@ -129,7 +128,7 @@ var (
 	maxDpiValue               = 16000
 )
 
-func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -247,6 +246,7 @@ func (d *Device) Connect() {
 		d.setDeviceColor()        // Device color
 		d.toggleDPI()             // DPI
 		d.setupKeyAssignment()    // Setup key assignments
+		d.setSleepTimer()         // Sleep
 	}
 }
 
@@ -1176,8 +1176,8 @@ func (d *Device) setupKeyAssignment() {
 
 // addToMacroTracker adds or updates an entry in MacroTracker
 func (d *Device) addToMacroTracker(key int, value uint16) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil {
 		d.MacroTracker = make(map[int]uint16)
@@ -1187,8 +1187,8 @@ func (d *Device) addToMacroTracker(key int, value uint16) {
 
 // deleteFromMacroTracker deletes an entry from MacroTracker
 func (d *Device) deleteFromMacroTracker(key int) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
 		return
@@ -1198,9 +1198,9 @@ func (d *Device) deleteFromMacroTracker(key int) {
 
 // releaseMacroTracker will release current MacroTracker
 func (d *Device) releaseMacroTracker() {
-	d.mutex.Lock()
+	d.macroMutex.Lock()
 	if d.MacroTracker == nil {
-		d.mutex.Unlock()
+		d.macroMutex.Unlock()
 		return
 	}
 	keys := make([]int, 0, len(d.MacroTracker))
@@ -1208,7 +1208,7 @@ func (d *Device) releaseMacroTracker() {
 		keys = append(keys, key)
 	}
 	sort.Ints(keys)
-	d.mutex.Unlock()
+	d.macroMutex.Unlock()
 
 	for _, key := range keys {
 		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
@@ -1348,6 +1348,7 @@ func (d *Device) sniperMode(active bool) {
 	if active {
 		for _, profile := range d.DeviceProfile.Profiles {
 			if profile.Sniper {
+				d.deviceLock.Lock()
 				value := profile.Value
 
 				// Send DPI packet
@@ -1366,6 +1367,7 @@ func (d *Device) sniperMode(active bool) {
 						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 					}
 				}
+				d.deviceLock.Unlock()
 
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true
@@ -1387,6 +1389,8 @@ func (d *Device) toggleDPI() {
 	}
 
 	if d.DeviceProfile != nil {
+		d.deviceLock.Lock()
+
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
 
@@ -1406,6 +1410,7 @@ func (d *Device) toggleDPI() {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 			}
 		}
+		d.deviceLock.Unlock()
 
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true
@@ -1433,6 +1438,9 @@ func (d *Device) writeColor(data []byte) {
 
 // writeKeyAssignmentData will write key assignment to the device.
 func (d *Device) writeKeyAssignmentData(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1460,8 +1468,8 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.dev.Mutex.Lock()
+	defer d.dev.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = d.Endpoint
@@ -1473,27 +1481,16 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.dev.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err := d.dev.Dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
 	}
 	return bufferR, nil
-}
-
-// getListenerData will listen for keyboard events and return data on success or nil on failure.
-// ReadWithTimeout is mandatory due to the nature of listening for events
-func (d *Device) getListenerData() []byte {
-	data := make([]byte, bufferSize)
-	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
-	if err != nil || n == 0 {
-		return nil
-	}
-	return data
 }
 
 // ModifyBatteryLevel will modify battery level

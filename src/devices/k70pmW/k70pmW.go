@@ -60,8 +60,7 @@ type DeviceProfile struct {
 
 type Device struct {
 	Debug                  bool
-	dev                    *hid.Device
-	listener               *hid.Device
+	dev                    *common.Slipstream
 	Manufacturer           string `json:"manufacturer"`
 	Product                string `json:"product"`
 	Serial                 string `json:"serial"`
@@ -86,8 +85,9 @@ type Device struct {
 	Layouts                []string
 	Rgb                    *rgb.RGB
 	rgbMutex               sync.RWMutex
+	deviceLock             sync.Mutex
+	macroMutex             sync.Mutex
 	Endpoint               byte
-	mutex                  sync.Mutex
 	Exit                   bool
 	UIKeyboard             string
 	UIKeyboardRow          string
@@ -100,12 +100,13 @@ type Device struct {
 	PressLoop              bool
 	MacroTracker           map[int]macro.Tracker
 	Connected              bool
-	deviceLock             sync.Mutex
 	RGBDirection           map[byte]string
 	mouseLoopActive        bool
 	mouseLoopMutex         sync.Mutex
 	mouseLoopStopCh        chan struct{}
 	Usb                    bool
+	stopRepeat             chan struct{}
+	stopRepeatMutex        sync.Mutex
 	dispatch               dispatcher.DeviceDispatcher
 }
 
@@ -162,7 +163,7 @@ var (
 	}
 )
 
-func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -581,24 +582,6 @@ func (d *Device) controlLockKeyColor() {
 	d.writeExtraColors(buf)
 }
 
-// getManufacturer will return device manufacturer
-func (d *Device) getManufacturer() {
-	manufacturer, err := d.dev.GetMfrStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
-	}
-	d.Manufacturer = manufacturer
-}
-
-// getSerial will return device serial number
-func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
-	}
-	d.Serial = serial
-}
-
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
 	_, err := d.transfer(cmdHardwareMode, nil)
@@ -933,8 +916,8 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -2224,17 +2207,6 @@ func (d *Device) writeKeyAssignment(data []byte) {
 	}
 }
 
-// getListenerData will listen for keyboard events and return data on success or nil on failure.
-// ReadWithTimeout is mandatory due to the nature of listening for events
-func (d *Device) getListenerData() []byte {
-	data := make([]byte, bufferSize)
-	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
-	if err != nil || n == 0 {
-		return nil
-	}
-	return data
-}
-
 // getModifierPosition will return key modifier packet position in backendListener
 func (d *Device) getModifierPosition() uint8 {
 	if d.DeviceProfile == nil {
@@ -2265,8 +2237,8 @@ func (d *Device) getModifierKey(modifierIndex uint8) uint8 {
 
 // addToMacroTracker adds or updates an entry in MacroTracker
 func (d *Device) addToMacroTracker(key int, value uint16, actionType uint8) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil {
 		d.MacroTracker = make(map[int]macro.Tracker)
@@ -2279,8 +2251,8 @@ func (d *Device) addToMacroTracker(key int, value uint16, actionType uint8) {
 
 // deleteFromMacroTracker deletes an entry from MacroTracker
 func (d *Device) deleteFromMacroTracker(key int) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
 		return
@@ -2290,9 +2262,9 @@ func (d *Device) deleteFromMacroTracker(key int) {
 
 // releaseMacroTracker will release current MacroTracker
 func (d *Device) releaseMacroTracker() {
-	d.mutex.Lock()
+	d.macroMutex.Lock()
 	if d.MacroTracker == nil {
-		d.mutex.Unlock()
+		d.macroMutex.Unlock()
 		return
 	}
 	keys := make([]int, 0, len(d.MacroTracker))
@@ -2300,7 +2272,7 @@ func (d *Device) releaseMacroTracker() {
 		keys = append(keys, key)
 	}
 	sort.Ints(keys)
-	d.mutex.Unlock()
+	d.macroMutex.Unlock()
 
 	for _, key := range keys {
 		switch d.MacroTracker[key].Type {
@@ -2522,7 +2494,33 @@ func (d *Device) TriggerKeyAssignment(value []byte) {
 
 					switch v.ActionType {
 					case 1, 3:
-						inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+						if v.ActionRepeat > 0 && !v.ActionHold {
+							d.stopRepeatMutex.Lock()
+							if d.stopRepeat != nil {
+								close(d.stopRepeat)
+							}
+
+							d.stopRepeat = make(chan struct{})
+							localStop := d.stopRepeat
+							d.stopRepeatMutex.Unlock()
+
+							go func() {
+								for z := 0; z < int(v.ActionRepeat); z++ {
+									select {
+									case <-localStop:
+										return
+									default:
+										inputmanager.InputControlKeyboard(v.ActionCommand, false)
+									}
+									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+									}
+								}
+							}()
+
+						} else {
+							inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+						}
 						break
 					case 9:
 						if v.ActionRepeat > 0 && !v.ActionHold {
@@ -2565,8 +2563,8 @@ func (d *Device) TriggerKeyAssignment(value []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.dev.Mutex.Lock()
+	defer d.dev.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = d.Endpoint
@@ -2578,13 +2576,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.dev.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
 	if !d.Exit {
-		if _, err := d.dev.Read(bufferR); err != nil {
+		if _, err := d.dev.Dev.Read(bufferR); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 			return bufferR, err
 		}

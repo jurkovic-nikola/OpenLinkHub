@@ -2993,6 +2993,7 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[2] = 0x01
+	bufferW[3] = 0x03
 	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {

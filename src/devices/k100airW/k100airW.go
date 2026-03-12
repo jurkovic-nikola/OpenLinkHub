@@ -17,7 +17,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"math/big"
 	"os"
@@ -61,8 +60,7 @@ type DeviceProfile struct {
 
 type Device struct {
 	Debug                  bool
-	dev                    *hid.Device
-	listener               *hid.Device
+	dev                    *common.Slipstream
 	Manufacturer           string `json:"manufacturer"`
 	Product                string `json:"product"`
 	Serial                 string `json:"serial"`
@@ -88,8 +86,8 @@ type Device struct {
 	Rgb                    *rgb.RGB
 	rgbMutex               sync.RWMutex
 	Endpoint               byte
-	mutex                  sync.Mutex
 	deviceLock             sync.Mutex
+	macroMutex             sync.Mutex
 	Exit                   bool
 	UIKeyboard             string
 	UIKeyboardRow          string
@@ -167,7 +165,7 @@ var (
 	}
 )
 
-func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -584,15 +582,6 @@ func (d *Device) controlTopBar() {
 	d.writeColorTopBar(buf)
 }
 
-// getManufacturer will return device manufacturer
-func (d *Device) getManufacturer() {
-	manufacturer, err := d.dev.GetMfrStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to get manufacturer")
-	}
-	d.Manufacturer = manufacturer
-}
-
 // setHardwareMode will switch a device to hardware mode
 func (d *Device) setHardwareMode() {
 	if d.Connected {
@@ -980,8 +969,8 @@ func (d *Device) UpdateSleepTimer(minutes int) uint8 {
 
 // UpdateDeviceLabel will set / update device label
 func (d *Device) UpdateDeviceLabel(_ int, label string) uint8 {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
 
 	d.DeviceProfile.Label = label
 	d.saveDeviceProfile()
@@ -2555,8 +2544,8 @@ func (d *Device) getModifierPosition() uint8 {
 
 // addToMacroTracker adds or updates an entry in MacroTracker
 func (d *Device) addToMacroTracker(key int, value uint16, actionType uint8) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil {
 		d.MacroTracker = make(map[int]macro.Tracker)
@@ -2569,8 +2558,8 @@ func (d *Device) addToMacroTracker(key int, value uint16, actionType uint8) {
 
 // deleteFromMacroTracker deletes an entry from MacroTracker
 func (d *Device) deleteFromMacroTracker(key int) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
 		return
@@ -2580,9 +2569,9 @@ func (d *Device) deleteFromMacroTracker(key int) {
 
 // releaseMacroTracker will release current MacroTracker
 func (d *Device) releaseMacroTracker() {
-	d.mutex.Lock()
+	d.macroMutex.Lock()
 	if d.MacroTracker == nil {
-		d.mutex.Unlock()
+		d.macroMutex.Unlock()
 		return
 	}
 	keys := make([]int, 0, len(d.MacroTracker))
@@ -2590,7 +2579,7 @@ func (d *Device) releaseMacroTracker() {
 		keys = append(keys, key)
 	}
 	sort.Ints(keys)
-	d.mutex.Unlock()
+	d.macroMutex.Unlock()
 
 	for _, key := range keys {
 		switch d.MacroTracker[key].Type {
@@ -2945,8 +2934,8 @@ func (d *Device) writeKeyAssignment(data []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.dev.Mutex.Lock()
+	defer d.dev.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = d.Endpoint
@@ -2958,12 +2947,12 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.dev.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err := d.dev.Dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
 	}

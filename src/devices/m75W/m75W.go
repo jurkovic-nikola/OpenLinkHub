@@ -16,7 +16,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -69,8 +68,7 @@ type DPIProfile struct {
 
 type Device struct {
 	Debug                 bool
-	dev                   *hid.Device
-	listener              *hid.Device
+	dev                   *common.Slipstream
 	Manufacturer          string `json:"manufacturer"`
 	Product               string `json:"product"`
 	Serial                string `json:"serial"`
@@ -100,7 +98,8 @@ type Device struct {
 	SleepModes            map[int]string
 	LiftHeights           map[int]string
 	Connected             bool
-	mutex                 sync.Mutex
+	deviceLock            sync.Mutex
+	macroMutex            sync.Mutex
 	timer                 *time.Ticker
 	autoRefreshChan       chan struct{}
 	Exit                  bool
@@ -170,7 +169,7 @@ var (
 	}
 )
 
-func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -340,24 +339,6 @@ func (d *Device) Connect() {
 		d.setupKeyAssignment()    // Setup key assignments
 		d.setAutoRefresh()        // Auto refresh
 	}
-}
-
-// getManufacturer will return device manufacturer
-func (d *Device) getManufacturer() {
-	manufacturer, err := d.dev.GetMfrStr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get manufacturer")
-	}
-	d.Manufacturer = manufacturer
-}
-
-// getSerial will return device serial number
-func (d *Device) getSerial() {
-	serial, err := d.dev.GetSerialNbr()
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to get device serial number")
-	}
-	d.Serial = serial
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -1001,11 +982,12 @@ func (d *Device) setSoftwareMode() {
 
 // SetSleepMode will switch a device to sleep mode
 func (d *Device) SetSleepMode() {
+	d.SetConnected(false)
+
 	_, err := d.transfer(cmdSleepMode, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to change device mode")
 	}
-	//d.Connected = false
 }
 
 // GetSleepMode will return current sleep mode
@@ -1516,6 +1498,9 @@ func (d *Device) initLeds() {
 
 // writeColor will write color data to the device
 func (d *Device) writeColor(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -1965,8 +1950,8 @@ func (d *Device) setupKeyAssignment() {
 
 // addToMacroTracker adds or updates an entry in MacroTracker
 func (d *Device) addToMacroTracker(key int, value uint16) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil {
 		d.MacroTracker = make(map[int]uint16)
@@ -1976,8 +1961,8 @@ func (d *Device) addToMacroTracker(key int, value uint16) {
 
 // deleteFromMacroTracker deletes an entry from MacroTracker
 func (d *Device) deleteFromMacroTracker(key int) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
 
 	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
 		return
@@ -1987,9 +1972,9 @@ func (d *Device) deleteFromMacroTracker(key int) {
 
 // releaseMacroTracker will release current MacroTracker
 func (d *Device) releaseMacroTracker() {
-	d.mutex.Lock()
+	d.macroMutex.Lock()
 	if d.MacroTracker == nil {
-		d.mutex.Unlock()
+		d.macroMutex.Unlock()
 		return
 	}
 	keys := make([]int, 0, len(d.MacroTracker))
@@ -1997,7 +1982,7 @@ func (d *Device) releaseMacroTracker() {
 		keys = append(keys, key)
 	}
 	sort.Ints(keys)
-	d.mutex.Unlock()
+	d.macroMutex.Unlock()
 
 	for _, key := range keys {
 		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
@@ -2136,6 +2121,7 @@ func (d *Device) sniperMode(active bool) {
 	if active {
 		for _, profile := range d.DeviceProfile.Profiles {
 			if profile.Sniper {
+				d.deviceLock.Lock()
 				value := profile.Value
 
 				// Send DPI packet
@@ -2155,6 +2141,7 @@ func (d *Device) sniperMode(active bool) {
 						logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 					}
 				}
+				d.deviceLock.Unlock()
 
 				if d.activeRgb != nil {
 					d.activeRgb.Exit <- true
@@ -2175,6 +2162,8 @@ func (d *Device) toggleDPI(color bool) {
 		return
 	}
 	if d.DeviceProfile != nil {
+		d.deviceLock.Lock()
+
 		profile := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
 		value := profile.Value
 
@@ -2195,6 +2184,7 @@ func (d *Device) toggleDPI(color bool) {
 				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to set dpi")
 			}
 		}
+		d.deviceLock.Unlock()
 
 		if d.activeRgb != nil {
 			d.activeRgb.Exit <- true
@@ -2206,6 +2196,9 @@ func (d *Device) toggleDPI(color bool) {
 
 // writeKeyAssignmentData will write key assignment to the device.
 func (d *Device) writeKeyAssignmentData(data []byte) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
 	if d.Exit {
 		return
 	}
@@ -2233,8 +2226,8 @@ func (d *Device) writeKeyAssignmentData(data []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.dev.Mutex.Lock()
+	defer d.dev.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = d.Endpoint
@@ -2246,12 +2239,12 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.dev.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err := d.dev.Dev.Read(bufferR); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
 	}

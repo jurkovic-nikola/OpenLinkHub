@@ -1,5 +1,62 @@
+## 2026-03-13
+
+* keyboard changes (a066c46)
+
+## 2026-03-12
+
+* leftovers (ec61a32)
+* slipstream changes (33efe40)
+
+## 2026-03-11
+
+* dont long unsupported methods (8a4db02)
+
+## 2026-03-10
+
+* vanguard 96 DE layout https://github.com/jurkovic-nikola/OpenLinkHub/issues/362 (d897b25)
+
+## 2026-03-08
+
+* delay queue (a26afd7)
+* commander pro openrgb toggle (1181ade)
+* show/hide Add device to dashboard https://github.com/jurkovic-nikola/OpenLinkHub/issues/361 (393e2a0)
+
+## 2026-03-07
+
+* docs update (a792fb8)
+* virtuoso max xbox - https://github.com/jurkovic-nikola/OpenLinkHub/issues/360 (50d66b8)
+* dynamic ProfileSwitch (4b5f557)
+* translations (aec6168)
+* Merge pull request #355 from daddyparodz/feat/k95-profile-switch-live-sync (3789953)
+* validate rgb cluster (b745662)
+* Merge pull request #356 from daddyparodz/feat/commander-pro-rgb-cluster (26eab75)
+* Merge pull request #357 from daddyparodz/feat/memory-runtime-type-validation (9e8add5)
+
+## 2026-03-06
+
+* memory runtime type validation and sku handling (68ae10e)
+* commander pro rgb cluster support (9e5d111)
+* k95 platinum profile switch and live sync toggle (8fa1514)
+
+## 2026-03-05
+
+* lcd image upload (ecf4bd6)
+
+## 2026-03-04
+
+* Merge pull request #351 from bgstack15/contrib/add-initscript (f92f5b0)
+* improve init script after review (53fb5ce)
+* add sysvinit script (537ee94)
+* option to disable headset sleep mode (c3fc603)
+
+## 2026-03-01
+
+* docs update, cpro rgb kits, initial mobo pwm (5d27075)
+
 ## 2026-02-28
 
+* exclude lcd bytes from json outputs (8f7033d)
+* lnpro.json update (fe58b48)
 * k70 pro mini fixups (f55d712)
 
 ## 2026-02-27

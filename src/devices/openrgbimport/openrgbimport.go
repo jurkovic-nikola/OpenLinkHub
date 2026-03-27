@@ -415,7 +415,6 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		colorCount = configLedCount(cfg)
 	}
 
-	fmt.Println("DEBUG IMPORT DEVICE:", product, "| serial:", serial, "| controllerId:", dc.ID, "| colorCount:", colorCount)
 	d := &Device{
 		Product:       product,
 		Serial:        serial,

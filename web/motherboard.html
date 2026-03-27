@@ -24,10 +24,12 @@
                                         <span class="meta-value">{{ .Device.Product }}</span>
                                     </div>
 
+                                    {{ if .OpenRGBImportDisplaySerial }}
                                     <div class="settings-row">
-                                        <span class="settings-label text-ellipsis">Serial</span>
-                                        <span class="meta-value">{{ if .OpenRGBImportDisplaySerial }}{{ .OpenRGBImportDisplaySerial }}{{ else }}{{ .Device.Serial }}{{ end }}</span>
+                                        <span class="settings-label text-ellipsis" title="Identifier provided by OpenRGB (may be serial or firmware version depending on device)">OpenRGB ID</span>
+                                        <span class="meta-value">{{ .OpenRGBImportDisplaySerial }}</span>
                                     </div>
+                                    {{ end }}
 
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Brightness</span>
@@ -87,9 +89,9 @@
                                     <span class="meta-value">Grouped</span>
                                 </div>
 
-                                <div class="settings-row">
+                                <div class="settings-row" style="justify-content:flex-start;gap:12px;">
                                     <span class="settings-label text-ellipsis">Color</span>
-                                    <input type="color" id="mbColor" value="#63d5ff">
+                                    <input type="color" id="mbColor" value="#63d5ff" style="width:56px;min-width:56px;flex:0 0 auto;">
                                 </div>
 
                                 <div class="settings-row">
@@ -155,10 +157,19 @@
                                         <span class="meta-value">{{ .Device.Product }}</span>
                                     </div>
 
+                                    {{ if .OpenRGBImportDevice }}
+                                        {{ if .OpenRGBImportDisplaySerial }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis" title="Identifier provided by OpenRGB (may be serial or firmware version depending on device)">OpenRGB ID</span>
+                                            <span class="meta-value">{{ .OpenRGBImportDisplaySerial }}</span>
+                                        </div>
+                                        {{ end }}
+                                    {{ else }}
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Serial</span>
-                                        <span class="meta-value">{{ if .OpenRGBImportDisplaySerial }}{{ .OpenRGBImportDisplaySerial }}{{ else }}{{ .Device.Serial }}{{ end }}</span>
+                                        <span class="meta-value">{{ .Device.Serial }}</span>
                                     </div>
+                                    {{ end }}
 
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Brightness</span>
@@ -226,7 +237,7 @@
 
                                         <div class="settings-row">
                                             <span class="settings-label text-ellipsis">Color</span>
-                                            <input type="color" id="mbColor" value="#63d5ff">
+                                            <input type="color" id="mbColor" value="#63d5ff" style="width:56px;min-width:56px;flex:0 0 auto;">
                                         </div>
 
                                         <div class="settings-row">

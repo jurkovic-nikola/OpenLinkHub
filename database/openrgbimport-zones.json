@@ -1,5 +1,14 @@
 {
   "devices": {
+    "openrgb-import-0": {
+      "serial": "openrgb-import-0",
+      "zones": [
+        {
+          "name": "Zone 1",
+          "ledCount": 4
+        }
+      ]
+    },
     "openrgb-import-2": {
       "serial": "openrgb-import-2",
       "zones": [

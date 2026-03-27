@@ -17,15 +17,16 @@ const (
 )
 
 type DiscoveredController struct {
-	ID          int
-	Name        string
-	Version     string
-	Location    string
-	Serial      string
-	Vendor      string
-	Description string
-	LEDCount    int
-	Zones       []DiscoveredZone
+	ID            int
+	Name          string
+	Version       string
+	Location      string
+	Serial        string
+	Vendor        string
+	Description   string
+	ParsedStrings []string
+	LEDCount      int
+	Zones         []DiscoveredZone
 }
 
 type DiscoveredZone struct {
@@ -343,31 +344,7 @@ func isImportableController(name, vendor string, ledCount int) bool {
 		return true
 	}
 
-	s := strings.ToLower(name + " " + vendor)
-
-	// Allow explicit Strimer matches even if LED parsing returned 0.
-	if strings.Contains(s, "strimer") || strings.Contains(s, "strimmer") {
-		return true
-	}
-
-	if ledCount <= 0 {
-		return false
-	}
-
-	allowPhrases := []string{
-		"motherboard",
-		"mainboard",
-		"asus aura",
-		"aura sync",
-		"lian li strimer",
-		"lian li strimmer",
-	}
-	for _, p := range allowPhrases {
-		if strings.Contains(s, p) {
-			return true
-		}
-	}
-	return false
+	return true
 }
 
 func DiscoverControllers() ([]DiscoveredController, error) {
@@ -445,8 +422,9 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		}
 
 		_, ledCount, zones, err := parseControllerZoneAndLEDCount(payload)
-		if err != nil && !isLegacyASUSMotherboard(name, vendor) {
-			continue
+		if err != nil {
+			ledCount = 0
+			zones = nil
 		}
 
 		if !isImportableController(name, vendor, ledCount) {
@@ -454,15 +432,16 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		}
 
 		result = append(result, DiscoveredController{
-			ID:          int(i),
-			Name:        name,
-			Version:     fwVersion,
-			Location:    location,
-			Serial:      serial,
-			Vendor:      vendor,
-			Description: description,
-			LEDCount:    ledCount,
-			Zones:       zones,
+			ID:            int(i),
+			Name:          name,
+			Version:       fwVersion,
+			Location:      location,
+			Serial:        serial,
+			Vendor:        vendor,
+			Description:   description,
+			ParsedStrings: []string{name, vendor, description, fwVersion, location, serial},
+			LEDCount:      ledCount,
+			Zones:         zones,
 		})
 	}
 

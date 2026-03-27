@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 type ConfigStore struct {
@@ -41,15 +42,16 @@ type DeviceProfile struct {
 }
 
 type Device struct {
-	Product       string
-	Serial        string
-	DisplaySerial string
-	instance      *common.Device
-	controllerId  int
-	colorCount    int
-	ZoneAmount    int
-	Config        *DeviceConfig
-	DeviceProfile *DeviceProfile
+	Product            string
+	Serial             string
+	DisplaySerial      string
+	DisplaySerialLabel string
+	instance           *common.Device
+	controllerId       int
+	colorCount         int
+	ZoneAmount         int
+	Config             *DeviceConfig
+	DeviceProfile      *DeviceProfile
 
 	brightness uint8
 	lastColor  []byte
@@ -61,6 +63,71 @@ type Device struct {
 	doneChan  chan struct{}
 	running   bool
 	mu        sync.Mutex
+}
+
+func isUsableDisplaySerial(value string) bool {
+	v := sanitizeDisplaySerial(value)
+	if v == "" {
+		return false
+	}
+
+	lower := strings.ToLower(v)
+	switch lower {
+	case "dir", "dire", "off", "on", "none", "n/a", "na", "unknown", "default":
+		return false
+	}
+
+	if strings.HasPrefix(lower, "hid:") || strings.Contains(lower, "/dev/hidraw") {
+		return false
+	}
+
+	hasAlphaNum := false
+	for _, r := range v {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			hasAlphaNum = true
+			continue
+		}
+		switch r {
+		case '-', '_', '.', ' ':
+			continue
+		default:
+			return false
+		}
+	}
+
+	if !hasAlphaNum {
+		return false
+	}
+
+	return true
+}
+
+func sanitizeDisplaySerial(value string) string {
+	v := strings.Map(func(r rune) rune {
+		if r == '\uFFFD' {
+			return -1
+		}
+		if unicode.IsControl(r) || !unicode.IsPrint(r) {
+			return -1
+		}
+		return r
+	}, value)
+
+	return strings.TrimSpace(v)
+}
+
+func pickDisplaySerialAndLabel(dc openrgb.DiscoveredController) (string, string) {
+	serial := sanitizeDisplaySerial(dc.Serial)
+	if isUsableDisplaySerial(serial) {
+		return serial, "SERIAL"
+	}
+
+	version := sanitizeDisplaySerial(dc.Version)
+	if isUsableDisplaySerial(version) {
+		return version, "VERSION"
+	}
+
+	return "", ""
 }
 
 func isLegacyASUSMotherboardImport(name, vendor string) bool {
@@ -177,10 +244,57 @@ func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *D
 		return cfg
 	}
 
+	if len(dc.Zones) > 0 {
+		if len(dc.Zones) == 1 {
+			zoneName := strings.TrimSpace(dc.Zones[0].Name)
+			if zoneName == "" {
+				zoneName = "Zone 1"
+			}
+
+			ledCount := dc.Zones[0].LEDCount
+			if dc.LEDCount > 0 {
+				ledCount = dc.LEDCount
+			}
+			if ledCount <= 0 {
+				ledCount = 1
+			}
+
+			cfg.Zones = []ZoneConfig{
+				{Name: zoneName, LedCount: ledCount},
+			}
+			return cfg
+		}
+
+		for i, zone := range dc.Zones {
+			zoneName := strings.TrimSpace(zone.Name)
+			if zoneName == "" {
+				zoneName = fmt.Sprintf("Zone %d", i+1)
+			}
+
+			ledCount := zone.LEDCount
+			if ledCount <= 0 {
+				continue
+			}
+
+			cfg.Zones = append(cfg.Zones, ZoneConfig{
+				Name:     zoneName,
+				LedCount: ledCount,
+			})
+		}
+		if len(cfg.Zones) > 0 {
+			return cfg
+		}
+	}
+
 	if dc.LEDCount > 0 {
 		cfg.Zones = []ZoneConfig{
 			{Name: "Zone 1", LedCount: dc.LEDCount},
 		}
+		return cfg
+	}
+
+	cfg.Zones = []ZoneConfig{
+		{Name: "Zone 1", LedCount: 1},
 	}
 
 	return cfg
@@ -273,7 +387,8 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		return fmt.Errorf("config must contain at least one LED")
 	}
 
-	if d.colorCount > 0 && total != d.colorCount {
+	isTrustedLayout := d.Serial == "openrgb-mobo-1" || strings.Contains(strings.ToLower(d.Product), "strimer")
+	if isTrustedLayout && d.colorCount > 0 && total != d.colorCount {
 		return fmt.Errorf("configured LED count must equal %d", d.colorCount)
 	}
 
@@ -292,6 +407,7 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 
 	d.stopEffectLoopLocked()
 	d.Config = cfg
+	d.colorCount = total
 	d.ZoneAmount = len(cfg.Zones)
 	d.DeviceProfile = &DeviceProfile{
 		RGBProfile:       "static",
@@ -312,7 +428,7 @@ func Init() *common.Device {
 	d := &Device{
 		Product:       "Imported ASUS Motherboard",
 		Serial:        "openrgb-mobo-1",
-		DisplaySerial: "openrgb-mobo-1",
+		DisplaySerial: "",
 		colorCount:    3, // motherboard exposes 3 writable OpenRGB entries/zones
 		brightness:    100,
 		lastColor:     []byte{99, 213, 255}, // default #63d5ff
@@ -373,7 +489,8 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 
 	serial := fmt.Sprintf("openrgb-import-%d", dc.ID)
 	product := dc.Name
-	displaySerial := dc.Version
+	displaySerial := ""
+	displaySerialLabel := ""
 	colorCount := dc.LEDCount
 
 	if isLegacyASUS {
@@ -381,24 +498,11 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		colorCount = 3 // keep legacy fallback only for ASUS motherboard path
 	}
 
-	if strings.Contains(nameLower, "strimer") && colorCount <= 0 {
-		colorCount = 120
-	}
-
-	// Non-legacy imports require parsed LED count.
-	if !isLegacyASUS && colorCount <= 0 {
-		return nil
-	}
-
 	if product == "" {
 		product = fmt.Sprintf("Imported OpenRGB Controller %d", dc.ID)
 	}
-	if displaySerial == "" {
-		displaySerial = dc.Serial
-	}
-	if displaySerial == "" {
-		displaySerial = serial
-	}
+
+	displaySerial, displaySerialLabel = pickDisplaySerialAndLabel(dc)
 
 	var cfg *DeviceConfig
 	cfg = getDeviceConfig(serial)
@@ -416,18 +520,19 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 	}
 
 	d := &Device{
-		Product:       product,
-		Serial:        serial,
-		DisplaySerial: displaySerial,
-		controllerId:  dc.ID,
-		colorCount:    colorCount,
-		brightness:    100,
-		lastColor:     []byte{99, 213, 255},
-		effect:        "static",
-		speed:         2.0,
-		stopChan:      nil,
-		doneChan:      nil,
-		running:       false,
+		Product:            product,
+		Serial:             serial,
+		DisplaySerial:      displaySerial,
+		DisplaySerialLabel: displaySerialLabel,
+		controllerId:       dc.ID,
+		colorCount:         colorCount,
+		brightness:         100,
+		lastColor:          []byte{99, 213, 255},
+		effect:             "static",
+		speed:              2.0,
+		stopChan:           nil,
+		doneChan:           nil,
+		running:            false,
 	}
 
 	if isConfigValidForController(cfg, dc) {

@@ -1935,8 +1935,10 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Devices = devices.GetDevices()
 	web.Device = device
 	if openrgbDevice, ok := device.(*openrgbimport.Device); ok {
+		web.OpenRGBImportDevice = true
 		web.OpenRGBImportConfig = openrgbDevice.Config
 		web.OpenRGBImportDisplaySerial = openrgbDevice.DisplaySerial
+		web.OpenRGBImportDisplaySerialLabel = openrgbDevice.DisplaySerialLabel
 	}
 	web.Lcd = lcd.GetLcdDevices()
 	web.LCDImages = lcd.GetLcdImages()

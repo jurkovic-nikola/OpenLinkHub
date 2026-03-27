@@ -5,6 +5,7 @@ package server
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/devices/openrgbimport"
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/backup"
 	"OpenLinkHub/src/config"
@@ -2333,6 +2334,235 @@ func getDeviceID(uri string, r *http.Request) (string, bool) {
 	return value, true
 }
 
+func setOpenRGBImportColor(w http.ResponseWriter, r *http.Request) {
+	allDevices := devices.GetDevices()
+
+	commonDev, ok := allDevices["openrgb-mobo-1"]
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Device not found",
+		}
+		resp.Send(w)
+		return
+	}
+
+	dev, ok := commonDev.Instance.(*openrgbimport.Device)
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid device instance",
+		}
+		resp.Send(w)
+		return
+	}
+
+	var req struct {
+		R int `json:"r"`
+		G int `json:"g"`
+		B int `json:"b"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	err = dev.SetColor([]byte{byte(req.R), byte(req.G), byte(req.B)})
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
+		}
+		resp.Send(w)
+		return
+	}
+
+	resp := &Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "Color set",
+	}
+	resp.Send(w)
+}
+
+func setOpenRGBImportBrightness(w http.ResponseWriter, r *http.Request) {
+	allDevices := devices.GetDevices()
+
+	commonDev, ok := allDevices["openrgb-mobo-1"]
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Device not found",
+		}
+		resp.Send(w)
+		return
+	}
+
+	dev, ok := commonDev.Instance.(*openrgbimport.Device)
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid device instance",
+		}
+		resp.Send(w)
+		return
+	}
+
+	var req struct {
+		Brightness uint8 `json:"brightness"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	err = dev.SetBrightness(req.Brightness)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
+		}
+		resp.Send(w)
+		return
+	}
+
+	resp := &Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "Brightness set",
+	}
+	resp.Send(w)
+}
+
+func setOpenRGBImportEffect(w http.ResponseWriter, r *http.Request) {
+	allDevices := devices.GetDevices()
+
+	commonDev, ok := allDevices["openrgb-mobo-1"]
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Device not found",
+		}
+		resp.Send(w)
+		return
+	}
+
+	dev, ok := commonDev.Instance.(*openrgbimport.Device)
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid device instance",
+		}
+		resp.Send(w)
+		return
+	}
+
+	var req struct {
+		Effect string `json:"effect"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	err = dev.SetEffect(req.Effect)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
+		}
+		resp.Send(w)
+		return
+	}
+
+	resp := &Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "Effect set",
+	}
+	resp.Send(w)
+}
+
+func setOpenRGBImportSpeed(w http.ResponseWriter, r *http.Request) {
+	allDevices := devices.GetDevices()
+
+	commonDev, ok := allDevices["openrgb-mobo-1"]
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Device not found",
+		}
+		resp.Send(w)
+		return
+	}
+
+	dev, ok := commonDev.Instance.(*openrgbimport.Device)
+	if !ok {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid device instance",
+		}
+		resp.Send(w)
+		return
+	}
+
+	var req struct {
+		Speed string `json:"speed"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	dev.SetSpeed(req.Speed)
+
+	resp := &Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "Speed set",
+	}
+	resp.Send(w)
+}
+
 func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.ResponseWriter, r *http.Request)) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == method {
@@ -2389,6 +2619,10 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/devices/mouse", http.MethodGet, getMouseDevice)
 
 	// POST
+	handleFunc(r, "/api/openrgbimport/speed", http.MethodPost, setOpenRGBImportSpeed)
+	handleFunc(r, "/api/openrgbimport/effect", http.MethodPost, setOpenRGBImportEffect)
+	handleFunc(r, "/api/openrgbimport/brightness", http.MethodPost, setOpenRGBImportBrightness)
+	handleFunc(r, "/api/openrgbimport/color", http.MethodPost, setOpenRGBImportColor)
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
 	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
 	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)

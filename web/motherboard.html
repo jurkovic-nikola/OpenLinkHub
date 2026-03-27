@@ -4,154 +4,286 @@
 <body>
 
 <div class="container-fluid">
-    {{ $root := . }}
-    {{ $devs := .Devices }}
-    {{ $temperatures := .Temperatures }}
-    {{ $device := .Device }}
-    {{ $devices := $device.Devices }}
-    {{ $deviceProfile := .Device.DeviceProfile }}
-    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
-    <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
     <div class="row">
-        <!-- Sidebar -->
         {{ template "sidebar" . }}
 
-        <!-- Main -->
         <main class="main-content p-4">
-            <!-- Temperature bar -->
-            {{ if .Dashboard.TemperatureBar }}
-            {{ template "temperature-bar" . }}
-            {{ end }}
-
-            <!-- MM700 -->
             <div class="row g-4 mb-4 align-items-start">
+
+                <!-- LEFT PANEL -->
                 <div class="col-md-2">
-                    <div class="card system-card text-center">
-                        <div class="card-header">
-                            {{ .Device.Product }}
-                        </div>
-                        <div class="card-body">
-                            <div class="settings-list">
-                                <!-- User profile -->
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
-                                    <label for="profiles">
-                                        <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
-                                            {{ range $key, $profile := $device.UserProfiles }}
-                                            {{ if $profile.Active }}
-                                            <option value="{{ $key }}" selected>{{ $key }}</option>
-                                            {{ else }}
-                                            <option value="{{ $key }}">{{ $key }}</option>
-                                            {{ end }}
-                                            {{ end }}
-                                        </select>
-                                    </label>
-                                </div>
+                    <div class="stack-gap-4">
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                Motherboard RGB
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-list">
 
-                                <!-- Speed Profile -->
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSpeed" }}</span>
-                                    <label for="globalSpeedProfile">
-                                        <select id="globalSpeedProfile" class="form-select system-select compact auto-width globalTempProfile" name="globalTempProfile">
-                                            {{ range $key, $pf := $temperatures }}
-                                            {{ if $pf.Hidden }}
-                                            {{ continue }}
-                                            {{ end }}
-                                            <option value="{{ $key }}" {{ if eq $deviceProfile.MultiProfile $key }}selected {{ end }}>{{ $key }}</option>
-                                            {{ end }}
-                                        </select>
-                                    </label>
-                                </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Device</span>
+                                        <span class="meta-value">{{ .Device.Product }}</span>
+                                    </div>
 
-                                <!-- Delete user profile -->
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
-                                    <label for="deleteUserProfiles">
-                                        <select id="deleteUserProfiles" class="form-select system-select compact auto-width deleteUserProfiles" name="deleteUserProfiles">
-                                            <option value="none">None</option>
-                                            {{ range $key, $profile := $device.UserProfiles }}
-                                            {{ if $profile.Active }}
-                                            {{ continue }}
-                                            {{ else }}
-                                            <option value="{{ $key }}">{{ $key }}</option>
-                                            {{ end }}
-                                            {{ end }}
-                                        </select>
-                                    </label>
-                                </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Serial</span>
+                                        <span class="meta-value">{{ .Device.Serial }}</span>
+                                    </div>
 
-                                <!-- Save profile -->
-                                <div class="settings-row">
-                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
-                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Brightness</span>
+                                        <div class="system-slider no-padding-top">
+                                            <input type="range" id="mbBrightnessSlider" min="0" max="100" value="100">
+                                            <div class="slider-value" id="mbBrightnessSliderValue">100 %</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">OpenRGB</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" checked disabled>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">RGB</span>
+                                        <select id="mbRgbProfile" class="form-select system-select compact auto-width">
+                                            <option value="static">Static</option>
+                                            <option value="colorshift">Color Shift</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Speed</span>
+                                        <select id="mbSpeedProfile" class="form-select system-select compact auto-width">
+                                            <option value="slow">Slow</option>
+                                            <option value="normal" selected>Normal</option>
+                                            <option value="fast">Fast</option>
+                                        </select>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- RIGHT PANEL -->
                 <div class="col-md-10">
-                    <!-- PWM Channels -->
+
                     <div class="row g-4 mb-4 align-items-start">
-                        {{ range $device := $devices }}
-                        <div class="col-md-2">
-                            <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
+
+                        <!-- MAIN CONTROL CARD -->
+                        <div class="col-md-3">
+                            <div class="card system-card text-center">
                                 <div class="card-header header-split">
-                                    <span class="header-left">
-                                        {{ $device.Name }}
-                                    </span>
-                                    <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                    <span class="header-right newLabel">
-                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
-                                        <span class="labelValue">{{ $device.Label }}</span>
-                                    </span>
+                                    <span class="header-left">Motherboard RGB</span>
+                                    <span class="header-right">LINKED</span>
                                 </div>
                                 <div class="card-body">
                                     <div class="settings-list">
-                                        <!-- Speed -->
-                                        {{ if $device.HasSpeed }}
+
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtSpeed" }}</span>
-                                            <span class="meta-value" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</span>
+                                            <span class="settings-label text-ellipsis">Zones</span>
+                                            <span class="meta-value">3</span>
                                         </div>
+
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtProfile" }}</span>
-                                            <label>
-                                                <select class="form-select system-select compact auto-width tempProfile" name="{{ $device.DeviceId }}">
-                                                    {{ range $key, $pf := $temperatures }}
-                                                    {{ if $pf.Hidden }}
-                                                    {{ continue }}
-                                                    {{ end }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" {{ if eq $device.Profile $key }} selected {{ end }}>{{ $key }}</option>
-                                                    {{ end }}
-                                                </select>
-                                            </label>
+                                            <span class="settings-label text-ellipsis">Mode</span>
+                                            <span class="meta-value">Grouped</span>
                                         </div>
+
                                         <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtModes" }}</span>
-                                            <label>
-                                                <select class="form-select system-select compact auto-width operatingMode" name="{{ $device.DeviceId }}">
-                                                    {{ range $key, $om := $device.OperatingModes }}
-                                                    <option value="{{ $device.ChannelId }};{{ $key }}" {{ if eq $device.HeaderMode $key }} selected {{ end }}>{{ $om }}</option>
-                                                    {{ end }}
-                                                </select>
-                                            </label>
+                                            <span class="settings-label text-ellipsis">Color</span>
+                                            <input type="color" id="mbColor" value="#63d5ff">
                                         </div>
-                                        {{ end }}
+
+                                        <div class="settings-row">
+                                            <button class="system-button compact" id="mbApplyColor" type="button">
+                                                Apply
+                                            </button>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {{ end }}
+
+                        <!-- ZONES -->
+                        <div class="col-md-3">
+                            <div class="card system-card text-center">
+                                <div class="card-header">Zone 1</div>
+                                <div class="card-body">
+                                    <p>Linked</p>
+                                    <p>Global</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="card system-card text-center">
+                                <div class="card-header">Zone 2</div>
+                                <div class="card-body">
+                                    <p>Linked</p>
+                                    <p>Global</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="card system-card text-center">
+                                <div class="card-header">Zone 3</div>
+                                <div class="card-body">
+                                    <p>Linked</p>
+                                    <p>Global</p>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
+
+                    <!-- QUICK COLORS -->
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card system-card text-center">
+                                <div class="card-header">Quick Colors</div>
+                                <div class="card-body d-flex gap-2 justify-content-center flex-wrap">
+                                    <button class="system-button compact" id="quickRed">Red</button>
+                                    <button class="system-button compact" id="quickGreen">Green</button>
+                                    <button class="system-button compact" id="quickBlue">Blue</button>
+                                    <button class="system-button compact" id="quickWhite">White</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </main>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const slider = document.getElementById('mbBrightnessSlider');
+    const sliderValue = document.getElementById('mbBrightnessSliderValue');
+    const colorInput = document.getElementById('mbColor');
+    const applyBtn = document.getElementById('mbApplyColor');
+    const effectSelect = document.getElementById('mbRgbProfile');
+    const speedSelect = document.getElementById('mbSpeedProfile');
+
+    async function setColor(r, g, b) {
+        try {
+            const res = await fetch('/api/openrgbimport/color', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ r, g, b })
+            });
+
+            if (!res.ok) {
+                alert('Color failed: ' + res.status);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Color request failed');
+        }
+    }
+
+    async function setBrightness(brightness) {
+        try {
+            const res = await fetch('/api/openrgbimport/brightness', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ brightness: Number(brightness) })
+            });
+
+            if (!res.ok) {
+                alert('Brightness failed: ' + res.status);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Brightness request failed');
+        }
+    }
+
+    async function setEffect(effect) {
+        try {
+            const res = await fetch('/api/openrgbimport/effect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ effect })
+            });
+
+            if (!res.ok) {
+                alert('Effect failed: ' + res.status);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Effect request failed');
+        }
+    }
+
+    async function setSpeed(speed) {
+        try {
+            const res = await fetch('/api/openrgbimport/speed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ speed })
+            });
+
+            if (!res.ok) {
+                alert('Speed failed: ' + res.status);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Speed request failed');
+        }
+    }
+
+    if (slider) {
+        slider.addEventListener('input', function () {
+            sliderValue.textContent = this.value + ' %';
+        });
+
+        slider.addEventListener('change', function () {
+            setBrightness(this.value);
+        });
+    }
+
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function () {
+            const hex = colorInput.value.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            setColor(r, g, b);
+        });
+    }
+
+    if (effectSelect) {
+        effectSelect.addEventListener('change', function () {
+            setEffect(this.value);
+        });
+    }
+
+    if (speedSelect) {
+        speedSelect.addEventListener('change', function () {
+            setSpeed(this.value);
+        });
+    }
+
+    document.getElementById('quickRed').onclick = () => setColor(255,0,0);
+    document.getElementById('quickGreen').onclick = () => setColor(0,255,0);
+    document.getElementById('quickBlue').onclick = () => setColor(0,0,255);
+    document.getElementById('quickWhite').onclick = () => setColor(255,255,255);
+
+});
+</script>
+
 <script src="/static/js/overview.js"></script>
 <script src="/static/js/sidebar.js"></script>
-{{ if .Dashboard.TemperatureBar }}
-<script src="/static/js/temperature-bar.js"></script>
-{{ end }}
+
 </body>
 </html>

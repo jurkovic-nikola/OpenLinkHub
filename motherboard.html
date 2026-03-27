@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" . }}
+<body>
+
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $devices := $device.Devices }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <!-- MM700 -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            <option value="{{ $key }}" selected>{{ $key }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Speed Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSpeed" }}</span>
+                                    <label for="globalSpeedProfile">
+                                        <select id="globalSpeedProfile" class="form-select system-select compact auto-width globalTempProfile" name="globalTempProfile">
+                                            {{ range $key, $pf := $temperatures }}
+                                            {{ if $pf.Hidden }}
+                                            {{ continue }}
+                                            {{ end }}
+                                            <option value="{{ $key }}" {{ if eq $deviceProfile.MultiProfile $key }}selected {{ end }}>{{ $key }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="form-select system-select compact auto-width deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-10">
+                    <!-- PWM Channels -->
+                    <div class="row g-4 mb-4 align-items-start">
+                        {{ range $device := $devices }}
+                        <div class="col-md-2">
+                            <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
+                                <div class="card-header header-split">
+                                    <span class="header-left">
+                                        {{ $device.Name }}
+                                    </span>
+                                    <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                    <span class="header-right newLabel">
+                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                        <span class="labelValue">{{ $device.Label }}</span>
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <!-- Speed -->
+                                        {{ if $device.HasSpeed }}
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtSpeed" }}</span>
+                                            <span class="meta-value" id="speed-{{ .DeviceId }}">{{ $device.Rpm }} RPM</span>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtProfile" }}</span>
+                                            <label>
+                                                <select class="form-select system-select compact auto-width tempProfile" name="{{ $device.DeviceId }}">
+                                                    {{ range $key, $pf := $temperatures }}
+                                                    {{ if $pf.Hidden }}
+                                                    {{ continue }}
+                                                    {{ end }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}" {{ if eq $device.Profile $key }} selected {{ end }}>{{ $key }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtModes" }}</span>
+                                            <label>
+                                                <select class="form-select system-select compact auto-width operatingMode" name="{{ $device.DeviceId }}">
+                                                    {{ range $key, $om := $device.OperatingModes }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}" {{ if eq $device.HeaderMode $key }} selected {{ end }}>{{ $om }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+                                        {{ end }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
+</body>
+</html>

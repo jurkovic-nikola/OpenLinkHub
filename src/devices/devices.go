@@ -5,6 +5,7 @@ package devices
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/devices/openrgbimport"
 	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -619,6 +620,8 @@ func Init() {
 			devices[motherboards.GetMotherboardSerial()] = motherboard.Init()
 		}
 	}
+
+	devices["openrgb-mobo-1"] = openrgbimport.Init()
 
 	// Create dummy cluster object before any other object
 	cls = cluster.Init()

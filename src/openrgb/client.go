@@ -22,6 +22,12 @@ type DiscoveredController struct {
 	Vendor      string
 	Description string
 	LEDCount    int
+	Zones       []DiscoveredZone
+}
+
+type DiscoveredZone struct {
+	Name     string
+	LEDCount int
 }
 
 func writeHeader(buf *bytes.Buffer, controllerId uint32, opcode uint32, size uint32) error {
@@ -197,9 +203,9 @@ func isLegacyASUSMotherboard(name, vendor string) bool {
 // parseControllerZoneAndLEDCount explicitly parses controller payload structure:
 // [len][device_type][6 strings][mode_count][active_mode][modes...][zone_count][zones...][led_list...][colors...]
 // Returns total LEDs inferred from zones (or LED list fallback if zones sum is zero).
-func parseControllerZoneAndLEDCount(payload []byte) (int, int, error) {
+func parseControllerZoneAndLEDCount(payload []byte) (int, int, []DiscoveredZone, error) {
 	if len(payload) < 8 {
-		return 0, 0, fmt.Errorf("payload too short")
+		return 0, 0, nil, fmt.Errorf("payload too short")
 	}
 
 	offset := 8 // skip total_len + device_type
@@ -207,19 +213,19 @@ func parseControllerZoneAndLEDCount(payload []byte) (int, int, error) {
 	// name, vendor, description, fwVersion, serial, location
 	for i := 0; i < 6; i++ {
 		if _, err := readORGBString(payload, &offset); err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 	}
 
 	modeCountU16, err := readU16At(payload, &offset)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, nil, err
 	}
 	modeCount := int(modeCountU16)
 
 	// active_mode int32
 	if err := skipBytes(payload, &offset, 4); err != nil {
-		return 0, 0, err
+		return 0, 0, nil, err
 	}
 
 	// Modes (OpenLinkHub target-server-compatible packing observed in src/openrgb/openrgb.go):
@@ -228,71 +234,77 @@ func parseControllerZoneAndLEDCount(payload []byte) (int, int, error) {
 	// mode colors (count * 4 bytes)
 	for i := 0; i < modeCount; i++ {
 		if _, err := readORGBString(payload, &offset); err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		// value + flags + 10 uint32 fields = 4 + 4 + 40 = 48 bytes
 		if err := skipBytes(payload, &offset, 48); err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		modeColorCount, err := readU16At(payload, &offset)
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		if err := skipBytes(payload, &offset, int(modeColorCount)*4); err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 	}
 
 	zoneCountU16, err := readU16At(payload, &offset)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, nil, err
 	}
 	zoneCount := int(zoneCountU16)
 
 	totalLEDs := 0
+	discoveredZones := make([]DiscoveredZone, 0, zoneCount)
 	for z := 0; z < zoneCount; z++ {
-		if _, err := readORGBString(payload, &offset); err != nil {
-			return 0, 0, err
+		zoneName, err := readORGBString(payload, &offset)
+		if err != nil {
+			return 0, 0, nil, err
 		}
 
 		// zone_type int32
 		if err := skipBytes(payload, &offset, 4); err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 
 		// leds_min, leds_max, num_leds (uint32 each)
 		if _, err := readU32At(payload, &offset); err != nil { // leds_min
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		if _, err := readU32At(payload, &offset); err != nil { // leds_max
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		numLEDs, err := readU32At(payload, &offset)
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		totalLEDs += int(numLEDs)
+		discoveredZones = append(discoveredZones, DiscoveredZone{
+			Name:     zoneName,
+			LEDCount: int(numLEDs),
+		})
 
 		// matrix byte length (uint16) + matrix payload bytes
 		matrixLen, err := readU16At(payload, &offset)
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		if err := skipBytes(payload, &offset, int(matrixLen)); err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 
 		segCount, err := readU16At(payload, &offset)
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, nil, err
 		}
 		for s := 0; s < int(segCount); s++ {
 			if _, err := readORGBString(payload, &offset); err != nil {
-				return 0, 0, err
+				return 0, 0, nil, err
 			}
 			// segment_type(int32), segment_start_idx(uint32), segment_led_count(uint32)
 			if err := skipBytes(payload, &offset, 12); err != nil {
-				return 0, 0, err
+				return 0, 0, nil, err
 			}
 		}
 	}
@@ -314,7 +326,7 @@ func parseControllerZoneAndLEDCount(payload []byte) (int, int, error) {
 		}
 	}
 
-	return zoneCount, totalLEDs, nil
+	return zoneCount, totalLEDs, discoveredZones, nil
 }
 
 func isImportableController(name, vendor string, ledCount int) bool {
@@ -414,7 +426,7 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 			description = ""
 		}
 
-		_, ledCount, err := parseControllerZoneAndLEDCount(payload)
+		_, ledCount, zones, err := parseControllerZoneAndLEDCount(payload)
 		fmt.Println("DEBUG OpenRGB:", name, "|", vendor, "| LEDCount:", ledCount, "| err:", err)
 		if err != nil && !isLegacyASUSMotherboard(name, vendor) {
 			continue
@@ -430,6 +442,7 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 			Vendor:      vendor,
 			Description: description,
 			LEDCount:    ledCount,
+			Zones:       zones,
 		})
 	}
 

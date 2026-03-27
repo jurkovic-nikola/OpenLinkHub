@@ -2,13 +2,21 @@ package openrgbimport
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
+
+type ConfigStore struct {
+	Devices map[string]DeviceConfig `json:"devices"`
+}
 
 type ZoneConfig struct {
 	Name     string `json:"name"`
@@ -54,6 +62,176 @@ type Device struct {
 	mu        sync.Mutex
 }
 
+func isLegacyASUSMotherboardImport(name, vendor string) bool {
+	nameLower := strings.ToLower(name)
+	vendorLower := strings.ToLower(vendor)
+	return strings.Contains(nameLower, "asus rog strix z890-e gaming wifi") || strings.Contains(vendorLower, "asus aura")
+}
+
+func getConfigPath() string {
+	return filepath.Join(config.GetConfig().ConfigPath, "database", "openrgbimport-zones.json")
+}
+
+func loadConfigStore() *ConfigStore {
+	configPath := getConfigPath()
+
+	store := &ConfigStore{
+		Devices: make(map[string]DeviceConfig),
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			_ = os.MkdirAll(filepath.Dir(configPath), 0o755)
+			_ = saveConfigStore(store)
+			return store
+		}
+		return store
+	}
+
+	if len(data) == 0 {
+		return store
+	}
+
+	if err = json.Unmarshal(data, store); err != nil {
+		return &ConfigStore{Devices: make(map[string]DeviceConfig)}
+	}
+
+	if store.Devices == nil {
+		store.Devices = make(map[string]DeviceConfig)
+	}
+
+	return store
+}
+
+func saveConfigStore(store *ConfigStore) error {
+	if store == nil {
+		store = &ConfigStore{Devices: make(map[string]DeviceConfig)}
+	}
+	if store.Devices == nil {
+		store.Devices = make(map[string]DeviceConfig)
+	}
+
+	configPath := getConfigPath()
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		return err
+	}
+
+	data, err := json.MarshalIndent(store, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(configPath, data, 0o644)
+}
+
+func getDeviceConfig(serial string) *DeviceConfig {
+	store := loadConfigStore()
+	if cfg, ok := store.Devices[serial]; ok {
+		deviceCfg := cfg
+		return &deviceCfg
+	}
+	return nil
+}
+
+func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
+	nameLower := strings.ToLower(dc.Name)
+	cfg := &DeviceConfig{
+		Serial: serial,
+	}
+
+	if isLegacyASUSMotherboardImport(dc.Name, dc.Vendor) {
+		fmt.Println("DEBUG OPENRGBIMPORT DEFAULTCFG ASUS:", "serial =", serial, "| discovered zones =", dc.Zones)
+		if len(dc.Zones) == 0 {
+			cfg.Zones = []ZoneConfig{
+				{Name: "Aura Mainboard", LedCount: 1},
+				{Name: "RGB Header 1", LedCount: 1},
+				{Name: "RGB Header 2", LedCount: 1},
+				{Name: "RGB Header 3", LedCount: 1},
+			}
+			fmt.Println("DEBUG OPENRGBIMPORT DEFAULTCFG ASUS FALLBACK FINAL:", *cfg)
+			return cfg
+		}
+
+		for _, zone := range dc.Zones {
+			zoneName := strings.TrimSpace(zone.Name)
+			switch strings.ToLower(zoneName) {
+			case "aura mainboard", "rgb header 1", "rgb header 2", "rgb header 3":
+				fmt.Println("DEBUG OPENRGBIMPORT DEFAULTCFG ASUS INCLUDE:", zoneName)
+				cfg.Zones = append(cfg.Zones, ZoneConfig{
+					Name:     zoneName,
+					LedCount: 1,
+				})
+			}
+		}
+		fmt.Println("DEBUG OPENRGBIMPORT DEFAULTCFG ASUS FINAL:", *cfg)
+		return cfg
+	}
+
+	if strings.Contains(nameLower, "strimer") {
+		cfg.Zones = []ZoneConfig{
+			{Name: "24 Pin ATX Strip 0", LedCount: 20},
+			{Name: "24 Pin ATX Strip 1", LedCount: 20},
+			{Name: "24 Pin ATX Strip 2", LedCount: 20},
+			{Name: "24 Pin ATX Strip 3", LedCount: 20},
+			{Name: "24 Pin ATX Strip 4", LedCount: 20},
+			{Name: "24 Pin ATX Strip 5", LedCount: 20},
+		}
+		return cfg
+	}
+
+	if dc.LEDCount > 0 {
+		cfg.Zones = []ZoneConfig{
+			{Name: "Zone 1", LedCount: dc.LEDCount},
+		}
+	}
+
+	return cfg
+}
+
+func configLedCount(cfg *DeviceConfig) int {
+	if cfg == nil {
+		return 0
+	}
+
+	total := 0
+	for _, zone := range cfg.Zones {
+		if zone.LedCount > 0 {
+			total += zone.LedCount
+		}
+	}
+	return total
+}
+
+func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredController) bool {
+	total := configLedCount(cfg)
+	fmt.Println("DEBUG OPENRGBIMPORT VALIDATE:", "controller =", dc.Name, "| ledCount =", dc.LEDCount, "| configured total =", total, "| asus special =", isLegacyASUSMotherboardImport(dc.Name, dc.Vendor))
+	if total <= 0 {
+		fmt.Println("DEBUG OPENRGBIMPORT VALIDATE RESULT:", false)
+		return false
+	}
+	if isLegacyASUSMotherboardImport(dc.Name, dc.Vendor) {
+		if dc.LEDCount > 0 && total > dc.LEDCount {
+			fmt.Println("DEBUG OPENRGBIMPORT VALIDATE RESULT:", false)
+			return false
+		}
+		fmt.Println("DEBUG OPENRGBIMPORT VALIDATE RESULT:", true)
+		return true
+	}
+	if dc.LEDCount > 0 {
+		if total > dc.LEDCount {
+			fmt.Println("DEBUG OPENRGBIMPORT VALIDATE RESULT:", false)
+			return false
+		}
+		if total != dc.LEDCount {
+			fmt.Println("DEBUG OPENRGBIMPORT VALIDATE RESULT:", false)
+			return false
+		}
+	}
+	fmt.Println("DEBUG OPENRGBIMPORT VALIDATE RESULT:", true)
+	return true
+}
+
 func buildZoneColorsFromConfig(cfg *DeviceConfig, defaultColor []byte) map[int]ZoneColors {
 	zoneColors := make(map[int]ZoneColors)
 
@@ -90,6 +268,54 @@ func buildZoneColorsFromConfig(cfg *DeviceConfig, defaultColor []byte) map[int]Z
 	}
 
 	return zoneColors
+}
+
+func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("config is required")
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	total := configLedCount(cfg)
+	if total <= 0 {
+		return fmt.Errorf("config must contain at least one LED")
+	}
+
+	if d.colorCount > 0 && total != d.colorCount {
+		return fmt.Errorf("configured LED count must equal %d", d.colorCount)
+	}
+
+	cfg.Serial = d.Serial
+
+	store := loadConfigStore()
+	store.Devices[d.Serial] = *cfg
+	if err := saveConfigStore(store); err != nil {
+		return err
+	}
+
+	brightness := uint8(d.brightness)
+	if d.DeviceProfile != nil && d.DeviceProfile.BrightnessSlider != nil {
+		brightness = *d.DeviceProfile.BrightnessSlider
+	}
+
+	d.stopEffectLoopLocked()
+	d.Config = cfg
+	d.ZoneAmount = len(cfg.Zones)
+	d.DeviceProfile = &DeviceProfile{
+		RGBProfile:       "static",
+		BrightnessSlider: &brightness,
+		ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
+	}
+	d.effect = "static"
+
+	if d.controllerId >= 0 {
+		time.Sleep(75 * time.Millisecond)
+		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+	}
+
+	return nil
 }
 
 func Init() *common.Device {
@@ -153,6 +379,7 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 
 	isLegacyASUS := strings.Contains(nameLower, "asus rog strix z890-e gaming wifi") ||
 		strings.Contains(vendorLower, "asus aura")
+	fmt.Println("DEBUG OPENRGBIMPORT NEWDEVICE:", "name =", dc.Name, "| vendor =", dc.Vendor, "| legacy ASUS =", isLegacyASUS)
 
 	serial := fmt.Sprintf("openrgb-import-%d", dc.ID)
 	product := dc.Name
@@ -178,23 +405,23 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 	}
 
 	var cfg *DeviceConfig
-	if strings.Contains(nameLower, "strimer") {
-		cfg = &DeviceConfig{
-			Serial: serial,
-			Zones: []ZoneConfig{
-				{Name: "24 Pin ATX Strip 0", LedCount: 20},
-				{Name: "24 Pin ATX Strip 1", LedCount: 20},
-				{Name: "24 Pin ATX Strip 2", LedCount: 20},
-				{Name: "24 Pin ATX Strip 3", LedCount: 20},
-				{Name: "24 Pin ATX Strip 4", LedCount: 20},
-				{Name: "24 Pin ATX Strip 5", LedCount: 20},
-			},
+	cfg = getDeviceConfig(serial)
+	fmt.Println("DEBUG OPENRGBIMPORT NEWDEVICE SAVEDCFG:", "serial =", serial, "| found =", cfg != nil)
+	if !isConfigValidForController(cfg, dc) {
+		cfg = buildDefaultDeviceConfig(serial, dc)
+		fmt.Println("DEBUG OPENRGBIMPORT NEWDEVICE DEFAULTCFG:", "serial =", serial, "| built =", cfg != nil, "| config =", cfg)
+		if isConfigValidForController(cfg, dc) {
+			store := loadConfigStore()
+			store.Devices[serial] = *cfg
+			_ = saveConfigStore(store)
 		}
+	}
 
-		colorCount = 0
-		for _, zone := range cfg.Zones {
-			colorCount += zone.LedCount
-		}
+	if isConfigValidForController(cfg, dc) {
+		fmt.Println("DEBUG OPENRGBIMPORT NEWDEVICE PATH:", "serial =", serial, "| entering unified config path")
+		colorCount = configLedCount(cfg)
+	} else {
+		fmt.Println("DEBUG OPENRGBIMPORT NEWDEVICE PATH:", "serial =", serial, "| falling back to legacy path")
 	}
 
 	fmt.Println("DEBUG IMPORT DEVICE:", product, "| serial:", serial, "| controllerId:", dc.ID, "| colorCount:", colorCount)
@@ -212,7 +439,7 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		running:      false,
 	}
 
-	if cfg != nil {
+	if isConfigValidForController(cfg, dc) {
 		defaultBrightness := uint8(100)
 		d.Config = cfg
 		d.ZoneAmount = len(cfg.Zones)

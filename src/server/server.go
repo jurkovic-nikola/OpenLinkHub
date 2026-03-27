@@ -5,13 +5,13 @@ package server
 // License: GPL-3.0 or later
 
 import (
-	"OpenLinkHub/src/devices/openrgbimport"
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/backup"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/devices/openrgbimport"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/language"
 	"OpenLinkHub/src/logger"
@@ -1934,6 +1934,9 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Device = device
+	if openrgbDevice, ok := device.(*openrgbimport.Device); ok {
+		web.OpenRGBImportConfig = openrgbDevice.Config
+	}
 	web.Lcd = lcd.GetLcdDevices()
 	web.LCDImages = lcd.GetLcdImages()
 	web.Temperatures = temperatures.GetTemperatureProfiles()
@@ -2549,6 +2552,61 @@ func setOpenRGBImportSpeed(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+func setOpenRGBImportConfig(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Serial string                     `json:"serial"`
+		Zones  []openrgbimport.ZoneConfig `json:"zones"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	serial := req.Serial
+	if serial == "" {
+		serial = "openrgb-mobo-1"
+	}
+
+	dev, err := getOpenRGBImportDeviceBySerial(serial)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
+		}
+		resp.Send(w)
+		return
+	}
+
+	err = dev.SaveDeviceConfig(&openrgbimport.DeviceConfig{
+		Serial: serial,
+		Zones:  req.Zones,
+	})
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
+		}
+		resp.Send(w)
+		return
+	}
+
+	resp := &Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "Config saved",
+	}
+	resp.Send(w)
+}
+
 func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.ResponseWriter, r *http.Request)) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == method {
@@ -2609,6 +2667,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/openrgbimport/effect", http.MethodPost, setOpenRGBImportEffect)
 	handleFunc(r, "/api/openrgbimport/brightness", http.MethodPost, setOpenRGBImportBrightness)
 	handleFunc(r, "/api/openrgbimport/color", http.MethodPost, setOpenRGBImportColor)
+	handleFunc(r, "/api/openrgbimport/config", http.MethodPost, setOpenRGBImportConfig)
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
 	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
 	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)

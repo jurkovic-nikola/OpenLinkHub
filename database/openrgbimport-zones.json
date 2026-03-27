@@ -1,0 +1,54 @@
+{
+  "devices": {
+    "openrgb-import-2": {
+      "serial": "openrgb-import-2",
+      "zones": [
+        {
+          "name": "24 Pin ATX Strip 0",
+          "ledCount": 20
+        },
+        {
+          "name": "24 Pin ATX Strip 1",
+          "ledCount": 20
+        },
+        {
+          "name": "24 Pin ATX Strip 2",
+          "ledCount": 20
+        },
+        {
+          "name": "24 Pin ATX Strip 3",
+          "ledCount": 20
+        },
+        {
+          "name": "24 Pin ATX Strip 4",
+          "ledCount": 20
+        },
+        {
+          "name": "24 Pin ATX Strip 5",
+          "ledCount": 20
+        }
+      ]
+    },
+    "openrgb-mobo-1": {
+      "serial": "openrgb-mobo-1",
+      "zones": [
+        {
+          "name": "Aura Mainboard",
+          "ledCount": 1
+        },
+        {
+          "name": "RGB Header 1",
+          "ledCount": 1
+        },
+        {
+          "name": "RGB Header 2",
+          "ledCount": 1
+        },
+        {
+          "name": "RGB Header 3",
+          "ledCount": 1
+        }
+      ]
+    }
+  }
+}

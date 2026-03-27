@@ -86,7 +86,7 @@
 
                                         <div class="settings-row">
                                             <span class="settings-label text-ellipsis">Zones</span>
-                                            <span class="meta-value">3</span>
+                                            <span class="meta-value">{{ if .OpenRGBImportConfig }}{{ len .OpenRGBImportConfig.Zones }}{{ else }}3{{ end }}</span>
                                         </div>
 
                                         <div class="settings-row">
@@ -156,6 +156,42 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{ if .OpenRGBImportConfig }}
+                        <div class="col-md-6">
+                            <div class="card system-card text-center">
+                                <div class="card-header">Zone Configuration</div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        {{ range $index, $zone := .OpenRGBImportConfig.Zones }}
+                                        <div class="settings-row">
+                                            <input
+                                                type="text"
+                                                class="form-control configZoneName"
+                                                data-zone-index="{{ $index }}"
+                                                value="{{ $zone.Name }}"
+                                                placeholder="Zone Name"
+                                            >
+                                        </div>
+                                        <div class="settings-row">
+                                            <input
+                                                type="number"
+                                                class="form-control configZoneCount"
+                                                data-zone-index="{{ $index }}"
+                                                min="1"
+                                                value="{{ $zone.LedCount }}"
+                                                placeholder="LED Count"
+                                            >
+                                        </div>
+                                        {{ end }}
+                                    </div>
+                                </div>
+                                <div class="card-footer card-footer-left">
+                                    <button class="system-button" id="saveZoneConfig" type="button">Save Zone Layout</button>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
                     </div>
 
                 </div>
@@ -243,6 +279,39 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    async function saveZoneConfig() {
+        const names = document.querySelectorAll('.configZoneName');
+        const counts = document.querySelectorAll('.configZoneCount');
+        const zones = [];
+
+        names.forEach(function (nameInput, index) {
+            const countInput = counts[index];
+            zones.push({
+                name: nameInput.value.trim(),
+                ledCount: Number(countInput.value)
+            });
+        });
+
+        try {
+            const res = await fetch('/api/openrgbimport/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ serial: deviceSerial, zones })
+            });
+
+            const body = await res.json();
+            if (!res.ok || body.status !== 1) {
+                alert(body.message || ('Config save failed: ' + res.status));
+                return;
+            }
+
+            location.reload();
+        } catch (err) {
+            console.error(err);
+            alert('Config save request failed');
+        }
+    }
+
     if (slider) {
         slider.addEventListener('input', function () {
             sliderValue.textContent = this.value + ' %';
@@ -279,6 +348,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('quickGreen').onclick = () => setColor(0,255,0);
     document.getElementById('quickBlue').onclick = () => setColor(0,0,255);
     document.getElementById('quickWhite').onclick = () => setColor(255,255,255);
+
+    const saveZoneConfigBtn = document.getElementById('saveZoneConfig');
+    if (saveZoneConfigBtn) {
+        saveZoneConfigBtn.addEventListener('click', saveZoneConfig);
+    }
 
 });
 </script>

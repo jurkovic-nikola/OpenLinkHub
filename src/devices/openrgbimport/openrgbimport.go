@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -56,6 +57,71 @@ func Init() *common.Device {
 	return d.instance
 }
 
+func InitAll() []*common.Device {
+	discovered, err := openrgb.DiscoverControllers()
+	if err != nil {
+		// Preserve legacy single-motherboard behavior on discovery failure.
+		return []*common.Device{Init()}
+	}
+
+	result := make([]*common.Device, 0, len(discovered))
+	for _, dc := range discovered {
+		d := newDeviceFromController(dc)
+		if d == nil {
+			continue
+		}
+		d.createDevice()
+		result = append(result, d.instance)
+	}
+
+	if len(result) == 0 {
+		// Preserve legacy behavior if filter removes everything.
+		return []*common.Device{Init()}
+	}
+
+	return result
+}
+
+func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
+	nameLower := strings.ToLower(dc.Name)
+	vendorLower := strings.ToLower(dc.Vendor)
+
+	isLegacyASUS := strings.Contains(nameLower, "asus rog strix z890-e gaming wifi") ||
+		strings.Contains(vendorLower, "asus aura")
+
+	serial := fmt.Sprintf("openrgb-import-%d", dc.ID)
+	product := dc.Name
+	colorCount := dc.LEDCount
+
+	if isLegacyASUS {
+		serial = "openrgb-mobo-1"
+		product = "Imported ASUS Motherboard"
+		colorCount = 3 // keep legacy fallback only for ASUS motherboard path
+	}
+
+	// Non-legacy imports require parsed LED count.
+	if !isLegacyASUS && colorCount <= 0 {
+		return nil
+	}
+
+	if product == "" {
+		product = fmt.Sprintf("Imported OpenRGB Controller %d", dc.ID)
+	}
+
+	return &Device{
+		Product:      product,
+		Serial:       serial,
+		controllerId: dc.ID,
+		colorCount:   colorCount,
+		brightness:   100,
+		lastColor:    []byte{99, 213, 255},
+		effect:       "static",
+		speed:        2.0,
+		stopChan:     nil,
+		running:      false,
+	}
+}
+
 func (d *Device) createDevice() {
 	d.instance = &common.Device{
 		ProductType: common.ProductTypeMotherboard,
@@ -64,7 +130,7 @@ func (d *Device) createDevice() {
 		Firmware:    "",
 		Image:       "icon-motherboard.svg",
 		Instance:    d,
-		GetDevice:   d,
+		GetDevice:   d, // keep existing motherboard template behavior
 	}
 }
 

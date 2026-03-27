@@ -621,7 +621,9 @@ func Init() {
 		}
 	}
 
-	devices["openrgb-mobo-1"] = openrgbimport.Init()
+	for _, imported := range openrgbimport.InitAll() {
+		devices[imported.Serial] = imported
+	}
 
 	// Create dummy cluster object before any other object
 	cls = cluster.Init()

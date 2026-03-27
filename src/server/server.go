@@ -2334,35 +2334,26 @@ func getDeviceID(uri string, r *http.Request) (string, bool) {
 	return value, true
 }
 
-func setOpenRGBImportColor(w http.ResponseWriter, r *http.Request) {
+func getOpenRGBImportDeviceBySerial(serial string) (*openrgbimport.Device, error) {
 	allDevices := devices.GetDevices()
-
-	commonDev, ok := allDevices["openrgb-mobo-1"]
+	commonDev, ok := allDevices[serial]
 	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Device not found",
-		}
-		resp.Send(w)
-		return
+		return nil, fmt.Errorf("Device not found")
 	}
 
 	dev, ok := commonDev.Instance.(*openrgbimport.Device)
 	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Invalid device instance",
-		}
-		resp.Send(w)
-		return
+		return nil, fmt.Errorf("Invalid device instance")
 	}
+	return dev, nil
+}
 
+func setOpenRGBImportColor(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		R int `json:"r"`
-		G int `json:"g"`
-		B int `json:"b"`
+		Serial string `json:"serial"`
+		R      int    `json:"r"`
+		G      int    `json:"g"`
+		B      int    `json:"b"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -2371,6 +2362,22 @@ func setOpenRGBImportColor(w http.ResponseWriter, r *http.Request) {
 			Code:    http.StatusOK,
 			Status:  0,
 			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	serial := req.Serial
+	if serial == "" {
+		serial = "openrgb-mobo-1"
+	}
+
+	dev, err := getOpenRGBImportDeviceBySerial(serial)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
 		}
 		resp.Send(w)
 		return
@@ -2396,32 +2403,9 @@ func setOpenRGBImportColor(w http.ResponseWriter, r *http.Request) {
 }
 
 func setOpenRGBImportBrightness(w http.ResponseWriter, r *http.Request) {
-	allDevices := devices.GetDevices()
-
-	commonDev, ok := allDevices["openrgb-mobo-1"]
-	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Device not found",
-		}
-		resp.Send(w)
-		return
-	}
-
-	dev, ok := commonDev.Instance.(*openrgbimport.Device)
-	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Invalid device instance",
-		}
-		resp.Send(w)
-		return
-	}
-
 	var req struct {
-		Brightness uint8 `json:"brightness"`
+		Serial     string `json:"serial"`
+		Brightness uint8  `json:"brightness"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -2430,6 +2414,22 @@ func setOpenRGBImportBrightness(w http.ResponseWriter, r *http.Request) {
 			Code:    http.StatusOK,
 			Status:  0,
 			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	serial := req.Serial
+	if serial == "" {
+		serial = "openrgb-mobo-1"
+	}
+
+	dev, err := getOpenRGBImportDeviceBySerial(serial)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
 		}
 		resp.Send(w)
 		return
@@ -2455,31 +2455,8 @@ func setOpenRGBImportBrightness(w http.ResponseWriter, r *http.Request) {
 }
 
 func setOpenRGBImportEffect(w http.ResponseWriter, r *http.Request) {
-	allDevices := devices.GetDevices()
-
-	commonDev, ok := allDevices["openrgb-mobo-1"]
-	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Device not found",
-		}
-		resp.Send(w)
-		return
-	}
-
-	dev, ok := commonDev.Instance.(*openrgbimport.Device)
-	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Invalid device instance",
-		}
-		resp.Send(w)
-		return
-	}
-
 	var req struct {
+		Serial string `json:"serial"`
 		Effect string `json:"effect"`
 	}
 
@@ -2489,6 +2466,22 @@ func setOpenRGBImportEffect(w http.ResponseWriter, r *http.Request) {
 			Code:    http.StatusOK,
 			Status:  0,
 			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	serial := req.Serial
+	if serial == "" {
+		serial = "openrgb-mobo-1"
+	}
+
+	dev, err := getOpenRGBImportDeviceBySerial(serial)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
 		}
 		resp.Send(w)
 		return
@@ -2514,32 +2507,9 @@ func setOpenRGBImportEffect(w http.ResponseWriter, r *http.Request) {
 }
 
 func setOpenRGBImportSpeed(w http.ResponseWriter, r *http.Request) {
-	allDevices := devices.GetDevices()
-
-	commonDev, ok := allDevices["openrgb-mobo-1"]
-	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Device not found",
-		}
-		resp.Send(w)
-		return
-	}
-
-	dev, ok := commonDev.Instance.(*openrgbimport.Device)
-	if !ok {
-		resp := &Response{
-			Code:    http.StatusOK,
-			Status:  0,
-			Message: "Invalid device instance",
-		}
-		resp.Send(w)
-		return
-	}
-
 	var req struct {
-		Speed string `json:"speed"`
+		Serial string `json:"serial"`
+		Speed  string `json:"speed"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -2548,6 +2518,22 @@ func setOpenRGBImportSpeed(w http.ResponseWriter, r *http.Request) {
 			Code:    http.StatusOK,
 			Status:  0,
 			Message: "Invalid request body",
+		}
+		resp.Send(w)
+		return
+	}
+
+	serial := req.Serial
+	if serial == "" {
+		serial = "openrgb-mobo-1"
+	}
+
+	dev, err := getOpenRGBImportDeviceBySerial(serial)
+	if err != nil {
+		resp := &Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
 		}
 		resp.Send(w)
 		return

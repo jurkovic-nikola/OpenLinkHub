@@ -167,6 +167,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+    const deviceSerial = '{{ .Device.Serial }}';
     const slider = document.getElementById('mbBrightnessSlider');
     const sliderValue = document.getElementById('mbBrightnessSliderValue');
     const colorInput = document.getElementById('mbColor');
@@ -179,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const res = await fetch('/api/openrgbimport/color', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ r, g, b })
+                body: JSON.stringify({ serial: deviceSerial, r, g, b })
             });
 
             if (!res.ok) {
@@ -196,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const res = await fetch('/api/openrgbimport/brightness', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ brightness: Number(brightness) })
+                body: JSON.stringify({ serial: deviceSerial, brightness: Number(brightness) })
             });
 
             if (!res.ok) {
@@ -213,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const res = await fetch('/api/openrgbimport/effect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ effect })
+                body: JSON.stringify({ serial: deviceSerial, effect })
             });
 
             if (!res.ok) {
@@ -230,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const res = await fetch('/api/openrgbimport/speed', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ speed })
+                body: JSON.stringify({ serial: deviceSerial, speed })
             });
 
             if (!res.ok) {

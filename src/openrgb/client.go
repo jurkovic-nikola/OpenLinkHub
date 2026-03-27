@@ -324,19 +324,25 @@ func isImportableController(name, vendor string, ledCount int) bool {
 	if isLegacyASUSMotherboard(name, vendor) {
 		return true
 	}
+
+	s := strings.ToLower(name + " " + vendor)
+
+	// Allow explicit Strimer matches even if LED parsing returned 0.
+	if strings.Contains(s, "strimer") || strings.Contains(s, "strimmer") {
+		return true
+	}
+
 	if ledCount <= 0 {
 		return false
 	}
 
-	// Tightened filter (avoid broad rgb/led-only matching).
-	s := strings.ToLower(name + " " + vendor)
 	allowPhrases := []string{
 		"motherboard",
 		"mainboard",
 		"asus aura",
 		"aura sync",
-		"strimer",
 		"lian li strimer",
+		"lian li strimmer",
 	}
 	for _, p := range allowPhrases {
 		if strings.Contains(s, p) {
@@ -409,6 +415,7 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		}
 
 		_, ledCount, err := parseControllerZoneAndLEDCount(payload)
+		fmt.Println("DEBUG OpenRGB:", name, "|", vendor, "| LEDCount:", ledCount, "| err:", err)
 		if err != nil && !isLegacyASUSMotherboard(name, vendor) {
 			continue
 		}

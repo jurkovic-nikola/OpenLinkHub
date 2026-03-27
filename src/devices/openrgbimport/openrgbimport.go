@@ -99,6 +99,10 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		colorCount = 3 // keep legacy fallback only for ASUS motherboard path
 	}
 
+	if strings.Contains(nameLower, "strimer") && colorCount <= 0 {
+		colorCount = 120
+	}
+
 	// Non-legacy imports require parsed LED count.
 	if !isLegacyASUS && colorCount <= 0 {
 		return nil
@@ -107,6 +111,8 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 	if product == "" {
 		product = fmt.Sprintf("Imported OpenRGB Controller %d", dc.ID)
 	}
+
+	fmt.Println("DEBUG IMPORT DEVICE:", product, "| serial:", serial, "| controllerId:", dc.ID, "| colorCount:", colorCount)
 
 	return &Device{
 		Product:      product,

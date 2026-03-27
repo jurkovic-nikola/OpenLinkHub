@@ -495,7 +495,6 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 
 	if isLegacyASUS {
 		serial = "openrgb-mobo-1"
-		colorCount = 3 // keep legacy fallback only for ASUS motherboard path
 	}
 
 	if product == "" {

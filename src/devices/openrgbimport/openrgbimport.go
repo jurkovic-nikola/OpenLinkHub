@@ -10,12 +10,37 @@ import (
 	"time"
 )
 
+type ZoneConfig struct {
+	Name     string `json:"name"`
+	LedCount int    `json:"ledCount"`
+}
+
+type DeviceConfig struct {
+	Serial string       `json:"serial"`
+	Zones  []ZoneConfig `json:"zones"`
+}
+
+type ZoneColors struct {
+	Color      *rgb.Color
+	ColorIndex []int
+	Name       string
+}
+
+type DeviceProfile struct {
+	RGBProfile       string
+	BrightnessSlider *uint8
+	ZoneColors       map[int]ZoneColors
+}
+
 type Device struct {
-	Product      string
-	Serial       string
-	instance     *common.Device
-	controllerId int
-	colorCount   int
+	Product       string
+	Serial        string
+	instance      *common.Device
+	controllerId  int
+	colorCount    int
+	ZoneAmount    int
+	Config        *DeviceConfig
+	DeviceProfile *DeviceProfile
 
 	brightness uint8
 	lastColor  []byte
@@ -24,8 +49,47 @@ type Device struct {
 	speed     float64
 	rgbRunner *rgb.ActiveRGB
 	stopChan  chan struct{}
+	doneChan  chan struct{}
 	running   bool
 	mu        sync.Mutex
+}
+
+func buildZoneColorsFromConfig(cfg *DeviceConfig, defaultColor []byte) map[int]ZoneColors {
+	zoneColors := make(map[int]ZoneColors)
+
+	red := float64(99)
+	green := float64(213)
+	blue := float64(255)
+	if len(defaultColor) >= 3 {
+		red = float64(defaultColor[0])
+		green = float64(defaultColor[1])
+		blue = float64(defaultColor[2])
+	}
+
+	ledOffset := 0
+	for zoneIndex, zoneCfg := range cfg.Zones {
+		colorIndex := make([]int, 0, zoneCfg.LedCount*3)
+		for led := 0; led < zoneCfg.LedCount; led++ {
+			base := (ledOffset + led) * 3
+			colorIndex = append(colorIndex, base, base+1, base+2)
+		}
+
+		zoneColors[zoneIndex] = ZoneColors{
+			Color: &rgb.Color{
+				Red:        red,
+				Green:      green,
+				Blue:       blue,
+				Brightness: 1,
+				Hex:        fmt.Sprintf("#%02x%02x%02x", int(red), int(green), int(blue)),
+			},
+			ColorIndex: colorIndex,
+			Name:       zoneCfg.Name,
+		}
+
+		ledOffset += zoneCfg.LedCount
+	}
+
+	return zoneColors
 }
 
 func Init() *common.Device {
@@ -38,6 +102,7 @@ func Init() *common.Device {
 		effect:     "static",
 		speed:      2.0,
 		stopChan:   nil,
+		doneChan:   nil,
 		running:    false,
 	}
 
@@ -112,9 +177,28 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		product = fmt.Sprintf("Imported OpenRGB Controller %d", dc.ID)
 	}
 
-	fmt.Println("DEBUG IMPORT DEVICE:", product, "| serial:", serial, "| controllerId:", dc.ID, "| colorCount:", colorCount)
+	var cfg *DeviceConfig
+	if strings.Contains(nameLower, "strimer") {
+		cfg = &DeviceConfig{
+			Serial: serial,
+			Zones: []ZoneConfig{
+				{Name: "24 Pin ATX Strip 0", LedCount: 20},
+				{Name: "24 Pin ATX Strip 1", LedCount: 20},
+				{Name: "24 Pin ATX Strip 2", LedCount: 20},
+				{Name: "24 Pin ATX Strip 3", LedCount: 20},
+				{Name: "24 Pin ATX Strip 4", LedCount: 20},
+				{Name: "24 Pin ATX Strip 5", LedCount: 20},
+			},
+		}
 
-	return &Device{
+		colorCount = 0
+		for _, zone := range cfg.Zones {
+			colorCount += zone.LedCount
+		}
+	}
+
+	fmt.Println("DEBUG IMPORT DEVICE:", product, "| serial:", serial, "| controllerId:", dc.ID, "| colorCount:", colorCount)
+	d := &Device{
 		Product:      product,
 		Serial:       serial,
 		controllerId: dc.ID,
@@ -124,8 +208,22 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		effect:       "static",
 		speed:        2.0,
 		stopChan:     nil,
+		doneChan:     nil,
 		running:      false,
 	}
+
+	if cfg != nil {
+		defaultBrightness := uint8(100)
+		d.Config = cfg
+		d.ZoneAmount = len(cfg.Zones)
+		d.DeviceProfile = &DeviceProfile{
+			RGBProfile:       "static",
+			BrightnessSlider: &defaultBrightness,
+			ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
+		}
+	}
+
+	return d
 }
 
 func (d *Device) createDevice() {
@@ -163,10 +261,58 @@ func (d *Device) applyBrightness(rgbBytes []byte) []byte {
 
 func (d *Device) stopEffectLoopLocked() {
 	if d.running && d.stopChan != nil {
-		close(d.stopChan)
+		stop := d.stopChan
+		done := d.doneChan
 		d.stopChan = nil
+		d.doneChan = nil
 		d.running = false
+
+		close(stop)
+
+		d.mu.Unlock()
+		if done != nil {
+			<-done
+		}
+		d.mu.Lock()
 	}
+}
+
+func (d *Device) buildZoneFrame() []byte {
+	buf := make([]byte, d.colorCount*3)
+	if d.DeviceProfile == nil {
+		return buf
+	}
+
+	for zoneIndex := 0; zoneIndex < d.ZoneAmount; zoneIndex++ {
+		zone, ok := d.DeviceProfile.ZoneColors[zoneIndex]
+		if !ok || zone.Color == nil {
+			continue
+		}
+
+		color := zone.Color
+		scaled := d.applyBrightness([]byte{
+			byte(color.Red),
+			byte(color.Green),
+			byte(color.Blue),
+		})
+
+		for i, idx := range zone.ColorIndex {
+			if idx < 0 || idx >= len(buf) {
+				continue
+			}
+
+			switch i % 3 {
+			case 0:
+				buf[idx] = scaled[0]
+			case 1:
+				buf[idx] = scaled[1]
+			case 2:
+				buf[idx] = scaled[2]
+			}
+		}
+	}
+
+	return buf
 }
 
 func (d *Device) SetColor(rgbBytes []byte) error {
@@ -187,6 +333,26 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 	d.stopEffectLoopLocked()
 	d.effect = "static"
 
+	if d.Config != nil && d.ZoneAmount > 0 {
+		if d.DeviceProfile != nil {
+			for zoneIndex := 0; zoneIndex < d.ZoneAmount; zoneIndex++ {
+				zoneColor, ok := d.DeviceProfile.ZoneColors[zoneIndex]
+				if !ok || zoneColor.Color == nil {
+					continue
+				}
+
+				zoneColor.Color.Red = float64(rgbBytes[0])
+				zoneColor.Color.Green = float64(rgbBytes[1])
+				zoneColor.Color.Blue = float64(rgbBytes[2])
+				zoneColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(rgbBytes[0]), int(rgbBytes[1]), int(rgbBytes[2]))
+				d.DeviceProfile.ZoneColors[zoneIndex] = zoneColor
+			}
+		}
+
+		time.Sleep(75 * time.Millisecond)
+		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+	}
+
 	scaled := d.applyBrightness(d.lastColor)
 	return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
 }
@@ -206,6 +372,10 @@ func (d *Device) SetBrightness(brightness uint8) error {
 		return nil
 	}
 
+	if d.Config != nil && d.ZoneAmount > 0 {
+		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+	}
+
 	scaled := d.applyBrightness(d.lastColor)
 
 	if d.controllerId < 0 {
@@ -220,12 +390,12 @@ func (d *Device) SetSpeed(speed string) {
 	defer d.mu.Unlock()
 
 	switch speed {
-		case "slow":
-			d.speed = 4.0
-		case "fast":
-			d.speed = 0.8
-		default:
-			d.speed = 2.0
+	case "slow":
+		d.speed = 4.0
+	case "fast":
+		d.speed = 0.8
+	default:
+		d.speed = 2.0
 	}
 }
 
@@ -244,6 +414,13 @@ func (d *Device) SetEffect(effect string) error {
 
 	// Static just reapplies current color once
 	if effect == "static" {
+		if d.Config != nil && d.ZoneAmount > 0 {
+			time.Sleep(75 * time.Millisecond)
+			frame := d.buildZoneFrame()
+			d.mu.Unlock()
+			return openrgb.SendFrame(uint32(d.controllerId), frame)
+		}
+
 		scaled := d.applyBrightness(d.lastColor)
 		d.mu.Unlock()
 		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
@@ -251,13 +428,22 @@ func (d *Device) SetEffect(effect string) error {
 
 	// For now only colorshift is implemented as a real OLH effect
 	if effect != "colorshift" {
+		if d.Config != nil && d.ZoneAmount > 0 {
+			time.Sleep(75 * time.Millisecond)
+			frame := d.buildZoneFrame()
+			d.mu.Unlock()
+			return openrgb.SendFrame(uint32(d.controllerId), frame)
+		}
+
 		scaled := d.applyBrightness(d.lastColor)
 		d.mu.Unlock()
 		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
 	}
 
 	stop := make(chan struct{})
+	done := make(chan struct{})
 	d.stopChan = stop
+	d.doneChan = done
 	d.running = true
 
 	startColor := &rgb.Color{
@@ -280,9 +466,9 @@ func (d *Device) SetEffect(effect string) error {
 		startColor,
 		endColor,
 		rgb.GetBrightnessValueFloat(d.brightness),
-			  0,
-		   0,
-		   true,
+		0,
+		0,
+		true,
 	)
 	d.rgbRunner = runner
 
@@ -290,39 +476,47 @@ func (d *Device) SetEffect(effect string) error {
 	d.mu.Unlock()
 
 	go func() {
+		defer close(done)
+
 		startTime := time.Now()
-		ticker := time.NewTicker(33 * time.Millisecond)
+		ticker := time.NewTicker(200 * time.Millisecond)
 		defer ticker.Stop()
 
 		for {
 			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				d.mu.Lock()
+
+				// refresh dynamic values so live changes apply
+				runner.RgbModeSpeed = d.speed
+				runner.RGBBrightness = rgb.GetBrightnessValueFloat(d.brightness)
+				runner.RGBStartColor = &rgb.Color{
+					Red:        float64(d.lastColor[0]),
+					Green:      float64(d.lastColor[1]),
+					Blue:       float64(d.lastColor[2]),
+					Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+				}
+				runner.RGBEndColor = &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       255,
+					Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+				}
+
+				runner.Colorshift(&startTime, runner)
+				frame := make([]byte, len(runner.Output))
+				copy(frame, runner.Output)
+				d.mu.Unlock()
+
+				select {
 				case <-stop:
 					return
-				case <-ticker.C:
-					d.mu.Lock()
+				default:
+				}
 
-					// refresh dynamic values so live changes apply
-					runner.RgbModeSpeed = d.speed
-					runner.RGBBrightness = rgb.GetBrightnessValueFloat(d.brightness)
-					runner.RGBStartColor = &rgb.Color{
-						Red:        float64(d.lastColor[0]),
-						Green:      float64(d.lastColor[1]),
-						Blue:       float64(d.lastColor[2]),
-						Brightness: rgb.GetBrightnessValueFloat(d.brightness),
-					}
-					runner.RGBEndColor = &rgb.Color{
-						Red:        255,
-						Green:      0,
-						Blue:       255,
-						Brightness: rgb.GetBrightnessValueFloat(d.brightness),
-					}
-
-					runner.Colorshift(&startTime, runner)
-					frame := make([]byte, len(runner.Output))
-					copy(frame, runner.Output)
-					d.mu.Unlock()
-
-					_ = openrgb.SendFrame(uint32(controllerId), frame)
+				_ = openrgb.SendFrame(uint32(controllerId), frame)
 			}
 		}
 	}()

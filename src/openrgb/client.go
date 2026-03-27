@@ -19,6 +19,9 @@ const (
 type DiscoveredController struct {
 	ID          int
 	Name        string
+	Version     string
+	Location    string
+	Serial      string
 	Vendor      string
 	Description string
 	LEDCount    int
@@ -81,9 +84,12 @@ func readORGBString(data []byte, offset *int) (string, error) {
 		return "", fmt.Errorf("invalid string length: %d", n)
 	}
 
-	s := string(data[*offset : *offset+n])
+	raw := data[*offset : *offset+n]
 	*offset += n
-	return s, nil
+	if len(raw) > 0 && raw[len(raw)-1] == 0 {
+		raw = raw[:len(raw)-1]
+	}
+	return string(raw), nil
 }
 
 func dial() (net.Conn, error) {
@@ -425,9 +431,20 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		if err != nil {
 			description = ""
 		}
+		fwVersion, err := readORGBString(payload, &offset)
+		if err != nil {
+			fwVersion = ""
+		}
+		location, err := readORGBString(payload, &offset)
+		if err != nil {
+			location = ""
+		}
+		serial, err := readORGBString(payload, &offset)
+		if err != nil {
+			serial = ""
+		}
 
 		_, ledCount, zones, err := parseControllerZoneAndLEDCount(payload)
-		fmt.Println("DEBUG OpenRGB:", name, "|", vendor, "| LEDCount:", ledCount, "| err:", err)
 		if err != nil && !isLegacyASUSMotherboard(name, vendor) {
 			continue
 		}
@@ -439,6 +456,9 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		result = append(result, DiscoveredController{
 			ID:          int(i),
 			Name:        name,
+			Version:     fwVersion,
+			Location:    location,
+			Serial:      serial,
 			Vendor:      vendor,
 			Description: description,
 			LEDCount:    ledCount,

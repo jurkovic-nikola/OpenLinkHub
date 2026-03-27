@@ -26,39 +26,40 @@ var (
 )
 
 type Web struct {
-	Title               string
-	Tpl                 *template.Template
-	Devices             map[string]*common.Device
-	Configuration       config.Configuration
-	Device              interface{}
-	OpenRGBImportConfig interface{}
-	Lcd                 interface{}
-	LCDImages           interface{}
-	TemperatureProbes   interface{}
-	HwMonSensors        interface{}
-	RGBProfiles         map[string]interface{}
-	Temperatures        map[string]temperatures.TemperatureProfileData
-	Macros              map[int]macro.Macro
-	LCDProfiles         map[uint8]interface{}
-	LCDSensors          map[uint8]string
-	InputActions        map[uint16]inputmanager.InputAction
-	Scheduler           scheduler.Scheduler
-	Rgb                 map[string]rgb.Profile
-	SystemInfo          interface{}
-	Stats               interface{}
-	AudioSettings       interface{}
-	OutputDevices       interface{}
-	CpuTemp             string
-	GpuTemp             string
-	Page                string
-	SystemService       bool
-	StorageTemp         []temperatures.StorageTemperatures
-	BuildInfo           *version.BuildInfo
-	Dashboard           dashboard.Dashboard
-	Languages           map[string]language.Language
-	LanguageCode        string
-	BatteryStats        interface{}
-	RGBModes            []string
+	Title                      string
+	Tpl                        *template.Template
+	Devices                    map[string]*common.Device
+	Configuration              config.Configuration
+	Device                     interface{}
+	OpenRGBImportConfig        interface{}
+	OpenRGBImportDisplaySerial string
+	Lcd                        interface{}
+	LCDImages                  interface{}
+	TemperatureProbes          interface{}
+	HwMonSensors               interface{}
+	RGBProfiles                map[string]interface{}
+	Temperatures               map[string]temperatures.TemperatureProfileData
+	Macros                     map[int]macro.Macro
+	LCDProfiles                map[uint8]interface{}
+	LCDSensors                 map[uint8]string
+	InputActions               map[uint16]inputmanager.InputAction
+	Scheduler                  scheduler.Scheduler
+	Rgb                        map[string]rgb.Profile
+	SystemInfo                 interface{}
+	Stats                      interface{}
+	AudioSettings              interface{}
+	OutputDevices              interface{}
+	CpuTemp                    string
+	GpuTemp                    string
+	Page                       string
+	SystemService              bool
+	StorageTemp                []temperatures.StorageTemperatures
+	BuildInfo                  *version.BuildInfo
+	Dashboard                  dashboard.Dashboard
+	Languages                  map[string]language.Language
+	LanguageCode               string
+	BatteryStats               interface{}
+	RGBModes                   []string
 }
 
 // Lang is called from template files

@@ -27,7 +27,7 @@
 
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Serial</span>
-                                        <span class="meta-value">{{ .Device.Serial }}</span>
+                                        <span class="meta-value">{{ if .OpenRGBImportDisplaySerial }}{{ .OpenRGBImportDisplaySerial }}{{ else }}{{ .Device.Serial }}{{ end }}</span>
                                     </div>
 
                                     <div class="settings-row">

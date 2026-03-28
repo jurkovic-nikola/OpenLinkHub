@@ -204,30 +204,14 @@ func getDeviceConfig(serial string) *DeviceConfig {
 
 func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
 	nameLower := strings.ToLower(dc.Name)
-	cfg := &DeviceConfig{
-		Serial: serial,
-	}
+	cfg := &DeviceConfig{Serial: serial}
 
 	if isLegacyASUSMotherboardImport(dc.Name, dc.Vendor) {
-		if len(dc.Zones) == 0 {
-			cfg.Zones = []ZoneConfig{
-				{Name: "Aura Mainboard", LedCount: 1},
-				{Name: "RGB Header 1", LedCount: 1},
-				{Name: "RGB Header 2", LedCount: 1},
-				{Name: "RGB Header 3", LedCount: 1},
-			}
-			return cfg
-		}
-
-		for _, zone := range dc.Zones {
-			zoneName := strings.TrimSpace(zone.Name)
-			switch strings.ToLower(zoneName) {
-			case "aura mainboard", "rgb header 1", "rgb header 2", "rgb header 3":
-				cfg.Zones = append(cfg.Zones, ZoneConfig{
-					Name:     zoneName,
-					LedCount: 1,
-				})
-			}
+		cfg.Zones = []ZoneConfig{
+			{Name: "Aura Mainboard", LedCount: 1},
+			{Name: "RGB Header 1", LedCount: 1},
+			{Name: "RGB Header 2", LedCount: 1},
+			{Name: "RGB Header 3", LedCount: 1},
 		}
 		return cfg
 	}
@@ -240,55 +224,6 @@ func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *D
 			{Name: "24 Pin ATX Strip 3", LedCount: 20},
 			{Name: "24 Pin ATX Strip 4", LedCount: 20},
 			{Name: "24 Pin ATX Strip 5", LedCount: 20},
-		}
-		return cfg
-	}
-
-	if len(dc.Zones) > 0 {
-		if len(dc.Zones) == 1 {
-			zoneName := strings.TrimSpace(dc.Zones[0].Name)
-			if zoneName == "" {
-				zoneName = "Zone 1"
-			}
-
-			ledCount := dc.Zones[0].LEDCount
-			if dc.LEDCount > 0 {
-				ledCount = dc.LEDCount
-			}
-			if ledCount <= 0 {
-				ledCount = 1
-			}
-
-			cfg.Zones = []ZoneConfig{
-				{Name: zoneName, LedCount: ledCount},
-			}
-			return cfg
-		}
-
-		for i, zone := range dc.Zones {
-			zoneName := strings.TrimSpace(zone.Name)
-			if zoneName == "" {
-				zoneName = fmt.Sprintf("Zone %d", i+1)
-			}
-
-			ledCount := zone.LEDCount
-			if ledCount <= 0 {
-				continue
-			}
-
-			cfg.Zones = append(cfg.Zones, ZoneConfig{
-				Name:     zoneName,
-				LedCount: ledCount,
-			})
-		}
-		if len(cfg.Zones) > 0 {
-			return cfg
-		}
-	}
-
-	if dc.LEDCount > 0 {
-		cfg.Zones = []ZoneConfig{
-			{Name: "Zone 1", LedCount: dc.LEDCount},
 		}
 		return cfg
 	}
@@ -315,25 +250,47 @@ func configLedCount(cfg *DeviceConfig) int {
 }
 
 func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredController) bool {
-	total := configLedCount(cfg)
-	if total <= 0 {
+	if cfg == nil {
 		return false
 	}
-	if isLegacyASUSMotherboardImport(dc.Name, dc.Vendor) {
-		if dc.LEDCount > 0 && total > dc.LEDCount {
-			return false
-		}
-		return true
+
+	if strings.TrimSpace(cfg.Serial) == "" {
+		return false
 	}
-	if dc.LEDCount > 0 {
-		if total > dc.LEDCount {
-			return false
-		}
-		if total != dc.LEDCount {
-			return false
-		}
+	if len(cfg.Zones) == 0 {
+		return false
 	}
-	return true
+
+	total := 0
+	for i, zone := range cfg.Zones {
+		if zone.LedCount <= 0 {
+			return false
+		}
+		if strings.TrimSpace(zone.Name) == "" {
+			cfg.Zones[i].Name = fmt.Sprintf("Zone %d", i+1)
+		}
+		total += zone.LedCount
+	}
+
+	return total > 0
+}
+
+func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
+	cfg := getDeviceConfig(serial)
+	if isConfigValidForController(cfg, dc) {
+		return cfg
+	}
+
+	cfg = buildDefaultDeviceConfig(serial, dc)
+	if !isConfigValidForController(cfg, dc) {
+		return nil
+	}
+
+	store := loadConfigStore()
+	store.Devices[serial] = *cfg
+	_ = saveConfigStore(store)
+
+	return cfg
 }
 
 func buildZoneColorsFromConfig(cfg *DeviceConfig, defaultColor []byte) map[int]ZoneColors {
@@ -387,11 +344,6 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		return fmt.Errorf("config must contain at least one LED")
 	}
 
-	isTrustedLayout := d.Serial == "openrgb-mobo-1" || strings.Contains(strings.ToLower(d.Product), "strimer")
-	if isTrustedLayout && d.colorCount > 0 && total != d.colorCount {
-		return fmt.Errorf("configured LED count must equal %d", d.colorCount)
-	}
-
 	cfg.Serial = d.Serial
 
 	store := loadConfigStore()
@@ -429,7 +381,7 @@ func Init() *common.Device {
 		Product:       "Imported ASUS Motherboard",
 		Serial:        "openrgb-mobo-1",
 		DisplaySerial: "",
-		colorCount:    3, // motherboard exposes 3 writable OpenRGB entries/zones
+		colorCount:    4,
 		brightness:    100,
 		lastColor:     []byte{99, 213, 255}, // default #63d5ff
 		effect:        "static",
@@ -449,6 +401,22 @@ func Init() *common.Device {
 	} else {
 		d.controllerId = controllerId
 		fmt.Println("OpenRGB controller lookup succeeded, controllerId =", d.controllerId)
+	}
+
+	cfg := resolveDeviceConfig(d.Serial, openrgb.DiscoveredController{
+		Name:   d.Product,
+		Vendor: "asus aura",
+	})
+	if cfg != nil {
+		defaultBrightness := uint8(100)
+		d.Config = cfg
+		d.ZoneAmount = len(cfg.Zones)
+		d.colorCount = configLedCount(cfg)
+		d.DeviceProfile = &DeviceProfile{
+			RGBProfile:       "static",
+			BrightnessSlider: &defaultBrightness,
+			ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
+		}
 	}
 
 	d.createDevice()
@@ -503,16 +471,7 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 
 	displaySerial, displaySerialLabel = pickDisplaySerialAndLabel(dc)
 
-	var cfg *DeviceConfig
-	cfg = getDeviceConfig(serial)
-	if !isConfigValidForController(cfg, dc) {
-		cfg = buildDefaultDeviceConfig(serial, dc)
-		if isConfigValidForController(cfg, dc) {
-			store := loadConfigStore()
-			store.Devices[serial] = *cfg
-			_ = saveConfigStore(store)
-		}
-	}
+	cfg := resolveDeviceConfig(serial, dc)
 
 	if isConfigValidForController(cfg, dc) {
 		colorCount = configLedCount(cfg)

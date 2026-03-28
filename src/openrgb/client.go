@@ -30,8 +30,38 @@ type DiscoveredController struct {
 }
 
 type DiscoveredZone struct {
-	Name     string
-	LEDCount int
+	Name           string
+	Type           int32
+	MinLEDCount    int
+	MaxLEDCount    int
+	LEDCount       int
+	SegmentCount   int
+	Classification string
+}
+
+func classifyZone(name string, ledCount int, minLEDCount int, maxLEDCount int, segmentCount int) string {
+	lowerName := strings.ToLower(strings.TrimSpace(name))
+
+	switch {
+	case strings.Contains(lowerName, "addressable"):
+		return "addressable"
+	case strings.Contains(lowerName, "argb"):
+		return "addressable"
+	case strings.Contains(lowerName, "strip"):
+		return "addressable"
+	case strings.Contains(lowerName, "mainboard"):
+		return "zone-based"
+	case strings.Contains(lowerName, "logo"):
+		return "zone-based"
+	case strings.Contains(lowerName, "backplate"):
+		return "zone-based"
+	case segmentCount > 0:
+		return "addressable"
+	case ledCount > 1 && maxLEDCount > 1:
+		return "addressable"
+	default:
+		return "zone-based"
+	}
 }
 
 func writeHeader(buf *bytes.Buffer, controllerId uint32, opcode uint32, size uint32) error {
@@ -201,6 +231,304 @@ func skipBytes(data []byte, offset *int, n int) error {
 	return nil
 }
 
+func hasBytes(data []byte, offset int, n int) bool {
+	return n >= 0 && offset >= 0 && offset+n <= len(data)
+}
+
+func readSaneORGBString(data []byte, offset *int, maxLen int) (string, error) {
+	if !hasBytes(data, *offset, 2) {
+		return "", fmt.Errorf("not enough data for string length")
+	}
+	n := int(binary.LittleEndian.Uint16(data[*offset : *offset+2]))
+	if n < 0 || n > maxLen {
+		return "", fmt.Errorf("implausible string length: %d", n)
+	}
+	if !hasBytes(data, *offset, 2+n) {
+		return "", fmt.Errorf("string out of bounds")
+	}
+	return readORGBString(data, offset)
+}
+
+func parseZoneBlockAt(payload []byte, zoneOffset int) (int, int, []DiscoveredZone, bool, string, int) {
+	if !hasBytes(payload, zoneOffset, 2) {
+		return 0, 0, nil, false, "zoneCount out of bounds", 0
+	}
+
+	offset := zoneOffset
+	zoneCountU16, err := readU16At(payload, &offset)
+	if err != nil {
+		return 0, 0, nil, false, "zoneCount read failed", 0
+	}
+	zoneCount := int(zoneCountU16)
+	if zoneCount <= 0 || zoneCount > 128 {
+		return zoneCount, 0, nil, false, fmt.Sprintf("implausible zoneCount=%d", zoneCount), 0
+	}
+
+	totalLEDs := 0
+	discoveredZones := make([]DiscoveredZone, 0, zoneCount)
+	score := 0
+	for z := 0; z < zoneCount; z++ {
+		zoneName, err := readSaneORGBString(payload, &offset, 256)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d name rejected: %v", z, err), score
+		}
+		zoneName = strings.TrimSpace(zoneName)
+		hadRealName := zoneName != ""
+		if zoneName == "" {
+			zoneName = fmt.Sprintf("Zone %d", z+1)
+		}
+		if !hasBytes(payload, offset, 16) {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d metadata out of bounds", z), score
+		}
+
+		zoneTypeU32, err := readU32At(payload, &offset)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d type read failed", z), score
+		}
+		ledsMin, err := readU32At(payload, &offset)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d leds_min read failed", z), score
+		}
+		ledsMax, err := readU32At(payload, &offset)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d leds_max read failed", z), score
+		}
+		numLEDs, err := readU32At(payload, &offset)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d num_leds read failed", z), score
+		}
+		if ledsMin > 16384 || ledsMax > 16384 || numLEDs > 16384 {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d led metadata implausible min=%d max=%d num=%d", z, ledsMin, ledsMax, numLEDs), score
+		}
+		totalLEDs += int(numLEDs)
+		score += 20
+		if hadRealName {
+			score += 10
+		}
+		if numLEDs > 0 {
+			score += 10
+		}
+		if ledsMin == numLEDs && ledsMax == numLEDs {
+			score += 5
+		}
+
+		if !hasBytes(payload, offset, 2) {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d matrix length out of bounds", z), score
+		}
+		matrixLen, err := readU16At(payload, &offset)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d matrix length read failed", z), score
+		}
+		if !hasBytes(payload, offset, int(matrixLen)) {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d matrix out of bounds", z), score
+		}
+		if err := skipBytes(payload, &offset, int(matrixLen)); err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d matrix skip failed", z), score
+		}
+
+		if !hasBytes(payload, offset, 2) {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d segment count out of bounds", z), score
+		}
+		segCount, err := readU16At(payload, &offset)
+		if err != nil {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d segment count read failed", z), score
+		}
+		if segCount > 128 {
+			return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d segment count implausible: %d", z, segCount), score
+		}
+		for s := 0; s < int(segCount); s++ {
+			if _, err := readSaneORGBString(payload, &offset, 256); err != nil {
+				return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d segment %d name rejected: %v", z, s, err), score
+			}
+			if !hasBytes(payload, offset, 12) {
+				return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d segment %d metadata out of bounds", z, s), score
+			}
+			if err := skipBytes(payload, &offset, 12); err != nil {
+				return zoneCount, totalLEDs, discoveredZones, false, fmt.Sprintf("zone %d segment %d metadata skip failed", z, s), score
+			}
+		}
+
+		classification := classifyZone(zoneName, int(numLEDs), int(ledsMin), int(ledsMax), int(segCount))
+		discoveredZones = append(discoveredZones, DiscoveredZone{
+			Name:           zoneName,
+			Type:           int32(zoneTypeU32),
+			MinLEDCount:    int(ledsMin),
+			MaxLEDCount:    int(ledsMax),
+			LEDCount:       int(numLEDs),
+			SegmentCount:   int(segCount),
+			Classification: classification,
+		})
+	}
+
+	if totalLEDs <= 0 && hasBytes(payload, offset, 2) {
+		ledListCount, err := readU16At(payload, &offset)
+		if err == nil {
+			totalLEDs = int(ledListCount)
+			for i := 0; i < int(ledListCount); i++ {
+				if _, err := readSaneORGBString(payload, &offset, 256); err != nil {
+					break
+				}
+				if !hasBytes(payload, offset, 4) {
+					break
+				}
+				if err := skipBytes(payload, &offset, 4); err != nil {
+					break
+				}
+			}
+		}
+	}
+
+	score += zoneCount * 25
+	if zoneCount > 1 {
+		score += 50
+	}
+	if totalLEDs > 0 {
+		score += 20
+	}
+
+	return zoneCount, totalLEDs, discoveredZones, true, "", score
+}
+
+func findPlausibleZoneBlock(payload []byte, startOffset int) (int, int, int, []DiscoveredZone, bool, int, int, string, int) {
+	if startOffset < 0 {
+		startOffset = 0
+	}
+
+	windowEnd := startOffset + 16384
+	if windowEnd > len(payload)-2 {
+		windowEnd = len(payload) - 2
+	}
+
+	bestOffset := 0
+	bestZoneCount := 0
+	bestReason := ""
+	bestScore := -1
+	bestTotalLEDs := 0
+	var bestZones []DiscoveredZone
+	bestAccepted := false
+	seen := make(map[int]struct{})
+	for candidate := startOffset; candidate <= windowEnd; candidate++ {
+		for delta := -4; delta <= 4; delta++ {
+			probeOffset := candidate + delta
+			if probeOffset < startOffset || probeOffset > windowEnd {
+				continue
+			}
+			if _, ok := seen[probeOffset]; ok {
+				continue
+			}
+			seen[probeOffset] = struct{}{}
+
+			zoneCount, totalLEDs, discoveredZones, ok, reason, score := parseZoneBlockAt(payload, probeOffset)
+			if ok {
+				if !bestAccepted || score > bestScore || (score == bestScore && (zoneCount > bestZoneCount || totalLEDs > bestTotalLEDs)) {
+					bestAccepted = true
+					bestOffset = probeOffset
+					bestZoneCount = zoneCount
+					bestTotalLEDs = totalLEDs
+					bestZones = discoveredZones
+					bestScore = score
+				}
+				continue
+			}
+			if !bestAccepted && (score > bestScore || (score == bestScore && zoneCount > bestZoneCount)) {
+				bestOffset = probeOffset
+				bestZoneCount = zoneCount
+				bestReason = reason
+				bestScore = score
+			}
+		}
+	}
+
+	if bestAccepted {
+		return bestOffset, bestZoneCount, bestTotalLEDs, bestZones, true, 0, 0, "", bestScore
+	}
+
+	return 0, 0, 0, nil, false, bestOffset, bestZoneCount, bestReason, bestScore
+}
+
+func findAnchoredZoneBlock(payload []byte, startOffset int) (int, int, int, []DiscoveredZone, bool, string, int) {
+	anchors := []string{
+		"24 Pin ATX Strip",
+		"8 Pin GPU Strip",
+		"RGB Header",
+		"Aura Mainboard",
+	}
+
+	bestOffset := 0
+	bestZoneCount := 0
+	bestTotalLEDs := 0
+	bestScore := -1
+	var bestZones []DiscoveredZone
+	bestAnchor := ""
+
+	for _, anchor := range anchors {
+		searchFrom := startOffset
+		needle := []byte(anchor)
+		for {
+			idx := bytes.Index(payload[searchFrom:], needle)
+			if idx < 0 {
+				break
+			}
+			anchorPos := searchFrom + idx
+			candidateStart := anchorPos - 512
+			if candidateStart < startOffset {
+				candidateStart = startOffset
+			}
+			candidateEnd := anchorPos
+			seen := make(map[int]struct{})
+			for candidate := candidateStart; candidate <= candidateEnd; candidate++ {
+				for delta := -4; delta <= 4; delta++ {
+					probeOffset := candidate + delta
+					if probeOffset < startOffset || probeOffset > candidateEnd {
+						continue
+					}
+					if _, ok := seen[probeOffset]; ok {
+						continue
+					}
+					seen[probeOffset] = struct{}{}
+
+					zoneCount, totalLEDs, discoveredZones, ok, _, score := parseZoneBlockAt(payload, probeOffset)
+					if !ok {
+						continue
+					}
+
+					matchedAnchor := false
+					for _, zone := range discoveredZones {
+						if strings.Contains(zone.Name, anchor) {
+							matchedAnchor = true
+							break
+						}
+					}
+					if !matchedAnchor {
+						continue
+					}
+
+					score += 200
+					if score > bestScore || (score == bestScore && (zoneCount > bestZoneCount || totalLEDs > bestTotalLEDs)) {
+						bestOffset = probeOffset
+						bestZoneCount = zoneCount
+						bestTotalLEDs = totalLEDs
+						bestZones = discoveredZones
+						bestScore = score
+						bestAnchor = anchor
+					}
+				}
+			}
+
+			searchFrom = anchorPos + len(needle)
+			if searchFrom >= len(payload) {
+				break
+			}
+		}
+	}
+
+	if bestScore >= 0 {
+		return bestOffset, bestZoneCount, bestTotalLEDs, bestZones, true, bestAnchor, bestScore
+	}
+
+	return 0, 0, 0, nil, false, "", 0
+}
+
 func isLegacyASUSMotherboard(name, vendor string) bool {
 	n := strings.ToLower(name)
 	v := strings.ToLower(vendor)
@@ -208,8 +536,8 @@ func isLegacyASUSMotherboard(name, vendor string) bool {
 }
 
 // parseControllerZoneAndLEDCount explicitly parses controller payload structure:
-// [len][device_type][6 strings][mode_count][active_mode][modes...][zone_count][zones...][led_list...][colors...]
-// Returns total LEDs inferred from zones (or LED list fallback if zones sum is zero).
+// [len][device_type][5 strings][mode_count][active_mode][mode data...][zone_count][zones...][led_list...][colors...]
+// The mode section is treated as opaque and scanned past by searching for a plausible zone block.
 func parseControllerZoneAndLEDCount(payload []byte) (int, int, []DiscoveredZone, error) {
 	if len(payload) < 8 {
 		return 0, 0, nil, fmt.Errorf("payload too short")
@@ -217,120 +545,35 @@ func parseControllerZoneAndLEDCount(payload []byte) (int, int, []DiscoveredZone,
 
 	offset := 8 // skip total_len + device_type
 
-	// name, vendor, description, fwVersion, serial, location
-	for i := 0; i < 6; i++ {
+	// name, vendor, description, fwVersion, location, serial
+	for i := 0; i < 5; i++ {
 		if _, err := readORGBString(payload, &offset); err != nil {
 			return 0, 0, nil, err
 		}
 	}
 
-	modeCountU16, err := readU16At(payload, &offset)
+	_, err := readU16At(payload, &offset)
 	if err != nil {
 		return 0, 0, nil, err
 	}
-	modeCount := int(modeCountU16)
 
 	// active_mode int32
-	if err := skipBytes(payload, &offset, 4); err != nil {
-		return 0, 0, nil, err
-	}
-
-	// Modes (OpenLinkHub target-server-compatible packing observed in src/openrgb/openrgb.go):
-	// mode_name (string), value(int32), flags(uint32), speed_min/max, brightness_min/max,
-	// colors_min/max, speed, brightness, direction, color_mode (10x uint32), mode_color_count(uint16),
-	// mode colors (count * 4 bytes)
-	for i := 0; i < modeCount; i++ {
-		if _, err := readORGBString(payload, &offset); err != nil {
-			return 0, 0, nil, err
-		}
-		// value + flags + 10 uint32 fields = 4 + 4 + 40 = 48 bytes
-		if err := skipBytes(payload, &offset, 48); err != nil {
-			return 0, 0, nil, err
-		}
-		modeColorCount, err := readU16At(payload, &offset)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-		if err := skipBytes(payload, &offset, int(modeColorCount)*4); err != nil {
-			return 0, 0, nil, err
-		}
-	}
-
-	zoneCountU16, err := readU16At(payload, &offset)
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	zoneCount := int(zoneCountU16)
-
-	totalLEDs := 0
-	discoveredZones := make([]DiscoveredZone, 0, zoneCount)
-	for z := 0; z < zoneCount; z++ {
-		zoneName, err := readORGBString(payload, &offset)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-
-		// zone_type int32
+	if hasBytes(payload, offset, 4) {
 		if err := skipBytes(payload, &offset, 4); err != nil {
 			return 0, 0, nil, err
 		}
-
-		// leds_min, leds_max, num_leds (uint32 each)
-		if _, err := readU32At(payload, &offset); err != nil { // leds_min
-			return 0, 0, nil, err
-		}
-		if _, err := readU32At(payload, &offset); err != nil { // leds_max
-			return 0, 0, nil, err
-		}
-		numLEDs, err := readU32At(payload, &offset)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-		totalLEDs += int(numLEDs)
-		discoveredZones = append(discoveredZones, DiscoveredZone{
-			Name:     zoneName,
-			LEDCount: int(numLEDs),
-		})
-
-		// matrix byte length (uint16) + matrix payload bytes
-		matrixLen, err := readU16At(payload, &offset)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-		if err := skipBytes(payload, &offset, int(matrixLen)); err != nil {
-			return 0, 0, nil, err
-		}
-
-		segCount, err := readU16At(payload, &offset)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-		for s := 0; s < int(segCount); s++ {
-			if _, err := readORGBString(payload, &offset); err != nil {
-				return 0, 0, nil, err
-			}
-			// segment_type(int32), segment_start_idx(uint32), segment_led_count(uint32)
-			if err := skipBytes(payload, &offset, 12); err != nil {
-				return 0, 0, nil, err
-			}
-		}
+	} else {
+		return 0, 0, nil, fmt.Errorf("active_mode out of bounds")
 	}
 
-	// Fallback from explicit LED list if zone sum not usable.
-	if totalLEDs <= 0 {
-		ledListCount, err := readU16At(payload, &offset)
-		if err == nil {
-			totalLEDs = int(ledListCount)
-			for i := 0; i < int(ledListCount); i++ {
-				if _, err := readORGBString(payload, &offset); err != nil {
-					break
-				}
-				// led index uint32
-				if err := skipBytes(payload, &offset, 4); err != nil {
-					break
-				}
-			}
-		}
+	_, zoneCount, totalLEDs, discoveredZones, ok, _, _ := findAnchoredZoneBlock(payload, offset)
+	if ok {
+		return zoneCount, totalLEDs, discoveredZones, nil
+	}
+
+	_, zoneCount, totalLEDs, discoveredZones, ok, _, _, _, _ = findPlausibleZoneBlock(payload, offset)
+	if !ok {
+		return 0, 0, nil, fmt.Errorf("no plausible zone block found")
 	}
 
 	return zoneCount, totalLEDs, discoveredZones, nil
@@ -396,30 +639,33 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		}
 
 		offset := 8
+
 		name, err := readORGBString(payload, &offset)
 		if err != nil {
 			continue
 		}
-		vendor, err := readORGBString(payload, &offset)
-		if err != nil {
-			continue
-		}
+
 		description, err := readORGBString(payload, &offset)
 		if err != nil {
 			description = ""
 		}
+
 		fwVersion, err := readORGBString(payload, &offset)
 		if err != nil {
 			fwVersion = ""
 		}
-		location, err := readORGBString(payload, &offset)
-		if err != nil {
-			location = ""
-		}
+
 		serial, err := readORGBString(payload, &offset)
 		if err != nil {
 			serial = ""
 		}
+
+		location, err := readORGBString(payload, &offset)
+		if err != nil {
+			location = ""
+		}
+
+		vendor := ""
 
 		_, ledCount, zones, err := parseControllerZoneAndLEDCount(payload)
 		if err != nil {

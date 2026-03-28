@@ -125,6 +125,7 @@
                                         type="number"
                                         class="form-control configZoneCount"
                                         data-zone-index="{{ $index }}"
+                                        data-saved-led-count="{{ $zone.LedCount }}"
                                         min="1"
                                         value="{{ $zone.LedCount }}"
                                         placeholder="LED Count"
@@ -377,14 +378,31 @@ document.addEventListener('DOMContentLoaded', function () {
         const names = document.querySelectorAll('.configZoneName');
         const counts = document.querySelectorAll('.configZoneCount');
         const zones = [];
+        let increasedZoneCount = false;
 
         names.forEach(function (nameInput, index) {
             const countInput = counts[index];
+            const newLedCount = Number(countInput.value);
+            const savedLedCount = Number(countInput.dataset.savedLedCount || countInput.value);
+            if (newLedCount > savedLedCount) {
+                increasedZoneCount = true;
+            }
             zones.push({
                 name: nameInput.value.trim(),
-                ledCount: Number(countInput.value)
+                ledCount: newLedCount
             });
         });
+
+        if (increasedZoneCount) {
+            const confirmed = window.confirm(
+                'Increasing LED count beyond the last working saved value may crash the OpenRGB server.\n\n' +
+                'If you are unsure, confirm the zone and LED counts in OpenRGB before continuing.\n\n' +
+                'Do you want to save anyway?'
+            );
+            if (!confirmed) {
+                return;
+            }
+        }
 
         try {
             const res = await fetch('/api/openrgbimport/config', {

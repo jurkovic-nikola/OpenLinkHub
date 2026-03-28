@@ -127,6 +127,37 @@ func dial() (net.Conn, error) {
 	return net.Dial("tcp", "127.0.0.1:6742")
 }
 
+func HealthCheck() error {
+	conn, err := dial()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	packet := new(bytes.Buffer)
+	if err := writeHeader(packet, 0, opcodeRequestControllerCount, 0); err != nil {
+		return err
+	}
+	if _, err := conn.Write(packet.Bytes()); err != nil {
+		return err
+	}
+
+	_, _, size, err := readHeader(conn)
+	if err != nil {
+		return err
+	}
+
+	payload, err := readPayload(conn, size)
+	if err != nil {
+		return err
+	}
+	if len(payload) < 4 {
+		return fmt.Errorf("controller count payload too short")
+	}
+
+	return nil
+}
+
 func FindControllerIDByNameOrVendor(nameMatch string, vendorMatch string) (int, error) {
 	conn, err := dial()
 	if err != nil {

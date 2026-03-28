@@ -331,6 +331,70 @@ func buildZoneColorsFromConfig(cfg *DeviceConfig, defaultColor []byte) map[int]Z
 	return zoneColors
 }
 
+func cloneDeviceConfig(cfg *DeviceConfig) *DeviceConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	cloned := &DeviceConfig{
+		Serial: cfg.Serial,
+		Zones:  append([]ZoneConfig(nil), cfg.Zones...),
+	}
+	return cloned
+}
+
+func hasLEDCountIncrease(savedCfg *DeviceConfig, newCfg *DeviceConfig) bool {
+	if newCfg == nil {
+		return false
+	}
+
+	for i, zone := range newCfg.Zones {
+		savedLEDCount := 0
+		if savedCfg != nil && i < len(savedCfg.Zones) {
+			savedLEDCount = savedCfg.Zones[i].LedCount
+		}
+		if zone.LedCount > savedLEDCount {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (d *Device) applyConfigLocked(cfg *DeviceConfig, brightness uint8) {
+	if cfg == nil {
+		d.Config = nil
+		d.colorCount = 0
+		d.ZoneAmount = 0
+		d.DeviceProfile = nil
+		d.effect = "static"
+		return
+	}
+
+	d.Config = cloneDeviceConfig(cfg)
+	d.colorCount = configLedCount(cfg)
+	d.ZoneAmount = len(cfg.Zones)
+	d.DeviceProfile = &DeviceProfile{
+		RGBProfile:       "static",
+		BrightnessSlider: &brightness,
+		ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
+	}
+	d.effect = "static"
+}
+
+func checkOpenRGBStable(attempts int, delay time.Duration) error {
+	for i := 0; i < attempts; i++ {
+		if i > 0 {
+			time.Sleep(delay)
+		}
+		if err := openrgb.HealthCheck(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 	if cfg == nil {
 		return fmt.Errorf("config is required")
@@ -345,32 +409,40 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 	}
 
 	cfg.Serial = d.Serial
-
-	store := loadConfigStore()
-	store.Devices[d.Serial] = *cfg
-	if err := saveConfigStore(store); err != nil {
-		return err
-	}
+	savedCfg := getDeviceConfig(d.Serial)
+	riskyIncrease := hasLEDCountIncrease(savedCfg, cfg)
 
 	brightness := uint8(d.brightness)
 	if d.DeviceProfile != nil && d.DeviceProfile.BrightnessSlider != nil {
 		brightness = *d.DeviceProfile.BrightnessSlider
 	}
+	previousCfg := cloneDeviceConfig(d.Config)
+	previousBrightness := brightness
+	if d.DeviceProfile == nil || d.DeviceProfile.BrightnessSlider == nil {
+		previousBrightness = d.brightness
+	}
 
 	d.stopEffectLoopLocked()
-	d.Config = cfg
-	d.colorCount = total
-	d.ZoneAmount = len(cfg.Zones)
-	d.DeviceProfile = &DeviceProfile{
-		RGBProfile:       "static",
-		BrightnessSlider: &brightness,
-		ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
-	}
-	d.effect = "static"
+	d.applyConfigLocked(cfg, brightness)
 
 	if d.controllerId >= 0 {
 		time.Sleep(75 * time.Millisecond)
-		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+		if err := openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame()); err != nil {
+			d.applyConfigLocked(previousCfg, previousBrightness)
+			return err
+		}
+		if riskyIncrease {
+			if err := checkOpenRGBStable(4, 500*time.Millisecond); err != nil {
+				d.applyConfigLocked(previousCfg, previousBrightness)
+				return fmt.Errorf("OpenRGB became unavailable after applying increased LED counts; config was not saved. Confirm zone and LED counts in OpenRGB and try again")
+			}
+		}
+	}
+
+	store := loadConfigStore()
+	store.Devices[d.Serial] = *cloneDeviceConfig(cfg)
+	if err := saveConfigStore(store); err != nil {
+		return err
 	}
 
 	return nil

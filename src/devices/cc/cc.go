@@ -169,6 +169,52 @@ var (
 			Total:   8,
 			Command: 05,
 		},
+		// Daisy-chain entries: a single CC port can drive multiple
+		// fans via a passive RGB splitter / Y-cable. Auto-detection only
+		// sees the first fan; user picks the matching chain entry via
+		// /api/argb to override the per-port LED count.
+		{
+			Index:   7,
+			Name:    "LL RGB Fan x2 (Chain)",
+			Total:   32,
+			Command: 02,
+		},
+		{
+			Index:   8,
+			Name:    "LL RGB Fan x3 (Chain)",
+			Total:   48,
+			Command: 02,
+		},
+		{
+			Index:   9,
+			Name:    "LL RGB Fan x4 (Chain)",
+			Total:   64,
+			Command: 02,
+		},
+		{
+			Index:   10,
+			Name:    "QL RGB Fan x2 (Chain)",
+			Total:   68,
+			Command: 06,
+		},
+		{
+			Index:   11,
+			Name:    "QL RGB Fan x3 (Chain)",
+			Total:   102,
+			Command: 06,
+		},
+		{
+			Index:   12,
+			Name:    "HD RGB Fan x2 (Chain)",
+			Total:   24,
+			Command: 04,
+		},
+		{
+			Index:   13,
+			Name:    "HD RGB Fan x3 (Chain)",
+			Total:   36,
+			Command: 04,
+		},
 	}
 )
 
@@ -923,6 +969,25 @@ func (d *Device) getLedDevices() {
 			d.internalLedDevices[i] = leds
 			d.FreeLedPorts[i] = fmt.Sprintf("RGB Port %d", i)
 		}
+
+		// User-configured override (CustomLEDs map, set via /api/argb).
+		// Auto-detection cannot see daisy-chain depth: a port with 3
+		// LL120s daisy-chained still reports as one 16-LED device.
+		// When the user explicitly picks a chain or non-default device
+		// type, honor it over the auto-detected value.
+		if d.DeviceProfile != nil {
+			if deviceType, ok := d.DeviceProfile.CustomLEDs[i]; ok && deviceType > 0 {
+				if override := d.getExternalLedDevice(deviceType); override != nil {
+					existing := d.internalLedDevices[i]
+					existing.Total = uint8(override.Total)
+					existing.Command = override.Command
+					existing.Name = override.Name
+					d.internalLedDevices[i] = existing
+					delete(d.FreeLedPorts, i)
+				}
+			}
+		}
+
 		m += 4
 	}
 }

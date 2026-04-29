@@ -304,6 +304,9 @@ type Device struct {
 	RGBModes           []string
 	queue              chan []byte
 	instance           *common.Device
+	// initSpeedChannels captures the speed-channel count observed in
+	// getDevices() at startup. Used to clamp later HID reads under load.
+	initSpeedChannels int
 }
 
 /*
@@ -1495,6 +1498,7 @@ func (d *Device) getDevices() int {
 	// Fans
 	response := d.read(modeGetFans, "getDevices")
 	amount := d.getChannelAmount(response)
+	d.initSpeedChannels = amount
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "amount": amount, "device": d.Product}).Info("getDevices() - Speed")
 	}
@@ -2044,6 +2048,28 @@ func (d *Device) getDeviceData() {
 	amount := d.getChannelAmount(channels)
 	sensorData := response[6:]
 
+	// Defensive clamp: HID timing skew under high system load can corrupt
+	// channels[5], yielding bogus channel counts. Clamp against:
+	//  1. the channel count we observed at init (initSpeedChannels) — the
+	//     authoritative value for this hardware
+	//  2. the actual buffer sizes — final guard against any slice panic
+	// Without (1), m walks past real channels, breaking probe temperature
+	// updates in the temperature loop below. Without (2), short reads panic.
+	if d.initSpeedChannels > 0 && amount > d.initSpeedChannels {
+		amount = d.initSpeedChannels
+	}
+	if max := len(sensorData) / 2; amount > max {
+		amount = max
+	}
+	if len(channels) < 6 {
+		amount = 0
+	} else if max := len(channels) - 6; amount > max {
+		amount = max
+	}
+	if amount < 0 {
+		amount = 0
+	}
+
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "amount": amount, "device": d.Product}).Info("getDeviceData() - Speed")
 	}
@@ -2065,6 +2091,14 @@ func (d *Device) getDeviceData() {
 		m++
 	}
 
+	// If the speed read was short and we clamped early, push m to its
+	// post-init position so the temperature probe slots line up correctly
+	// in the temperature loop below. Without this, probe temperatures get
+	// written into fan device entries.
+	if d.initSpeedChannels > 0 && m < d.initSpeedChannels {
+		m = d.initSpeedChannels
+	}
+
 	// Temperature
 	response = d.read(modeGetTemperatures, "getDeviceData")
 	if response == nil {
@@ -2073,6 +2107,13 @@ func (d *Device) getDeviceData() {
 
 	amount = d.getChannelAmount(response)
 	sensorData = response[6:]
+	// Same defensive clamp as the speed loop above. Stride here is 3.
+	if max := len(sensorData) / 3; amount > max {
+		amount = max
+	}
+	if amount < 0 {
+		amount = 0
+	}
 	for i, s := 0, 0; i < amount; i, s = i+1, s+3 {
 		if d.Exit {
 			break

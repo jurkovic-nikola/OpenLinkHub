@@ -2244,6 +2244,12 @@ func (d *Device) UpdateRGBDeviceLabel(channelId int, label string) uint8 {
 // UpdateDeviceLcd will update device LCD
 func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 	if d.HasLCD {
+		// Serialize all LCD state mutations. Concurrent HTTP requests
+		// (e.g. cron + UI) previously raced into close(d.lcdRefreshChan)
+		// twice and panicked the HTTP handler.
+		d.mutexLcd.Lock()
+		defer d.mutexLcd.Unlock()
+
 		value := d.DeviceProfile.LCDMode
 		if mode == lcd.DisplayImage {
 			if len(lcd.GetLcdImages()) == 0 {
@@ -2262,12 +2268,17 @@ func (d *Device) UpdateDeviceLcd(_ int, mode uint8) uint8 {
 				d.LCDImage = &lcdImage
 			}
 
-			// Stop lcd timer and switch to animation loop
+			// Stop lcd timer and switch to animation loop. Nil-out the
+			// channel after close so a subsequent call does not double-close
+			// (which would panic the HTTP handler).
 			if d.lcdRefreshChan != nil {
 				close(d.lcdRefreshChan)
+				d.lcdRefreshChan = nil
 			}
 
-			d.lcdTimer.Stop()
+			if d.lcdTimer != nil {
+				d.lcdTimer.Stop()
+			}
 			d.setupLCDImage()
 		} else {
 			// Reset if old value was Animation and new mode is not

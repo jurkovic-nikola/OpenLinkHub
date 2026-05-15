@@ -631,6 +631,8 @@
     "txtMousePositionX": "Mausposition X",
     "txtMousePositionY": "Mausposition Y",
     "txtInvalidMousePosition": "Ungültige Mausposition",
-    "txtXeneonEdgeUnavailable": "Xeneon Edge ist nicht verfügbar"
+    "txtXeneonEdgeUnavailable": "Xeneon Edge ist nicht verfügbar",
+    "txtApplyColorToAll": "Apply color to all devices",
+    "txtApplyToAll": "Apply to all"
   }
 }

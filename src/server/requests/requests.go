@@ -5240,3 +5240,15 @@ func ProcessUpdateDisplayData(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtUnableToUpdateDisplay"), Code: http.StatusOK, Status: 0}
 	}
 }
+
+// ProcessSetAllDevicesColor will process POST request from a client to apply a single
+// static color to every registered device simultaneously.
+func ProcessSetAllDevicesColor(r *http.Request) *Payload {
+	req := &Payload{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+	devices.UpdateAllDevicesStaticColor(req.Color)
+	return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+}

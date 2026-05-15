@@ -1146,6 +1146,17 @@ func setGlobalDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setAllDevicesColor pushes a single static color to every registered device
+func setAllDevicesColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetAllDevicesColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setLinkAdapterColor handles LINK adapter color changes
 func setLinkAdapterColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeLinkAdapterColor(r)
@@ -2534,6 +2545,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/operatingMode", http.MethodPost, setOperatingMode)
 	handleFunc(r, "/api/color", http.MethodPost, setDeviceColor)
 	handleFunc(r, "/api/color/global", http.MethodPost, setGlobalDeviceColor)
+	handleFunc(r, "/api/color/all", http.MethodPost, setAllDevicesColor)
 	handleFunc(r, "/api/color/linkAdapter", http.MethodPost, setLinkAdapterColor)
 	handleFunc(r, "/api/color/linkAdapter/bulk", http.MethodPost, setLinkAdapterBulkColor)
 	handleFunc(r, "/api/color/getOverride", http.MethodPost, getRgbOverride)

@@ -19,6 +19,16 @@
             {{ template "temperature-bar" . }}
             {{ end }}
 
+            <!-- Universal color picker -->
+            <div class="row mb-3">
+                <div class="col-auto d-flex align-items-center gap-2">
+                    <label class="form-label mb-0">{{ $root.Lang "txtApplyColorToAll" }}</label>
+                    <input type="color" id="universalColorPicker" class="form-control form-control-color" value="#ff0000" title="Pick a color">
+                    <button class="system-button btn-accent" id="applyColorToAll">{{ $root.Lang "txtApplyToAll" }}</button>
+                    <span id="applyColorStatus" class="ms-2" style="display:none"></span>
+                </div>
+            </div>
+
             <!-- Dashboard -->
             <div class="row align-items-start">
                 <!-- Device placeholder -->
@@ -71,6 +81,33 @@
 </div>
 <script src="/static/js/sidebar.js"></script>
 <script src="/static/js/index.js"></script>
+<script>
+(function () {
+    const btn = document.getElementById('applyColorToAll');
+    const picker = document.getElementById('universalColorPicker');
+    const status = document.getElementById('applyColorStatus');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        const hex = picker.value;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        fetch('/api/color/all', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({color: {red: r, green: g, blue: b, brightness: 1}})
+        }).then(function (res) { return res.json(); }).then(function (data) {
+            status.style.display = 'inline';
+            status.textContent = data.status === 1 ? '✓' : '✗';
+            setTimeout(function () { status.style.display = 'none'; }, 2000);
+        }).catch(function () {
+            status.style.display = 'inline';
+            status.textContent = '✗';
+            setTimeout(function () { status.style.display = 'none'; }, 2000);
+        });
+    });
+}());
+</script>
 {{ if .Dashboard.TemperatureBar }}
 <script src="/static/js/temperature-bar.js"></script>
 {{ end }}

@@ -631,6 +631,8 @@
     "txtMousePositionX": "Pozicija miša X",
     "txtMousePositionY": "Pozicija miša Y",
     "txtInvalidMousePosition": "Nevažeća pozicija miša",
-    "txtXeneonEdgeUnavailable": "Xeneon Edge nije dostupan"
+    "txtXeneonEdgeUnavailable": "Xeneon Edge nije dostupan",
+    "txtApplyColorToAll": "Apply color to all devices",
+    "txtApplyToAll": "Apply to all"
   }
 }

@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/devices/cc"
 	"OpenLinkHub/src/devices/ccxt"
 	"OpenLinkHub/src/devices/cduo"
@@ -273,6 +274,20 @@ func UpdateGlobalRgbProfile(profile string) uint8 {
 	channelId := -1
 	for _, device := range devices {
 		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, profile)
+	}
+	return 1
+}
+
+// UpdateAllDevicesStaticColor will push a single static color to all registered devices
+func UpdateAllDevicesStaticColor(color rgb.Color) uint8 {
+	channelId := -1
+	profile := rgb.Profile{
+		StartColor: color,
+		EndColor:   color,
+	}
+	for _, device := range devices {
+		CallDeviceMethod(device.Serial, "UpdateRgbProfileData", "static", profile)
+		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, "static")
 	}
 	return 1
 }

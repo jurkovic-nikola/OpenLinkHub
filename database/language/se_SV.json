@@ -631,6 +631,8 @@
     "txtMousePositionX": "Musposition X",
     "txtMousePositionY": "Musposition Y",
     "txtInvalidMousePosition": "Ogiltig musposition",
-    "txtXeneonEdgeUnavailable": "Xeneon Edge är inte tillgänglig"
+    "txtXeneonEdgeUnavailable": "Xeneon Edge är inte tillgänglig",
+    "txtApplyColorToAll": "Apply color to all devices",
+    "txtApplyToAll": "Apply to all"
   }
 }

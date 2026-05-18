@@ -262,6 +262,7 @@
     "txtWatts": "Watt",
     "txtAmps": "Verstärker",
     "txtVolts": "Volt",
+    "txtVoltage": "Voltzahl",
     "txtMemory": "Erinnerung",
     "txtTempSensors": "Temperatursensoren",
     "txtTemperature": "Temperatur",

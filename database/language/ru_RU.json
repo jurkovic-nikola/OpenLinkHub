@@ -262,6 +262,7 @@
         "txtWatts": "Ватт",
         "txtAmps": "Ампер",
         "txtVolts": "Вольт",
+        "txtVoltage": "вольтаж",
         "txtMemory": "Память",
         "txtTempSensors": "Датчики температуры",
         "txtTemperature": "Температура",

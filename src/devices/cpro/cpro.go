@@ -72,6 +72,11 @@ type TemperatureProbe struct {
 	Product   string
 }
 
+type RailVoltage struct {
+	Name  string
+	Value float32
+}
+
 type Device struct {
 	dev                     *hid.Device
 	Manufacturer            string                    `json:"manufacturer"`
@@ -85,6 +90,7 @@ type Device struct {
 	ExternalLedDeviceAmount map[int]string
 	ExternalLedDevice       []ExternalLedDevice
 	TemperatureProbes       *[]TemperatureProbe
+	RailVoltages            map[int]*RailVoltage
 	activeRgb               map[int]*rgb.ActiveRGB
 	Template                string
 	Brightness              map[int]string
@@ -139,6 +145,7 @@ var (
 	cmdLedReset                = byte(0x37)
 	cmdGetSpeed                = byte(0x21)
 	cmdGetTemperature          = byte(0x11)
+	cmdGetVolts                = byte(0x12)
 	cmdSetSpeed                = byte(0x23)
 	cmdFanMode                 = byte(0x28)
 	cmdWriteLedConfig          = byte(0x35)
@@ -186,6 +193,7 @@ var (
 		"watercolor",
 		"wave",
 	}
+	voltageRails = []string{"+12V", "+5V", "+3.3V"}
 )
 
 // Init will initialize a new device
@@ -225,6 +233,7 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 			3: "100 %",
 		},
 		RGBModes:         rgbModes,
+		RailVoltages:     make(map[int]*RailVoltage, 3),
 		autoRefreshChan:  make(chan struct{}),
 		speedRefreshChan: make(chan struct{}),
 		timer:            &time.Ticker{},
@@ -1592,6 +1601,19 @@ func (d *Device) getDeviceData() {
 			}
 		}
 		m++
+	}
+
+	// get the real power supply voltages
+	for i, rail := range voltageRails {
+		temp, e := d.transfer(cmdGetVolts, []byte{byte(i)})
+		if e != nil {
+			logger.Log(logger.Fields{"error": e, "rail": i, "rail_name": rail, "serial": d.Serial}).Error("Unable to read get volts")
+			continue
+		}
+
+		railVoltage := float32(binary.BigEndian.Uint16(temp[1:])) / 1000
+
+		d.RailVoltages[i] = &RailVoltage{Name: rail, Value: railVoltage}
 	}
 
 	// Update stats

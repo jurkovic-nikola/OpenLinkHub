@@ -10,6 +10,7 @@
     {{ $device := .Device }}
     {{ $rgbModes := .Device.RGBModes }}
     {{ $devices := $device.Devices }}
+    {{ $railVoltages := $device.RailVoltages }}
     {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $hubs := $device.DeviceProfile.ExternalHubs }}
     {{ $rgb := .Rgb }}
@@ -246,6 +247,31 @@
                             </div>
                         </div>
                         {{ end }}
+                        {{ end }}
+                    </div>
+
+                    <!-- Voltages -->
+                    <div class="row g-4 mb-4 align-items-start">
+                        {{ range $index, $rail := $railVoltages }}
+                        <div class="col-md-2">
+                            <div class="card system-card">
+                                <div class="card-header header-split">
+                                    <span class="header-left">
+                                        {{ $rail.Name }}
+                                    </span>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <!-- Voltage -->
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtVoltage" }}</span>
+                                            <span class="meta-value" id="railVoltage-{{$device.Serial}}-{{ $index }}">{{ $rail.Value }} V</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {{ end }}
                     </div>
                 </div>

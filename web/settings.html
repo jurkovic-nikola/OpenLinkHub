@@ -204,6 +204,14 @@
                                                    class="system-input system-time compact">
                                         </label>
                                     </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtLcdOffDuringDarkHours" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="lcdControl" {{ if .Scheduler.LCDControl }}checked{{end}}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
                                     <!-- Save profile -->
                                     <div class="settings-row">
                                         <button class="system-button saveRgbControl">{{ .Lang "txtSave" }}</button>

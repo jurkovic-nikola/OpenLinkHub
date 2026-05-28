@@ -115,6 +115,7 @@ type Payload struct {
 	RgbControl                    bool                  `json:"rgbControl"`
 	RgbOff                        string                `json:"rgbOff"`
 	RgbOn                         string                `json:"rgbOn"`
+	LcdControl                    bool                  `json:"lcdControl"`
 	Brightness                    uint8                 `json:"brightness"`
 	Position                      int                   `json:"position"`
 	Positions                     []string              `json:"positions"`
@@ -943,6 +944,57 @@ func ProcessLcdRotationChange(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdRotation"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessLcdBrightnessChange will process POST request from a client for LCD brightness change
+func ProcessLcdBrightnessChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Brightness > 100 {
+		return &Payload{Message: language.GetValue("txtInvalidLcdBrightness"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < -1 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateDeviceLcdBrightness",
+		req.ChannelId,
+		req.Brightness,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtLcdBrightnessChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtInvalidLcdBrightnessDevice"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeLcdBrightness"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessLcdImageChange will process POST request from a client for LCD image change
@@ -3361,7 +3413,7 @@ func ProcessChangeRgbScheduler(r *http.Request) *Payload {
 	}
 
 	// Run it
-	status := scheduler.UpdateRgbSettings(req.RgbControl, req.RgbOff, req.RgbOn)
+	status := scheduler.UpdateRgbSettings(req.RgbControl, req.RgbOff, req.RgbOn, req.LcdControl)
 	switch status {
 	case 1:
 		return &Payload{Message: language.GetValue("txtRgbSchedulerUpdated"), Code: http.StatusOK, Status: 1}

@@ -2989,6 +2989,36 @@ $(document).ready(function () {
         });
     });
 
+    $('.lcdBrightness').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const brightness = $(this).val().split(";");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(brightness[0]);
+        pf["brightness"] = parseInt(brightness[1]);
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/brightness',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.lcdImages').on('change', function () {
         const deviceId = $("#deviceId").val();
         const image = $(this).val().split(";");

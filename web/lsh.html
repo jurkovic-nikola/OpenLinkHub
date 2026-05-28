@@ -20,6 +20,7 @@
     {{ $rgbStrips := .Device.RGBStrips }}
     {{ $linkAdapters := .Device.LinkAdapter }}
     {{ $lcdRotations := .Device.LCDRotations }}
+    {{ $lcdBrightnessLevels := .Device.LCDBrightnessLevels }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
     <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
     <div class="row">
@@ -345,6 +346,7 @@
                                         {{ if and $lcd $device.ContainsPump }}
                                         {{ $lcdMode := index $deviceProfile.LCDModes $device.ChannelId }}
                                         {{ $lcdRotation := index $deviceProfile.LCDRotations $device.ChannelId }}
+                                        {{ $lcdBrightness := index $deviceProfile.LCDBrightness $device.ChannelId }}
                                         {{ $lcdDevs := index $deviceProfile.LCDDevices $device.ChannelId }}
                                         {{ $lcdImage := index $deviceProfile.LCDImages $device.ChannelId }}
 
@@ -397,6 +399,18 @@
                                                 <select class="form-select system-select compact max-width-100 lcdRotation" name="{{ $device.DeviceId }}">
                                                     {{ range $key, $value := $lcdRotations }}
                                                     <option value="{{ $device.ChannelId }};{{ $key }}"{{ if eq $key $lcdRotation }} selected {{ end }}>{{ $value }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+
+                                        <!-- LCD Brightness -->
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtLcdBrightness" }}</span>
+                                            <label>
+                                                <select class="form-select system-select compact max-width-100 lcdBrightness" name="{{ $device.DeviceId }}">
+                                                    {{ range $key, $value := $lcdBrightnessLevels }}
+                                                    <option value="{{ $device.ChannelId }};{{ $key }}"{{ if eq $key $lcdBrightness }} selected {{ end }}>{{ $value }}</option>
                                                     {{ end }}
                                                 </select>
                                             </label>

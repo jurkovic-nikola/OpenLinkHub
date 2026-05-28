@@ -87,11 +87,13 @@ $(document).ready(function () {
         const rgbControl = $("#rgbControl").is(':checked');
         const rgbOff = $("#rgbOff").val();
         const rgbOn = $("#rgbOn").val();
+        const lcdControl = $("#lcdControl").is(':checked');
 
         const pf = {};
         pf["rgbControl"] = rgbControl;
         pf["rgbOff"] = rgbOff;
         pf["rgbOn"] = rgbOn;
+        pf["lcdControl"] = lcdControl;
 
         const json = JSON.stringify(pf, null, 2);
         $.ajax({

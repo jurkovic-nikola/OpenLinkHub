@@ -257,6 +257,9 @@ var (
 	cmdResetLedPower            = []byte{0x15, 0x01}
 	cmdDeviceCommandCodes       = []byte{0x1e}
 	cmdDeviceCommandLeds        = []byte{0x1d}
+	cmdLcdPower                 = []byte{0x03, 0x19, 0x00, 0x01}
+	cmdLcdOff                   = []byte{0x03, 0x0b, 0x00, 0x01}
+	cmdLcdBrightness            = []byte{0x03, 0x0b, 0x64, 0x01}
 	modeGetLeds                 = []byte{0x20}
 	modeGetDevices              = []byte{0x36}
 	modeGetTemperatures         = []byte{0x21}
@@ -1928,14 +1931,14 @@ func (d *Device) setLcdBrightness() {
 			if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
 				if lcdDevice.Lcd != nil {
 					if brightness, ok := d.DeviceProfile.LCDBrightness[device.ChannelId]; ok {
-						lcdReport := []byte{0x03, 0x0b, brightness, 0x01}
+						lcdReport := append([]byte(nil), cmdLcdBrightness...)
+						lcdReport[2] = brightness
 						_, err := lcdDevice.Lcd.SendFeatureReport(lcdReport)
 						if err != nil {
 							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD brightness")
 						}
 						if brightness == 0 {
-							lcdOff := []byte{0x03, 0x19, 0x00, 0x01}
-							_, err = lcdDevice.Lcd.SendFeatureReport(lcdOff)
+							_, err = lcdDevice.Lcd.SendFeatureReport(cmdLcdOff)
 							if err != nil {
 								logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
 							}
@@ -2036,10 +2039,15 @@ func (d *Device) SchedulerLcdBrightness(value uint8) uint8 {
 			if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
 				if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
 					if lcdDevice.Lcd != nil {
-						lcdOff := []byte{0x03, 0x0b, 0x00, 0x01}
-						_, _ = lcdDevice.Lcd.SendFeatureReport(lcdOff)
-						lcdPower := []byte{0x03, 0x19, 0x00, 0x01}
-						_, _ = lcdDevice.Lcd.SendFeatureReport(lcdPower)
+						_, err := lcdDevice.Lcd.SendFeatureReport(cmdLcdOff)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
+						}
+
+						_, err = lcdDevice.Lcd.SendFeatureReport(cmdLcdPower)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
+						}
 					}
 				}
 			}

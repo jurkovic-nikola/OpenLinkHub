@@ -2098,6 +2098,13 @@ func (d *Device) getDeviceData() {
 		if d.Exit {
 			break
 		}
+		if s+2 > len(sensorData) {
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", sensorData), "amount": amount, "device": d.Product}).Info("corrupted packet detected")
+			}
+			continue
+		}
+
 		currentSensor := sensorData[s : s+2]
 		status := channels[6:][i]
 		if status == 0x07 {
@@ -2123,6 +2130,14 @@ func (d *Device) getDeviceData() {
 		if d.Exit {
 			break
 		}
+
+		if s+3 > len(sensorData) {
+			if d.Debug {
+				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", sensorData), "amount": amount, "device": d.Product}).Info("corrupted packet detected")
+			}
+			continue
+		}
+
 		currentSensor := sensorData[s : s+3]
 		status := currentSensor[0]
 		if status == 0x00 {

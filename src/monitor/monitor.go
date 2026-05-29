@@ -5,7 +5,6 @@ package monitor
 // License: GPL-3.0 or later
 
 import (
-	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices"
@@ -16,7 +15,6 @@ import (
 	"os"
 	"slices"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -31,20 +29,6 @@ const (
 
 // exclude list of device that are not supported via USB mode
 var exclude = []uint16{10752, 2666, 2710, 2659}
-
-// virtuosoXTFamily maps the wired-USB PID to its wireless-dongle PID.
-// PID 2658 (0x0a62) = VIRTUOSO XT wired USB cable  → PipeWire "USB Gaming Headset"
-// PID 2660 (0x0a64) = VIRTUOSO XT wireless dongle  → PipeWire "Wireless Gaming Receiver"
-// Both can be present simultaneously; plugging/unplugging the cable fires hotplug for 2658.
-var virtuosoXTFamily = map[uint16]uint16{
-	2658: 2660, // wired → wireless fallback PID
-}
-
-// pipewireNodeNames are the PipeWire sink description fragments for each PID's sink.
-var pipewireNodeNames = map[uint16]string{
-	2658: "USB Gaming Headset",
-	2660: "Wireless Gaming Receiver",
-}
 
 // longSleep list of devices that require 5+ seconds to finish booting up
 var longSleep = []uint16{7165, 7033}
@@ -206,7 +190,6 @@ func Init() {
 						}
 						logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
 						devices.InitManual(pid, serial)
-						switchHeadsetAudioSink(pid)
 					}
 				}
 				break
@@ -230,7 +213,6 @@ func Init() {
 							devices.StopDirty(serial, info.ProductID)
 							delete(cache, devPath)
 							openrgb.NotifyControllerChange(serial)
-							fallbackHeadsetAudioSink(info.ProductID)
 						}
 					}
 				}
@@ -239,54 +221,4 @@ func Init() {
 			time.Sleep(40 * time.Millisecond)
 		}
 	}()
-}
-
-// switchHeadsetAudioSink routes the virtual audio sink to the wired headset when it is plugged in.
-func switchHeadsetAudioSink(pid uint16) {
-	if _, ok := virtuosoXTFamily[pid]; !ok {
-		return
-	}
-	fragment, ok := pipewireNodeNames[pid]
-	if !ok {
-		return
-	}
-	routeAudioSinkByFragment(fragment)
-}
-
-// fallbackHeadsetAudioSink falls back to the wireless sink when the wired headset is removed.
-func fallbackHeadsetAudioSink(pid uint16) {
-	wirelessPID, ok := virtuosoXTFamily[pid]
-	if !ok {
-		return
-	}
-	fragment, ok := pipewireNodeNames[wirelessPID]
-	if !ok {
-		return
-	}
-	routeAudioSinkByFragment(fragment)
-}
-
-// routeAudioSinkByFragment finds the PipeWire sink whose name or description contains
-// the given fragment and sets it as the virtual audio target.
-func routeAudioSinkByFragment(fragment string) {
-	if !audio.GetAudio().Enabled {
-		return
-	}
-	for _, sink := range audio.GetSinks() {
-		if strings.Contains(sink.Name, fragment) || strings.Contains(sink.Desc, fragment) {
-			// Value copy so we don't mutate the live audio struct outside the mutex
-			current := *audio.GetAudio()
-			current.SinkSerial = int(sink.Serial)
-			current.SinkName = sink.Name
-			current.SinkDesc = sink.Desc
-			result := audio.UpdateTargetDevice(&current)
-			if result == 0 {
-				logger.Log(logger.Fields{"sink": sink.Name}).Warn("Unable to switch virtual audio sink")
-			} else {
-				logger.Log(logger.Fields{"sink": sink.Name}).Info("Virtual audio sink switched")
-			}
-			return
-		}
-	}
-	logger.Log(logger.Fields{"fragment": fragment}).Warn("No matching PipeWire sink found for headset auto-switch")
 }

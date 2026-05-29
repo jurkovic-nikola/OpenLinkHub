@@ -47,7 +47,6 @@ var (
 	cmdWriteColor              = []byte{0x06, 0x00}
 	cmdRead                    = []byte{0x08, 0x01}
 	cmdSetLedPorts             = []byte{0x1e}
-	cmdLcdBrightness           = []byte{0x03, 0x0b, 0x40, 0x01}
 	modeGetLeds                = []byte{0x20}
 	modeGetSpeeds              = []byte{0x17}
 	modeSetSpeed               = []byte{0x18}
@@ -225,7 +224,6 @@ type DeviceProfile struct {
 	LCDMode            uint8
 	LCDImage           string
 	LCDRotation        uint8
-	LCDBrightness      uint8
 	Brightness         uint8
 	BrightnessSlider   *uint8
 	OriginalBrightness uint8
@@ -276,51 +274,50 @@ type Devices struct {
 
 // Device struct contains primary device data
 type Device struct {
-	Debug               bool
-	dev                 *hid.Device
-	lcd                 *hid.Device
-	Manufacturer        string                    `json:"manufacturer"`
-	Product             string                    `json:"product"`
-	Serial              string                    `json:"serial"`
-	Path                string                    `json:"path"`
-	Firmware            string                    `json:"firmware"`
-	AIOType             string                    `json:"-"`
-	Devices             map[int]*Devices          `json:"devices"`
-	RgbDevices          map[int]*Devices          `json:"rgbDevices"`
-	UserProfiles        map[string]*DeviceProfile `json:"userProfiles"`
-	ExternalLedDevice   []ExternalLedDevice
-	DeviceProfile       *DeviceProfile
-	TemperatureProbes   *[]TemperatureProbe
-	activeRgb           *rgb.ActiveRGB
-	Template            string
-	HasLCD              bool
-	VendorId            uint16
-	LCDModes            map[int]string
-	LCDRotations        map[int]string
-	LCDBrightnessLevels map[int]string
-	Brightness          map[int]string
-	CpuTemp             float32
-	GpuTemp             float32
-	FreeLedPorts        map[int]string
-	FreeLedPortLEDs     map[int]string
-	Rgb                 *rgb.RGB
-	rgbMutex            sync.RWMutex
-	LCDImage            *lcd.ImageData
-	Exit                bool
-	mutex               sync.Mutex
-	mutexLcd            sync.Mutex
-	deviceLock          sync.Mutex
-	autoRefreshChan     chan struct{}
-	speedRefreshChan    chan struct{}
-	lcdRefreshChan      chan struct{}
-	lcdImageChan        chan struct{}
-	timer               *time.Ticker
-	timerSpeed          *time.Ticker
-	lcdTimer            *time.Ticker
-	internalLedDevices  map[int]*LedChannel
-	RGBModes            []string
-	queue               chan []byte
-	instance            *common.Device
+	Debug              bool
+	dev                *hid.Device
+	lcd                *hid.Device
+	Manufacturer       string                    `json:"manufacturer"`
+	Product            string                    `json:"product"`
+	Serial             string                    `json:"serial"`
+	Path               string                    `json:"path"`
+	Firmware           string                    `json:"firmware"`
+	AIOType            string                    `json:"-"`
+	Devices            map[int]*Devices          `json:"devices"`
+	RgbDevices         map[int]*Devices          `json:"rgbDevices"`
+	UserProfiles       map[string]*DeviceProfile `json:"userProfiles"`
+	ExternalLedDevice  []ExternalLedDevice
+	DeviceProfile      *DeviceProfile
+	TemperatureProbes  *[]TemperatureProbe
+	activeRgb          *rgb.ActiveRGB
+	Template           string
+	HasLCD             bool
+	VendorId           uint16
+	LCDModes           map[int]string
+	LCDRotations       map[int]string
+	Brightness         map[int]string
+	CpuTemp            float32
+	GpuTemp            float32
+	FreeLedPorts       map[int]string
+	FreeLedPortLEDs    map[int]string
+	Rgb                *rgb.RGB
+	rgbMutex           sync.RWMutex
+	LCDImage           *lcd.ImageData
+	Exit               bool
+	mutex              sync.Mutex
+	mutexLcd           sync.Mutex
+	deviceLock         sync.Mutex
+	autoRefreshChan    chan struct{}
+	speedRefreshChan   chan struct{}
+	lcdRefreshChan     chan struct{}
+	lcdImageChan       chan struct{}
+	timer              *time.Ticker
+	timerSpeed         *time.Ticker
+	lcdTimer           *time.Ticker
+	internalLedDevices map[int]*LedChannel
+	RGBModes           []string
+	queue              chan []byte
+	instance           *common.Device
 }
 
 /*
@@ -382,12 +379,6 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 			1: "90 degrees",
 			2: "180 degrees",
 			3: "270 degrees",
-		},
-		LCDBrightnessLevels: map[int]string{
-			1:  "Off",
-			04: "33 %",
-			16: "66 %",
-			64: "100 %",
 		},
 		Brightness: map[int]string{
 			0: "RGB Profile",
@@ -454,7 +445,6 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	}
 	d.setDeviceColor() // Device color
 	if d.HasLCD {
-		d.setLcdBrightness() // LCD backlight brightness
 		if d.DeviceProfile.LCDMode == lcd.DisplayImage {
 			if d.loadLcdImage() != 1 {
 				logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to load LCD image from profile")
@@ -541,12 +531,8 @@ func (d *Device) Stop() {
 		}
 		d.lcdTimer.Stop()
 
-		lcdReports := map[int][]byte{
-			0: {0x03, 0x1e, 0x01, 0x01},
-			1: {0x03, 0x1d, 0x00, 0x01},
-			2: {0x03, 0x0b, 0x40, 0x01},
-		}
-		for i := 0; i <= 2; i++ {
+		lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
+		for i := 0; i <= 1; i++ {
 			_, e := d.lcd.SendFeatureReport(lcdReports[i])
 			if e != nil {
 				logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
@@ -2112,13 +2098,6 @@ func (d *Device) getDeviceData() {
 		if d.Exit {
 			break
 		}
-		if s+2 > len(sensorData) {
-			if d.Debug {
-				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", sensorData), "amount": amount, "device": d.Product}).Info("corrupted packet detected")
-			}
-			continue
-		}
-
 		currentSensor := sensorData[s : s+2]
 		status := channels[6:][i]
 		if status == 0x07 {
@@ -2144,14 +2123,6 @@ func (d *Device) getDeviceData() {
 		if d.Exit {
 			break
 		}
-
-		if s+3 > len(sensorData) {
-			if d.Debug {
-				logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", sensorData), "amount": amount, "device": d.Product}).Info("corrupted packet detected")
-			}
-			continue
-		}
-
 		currentSensor := sensorData[s : s+3]
 		status := currentSensor[0]
 		if status == 0x00 {
@@ -2342,40 +2313,6 @@ func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
 	}
 }
 
-// UpdateDeviceLcdBrightness will update the LCD backlight brightness
-func (d *Device) UpdateDeviceLcdBrightness(channelId int, brightness uint8) uint8 {
-	if d.DeviceProfile == nil {
-		return 0
-	}
-
-	if d.HasLCD {
-		if _, ok := d.Devices[channelId]; ok {
-			d.DeviceProfile.LCDBrightness = brightness
-			d.saveDeviceProfile()
-			d.setLcdBrightness()
-			return 1
-		}
-	}
-	return 0
-}
-
-// setLcdBrightness sends the LCD backlight brightness command to the device
-func (d *Device) setLcdBrightness() {
-	if d.DeviceProfile == nil {
-		return
-	}
-
-	if d.HasLCD {
-		brightness := d.DeviceProfile.LCDBrightness
-		lcdReport := append([]byte(nil), cmdLcdBrightness...)
-		lcdReport[2] = brightness
-		_, err := d.lcd.SendFeatureReport(lcdReport)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Error("Unable to change LCD brightness")
-		}
-	}
-}
-
 // UpdateDeviceLcdRotation will update device LCD rotation
 func (d *Device) UpdateDeviceLcdRotation(_ int, rotation uint8) uint8 {
 	if d.HasLCD {
@@ -2435,29 +2372,6 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 			d.activeRgb = nil
 		}
 		d.setDeviceColor()
-	}
-	return 1
-}
-
-// SchedulerLcdBrightness will control LCD backlight brightness via scheduler.
-// It applies the change in hardware only without modifying the saved profile,
-// so the user's brightness preference is preserved for when the scheduler re-enables it.
-func (d *Device) SchedulerLcdBrightness(value uint8) uint8 {
-	if !d.HasLCD {
-		return 0
-	}
-	if value == 0 {
-		if d.lcd != nil {
-			lcdReport := append([]byte(nil), cmdLcdBrightness...)
-			lcdReport[2] = 0x01
-
-			_, err := d.lcd.SendFeatureReport(lcdReport)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
-			}
-		}
-	} else {
-		d.setLcdBrightness()
 	}
 	return 1
 }
@@ -3301,7 +3215,6 @@ func (d *Device) saveDeviceProfile() {
 		if d.HasLCD {
 			deviceProfile.LCDMode = 0
 			deviceProfile.LCDRotation = 0
-			deviceProfile.LCDBrightness = 64
 		}
 
 		deviceProfile.CustomLEDs = customLEDs
@@ -3309,11 +3222,6 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDImage = ""
 		d.DeviceProfile = deviceProfile
 	} else {
-		if d.DeviceProfile.LCDBrightness == 0 {
-			deviceProfile.LCDBrightness = 64
-		} else {
-			deviceProfile.LCDBrightness = d.DeviceProfile.LCDBrightness
-		}
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
 			d.DeviceProfile.BrightnessSlider = &defaultBrightness

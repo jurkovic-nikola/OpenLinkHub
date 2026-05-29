@@ -6,7 +6,6 @@ package inputmanager
 
 import (
 	"OpenLinkHub/src/config"
-	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/display"
 	"OpenLinkHub/src/logger"
@@ -646,14 +645,6 @@ func buildInputActions() {
 	inputActions[KeyControllerDpadDown] = InputAction{Name: "(Controller) D-Pad Down", CommandCode: btnControllerDpadDown, Controller: true}
 	inputActions[KeyControllerDpadLeft] = InputAction{Name: "(Controller) D-Pad Left", CommandCode: btnControllerDpadLeft, Controller: true}
 	inputActions[KeyControllerDpadRight] = InputAction{Name: "(Controller) D-Pad Right", CommandCode: btnControllerDpadRight, Controller: true}
-
-	if dashboard.GetDashboard().KeyboardLayout == 1 {
-		// AZERTY
-		inputActions[KeyQ] = InputAction{Name: "A", CommandCode: keyQ}
-		inputActions[KeyW] = InputAction{Name: "Z", CommandCode: keyW}
-		inputActions[KeyA] = InputAction{Name: "Q", CommandCode: keyA}
-		inputActions[KeyZ] = InputAction{Name: "W", CommandCode: keyZ}
-	}
 }
 
 // charToKey mapping

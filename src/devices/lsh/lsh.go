@@ -66,6 +66,7 @@ type DeviceProfile struct {
 	LCDImages            map[int]string
 	LCDRotations         map[int]uint8
 	LCDDevices           map[int]string
+	LCDBrightness        map[int]uint8
 	CommanderDuoOverride map[int]CommanderDuoOverride
 	MultiRGB             string
 	MultiProfile         string
@@ -202,6 +203,7 @@ type Device struct {
 	ProductId              uint16
 	LCDModes               map[int]string
 	LCDRotations           map[int]string
+	LCDBrightnessLevels    map[int]string
 	Brightness             map[int]string
 	RGBStrips              map[int]string
 	PortProtection         map[uint8]int
@@ -255,6 +257,9 @@ var (
 	cmdResetLedPower            = []byte{0x15, 0x01}
 	cmdDeviceCommandCodes       = []byte{0x1e}
 	cmdDeviceCommandLeds        = []byte{0x1d}
+	cmdLcdPower                 = []byte{0x03, 0x19, 0x00, 0x01}
+	cmdLcdOff                   = []byte{0x03, 0x0b, 0x00, 0x01}
+	cmdLcdBrightness            = []byte{0x03, 0x0b, 0x64, 0x01}
 	modeGetLeds                 = []byte{0x20}
 	modeGetDevices              = []byte{0x36}
 	modeGetTemperatures         = []byte{0x21}
@@ -380,6 +385,12 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 			2: "180 degrees",
 			3: "270 degrees",
 		},
+		LCDBrightnessLevels: map[int]string{
+			0:   "Off",
+			33:  "33 %",
+			66:  "66 %",
+			100: "100 %",
+		},
 		Brightness: map[int]string{
 			0: "RGB Profile",
 			1: "33 %",
@@ -440,9 +451,10 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	d.setDeviceColor()  // Device color
 	if d.HasLCD {
 		d.getLcdImages()
-		d.setLcdRotation() // LCD rotation
-		d.setupLCD()       // LCD
-		d.setupLCDImage()  // LCD images
+		d.setLcdRotation()   // LCD rotation
+		d.setLcdBrightness() // LCD backlight brightness
+		d.setupLCD()         // LCD
+		d.setupLCDImage()    // LCD images
 	}
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
@@ -646,8 +658,12 @@ func (d *Device) Stop() {
 
 	for _, lcdHidDevice := range d.lcdDevices {
 		if lcdHidDevice.Lcd != nil {
-			lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
-			for i := 0; i <= 1; i++ {
+			lcdReports := map[int][]byte{
+				0: {0x03, 0x1e, 0x01, 0x01},
+				1: {0x03, 0x1d, 0x00, 0x01},
+				2: {0x03, 0x0b, 0x64, 0x01},
+			}
+			for i := 0; i <= 2; i++ {
 				_, e := lcdHidDevice.Lcd.SendFeatureReport(lcdReports[i])
 				if e != nil {
 					logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
@@ -1030,6 +1046,7 @@ func (d *Device) saveDeviceProfile() {
 	lcdModes := make(map[int]uint8, len(d.Devices))
 	lcdImages := make(map[int]string, len(d.Devices))
 	lcdRotations := make(map[int]uint8, len(d.Devices))
+	lcdBrightness := make(map[int]uint8, len(d.Devices))
 	lcdDevices := make(map[int]string, len(d.Devices))
 	rgbOverride := make(map[int]map[int]RGBOverride, len(d.Devices))
 	rgbPerLed := make(map[int]map[int]map[int]rgb.Color, len(d.Devices))
@@ -1295,6 +1312,7 @@ func (d *Device) saveDeviceProfile() {
 			if device.ContainsPump || device.AIO {
 				lcdModes[device.ChannelId] = 0
 				lcdRotations[device.ChannelId] = 0
+				lcdBrightness[device.ChannelId] = 100
 				lcdImages[device.ChannelId] = ""
 			}
 			if device.IsCommanderDuo {
@@ -1324,6 +1342,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDModes = lcdModes
 		deviceProfile.LCDImages = lcdImages
 		deviceProfile.LCDRotations = lcdRotations
+		deviceProfile.LCDBrightness = lcdBrightness
 		deviceProfile.LCDDevices = lcdDevices
 		deviceProfile.RGBOverride = rgbOverride
 		deviceProfile.Positions = positions
@@ -1436,6 +1455,24 @@ func (d *Device) saveDeviceProfile() {
 				}
 			}
 			deviceProfile.LCDRotations = d.DeviceProfile.LCDRotations
+		}
+
+		if d.DeviceProfile.LCDBrightness == nil || len(d.DeviceProfile.LCDBrightness) == 0 {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					lcdBrightness[device.ChannelId] = 100
+				}
+			}
+			deviceProfile.LCDBrightness = lcdBrightness
+		} else {
+			for _, device := range d.Devices {
+				if device.ContainsPump || device.AIO {
+					if _, ok := d.DeviceProfile.LCDBrightness[device.ChannelId]; !ok {
+						d.DeviceProfile.LCDBrightness[device.ChannelId] = 100
+					}
+				}
+			}
+			deviceProfile.LCDBrightness = d.DeviceProfile.LCDBrightness
 		}
 
 		if d.DeviceProfile.LCDDevices == nil || len(d.DeviceProfile.LCDDevices) == 0 {
@@ -1877,6 +1914,49 @@ func (d *Device) UpdateDeviceLcdImage(channelId int, image string) uint8 {
 	}
 }
 
+// UpdateDeviceLcdBrightness will update the LCD backlight brightness
+func (d *Device) UpdateDeviceLcdBrightness(channelId int, brightness uint8) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.HasLCD {
+		if _, ok := d.DeviceProfile.LCDBrightness[channelId]; ok {
+			d.DeviceProfile.LCDBrightness[channelId] = brightness
+		}
+		d.saveDeviceProfile()
+		d.setLcdBrightness()
+		return 1
+	}
+	return 2
+}
+
+// setLcdBrightness sends the LCD backlight brightness command to the device
+func (d *Device) setLcdBrightness() {
+	for _, device := range d.Devices {
+		if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
+			if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
+				if lcdDevice.Lcd != nil {
+					if brightness, ok := d.DeviceProfile.LCDBrightness[device.ChannelId]; ok {
+						lcdReport := append([]byte(nil), cmdLcdBrightness...)
+						lcdReport[2] = brightness
+						_, err := lcdDevice.Lcd.SendFeatureReport(lcdReport)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to change LCD brightness")
+						}
+						if brightness == 0 {
+							_, err = lcdDevice.Lcd.SendFeatureReport(cmdLcdOff)
+							if err != nil {
+								logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 // setLcdRotation will change LCD rotation
 func (d *Device) setLcdRotation() {
 	for _, device := range d.Devices {
@@ -1950,6 +2030,37 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 			d.activeRgb = nil
 		}
 		d.setDeviceColor()
+	}
+	return 1
+}
+
+// SchedulerLcdBrightness will control LCD backlight brightness via scheduler.
+// It applies the change in hardware only without modifying the saved profile,
+// so the user's brightness preference is preserved for when the scheduler re-enables it.
+func (d *Device) SchedulerLcdBrightness(value uint8) uint8 {
+	if !d.HasLCD {
+		return 0
+	}
+	if value == 0 {
+		for _, device := range d.Devices {
+			if len(device.LCDSerial) > 0 && (device.AIO || device.ContainsPump) {
+				if lcdDevice, ok := d.lcdDevices[device.LCDSerial]; ok {
+					if lcdDevice.Lcd != nil {
+						_, err := lcdDevice.Lcd.SendFeatureReport(cmdLcdOff)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
+						}
+
+						_, err = lcdDevice.Lcd.SendFeatureReport(cmdLcdPower)
+						if err != nil {
+							logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "productId": d.ProductId, "serial": d.Serial}).Error("Unable to turn off LCD backlight")
+						}
+					}
+				}
+			}
+		}
+	} else {
+		d.setLcdBrightness()
 	}
 	return 1
 }

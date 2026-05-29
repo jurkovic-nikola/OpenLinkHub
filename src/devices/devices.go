@@ -261,6 +261,13 @@ func ScheduleDeviceBrightness(mode uint8) {
 	}
 }
 
+// ScheduleDeviceLcdBrightness will change LCD backlight brightness based on scheduler
+func ScheduleDeviceLcdBrightness(mode uint8) {
+	for _, device := range GetDevices() {
+		CallDeviceMethod(device.Serial, "SchedulerLcdBrightness", mode)
+	}
+}
+
 // ControlDeviceRgb will disable / enable device RGB
 func ControlDeviceRgb(mode bool) {
 	for _, device := range GetDevices() {

@@ -87,11 +87,13 @@ $(document).ready(function () {
         const rgbControl = $("#rgbControl").is(':checked');
         const rgbOff = $("#rgbOff").val();
         const rgbOn = $("#rgbOn").val();
+        const lcdControl = $("#lcdControl").is(':checked');
 
         const pf = {};
         pf["rgbControl"] = rgbControl;
         pf["rgbOff"] = rgbOff;
         pf["rgbOn"] = rgbOn;
+        pf["lcdControl"] = lcdControl;
 
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
@@ -369,6 +371,7 @@ $(document).ready(function () {
             const v_checkboxRgbOff = checkboxRgbOff.is(':checked');
             const v_languageCode = $("#userLanguage").val();
             const v_theme = $("#theme").val();
+            const v_keyboardLayout = $("#keyboardLayout").val();
 
             const pf = {};
             pf["showCpu"] = v_checkboxCpu;
@@ -383,6 +386,7 @@ $(document).ready(function () {
             pf["rgbOff"] = v_checkboxRgbOff;
             pf["languageCode"] = v_languageCode;
             pf["theme"] = v_theme;
+            pf["keyboardLayout"] = parseInt(v_keyboardLayout);
 
             const json = JSON.stringify(pf, null, 2);
 

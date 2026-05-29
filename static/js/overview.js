@@ -715,29 +715,39 @@ $(document).ready(function () {
                             $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                         } else {
                             let url = '';
-                            let sniper = false;
+                            let mouseDevice = false;
                             switch (data.actionType) {
                                 case 1: {
                                     url = '/api/input/media';
                                 }
-                                    break;
+                                break;
+                                case 2: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 3: {
                                     url = '/api/input/keyboard';
                                 }
-                                    break;
+                                break;
+                                case 4: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 8: {
                                     url = '/api/devices/mouse';
-                                    sniper = true;
+                                    mouseDevice = true;
                                 }
-                                    break;
+                                break;
                                 case 9: {
                                     url = '/api/input/mouse';
                                 }
-                                    break;
+                                break;
                                 case 10: {
                                     url = '/api/macro/';
                                 }
-                                    break;
+                                break;
                             }
 
                             $.ajax({
@@ -747,7 +757,7 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $.each(result.data, function( index, value ) {
                                         const displayName = value.Name || value.name;
-                                        if (sniper) {
+                                        if (mouseDevice) {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
                                         } else {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
@@ -777,7 +787,20 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 2: { // DPI Up
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 3: { // Keyboard
                                     $.ajax({
                                         url:'/api/input/keyboard',
@@ -790,7 +813,20 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 4: { // DPI Down
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 8: { // Sniper
                                     $.ajax({
                                         url:'/api/devices/mouse',
@@ -803,7 +839,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                                 case 9: { // Mouse
                                     $.ajax({
                                         url:'/api/input/mouse',
@@ -816,7 +852,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                                 case 10: { // Macro
                                     $.ajax({
                                         url:'/api/macro/',
@@ -829,7 +865,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                             }
                         });
 
@@ -932,7 +968,11 @@ $(document).ready(function () {
                                 pf["enabled"] = enabled;
                                 pf["pressAndHold"] = pressAndHold;
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-                                if (parseInt(keyAssignmentType) === 8) {
+                                if (
+                                    parseInt(keyAssignmentType) === 8 ||
+                                    parseInt(keyAssignmentType) === 2 ||
+                                    parseInt(keyAssignmentType) === 4
+                                ) {
                                     pf["keyAssignmentValueString"] = keyAssignmentValue;
                                 } else {
                                     pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
@@ -1369,29 +1409,39 @@ $(document).ready(function () {
                             $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                         } else {
                             let url = '';
-                            let sniper = false;
+                            let mouseDevice = false;
                             switch (data.actionType) {
                                 case 1: {
                                     url = '/api/input/media';
                                 }
-                                    break;
+                                break;
+                                case 2: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 3: {
                                     url = '/api/input/keyboard';
                                 }
-                                    break;
+                                break;
+                                case 4: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 8: {
                                     url = '/api/devices/mouse';
-                                    sniper = true;
+                                    mouseDevice = true;
                                 }
-                                    break;
+                                break;
                                 case 9: {
                                     url = '/api/input/mouse';
                                 }
-                                    break;
+                                break;
                                 case 10: {
                                     url = '/api/macro/';
                                 }
-                                    break;
+                                break;
                             }
 
                             $.ajax({
@@ -1401,7 +1451,7 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $.each(result.data, function( index, value ) {
                                         const displayName = value.Name || value.name;
-                                        if (sniper) {
+                                        if (mouseDevice) {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
                                         } else {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
@@ -1418,7 +1468,7 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                                 }
-                                    break;
+                                break;
                                 case 1: { // Media keys
                                     $.ajax({
                                         url:'/api/input/media',
@@ -1431,7 +1481,20 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 2: { // DPI Up
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 3: { // Keyboard
                                     $.ajax({
                                         url:'/api/input/keyboard',
@@ -1444,7 +1507,20 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 4: { // DPI Down
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 8: { // Sniper
                                     $.ajax({
                                         url:'/api/devices/mouse',
@@ -1457,7 +1533,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                                 case 9: { // Mouse
                                     $.ajax({
                                         url:'/api/input/mouse',
@@ -1470,7 +1546,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                                 case 10: { // Macro
                                     $.ajax({
                                         url:'/api/macro/',
@@ -1483,7 +1559,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                             }
                         });
 
@@ -1613,7 +1689,11 @@ $(document).ready(function () {
                                 pf["keyAssignmentOriginal"] = retainOriginal;
                                 pf["keyAssignmentModifier"] = parseInt(keyAssignmentModifier);
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-                                if (parseInt(keyAssignmentType) === 8) {
+                                if (
+                                    parseInt(keyAssignmentType) === 8 ||
+                                    parseInt(keyAssignmentType) === 2 ||
+                                    parseInt(keyAssignmentType) === 4
+                                ) {
                                     pf["keyAssignmentValueString"] = keyAssignmentValue;
                                 } else {
                                     pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
@@ -2978,6 +3058,36 @@ $(document).ready(function () {
 
         $.ajax({
             url: '/api/lcd/rotation',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.lcdBrightness').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const brightness = $(this).val().split(";");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(brightness[0]);
+        pf["brightness"] = parseInt(brightness[1]);
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/brightness',
             type: 'POST',
             data: json,
             cache: false,

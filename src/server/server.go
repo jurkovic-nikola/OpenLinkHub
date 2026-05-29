@@ -1025,6 +1025,17 @@ func setDeviceLcdRotation(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceLcdBrightness handles device LCD brightness changes
+func setDeviceLcdBrightness(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdBrightnessChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceLcdImage handles device LCD image changes
 func setDeviceLcdImage(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLcdImageChange(r)
@@ -2556,6 +2567,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/lcd", http.MethodPost, setDeviceLcd)
 	handleFunc(r, "/api/lcd/device", http.MethodPost, changeDeviceLcd)
 	handleFunc(r, "/api/lcd/rotation", http.MethodPost, setDeviceLcdRotation)
+	handleFunc(r, "/api/lcd/brightness", http.MethodPost, setDeviceLcdBrightness)
 	handleFunc(r, "/api/lcd/profile", http.MethodPost, setDeviceLcdProfile)
 	handleFunc(r, "/api/lcd/image", http.MethodPost, setDeviceLcdImage)
 	handleFunc(r, "/api/brightness", http.MethodPost, changeBrightness)

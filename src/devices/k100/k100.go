@@ -231,7 +231,9 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		KeyAssignmentTypes: map[int]string{
 			0:  "None",
 			1:  "Media Keys",
+			2:  "DPI +",
 			3:  "Keyboard",
+			4:  "DPI -",
 			8:  "Sniper",
 			9:  "Mouse",
 			10: "Macro",
@@ -2342,8 +2344,18 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 			if key.ActionHold {
 				d.KeyboardKey = key
 			}
-			if d.dispatch != nil && len(d.KeyboardKey.DeviceId) > 0 {
+			if d.dispatch != nil && len(key.DeviceId) > 0 {
 				d.dispatch(key.DeviceId, "CallSniperMode", key.ActionHold)
+			}
+			break
+		case 2:
+			if d.dispatch != nil && len(key.DeviceId) > 0 {
+				d.dispatch(key.DeviceId, "ModifyDpi", true)
+			}
+			break
+		case 4:
+			if d.dispatch != nil && len(key.DeviceId) > 0 {
+				d.dispatch(key.DeviceId, "ModifyDpi", false)
 			}
 			break
 		case 9:

@@ -1508,7 +1508,7 @@ $(document).ready(function () {
                                     });
                                 }
                                 break;
-                                case 4: { // DPI Up
+                                case 4: { // DPI Down
                                     $.ajax({
                                         url:'/api/devices/mouse',
                                         type:'get',

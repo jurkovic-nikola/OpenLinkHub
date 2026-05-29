@@ -658,8 +658,12 @@ func (d *Device) Stop() {
 
 	for _, lcdHidDevice := range d.lcdDevices {
 		if lcdHidDevice.Lcd != nil {
-			lcdReports := map[int][]byte{0: {0x03, 0x1e, 0x01, 0x01}, 1: {0x03, 0x1d, 0x00, 0x01}}
-			for i := 0; i <= 1; i++ {
+			lcdReports := map[int][]byte{
+				0: {0x03, 0x1e, 0x01, 0x01},
+				1: {0x03, 0x1d, 0x00, 0x01},
+				2: {0x03, 0x0b, 0x64, 0x01},
+			}
+			for i := 0; i <= 2; i++ {
 				_, e := lcdHidDevice.Lcd.SendFeatureReport(lcdReports[i])
 				if e != nil {
 					logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
@@ -1912,6 +1916,10 @@ func (d *Device) UpdateDeviceLcdImage(channelId int, image string) uint8 {
 
 // UpdateDeviceLcdBrightness will update the LCD backlight brightness
 func (d *Device) UpdateDeviceLcdBrightness(channelId int, brightness uint8) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
 	if d.HasLCD {
 		if _, ok := d.DeviceProfile.LCDBrightness[channelId]; ok {
 			d.DeviceProfile.LCDBrightness[channelId] = brightness
@@ -1919,9 +1927,8 @@ func (d *Device) UpdateDeviceLcdBrightness(channelId int, brightness uint8) uint
 		d.saveDeviceProfile()
 		d.setLcdBrightness()
 		return 1
-	} else {
-		return 2
 	}
+	return 2
 }
 
 // setLcdBrightness sends the LCD backlight brightness command to the device

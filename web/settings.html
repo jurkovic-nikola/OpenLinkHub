@@ -121,6 +121,22 @@
                                         </label>
                                     </div>
 
+                                    <!-- Style -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtKeyboardLayout" }}</span>
+                                        <label for="theme">
+                                            <select id="keyboardLayout" class="form-select system-select auto-width compact theme">
+                                                {{ range $k, $v := .Dashboard.KeyboardLayouts }}
+                                                {{ if eq $dash.KeyboardLayout $k }}
+                                                <option value="{{ $k }}" selected>{{ $v }}</option>
+                                                {{ else }}
+                                                <option value="{{ $k }}">{{ $v }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
                                     <!-- Save settings -->
                                     <div class="settings-row">
                                         <button class="system-button" id="btnSaveDashboardSettings">{{ .Lang "txtSave" }}</button>

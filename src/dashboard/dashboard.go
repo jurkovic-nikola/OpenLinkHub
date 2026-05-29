@@ -17,23 +17,25 @@ import (
 )
 
 type Dashboard struct {
-	ShowCpu              bool     `json:"showCpu"`
-	ShowDisk             bool     `json:"showDisk"`
-	ShowGpu              bool     `json:"showGpu"`
-	ShowDevices          bool     `json:"showDevices"`
-	VerticalUi           bool     `json:"verticalUi"`
-	Celsius              bool     `json:"celsius"`
-	ShowLabels           bool     `json:"showLabels"`
-	ShowBattery          bool     `json:"showBattery"`
-	RgbOff               bool     `json:"rgbOff"`
-	TemperatureBar       bool     `json:"temperatureBar"`
-	AddDeviceToDashboard bool     `json:"addDeviceToDashboard"`
-	SidebarCollapsed     bool     `json:"sidebarCollapsed"`
-	LanguageCode         string   `json:"languageCode"`
-	PageTitle            string   `json:"pageTitle"`
-	Devices              []string `json:"devices"`
-	Theme                string   `json:"theme"`
-	Themes               []string `json:"themes"`
+	ShowCpu              bool           `json:"showCpu"`
+	ShowDisk             bool           `json:"showDisk"`
+	ShowGpu              bool           `json:"showGpu"`
+	ShowDevices          bool           `json:"showDevices"`
+	VerticalUi           bool           `json:"verticalUi"`
+	Celsius              bool           `json:"celsius"`
+	ShowLabels           bool           `json:"showLabels"`
+	ShowBattery          bool           `json:"showBattery"`
+	RgbOff               bool           `json:"rgbOff"`
+	TemperatureBar       bool           `json:"temperatureBar"`
+	AddDeviceToDashboard bool           `json:"addDeviceToDashboard"`
+	SidebarCollapsed     bool           `json:"sidebarCollapsed"`
+	LanguageCode         string         `json:"languageCode"`
+	PageTitle            string         `json:"pageTitle"`
+	Devices              []string       `json:"devices"`
+	Theme                string         `json:"theme"`
+	Themes               []string       `json:"themes"`
+	KeyboardLayout       int            `json:"keyboardLayout"`
+	KeyboardLayouts      map[int]string `json:"keyboardLayouts"`
 }
 
 var (
@@ -51,6 +53,8 @@ var (
 		"sidebarCollapsed":     false,
 		"devices":              []string{},
 		"theme":                "default",
+		"keyboardLayout":       0,
+		"keyboardLayouts":      map[int]string{0: "QWERTY", 1: "AZERTY"},
 	}
 )
 
@@ -102,6 +106,8 @@ func upgradeFile() {
 			PageTitle:            "OPENLINKHUB WebUI",
 			Devices:              []string{},
 			Theme:                "default",
+			KeyboardLayout:       0,
+			KeyboardLayouts:      map[int]string{0: "QWERTY", 1: "AZERTY"},
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")

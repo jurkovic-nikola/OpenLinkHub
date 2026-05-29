@@ -3286,6 +3286,14 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 		}
 	}
 
+	if req.KeyboardLayout < 0 || req.KeyboardLayout > 1 {
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
 	dash := dashboard.GetDashboard()
 	dash.Celsius = req.Celsius
 	dash.TemperatureBar = req.TemperatureBar
@@ -3293,6 +3301,7 @@ func ProcessDashboardSettingsChange(r *http.Request) *Payload {
 	dash.LanguageCode = req.LanguageCode
 	dash.ShowLabels = req.ShowLabels
 	dash.Theme = req.Theme
+	dash.KeyboardLayout = req.KeyboardLayout
 
 	if dash.RgbOff != req.RgbOff {
 		devices.ControlDeviceRgb(req.RgbOff)

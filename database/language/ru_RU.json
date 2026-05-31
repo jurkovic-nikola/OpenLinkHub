@@ -632,6 +632,8 @@
         "txtMousePositionX": "Положение мыши X",
         "txtMousePositionY": "Положение мыши Y",
         "txtInvalidMousePosition": "Недопустимое положение мыши",
-        "txtXeneonEdgeUnavailable": "Xeneon Edge недоступен"
+        "txtXeneonEdgeUnavailable": "Xeneon Edge недоступен",
+    "txtApplyColorToAll": "Apply color to all devices",
+    "txtApplyToAll": "Apply to all"
     }
 }

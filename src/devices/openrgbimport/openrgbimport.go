@@ -224,6 +224,12 @@ func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *D
 			{Name: "24 Pin ATX Strip 3", LedCount: 20},
 			{Name: "24 Pin ATX Strip 4", LedCount: 20},
 			{Name: "24 Pin ATX Strip 5", LedCount: 20},
+			{Name: "8 Pin GPU Strip 0", LedCount: 27},
+			{Name: "8 Pin GPU Strip 1", LedCount: 27},
+			{Name: "8 Pin GPU Strip 2", LedCount: 27},
+			{Name: "8 Pin GPU Strip 3", LedCount: 27},
+			{Name: "8 Pin GPU Strip 4", LedCount: 27},
+			{Name: "8 Pin GPU Strip 5", LedCount: 27},
 		}
 		return cfg
 	}

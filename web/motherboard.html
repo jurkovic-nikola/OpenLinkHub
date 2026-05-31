@@ -40,11 +40,21 @@
                                     </div>
 
                                     <div class="settings-row">
-                                        <span class="settings-label text-ellipsis">OpenRGB</span>
+                                        <span class="settings-label text-ellipsis">OpenRGB Link</span>
                                         <label class="system-toggle compact">
-                                            <input type="checkbox" checked disabled>
+                                            <input type="checkbox" id="openrgbToggleCheck" checked disabled>
                                             <span class="toggle-track"></span>
                                         </label>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Connection Status</span>
+                                        <span class="meta-value openrgbStatusText">Loading...</span>
+                                    </div>
+
+                                    <div class="settings-row d-none openrgbErrorRow">
+                                        <span class="settings-label text-ellipsis" style="color: #ff5b5b;">Connection Error</span>
+                                        <span class="meta-value openrgbErrorText" style="color: #ff5b5b; font-size: 11px; white-space: normal; word-break: break-word; text-align: right;"></span>
                                     </div>
 
                                     <div class="settings-row">
@@ -181,11 +191,21 @@
                                     </div>
 
                                     <div class="settings-row">
-                                        <span class="settings-label text-ellipsis">OpenRGB</span>
+                                        <span class="settings-label text-ellipsis">OpenRGB Link</span>
                                         <label class="system-toggle compact">
-                                            <input type="checkbox" checked disabled>
+                                            <input type="checkbox" id="openrgbToggleCheck" checked disabled>
                                             <span class="toggle-track"></span>
                                         </label>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Connection Status</span>
+                                        <span class="meta-value openrgbStatusText">Loading...</span>
+                                    </div>
+
+                                    <div class="settings-row d-none openrgbErrorRow">
+                                        <span class="settings-label text-ellipsis" style="color: #ff5b5b;">Connection Error</span>
+                                        <span class="meta-value openrgbErrorText" style="color: #ff5b5b; font-size: 11px; white-space: normal; word-break: break-word; text-align: right;"></span>
                                     </div>
 
                                     <div class="settings-row">
@@ -460,6 +480,51 @@ document.addEventListener('DOMContentLoaded', function () {
     if (saveZoneConfigBtn) {
         saveZoneConfigBtn.addEventListener('click', saveZoneConfig);
     }
+
+    async function updateOpenRGBStatus() {
+        try {
+            const res = await fetch('/api/openrgb/status');
+            if (res.ok) {
+                const body = await res.json();
+                if (body && body.data) {
+                    const state = body.data.state;
+                    const error = body.data.error;
+
+                    const statusTexts = document.querySelectorAll('.openrgbStatusText');
+                    const errorRows = document.querySelectorAll('.openrgbErrorRow');
+                    const errorTexts = document.querySelectorAll('.openrgbErrorText');
+                    const toggleChecks = document.querySelectorAll('#openrgbToggleCheck');
+
+                    statusTexts.forEach(el => {
+                        el.textContent = state;
+                        if (state === 'Connected') {
+                            el.style.color = '#5eff5e';
+                        } else if (state === 'Offline') {
+                            el.style.color = '#ff5b5b';
+                        } else {
+                            el.style.color = '#e2a300';
+                        }
+                    });
+
+                    toggleChecks.forEach(el => {
+                        el.checked = (state === 'Connected');
+                    });
+
+                    if (error && state === 'Offline') {
+                        errorRows.forEach(el => el.classList.remove('d-none'));
+                        errorTexts.forEach(el => el.textContent = error);
+                    } else {
+                        errorRows.forEach(el => el.classList.add('d-none'));
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch OpenRGB status', err);
+        }
+    }
+
+    updateOpenRGBStatus();
+    setInterval(updateOpenRGBStatus, 5000);
 
 });
 </script>

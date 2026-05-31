@@ -228,6 +228,25 @@ func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *D
 		return cfg
 	}
 
+	if len(dc.Zones) > 0 {
+		cfg.Zones = make([]ZoneConfig, len(dc.Zones))
+		for i, z := range dc.Zones {
+			name := strings.TrimSpace(z.Name)
+			if name == "" {
+				name = fmt.Sprintf("Zone %d", i+1)
+			}
+			ledCount := z.LEDCount
+			if ledCount <= 0 {
+				ledCount = 1
+			}
+			cfg.Zones[i] = ZoneConfig{
+				Name:     name,
+				LedCount: ledCount,
+			}
+		}
+		return cfg
+	}
+
 	cfg.Zones = []ZoneConfig{
 		{Name: "Zone 1", LedCount: 1},
 	}
@@ -495,11 +514,58 @@ func Init() *common.Device {
 	return d.instance
 }
 
+func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
+	colorCount := configLedCount(&cfg)
+	productName := "Imported OpenRGB Device"
+	if serial == "openrgb-mobo-1" {
+		productName = "Imported ASUS Motherboard"
+	}
+
+	d := &Device{
+		Product:            productName,
+		Serial:             serial,
+		DisplaySerial:      "",
+		DisplaySerialLabel: "",
+		controllerId:       -1,
+		colorCount:         colorCount,
+		brightness:         100,
+		lastColor:          []byte{99, 213, 255},
+		effect:             "static",
+		speed:              2.0,
+		stopChan:           nil,
+		doneChan:           nil,
+		running:            false,
+		Config:             &cfg,
+		ZoneAmount:         len(cfg.Zones),
+	}
+
+	defaultBrightness := uint8(100)
+	d.DeviceProfile = &DeviceProfile{
+		RGBProfile:       "static",
+		BrightnessSlider: &defaultBrightness,
+		ZoneColors:       buildZoneColorsFromConfig(&cfg, d.lastColor),
+	}
+
+	return d
+}
+
 func InitAll() []*common.Device {
 	discovered, err := openrgb.DiscoverControllers()
 	if err != nil {
-		// Preserve legacy single-motherboard behavior on discovery failure.
-		return []*common.Device{Init()}
+		store := loadConfigStore()
+		var result []*common.Device
+		for serial, cfg := range store.Devices {
+			d := newOfflineDevice(serial, cfg)
+			d.createDevice()
+			d.instance.Unavailable = true
+			result = append(result, d.instance)
+		}
+		if len(result) == 0 {
+			dev := Init()
+			dev.Unavailable = true
+			result = append(result, dev)
+		}
+		return result
 	}
 
 	result := make([]*common.Device, 0, len(discovered))

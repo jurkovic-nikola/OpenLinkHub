@@ -46,6 +46,7 @@ type Device struct {
 	Hidden      bool
 	DeviceType  uint32
 	ProductId   uint16
+	Unavailable bool `json:"unavailable,omitempty"`
 }
 
 type KeyboardPerformance struct {

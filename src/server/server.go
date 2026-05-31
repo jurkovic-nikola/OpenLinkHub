@@ -17,6 +17,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
 	"OpenLinkHub/src/metrics"
+	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server/requests"
@@ -83,6 +84,30 @@ func homePage(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
 		Device: devices.GetDevices(),
+	}
+	resp.Send(w)
+}
+
+// getOpenRGBStatus returns OpenRGB connection state and last error if any
+func getOpenRGBStatus(w http.ResponseWriter, _ *http.Request) {
+	state, err := openrgb.GetStatus()
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+
+	type openRGBStatus struct {
+		State string `json:"state"`
+		Error string `json:"error,omitempty"`
+	}
+
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data: openRGBStatus{
+			State: string(state),
+			Error: errMsg,
+		},
 	}
 	resp.Send(w)
 }
@@ -2658,6 +2683,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
 	handleFunc(r, "/api/keyboard/dial/getColors/", http.MethodGet, getControlDialColors)
 	handleFunc(r, "/api/getSupportedDevices", http.MethodGet, getSupportedDevices)
+	handleFunc(r, "/api/openrgb/status", http.MethodGet, getOpenRGBStatus)
 	handleFunc(r, "/api/backup", http.MethodGet, backup.PerformBackup)
 	handleFunc(r, "/api/position/", http.MethodGet, getPositionData)
 	handleFunc(r, "/api/headset/getEqualizers/", http.MethodGet, getEqualizers)

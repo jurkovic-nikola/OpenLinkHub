@@ -5,7 +5,6 @@ package devices
 // License: GPL-3.0 or later
 
 import (
-	"OpenLinkHub/src/devices/openrgbimport"
 	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -86,6 +85,7 @@ import (
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/nightswordrgb"
+	"OpenLinkHub/src/devices/openrgbimport"
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psudongle"
 	"OpenLinkHub/src/devices/psuhid"
@@ -415,6 +415,7 @@ func GetDevicesEx() map[string]*common.Device {
 			Serial:      device.Serial,
 			GetDevice:   device.GetDevice,
 			Hidden:      device.Hidden,
+			Unavailable: device.Unavailable,
 		}
 	}
 	return out

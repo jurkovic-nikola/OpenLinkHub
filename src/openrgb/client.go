@@ -1,13 +1,54 @@
 package openrgb
 
 import (
+	"OpenLinkHub/src/config"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
 	"strings"
+	"sync"
+	"time"
 )
+
+type ConnectionState string
+
+const (
+	StateConnected     ConnectionState = "Connected"
+	StateOffline       ConnectionState = "Offline"
+	StateNotConfigured ConnectionState = "Not Configured"
+)
+
+var (
+	statusMutex   sync.RWMutex
+	currentStatus ConnectionState = StateOffline
+	lastError     error
+)
+
+func GetStatus() (ConnectionState, error) {
+	statusMutex.RLock()
+	defer statusMutex.RUnlock()
+	return currentStatus, lastError
+}
+
+func setStatus(state ConnectionState, err error) {
+	statusMutex.Lock()
+	defer statusMutex.Unlock()
+	currentStatus = state
+	lastError = err
+}
+
+var startMonitorOnce sync.Once
+
+func startMonitorLoop() {
+	go func() {
+		for {
+			time.Sleep(15 * time.Second)
+			_ = HealthCheck()
+		}
+	}()
+}
 
 const (
 	opcodeRequestControllerCount uint32 = 0
@@ -124,7 +165,19 @@ func readORGBString(data []byte, offset *int) (string, error) {
 }
 
 func dial() (net.Conn, error) {
-	return net.Dial("tcp", "127.0.0.1:6742")
+	port := config.GetConfig().OpenRGBPort
+	if port <= 0 {
+		err := fmt.Errorf("OpenRGB port is not configured")
+		setStatus(StateNotConfigured, err)
+		return nil, err
+	}
+	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		setStatus(StateOffline, err)
+		return nil, err
+	}
+	setStatus(StateConnected, nil)
+	return conn, nil
 }
 
 func HealthCheck() error {
@@ -136,25 +189,32 @@ func HealthCheck() error {
 
 	packet := new(bytes.Buffer)
 	if err := writeHeader(packet, 0, opcodeRequestControllerCount, 0); err != nil {
+		setStatus(StateOffline, err)
 		return err
 	}
 	if _, err := conn.Write(packet.Bytes()); err != nil {
+		setStatus(StateOffline, err)
 		return err
 	}
 
 	_, _, size, err := readHeader(conn)
 	if err != nil {
+		setStatus(StateOffline, err)
 		return err
 	}
 
 	payload, err := readPayload(conn, size)
 	if err != nil {
+		setStatus(StateOffline, err)
 		return err
 	}
 	if len(payload) < 4 {
-		return fmt.Errorf("controller count payload too short")
+		err := fmt.Errorf("controller count payload too short")
+		setStatus(StateOffline, err)
+		return err
 	}
 
+	setStatus(StateConnected, nil)
 	return nil
 }
 
@@ -622,6 +682,7 @@ func isImportableController(name, vendor string, ledCount int) bool {
 }
 
 func DiscoverControllers() ([]DiscoveredController, error) {
+	startMonitorOnce.Do(startMonitorLoop)
 	conn, err := dial()
 	if err != nil {
 		return nil, err
@@ -746,7 +807,20 @@ func SendColor(controllerId uint32, colorCount int, rgb []byte) error {
 		}
 	}
 
-	const opcodeUpdateSingleLED uint32 = 1052
+	packet := new(bytes.Buffer)
+	payloadSize := uint32(4 + 2 + colorCount*4)
+	if err := writeHeader(packet, controllerId, opcodeUpdateLeds, payloadSize); err != nil {
+		return err
+	}
+
+	dataSize := payloadSize
+	if err := binary.Write(packet, binary.LittleEndian, dataSize); err != nil {
+		return err
+	}
+
+	if err := binary.Write(packet, binary.LittleEndian, uint16(colorCount)); err != nil {
+		return err
+	}
 
 	color := []byte{0, 0, 0, 0}
 	if len(rgb) >= 3 {
@@ -756,26 +830,13 @@ func SendColor(controllerId uint32, colorCount int, rgb []byte) error {
 	}
 
 	for i := 0; i < colorCount; i++ {
-		packet := new(bytes.Buffer)
-
-		if err := writeHeader(packet, controllerId, opcodeUpdateSingleLED, 8); err != nil {
-			return err
-		}
-
-		if err := binary.Write(packet, binary.LittleEndian, uint32(i)); err != nil {
-			return err
-		}
-
 		if _, err := packet.Write(color); err != nil {
-			return err
-		}
-
-		if _, err := conn.Write(packet.Bytes()); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	_, err = conn.Write(packet.Bytes())
+	return err
 }
 
 func SendFrame(controllerId uint32, frame []byte) error {
@@ -796,21 +857,23 @@ func SendFrame(controllerId uint32, frame []byte) error {
 		}
 	}
 
-	const opcodeUpdateSingleLED uint32 = 1052
-
 	total := len(frame) / 3
+	packet := new(bytes.Buffer)
+	payloadSize := uint32(4 + 2 + total*4)
+	if err := writeHeader(packet, controllerId, opcodeUpdateLeds, payloadSize); err != nil {
+		return err
+	}
+
+	dataSize := payloadSize
+	if err := binary.Write(packet, binary.LittleEndian, dataSize); err != nil {
+		return err
+	}
+
+	if err := binary.Write(packet, binary.LittleEndian, uint16(total)); err != nil {
+		return err
+	}
 
 	for i := 0; i < total; i++ {
-		packet := new(bytes.Buffer)
-
-		if err := writeHeader(packet, controllerId, opcodeUpdateSingleLED, 8); err != nil {
-			return err
-		}
-
-		if err := binary.Write(packet, binary.LittleEndian, uint32(i)); err != nil {
-			return err
-		}
-
 		color := []byte{
 			frame[i*3],
 			frame[i*3+1],
@@ -821,11 +884,51 @@ func SendFrame(controllerId uint32, frame []byte) error {
 		if _, err := packet.Write(color); err != nil {
 			return err
 		}
+	}
 
+	_, err = conn.Write(packet.Bytes())
+	return err
+}
+
+func SendSingleLED(controllerId uint32, ledIndex uint32, rgb []byte) error {
+	conn, err := dial()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	// Switch device into direct/custom mode
+	{
+		packet := new(bytes.Buffer)
+		if err := writeHeader(packet, controllerId, opcodeSetCustomMode, 0); err != nil {
+			return err
+		}
 		if _, err := conn.Write(packet.Bytes()); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	const opcodeUpdateSingleLED uint32 = 1052
+	packet := new(bytes.Buffer)
+	if err := writeHeader(packet, controllerId, opcodeUpdateSingleLED, 8); err != nil {
+		return err
+	}
+
+	if err := binary.Write(packet, binary.LittleEndian, ledIndex); err != nil {
+		return err
+	}
+
+	color := []byte{0, 0, 0, 0}
+	if len(rgb) >= 3 {
+		color[0] = rgb[0]
+		color[1] = rgb[1]
+		color[2] = rgb[2]
+	}
+
+	if _, err := packet.Write(color); err != nil {
+		return err
+	}
+
+	_, err = conn.Write(packet.Bytes())
+	return err
 }

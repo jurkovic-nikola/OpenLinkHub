@@ -378,7 +378,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 			Status:  0,
 		}
 	}
-	
+
 	deviceId := ""
 	channelId := 0
 	if sensor == temperatures.SensorTypeStorage {

@@ -55,7 +55,7 @@ func (r *ActiveRGB) Sequential(startTime *time.Time) {
 	} else {
 		r.Output = SetColor(raw)
 	}
-	
+
 	if progress >= 1.0 {
 		*startTime = time.Now()
 	}

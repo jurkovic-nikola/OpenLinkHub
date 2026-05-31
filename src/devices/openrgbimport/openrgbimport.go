@@ -851,8 +851,8 @@ func (d *Device) SetEffect(effect string) error {
 		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
 	}
 
-	// For now only colorshift is implemented as a real OLH effect
-	if effect != "colorshift" {
+	// For now only colorshift and rainbow are implemented as real OLH effects
+	if effect != "colorshift" && effect != "rainbow" {
 		if d.Config != nil && d.ZoneAmount > 0 {
 			time.Sleep(75 * time.Millisecond)
 			frame := d.buildZoneFrame()
@@ -930,7 +930,11 @@ func (d *Device) SetEffect(effect string) error {
 					Brightness: rgb.GetBrightnessValueFloat(d.brightness),
 				}
 
-				runner.Colorshift(&startTime, runner)
+				if d.effect == "rainbow" {
+					runner.Rainbow(startTime)
+				} else {
+					runner.Colorshift(&startTime, runner)
+				}
 				frame := make([]byte, len(runner.Output))
 				copy(frame, runner.Output)
 				d.mu.Unlock()

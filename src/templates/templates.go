@@ -38,6 +38,7 @@ type Web struct {
 	OpenRGBImportEffect             string
 	OpenRGBImportSpeed              string
 	OpenRGBImportBrightness         uint8
+	OpenRGBImportRGBCluster         bool
 	Lcd                             interface{}
 	LCDImages                       interface{}
 	TemperatureProbes               interface{}

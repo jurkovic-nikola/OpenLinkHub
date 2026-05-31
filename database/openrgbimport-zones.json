@@ -35,6 +35,30 @@
         {
           "name": "24 Pin ATX Strip 5",
           "ledCount": 20
+        },
+        {
+          "name": "8 Pin GPU Strip 0",
+          "ledCount": 27
+        },
+        {
+          "name": "8 Pin GPU Strip 1",
+          "ledCount": 27
+        },
+        {
+          "name": "8 Pin GPU Strip 2",
+          "ledCount": 27
+        },
+        {
+          "name": "8 Pin GPU Strip 3",
+          "ledCount": 27
+        },
+        {
+          "name": "8 Pin GPU Strip 4",
+          "ledCount": 27
+        },
+        {
+          "name": "8 Pin GPU Strip 5",
+          "ledCount": 27
         }
       ]
     },

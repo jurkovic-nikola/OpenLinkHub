@@ -8,6 +8,7 @@
         {{ template "sidebar" . }}
 
         <main class="main-content p-4">
+            <input type="hidden" id="deviceId" name="deviceId" value="{{ .Device.Serial }}">
             {{ if .Dashboard.TemperatureBar }}
             {{ template "temperature-bar" . }}
             {{ end }}
@@ -41,6 +42,14 @@
                                             <input type="range" id="mbBrightnessSlider" min="0" max="100" value="{{ if .OpenRGBImportDevice }}{{ .OpenRGBImportBrightness }}{{ else }}100{{ end }}">
                                             <div class="slider-value" id="mbBrightnessSliderValue">{{ if .OpenRGBImportDevice }}{{ .OpenRGBImportBrightness }}{{ else }}100{{ end }} %</div>
                                         </div>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtCluster" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="toggleRgbCluster" class="toggleRgbCluster" {{ if .OpenRGBImportRGBCluster }} checked {{ end }}>
+                                            <span class="toggle-track"></span>
+                                        </label>
                                     </div>
 
                                     <div class="settings-row">

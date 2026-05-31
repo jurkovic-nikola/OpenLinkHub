@@ -932,3 +932,64 @@ func SendSingleLED(controllerId uint32, ledIndex uint32, rgb []byte) error {
 	_, err = conn.Write(packet.Bytes())
 	return err
 }
+
+func SendFramePersistent(conn net.Conn, controllerId uint32, frame []byte) (net.Conn, error) {
+	var err error
+	if conn == nil {
+		conn, err = dial()
+		if err != nil {
+			return nil, err
+		}
+		// Switch device into direct/custom mode
+		packet := new(bytes.Buffer)
+		if err := writeHeader(packet, controllerId, opcodeSetCustomMode, 0); err != nil {
+			conn.Close()
+			return nil, err
+		}
+		if _, err := conn.Write(packet.Bytes()); err != nil {
+			conn.Close()
+			return nil, err
+		}
+	}
+
+	total := len(frame) / 3
+	packet := new(bytes.Buffer)
+	payloadSize := uint32(4 + 2 + total*4)
+	if err := writeHeader(packet, controllerId, opcodeUpdateLeds, payloadSize); err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	dataSize := payloadSize
+	if err := binary.Write(packet, binary.LittleEndian, dataSize); err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	if err := binary.Write(packet, binary.LittleEndian, uint16(total)); err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	for i := 0; i < total; i++ {
+		color := []byte{
+			frame[i*3],
+			frame[i*3+1],
+			frame[i*3+2],
+			0,
+		}
+
+		if _, err := packet.Write(color); err != nil {
+			conn.Close()
+			return nil, err
+		}
+	}
+
+	if _, err = conn.Write(packet.Bytes()); err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	return conn, nil
+}
+

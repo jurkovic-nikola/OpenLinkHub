@@ -1,12 +1,15 @@
 package openrgbimport
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,9 +39,10 @@ type ZoneColors struct {
 }
 
 type DeviceProfile struct {
-	RGBProfile       string
-	BrightnessSlider *uint8
-	ZoneColors       map[int]ZoneColors
+	RGBProfile       string             `json:"RGBProfile"`
+	BrightnessSlider *uint8             `json:"BrightnessSlider"`
+	ZoneColors       map[int]ZoneColors `json:"ZoneColors"`
+	RGBCluster       bool               `json:"RGBCluster"`
 }
 
 type Device struct {
@@ -56,13 +60,14 @@ type Device struct {
 	brightness uint8
 	lastColor  []byte
 
-	effect    string
-	speed     float64
-	rgbRunner *rgb.ActiveRGB
-	stopChan  chan struct{}
-	doneChan  chan struct{}
-	running   bool
-	mu        sync.Mutex
+	effect      string
+	speed       float64
+	rgbRunner   *rgb.ActiveRGB
+	stopChan    chan struct{}
+	doneChan    chan struct{}
+	running     bool
+	openrgbConn net.Conn
+	mu          sync.Mutex
 }
 
 func isUsableDisplaySerial(value string) bool {
@@ -396,6 +401,11 @@ func (d *Device) applyConfigLocked(cfg *DeviceConfig, brightness uint8) {
 		return
 	}
 
+	var wasCluster bool
+	if d.DeviceProfile != nil {
+		wasCluster = d.DeviceProfile.RGBCluster
+	}
+
 	d.Config = cloneDeviceConfig(cfg)
 	d.colorCount = configLedCount(cfg)
 	d.ZoneAmount = len(cfg.Zones)
@@ -403,6 +413,7 @@ func (d *Device) applyConfigLocked(cfg *DeviceConfig, brightness uint8) {
 		RGBProfile:       "static",
 		BrightnessSlider: &brightness,
 		ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
+		RGBCluster:       wasCluster,
 	}
 	d.effect = "static"
 }
@@ -470,6 +481,14 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		return err
 	}
 
+	if d.DeviceProfile != nil {
+		d.saveDeviceProfile()
+		if d.DeviceProfile.RGBCluster {
+			cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+			d.setupClusterController()
+		}
+	}
+
 	return nil
 }
 
@@ -514,6 +533,8 @@ func Init() *common.Device {
 			BrightnessSlider: &defaultBrightness,
 			ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
 		}
+		d.loadDeviceProfile()
+		d.setupClusterController()
 	}
 
 	d.createDevice()
@@ -551,6 +572,8 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 		BrightnessSlider: &defaultBrightness,
 		ZoneColors:       buildZoneColorsFromConfig(&cfg, d.lastColor),
 	}
+	d.loadDeviceProfile()
+	d.setupClusterController()
 
 	return d
 }
@@ -646,6 +669,8 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 			BrightnessSlider: &defaultBrightness,
 			ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
 		}
+		d.loadDeviceProfile()
+		d.setupClusterController()
 	}
 
 	return d
@@ -671,17 +696,21 @@ func (d *Device) ControllerID() int {
 	return d.controllerId
 }
 
+// applyBrightness scales every LED in the frame by the device brightness (0-100).
+// It accepts any frame length that is a multiple of 3.
 func (d *Device) applyBrightness(rgbBytes []byte) []byte {
 	if len(rgbBytes) < 3 {
 		return []byte{0, 0, 0}
 	}
 
 	b := int(d.brightness)
-	return []byte{
-		byte((int(rgbBytes[0]) * b) / 100),
-		byte((int(rgbBytes[1]) * b) / 100),
-		byte((int(rgbBytes[2]) * b) / 100),
+	out := make([]byte, len(rgbBytes))
+	for i := 0; i+2 < len(rgbBytes); i += 3 {
+		out[i] = byte((int(rgbBytes[i]) * b) / 100)
+		out[i+1] = byte((int(rgbBytes[i+1]) * b) / 100)
+		out[i+2] = byte((int(rgbBytes[i+2]) * b) / 100)
 	}
+	return out
 }
 
 func (d *Device) stopEffectLoopLocked() {
@@ -748,6 +777,10 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 		return fmt.Errorf("controllerId not set")
 	}
 
+	if d.DeviceProfile != nil && d.DeviceProfile.RGBCluster {
+		return fmt.Errorf("device is controlled by RGB cluster")
+	}
+
 	if len(rgbBytes) < 3 {
 		return fmt.Errorf("invalid rgb value")
 	}
@@ -757,6 +790,9 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 	// Static color should stop animation
 	d.stopEffectLoopLocked()
 	d.effect = "static"
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.RGBProfile = "static"
+	}
 
 	if d.Config != nil && d.ZoneAmount > 0 {
 		if d.DeviceProfile != nil {
@@ -772,10 +808,15 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 				zoneColor.Color.Hex = fmt.Sprintf("#%02x%02x%02x", int(rgbBytes[0]), int(rgbBytes[1]), int(rgbBytes[2]))
 				d.DeviceProfile.ZoneColors[zoneIndex] = zoneColor
 			}
+			d.saveDeviceProfile()
 		}
 
 		time.Sleep(75 * time.Millisecond)
 		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+	}
+
+	if d.DeviceProfile != nil {
+		d.saveDeviceProfile()
 	}
 
 	scaled := d.applyBrightness(d.lastColor)
@@ -791,6 +832,10 @@ func (d *Device) SetBrightness(brightness uint8) error {
 	}
 
 	d.brightness = brightness
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.BrightnessSlider = &brightness
+		d.saveDeviceProfile()
+	}
 
 	// If an effect is running, let the effect loop pick up the new brightness.
 	if d.running {
@@ -832,10 +877,19 @@ func (d *Device) SetEffect(effect string) error {
 		return fmt.Errorf("controllerId not set")
 	}
 
+	if d.DeviceProfile != nil && d.DeviceProfile.RGBCluster {
+		d.mu.Unlock()
+		return fmt.Errorf("device is controlled by RGB cluster")
+	}
+
 	// stop previous loop if any
 	d.stopEffectLoopLocked()
 
 	d.effect = effect
+	if d.DeviceProfile != nil {
+		d.DeviceProfile.RGBProfile = effect
+		d.saveDeviceProfile()
+	}
 
 	// Static just reapplies current color once
 	if effect == "static" {
@@ -983,4 +1037,167 @@ func (d *Device) GetBrightness() uint8 {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.brightness
+}
+
+func (d *Device) GetRGBCluster() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.DeviceProfile == nil {
+		return false
+	}
+	return d.DeviceProfile.RGBCluster
+}
+
+func (d *Device) saveDeviceProfile() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+	_ = os.MkdirAll(profileDir, 0o755)
+	profilePath := filepath.Join(profileDir, d.Serial+".json")
+
+	data, err := json.MarshalIndent(d.DeviceProfile, "", "  ")
+	if err != nil {
+		return
+	}
+
+	_ = os.WriteFile(profilePath, data, 0o644)
+}
+
+func (d *Device) loadDeviceProfile() bool {
+	profilePath := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles", d.Serial+".json")
+	file, err := os.Open(profilePath)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	var pf struct {
+		RGBProfile       string             `json:"RGBProfile"`
+		BrightnessSlider *uint8             `json:"BrightnessSlider"`
+		RGBCluster       bool               `json:"RGBCluster"`
+		ZoneColors       map[int]ZoneColors `json:"ZoneColors"`
+	}
+	if err := json.NewDecoder(file).Decode(&pf); err != nil {
+		return false
+	}
+
+	if d.DeviceProfile == nil {
+		d.DeviceProfile = &DeviceProfile{}
+	}
+
+	if pf.RGBProfile != "" {
+		d.DeviceProfile.RGBProfile = pf.RGBProfile
+		d.effect = pf.RGBProfile
+	}
+	if pf.BrightnessSlider != nil {
+		d.DeviceProfile.BrightnessSlider = pf.BrightnessSlider
+		d.brightness = *pf.BrightnessSlider
+	}
+	d.DeviceProfile.RGBCluster = pf.RGBCluster
+
+	// Restore zone colors if they exist in the loaded profile and map keys exist in current configuration
+	if pf.ZoneColors != nil {
+		if d.DeviceProfile.ZoneColors == nil {
+			d.DeviceProfile.ZoneColors = make(map[int]ZoneColors)
+		}
+		for k, v := range pf.ZoneColors {
+			if currentZone, ok := d.DeviceProfile.ZoneColors[k]; ok {
+				if v.Color != nil {
+					currentZone.Color = v.Color
+					d.DeviceProfile.ZoneColors[k] = currentZone
+				}
+			}
+		}
+	}
+
+	return true
+}
+
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	clusterController := &common.ClusterController{
+		Product:      d.Product,
+		Serial:       d.Serial,
+		LedChannels:  uint32(d.colorCount),
+		WriteColorEx: d.writeColorCluster,
+	}
+
+	cluster.Get().AddDeviceController(clusterController)
+}
+
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, _ int) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.controllerId < 0 || d.DeviceProfile == nil || !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	// Clamp data to our LED count in case the cluster sends more bytes than we own
+	expected := d.colorCount * 3
+	frame := make([]byte, expected)
+	if len(data) >= expected {
+		copy(frame, data[:expected])
+	} else {
+		copy(frame, data)
+	}
+
+	// Scale brightness across the entire frame
+	scaled := d.applyBrightness(frame)
+
+	conn, err := openrgb.SendFramePersistent(d.openrgbConn, uint32(d.controllerId), scaled)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "controllerId": d.controllerId}).Error("SendFramePersistent failed in writeColorCluster")
+		d.openrgbConn = nil
+	} else {
+		d.openrgbConn = conn
+	}
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status for cluster
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile()
+
+	if enabled {
+		d.stopEffectLoopLocked()
+
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       d.Serial,
+			LedChannels:  uint32(d.colorCount),
+			WriteColorEx: d.writeColorCluster,
+		}
+		cluster.Get().AddDeviceController(clusterController)
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		if d.openrgbConn != nil {
+			d.openrgbConn.Close()
+			d.openrgbConn = nil
+		}
+		if d.effect != "" {
+			go func() {
+				_ = d.SetEffect(d.effect)
+			}()
+		}
+	}
+
+	return 1
 }

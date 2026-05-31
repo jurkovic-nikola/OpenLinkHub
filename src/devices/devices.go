@@ -622,10 +622,6 @@ func Init() {
 		}
 	}
 
-	for _, imported := range openrgbimport.InitAll() {
-		devices[imported.Serial] = imported
-	}
-
 	// Create dummy cluster object before any other object
 	cls = cluster.Init()
 	devices["cluster"] = &common.Device{
@@ -634,6 +630,10 @@ func Init() {
 		Serial:      "cluster",
 		Hidden:      true,
 		Instance:    cls,
+	}
+
+	for _, imported := range openrgbimport.InitAll() {
+		devices[imported.Serial] = imported
 	}
 
 	// Legacy devices

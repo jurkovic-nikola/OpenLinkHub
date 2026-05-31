@@ -112,6 +112,15 @@
                                         </label>
                                     </div>
 
+                                    <!-- Static color for all devices -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtApplyColorToAll" }}</span>
+                                        <label for="allDevicesColor">
+                                            <input type="color" id="allDevicesColor" class="allDevicesColor" value="#ff0000">
+                                        </label>
+                                        <button class="system-button applyColorToAll">{{ .Lang "txtApplyToAll" }}</button>
+                                    </div>
+
                                     <!-- RGB Turn Off / On -->
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ .Lang "txtRgbOnOff" }}</span>

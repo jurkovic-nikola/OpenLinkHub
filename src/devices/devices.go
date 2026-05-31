@@ -291,6 +291,7 @@ func UpdateAllDevicesStaticColor(color rgb.Color) uint8 {
 	profile := rgb.Profile{
 		StartColor: color,
 		EndColor:   color,
+		Brightness: 1.0,
 	}
 	for _, device := range devices {
 		CallDeviceMethod(device.Serial, "UpdateRgbProfileData", "static", profile)

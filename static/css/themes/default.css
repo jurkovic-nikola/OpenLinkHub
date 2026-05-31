@@ -1318,6 +1318,14 @@ transition: stroke-dashoffset 0.6s ease;
     min-width: 0;
 }
 
+.settings-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
 #secondaryContainer {
     display: none;
 }

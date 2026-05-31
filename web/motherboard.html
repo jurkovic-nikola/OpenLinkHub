@@ -34,8 +34,8 @@
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Brightness</span>
                                         <div class="system-slider no-padding-top">
-                                            <input type="range" id="mbBrightnessSlider" min="0" max="100" value="100">
-                                            <div class="slider-value" id="mbBrightnessSliderValue">100 %</div>
+                                            <input type="range" id="mbBrightnessSlider" min="0" max="100" value="{{ if .OpenRGBImportDevice }}{{ .OpenRGBImportBrightness }}{{ else }}100{{ end }}">
+                                            <div class="slider-value" id="mbBrightnessSliderValue">{{ if .OpenRGBImportDevice }}{{ .OpenRGBImportBrightness }}{{ else }}100{{ end }} %</div>
                                         </div>
                                     </div>
 
@@ -60,18 +60,18 @@
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">RGB</span>
                                         <select id="mbRgbProfile" class="form-select system-select compact auto-width">
-                                            <option value="static">Static</option>
-                                            <option value="colorshift">Color Shift</option>
-                                            <option value="rainbow">Rainbow</option>
+                                            <option value="static" {{ if eq .OpenRGBImportEffect "static" }}selected{{ end }}>Static</option>
+                                            <option value="colorshift" {{ if eq .OpenRGBImportEffect "colorshift" }}selected{{ end }}>Color Shift</option>
+                                            <option value="rainbow" {{ if eq .OpenRGBImportEffect "rainbow" }}selected{{ end }}>Rainbow</option>
                                         </select>
                                     </div>
 
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Speed</span>
                                         <select id="mbSpeedProfile" class="form-select system-select compact auto-width">
-                                            <option value="slow">Slow</option>
-                                            <option value="normal" selected>Normal</option>
-                                            <option value="fast">Fast</option>
+                                            <option value="slow" {{ if eq .OpenRGBImportSpeed "slow" }}selected{{ end }}>Slow</option>
+                                            <option value="normal" {{ if or (eq .OpenRGBImportSpeed "normal") (eq .OpenRGBImportSpeed "") }}selected{{ end }}>Normal</option>
+                                            <option value="fast" {{ if eq .OpenRGBImportSpeed "fast" }}selected{{ end }}>Fast</option>
                                         </select>
                                     </div>
 
@@ -186,8 +186,8 @@
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Brightness</span>
                                         <div class="system-slider no-padding-top">
-                                            <input type="range" id="mbBrightnessSlider" min="0" max="100" value="100">
-                                            <div class="slider-value" id="mbBrightnessSliderValue">100 %</div>
+                                            <input type="range" id="mbBrightnessSlider" min="0" max="100" value="{{ if .OpenRGBImportDevice }}{{ .OpenRGBImportBrightness }}{{ else }}100{{ end }}">
+                                            <div class="slider-value" id="mbBrightnessSliderValue">{{ if .OpenRGBImportDevice }}{{ .OpenRGBImportBrightness }}{{ else }}100{{ end }} %</div>
                                         </div>
                                     </div>
 
@@ -212,18 +212,18 @@
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">RGB</span>
                                         <select id="mbRgbProfile" class="form-select system-select compact auto-width">
-                                            <option value="static">Static</option>
-                                            <option value="colorshift">Color Shift</option>
-                                            <option value="rainbow">Rainbow</option>
+                                            <option value="static" {{ if eq .OpenRGBImportEffect "static" }}selected{{ end }}>Static</option>
+                                            <option value="colorshift" {{ if eq .OpenRGBImportEffect "colorshift" }}selected{{ end }}>Color Shift</option>
+                                            <option value="rainbow" {{ if eq .OpenRGBImportEffect "rainbow" }}selected{{ end }}>Rainbow</option>
                                         </select>
                                     </div>
 
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Speed</span>
                                         <select id="mbSpeedProfile" class="form-select system-select compact auto-width">
-                                            <option value="slow">Slow</option>
-                                            <option value="normal" selected>Normal</option>
-                                            <option value="fast">Fast</option>
+                                            <option value="slow" {{ if eq .OpenRGBImportSpeed "slow" }}selected{{ end }}>Slow</option>
+                                            <option value="normal" {{ if or (eq .OpenRGBImportSpeed "normal") (eq .OpenRGBImportSpeed "") }}selected{{ end }}>Normal</option>
+                                            <option value="fast" {{ if eq .OpenRGBImportSpeed "fast" }}selected{{ end }}>Fast</option>
                                         </select>
                                     </div>
 

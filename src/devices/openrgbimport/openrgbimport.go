@@ -904,7 +904,7 @@ func (d *Device) SetEffect(effect string) error {
 		defer close(done)
 
 		startTime := time.Now()
-		ticker := time.NewTicker(200 * time.Millisecond)
+		ticker := time.NewTicker(50 * time.Millisecond)
 		defer ticker.Stop()
 
 		for {
@@ -955,4 +955,32 @@ func (d *Device) SetEffect(effect string) error {
 
 func (d *Device) SetRed() error {
 	return d.SetColor([]byte{255, 0, 0})
+}
+
+func (d *Device) GetEffect() string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.effect == "" {
+		return "static"
+	}
+	return d.effect
+}
+
+func (d *Device) GetSpeed() string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	switch d.speed {
+	case 4.0:
+		return "slow"
+	case 0.8:
+		return "fast"
+	default:
+		return "normal"
+	}
+}
+
+func (d *Device) GetBrightness() uint8 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.brightness
 }

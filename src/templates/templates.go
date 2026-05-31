@@ -35,6 +35,9 @@ type Web struct {
 	OpenRGBImportDevice             bool
 	OpenRGBImportDisplaySerial      string
 	OpenRGBImportDisplaySerialLabel string
+	OpenRGBImportEffect             string
+	OpenRGBImportSpeed              string
+	OpenRGBImportBrightness         uint8
 	Lcd                             interface{}
 	LCDImages                       interface{}
 	TemperatureProbes               interface{}

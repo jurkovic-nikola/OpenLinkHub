@@ -8,6 +8,10 @@
         {{ template "sidebar" . }}
 
         <main class="main-content p-4">
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
             {{ if .OpenRGBImportConfig }}
             <div class="row g-4 mb-4 align-items-start">
                 <div class="col-md-3">
@@ -533,6 +537,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script src="/static/js/overview.js"></script>
 <script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
 
 </body>
 </html>

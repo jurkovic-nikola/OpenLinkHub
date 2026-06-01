@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,10 @@ type ZoneColors struct {
 }
 
 type DeviceProfile struct {
+	Active           bool               `json:"Active"`
+	Path             string             `json:"Path"`
+	Product          string             `json:"Product"`
+	Serial           string             `json:"Serial"`
 	RGBProfile       string             `json:"RGBProfile"`
 	BrightnessSlider *uint8             `json:"BrightnessSlider"`
 	ZoneColors       map[int]ZoneColors `json:"ZoneColors"`
@@ -56,6 +61,7 @@ type Device struct {
 	ZoneAmount         int
 	Config             *DeviceConfig
 	DeviceProfile      *DeviceProfile
+	UserProfiles       map[string]*DeviceProfile
 
 	brightness uint8
 	lastColor  []byte
@@ -529,11 +535,13 @@ func Init() *common.Device {
 		d.ZoneAmount = len(cfg.Zones)
 		d.colorCount = configLedCount(cfg)
 		d.DeviceProfile = &DeviceProfile{
+			Active:           true,
 			RGBProfile:       "static",
 			BrightnessSlider: &defaultBrightness,
 			ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
 		}
-		d.loadDeviceProfile()
+		d.loadDeviceProfiles()
+		d.saveDeviceProfile()
 		d.setupClusterController()
 	}
 
@@ -568,11 +576,13 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 
 	defaultBrightness := uint8(100)
 	d.DeviceProfile = &DeviceProfile{
+		Active:           true,
 		RGBProfile:       "static",
 		BrightnessSlider: &defaultBrightness,
 		ZoneColors:       buildZoneColorsFromConfig(&cfg, d.lastColor),
 	}
-	d.loadDeviceProfile()
+	d.loadDeviceProfiles()
+	d.saveDeviceProfile()
 	d.setupClusterController()
 
 	return d
@@ -665,11 +675,13 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		d.Config = cfg
 		d.ZoneAmount = len(cfg.Zones)
 		d.DeviceProfile = &DeviceProfile{
+			Active:           true,
 			RGBProfile:       "static",
 			BrightnessSlider: &defaultBrightness,
 			ZoneColors:       buildZoneColorsFromConfig(cfg, d.lastColor),
 		}
-		d.loadDeviceProfile()
+		d.loadDeviceProfiles()
+		d.saveDeviceProfile()
 		d.setupClusterController()
 	}
 
@@ -1055,7 +1067,14 @@ func (d *Device) saveDeviceProfile() {
 
 	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
 	_ = os.MkdirAll(profileDir, 0o755)
-	profilePath := filepath.Join(profileDir, d.Serial+".json")
+	
+	profilePath := d.DeviceProfile.Path
+	if len(profilePath) == 0 {
+		profilePath = filepath.Join(profileDir, d.Serial+".json")
+		d.DeviceProfile.Path = profilePath
+	}
+	d.DeviceProfile.Serial = d.Serial
+	d.DeviceProfile.Product = d.Product
 
 	data, err := json.MarshalIndent(d.DeviceProfile, "", "  ")
 	if err != nil {
@@ -1065,54 +1084,224 @@ func (d *Device) saveDeviceProfile() {
 	_ = os.WriteFile(profilePath, data, 0o644)
 }
 
-func (d *Device) loadDeviceProfile() bool {
-	profilePath := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles", d.Serial+".json")
-	file, err := os.Open(profilePath)
+func (d *Device) loadDeviceProfiles() {
+	profileList := make(map[string]*DeviceProfile)
+	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+	_ = os.MkdirAll(profileDir, 0o755)
+
+	files, err := os.ReadDir(profileDir)
 	if err != nil {
-		return false
-	}
-	defer file.Close()
-
-	var pf struct {
-		RGBProfile       string             `json:"RGBProfile"`
-		BrightnessSlider *uint8             `json:"BrightnessSlider"`
-		RGBCluster       bool               `json:"RGBCluster"`
-		ZoneColors       map[int]ZoneColors `json:"ZoneColors"`
-	}
-	if err := json.NewDecoder(file).Decode(&pf); err != nil {
-		return false
+		logger.Log(logger.Fields{"error": err, "location": profileDir, "serial": d.Serial}).Warn("Unable to read profiles directory")
+		return
 	}
 
-	if d.DeviceProfile == nil {
-		d.DeviceProfile = &DeviceProfile{}
-	}
-
-	if pf.RGBProfile != "" {
-		d.DeviceProfile.RGBProfile = pf.RGBProfile
-		d.effect = pf.RGBProfile
-	}
-	if pf.BrightnessSlider != nil {
-		d.DeviceProfile.BrightnessSlider = pf.BrightnessSlider
-		d.brightness = *pf.BrightnessSlider
-	}
-	d.DeviceProfile.RGBCluster = pf.RGBCluster
-
-	// Restore zone colors if they exist in the loaded profile and map keys exist in current configuration
-	if pf.ZoneColors != nil {
-		if d.DeviceProfile.ZoneColors == nil {
-			d.DeviceProfile.ZoneColors = make(map[int]ZoneColors)
+	for _, fi := range files {
+		if fi.IsDir() {
+			continue
 		}
-		for k, v := range pf.ZoneColors {
-			if currentZone, ok := d.DeviceProfile.ZoneColors[k]; ok {
-				if v.Color != nil {
-					currentZone.Color = v.Color
-					d.DeviceProfile.ZoneColors[k] = currentZone
+
+		profileLocation := filepath.Join(profileDir, fi.Name())
+
+		if !common.IsValidExtension(profileLocation, ".json") {
+			continue
+		}
+
+		fileName := strings.Split(fi.Name(), ".")[0]
+		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+			continue
+		}
+
+		fileSerial := ""
+		if strings.Contains(fileName, "-") {
+			fileSerial = strings.Split(fileName, "-")[0]
+		} else {
+			fileSerial = fileName
+		}
+
+		if fileSerial != d.Serial {
+			continue
+		}
+
+		file, err := os.Open(profileLocation)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to load profile")
+			continue
+		}
+
+		pf := &DeviceProfile{}
+		if d.Config != nil {
+			pf.ZoneColors = buildZoneColorsFromConfig(d.Config, d.lastColor)
+		}
+		if err = json.NewDecoder(file).Decode(pf); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profileLocation}).Warn("Unable to decode profile")
+			file.Close()
+			continue
+		}
+		file.Close()
+
+		pf.Path = profileLocation
+		pf.Serial = d.Serial
+		pf.Product = d.Product
+
+		if fileName == d.Serial {
+			profileList["default"] = pf
+		} else {
+			parts := strings.Split(fileName, "-")
+			if len(parts) > 1 {
+				name := parts[1]
+				profileList[name] = pf
+			}
+		}
+		logger.Log(logger.Fields{"location": profileLocation, "serial": d.Serial}).Info("Loaded custom user profile")
+	}
+
+	d.UserProfiles = profileList
+	d.getDeviceProfile()
+}
+
+func (d *Device) getDeviceProfile() {
+	if len(d.UserProfiles) == 0 {
+		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No profile found for device. Probably initial start")
+	} else {
+		foundActive := false
+		for _, pf := range d.UserProfiles {
+			if pf.Active {
+				d.DeviceProfile = pf
+				if pf.BrightnessSlider != nil {
+					d.brightness = *pf.BrightnessSlider
 				}
+				d.effect = pf.RGBProfile
+				foundActive = true
+				break
+			}
+		}
+		if !foundActive {
+			if pf, ok := d.UserProfiles["default"]; ok {
+				pf.Active = true
+				d.DeviceProfile = pf
+				if pf.BrightnessSlider != nil {
+					d.brightness = *pf.BrightnessSlider
+				}
+				d.effect = pf.RGBProfile
 			}
 		}
 	}
+}
 
-	return true
+// SaveUserProfile will generate a new user profile configuration and save it to a file
+func (d *Device) SaveUserProfile(profileName string) uint8 {
+	if d.DeviceProfile != nil {
+		profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+		profilePath := filepath.Join(profileDir, d.Serial + "-" + profileName + ".json")
+
+		newProfile := &DeviceProfile{
+			Active:           false,
+			Path:             profilePath,
+			Product:          d.Product,
+			Serial:           d.Serial,
+			RGBProfile:       d.DeviceProfile.RGBProfile,
+			BrightnessSlider: d.DeviceProfile.BrightnessSlider,
+			ZoneColors:       d.DeviceProfile.ZoneColors,
+			RGBCluster:       d.DeviceProfile.RGBCluster,
+		}
+
+		buffer, err := json.MarshalIndent(newProfile, "", "  ")
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to convert to json format")
+			return 0
+		}
+
+		// Create profile filename
+		file, err := os.Create(profilePath)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": profilePath}).Error("Unable to create new device profile")
+			return 0
+		}
+		defer file.Close()
+
+		_, err = file.Write(buffer)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "location": profilePath}).Error("Unable to write data")
+			return 0
+		}
+
+		d.loadDeviceProfiles()
+		return 1
+	}
+	return 0
+}
+
+// SaveDeviceProfile will save the current active device profile
+func (d *Device) SaveDeviceProfile(_ string, _ bool) uint8 {
+	d.saveDeviceProfile()
+	return 1
+}
+
+// ChangeDeviceProfile will change the active device profile
+func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
+	d.mu.Lock()
+	profile, ok := d.UserProfiles[profileName]
+	if !ok {
+		d.mu.Unlock()
+		return 0
+	}
+
+	currentProfile := d.DeviceProfile
+	if currentProfile != nil {
+		currentProfile.Active = false
+		d.saveDeviceProfile()
+	}
+
+	// Stop any running effect loop
+	d.stopEffectLoopLocked()
+
+	newProfile := profile
+	newProfile.Active = true
+	d.DeviceProfile = newProfile
+	d.saveDeviceProfile()
+
+	if newProfile.BrightnessSlider != nil {
+		d.brightness = *newProfile.BrightnessSlider
+	}
+	d.effect = newProfile.RGBProfile
+	d.mu.Unlock()
+
+	// Handle cluster registration changes if needed
+	if newProfile.RGBCluster {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		d.setupClusterController()
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		_ = d.SetEffect(d.effect)
+	}
+
+	return 1
+}
+
+// DeleteDeviceProfile deletes a device profile and its JSON file
+func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	profile, ok := d.UserProfiles[profileName]
+	if !ok {
+		return 0
+	}
+
+	if !common.IsValidExtension(profile.Path, ".json") {
+		return 0
+	}
+
+	if profile.Active {
+		return 2
+	}
+
+	if err := os.Remove(profile.Path); err != nil {
+		return 3
+	}
+
+	delete(d.UserProfiles, profileName)
+	return 1
 }
 
 func (d *Device) setupClusterController() {

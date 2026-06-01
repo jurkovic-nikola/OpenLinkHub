@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"reflect"
+	"sort"
 )
 
 var (
@@ -119,4 +121,66 @@ func Init() {
 // GetTemplate will return a list of all templates
 func GetTemplate() *template.Template {
 	return templates
+}
+
+type UserProfileHelper struct {
+	Name   string
+	Active bool
+}
+
+// DeviceUserProfiles returns a sorted slice of UserProfileHelper.
+func (w Web) DeviceUserProfiles() []UserProfileHelper {
+	var res []UserProfileHelper
+	if w.Device == nil {
+		return res
+	}
+
+	val := reflect.ValueOf(w.Device)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return res
+	}
+
+	field := val.FieldByName("UserProfiles")
+	if !field.IsValid() {
+		return res
+	}
+
+	if field.Kind() == reflect.Map {
+		iter := field.MapRange()
+		for iter.Next() {
+			k := iter.Key()
+			v := iter.Value()
+			if k.Kind() == reflect.String {
+				name := k.String()
+				active := false
+
+				// v is the profile struct or pointer to profile struct.
+				profVal := v
+				if profVal.Kind() == reflect.Ptr {
+					profVal = profVal.Elem()
+				}
+				if profVal.Kind() == reflect.Struct {
+					activeField := profVal.FieldByName("Active")
+					if activeField.IsValid() && activeField.Kind() == reflect.Bool {
+						active = activeField.Bool()
+					}
+				}
+
+				res = append(res, UserProfileHelper{
+					Name:   name,
+					Active: active,
+				})
+			}
+		}
+	}
+
+	// Sort alphabetically by Name
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Name < res[j].Name
+	})
+
+	return res
 }

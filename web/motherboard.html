@@ -88,6 +88,45 @@
                                         </select>
                                     </div>
 
+                                    <!-- User profile -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                        <label for="profiles">
+                                            <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
+                                                {{ range $profile := .DeviceUserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $profile.Name }}" selected>{{ $profile.Name }}</option>
+                                                {{ else }}
+                                                <option value="{{ $profile.Name }}">{{ $profile.Name }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <!-- Delete user profile -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                        <label for="deleteUserProfiles">
+                                            <select id="deleteUserProfiles" class="form-select system-select compact auto-width deleteUserProfiles" name="deleteUserProfiles">
+                                                <option value="none">None</option>
+                                                {{ range $profile := .DeviceUserProfiles }}
+                                                {{ if $profile.Active }}
+                                                {{ continue }}
+                                                {{ else }}
+                                                <option value="{{ $profile.Name }}">{{ $profile.Name }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <!-- Save profile -->
+                                    <div class="settings-row">
+                                        <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                        <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -238,6 +277,45 @@
                                             <option value="normal" {{ if or (eq .OpenRGBImportSpeed "normal") (eq .OpenRGBImportSpeed "") }}selected{{ end }}>Normal</option>
                                             <option value="fast" {{ if eq .OpenRGBImportSpeed "fast" }}selected{{ end }}>Fast</option>
                                         </select>
+                                    </div>
+
+                                    <!-- User profile -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                        <label for="profiles">
+                                            <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
+                                                {{ range $profile := .DeviceUserProfiles }}
+                                                {{ if $profile.Active }}
+                                                <option value="{{ $profile.Name }}" selected>{{ $profile.Name }}</option>
+                                                {{ else }}
+                                                <option value="{{ $profile.Name }}">{{ $profile.Name }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <!-- Delete user profile -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                        <label for="deleteUserProfiles">
+                                            <select id="deleteUserProfiles" class="form-select system-select compact auto-width deleteUserProfiles" name="deleteUserProfiles">
+                                                <option value="none">None</option>
+                                                {{ range $profile := .DeviceUserProfiles }}
+                                                {{ if $profile.Active }}
+                                                {{ continue }}
+                                                {{ else }}
+                                                <option value="{{ $profile.Name }}">{{ $profile.Name }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <!-- Save profile -->
+                                    <div class="settings-row">
+                                        <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                        <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
                                     </div>
 
                                 </div>

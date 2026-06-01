@@ -638,7 +638,7 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 	if len(deviceId) < 1 {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", req.DeviceId); !m {
+	if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", req.DeviceId); !m {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 	if devices.GetDevice(req.DeviceId) == nil {

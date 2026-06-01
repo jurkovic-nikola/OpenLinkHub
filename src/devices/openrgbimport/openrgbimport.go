@@ -7,17 +7,40 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
+	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
 )
+
+var rgbModes = []string{
+	"circle",
+	"circleshift",
+	"colorpulse",
+	"colorshift",
+	"colorwarp",
+	"cpu-temperature",
+	"flickering",
+	"gpu-temperature",
+	"gradient",
+	"off",
+	"rainbow",
+	"pastelrainbow",
+	"rotator",
+	"spinner",
+	"static",
+	"storm",
+	"watercolor",
+	"wave",
+}
 
 type ConfigStore struct {
 	Devices map[string]DeviceConfig `json:"devices"`
@@ -62,6 +85,9 @@ type Device struct {
 	Config             *DeviceConfig
 	DeviceProfile      *DeviceProfile
 	UserProfiles       map[string]*DeviceProfile
+	Rgb                *rgb.RGB
+	rgbMutex           sync.RWMutex
+	RGBModes           []string
 
 	brightness uint8
 	lastColor  []byte
@@ -529,6 +555,8 @@ func Init() *common.Device {
 		Name:   d.Product,
 		Vendor: "asus aura",
 	})
+	d.RGBModes = rgbModes
+	d.loadRgb()
 	if cfg != nil {
 		defaultBrightness := uint8(100)
 		d.Config = cfg
@@ -573,6 +601,9 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 		Config:             &cfg,
 		ZoneAmount:         len(cfg.Zones),
 	}
+
+	d.RGBModes = rgbModes
+	d.loadRgb()
 
 	defaultBrightness := uint8(100)
 	d.DeviceProfile = &DeviceProfile{
@@ -669,6 +700,9 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		doneChan:           nil,
 		running:            false,
 	}
+
+	d.RGBModes = rgbModes
+	d.loadRgb()
 
 	if isConfigValidForController(cfg, dc) {
 		defaultBrightness := uint8(100)
@@ -903,22 +937,15 @@ func (d *Device) SetEffect(effect string) error {
 		d.saveDeviceProfile()
 	}
 
-	// Static just reapplies current color once
-	if effect == "static" {
-		if d.Config != nil && d.ZoneAmount > 0 {
-			time.Sleep(75 * time.Millisecond)
-			frame := d.buildZoneFrame()
-			d.mu.Unlock()
-			return openrgb.SendFrame(uint32(d.controllerId), frame)
-		}
-
-		scaled := d.applyBrightness(d.lastColor)
+	// off just sets black and exits
+	if effect == "off" {
+		scaled := make([]byte, d.colorCount*3)
 		d.mu.Unlock()
-		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
+		return openrgb.SendFrame(uint32(d.controllerId), scaled)
 	}
 
-	// For now only colorshift and rainbow are implemented as real OLH effects
-	if effect != "colorshift" && effect != "rainbow" {
+	// Static just reapplies current color once
+	if effect == "static" {
 		if d.Config != nil && d.ZoneAmount > 0 {
 			time.Sleep(75 * time.Millisecond)
 			frame := d.buildZoneFrame()
@@ -937,25 +964,36 @@ func (d *Device) SetEffect(effect string) error {
 	d.doneChan = done
 	d.running = true
 
-	startColor := &rgb.Color{
-		Red:        float64(d.lastColor[0]),
-		Green:      float64(d.lastColor[1]),
-		Blue:       float64(d.lastColor[2]),
-		Brightness: rgb.GetBrightnessValueFloat(d.brightness),
-	}
+	// Initialize runner with initial parameters
+	var initialStartColor *rgb.Color
+	var initialEndColor *rgb.Color
+	var initialSpeed float64 = d.speed
 
-	endColor := &rgb.Color{
-		Red:        255,
-		Green:      0,
-		Blue:       255,
-		Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+	profile := d.GetRgbProfile(effect)
+	if profile != nil {
+		initialStartColor = &profile.StartColor
+		initialEndColor = &profile.EndColor
+		initialSpeed = profile.Speed
+	} else {
+		initialStartColor = &rgb.Color{
+			Red:        float64(d.lastColor[0]),
+			Green:      float64(d.lastColor[1]),
+			Blue:       float64(d.lastColor[2]),
+			Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+		}
+		initialEndColor = &rgb.Color{
+			Red:        255,
+			Green:      0,
+			Blue:       255,
+			Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+		}
 	}
 
 	runner := rgb.New(
 		d.colorCount,
-		d.speed,
-		startColor,
-		endColor,
+		initialSpeed,
+		initialStartColor,
+		initialEndColor,
 		rgb.GetBrightnessValueFloat(d.brightness),
 		0,
 		0,
@@ -980,38 +1018,98 @@ func (d *Device) SetEffect(effect string) error {
 			case <-ticker.C:
 				d.mu.Lock()
 
-				// refresh dynamic values so live changes apply
-				runner.RgbModeSpeed = d.speed
-				runner.RGBBrightness = rgb.GetBrightnessValueFloat(d.brightness)
-				runner.RGBStartColor = &rgb.Color{
-					Red:        float64(d.lastColor[0]),
-					Green:      float64(d.lastColor[1]),
-					Blue:       float64(d.lastColor[2]),
-					Brightness: rgb.GetBrightnessValueFloat(d.brightness),
-				}
-				runner.RGBEndColor = &rgb.Color{
-					Red:        255,
-					Green:      0,
-					Blue:       255,
-					Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+				// Check if effect changed or stopped
+				if !d.running || d.effect == "static" || d.effect == "off" {
+					d.mu.Unlock()
+					return
 				}
 
-				if d.effect == "rainbow" {
-					runner.Rainbow(startTime)
+				// refresh dynamic values from saved profile if exists, else from device defaults
+				pf := d.GetRgbProfile(d.effect)
+				if pf != nil {
+					runner.RgbModeSpeed = pf.Speed
+					runner.RGBBrightness = rgb.GetBrightnessValueFloat(d.brightness)
+					runner.RGBStartColor = &pf.StartColor
+					runner.RGBEndColor = &pf.EndColor
+					runner.MinTemp = pf.MinTemp
+					runner.MaxTemp = pf.MaxTemp
 				} else {
-					runner.Colorshift(&startTime, runner)
+					runner.RgbModeSpeed = d.speed
+					runner.RGBBrightness = rgb.GetBrightnessValueFloat(d.brightness)
+					runner.RGBStartColor = &rgb.Color{
+						Red:        float64(d.lastColor[0]),
+						Green:      float64(d.lastColor[1]),
+						Blue:       float64(d.lastColor[2]),
+						Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+					}
+					runner.RGBEndColor = &rgb.Color{
+						Red:        255,
+						Green:      0,
+						Blue:       255,
+						Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+					}
 				}
+
+				switch d.effect {
+				case "rainbow":
+					runner.Rainbow(startTime)
+				case "pastelrainbow":
+					runner.PastelRainbow(startTime)
+				case "spiralrainbow":
+					runner.SpiralRainbow(startTime)
+				case "pastelspiralrainbow":
+					runner.PastelSpiralRainbow(startTime)
+				case "watercolor":
+					runner.Watercolor(startTime)
+				case "gradient":
+					var gradients map[int]rgb.Color
+					var speed float64 = 2.0
+					if pf != nil {
+						gradients = pf.Gradients
+						speed = pf.Speed
+					}
+					runner.ColorshiftGradient(startTime, gradients, speed)
+				case "cpu-temperature":
+					runner.Temperature(float64(temperatures.GetCpuTemperature()))
+				case "gpu-temperature":
+					runner.Temperature(float64(temperatures.GetGpuTemperature()))
+				case "colorpulse":
+					runner.Colorpulse(&startTime)
+				case "rotator":
+					runner.Rotator(&startTime)
+				case "wave":
+					runner.Wave(&startTime)
+				case "storm":
+					runner.Storm()
+				case "flickering":
+					runner.Flickering(&startTime)
+				case "colorshift":
+					runner.Colorshift(&startTime, runner)
+				case "circleshift":
+					runner.CircleShift(&startTime)
+				case "circle":
+					runner.Circle(&startTime)
+				case "spinner":
+					runner.Spinner(&startTime)
+				case "colorwarp":
+					runner.Colorwarp(&startTime, runner)
+				default:
+					runner.Static()
+				}
+
 				frame := make([]byte, len(runner.Output))
 				copy(frame, runner.Output)
-				d.mu.Unlock()
 
-				select {
-				case <-stop:
-					return
-				default:
+				conn, err := openrgb.SendFramePersistent(d.openrgbConn, uint32(controllerId), frame)
+				if err != nil {
+					if d.openrgbConn != nil {
+						d.openrgbConn.Close()
+					}
+					d.openrgbConn = nil
+				} else {
+					d.openrgbConn = conn
 				}
-
-				_ = openrgb.SendFrame(uint32(controllerId), frame)
+				d.mu.Unlock()
 			}
 		}
 	}()
@@ -1413,5 +1511,186 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 		}
 	}
 
+	return 1
+}
+
+func (d *Device) Stop() {
+	d.mu.Lock()
+	d.stopEffectLoopLocked()
+	if d.openrgbConn != nil {
+		d.openrgbConn.Close()
+		d.openrgbConn = nil
+	}
+	d.mu.Unlock()
+}
+
+func (d *Device) StopDirty() uint8 {
+	d.mu.Lock()
+	d.stopEffectLoopLocked()
+	if d.openrgbConn != nil {
+		d.openrgbConn.Close()
+		d.openrgbConn = nil
+	}
+	d.mu.Unlock()
+	return 2
+}
+
+func (d *Device) GetRgbProfiles() interface{} {
+	d.rgbMutex.RLock()
+	defer d.rgbMutex.RUnlock()
+
+	if d.Rgb == nil {
+		return nil
+	}
+
+	tmp := *d.Rgb
+
+	// Filter unsupported modes out
+	profiles := make(map[string]rgb.Profile, len(tmp.Profiles))
+	for key, value := range tmp.Profiles {
+		if slices.Contains(d.RGBModes, key) {
+			profiles[key] = value
+		}
+	}
+	tmp.Profiles = profiles
+	return tmp
+}
+
+func (d *Device) GetRgbProfile(profile string) *rgb.Profile {
+	d.rgbMutex.RLock()
+	defer d.rgbMutex.RUnlock()
+
+	if d.Rgb == nil {
+		return nil
+	}
+
+	if val, ok := d.Rgb.Profiles[profile]; ok {
+		return &val
+	}
+	return nil
+}
+
+func (d *Device) loadRgb() {
+	d.rgbMutex.Lock()
+	defer d.rgbMutex.Unlock()
+
+	pwd := config.GetConfig().ConfigPath
+	rgbDirectory := filepath.Join(pwd, "database", "rgb")
+	rgbFilename := filepath.Join(rgbDirectory, d.Serial+".json")
+
+	// Ensure directory exists
+	_ = os.MkdirAll(rgbDirectory, 0o755)
+
+	if !common.FileExists(rgbFilename) {
+		profile := rgb.GetRGB()
+		profile.Device = d.Product
+
+		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
+			fmt.Printf("Unable to write rgb profile data for %s: %v\n", d.Serial, err)
+			return
+		}
+	}
+
+	file, err := os.Open(rgbFilename)
+	if err != nil {
+		fmt.Printf("Unable to load RGB for %s: %v\n", d.Serial, err)
+		return
+	}
+	defer file.Close()
+
+	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
+		fmt.Printf("Unable to decode profile for %s: %v\n", d.Serial, err)
+		return
+	}
+
+	// Upgrade profiles
+	d.upgradeRgbProfileLocked(rgbFilename, []string{"gradient", "pastelrainbow", "pastelspiralrainbow"})
+}
+
+func (d *Device) upgradeRgbProfileLocked(path string, profiles []string) {
+	if d.Rgb == nil {
+		return
+	}
+	save := false
+	for _, profile := range profiles {
+		if _, ok := d.Rgb.Profiles[profile]; !ok {
+			save = true
+			template := rgb.GetRgbProfile(profile)
+			if template == nil {
+				d.Rgb.Profiles[profile] = rgb.Profile{}
+			} else {
+				d.Rgb.Profiles[profile] = *template
+			}
+		}
+	}
+
+	if save {
+		if err := common.SaveJsonData(path, d.Rgb); err != nil {
+			fmt.Printf("Unable to upgrade rgb profile data for %s: %v\n", d.Serial, err)
+			return
+		}
+	}
+}
+
+func (d *Device) saveRgbProfile() {
+	d.rgbMutex.Lock()
+	defer d.rgbMutex.Unlock()
+
+	if d.Rgb == nil {
+		return
+	}
+
+	pwd := config.GetConfig().ConfigPath
+	rgbFilename := filepath.Join(pwd, "database", "rgb", d.Serial+".json")
+
+	if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {
+		fmt.Printf("Unable to write device rgb profile data for %s: %v\n", d.Serial, err)
+		return
+	}
+}
+
+func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) uint8 {
+	pf := d.GetRgbProfile(profileName)
+	if pf == nil {
+		return 0
+	}
+
+	d.rgbMutex.Lock()
+	profile.StartColor.Brightness = pf.StartColor.Brightness
+	profile.EndColor.Brightness = pf.EndColor.Brightness
+	pf.StartColor = profile.StartColor
+	pf.EndColor = profile.EndColor
+	pf.Speed = profile.Speed
+	pf.Gradients = profile.Gradients
+	d.Rgb.Profiles[profileName] = *pf
+	d.rgbMutex.Unlock()
+
+	d.saveRgbProfile()
+
+	// If we are currently running this effect, we want to restart/reapply it to pick up changes!
+	if d.GetEffect() == profileName {
+		_ = d.SetEffect(profileName)
+	}
+
+	return 1
+}
+
+func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.GetRgbProfile(profile) == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 5
+	}
+
+	d.DeviceProfile.RGBProfile = profile
+	d.saveDeviceProfile()
+
+	_ = d.SetEffect(profile)
 	return 1
 }

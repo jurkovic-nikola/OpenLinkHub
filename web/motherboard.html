@@ -4,11 +4,13 @@
 <body>
 
 <div class="container-fluid">
+    {{ $device := .Device }}
+    {{ $rgbModes := .Device.RGBModes }}
     <div class="row">
         {{ template "sidebar" . }}
 
         <main class="main-content p-4">
-            <input type="hidden" id="deviceId" name="deviceId" value="{{ .Device.Serial }}">
+            <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
             {{ if .Dashboard.TemperatureBar }}
             {{ template "temperature-bar" . }}
             {{ end }}
@@ -280,9 +282,13 @@
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">RGB</span>
                                         <select id="mbRgbProfile" class="form-select system-select compact auto-width">
-                                            <option value="static" {{ if eq .OpenRGBImportEffect "static" }}selected{{ end }}>Static</option>
-                                            <option value="colorshift" {{ if eq .OpenRGBImportEffect "colorshift" }}selected{{ end }}>Color Shift</option>
-                                            <option value="rainbow" {{ if eq .OpenRGBImportEffect "rainbow" }}selected{{ end }}>Rainbow</option>
+                                            {{ range $key, $mode := $rgbModes }}
+                                            {{ if eq $mode $.OpenRGBImportEffect }}
+                                            <option value="{{ $mode }}" selected>{{ $mode }}</option>
+                                            {{ else }}
+                                            <option value="{{ $mode }}">{{ $mode }}</option>
+                                            {{ end }}
+                                            {{ end }}
                                         </select>
                                     </div>
 

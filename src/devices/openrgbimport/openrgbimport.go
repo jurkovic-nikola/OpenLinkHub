@@ -82,7 +82,10 @@ type Device struct {
 	instance           *common.Device
 	controllerId       int
 	colorCount         int
+	LEDCount           int
 	ZoneAmount         int
+	Version            string
+	Description        string
 	Config             *DeviceConfig
 	DeviceProfile      *DeviceProfile
 	UserProfiles       map[string]*DeviceProfile
@@ -539,6 +542,7 @@ func Init() *common.Device {
 		stopChan:      nil,
 		doneChan:      nil,
 		running:       false,
+		LEDCount:      4,
 	}
 
 	controllerId, err := openrgb.FindControllerIDByNameOrVendor(
@@ -603,6 +607,7 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 		running:            false,
 		Config:             &cfg,
 		ZoneAmount:         len(cfg.Zones),
+		LEDCount:           colorCount,
 	}
 
 	d.RGBModes = rgbModes
@@ -703,6 +708,9 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		stopChan:           nil,
 		doneChan:           nil,
 		running:            false,
+		LEDCount:           colorCount,
+		Version:            dc.Version,
+		Description:        dc.Description,
 	}
 
 	d.RGBModes = rgbModes

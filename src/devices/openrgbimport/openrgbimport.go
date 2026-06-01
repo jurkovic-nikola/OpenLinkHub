@@ -76,6 +76,7 @@ type DeviceProfile struct {
 type Device struct {
 	Product            string
 	Serial             string
+	IsOpenRGB          bool
 	DisplaySerial      string
 	DisplaySerialLabel string
 	instance           *common.Device
@@ -528,6 +529,7 @@ func Init() *common.Device {
 	d := &Device{
 		Product:       "Imported ASUS Motherboard",
 		Serial:        "openrgb-mobo-1",
+		IsOpenRGB:     true,
 		DisplaySerial: "",
 		colorCount:    4,
 		brightness:    100,
@@ -587,6 +589,7 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 	d := &Device{
 		Product:            productName,
 		Serial:             serial,
+		IsOpenRGB:          true,
 		DisplaySerial:      "",
 		DisplaySerialLabel: "",
 		controllerId:       -1,
@@ -688,6 +691,7 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 	d := &Device{
 		Product:            product,
 		Serial:             serial,
+		IsOpenRGB:          true,
 		DisplaySerial:      displaySerial,
 		DisplaySerialLabel: displaySerialLabel,
 		controllerId:       dc.ID,

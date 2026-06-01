@@ -83,7 +83,7 @@ $(document).ready(function () {
             : "";
 
         // Single device
-        if (dev.device.devices === null) {
+        if (dev.device.devices === null || typeof dev.device.devices === "undefined") {
             if (dev.device.HasLCD) {
                 html += `
                 <div class="col-md-2">
@@ -108,13 +108,34 @@ $(document).ready(function () {
                                 </div>
                             `;
                 }
-            }
-            html += `
+
+                html += `
                             </div>
                         </div>
                     </div>
                 </div>
             `;
+            } else if (dev.device.IsOpenRGB) {
+                const productName = dev.device.Product || "OpenRGB Device";
+                html += `
+                <div class="col-md-2">
+                    <div class="card system-card">
+                        <div class="card-header header-split">
+                            <span class="header-left">${productName}</span>
+                            <span class="header-right">${label}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">Status</span>
+                                    <span class="meta-value" style="color: #4CAF50;">Connected</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }
         } else if (dev.device.IsPSU) {
             $.each(dev.device.devices, function (_, device) {
                 if (device.IsTemperatureProbe || device.HasSpeed || device.Output) {

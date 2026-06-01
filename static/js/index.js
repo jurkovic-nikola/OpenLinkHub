@@ -63,9 +63,26 @@ $(document).ready(function () {
                             completed++;
 
                             if (completed === total) {
-                                devicePlaceholder.append(
-                                    results.filter(Boolean).join("")
-                                );
+                                let finalHtml = "";
+                                let openRgbBuffer = "";
+
+                                results.forEach(res => {
+                                    if (!res) return;
+                                    if (typeof res === "string") {
+                                        if (openRgbBuffer !== "") {
+                                            finalHtml += `<div class="row g-4 mb-4 align-items-start">` + openRgbBuffer + `</div>`;
+                                            openRgbBuffer = "";
+                                        }
+                                        finalHtml += res;
+                                    } else if (res.isOpenRGB) {
+                                        openRgbBuffer += res.html;
+                                    }
+                                });
+                                if (openRgbBuffer !== "") {
+                                    finalHtml += `<div class="row g-4 mb-4 align-items-start">` + openRgbBuffer + `</div>`;
+                                }
+
+                                devicePlaceholder.append(finalHtml);
                                 devicePlaceholder.addClass("ready");
                             }
                         }
@@ -117,7 +134,9 @@ $(document).ready(function () {
             `;
             } else if (dev.device.IsOpenRGB) {
                 const productName = dev.device.Product || "OpenRGB Device";
-                html += `
+                return {
+                    isOpenRGB: true,
+                    html: `
                 <div class="col-md-2">
                     <div class="card system-card">
                         <div class="card-header header-split">
@@ -138,7 +157,8 @@ $(document).ready(function () {
                         </div>
                     </div>
                 </div>
-            `;
+                `
+                };
             }
         } else if (dev.device.IsPSU) {
             $.each(dev.device.devices, function (_, device) {

@@ -113,7 +113,7 @@ func (d *Device) createDevice() {
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	switch d.Devices.ProductId {
-	case 2710, 10766:
+	case 2710, 10766, 10763:
 		{
 			dev := hs80maxW.Init(
 				d.Devices.VendorId,
@@ -227,9 +227,13 @@ func (d *Device) getDevice() {
 		ProductId: 2710,
 	}
 
-	if d.ProductId == 10767 {
+	switch d.ProductId {
+	case 10767:
 		d.Devices.ProductId = 10766
 		d.Devices.Serial = strconv.Itoa(10766)
+	case 10764:
+		d.Devices.ProductId = 10763
+		d.Devices.Serial = strconv.Itoa(10763)
 	}
 }
 
@@ -388,9 +392,14 @@ func (d *Device) getListenerData() []byte {
 
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
+	interfaceId := 4
+	if d.ProductId == 10764 {
+		interfaceId = 3
+	}
+
 	go func() {
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 4 {
+			if info.InterfaceNbr == interfaceId {
 				listener, err := hid.OpenPath(info.Path)
 				if err != nil {
 					return err
@@ -431,6 +440,15 @@ func (d *Device) backendListener() {
 							if dev, found := value.(*hs80maxW.Device); found {
 								dev.ModifyBatteryLevel(val)
 							}
+						}
+					}
+				}
+
+				// Buttons
+				if data[0] == 0x03 && data[1] == 0x01 && data[2] == 0x02 {
+					for _, value := range d.PairedDevices {
+						if dev, found := value.(*hs80maxW.Device); found {
+							dev.TriggerKeyAssignment(data[3])
 						}
 					}
 				}

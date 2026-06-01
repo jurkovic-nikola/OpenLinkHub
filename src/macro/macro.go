@@ -22,13 +22,16 @@ type Macro struct {
 }
 
 type Actions struct {
-	ActionType        uint8  `json:"actionType"`
-	ActionCommand     uint16 `json:"actionCommand"`
-	ActionDelay       uint16 `json:"actionDelay"`
-	ActionHold        bool   `json:"actionHold"`
-	ActionRepeat      uint8  `json:"actionRepeat"`
-	ActionRepeatDelay uint16 `json:"actionRepeatDelay"`
-	ActionText        string `json:"actionText"`
+	ActionType            uint8  `json:"actionType"`
+	ActionCommand         uint16 `json:"actionCommand"`
+	ActionDelay           uint16 `json:"actionDelay"`
+	ActionHold            bool   `json:"actionHold"`
+	ActionRepeat          uint8  `json:"actionRepeat"`
+	ActionRepeatDelay     uint16 `json:"actionRepeatDelay"`
+	ActionText            string `json:"actionText"`
+	MousePositionX        int    `json:"mousePositionX"`
+	MousePositionY        int    `json:"mousePositionY"`
+	MousePositionAbsolute bool   `json:"mousePositionAbsolute"`
 }
 
 type Tracker struct {
@@ -50,7 +53,8 @@ func Init() {
 
 	files, err := os.ReadDir(location)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": location}).Fatal("Unable to read content of a folder")
+		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to read content of a folder")
+		return
 	}
 
 	for _, fi := range files {
@@ -68,7 +72,7 @@ func Init() {
 
 		file, err := os.Open(profileLocation)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Fatal("Unable to read macro profile")
+			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Error("Unable to read macro profile")
 			continue
 		}
 
@@ -76,7 +80,8 @@ func Init() {
 		var profile Macro
 		reader := json.NewDecoder(file)
 		if err = reader.Decode(&profile); err != nil {
-			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Fatal("Unable to decode temperature profile")
+			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Error("Unable to decode macro profile")
+			continue
 		}
 		macros[profile.Id] = profile
 	}
@@ -136,20 +141,23 @@ func validatePressAndHold(macroId int) bool {
 }
 
 // UpdateMacroValue will update macro value
-func UpdateMacroValue(macroId, macroIndex int, actionHold bool, actionRepeat uint8, actionRepeatDelay uint16) uint8 {
+func UpdateMacroValue(macroId, macroIndex int, macroAction *Actions) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if val, ok := macros[macroId]; ok {
 		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
 		if action, ok := val.Actions[macroIndex]; ok {
-			if actionHold {
+			if macroAction.ActionHold {
 				if !validatePressAndHold(macroId) {
 					return 2
 				}
 			}
-			action.ActionHold = actionHold
-			action.ActionRepeat = actionRepeat
-			action.ActionRepeatDelay = actionRepeatDelay
+			action.ActionHold = macroAction.ActionHold
+			action.ActionRepeat = macroAction.ActionRepeat
+			action.ActionRepeatDelay = macroAction.ActionRepeatDelay
+			action.MousePositionX = macroAction.MousePositionX
+			action.MousePositionY = macroAction.MousePositionY
+			action.MousePositionAbsolute = macroAction.MousePositionAbsolute
 			val.Actions[macroIndex] = action
 			macros[macroId] = val
 			SaveProfile(profile, val)
@@ -189,7 +197,13 @@ func NewMacroProfile(macroName string) uint8 {
 		return 0
 	}
 
-	macroId := len(macros) + 1
+	maxID := 0
+	for id := range macros {
+		if id > maxID {
+			maxID = id
+		}
+	}
+	macroId := maxID + 1
 	if _, ok := macros[macroId]; ok {
 		return 0
 	}
@@ -205,7 +219,7 @@ func NewMacroProfile(macroName string) uint8 {
 }
 
 // NewMacroProfileValue will create new macro profile value
-func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, actionDelay uint16, macroText string) uint8 {
+func NewMacroProfileValue(macroId int, macroAction *Actions) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -214,10 +228,13 @@ func NewMacroProfileValue(macroId int, actionType uint8, actionCommand uint16, a
 		if common.FileExists(profile) {
 			length := len(val.Actions)
 			val.Actions[length] = Actions{
-				ActionType:    actionType,
-				ActionCommand: actionCommand,
-				ActionDelay:   actionDelay,
-				ActionText:    macroText,
+				ActionType:            macroAction.ActionType,
+				ActionCommand:         macroAction.ActionCommand,
+				ActionDelay:           macroAction.ActionDelay,
+				ActionText:            macroAction.ActionText,
+				MousePositionX:        macroAction.MousePositionX,
+				MousePositionY:        macroAction.MousePositionY,
+				MousePositionAbsolute: macroAction.MousePositionAbsolute,
 			}
 			macros[macroId] = val
 			SaveProfile(profile, macros[macroId])

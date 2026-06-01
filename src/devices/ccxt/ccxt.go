@@ -18,17 +18,17 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 var (
@@ -66,6 +66,7 @@ var (
 	maxBufferSizePerRequest    = 381
 	i2cPrefix                  = "i2c"
 	rgbProfileUpgrade          = []string{
+		"arc",
 		"nebula",
 		"marquee",
 		"rotarystack",
@@ -75,8 +76,10 @@ var (
 		"pastelrainbow",
 		"pastelspiralrainbow",
 		"probe-temperature",
+		"rain",
 	}
 	rgbModes = []string{
+		"arc",
 		"circle",
 		"circleshift",
 		"colorpulse",
@@ -89,6 +92,7 @@ var (
 		"marquee",
 		"nebula",
 		"off",
+		"rain",
 		"probe-temperature",
 		"rainbow",
 		"pastelrainbow",
@@ -106,10 +110,11 @@ var (
 )
 
 type RGBOverride struct {
-	Enabled       bool
-	RGBStartColor rgb.Color
-	RGBEndColor   rgb.Color
-	RgbModeSpeed  float64
+	Enabled        bool
+	RGBStartColor  rgb.Color
+	RGBEndColor    rgb.Color
+	RGBMiddleColor rgb.Color
+	RgbModeSpeed   float64
 }
 
 // ExternalLedDevice contains a list of supported external-LED devices connected to a HUB
@@ -151,6 +156,7 @@ type DeviceProfile struct {
 	RGBOverride             map[int]map[int]RGBOverride
 	OpenRGBIntegration      bool
 	RGBCluster              bool
+	RgbOff                  bool
 }
 
 type TemperatureProbe struct {
@@ -571,7 +577,17 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 			}
 		}
 	}
+	for key, val := range d.Rgb.Profiles {
+		template := rgb.GetRgbProfile(key)
+		if template == nil {
+			continue
+		}
 
+		if val.Version != template.Version {
+			d.Rgb.Profiles[key] = *template
+			save = true
+		}
+	}
 	if save {
 		if err := common.SaveJsonData(path, d.Rgb); err != nil {
 			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
@@ -622,7 +638,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -890,6 +906,22 @@ func (d *Device) modifyOpenRGBController() {
 	openrgb.UpdateDeviceController(d.Serial, ctrl)
 }
 
+// ControlDeviceRgb will change device brightness via schedulerSchedulerBrightness
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -948,6 +980,12 @@ func (d *Device) setDeviceColor() {
 	// RGB Cluster
 	if d.DeviceProfile.RGBCluster {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
+		return
+	}
+
+	// RGB Control
+	if d.DeviceProfile.RgbOff {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
 
@@ -1032,9 +1070,15 @@ func (d *Device) setDeviceColor() {
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor
 						r.RGBEndColor = &profile.EndColor
+						r.RGBMiddleColor = &profile.MiddleColor
 					} else {
 						r.RGBStartColor = d.activeRgb.RGBStartColor
 						r.RGBEndColor = d.activeRgb.RGBEndColor
+						r.RGBMiddleColor = d.activeRgb.RGBMiddleColor
+					}
+
+					if r.RGBMiddleColor == nil {
+						r.RGBMiddleColor = &rgb.Color{}
 					}
 
 					index := 0
@@ -1042,6 +1086,7 @@ func (d *Device) setDeviceColor() {
 					if rgbOverride != nil && rgbOverride.Enabled && d.RgbDevices[k].LedChannels > 0 {
 						r.RGBStartColor = &rgbOverride.RGBStartColor
 						r.RGBEndColor = &rgbOverride.RGBEndColor
+						r.RGBMiddleColor = &rgbOverride.RGBMiddleColor
 						r.RgbModeSpeed = common.FClamp(rgbOverride.RgbModeSpeed, 0.1, 10)
 					}
 
@@ -1049,6 +1094,7 @@ func (d *Device) setDeviceColor() {
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
+					r.RGBMiddleColor.Brightness = r.RGBBrightness
 					r.ChannelId = k
 
 					switch d.RgbDevices[k].RGB {
@@ -1076,6 +1122,16 @@ func (d *Device) setDeviceColor() {
 					case "pastelspiralrainbow":
 						{
 							r.PastelSpiralRainbow(startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "arc":
+						{
+							r.Arc(startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "rain":
+						{
+							r.Rain(startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "watercolor":
@@ -1721,10 +1777,25 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	if pf == nil {
 		return 0
 	}
+
+	if profile.StartColor.Temperature < 0 || profile.StartColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.MiddleColor.Temperature < 0 || profile.MiddleColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.EndColor.Temperature < 0 || profile.EndColor.Temperature > 105 {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
+	profile.MiddleColor.Brightness = pf.MiddleColor.Brightness
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
+	pf.MiddleColor = profile.MiddleColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
 	pf.MinTemp = profile.MinTemp
@@ -1885,6 +1956,16 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 		return 2
 	}
 
+	lightChannels := 0
+	for k := range d.RgbDevices {
+		lightChannels += int(d.RgbDevices[k].LedChannels)
+	}
+
+	if lightChannels == 0 {
+		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No compatible RGB devices found. RGB Cluster is unavailable")
+		return 0
+	}
+
 	d.DeviceProfile.RGBCluster = enabled
 	d.saveDeviceProfile() // Save profile
 	if d.activeRgb != nil {
@@ -1894,11 +1975,6 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	d.setDeviceColor()
 
 	if enabled {
-		lightChannels := 0
-		for k := range d.RgbDevices {
-			lightChannels += int(d.RgbDevices[k].LedChannels)
-		}
-
 		clusterController := &common.ClusterController{
 			Product:      d.Product,
 			Serial:       d.Serial,
@@ -1914,7 +1990,7 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 }
 
 // ProcessSetRgbOverride will update RGB override settings
-func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool, startColor, endColor rgb.Color, speed float64) uint8 {
+func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool, startColor, endColor, middleColor rgb.Color, speed float64) uint8 {
 	if d.DeviceProfile == nil {
 		return 0
 	}
@@ -1928,12 +2004,26 @@ func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool,
 		return 0
 	}
 
+	if startColor.Temperature < 0 || startColor.Temperature > 105 {
+		return 0
+	}
+
+	if middleColor.Temperature < 0 || middleColor.Temperature > 105 {
+		return 0
+	}
+
+	if endColor.Temperature < 0 || endColor.Temperature > 105 {
+		return 0
+	}
+
 	rgbOverride.Enabled = enabled
 	rgbOverride.RGBStartColor = startColor
 	rgbOverride.RGBEndColor = endColor
+	rgbOverride.RGBMiddleColor = middleColor
 	rgbOverride.RgbModeSpeed = speed
 	rgbOverride.RGBStartColor.Brightness = 1
 	rgbOverride.RGBEndColor.Brightness = 1
+	rgbOverride.RGBMiddleColor.Brightness = 1
 
 	d.setRgbOverride(channelId, subDeviceId, *rgbOverride)
 	d.saveDeviceProfile()
@@ -2622,18 +2712,28 @@ func (d *Device) saveDeviceProfile() {
 				0: {
 					Enabled: false,
 					RGBStartColor: rgb.Color{
-						Red:        0,
-						Green:      255,
-						Blue:       255,
-						Brightness: 1,
-						Hex:        "#00ffff",
+						Red:         0,
+						Green:       255,
+						Blue:        255,
+						Brightness:  1,
+						Hex:         "#00ffff",
+						Temperature: 20,
+					},
+					RGBMiddleColor: rgb.Color{
+						Red:         0,
+						Green:       255,
+						Blue:        255,
+						Brightness:  1,
+						Hex:         "#00ffff",
+						Temperature: 40,
 					},
 					RGBEndColor: rgb.Color{
-						Red:        0,
-						Green:      255,
-						Blue:       255,
-						Brightness: 1,
-						Hex:        "#00ffff",
+						Red:         0,
+						Green:       255,
+						Blue:        255,
+						Brightness:  1,
+						Hex:         "#00ffff",
+						Temperature: 60,
 					},
 					RgbModeSpeed: 3,
 				},
@@ -2644,18 +2744,28 @@ func (d *Device) saveDeviceProfile() {
 					0: {
 						Enabled: false,
 						RGBStartColor: rgb.Color{
-							Red:        0,
-							Green:      255,
-							Blue:       255,
-							Brightness: 1,
-							Hex:        "#00ffff",
+							Red:         0,
+							Green:       255,
+							Blue:        255,
+							Brightness:  1,
+							Hex:         "#00ffff",
+							Temperature: 20,
+						},
+						RGBMiddleColor: rgb.Color{
+							Red:         0,
+							Green:       255,
+							Blue:        255,
+							Brightness:  1,
+							Hex:         "#00ffff",
+							Temperature: 40,
 						},
 						RGBEndColor: rgb.Color{
-							Red:        0,
-							Green:      255,
-							Blue:       255,
-							Brightness: 1,
-							Hex:        "#00ffff",
+							Red:         0,
+							Green:       255,
+							Blue:        255,
+							Brightness:  1,
+							Hex:         "#00ffff",
+							Temperature: 60,
 						},
 						RgbModeSpeed: 3,
 					},
@@ -2739,6 +2849,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	d.DeviceProfile = deviceProfile
@@ -2955,15 +3066,8 @@ func (d *Device) updateDeviceSpeed() {
 						if fans < 20 && !profiles.ZeroRpm {
 							fans = 20
 						}
-
-						if device.ContainsPump {
-							if pump < 50 {
-								pump = 70
-							}
-						} else {
-							if pump < 20 {
-								pump = 30
-							}
+						if pump < 20 {
+							pump = 30
 						}
 						if pump > 100 {
 							pump = 100
@@ -3004,8 +3108,8 @@ func (d *Device) updateDeviceSpeed() {
 										profile.Fans = 20
 									}
 
-									if profile.Pump < 50 {
-										profile.Pump = 50
+									if profile.Pump < 20 {
+										profile.Pump = 30
 									}
 
 									if profile.Pump > 100 {
@@ -3042,13 +3146,6 @@ func (d *Device) UpdateDeviceSpeed(channelId int, value uint16) uint8 {
 
 		if value < 20 {
 			value = 20
-		}
-
-		// Minimal pump speed should be 50%
-		if device.ContainsPump {
-			if value < 50 {
-				value = 50
-			}
 		}
 		channelSpeeds[device.ChannelId] = byte(value)
 		d.setSpeed(channelSpeeds, 0)

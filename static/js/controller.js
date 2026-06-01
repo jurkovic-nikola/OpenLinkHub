@@ -704,7 +704,6 @@ $(document).ready(function () {
             pf["deadZoneMax"] = parseInt(deadZoneMax);
 
             const json = JSON.stringify(pf, null, 2);
-            console.log(json)
             $.ajax({
                 url: '/api/controller/setGraph',
                 type: 'POST',

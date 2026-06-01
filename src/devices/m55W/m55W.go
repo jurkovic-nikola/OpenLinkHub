@@ -18,7 +18,6 @@ import (
 	"math/bits"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -42,6 +41,7 @@ type DeviceProfile struct {
 	AngleSnapping      int
 	ButtonOptimization int
 	KeyAssignmentHash  string
+	RgbOff             bool
 }
 
 type DPIProfile struct {
@@ -101,6 +101,8 @@ type Device struct {
 	ZoneAmount            int
 	DPIAmount             int
 	checkOnlineMu         sync.Mutex
+	stopRepeat            chan struct{}
+	stopRepeatMutex       sync.Mutex
 }
 
 var (
@@ -780,6 +782,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -1025,7 +1028,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -1375,6 +1378,41 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 								}
 							} else {
 								inputmanager.InputControlKeyboardText(v.ActionText)
+							}
+						case 20:
+							if v.ActionRepeat > 0 && !v.ActionHold {
+								d.stopRepeatMutex.Lock()
+								if d.stopRepeat != nil {
+									close(d.stopRepeat)
+								}
+
+								d.stopRepeat = make(chan struct{})
+								localStop := d.stopRepeat
+								d.stopRepeatMutex.Unlock()
+
+								go func() {
+									for z := 0; z < int(v.ActionRepeat); z++ {
+										select {
+										case <-localStop:
+											return
+										default:
+											if v.MousePositionAbsolute {
+												inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+											} else {
+												inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+											}
+										}
+										if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+											time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+										}
+									}
+								}()
+							} else {
+								if v.MousePositionAbsolute {
+									inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+								} else {
+									inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+								}
 							}
 						}
 					}

@@ -16,16 +16,16 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/big"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type KeyPos struct {
@@ -56,6 +56,7 @@ type DeviceProfile struct {
 	DisableShiftTab    bool
 	DisableWinKey      bool
 	Performance        bool
+	RgbOff             bool
 }
 
 type Device struct {
@@ -414,7 +415,17 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 			}
 		}
 	}
+	for key, val := range d.Rgb.Profiles {
+		template := rgb.GetRgbProfile(key)
+		if template == nil {
+			continue
+		}
 
+		if val.Version != template.Version {
+			d.Rgb.Profiles[key] = *template
+			save = true
+		}
+	}
 	if save {
 		if err := common.SaveJsonData(path, d.Rgb); err != nil {
 			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
@@ -659,6 +670,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -703,7 +715,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -919,10 +931,25 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	if pf == nil {
 		return 0
 	}
+
+	if profile.StartColor.Temperature < 0 || profile.StartColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.MiddleColor.Temperature < 0 || profile.MiddleColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.EndColor.Temperature < 0 || profile.EndColor.Temperature > 105 {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
+	profile.MiddleColor.Brightness = pf.MiddleColor.Brightness
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
+	pf.MiddleColor = profile.MiddleColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
 
@@ -1455,6 +1482,22 @@ func (d *Device) UpdateDeviceColor(keyId, keyOption int, color rgb.Color, select
 	return 0
 }
 
+// ControlDeviceRgb will change device brightness via schedulerSchedulerBrightness
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -1470,6 +1513,25 @@ func (d *Device) setDeviceColor() {
 
 	if d.GetRgbProfile(d.DeviceProfile.RGBProfile) == nil {
 		d.DeviceProfile.RGBProfile = "keyboard"
+	}
+
+	if d.DeviceProfile.RgbOff {
+		if _, ok := d.DeviceProfile.Keyboards[d.DeviceProfile.Profile]; ok {
+			for _, rows := range d.DeviceProfile.Keyboards[d.DeviceProfile.Profile].Row {
+				for _, keys := range rows.Keys {
+					for _, packetIndex := range keys.PacketIndex {
+						buf[0][packetIndex] = 0x00
+						buf[1][packetIndex] = 0x00
+						buf[2][packetIndex] = 0x00
+					}
+				}
+			}
+			d.writeColor(buf) // Write color once
+			return
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. Unknown keyboard")
+			return
+		}
 	}
 
 	if d.DeviceProfile.RGBProfile == "keyboard" {
@@ -1569,15 +1631,22 @@ func (d *Device) setDeviceColor() {
 				if rgbCustomColor {
 					r.RGBStartColor = &profile.StartColor
 					r.RGBEndColor = &profile.EndColor
+					r.RGBMiddleColor = &profile.MiddleColor
 				} else {
 					r.RGBStartColor = d.activeRgb.RGBStartColor
 					r.RGBEndColor = d.activeRgb.RGBEndColor
+					r.RGBMiddleColor = d.activeRgb.RGBMiddleColor
+				}
+
+				if r.RGBMiddleColor == nil {
+					r.RGBMiddleColor = &rgb.Color{}
 				}
 
 				// Brightness
 				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
+				r.RGBMiddleColor.Brightness = r.RGBBrightness
 
 				switch d.DeviceProfile.RGBProfile {
 				case "rainbow":
@@ -2026,6 +2095,42 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 							}
 						} else {
 							inputmanager.InputControlKeyboardText(v.ActionText)
+						}
+						break
+					case 20:
+						if v.ActionRepeat > 0 && !v.ActionHold {
+							d.stopRepeatMutex.Lock()
+							if d.stopRepeat != nil {
+								close(d.stopRepeat)
+							}
+
+							d.stopRepeat = make(chan struct{})
+							localStop := d.stopRepeat
+							d.stopRepeatMutex.Unlock()
+
+							go func() {
+								for z := 0; z < int(v.ActionRepeat); z++ {
+									select {
+									case <-localStop:
+										return
+									default:
+										if v.MousePositionAbsolute {
+											inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+										} else {
+											inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+										}
+									}
+									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+									}
+								}
+							}()
+						} else {
+							if v.MousePositionAbsolute {
+								inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+							} else {
+								inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+							}
 						}
 						break
 					}

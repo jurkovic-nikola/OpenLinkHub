@@ -26,7 +26,7 @@
             {{ template "temperature-bar" . }}
             {{ end }}
 
-            <!-- MM700 -->
+            <!-- Commander DUO -->
             <div class="row g-4 mb-4 align-items-start">
                 <div class="col-md-2">
                     <div class="card system-card text-center">
@@ -91,6 +91,7 @@
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
                                     <label for="globalRgbProfile">
                                         <select id="globalRgbProfile" class="form-select system-select compact auto-width globalRgb" name="globalRgb">
+                                            <option value="">None</option>
                                             {{ range $key, $mode := $rgbModes }}
                                             <option value="{{ $mode }}">{{ $mode }}</option>
                                             {{ end }}

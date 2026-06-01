@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" . }}
+<body>
+
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $devs := .Devices }}
+    {{ $temperatures := .Temperatures }}
+    {{ $device := .Device }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $rgb := .Rgb }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <input type="hidden" id="zones" name="zones" value="{{ $device.ZoneAmount }}">
+
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            {{ if eq .Device.Connected false }}
+            {{ template "404-no-device" . }}
+            {{ else }}
+
+            <!-- HS80 RGB -->
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Firmware -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtFirmware" }}</span>
+                                    <span class="meta-value">{{ .Device.Firmware }}</span>
+                                </div>
+                                <!-- User profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="form-select system-select compact auto-width userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            <option value="{{ $key }}" selected>{{ $key }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- RGB Profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="rgbProfile">
+                                        <select id="rgbProfile" class="form-select system-select compact auto-width miscRgbProfile" name="miscRgbProfile">
+                                            {{ range $key, $mode := $rgbModes }}
+                                            {{ if eq $mode $device.DeviceProfile.RGBProfile }}
+                                            <option value="0;{{ $mode }}" selected>{{ $mode }}</option>
+                                            {{ else }}
+                                            <option value="0;{{ $mode }}">{{ $mode }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Sidetone -->
+                                <div class="settings-row">
+                                    <span title='{{ .Lang "txtSidetone" }}' class="settings-label text-ellipsis">{{ .Lang "txtSidetone" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" class="toggleSidetone" {{ if $deviceProfile.SideTone }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Side tone value -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtSidetoneValue" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="sideToneValue" name="sideToneValue" min="1" max="100" value="{{ $deviceProfile.SideToneValue }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="sideToneValueText">{{ $deviceProfile.SideToneValue }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- Delete user profile -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="form-select system-select compact auto-width deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if $profile.Active }}
+                                            {{ continue }}
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <!-- Save profile -->
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stack-gap-4">
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtRgb" }}
+                            </div>
+
+                            <div class="card-body">
+                                <div class="settings-list">
+                                    {{ range $key, $zone := $device.DeviceProfile.ZoneColors }}
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $root.Lang "txtZone" }}: {{ $zone.Name }}</span>
+                                        <div class="system-color compact">
+                                            <label>
+                                                <input type="color" id="zoneColor{{ $key }}" value="{{ $zone.Color.Hex }}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {{ end }}
+
+                                </div>
+                            </div>
+
+                            <div class="card-footer card-footer-left">
+                                <button class="system-button" id="saveZoneColors">{{ .Lang "txtSaveZoneColors" }}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card system-card text-center">
+                        <div class="card-header">{{ .Lang "txtEqualizer" }}</div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-1">
+                                    <div class="eq-scale">
+                                        <span>+12</span>
+                                        <span>0</span>
+                                        <span>-12</span>
+                                    </div>
+                                </div>
+
+                                {{ range $key, $equalizer := $device.DeviceProfile.Equalizers }}
+                                <div class="col-md-1">
+                                    <div class="eq-band">
+                                        <label id="stageValue{{ $key }}">{{ $equalizer.Value }}</label>
+                                        <div class="eq-slider-wrap">
+                                            <input class="eq-slider" type="range" min="-12" max="12" value="{{ $equalizer.Value }}" id="stage{{ $key }}">
+                                        </div>
+                                        <label>{{ $equalizer.Name }}</label>
+                                    </div>
+                                </div>
+                                {{ end }}
+                            </div>
+                        </div>
+                        <div class="card-footer card-footer-left">
+                            <button class="system-button" id="saveEqualizers">{{ .Lang "txtSave" }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+        </main>
+    </div>
+</div>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/headset.js"></script>
+<script src="/static/js/devices/hs80.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
+</body>
+</html>

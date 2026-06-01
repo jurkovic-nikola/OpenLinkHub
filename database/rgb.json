@@ -68,6 +68,22 @@
       },
       "speed": 2
     },
+    "arc": {
+      "profileName": "Arc",
+      "alternateColors": false,
+      "start": {
+        "red": 0,
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "end": {
+        "green": 255,
+        "blue": 255,
+        "brightness": 0.5
+      },
+      "speed": 2
+    },
     "visor": {
       "profileName": "Visor",
       "alternateColors": false,
@@ -225,16 +241,26 @@
         "red": 0,
         "green": 255,
         "blue": 0,
-        "brightness": 0.5
+        "brightness": 0.5,
+        "temperature": 20
+      },
+      "middle": {
+        "red": 255,
+        "green": 255,
+        "blue": 0,
+        "brightness": 1,
+        "temperature": 40
       },
       "end": {
         "red": 255,
         "green": 0,
         "blue": 0,
-        "brightness": 0.5
+        "brightness": 0.5,
+        "temperature": 60
       },
       "minTemp": 0,
-      "maxTemp": 60
+      "maxTemp": 60,
+      "version": 1
     },
     "cpu-temperature": {
       "profileName": "CPU Temperature",
@@ -245,16 +271,26 @@
         "red": 0,
         "green": 255,
         "blue": 0,
-        "brightness": 0.5
+        "brightness": 1,
+        "temperature": 20
+      },
+      "middle": {
+        "red": 255,
+        "green": 255,
+        "blue": 0,
+        "brightness": 1,
+        "temperature": 50
       },
       "end": {
         "red": 255,
         "green": 0,
         "blue": 0,
-        "brightness": 0.5
+        "brightness": 1,
+        "temperature": 95
       },
       "minTemp": 20,
-      "maxTemp": 95
+      "maxTemp": 95,
+      "version": 1
     },
     "gpu-temperature": {
       "profileName": "GPU Temperature",
@@ -265,16 +301,26 @@
         "red": 0,
         "green": 255,
         "blue": 0,
-        "brightness": 0.5
+        "brightness": 1,
+        "temperature": 20
+      },
+      "middle": {
+        "red": 255,
+        "green": 255,
+        "blue": 0,
+        "brightness": 1,
+        "temperature": 50
       },
       "end": {
         "red": 255,
         "green": 0,
         "blue": 0,
-        "brightness": 0.5
+        "brightness": 1,
+        "temperature": 80
       },
       "minTemp": 20,
-      "maxTemp": 80
+      "maxTemp": 80,
+      "version": 1
     },
     "probe-temperature": {
       "profileName": "Probe Temperature",

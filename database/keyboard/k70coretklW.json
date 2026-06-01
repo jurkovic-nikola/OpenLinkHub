@@ -1,10 +1,11 @@
 {
-  "version": 2,
+  "version": 3,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k70coretklW-default",
   "device": "K70 CORE TKL",
   "layout": "US",
+  "bufferSize": 98,
   "rows": 6,
   "color": {
     "red": 0,

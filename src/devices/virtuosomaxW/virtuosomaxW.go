@@ -14,15 +14,15 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type ZoneColors struct {
@@ -57,6 +57,7 @@ type DeviceProfile struct {
 	SideToneValue       int
 	LeftWheel           uint8
 	RightWheel          uint8
+	RgbOff              bool
 }
 
 type DPIProfile struct {
@@ -453,7 +454,17 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 			}
 		}
 	}
+	for key, val := range d.Rgb.Profiles {
+		template := rgb.GetRgbProfile(key)
+		if template == nil {
+			continue
+		}
 
+		if val.Version != template.Version {
+			d.Rgb.Profiles[key] = *template
+			save = true
+		}
+	}
 	if save {
 		if err := common.SaveJsonData(path, d.Rgb); err != nil {
 			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
@@ -634,10 +645,25 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	if pf == nil {
 		return 0
 	}
+
+	if profile.StartColor.Temperature < 0 || profile.StartColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.MiddleColor.Temperature < 0 || profile.MiddleColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.EndColor.Temperature < 0 || profile.EndColor.Temperature > 105 {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
+	profile.MiddleColor.Brightness = pf.MiddleColor.Brightness
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
+	pf.MiddleColor = profile.MiddleColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
 
@@ -1025,6 +1051,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.RightWheel = d.DeviceProfile.RightWheel
 		}
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -1319,7 +1346,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -1383,11 +1410,48 @@ func (d *Device) initLeds() {
 	}
 }
 
+// ControlDeviceRgb will change device brightness via schedulerSchedulerBrightness
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.Connected {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true
+			d.activeRgb = nil
+		}
+		d.setDeviceColor()
+	}
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, colorPacketLength)
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
+	// RGB Control
+	if d.DeviceProfile.RgbOff {
+		for _, zoneColor := range d.DeviceProfile.ZoneColors {
+			zoneColorIndexRange := zoneColor.ColorIndex
+			for key, zoneColorIndex := range zoneColorIndexRange {
+				switch key {
+				case 0: // Red
+					buf[zoneColorIndex] = 0
+				case 1: // Green
+					buf[zoneColorIndex] = 0
+				case 2: // Blue
+					buf[zoneColorIndex] = 0
+				}
+			}
+		}
+		d.writeColor(buf)
 		return
 	}
 
@@ -1479,15 +1543,22 @@ func (d *Device) setDeviceColor() {
 				if rgbCustomColor {
 					r.RGBStartColor = &profile.StartColor
 					r.RGBEndColor = &profile.EndColor
+					r.RGBMiddleColor = &profile.MiddleColor
 				} else {
 					r.RGBStartColor = d.activeRgb.RGBStartColor
 					r.RGBEndColor = d.activeRgb.RGBEndColor
+					r.RGBMiddleColor = d.activeRgb.RGBMiddleColor
+				}
+
+				if r.RGBMiddleColor == nil {
+					r.RGBMiddleColor = &rgb.Color{}
 				}
 
 				// Brightness
 				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
+				r.RGBMiddleColor.Brightness = r.RGBBrightness
 
 				switch d.DeviceProfile.RGBProfile {
 				case "off":

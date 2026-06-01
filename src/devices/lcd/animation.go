@@ -6,13 +6,13 @@ import (
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/rgb"
 	"encoding/json"
-	"golang.org/x/image/draw"
 	"image"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
+
+	"golang.org/x/image/draw"
 )
 
 type Animation struct {
@@ -134,7 +134,7 @@ func InitAnimation() {
 			fileName := strings.TrimSuffix(filenameFull, filepath.Ext(filenameFull))
 
 			// Validate file name
-			if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", fileName); !m {
+			if !common.AlphanumericRegex.MatchString(fileName) {
 				logger.Log(logger.Fields{"location": animationsFolder, "image": imagePath}).Warn("Image name can only have letters and numbers. Please rename your image")
 				return
 			}

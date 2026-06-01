@@ -14,14 +14,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 type Devices struct {
@@ -63,6 +63,7 @@ type DeviceProfile struct {
 	Product string
 	Serial  string
 	FanMode int
+	RgbOff  bool
 }
 
 type Device struct {
@@ -603,6 +604,7 @@ func (d *Device) saveDeviceProfile() {
 	} else {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.FanMode = d.DeviceProfile.FanMode
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -647,7 +649,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 

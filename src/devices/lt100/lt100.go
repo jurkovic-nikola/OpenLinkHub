@@ -15,16 +15,16 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/rand"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceInfo represents a USB device
@@ -49,6 +49,7 @@ type DeviceProfile struct {
 	Labels             map[int]string
 	RGBCluster         bool
 	OpenRGBIntegration bool
+	RgbOff             bool
 }
 
 type Devices struct {
@@ -413,7 +414,17 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 			}
 		}
 	}
+	for key, val := range d.Rgb.Profiles {
+		template := rgb.GetRgbProfile(key)
+		if template == nil {
+			continue
+		}
 
+		if val.Version != template.Version {
+			d.Rgb.Profiles[key] = *template
+			save = true
+		}
+	}
 	if save {
 		if err := common.SaveJsonData(path, d.Rgb); err != nil {
 			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
@@ -566,7 +577,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -704,6 +715,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -894,10 +906,25 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	if pf == nil {
 		return 0
 	}
+
+	if profile.StartColor.Temperature < 0 || profile.StartColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.MiddleColor.Temperature < 0 || profile.MiddleColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.EndColor.Temperature < 0 || profile.EndColor.Temperature > 105 {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
+	profile.MiddleColor.Brightness = pf.MiddleColor.Brightness
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
+	pf.MiddleColor = profile.MiddleColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
 
@@ -1271,6 +1298,22 @@ func (d *Device) setupOpenRGBController() {
 	openrgb.AddDeviceController(controller)
 }
 
+// ControlDeviceRgb will change device brightness via schedulerSchedulerBrightness
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Reset
@@ -1312,6 +1355,12 @@ func (d *Device) setDeviceColor() {
 	// RGB Cluster
 	if d.DeviceProfile.RGBCluster {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
+		return
+	}
+
+	// RGB Control
+	if d.DeviceProfile.RgbOff {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
 
@@ -1387,15 +1436,22 @@ func (d *Device) setDeviceColor() {
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor
 						r.RGBEndColor = &profile.EndColor
+						r.RGBMiddleColor = &profile.MiddleColor
 					} else {
 						r.RGBStartColor = d.activeRgb.RGBStartColor
 						r.RGBEndColor = d.activeRgb.RGBEndColor
+						r.RGBMiddleColor = d.activeRgb.RGBMiddleColor
+					}
+
+					if r.RGBMiddleColor == nil {
+						r.RGBMiddleColor = &rgb.Color{}
 					}
 
 					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
+					r.RGBMiddleColor.Brightness = r.RGBBrightness
 					r.ChannelId = k
 
 					switch d.Devices[k].RGB {

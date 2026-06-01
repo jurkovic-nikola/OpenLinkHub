@@ -108,6 +108,8 @@ $(document).ready(function () {
                                         const data = response.data;
                                         const startColor = rgbToHex(data.start.red, data.start.green, data.start.blue);
                                         const endColor = rgbToHex(data.end.red, data.end.green, data.end.blue);
+                                        const middleColor = rgbToHex(data.middle.red, data.middle.green, data.middle.blue);
+
                                         let rgbDirectionHtml = 'N/A';
                                         let alternateColorsHtml = 'N/A';
                                         let profileName = profile;
@@ -245,20 +247,52 @@ $(document).ready(function () {
                                             colorHtmlElement += `</div>`;
                                             size = 1000;
                                         } else {
-                                            colorHtmlElement = `
-                                                <div class="settings-row">
-                                                    <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
-                                                    <div class="system-input system-color no-padding-top">
-                                                        <input type="color" class="rgb-color-start" id="startColor_${profile}" value="${startColor}">
+                                            if (profile === "cpu-temperature" || profile === "gpu-temperature" ||profile === "liquid-temperature") {
+                                                colorHtmlElement = `
+                                                    <div class="settings-row rgb-editor">
+                                                        <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
+                                                        <div class="system-color vertical-align">
+                                                            <input type="color" class="rgb-color-start" id="startColor_${profile}" value="${startColor}">
+                                                        </div>
+                                                        <div class="system-input text-input max-width-60">
+                                                            <input type="text" class="rgb-color-start" id="startColorTemp_${profile}" value="${data.start.temperature}">
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="settings-row">
-                                                    <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
-                                                    <div class="system-input system-color no-padding-top">
-                                                        <input type="color" class="rgb-color-end" id="endColor_${profile}" value="${endColor}">
+                                                    <div class="settings-row rgb-editor">
+                                                        <span class="settings-label text-ellipsis">${i18n.t('txtMiddleColor')}</span>
+                                                        <div class="system-input system-color no-padding-top">
+                                                            <input type="color" class="rgb-color-end" id="middleColor_${profile}" value="${middleColor}">
+                                                        </div>
+                                                        <div class="system-input text-input max-width-60">
+                                                            <input type="text" class="rgb-color-start" id="middleColorTemp_${profile}" value="${data.middle.temperature}">
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            `;
+                                                    <div class="settings-row rgb-editor">
+                                                        <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
+                                                        <div class="system-input system-color no-padding-top">
+                                                            <input type="color" class="rgb-color-end" id="endColor_${profile}" value="${endColor}">
+                                                        </div>
+                                                        <div class="system-input text-input max-width-60">
+                                                            <input type="text" class="rgb-color-start" id="endColorTemp_${profile}" value="${data.end.temperature}">
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            } else {
+                                                colorHtmlElement = `
+                                                    <div class="settings-row">
+                                                        <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
+                                                        <div class="system-input system-color no-padding-top">
+                                                            <input type="color" class="rgb-color-start" id="startColor_${profile}" value="${startColor}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="settings-row">
+                                                        <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
+                                                        <div class="system-input system-color no-padding-top">
+                                                            <input type="color" class="rgb-color-end" id="endColor_${profile}" value="${endColor}">
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }
                                         }
 
                                         let temperatureHtmlElement = '';
@@ -544,28 +578,37 @@ $(document).ready(function () {
                                             modal.find('.saveRgbProfile').on('click', function () {
                                                 let startColorRgb = {}
                                                 let endColorRgb = {}
+                                                let middleColorRgb = {}
 
                                                 let speed = $("#speed_" + profile).val();
                                                 let rgbDirection = $("#rgbDirection_" + profile).val();
                                                 let alternateColors = $("#alternateColors_" + profile).is(':checked');
                                                 const startColorVal = $("#startColor_" + profile).val();
                                                 const endColorVal = $("#endColor_" + profile).val();
+                                                const middleColorVal = $("#middleColor_" + profile).val();
+
+                                                const startColorTemp = $("#startColorTemp_" + profile).val();
+                                                const endColorTemp = $("#endColorTemp_" + profile).val();
+                                                const middleColorTemp = $("#middleColorTemp_" + profile).val();
 
                                                 if (startColorVal == null) {
                                                     startColorRgb = {red: 0, green: 0, blue: 0}
                                                 } else {
                                                     const startColor = hexToRgb(startColorVal);
-                                                    startColorRgb = {
-                                                        red: startColor.r,
-                                                        green: startColor.g,
-                                                        blue: startColor.b
-                                                    }
+                                                    startColorRgb = {red: startColor.r, green: startColor.g, blue: startColor.b, temperature: parseFloat(startColorTemp)}
                                                 }
                                                 if (endColorVal == null) {
                                                     endColorRgb = {red: 0, green: 0, blue: 0}
                                                 } else {
                                                     const endColor = hexToRgb(endColorVal);
-                                                    endColorRgb = {red: endColor.r, green: endColor.g, blue: endColor.b}
+                                                    endColorRgb = {red: endColor.r, green: endColor.g, blue: endColor.b, temperature: parseFloat(endColorTemp)}
+                                                }
+
+                                                if (middleColorVal == null) {
+                                                    middleColorRgb = {red: 0, green: 0, blue: 0}
+                                                } else {
+                                                    const middleColor = hexToRgb(middleColorVal);
+                                                    middleColorRgb = {red: middleColor.r, green: middleColor.g, blue: middleColor.b, temperature: parseFloat(middleColorTemp)}
                                                 }
 
                                                 if (speed == null) {
@@ -585,6 +628,7 @@ $(document).ready(function () {
                                                 pf["profile"] = profile;
                                                 pf["startColor"] = startColorRgb;
                                                 pf["endColor"] = endColorRgb;
+                                                pf["middleColor"] = middleColorRgb;
                                                 pf["speed"] = parseFloat(speed);
                                                 pf["alternateColors"] = alternateColors;
                                                 pf["rgbDirection"] = parseInt(rgbDirection);

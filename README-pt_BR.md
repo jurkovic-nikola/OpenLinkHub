@@ -19,6 +19,7 @@ Gerencie iluminação RGB, velocidades de ventiladores, métricas do sistema, be
 - [Memória DDR4 / DDR5](docs/memory-configuration_pt-BR.md)
 - [Placa-mãe PWM](docs/motherboard-pwm.md)
 - [Integração OpenRGB](openrgb/README.md)
+- [XENEON EDGE KDE](docs/xeneon-edge-kde.md)
 
 ![Interface Web](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 
@@ -28,6 +29,20 @@ Gerencie iluminação RGB, velocidades de ventiladores, métricas do sistema, be
 - A maioria dos dispositivos foi testada em hardware real.
 - Tenha cuidado e divirta-se!
 - Este projeto não é um produto oficial da Corsair.
+
+## Instalação (recomendada)
+```bash
+curl -fsSL https://raw.githubusercontent.com/jurkovic-nikola/OpenLinkHub/main/remote-install.sh | bash
+```
+This script will:
+- Criar um novo grupo do sistema chamado openlinkhub
+- Adicionar seu usuário atual ao grupo openlinkhub
+- Instalar o OpenLinkHub no seu diretório pessoal
+- Criar um serviço systemd de usuário
+- Copiar 99-openlinkhub.rules para /etc/udev/rules.d/
+- Iniciar o serviço após a instalação
+- Você pode usar este script para fins de instalação ou atualização
+- Antes de executar este script, desinstale quaisquer versões do OpenLinkHub instaladas anteriormente.
 
 ## Instalação (automática)
 1. Baixe o pacote .deb ou .rpm da versão mais recente, dependendo da sua distribuição Linux
@@ -60,7 +75,7 @@ $ sudo dnf install OpenLinkHub
 - usbutils
 - libpipewire-dev
 - pkg-config
-- go 1.23.8 - https://go.dev/dl/
+- go 1.25.0 - https://go.dev/dl/
 ```bash
 # Pacotes necessários (deb)
 $ sudo apt-get install libudev-dev
@@ -79,7 +94,7 @@ Você também pode usar o devcontainer fornecido para o VScode. Isso é útil pa
 ```bash
 $ git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
 $ cd OpenLinkHub/
-$ go build .
+$ CGO_CFLAGS_ALLOW='-fno-strict-overflow' go build .
 $ chmod +x install.sh
 $ sudo ./install.sh
 ```

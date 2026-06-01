@@ -29,6 +29,7 @@ import (
 	"OpenLinkHub/src/devices/hs80rgbWU"
 	"OpenLinkHub/src/devices/hydro"
 	"OpenLinkHub/src/devices/ironclaw"
+	"OpenLinkHub/src/devices/ironclawSEWU"
 	"OpenLinkHub/src/devices/ironclawWU"
 	"OpenLinkHub/src/devices/k100"
 	"OpenLinkHub/src/devices/k100airWU"
@@ -70,6 +71,7 @@ import (
 	"OpenLinkHub/src/devices/lt100"
 	"OpenLinkHub/src/devices/m55"
 	"OpenLinkHub/src/devices/m55rgbpro"
+	"OpenLinkHub/src/devices/m65prorgb"
 	"OpenLinkHub/src/devices/m65rgbelite"
 	"OpenLinkHub/src/devices/m65rgbultra"
 	"OpenLinkHub/src/devices/m65rgbultraWU"
@@ -105,15 +107,19 @@ import (
 	"OpenLinkHub/src/devices/scufenvisionproV2WU"
 	"OpenLinkHub/src/devices/scufenvisionproWU"
 	"OpenLinkHub/src/devices/slipstream"
+	"OpenLinkHub/src/devices/slipstreamV2"
 	"OpenLinkHub/src/devices/st100"
 	"OpenLinkHub/src/devices/strafergbmk2"
 	"OpenLinkHub/src/devices/vanguard96"
+	"OpenLinkHub/src/devices/vanguard96WU"
 	"OpenLinkHub/src/devices/vanguard96pro"
+	"OpenLinkHub/src/devices/vanguard99airWU"
 	"OpenLinkHub/src/devices/virtuosoSEWU"
 	"OpenLinkHub/src/devices/virtuosoWU"
 	"OpenLinkHub/src/devices/virtuosomaxdongle"
 	"OpenLinkHub/src/devices/virtuosorgbXTWU"
 	"OpenLinkHub/src/devices/voidV2dongle"
+	"OpenLinkHub/src/devices/voidelitedongle"
 	"OpenLinkHub/src/devices/xc7"
 	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/inputmanager"
@@ -121,6 +127,7 @@ import (
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/motherboards"
 	"OpenLinkHub/src/openrgb"
+	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
 	"OpenLinkHub/src/version"
@@ -256,11 +263,40 @@ func ScheduleDeviceBrightness(mode uint8) {
 	}
 }
 
+// ScheduleDeviceLcdBrightness will change LCD backlight brightness based on scheduler
+func ScheduleDeviceLcdBrightness(mode uint8) {
+	for _, device := range GetDevices() {
+		CallDeviceMethod(device.Serial, "SchedulerLcdBrightness", mode)
+	}
+}
+
+// ControlDeviceRgb will disable / enable device RGB
+func ControlDeviceRgb(mode bool) {
+	for _, device := range GetDevices() {
+		CallDeviceMethod(device.Serial, "ControlDeviceRgb", mode)
+	}
+}
+
 // UpdateGlobalRgbProfile will update device RGB profile
 func UpdateGlobalRgbProfile(profile string) uint8 {
 	channelId := -1
 	for _, device := range devices {
 		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, profile)
+	}
+	return 1
+}
+
+// UpdateAllDevicesStaticColor will push a single static color to all registered devices
+func UpdateAllDevicesStaticColor(color rgb.Color) uint8 {
+	channelId := -1
+	profile := rgb.Profile{
+		StartColor: color,
+		EndColor:   color,
+		Brightness: 1.0,
+	}
+	for _, device := range devices {
+		CallDeviceMethod(device.Serial, "UpdateRgbProfileData", "static", profile)
+		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, "static")
 	}
 	return 1
 }
@@ -763,11 +799,14 @@ var deviceRegisterMap = map[uint16]Product{
 	11012: {1, 0, "MAKR 75", makr75WU.Init, nil},                           // MAKR 75
 	11022: {2, 0, "VANGUARD 96 PRO", vanguard96pro.Init, nil},              // VANGUARD 96 PRO
 	11021: {2, 0, "VANGUARD 96", vanguard96.Init, nil},                     // VANGUARD 96
+	11023: {2, 0, "VANGUARD 96 WIRELESS", vanguard96WU.Init, nil},          // VANGUARD 96 WIRELESS
+	11041: {2, 0, "VANGUARD 99 AIR", vanguard99airWU.Init, nil},            // VANGUARD 99 AIR
 	7059:  {1, 0, "KATAR PRO", katarpro.Init, nil},                         // KATAR PRO Gaming Mouse
 	7084:  {1, 0, "KATAR PRO XT", katarproxt.Init, nil},                    // KATAR PRO XT Gaming Mouse
 	7005:  {1, 0, "IRONCLAW RGB", ironclaw.Init, nil},                      // IRONCLAW RGB Gaming Mouse
 	6987:  {1, 0, "DARK CORE RGB SE", darkcorergbseWU.Init, nil},           // DARK CORE RGB SE
 	6988:  {1, 0, "IRONCLAW RGB WIRELESS", ironclawWU.Init, nil},           // IRONCLAW RGB WIRELESS Gaming Mouse
+	11058: {1, 0, "IRONCLAW WIRELESS SE", ironclawSEWU.Init, nil},          // IRONCLAW WIRELESS SE Gaming Mouse
 	7096:  {1, 0, "NIGHTSABRE WIRELESS", nightsabreWU.Init, nil},           // NIGHTSABRE WIRELESS Mouse
 	7139:  {1, 0, "SCIMITAR RGB ELITE", scimitar.Init, nil},                // SCIMITAR RGB ELITE
 	6974:  {1, 0, "SCIMITAR PRO RGB", scimitarprorgb.Init, nil},            // SCIMITAR PRO RGB
@@ -788,6 +827,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7093:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},       // M65 RGB ULTRA WIRELESS Gaming Mouse
 	7126:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},       // M65 RGB ULTRA WIRELESS Gaming Mouse
 	7002:  {1, 0, "M65 RGB ELITE", m65rgbelite.Init, nil},                  // M65 RGB ELITE Gaming Mouse
+	6958:  {1, 0, "M65 PRO RGB", m65prorgb.Init, nil},                      // M65 PRO RGB Mouse
 	7029:  {1, 0, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},              // HARPOON RGB PRO Gaming Mouse
 	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                          // HARPOON Gaming Mouse
 	7004:  {1, 0, "NIGHTSWORD RGB", nightswordrgb.Init, nil},               // NIGHTSWORD RGB Gaming Mouse
@@ -807,18 +847,21 @@ var deviceRegisterMap = map[uint16]Product{
 	7039:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // CORSAIR DARK CORE RGB PRO SE Gaming Dongle
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
+	11035: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstreamV2.Init},           // SLIPSTREAM WIRELESS V2 USB Receiver
 	11050: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // Sabre v2 Pro Ultralight Wireless Dongle
 	7041:  {1, 0, "DARK CORE RGB PRO Gaming Dongle", nil, slipstream.Init}, // DARK CORE RGB PRO Gaming Dongle
 	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS
 	10755: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS XBOX
 	2711:  {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},            // HS80 MAX WIRELESS
 	10767: {4, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},            // HS80 MAX WIRELESS
+	10764: {3, 0, "HS80 MAX WIRELESS", nil, hs80maxdongle.Init},            // HS80 MAX WIRELESS for XBOX Gaming Receiver
 	6993:  {1, 0, "DARK CORE RGB SE", nil, darkcorergbsesongle.Init},       // DARK CORE RGB SE Wireless USB Receiver
 	2660:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
 	2667:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
 	2628:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
 	2626:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
 	2675:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
+	2641:  {3, 0, "VOID ELITE WIRELESS", nil, voidelitedongle.Init},        // Headset dongle
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},           // Headset dongle
 	2624:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},           // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},           // K65 PLUS WIRELESS
@@ -830,6 +873,7 @@ var deviceRegisterMap = map[uint16]Product{
 	14853: {4, 0, "SCUF ENVISION PRO V2", scufenvisionproV2WU.Init, nil},   // SCUF Envision Pro Controller V2
 	17230: {4, 0, "SCUF PC Controller Dongle", nil, scufdongle.Init},       // SCUF Gaming SCUF PC Controller Dongle
 	14856: {4, 0, "SCUF PC Controller Dongle V2", nil, scufdongleV2.Init},  // SCUF Envision Pro Wireless USB Receiver V2
+	//7437:  {0, 0, "XENEON EDGE", xeneonedge.Init, nil},                     // XENEON EDGE
 }
 
 // initializeDevice will initialize a device

@@ -18,7 +18,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,6 +40,7 @@ type DeviceProfile struct {
 	HeaderModes   map[int]int
 	Labels        map[int]string
 	MultiProfile  string
+	RgbOff        bool
 }
 
 type TemperatureProbe struct {
@@ -256,7 +256,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -679,6 +679,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	d.DeviceProfile = deviceProfile

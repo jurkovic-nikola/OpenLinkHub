@@ -577,7 +577,7 @@ $(document).ready(function () {
             deviceSelected.length ? deviceSelected.join(',') : ''
         );
 
-        syncKeyboardSelectionMode();
+        //syncKeyboardSelectionMode();
     });
 
     $('.openKeyAssignments').on('click', function () {
@@ -715,29 +715,39 @@ $(document).ready(function () {
                             $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                         } else {
                             let url = '';
-                            let sniper = false;
+                            let mouseDevice = false;
                             switch (data.actionType) {
                                 case 1: {
                                     url = '/api/input/media';
                                 }
-                                    break;
+                                break;
+                                case 2: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 3: {
                                     url = '/api/input/keyboard';
                                 }
-                                    break;
+                                break;
+                                case 4: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 8: {
                                     url = '/api/devices/mouse';
-                                    sniper = true;
+                                    mouseDevice = true;
                                 }
-                                    break;
+                                break;
                                 case 9: {
                                     url = '/api/input/mouse';
                                 }
-                                    break;
+                                break;
                                 case 10: {
                                     url = '/api/macro/';
                                 }
-                                    break;
+                                break;
                             }
 
                             $.ajax({
@@ -747,7 +757,7 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $.each(result.data, function( index, value ) {
                                         const displayName = value.Name || value.name;
-                                        if (sniper) {
+                                        if (mouseDevice) {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
                                         } else {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
@@ -777,7 +787,20 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 2: { // DPI Up
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 3: { // Keyboard
                                     $.ajax({
                                         url:'/api/input/keyboard',
@@ -790,21 +813,33 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
-                                case 8: { // Sniper
+                                break;
+                                case 4: { // DPI Down
                                     $.ajax({
                                         url:'/api/devices/mouse',
                                         type:'get',
                                         success:function(result){
                                             $(keyAssignmentValue).empty();
-                                            console.log(result)
                                             $.each(result.data, function( index, value ) {
                                                 $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
                                             });
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 8: { // Sniper
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 9: { // Mouse
                                     $.ajax({
                                         url:'/api/input/mouse',
@@ -817,7 +852,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                                 case 10: { // Macro
                                     $.ajax({
                                         url:'/api/macro/',
@@ -830,7 +865,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                             }
                         });
 
@@ -933,7 +968,11 @@ $(document).ready(function () {
                                 pf["enabled"] = enabled;
                                 pf["pressAndHold"] = pressAndHold;
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-                                if (parseInt(keyAssignmentType) === 8) {
+                                if (
+                                    parseInt(keyAssignmentType) === 8 ||
+                                    parseInt(keyAssignmentType) === 2 ||
+                                    parseInt(keyAssignmentType) === 4
+                                ) {
                                     pf["keyAssignmentValueString"] = keyAssignmentValue;
                                 } else {
                                     pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
@@ -1370,29 +1409,39 @@ $(document).ready(function () {
                             $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                         } else {
                             let url = '';
-                            let sniper = false;
+                            let mouseDevice = false;
                             switch (data.actionType) {
                                 case 1: {
                                     url = '/api/input/media';
                                 }
-                                    break;
+                                break;
+                                case 2: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 3: {
                                     url = '/api/input/keyboard';
                                 }
-                                    break;
+                                break;
+                                case 4: {
+                                    url = '/api/devices/mouse';
+                                    mouseDevice = true;
+                                }
+                                break;
                                 case 8: {
                                     url = '/api/devices/mouse';
-                                    sniper = true;
+                                    mouseDevice = true;
                                 }
-                                    break;
+                                break;
                                 case 9: {
                                     url = '/api/input/mouse';
                                 }
-                                    break;
+                                break;
                                 case 10: {
                                     url = '/api/macro/';
                                 }
-                                    break;
+                                break;
                             }
 
                             $.ajax({
@@ -1402,7 +1451,7 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $.each(result.data, function( index, value ) {
                                         const displayName = value.Name || value.name;
-                                        if (sniper) {
+                                        if (mouseDevice) {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
                                         } else {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
@@ -1419,7 +1468,7 @@ $(document).ready(function () {
                                     $(keyAssignmentValue).empty();
                                     $(keyAssignmentValue).append($('<option>', { value: 0, text: "None" }));
                                 }
-                                    break;
+                                break;
                                 case 1: { // Media keys
                                     $.ajax({
                                         url:'/api/input/media',
@@ -1432,7 +1481,20 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 2: { // DPI Up
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 3: { // Keyboard
                                     $.ajax({
                                         url:'/api/input/keyboard',
@@ -1445,21 +1507,33 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
-                                case 8: { // Sniper
+                                break;
+                                case 4: { // DPI Down
                                     $.ajax({
                                         url:'/api/devices/mouse',
                                         type:'get',
                                         success:function(result){
                                             $(keyAssignmentValue).empty();
-                                            console.log(result)
                                             $.each(result.data, function( index, value ) {
                                                 $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
                                             });
                                         }
                                     });
                                 }
-                                    break;
+                                break;
+                                case 8: { // Sniper
+                                    $.ajax({
+                                        url:'/api/devices/mouse',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
                                 case 9: { // Mouse
                                     $.ajax({
                                         url:'/api/input/mouse',
@@ -1472,7 +1546,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                                 case 10: { // Macro
                                     $.ajax({
                                         url:'/api/macro/',
@@ -1485,7 +1559,7 @@ $(document).ready(function () {
                                         }
                                     });
                                 }
-                                    break;
+                                break;
                             }
                         });
 
@@ -1615,7 +1689,11 @@ $(document).ready(function () {
                                 pf["keyAssignmentOriginal"] = retainOriginal;
                                 pf["keyAssignmentModifier"] = parseInt(keyAssignmentModifier);
                                 pf["keyAssignmentType"] = parseInt(keyAssignmentType);
-                                if (parseInt(keyAssignmentType) === 8) {
+                                if (
+                                    parseInt(keyAssignmentType) === 8 ||
+                                    parseInt(keyAssignmentType) === 2 ||
+                                    parseInt(keyAssignmentType) === 4
+                                ) {
                                     pf["keyAssignmentValueString"] = keyAssignmentValue;
                                 } else {
                                     pf["keyAssignmentValue"] = parseInt(keyAssignmentValue);
@@ -2378,6 +2456,14 @@ $(document).ready(function () {
                             });
                         }
                     }
+
+                    // rail voltages for commander pro
+                    if (result.device.hasOwnProperty("RailVoltages")) {
+                        $.each(result.device.RailVoltages, function( index, value ) {
+                            const elementRailVoltageId = "#railVoltage-" + result.device.serial + "-" + index;
+                            $(elementRailVoltageId).html(value.Value + " V");
+                        })
+                    }
                 }
             });
         },1500);
@@ -2991,6 +3077,36 @@ $(document).ready(function () {
         });
     });
 
+    $('.lcdBrightness').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const brightness = $(this).val().split(";");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(brightness[0]);
+        pf["brightness"] = parseInt(brightness[1]);
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/brightness',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.lcdImages').on('change', function () {
         const deviceId = $("#deviceId").val();
         const image = $(this).val().split(";");
@@ -3469,9 +3585,9 @@ $(document).ready(function () {
                 try {
                     if (response.status === 1) {
                         const data = response.data;
-
                         const startColor = rgbToHex(data.RGBStartColor.red, data.RGBStartColor.green, data.RGBStartColor.blue);
                         const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
+                        const middleColor = rgbToHex(data.RGBMiddleColor.red, data.RGBMiddleColor.green, data.RGBMiddleColor.blue);
 
                         let modalElement = `
                           <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
@@ -3484,7 +3600,7 @@ $(document).ready(function () {
                                 </div>
                                 <div class="modal-body">
                                     <div class="settings-list">
-                                        <div class="settings-row">
+                                        <div class="settings-row ">
                                             <span class="settings-label text-ellipsis">${i18n.t('txtEnable')}</span>
                                             <label class="system-toggle compact">
                                                 <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
@@ -3492,19 +3608,35 @@ $(document).ready(function () {
                                             </label>
                                         </div>
     
-                                        <div class="settings-row">
+                                        <div class="settings-row rgb-editor">
                                             <span class="settings-label text-ellipsis">${i18n.t('txtStartColor')}</span>
                                             <div class="system-color">
                                                 <label for="startColor">
                                                     <input type="color" id="startColor" value="${startColor}">
                                                 </label>
                                             </div>
+                                            <div class="system-input text-input max-width-60">
+                                                <input type="text" class="rgb-color-start" id="startColorTemp" value="${data.RGBStartColor.temperature}">
+                                            </div>
                                         </div>
                                         
-                                        <div class="settings-row">
+                                        <div class="settings-row rgb-editor">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtMiddleColor')}</span>
+                                            <div class="system-color">
+                                                    <input type="color" class="system-color" id="middleColor" value="${middleColor}">
+                                            </div>
+                                            <div class="system-input text-input max-width-60">
+                                                <input type="text" class="rgb-color-start" id="middleColorTemp" value="${data.RGBMiddleColor.temperature}">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-row rgb-editor">
                                             <span class="settings-label text-ellipsis">${i18n.t('txtEndColor')}</span>
                                             <div class="system-color">
                                                     <input type="color" class="system-color" id="endColor" value="${endColor}">
+                                            </div>
+                                            <div class="system-input text-input max-width-60">
+                                                <input type="text" class="rgb-color-start" id="endColorTemp" value="${data.RGBEndColor.temperature}">
                                             </div>
                                         </div>
                                         
@@ -3561,16 +3693,25 @@ $(document).ready(function () {
                                 const pf = {};
                                 let startColorRgb = {}
                                 let endColorRgb = {}
+                                let middleColorRgb = {}
 
                                 let speed = $("#speedSlider").val();
                                 const startColorVal = $("#startColor").val();
                                 const endColorVal = $("#endColor").val();
+                                const middleColorVal = $("#middleColor").val();
+
+                                const startColorTemp = $("#startColorTemp").val();
+                                const endColorTemp = $("#endColorTemp").val();
+                                const middleColorTemp = $("#middleColorTemp").val();
 
                                 const startColor = hexToRgb(startColorVal);
-                                startColorRgb = {red:startColor.r, green:startColor.g, blue:startColor.b}
+                                startColorRgb = {red:startColor.r, green:startColor.g, blue:startColor.b, temperature: parseFloat(startColorTemp)}
 
                                 const endColor = hexToRgb(endColorVal);
-                                endColorRgb = {red:endColor.r, green:endColor.g, blue:endColor.b}
+                                endColorRgb = {red:endColor.r, green:endColor.g, blue:endColor.b, temperature: parseFloat(endColorTemp)}
+
+                                const middleColor = hexToRgb(middleColorVal);
+                                middleColorRgb = {red:middleColor.r, green:middleColor.g, blue:middleColor.b, temperature: parseFloat(middleColorTemp)}
 
                                 const enabled = $("#enabledCheckbox").is(':checked');
 
@@ -3580,6 +3721,7 @@ $(document).ready(function () {
                                 pf["enabled"] = enabled;
                                 pf["startColor"] = startColorRgb;
                                 pf["endColor"] = endColorRgb;
+                                pf["middleColor"] = middleColorRgb;
                                 pf["speed"] = parseFloat(speed);
 
                                 const json = JSON.stringify(pf, null, 2);
@@ -4165,7 +4307,7 @@ $(document).ready(function () {
         const deviceId = $("#deviceId").val();
         const keyInfo = $(this).attr("data-info").split(";");
         const keyId = parseInt(keyInfo[0]);
-        syncKeyboardSelectionMode();
+        //syncKeyboardSelectionMode();
         noColorChange(deviceId, keyId).then(result => {
             if (result) {
                 $(".keyColorArea").hide();

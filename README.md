@@ -21,6 +21,7 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and
 - [Memory DDR4 / DDR5](docs/memory-configuration.md)
 - [Motherboard PWM](docs/motherboard-pwm.md)
 - [OpenRGB Integration](openrgb/README.md)
+- [XENEON EDGE KDE](docs/xeneon-edge-kde.md)
 
 ![Web UI](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/ui.png?raw=true)
 
@@ -30,6 +31,19 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and
 - Most of the devices are actually tested on live hardware.
 - Take care and have fun!
 - This project is not an official Corsair product.
+## Installation (recommended)
+```bash
+curl -fsSL https://raw.githubusercontent.com/jurkovic-nikola/OpenLinkHub/main/remote-install.sh | bash
+```
+This script will:
+- Open a new system group called openlinkhub 
+- Add your current user to openlinkhub 
+- Install OpenLinkHub in your home directory. 
+- Create a user systemd service 
+- Copy 99-openlinkhub.rules to /etc/udev/rules.d/ 
+- Start the service after installation. 
+- You can use this script for installation or upgrade purposes.
+- Before running this script, uninstall any previously installed versions of OpenLinkHub
 
 ## Installation (automatic)
 1. Download either .deb or .rpm package from the latest Release, depending on your Linux distribution
@@ -62,7 +76,7 @@ $ sudo dnf install OpenLinkHub
 - usbutils
 - libpipewire-dev
 - pkg-config
-- go 1.23.8 - https://go.dev/dl/
+- go 1.25.0 - https://go.dev/dl/
 ```bash
 # Required packages (deb)
 $ sudo apt-get install libudev-dev
@@ -81,7 +95,7 @@ Or use the provided devcontainer in VScode. This is useful for immutable distrib
 ```bash
 $ git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
 $ cd OpenLinkHub/
-$ go build .
+$ CGO_CFLAGS_ALLOW='-fno-strict-overflow' go build .
 $ chmod +x install.sh
 $ sudo ./install.sh
 ```

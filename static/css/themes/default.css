@@ -221,6 +221,26 @@ body {
     animation: shake 0.3s ease;
 }
 
+.max-width-50 {
+    max-width: 50px;
+}
+
+.max-width-60 {
+    max-width: 60px;
+}
+
+.max-width-70 {
+    max-width: 70px;
+}
+
+.max-width-80 {
+    max-width: 80px;
+}
+
+.max-width-90 {
+    max-width: 90px;
+}
+
 .max-width-100 {
     max-width: 100px;
 }
@@ -1268,6 +1288,12 @@ transition: stroke-dashoffset 0.6s ease;
     min-width: 0;
 }
 
+.settings-row.rgb-editor .settings-label {
+    gap: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .settings-row.settings-actuation {
     display: grid;
     grid-template-columns: 140px 1fr 50px;
@@ -1290,6 +1316,14 @@ transition: stroke-dashoffset 0.6s ease;
 .settings-row.settings-flashTap .system-slider {
     flex: unset;
     min-width: 0;
+}
+
+.settings-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 #secondaryContainer {
@@ -2636,6 +2670,8 @@ table.dataTable.compact tbody td {
 .keyboard-row-19 { display: grid; grid-template-columns: repeat(19, var(--kb-key)); grid-gap: var(--kb-gap); }
 .keyboard-row-20 { display: grid; grid-template-columns: repeat(20, var(--kb-key)); grid-gap: var(--kb-gap); }
 .keyboard-row-21 { display: grid; grid-template-columns: repeat(21, var(--kb-key)); grid-gap: var(--kb-gap); }
+.keyboard-row-22 { display: grid; grid-template-columns: repeat(22, var(--kb-key)); grid-gap: var(--kb-gap); }
+.keyboard-row-23 { display: grid; grid-template-columns: repeat(23, var(--kb-key)); grid-gap: var(--kb-gap); }
 .keyboard-row-24 { display: grid; grid-template-columns: repeat(24, var(--kb-key)); grid-gap: var(--kb-gap); }
 .keyboard-row-25 { display: grid; grid-template-columns: repeat(25, var(--kb-key)); grid-gap: var(--kb-gap); }
 .keyboard-row-26 { display: grid; grid-template-columns: repeat(26, var(--kb-key)); grid-gap: var(--kb-gap); }
@@ -3061,6 +3097,11 @@ table.dataTable.compact tbody td {
     border-radius: 50%;
     background: var(--text-main);
     border: 2px solid var(--good);
+}
+
+/* Xeneon Edge */
+.xeneon-edge-panel {
+    height: 150px;
 }
 
 /* Full HD */

@@ -1,14 +1,14 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/go .
 {
-	"name": "Go",
+	"name": "OpenLinkHub",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/go:1.23-bookworm",
+	"image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
         "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-            "packages": "libudev-dev,usbutils"
+            "packages": "libudev-dev,usbutils,libpipewire-0.3-dev,pkg-config"
         }
     },
 
@@ -16,10 +16,16 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "go get ."
+	"postCreateCommand": "go get .",
 
 	// Configure tool-specific properties.
-	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.go"
+			]
+		}
+	}
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"

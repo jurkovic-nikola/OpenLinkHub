@@ -16,6 +16,7 @@ import (
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/version"
+	"bytes"
 	"fmt"
 	"html/template"
 	"os"
@@ -57,6 +58,7 @@ type Web struct {
 	Stats                           interface{}
 	AudioSettings                   interface{}
 	OutputDevices                   interface{}
+	Displays                        interface{}
 	CpuTemp                         string
 	GpuTemp                         string
 	Page                            string
@@ -87,6 +89,18 @@ func (w Web) Dict(values ...any) map[string]any {
 // Slice is called from template files
 func (w Web) Slice(values ...any) []any {
 	return values
+}
+
+// RenderTemplate will map to external function to render templates
+func (w Web) RenderTemplate(name string, data any) template.HTML {
+	if templates == nil || name == "" {
+		return ""
+	}
+	var buf bytes.Buffer
+	if err := templates.ExecuteTemplate(&buf, name, data); err != nil {
+		return ""
+	}
+	return template.HTML(buf.String())
 }
 
 // Init will parse all templates

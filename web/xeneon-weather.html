@@ -1,0 +1,50 @@
+{{ define "xeneon-weather" }}
+{{ $root := .Root }}
+{{ $widgetArea := .WidgetArea }}
+{{ $widget := $widgetArea.Widget }}
+<div class="edge-panel" id="xeneon-weather">
+    <div class="card system-card">
+        <div class="card-body">
+            <div class="hero-weather">
+                <div>
+                    <div class="weather-location" id="weatherLocation">Detecting location…</div>
+                    <div class="weather-condition" id="weatherCondition">Connecting to live weather feed</div>
+                    <div class="weather-temp"><span id="weatherTemp">--</span>°</div>
+                    <div class="weather-meta mt-3">
+                        <div class="weather-stat">
+                            <span class="label">Humidity</span>
+                            <span class="value" id="weatherHumidity">--%</span>
+                        </div>
+                        <div class="weather-stat">
+                            <span class="label">Wind</span>
+                            <span class="value" id="weatherWind">-- km/h</span>
+                        </div>
+                        <div class="weather-stat">
+                            <span class="label">Rain</span>
+                            <span class="value" id="weatherRain">--%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="weather-icon-wrap">
+                    <div class="weather-icon-badge" id="weatherIcon">☀️</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer card-footer-left">
+            <span id="weatherUpdated">Waiting for weather update…</span>
+        </div>
+    </div>
+</div>
+<div class="edge-panel compact">
+    <div class="card system-card">
+        <div class="card-body p-3">
+            <div class="forecast-row" id="forecastRow">
+                <div class="forecast-pill"><div class="day">--:--</div><div class="temp">--°</div></div>
+                <div class="forecast-pill"><div class="day">--:--</div><div class="temp">--°</div></div>
+                <div class="forecast-pill"><div class="day">--:--</div><div class="temp">--°</div></div>
+                <div class="forecast-pill"><div class="day">--:--</div><div class="temp">--°</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

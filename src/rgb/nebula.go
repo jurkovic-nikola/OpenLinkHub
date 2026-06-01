@@ -11,7 +11,6 @@ func (r *ActiveRGB) Nebula(startTime *time.Time) {
 	buf := map[int][]byte{}
 	elapsed := time.Since(*startTime).Milliseconds()
 	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*5000), 1.0)
-	// ↑ slowed down 5x compared to Colorpulse
 
 	if progress >= 1.0 {
 		*startTime = time.Now()
@@ -85,9 +84,6 @@ func interstellarPalette(t float64) (h, s, v float64) {
 		return lerp(180, 220, (t-0.75)/0.25), 0.9, 0.5
 	}
 }
-
-// Helper functions
-func lerp(a, b, t float64) float64 { return a + (b-a)*t }
 
 func hsvToRGB(h, s, v float64) (r, g, b int) {
 	h = math.Mod(h, 360)

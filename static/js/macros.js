@@ -63,6 +63,7 @@ $(document).ready(function () {
         $(".macroKeyId").hide();
         $(".macroDelayId").hide();
         $(".macroTextId").hide();
+        $(".macroMousePosition").hide();
     });
 
     $('#btnSaveNewMacroProfile').on('click', function(){
@@ -136,6 +137,11 @@ $(document).ready(function () {
         const actionRepeatValue = $row.find('.actionRepeatValue').val();
         const actionRepeatDelayValue = $row.find('.actionRepeatDelayValue').val();
 
+        // Mouse
+        const mousePositionAbsolute = $row.find('.mousePositionAbsolute').is(':checked');
+        const mousePositionX = $row.find('.mousePositionX').val();
+        const mousePositionY = $row.find('.mousePositionY').val();
+
         if (macro.length !== 2) {
             toast.warning(i18n.t('txtInvalidMacroProfile'));
             return false;
@@ -146,7 +152,10 @@ $(document).ready(function () {
             macroIndex: parseInt(macro[1]),
             pressAndHold: pressAndHold,
             actionRepeatValue: parseInt(actionRepeatValue),
-            actionRepeatDelay: parseInt(actionRepeatDelayValue)
+            actionRepeatDelay: parseInt(actionRepeatDelayValue),
+            mousePositionX: parseInt(mousePositionX),
+            mousePositionY: parseInt(mousePositionY),
+            mousePositionAbsolute: mousePositionAbsolute,
         };
 
         $.ajax({
@@ -193,6 +202,9 @@ $(document).ready(function () {
                             case 9:
                                 actionType = 'Mouse';
                                 break;
+                            case 20:
+                                actionType = 'Mouse Position';
+                                break;
                             default:
                                 actionType = 'n/a';
                                 break;
@@ -211,6 +223,9 @@ $(document).ready(function () {
                                 i,
                                 actionType,
                                 item.actionDelay,
+                                'N/A',
+                                'N/A',
+                                'N/A',
                                 'N/A',
                                 'N/A',
                                 'N/A',
@@ -235,12 +250,52 @@ $(document).ready(function () {
                                         <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="The amount of delay in milliseconds between the Repeat action.">
                                     </label>
                                 </div>`,
+                                'N/A',
+                                'N/A',
+                                'N/A',
                                 `<div class="settings-list">
                                     <div class="settings-row">
                                         <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtUpdate')}">
                                         <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtDelete')}">
                                     </div>
                                 </div>`,
+                            ]).draw();
+                        } else if (item.actionType === 20) {
+                            dt.row.add([
+                                i,
+                                actionType,
+                                '',
+                                '',
+                                `<div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" class="actionRepeatValue" value="${item.actionRepeat}" placeholder="${i18n.t('txtRepeatAmount')}">
+                                        </label>
+                                    </div>`,
+                                `<div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="${i18n.t('txtRepeatDelay')}">
+                                        </label>
+                                    </div>`,
+                                `<div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" class="mousePositionX" value="${item.mousePositionX}" placeholder="${i18n.t('txtMousePositionX')}">
+                                        </label>
+                                    </div>`,
+                                `<div class="system-input text-input">
+                                        <label for="profileName">
+                                            <input type="text" class="mousePositionY" value="${item.mousePositionY}" placeholder="${i18n.t('txtMousePositionY')}">
+                                        </label>
+                                    </div>`,
+                                `<label class="system-toggle compact">
+                                    <input type="checkbox" class="mousePositionAbsolute" ${item.mousePositionAbsolute === true ? 'checked' : ''}>
+                                    <span class="toggle-track"></span>
+                                </label>`,
+                                `<div class="settings-list">
+                                        <div class="settings-row">
+                                            <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtUpdate')}">
+                                            <input class="system-button danger deleteMacroValue auto-width" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtDelete')}">
+                                        </div>
+                                    </div>`,
                             ]).draw();
                         } else {
                             // Render row if we have actual key
@@ -260,6 +315,9 @@ $(document).ready(function () {
                                             <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="${i18n.t('txtRepeatDelay')}">
                                         </label>
                                     </div>`,
+                                    '',
+                                    '',
+                                    '',
                                     `<div class="settings-list">
                                         <div class="settings-row">
                                             <input class="system-button secondary updateMacroValue auto-width" id="updateMacroValue" data-id="${pf};${i}" type="button" value="${i18n.t('txtUpdate')}">
@@ -393,6 +451,9 @@ $(document).ready(function () {
         const macroValue = $("#macroKeyId").val();
         const macroDelay = $("#macroDelay").val();
         const macroText = $("#macroText").val();
+        let mousePositionAbsolute = false;
+        let mousePositionX = 0;
+        let mousePositionY = 0;
 
         if (parseInt(macroType) === 0) {
             toast.warning(i18n.t('txtSelectMacroType'));
@@ -409,12 +470,22 @@ $(document).ready(function () {
             return false;
         }
 
+        if (parseInt(macroType) === 20) {
+            // Mouse Position
+            mousePositionX = parseInt($('#mousePositionX').val());
+            mousePositionY = parseInt($('#mousePositionY').val());
+            mousePositionAbsolute = $('#mousePositionAbsolute').is(':checked');
+        }
+
         const pf = {};
         pf["macroId"] = parseInt(macroId);
         pf["macroType"] = parseInt(macroType);
         pf["macroValue"] = parseInt(macroValue);
         pf["macroDelay"] = parseInt(macroDelay);
         pf["macroText"] = macroText;
+        pf["mousePositionX"] = mousePositionX;
+        pf["mousePositionY"] = mousePositionY;
+        pf["mousePositionAbsolute"] = mousePositionAbsolute;
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -483,9 +554,11 @@ $(document).ready(function () {
         const mki = $(".macroKeyId")
         const mdi = $(".macroDelayId")
         const mti = $(".macroTextId")
+        const mmp = $(".macroMousePosition")
         mki.hide();
         mdi.hide();
         mti.hide();
+        mmp.hide();
 
         switch (selectedValue) {
             case 3:
@@ -499,6 +572,9 @@ $(document).ready(function () {
                 break;
             case 9:
                 loadMacroOptions('/api/input/mouse');
+                break;
+            case 20:
+                mmp.show();
                 break;
         }
     });

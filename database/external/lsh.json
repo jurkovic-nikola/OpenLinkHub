@@ -215,7 +215,7 @@
     "containsPump": true,
     "desc": "Pump/Res",
     "aio": false,
-    "temperatureProbe": false,
+    "temperatureProbe": true,
     "linkAdapter": false,
     "cpuBlock": false,
     "hasSpeed": true
@@ -228,7 +228,7 @@
     "containsPump": true,
     "desc": "Pump/Res",
     "aio": false,
-    "temperatureProbe": false,
+    "temperatureProbe": true,
     "linkAdapter": false,
     "cpuBlock": false,
     "hasSpeed": true

@@ -262,6 +262,7 @@
         "txtWatts": "Ватт",
         "txtAmps": "Ампер",
         "txtVolts": "Вольт",
+        "txtVoltage": "Напряжение",
         "txtMemory": "Память",
         "txtTempSensors": "Датчики температуры",
         "txtTemperature": "Температура",
@@ -621,6 +622,18 @@
         "txtInvalidImageType": "Недопустимое изображение",
         "txtUploadImage": "Загрузить изображение",
         "txtLiveRgbSync": "RGB в реальном времени",
-        "txtSensorMultiGpus": "Использует несколько GPU в качестве источника температуры, используется большее значение. Может применяться к любому устройству."
+        "txtSensorMultiGpus": "Использует несколько GPU в качестве источника температуры, используется большее значение. Может применяться к любому устройству.",
+        "txtMiddleColor": "Средний цвет",
+        "txtDisplay": "Дисплей",
+        "txtUnableToUpdateDisplay": "Невозможно обновить данные дисплея",
+        "txtDisplayUpdated": "Данные дисплея успешно обновлены",
+        "txtMousePosition": "Положение мыши",
+        "txtAbsolute": "Абсолютное",
+        "txtMousePositionX": "Положение мыши X",
+        "txtMousePositionY": "Положение мыши Y",
+        "txtInvalidMousePosition": "Недопустимое положение мыши",
+        "txtXeneonEdgeUnavailable": "Xeneon Edge недоступен",
+    "txtApplyColorToAll": "Apply color to all devices",
+    "txtApplyToAll": "Apply to all"
     }
 }

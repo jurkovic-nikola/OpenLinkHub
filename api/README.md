@@ -609,6 +609,30 @@ $ curl -X GET http://127.0.0.1:27003/api/dashboard --silent | jq
   }
 }
 ```
+### Get media playback (requires service to be in a user-context mode instead of system)
+```bash
+$ curl -X GET http://127.0.0.1:27003/api/media/playback --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": {
+    "playing": true,
+    "service": "org.mpris.MediaPlayer2.spotify",
+    "playbackStatus": "Playing",
+    "title": "MEDIA-TITLE",
+    "artists": [
+      "Artist Name"
+    ],
+    "album": "MEDIA-ALBUM",
+    "length-us": 131240000,
+    "position-us": 2583000,
+    "length": 131.24,
+    "position": 2.583,
+    "track-id": "/com/spotify/track/tract-id"
+  }
+}
+
+```
 ### Create temperature profile - CPU
 ```bash
 $ curl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"CPU", "sensor":0}' --silent | jq

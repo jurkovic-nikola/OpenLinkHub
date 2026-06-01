@@ -19,6 +19,17 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/jpeg"
+	_ "image/png"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/sstallion/go-hid"
@@ -27,17 +38,6 @@ import (
 	_ "golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	_ "golang.org/x/image/webp"
-	"image"
-	"image/color"
-	"image/jpeg"
-	_ "image/png"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 type DeviceProfile struct {
@@ -49,6 +49,7 @@ type DeviceProfile struct {
 	DynamicMode bool
 	LCDImage    string
 	Label       string
+	RgbOff      bool
 }
 
 type Button struct {
@@ -560,7 +561,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -666,6 +667,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.DynamicMode = d.DeviceProfile.DynamicMode
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved

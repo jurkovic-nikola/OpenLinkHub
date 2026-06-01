@@ -1,0 +1,12 @@
+{{ define "xeneon-battery-status" }}
+{{ $root := .Root }}
+{{ $widgetArea := .WidgetArea }}
+{{ $widget := $widgetArea.Widget }}
+<div class="edge-panel compact" id="xeneon-battery-status">
+    <div class="card system-card">
+        <div class="card-body">
+            <div class="metrics-list"></div>
+        </div>
+    </div>
+</div>
+{{ end }}

@@ -79,6 +79,36 @@ $(document).ready(function () {
         });
     });
 
+    $('.applyColorToAll').on('click', function () {
+        const hex = $('#allDevicesColor').val();
+        const color = {
+            "red": parseInt(hex.slice(1, 3), 16),
+            "green": parseInt(hex.slice(3, 5), 16),
+            "blue": parseInt(hex.slice(5, 7), 16),
+            "brightness": 1
+        };
+
+        const json = JSON.stringify({ "color": color }, null, 2);
+
+        $.ajax({
+            url: '/api/color/all',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $("#btnBackup").on("click", function() {
         window.location.href = "/api/backup";
     });
@@ -87,11 +117,13 @@ $(document).ready(function () {
         const rgbControl = $("#rgbControl").is(':checked');
         const rgbOff = $("#rgbOff").val();
         const rgbOn = $("#rgbOn").val();
+        const lcdControl = $("#lcdControl").is(':checked');
 
         const pf = {};
         pf["rgbControl"] = rgbControl;
         pf["rgbOff"] = rgbOff;
         pf["rgbOn"] = rgbOn;
+        pf["lcdControl"] = lcdControl;
 
         const json = JSON.stringify(pf, null, 2);
         $.ajax({
@@ -218,6 +250,53 @@ $(document).ready(function () {
         });
     });
 
+    $('.updateDisplay').on('click', function () {
+        const index = $(this).data('info');
+
+        const width = parseInt($('.displayWidth_' + index).val());
+        const height = parseInt($('.displayHeight_' + index).val());
+        const position = parseInt($('.displayPosition_' + index).val());
+
+        if (Number.isNaN(width) || width <= 0) {
+            toastr.warning('Invalid display width');
+            return;
+        }
+
+        if (Number.isNaN(height) || height <= 0) {
+            toastr.warning('Invalid display height');
+            return;
+        }
+
+        const left = position === 1;
+        const top = position === 2;
+
+        const pf = {};
+        pf["displayIndex"] = index;
+        pf["displayWidth"] = width;
+        pf["displayHeight"] = height;
+        pf["displayLeft"] = left;
+        pf["displayTop"] = top;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/display/update',
+            type: 'POST',
+            dataType: 'json',
+            data: json,
+            cache: false,
+            success: function (response) {
+                if (response.status === 1) {
+                    toast.success(response.message);
+                } else {
+                    toastr.error(response.message || 'Unable to update display');
+                }
+            },
+            error: function () {
+                toastr.error('Unable to update display');
+            }
+        });
+    });
+
     $('.setTargetDevice').on('click', function () {
         const outputDevice = $("#outputDevice").val();
         const data = outputDevice.split(";");
@@ -265,6 +344,7 @@ $(document).ready(function () {
     const checkboxBattery = $('#checkbox-battery');
     const checkboxTemperatureBar = $('#checkbox-temperatureBar');
     const checkboxAddDeviceToDashboard = $('#checkbox-addDeviceToDashboard');
+    const checkboxRgbOff = $('#checkbox-rgbOff');
 
     function loadDashboardSettings() {
         // Load current settings
@@ -301,6 +381,9 @@ $(document).ready(function () {
                     if (response.dashboard.addDeviceToDashboard === true) {
                         checkboxAddDeviceToDashboard.attr('Checked','Checked');
                     }
+                    if (response.dashboard.rgbOff === true) {
+                        checkboxRgbOff.attr('Checked','Checked');
+                    }
                 }
             }
         });
@@ -315,8 +398,10 @@ $(document).ready(function () {
             const v_checkboxBattery = checkboxBattery.is(':checked');
             const v_checkboxTemperatureBar = checkboxTemperatureBar.is(':checked');
             const v_checkboxAddDeviceToDashboard = checkboxAddDeviceToDashboard.is(':checked');
+            const v_checkboxRgbOff = checkboxRgbOff.is(':checked');
             const v_languageCode = $("#userLanguage").val();
             const v_theme = $("#theme").val();
+            const v_keyboardLayout = $("#keyboardLayout").val();
 
             const pf = {};
             pf["showCpu"] = v_checkboxCpu;
@@ -328,8 +413,10 @@ $(document).ready(function () {
             pf["showBattery"] = v_checkboxBattery;
             pf["temperatureBar"] = v_checkboxTemperatureBar;
             pf["addDeviceToDashboard"] = v_checkboxAddDeviceToDashboard;
+            pf["rgbOff"] = v_checkboxRgbOff;
             pf["languageCode"] = v_languageCode;
             pf["theme"] = v_theme;
+            pf["keyboardLayout"] = parseInt(v_keyboardLayout);
 
             const json = JSON.stringify(pf, null, 2);
 

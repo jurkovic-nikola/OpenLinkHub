@@ -453,6 +453,55 @@ $(document).ready(function () {
         });
     });
 
+    $('.saveKeyAssignment').on('click', function () {
+        const $btn = $(this);
+        const deviceId = $("#deviceId").val();
+        const keyIndex = $(this).attr("data-info");
+        const enabled = $("#default_" + keyIndex).is(':checked');
+        const onRelease = $("#onRelease_" + keyIndex).is(':checked');
+        const pressAndHold = $("#pressAndHold_" + keyIndex).is(':checked');
+        const keyAssignmentType = $("#keyAssignmentType_" + keyIndex).val();
+        const keyAssignmentValue = $("#keyAssignmentValue_" + keyIndex).val();
+
+        if (onRelease === true && pressAndHold === true) {
+            toast.warning(i18n.t('txtPressAndHoldBlocked'));
+            return false;
+        }
+
+        // Disable button immediately
+        $btn.prop('disabled', true);
+
+        const pf = {
+            deviceId: deviceId,
+            keyIndex: parseInt(keyIndex),
+            enabled: enabled,
+            pressAndHold: pressAndHold,
+            keyAssignmentType: parseInt(keyAssignmentType),
+            keyAssignmentValue: parseInt(keyAssignmentValue),
+            onRelease: onRelease
+        };
+
+        $.ajax({
+            url: '/api/headset/updateKeyAssignment',
+            type: 'POST',
+            data: JSON.stringify(pf),
+            cache: false,
+            success: function (response) {
+                if (response?.status === 1) {
+                    toast.success(response.message);
+                } else {
+                    toast.warning(response.message);
+                }
+            },
+            error: function () {
+                toast.error('Request failed');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+
     function updateEqSlider(el) {
         const $slider = $(el);
         const min = Number($slider.attr("min"));

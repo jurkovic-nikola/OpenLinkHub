@@ -14,15 +14,18 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"OpenLinkHub/src/inputmanager"
+	"OpenLinkHub/src/macro"
+	"github.com/sstallion/go-hid"
+	"math/bits"
 )
 
 type ZoneColors struct {
@@ -54,6 +57,8 @@ type DeviceProfile struct {
 	DisableMicIndicator int
 	SideTone            int
 	SideToneValue       int
+	KeyAssignmentHash   string
+	RgbOff              bool
 }
 
 type DPIProfile struct {
@@ -74,6 +79,7 @@ type Device struct {
 	Firmware              string `json:"firmware"`
 	activeRgb             *rgb.ActiveRGB
 	UserProfiles          map[string]*DeviceProfile `json:"userProfiles"`
+	ProfileOrder          []string                  `json:"profileOrder"`
 	Devices               map[int]string            `json:"devices"`
 	DeviceProfile         *DeviceProfile
 	OriginalProfile       *DeviceProfile
@@ -93,6 +99,7 @@ type Device struct {
 	SleepModes            map[int]string
 	Connected             bool
 	mutex                 sync.Mutex
+	macroMutex            sync.Mutex
 	Exit                  bool
 	MuteStatus            byte
 	MuteIndicators        map[int]string
@@ -100,6 +107,14 @@ type Device struct {
 	BatteryLevel          uint16
 	RGBModes              []string
 	ZoneAmount            int
+	keyAssignmentFile     string
+	KeyAssignment         map[int]inputmanager.KeyAssignment
+	InputActions          map[uint16]inputmanager.InputAction
+	KeyAssignmentTypes    map[int]string
+	stopRepeat            chan struct{}
+	stopRepeatMutex       sync.Mutex
+	ModifierIndex         uint8
+	MacroTracker          map[int]uint16
 }
 
 var (
@@ -111,6 +126,7 @@ var (
 	cmdWriteColor             = []byte{0x06, 0x00}
 	cmdOpenColorEndpoint      = []byte{0x0d, 0x00, 0x22}
 	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00}
+	cmdOpenWriteEndpoint      = []byte{0x0d, 0x01, 0x02}
 	cmdSleep                  = []byte{0x01, 0x0e, 0x00}
 	cmdBatteryLevel           = []byte{0x02, 0x0f}
 	dataTypeSetColor          = []byte{0x12, 0x00}
@@ -175,6 +191,17 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 			30: "30 minutes",
 			60: "1 hour",
 		},
+		KeyAssignmentTypes: map[int]string{
+			0:  "None",
+			1:  "Media Keys",
+			3:  "Keyboard",
+			9:  "Mouse",
+			10: "Macro",
+			11: "Profile Switch",
+		},
+		InputActions:          inputmanager.GetInputActions(),
+		keyAssignmentFile:     "/database/key-assignments/hs80maxW.json",
+		MacroTracker:          make(map[int]uint16),
 		RGBModes:              rgbModes,
 		LEDChannels:           2,
 		ChangeableLedChannels: 2,
@@ -193,6 +220,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
+	d.loadKeyAssignments() // Key Assignments
 	return d
 }
 
@@ -240,6 +268,8 @@ func (d *Device) configureHeadset() {
 			return
 		}
 	}
+
+	d.setupKeyAssignment()
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -378,7 +408,17 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 			}
 		}
 	}
+	for key, val := range d.Rgb.Profiles {
+		template := rgb.GetRgbProfile(key)
+		if template == nil {
+			continue
+		}
 
+		if val.Version != template.Version {
+			d.Rgb.Profiles[key] = *template
+			save = true
+		}
+	}
 	if save {
 		if err := common.SaveJsonData(path, d.Rgb); err != nil {
 			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")
@@ -454,6 +494,46 @@ func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
 	delete(d.UserProfiles, profileName)
 
 	return 1
+}
+
+// rotateDeviceProfile will rotate and activate next user profile
+func (d *Device) rotateDeviceProfile() {
+	if d.DeviceProfile == nil || len(d.ProfileOrder) == 0 || len(d.UserProfiles) == 0 {
+		return
+	}
+
+	var currentName string
+	for name, profile := range d.UserProfiles {
+		if profile.Active {
+			currentName = name
+			break
+		}
+	}
+
+	if currentName == "" {
+		next := d.ProfileOrder[0]
+		d.ChangeDeviceProfile(next)
+		return
+	}
+	idx := -1
+	for i, name := range d.ProfileOrder {
+		if name == currentName {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		next := d.ProfileOrder[0]
+		d.ChangeDeviceProfile(next)
+		return
+	}
+
+	nextIdx := (idx + 1) % len(d.ProfileOrder)
+	next := d.ProfileOrder[nextIdx]
+
+	d.ChangeDeviceProfile(next)
+	return
 }
 
 // saveRgbProfile will save rgb profile data
@@ -555,10 +635,25 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	if pf == nil {
 		return 0
 	}
+
+	if profile.StartColor.Temperature < 0 || profile.StartColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.MiddleColor.Temperature < 0 || profile.MiddleColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.EndColor.Temperature < 0 || profile.EndColor.Temperature > 105 {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
+	profile.MiddleColor.Brightness = pf.MiddleColor.Brightness
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
+	pf.MiddleColor = profile.MiddleColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
 
@@ -923,13 +1018,14 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.DisableMicIndicator = d.DeviceProfile.DisableMicIndicator
 		deviceProfile.SideTone = d.DeviceProfile.SideTone
 		deviceProfile.SideToneValue = d.DeviceProfile.SideToneValue
-
+		deviceProfile.KeyAssignmentHash = d.DeviceProfile.KeyAssignmentHash
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -947,6 +1043,93 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles()
+}
+
+// UpdateDeviceKeyAssignment will update device key assignments
+func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmanager.KeyAssignment) uint8 {
+	if val, ok := d.KeyAssignment[keyIndex]; ok {
+		if !d.Connected {
+			return 0
+		}
+		val.Default = keyAssignment.Default
+		val.ActionHold = keyAssignment.ActionHold
+		val.ActionType = keyAssignment.ActionType
+		val.ActionCommand = keyAssignment.ActionCommand
+		val.IsMacro = keyAssignment.IsMacro
+		val.OnRelease = keyAssignment.OnRelease
+		d.KeyAssignment[keyIndex] = val
+		d.saveKeyAssignments()
+		d.setupKeyAssignment()
+		return 1
+	}
+	return 0
+}
+
+func (d *Device) saveKeyAssignments() {
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
+		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
+		keyAssignmentsFile = pwd + fileFormat
+	}
+
+	if err := common.SaveJsonData(keyAssignmentsFile, d.KeyAssignment); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to write key assignment data")
+		return
+	}
+}
+
+// loadKeyAssignments will load custom key assignments
+func (d *Device) loadKeyAssignments() {
+	if d.DeviceProfile == nil {
+		return
+	}
+	keyAssignmentsFile := pwd + d.keyAssignmentFile
+	if len(d.DeviceProfile.KeyAssignmentHash) > 0 {
+		fileFormat := fmt.Sprintf("/database/key-assignments/%s.json", d.DeviceProfile.KeyAssignmentHash)
+		keyAssignmentsFile = pwd + fileFormat
+	}
+
+	if common.FileExists(keyAssignmentsFile) {
+		file, err := os.Open(keyAssignmentsFile)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to load JSON file")
+			return
+		}
+
+		if err = json.NewDecoder(file).Decode(&d.KeyAssignment); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to decode key assignments JSON")
+			return
+		}
+
+		// Prevent left click modifications
+		if !d.KeyAssignment[1].Default {
+			logger.Log(logger.Fields{"serial": d.Serial, "value": d.KeyAssignment[1].Default, "expectedValue": 1}).Warn("Restoring left button to original value")
+			var val = d.KeyAssignment[1]
+			val.Default = true
+			d.KeyAssignment[1] = val
+		}
+
+		err = file.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"location": keyAssignmentsFile, "serial": d.Serial}).Warn("Failed to close file handle")
+		}
+	} else {
+		var keyAssignment = map[int]inputmanager.KeyAssignment{
+			1: {
+				Name:          "Scroll Press",
+				Default:       true,
+				ActionType:    0,
+				ActionCommand: 0,
+				ActionHold:    false,
+			},
+		}
+
+		if err := common.SaveJsonData(keyAssignmentsFile, keyAssignment); err != nil {
+			logger.Log(logger.Fields{"error": err, "location": keyAssignmentsFile}).Error("Unable to save key assignments data")
+			return
+		}
+		d.KeyAssignment = keyAssignment
+	}
 }
 
 // setEqualizer will set audio equalizer
@@ -1137,7 +1320,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -1177,7 +1360,17 @@ func (d *Device) loadDeviceProfiles() {
 		}
 	}
 	d.UserProfiles = profileList
+	d.rebuildProfileOrder()
 	d.getDeviceProfile()
+}
+
+// rebuildProfileOrder will return profile order
+func (d *Device) rebuildProfileOrder() {
+	d.ProfileOrder = d.ProfileOrder[:0]
+	for name := range d.UserProfiles {
+		d.ProfileOrder = append(d.ProfileOrder, name)
+	}
+	sort.Strings(d.ProfileOrder)
 }
 
 // getDeviceProfile will load persistent device configuration
@@ -1201,11 +1394,47 @@ func (d *Device) initLeds() {
 	}
 }
 
+// ControlDeviceRgb will change device brightness via schedulerSchedulerBrightness
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.Connected {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true
+			d.activeRgb = nil
+		}
+		d.setDeviceColor()
+	}
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	buf := make([]byte, colorPacketLength)
 	if d.DeviceProfile == nil {
 		logger.Log(logger.Fields{"serial": d.Serial}).Error("Unable to set color. DeviceProfile is null!")
+		return
+	}
+
+	if d.DeviceProfile.RgbOff {
+		for _, zoneColor := range d.DeviceProfile.ZoneColors {
+			zoneColorIndexRange := zoneColor.ColorIndex
+			for key, zoneColorIndex := range zoneColorIndexRange {
+				switch key {
+				case 0: // Red
+					buf[zoneColorIndex] = 0x00
+				case 1: // Green
+					buf[zoneColorIndex] = 0x00
+				case 2: // Blue
+					buf[zoneColorIndex] = 0x00
+				}
+			}
+		}
+		d.writeColor(buf)
 		return
 	}
 
@@ -1297,15 +1526,22 @@ func (d *Device) setDeviceColor() {
 				if rgbCustomColor {
 					r.RGBStartColor = &profile.StartColor
 					r.RGBEndColor = &profile.EndColor
+					r.RGBMiddleColor = &profile.MiddleColor
 				} else {
 					r.RGBStartColor = d.activeRgb.RGBStartColor
 					r.RGBEndColor = d.activeRgb.RGBEndColor
+					r.RGBMiddleColor = d.activeRgb.RGBMiddleColor
+				}
+
+				if r.RGBMiddleColor == nil {
+					r.RGBMiddleColor = &rgb.Color{}
 				}
 
 				// Brightness
 				r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 				r.RGBStartColor.Brightness = r.RGBBrightness
 				r.RGBEndColor.Brightness = r.RGBBrightness
+				r.RGBMiddleColor.Brightness = r.RGBBrightness
 
 				switch d.DeviceProfile.RGBProfile {
 				case "off":
@@ -1429,6 +1665,18 @@ func (d *Device) setDeviceColor() {
 	}(d.ChangeableLedChannels)
 }
 
+// setupKeyAssignment will write key assignment to the device.
+func (d *Device) setupKeyAssignment() {
+	if d.Exit {
+		return
+	}
+	_, err := d.transfer(cmdOpenWriteEndpoint, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId}).Error("Unable to open write endpoint")
+		return
+	}
+}
+
 // writeColor will write color data to the device
 func (d *Device) writeColor(data []byte) {
 	if d.Exit {
@@ -1531,4 +1779,187 @@ func (d *Device) NotifyMuteChanged(status byte) {
 func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
 	d.BatteryLevel = batteryLevel
 	stats.UpdateBatteryStats(d.Serial, d.Product, d.BatteryLevel, 2)
+}
+
+// addToMacroTracker adds or updates an entry in MacroTracker
+func (d *Device) addToMacroTracker(key int, value uint16) {
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
+
+	if d.MacroTracker == nil {
+		d.MacroTracker = make(map[int]uint16)
+	}
+	d.MacroTracker[key] = value
+}
+
+// deleteFromMacroTracker deletes an entry from MacroTracker
+func (d *Device) deleteFromMacroTracker(key int) {
+	d.macroMutex.Lock()
+	defer d.macroMutex.Unlock()
+
+	if d.MacroTracker == nil || len(d.MacroTracker) == 0 {
+		return
+	}
+	delete(d.MacroTracker, key)
+}
+
+// releaseMacroTracker will release current MacroTracker
+func (d *Device) releaseMacroTracker() {
+	d.macroMutex.Lock()
+	if d.MacroTracker == nil {
+		d.macroMutex.Unlock()
+		return
+	}
+	keys := make([]int, 0, len(d.MacroTracker))
+	for key := range d.MacroTracker {
+		keys = append(keys, key)
+	}
+	sort.Ints(keys)
+	d.macroMutex.Unlock()
+
+	for _, key := range keys {
+		inputmanager.InputControlKeyboardHold(d.MacroTracker[key], false)
+		d.deleteFromMacroTracker(key)
+	}
+}
+
+// TriggerKeyAssignment will trigger key assignment if defined
+func (d *Device) TriggerKeyAssignment(value uint8) {
+	var bitDiff = value ^ d.ModifierIndex
+	var pressedKeys = bitDiff & value
+	var releasedKeys = bitDiff & ^value
+	d.ModifierIndex = value
+
+	for keys := pressedKeys | releasedKeys; keys != 0; {
+		bitIdx := bits.TrailingZeros8(keys)
+		mask := uint8(1) << bitIdx
+		keys &^= mask
+
+		isPressed := pressedKeys&mask != 0
+		isReleased := releasedKeys&mask != 0
+
+		val, ok := d.KeyAssignment[int(mask)]
+		if !ok {
+			continue
+		}
+
+		if val.OnRelease {
+			isPressed, isReleased = isReleased, isPressed
+		}
+
+		if isReleased {
+			// Check if we have any queue in macro tracker. If yes, release those keys
+			if len(d.MacroTracker) > 0 {
+				d.releaseMacroTracker()
+			}
+
+			if val.Default || !val.ActionHold {
+				continue
+			}
+			switch val.ActionType {
+			case 1, 3:
+				inputmanager.InputControlKeyboardHold(val.ActionCommand, false)
+			case 9:
+				inputmanager.InputControlMouseHold(val.ActionCommand, false)
+			}
+		}
+
+		if isPressed {
+			if val.Default {
+				continue
+			}
+
+			switch val.ActionType {
+			case 1, 3:
+				if val.ActionHold {
+					inputmanager.InputControlKeyboardHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlKeyboard(val.ActionCommand, false)
+				}
+				break
+			case 9:
+				if val.ActionHold {
+					inputmanager.InputControlMouseHold(val.ActionCommand, true)
+				} else {
+					inputmanager.InputControlMouse(val.ActionCommand)
+				}
+				break
+			case 10:
+				macroProfile := macro.GetProfile(int(val.ActionCommand))
+				if macroProfile == nil {
+					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
+					return
+				}
+				for i := 0; i < len(macroProfile.Actions); i++ {
+					if v, valid := macroProfile.Actions[i]; valid {
+						// Add to macro tracker for easier release
+						if v.ActionHold {
+							d.addToMacroTracker(i, v.ActionCommand)
+						}
+
+						switch v.ActionType {
+						case 1, 3:
+							inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+						case 9:
+							inputmanager.InputControlMouse(v.ActionCommand)
+						case 5:
+							if v.ActionDelay > 0 {
+								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
+						case 6:
+							if v.ActionRepeat > 0 {
+								for z := 0; z < int(v.ActionRepeat); z++ {
+									inputmanager.InputControlKeyboardText(v.ActionText)
+									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+									}
+								}
+							} else {
+								inputmanager.InputControlKeyboardText(v.ActionText)
+							}
+						case 20:
+							if v.ActionRepeat > 0 && !v.ActionHold {
+								d.stopRepeatMutex.Lock()
+								if d.stopRepeat != nil {
+									close(d.stopRepeat)
+								}
+
+								d.stopRepeat = make(chan struct{})
+								localStop := d.stopRepeat
+								d.stopRepeatMutex.Unlock()
+
+								go func() {
+									for z := 0; z < int(v.ActionRepeat); z++ {
+										select {
+										case <-localStop:
+											return
+										default:
+											if v.MousePositionAbsolute {
+												inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+											} else {
+												inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+											}
+										}
+										if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+											time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+										}
+									}
+								}()
+							} else {
+								if v.MousePositionAbsolute {
+									inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+								} else {
+									inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+								}
+							}
+						}
+					}
+				}
+				break
+			case 11:
+				d.rotateDeviceProfile()
+				break
+			}
+		}
+	}
 }

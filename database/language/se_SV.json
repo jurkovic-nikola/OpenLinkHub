@@ -262,6 +262,7 @@
     "txtWatts": "Watt",
     "txtAmps": "Ampere",
     "txtVolts": "Volt",
+    "txtVoltage": "Spänning",
     "txtMemory": "Minne",
     "txtTempSensors": "Temperatursensorer",
     "txtTemperature": "Temperatur",
@@ -621,6 +622,18 @@
     "txtInvalidImageType": "Ogiltig bild",
     "txtUploadImage": "Ladda upp bild",
     "txtLiveRgbSync": "Live RGB",
-    "txtSensorMultiGpus": "Använder flera GPU:er som temperaturkälla, det högsta värdet används. Kan tillämpas på alla enheter."
+    "txtSensorMultiGpus": "Använder flera GPU:er som temperaturkälla, det högsta värdet används. Kan tillämpas på alla enheter.",
+    "txtMiddleColor": "Mellanfärg",
+    "txtDisplay": "Display",
+    "txtUnableToUpdateDisplay": "Det går inte att uppdatera displaydata",
+    "txtDisplayUpdated": "Displaydata har uppdaterats",
+    "txtMousePosition": "Musposition",
+    "txtAbsolute": "Absolut",
+    "txtMousePositionX": "Musposition X",
+    "txtMousePositionY": "Musposition Y",
+    "txtInvalidMousePosition": "Ogiltig musposition",
+    "txtXeneonEdgeUnavailable": "Xeneon Edge är inte tillgänglig",
+    "txtApplyColorToAll": "Apply color to all devices",
+    "txtApplyToAll": "Apply to all"
   }
 }

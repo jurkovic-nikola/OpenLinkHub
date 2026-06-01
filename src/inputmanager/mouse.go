@@ -5,6 +5,7 @@ package inputmanager
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/display"
 	"OpenLinkHub/src/logger"
 	"os"
 	"syscall"
@@ -16,7 +17,7 @@ import (
 func destroyVirtualMouse() {
 	if virtualMousePointer != 0 {
 		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMousePointer, UiDevDestroy, 0); errno != 0 {
-			logger.Log(logger.Fields{"error": errno}).Error("Failed to destroy virtual keyboard")
+			logger.Log(logger.Fields{"error": errno}).Error("Failed to destroy virtual mouse")
 		}
 
 		if err := virtualMouseFile.Close(); err != nil {
@@ -24,6 +25,88 @@ func destroyVirtualMouse() {
 			return
 		}
 	}
+
+	if virtualMouseAbsPointer != 0 {
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiDevDestroy, 0); errno != 0 {
+			logger.Log(logger.Fields{"error": errno}).Error("Failed to destroy virtual absolute mouse")
+		}
+
+		if err := virtualMouseAbsFile.Close(); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to close /dev/uinput")
+			return
+		}
+	}
+}
+
+// createVirtualMouseAbs will create a separate absolute-position virtual mouse device.
+func createVirtualMouseAbs(vendorId, productId uint16) error {
+	f, err := os.OpenFile("/dev/uinput", os.O_WRONLY, 0660)
+	if err != nil {
+		return err
+	}
+
+	virtualMouseAbsFile = f
+	virtualMouseAbsPointer = f.Fd()
+
+	uInputDevice := uInputUserDev{
+		ID: inputID{
+			BusType: 0x03, // BUS_USB
+			Vendor:  vendorId,
+			Product: productId,
+			Version: 1,
+		},
+	}
+
+	copy(uInputDevice.Name[:], "OpenLinkHub Virtual Absolute Mouse")
+
+	uInputDevice.AbsMin[AbsX] = AbsMin
+	uInputDevice.AbsMax[AbsX] = int32(display.GetScreenResolution().Width)
+	uInputDevice.AbsMin[AbsY] = AbsMin
+	uInputDevice.AbsMax[AbsY] = int32(display.GetScreenResolution().Height)
+
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiSetEvbit, uintptr(EvKey)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable absolute mouse key events")
+		return errno
+	}
+
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiSetEvbit, uintptr(EvAbs)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable absolute mouse absolute events")
+		return errno
+	}
+
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiSetEvbit, uintptr(EvSyn)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable absolute mouse sync events")
+		return errno
+	}
+
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiSetAbsbit, uintptr(AbsX)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable absolute mouse ABS_X")
+		return errno
+	}
+
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiSetAbsbit, uintptr(AbsY)); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to enable absolute mouse ABS_Y")
+		return errno
+	}
+
+	for _, code := range []uint16{btnLeft, btnRight, btnMiddle, btnBack, btnForward} {
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiSetKeybit, uintptr(code)); errno != 0 {
+			logger.Log(logger.Fields{"error": errno, "code": code}).Error("Failed to enable absolute mouse button event")
+			return errno
+		}
+	}
+
+	if _, err := f.Write((*(*[unsafe.Sizeof(uInputDevice)]byte)(unsafe.Pointer(&uInputDevice)))[:]); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to write absolute mouse uinput struct")
+		return err
+	}
+
+	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, virtualMouseAbsPointer, UiDevCreate, 0); errno != 0 {
+		logger.Log(logger.Fields{"error": errno}).Error("Failed to create absolute virtual mouse")
+		return errno
+	}
+
+	return nil
 }
 
 // createVirtualMouse will create new virtual mouse input device
@@ -305,6 +388,63 @@ func InputControlMove(x, y int32) {
 	for _, event := range events {
 		if err := writeVirtualEvent(virtualMouseFile, &event); err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to emit move event")
+			return
+		}
+	}
+}
+
+// InputControlMoveAbsolute will move the virtual mouse to absolute coordinates.
+func InputControlMoveAbsolute(x, y int32) {
+	if virtualMouseAbsFile == nil {
+		logger.Log(logger.Fields{}).Error("Virtual mouse is not present")
+		return
+	}
+
+	if screenWidth <= 1 || screenHeight <= 1 {
+		logger.Log(logger.Fields{"width": screenWidth, "height": screenHeight}).Error("Invalid screen size")
+		return
+	}
+
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+	if x >= screenWidth {
+		x = screenWidth - 1
+	}
+	if y >= screenHeight {
+		y = screenHeight - 1
+	}
+
+	tmpX := x
+	tmpY := y
+
+	if tmpX < screenWidth {
+		tmpX++
+	} else {
+		tmpX--
+	}
+
+	if tmpY < screenHeight {
+		tmpY++
+	} else {
+		tmpY--
+	}
+
+	events := []inputEvent{
+		{Type: evAbs, Code: AbsX, Value: tmpX},
+		{Type: evAbs, Code: AbsY, Value: tmpY},
+		{Type: evSyn, Code: 0, Value: 0},
+		{Type: evAbs, Code: AbsX, Value: x},
+		{Type: evAbs, Code: AbsY, Value: y},
+		{Type: evSyn, Code: 0, Value: 0},
+	}
+
+	for _, event := range events {
+		if err := writeVirtualEvent(virtualMouseAbsFile, &event); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Failed to emit absolute move event")
 			return
 		}
 	}

@@ -20,12 +20,13 @@ type Scheduler struct {
 	RGBControl bool   `json:"rgbControl"`
 	RGBOff     string `json:"rgbOff"`
 	RGBOn      string `json:"rgbOn"`
+	LCDControl bool   `json:"lcdControl"`
 }
 
 var (
 	location    = ""
 	scheduler   Scheduler
-	upgrade     = map[string]any{}
+	upgrade     = map[string]any{"lcdControl": false}
 	layout      = "15:04"
 	mu          sync.Mutex
 	timer       *time.Ticker
@@ -83,7 +84,7 @@ func SaveSchedulerSettings(data any) uint8 {
 }
 
 // UpdateRgbSettings will update RGB scheduler settings
-func UpdateRgbSettings(enabled bool, start, end string) uint8 {
+func UpdateRgbSettings(enabled bool, start, end string, lcdControl bool) uint8 {
 	rgbOff, err := time.Parse(layout, start)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Failed to process rgb scheduler start time")
@@ -100,6 +101,7 @@ func UpdateRgbSettings(enabled bool, start, end string) uint8 {
 	scheduler.RGBOff = rgbOff.Format(layout)
 	scheduler.RGBOn = rgbOn.Format(layout)
 	scheduler.RGBControl = enabled
+	scheduler.LCDControl = lcdControl
 	current := scheduler
 	mu.Unlock()
 
@@ -156,35 +158,6 @@ func startTasks() {
 		return now.After(offToday) && now.Before(onToday)
 	}
 
-	// Check if program started after Off or On time and apply values
-	timeNow := time.Now()
-	time.Sleep(time.Duration(refreshTime) * time.Millisecond) // Wait for 5 seconds
-	if isInOffRange(timeNow, scheduledTimeOff, scheduledTimeOn) {
-		mu.Lock()
-		if !scheduler.LightsOut {
-			scheduler.LightsOut = true
-			current := scheduler
-			mu.Unlock()
-
-			devices.ScheduleDeviceBrightness(0)
-			SaveSchedulerSettings(current)
-		} else {
-			mu.Unlock()
-		}
-	} else {
-		mu.Lock()
-		if scheduler.LightsOut {
-			scheduler.LightsOut = false
-			current := scheduler
-			mu.Unlock()
-
-			devices.ScheduleDeviceBrightness(1)
-			SaveSchedulerSettings(current)
-		} else {
-			mu.Unlock()
-		}
-	}
-
 	// Define the times you want the task to run
 	schedules := []Schedule{
 		{
@@ -194,10 +167,14 @@ func startTasks() {
 				mu.Lock()
 				if !scheduler.LightsOut {
 					scheduler.LightsOut = true
+					lcdControl := scheduler.LCDControl
 					current := scheduler
 					mu.Unlock()
 
 					devices.ScheduleDeviceBrightness(0)
+					if lcdControl {
+						devices.ScheduleDeviceLcdBrightness(0)
+					}
 					SaveSchedulerSettings(current)
 				} else {
 					mu.Unlock()
@@ -211,10 +188,14 @@ func startTasks() {
 				mu.Lock()
 				if scheduler.LightsOut {
 					scheduler.LightsOut = false
+					lcdControl := scheduler.LCDControl
 					current := scheduler
 					mu.Unlock()
 
 					devices.ScheduleDeviceBrightness(1)
+					if lcdControl {
+						devices.ScheduleDeviceLcdBrightness(1)
+					}
 					SaveSchedulerSettings(current)
 				} else {
 					mu.Unlock()
@@ -231,6 +212,46 @@ func startTasks() {
 	mu.Unlock()
 
 	go func(t *time.Ticker, stop <-chan struct{}) {
+		// Check if we started (or settings were updated) while already inside the off
+		// range and apply the initial brightness state after a short settling delay.
+		// This runs in the goroutine so that callers (Init, UpdateRgbSettings) are
+		// not blocked for the duration of the sleep.
+		time.Sleep(time.Duration(refreshTime) * time.Millisecond)
+		timeNow := time.Now()
+		if isInOffRange(timeNow, scheduledTimeOff, scheduledTimeOn) {
+			mu.Lock()
+			if !scheduler.LightsOut {
+				scheduler.LightsOut = true
+				lcdControl := scheduler.LCDControl
+				current := scheduler
+				mu.Unlock()
+
+				devices.ScheduleDeviceBrightness(0)
+				if lcdControl {
+					devices.ScheduleDeviceLcdBrightness(0)
+				}
+				SaveSchedulerSettings(current)
+			} else {
+				mu.Unlock()
+			}
+		} else {
+			mu.Lock()
+			if scheduler.LightsOut {
+				scheduler.LightsOut = false
+				lcdControl := scheduler.LCDControl
+				current := scheduler
+				mu.Unlock()
+
+				devices.ScheduleDeviceBrightness(1)
+				if lcdControl {
+					devices.ScheduleDeviceLcdBrightness(1)
+				}
+				SaveSchedulerSettings(current)
+			} else {
+				mu.Unlock()
+			}
+		}
+
 		for {
 			select {
 			case now := <-t.C:

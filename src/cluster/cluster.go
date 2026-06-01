@@ -22,7 +22,7 @@ var (
 	pwd                   = ""
 	d                     *Device
 	deviceRefreshInterval = 1000
-	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
+	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "rain"}
 )
 
 type DeviceProfile struct {
@@ -65,6 +65,7 @@ func Init() *Device {
 			"gradient",
 			"marquee",
 			"nebula",
+			"rain",
 			"rainbow",
 			"pastelrainbow",
 			"rotator",
@@ -534,6 +535,11 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 	case "pastelspiralrainbow":
 		{
 			r.PastelSpiralRainbow(*startTime)
+			buff = r.Output
+		}
+	case "rain":
+		{
+			r.Rain(*startTime)
 			buff = r.Output
 		}
 	case "watercolor":

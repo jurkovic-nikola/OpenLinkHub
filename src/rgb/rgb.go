@@ -3,6 +3,7 @@ package rgb
 import (
 	"OpenLinkHub/src/common"
 	"encoding/json"
+	"math"
 	"math/rand"
 	"os"
 	"sort"
@@ -14,12 +15,13 @@ type HSL struct {
 }
 
 type Color struct {
-	Red        float64 `json:"red"`
-	Green      float64 `json:"green"`
-	Blue       float64 `json:"blue"`
-	Brightness float64 `json:"brightness"`
-	Position   float64 `json:"position"`
-	Hex        string
+	Red         float64 `json:"red"`
+	Green       float64 `json:"green"`
+	Blue        float64 `json:"blue"`
+	Brightness  float64 `json:"brightness"`
+	Position    float64 `json:"position"`
+	Temperature float64 `json:"temperature"`
+	Hex         string
 }
 
 type RGB struct {
@@ -42,6 +44,7 @@ type Profile struct {
 	AlternateColors bool          `json:"alternateColors"`
 	RgbDirection    byte          `json:"rgbDirection"`
 	PerLed          bool          `json:"perLed"`
+	Version         int           `json:"version"`
 }
 
 type LastCycle struct {
@@ -56,6 +59,7 @@ type ActiveRGB struct {
 	RgbModeSpeed           float64
 	RGBEndColor            *Color
 	RGBStartColor          *Color
+	RGBMiddleColor         *Color
 	PreviousColor          *Color
 	Gradients              []Color
 	GradientList           map[int]Color
@@ -192,6 +196,63 @@ func interpolate(
 	b := b1 + fraction*(b2-b1)
 	return int(r * 255), int(g * 255), int(b * 255)
 }
+
+// wrapDistance calculates the shortest circular distance between two positions
+func wrapDistance(a, b float64) float64 {
+	d := math.Abs(a - b)
+	if d > 0.5 {
+		d = 1.0 - d
+	}
+	return d
+}
+
+// arcMask returns a smooth brightness multiplier [0.0, 1.0] for a light at the given position
+func arcMask(position, center, width float64) float64 {
+	d := wrapDistance(position, center)
+	if d >= width {
+		return 0.0
+	}
+
+	x := d / width
+	return 0.5 * (1.0 + math.Cos(math.Pi*x))
+}
+
+// lerpColor linearly interpolates between two colors by factor t
+func lerpColor(c1, c2 Color, t float64) (int, int, int) {
+	if t < 0 {
+		t = 0
+	}
+	if t > 1 {
+		t = 1
+	}
+
+	r := lerp(c1.Red, c2.Red, t)
+	g := lerp(c1.Green, c2.Green, t)
+	b := lerp(c1.Blue, c2.Blue, t)
+
+	return int(math.Round(r)), int(math.Round(g)), int(math.Round(b))
+}
+
+// clampFloat01 will clamp float64 from 0 to 1
+func clampFloat01(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+func random01(values ...float64) float64 {
+	sum := 0.0
+	for i, v := range values {
+		sum += math.Sin(v*12.9898+float64(i)*78.233) * 43758.5453
+	}
+	return math.Abs(math.Mod(sum, 1.0))
+}
+
+func lerp(a, b, t float64) float64 { return a + (b-a)*t }
 
 // New will create new ActiveRGB struct for RGB control
 func New(

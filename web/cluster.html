@@ -46,6 +46,7 @@
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
                                     <label for="clusterRgbProfile">
                                         <select id="clusterRgbProfile" class="form-select system-select compact auto-width clusterRgbProfile" name="clusterRgbProfile">
+                                            <option value="">None</option>
                                             {{ range $key, $mode := $rgbModes }}
                                             {{ if eq $mode $device.DeviceProfile.RGBProfile }}
                                             <option value="0;{{ $mode }}" selected>{{ $mode }}</option>

@@ -20,7 +20,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -52,6 +51,7 @@ type DeviceProfile struct {
 	SpeedProfiles      map[int]string
 	Labels             map[int]string
 	OpenRGBIntegration bool
+	RgbOff             bool
 }
 
 type DeviceList struct {
@@ -159,8 +159,15 @@ var (
 	BufferSize                 = 64
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
-	rgbProfileUpgrade          = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
-	rgbModes                   = []string{
+	rgbProfileUpgrade          = []string{
+		"arc",
+		"gradient",
+		"pastelrainbow",
+		"pastelspiralrainbow",
+		"rain",
+	}
+	rgbModes = []string{
+		"arc",
 		"circle",
 		"colorpulse",
 		"colorshift",
@@ -170,6 +177,7 @@ var (
 		"gradient",
 		"liquid-temperature",
 		"off",
+		"rain",
 		"rainbow",
 		"pastelrainbow",
 		"rotator",
@@ -589,10 +597,25 @@ func (d *Device) UpdateRgbProfileData(profileName string, profile rgb.Profile) u
 	if pf == nil {
 		return 0
 	}
+
+	if profile.StartColor.Temperature < 0 || profile.StartColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.MiddleColor.Temperature < 0 || profile.MiddleColor.Temperature > 105 {
+		return 0
+	}
+
+	if profile.EndColor.Temperature < 0 || profile.EndColor.Temperature > 105 {
+		return 0
+	}
+
 	profile.StartColor.Brightness = pf.StartColor.Brightness
 	profile.EndColor.Brightness = pf.EndColor.Brightness
+	profile.MiddleColor.Brightness = pf.MiddleColor.Brightness
 	pf.StartColor = profile.StartColor
 	pf.EndColor = profile.EndColor
+	pf.MiddleColor = profile.MiddleColor
 	pf.Speed = profile.Speed
 	pf.Gradients = profile.Gradients
 
@@ -824,6 +847,22 @@ func (d *Device) setupOpenRGBController() {
 	openrgb.AddDeviceController(controller)
 }
 
+// ControlDeviceRgb will change device brightness via schedulerSchedulerBrightness
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Release existing queue
@@ -874,6 +913,12 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	// RGB Control
+	if d.DeviceProfile.RgbOff {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
+		return
+	}
+	
 	go func(lightChannels int) {
 		startTime := time.Now()
 		d.activeRgb = rgb.Exit()
@@ -925,15 +970,22 @@ func (d *Device) setDeviceColor() {
 					if rgbCustomColor {
 						r.RGBStartColor = &profile.StartColor
 						r.RGBEndColor = &profile.EndColor
+						r.RGBMiddleColor = &profile.MiddleColor
 					} else {
 						r.RGBStartColor = d.activeRgb.RGBStartColor
 						r.RGBEndColor = d.activeRgb.RGBEndColor
+						r.RGBMiddleColor = d.activeRgb.RGBMiddleColor
+					}
+
+					if r.RGBMiddleColor == nil {
+						r.RGBMiddleColor = &rgb.Color{}
 					}
 
 					// Brightness
 					r.RGBBrightness = rgb.GetBrightnessValueFloat(*d.DeviceProfile.BrightnessSlider)
 					r.RGBStartColor.Brightness = r.RGBBrightness
 					r.RGBEndColor.Brightness = r.RGBBrightness
+					r.RGBMiddleColor.Brightness = r.RGBBrightness
 					r.ChannelId = k
 
 					switch d.Devices[k].RGB {
@@ -951,6 +1003,16 @@ func (d *Device) setDeviceColor() {
 					case "pastelrainbow":
 						{
 							r.PastelRainbow(startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "arc":
+						{
+							r.Arc(startTime)
+							buff = append(buff, r.Output...)
+						}
+					case "rain":
+						{
+							r.Rain(startTime)
 							buff = append(buff, r.Output...)
 						}
 					case "watercolor":
@@ -1164,7 +1226,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -1277,6 +1339,7 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
 		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -1465,7 +1528,17 @@ func (d *Device) upgradeRgbProfile(path string, profiles []string) {
 			}
 		}
 	}
+	for key, val := range d.Rgb.Profiles {
+		template := rgb.GetRgbProfile(key)
+		if template == nil {
+			continue
+		}
 
+		if val.Version != template.Version {
+			d.Rgb.Profiles[key] = *template
+			save = true
+		}
+	}
 	if save {
 		if err := common.SaveJsonData(path, d.Rgb); err != nil {
 			logger.Log(logger.Fields{"error": err, "location": path}).Error("Unable to upgrade rgb profile data")

@@ -1,0 +1,24 @@
+{{ define "xeneon-gpu-temp" }}
+{{ $root := .Root }}
+{{ $widgetArea := .WidgetArea }}
+{{ $widget := $widgetArea.Widget }}
+<div class="card system-card thermal-widget" id="xeneon-gpu-temp" data-value="68" data-max="{{ $widget.Max }}" data-color="{{ $widget.DataColor }}">
+    <div class="card-body">
+        <div class="thermal-meta">
+            <div class="big-label">{{ $widget.HeaderText }}</div>
+        </div>
+        <div class="ring-chart">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="ring-track" cx="60" cy="60" r="46"></circle>
+                <circle class="ring-progress" cx="60" cy="60" r="46"></circle>
+            </svg>
+            <div class="center">
+                <div class="small">
+                    <div class="thermal-temp chart-temp" style="color: {{ $widget.TextColor }}">0</div>
+                </div>
+                <div class="big">{{ $widget.Unit }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

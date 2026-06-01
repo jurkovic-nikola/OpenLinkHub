@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>{{ .Title }}</title>
+
+    <meta name="description" content="">
+    <meta name="robots" content="all,follow">
+
+    <!-- Viewport / scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Scripts -->
+    <script src="/static/js/jquery-3.7.1.min.js"></script>
+    <script src="/static/js/jquery-ui.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/toastr.min.js"></script>
+    <script src="/static/js/toastr-init.js"></script>
+    <script src="/static/js/dataTables.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="preload" href="/static/css/themes/{{ .Dashboard.Theme }}.css" as="style">
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.min.css" rel="stylesheet" >
+    <link href="/static/css/toastr.min.css" rel="stylesheet">
+    <link href="/static/css/jquery-ui.min.css" rel="stylesheet">
+    <link href="/static/css/themes/{{ .Dashboard.Theme }}.css" rel="stylesheet">
+    <link href="/static/css/xeneon.css" rel="stylesheet">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="shortcut icon" href="/static/img/favicon.ico">
+</head>
+<body class="edge-dashboard">
+<div class="edge-shell">
+    <div class="edge-layout">
+        {{ $device := .Device.Instance }}
+        {{ $WidgetAreas := $device.DeviceProfile.WidgetAreas }}
+
+        <section class="edge-segment">
+            {{ range $i := .Slice 1 2 }}
+            {{ $widget := index $WidgetAreas $i }}
+            {{ if $widget.Widget }}
+            {{ $.RenderTemplate $widget.Widget.Template ($.Dict "Root" $ "WidgetArea" $widget) }}
+            {{ end }}
+            {{ end }}
+        </section>
+
+        <section class="edge-segment">
+            {{ range $pair := .Slice (.Slice 3 4) (.Slice 5 6) (.Slice 7 8) }}
+            {{ $widget_1 := index $WidgetAreas (index $pair 0) }}
+            {{ $widget_2 := index $WidgetAreas (index $pair 1) }}
+
+            {{ if or $widget_1.Widget $widget_2.Widget }}
+            <div class="edge-panel">
+                <div class="rings-grid">
+                    {{ range $i := $pair }}
+                    {{ $widget := index $WidgetAreas $i }}
+                    {{ if $widget.Widget }}
+                    {{ $.RenderTemplate $widget.Widget.Template ($.Dict "Root" $ "WidgetArea" $widget) }}
+                    {{ end }}
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+            {{ end }}
+        </section>
+
+        <section class="edge-segment">
+            {{ range $i := .Slice 9 10 11 }}
+            {{ $widget := index $WidgetAreas $i }}
+            {{ if $widget.Widget }}
+            {{ $.RenderTemplate $widget.Widget.Template ($.Dict "Root" $ "WidgetArea" $widget) }}
+            {{ end }}
+            {{ end }}
+        </section>
+    </div>
+</div>
+<script src="/static/js/xeneon.js"></script>
+</body>
+</html>

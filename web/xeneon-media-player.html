@@ -1,0 +1,32 @@
+{{ define "xeneon-media-player" }}
+{{ $root := .Root }}
+{{ $widgetArea := .WidgetArea }}
+{{ $widget := $widgetArea.Widget }}
+<div class="edge-panel compact" id="xeneon-media-player">
+    <div class="card system-card">
+        <div class="card-body">
+            <div class="now-playing">
+                <div class="album-art"></div>
+                <div class="album-left text-ellipsis">
+                    <div class="track-title text-ellipsis" id="trackTitle">N/A</div>
+                    <div class="track-artist" id="tractArtist">N/A</div>
+                    <div class="progress-line" id="trackProgress"><span></span></div>
+                    <div class="progress-times"><span id="position">2:26</span><span id="length">3:42</span></div>
+                </div>
+            </div>
+
+            <div class="settings-list top-10">
+                <div class="settings-row">
+                    <button class="system-button center media-button" data-info="1">PREVIOUS</button>
+                    <button class="system-button center media-button" data-info="2">STOP</button>
+                    <button class="system-button center media-button" data-info="3">PLAY</button>
+                    <button class="system-button center media-button" data-info="4">NEXT</button>
+                    <button class="system-button center media-button" data-info="5">VOL -</button>
+                    <button class="system-button center media-button" data-info="6">VOL +</button>
+                    <button class="system-button center media-button" data-info="7">MUTE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

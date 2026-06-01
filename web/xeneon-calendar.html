@@ -1,0 +1,36 @@
+{{ define "xeneon-calendar" }}
+{{ $root := .Root }}
+{{ $widgetArea := .WidgetArea }}
+{{ $widget := $widgetArea.Widget }}
+<div class="edge-panel compact" id="xeneon-calendar">
+    <div class="card system-card">
+        <div class="card-body">
+            <div class="calendar-box">
+                <div class="calendar-header">
+                    <button type="button" class="calendar-nav" id="calendarPrev">
+                        <span class="calendar-nav-arrow">‹</span>
+                    </button>
+                    <div>
+                        <div class="calendar-month" id="calendarMonth">March 2026</div>
+                        <div class="calendar-today" id="calendarToday">Sunday, March 22</div>
+                    </div>
+                    <button type="button" class="calendar-nav" id="calendarNext">
+                        <span class="calendar-nav-arrow">›</span>
+                    </button>
+                </div>
+                <div class="calendar-weekdays">
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+                    <span>Sun</span>
+                </div>
+                <div class="calendar-days" id="calendarDays"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ end }}

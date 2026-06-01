@@ -12,6 +12,7 @@ Buildfile
 config.json
 stdout.log
 dashboard.json
+display.json
 database/temperatures/*.json
 database/profiles/*.json
 database/rgb/*.json
@@ -28,3 +29,6 @@ flatpak-build/
 copr/
 OpenLinkHub.spec.template
 *.tar.gz
+update.json
+update.json.sig
+.devcontainer/devcontainer-lock.json

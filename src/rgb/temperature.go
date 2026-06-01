@@ -4,7 +4,10 @@ import (
 	"math"
 )
 
-// smoothColor smooths the color with smoothing factor
+func clamp(v, min, max float64) float64 {
+	return math.Max(min, math.Min(max, v))
+}
+
 func smoothColor(old, new *Color, smoothing float64) *Color {
 	return &Color{
 		Red:   old.Red + smoothing*(new.Red-old.Red),
@@ -13,8 +16,8 @@ func smoothColor(old, new *Color, smoothing float64) *Color {
 	}
 }
 
-// interpolateTemperatureColor interpolates between 2 colors
-func interpolateTemperatureColor(start, end *Color, t float64, brightness float64) *Color {
+func interpolateTempColor(start, end *Color, t float64, brightness float64) *Color {
+	t = clamp(t, 0, 1)
 	return &Color{
 		Red:   (start.Red + (end.Red-start.Red)*t) * brightness,
 		Green: (start.Green + (end.Green-start.Green)*t) * brightness,
@@ -22,13 +25,46 @@ func interpolateTemperatureColor(start, end *Color, t float64, brightness float6
 	}
 }
 
-// MapTemperatureToPercent maps a temperature value within a range to a percentage between 0 and 1
-func MapTemperatureToPercent(temp, minTemp, maxTemp float64) float64 {
-	clampedTemp := math.Max(minTemp, math.Min(maxTemp, temp))
+func mapTemperatureInRange(temp, minTemp, maxTemp float64) float64 {
 	if maxTemp == minTemp {
 		return 0.5
 	}
+	clampedTemp := clamp(temp, math.Min(minTemp, maxTemp), math.Max(minTemp, maxTemp))
 	return (clampedTemp - minTemp) / (maxTemp - minTemp)
+}
+
+func interpolateTemperatureColor(start, middle, end *Color, currentTemp, brightness float64) *Color {
+	if middle == nil {
+		t := mapTemperatureInRange(currentTemp, start.Temperature, end.Temperature)
+		return interpolateTempColor(start, end, t, brightness)
+	}
+
+	c1, c2, c3 := start, middle, end
+	if c1.Temperature > c2.Temperature {
+		c1, c2 = c2, c1
+	}
+	if c2.Temperature > c3.Temperature {
+		c2, c3 = c3, c2
+	}
+	if c1.Temperature > c2.Temperature {
+		c1, c2 = c2, c1
+	}
+
+	if currentTemp <= c1.Temperature {
+		return interpolateColor(c1, c1, 0, brightness)
+	}
+
+	if currentTemp <= c2.Temperature {
+		t := mapTemperatureInRange(currentTemp, c1.Temperature, c2.Temperature)
+		return interpolateColor(c1, c2, t, brightness)
+	}
+
+	if currentTemp <= c3.Temperature {
+		t := mapTemperatureInRange(currentTemp, c2.Temperature, c3.Temperature)
+		return interpolateColor(c2, c3, t, brightness)
+	}
+
+	return interpolateColor(c3, c3, 0, brightness)
 }
 
 func (r *ActiveRGB) SmoothTemperature(currentTemp float64) float64 {
@@ -44,10 +80,14 @@ func (r *ActiveRGB) SmoothTemperature(currentTemp float64) float64 {
 
 func (r *ActiveRGB) Temperature(currentTemp float64) {
 	smoothedTemp := r.SmoothTemperature(currentTemp)
-	t := MapTemperatureToPercent(smoothedTemp, r.MinTemp, r.MaxTemp)
-	targetColor := interpolateTemperatureColor(r.RGBStartColor, r.RGBEndColor, t, r.RGBBrightness)
+	targetColor := interpolateTemperatureColor(
+		r.RGBStartColor,
+		r.RGBMiddleColor,
+		r.RGBEndColor,
+		smoothedTemp,
+		r.RGBBrightness,
+	)
 
-	// Initialize PreviousColor if needed
 	if r.PreviousColor == nil {
 		r.PreviousColor = &Color{
 			Red:   targetColor.Red,

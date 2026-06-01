@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "vanguard96-default",
@@ -1929,7 +1929,7 @@
             "green": 255,
             "blue": 255
           },
-          "keySpace": "keyboard-key wide7",
+          "keySpace": "keyboard-key wide6",
           "default": true,
           "keyData": [44, 57, 56],
           "keyHash": ["17592186044416"],
@@ -1983,6 +1983,26 @@
           "secondaryActuationResetPoint": 34
         },
         "98": {
+          "keyName": "ELG",
+          "width": 65,
+          "height": 70,
+          "left": 25,
+          "top": 50,
+          "packetIndex": [408],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": false,
+          "keyData": [136, 57, 56],
+          "keyHash": ["87112285931760246646623899502532662132736"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "99": {
           "keyName": "←",
           "width": 65,
           "height": 70,
@@ -2002,7 +2022,7 @@
           "secondaryActuationPoint": 35,
           "secondaryActuationResetPoint": 34
         },
-        "99": {
+        "100": {
           "keyName": "↓",
           "width": 65,
           "height": 70,
@@ -2022,7 +2042,7 @@
           "secondaryActuationPoint": 35,
           "secondaryActuationResetPoint": 34
         },
-        "100": {
+        "101": {
           "keyName": "→",
           "width": 65,
           "height": 70,
@@ -2042,7 +2062,7 @@
           "secondaryActuationPoint": 35,
           "secondaryActuationResetPoint": 34
         },
-        "101": {
+        "102": {
           "keyName": "0",
           "width": 145,
           "height": 70,
@@ -2062,7 +2082,7 @@
           "secondaryActuationPoint": 35,
           "secondaryActuationResetPoint": 34
         },
-        "102": {
+        "103": {
           "keyName": ".",
           "width": 65,
           "height": 70,

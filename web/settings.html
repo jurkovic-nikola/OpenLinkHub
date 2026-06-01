@@ -10,6 +10,7 @@
     {{ $languageCode := .LanguageCode }}
     {{ $audio := .AudioSettings }}
     {{ $dash := .Dashboard }}
+    {{ $save := .Lang "txtSave" }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
     <div class="row">
         <!-- Sidebar -->
@@ -111,6 +112,44 @@
                                         </label>
                                     </div>
 
+                                    <!-- Static color for all devices -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtApplyColorToAll" }}</span>
+                                        <div class="settings-actions">
+                                            <div class="system-color compact">
+                                                <label>
+                                                    <input type="color" id="allDevicesColor" class="allDevicesColor system-color compact" value="#ff0000">
+                                                </label>
+                                            </div>
+                                            <button class="system-button applyColorToAll compact">{{ .Lang "txtApplyToAll" }}</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- RGB Turn Off / On -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtRgbOnOff" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="checkbox-rgbOff">
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Style -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtKeyboardLayout" }}</span>
+                                        <label for="theme">
+                                            <select id="keyboardLayout" class="form-select system-select auto-width compact theme">
+                                                {{ range $k, $v := .Dashboard.KeyboardLayouts }}
+                                                {{ if eq $dash.KeyboardLayout $k }}
+                                                <option value="{{ $k }}" selected>{{ $v }}</option>
+                                                {{ else }}
+                                                <option value="{{ $k }}">{{ $v }}</option>
+                                                {{ end }}
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
                                     <!-- Save settings -->
                                     <div class="settings-row">
                                         <button class="system-button" id="btnSaveDashboardSettings">{{ .Lang "txtSave" }}</button>
@@ -194,6 +233,14 @@
                                                    class="system-input system-time compact">
                                         </label>
                                     </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtLcdOffDuringDarkHours" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="lcdControl" {{ if .Scheduler.LCDControl }}checked{{end}}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
                                     <!-- Save profile -->
                                     <div class="settings-row">
                                         <button class="system-button saveRgbControl">{{ .Lang "txtSave" }}</button>
@@ -242,6 +289,40 @@
                                     </div>
                                 </div>
                                 {{ end }}
+                            </div>
+                        </div>
+
+                        <!-- Display -->
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtDisplay" }}
+                            </div>
+                            <div class="card-body text-left">
+                                <div class="settings-list">
+                                    {{ range $key, $val := .Displays }}
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ $val.Index }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="displayWidth_{{ $val.Index }}">
+                                                <input type="text" id="displayWidth_{{ $val.Index }}" class="displayWidth_{{ $val.Index }}" placeholder="Width" autocomplete="off" value="{{ $val.Width }}">
+                                            </label>
+                                        </div>
+                                        <div class="system-input text-input compact">
+                                            <label for="displayHeight_{{ $val.Index }}">
+                                                <input type="text" id="displayHeight_{{ $val.Index }}" class="displayHeight_{{ $val.Index }}" placeholder="Height" autocomplete="off" value="{{ $val.Height }}">
+                                            </label>
+                                        </div>
+                                        <label for="displayPosition_{{ $val.Index }}">
+                                            <select id="displayPosition_{{ $val.Index }}" class="form-select system-select auto-width compact displayPosition_{{ $val.Index }}">
+                                                <option value="0">None</option>
+                                                <option value="1" {{ if $val.Left }} selected {{ end }}>Left</option>
+                                                <option value="2" {{ if $val.Top }} selected {{ end }}>Top</option>
+                                            </select>
+                                        </label>
+                                        <button class="system-button updateDisplay" type="button" data-info="{{ $val.Index }}">{{ $save }}</button>
+                                    </div>
+                                    {{ end }}
+                                </div>
                             </div>
                         </div>
                     </div>

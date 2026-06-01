@@ -89,6 +89,7 @@
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
                                     <label for="globalRgbProfile">
                                         <select id="globalRgbProfile" class="form-select system-select compact auto-width globalRgb" name="globalRgb">
+                                            <option value="">None</option>
                                             {{ range $key, $mode := $rgbModes }}
                                             <option value="{{ $mode }}">{{ $mode }}</option>
                                             {{ end }}

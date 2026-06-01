@@ -9,6 +9,7 @@
     {{ $temperatures := .Temperatures }}
     {{ $device := .Device }}
     {{ $rgbModes := .Device.RGBModes }}
+    {{ $macros := .Macros }}
     {{ $rgb := .Rgb }}
     {{ $deviceProfile := .Device.DeviceProfile }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
@@ -188,6 +189,88 @@
                     </div>
                 </div>
                 <div class="col-md-7">
+                    <div class="card system-card text-center">
+                        <table class="dataTable text-sm">
+                            <!-- Header -->
+                            <thead>
+                            <tr>
+                                <th>{{ .Lang "txtKeyAssignment" }}</th>
+                                <th>
+                                    {{ .Lang "defaultValue" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy defaultInfoToggle"></i>
+                                </th>
+                                <th>
+                                    {{ .Lang "txtPressAndHold" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy pressAndHoldInfoToggle"></i>
+                                </th>
+                                <th>
+                                    {{ .Lang "txtOnRelease" }}
+                                    <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy onReleaseInfoToggle"></i>
+                                </th>
+                                <th>{{ .Lang "txtAssignmentType" }}</th>
+                                <th>{{ .Lang "txtAssignmentKey" }}</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+
+                            <!-- Body -->
+                            <tbody>
+                            {{ range $key, $value := $device.KeyAssignment }}
+                            <tr>
+                                <td class="key-assignments">{{ $value.Name }}</td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="default_{{ $key }}" {{ if $value.Default }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="pressAndHold_{{ $key }}" {{ if $value.ActionHold }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="onRelease_{{ $key }}" {{ if $value.OnRelease }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <select id="keyAssignmentType_{{ $key }}" class="system-select compact full-width keyAssignmentType">
+                                        {{ range $k, $v := $device.KeyAssignmentTypes }}
+                                        {{ if eq $value.ActionType $k }}
+                                        <option value="{{ $k }}" selected>{{ $v }}</option>
+                                        {{ else }}
+                                        <option value="{{ $k }}">{{ $v }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="keyAssignmentValue_{{ $key }}" class="system-select compact full-width">
+                                        {{ if $value.IsMacro }}
+                                        {{ range $k, $v := $macros }}
+                                        <option value="{{ $k }}" {{ if eq $value.ActionCommand $k }}selected{{ end }}>{{ $v.Name }}</option>
+                                        {{ end }}
+                                        {{ else }}
+                                        {{ range $k, $v := $device.InputActions }}
+                                        <option value="{{ $k }}" {{ if eq $value.ActionCommand $k }}selected{{ end }}>{{ $v.Name }}</option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="system-button saveKeyAssignment" data-info="{{ $key }}">
+                                        <span>{{ $root.Lang "txtSave" }}</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            {{ end }}
+                            </tbody>
+                        </table>
+                    </div><br />
+
                     <div class="card system-card text-center">
                         <div class="card-header">{{ .Lang "txtEqualizer" }}</div>
                         <div class="card-body">

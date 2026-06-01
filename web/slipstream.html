@@ -8,6 +8,7 @@
     {{ $devs := .Devices }}
     {{ $temperatures := .Temperatures }}
     {{ $device := .Device }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
 
     <div class="row">
@@ -21,9 +22,42 @@
             {{ template "temperature-bar" . }}
             {{ end }}
 
-            <!-- PSU -->
+            <!-- Slipstream -->
             <div class="row g-4 mb-4 align-items-start">
-                <div class="col-md-12">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <!-- Firmware -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtFirmware" }}</span>
+                                    <span class="meta-value">{{ .Device.Firmware }}</span>
+                                </div>
+
+                                <!-- Polling Rate -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtPollingRate" }}</span>
+                                    <label for="pollingRate">
+                                        <select id="pollingRate" class="system-select max-width-120 compact mousePollingRate" name="mousePollingRate">
+                                            {{ range $key, $pr := $device.PollingRates }}
+                                            {{ if eq $key $device.DeviceProfile.PollingRate }}
+                                            <option value="{{ $key }}" selected>{{ $pr }}</option>
+                                            {{ else }}
+                                            <option value="{{ $key }}">{{ $pr }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-10">
                     <div class="card system-card">
                         <div class="card-header header-split">
                             <span class="header-left">
@@ -67,6 +101,7 @@
     </div>
 </div>
 <script src="/static/js/sidebar.js"></script>
+<script src="/static/js/mouse.js"></script>
 {{ if .Dashboard.TemperatureBar }}
 <script src="/static/js/temperature-bar.js"></script>
 {{ end }}

@@ -100,10 +100,12 @@
                                             <option value="9">{{ .Lang "txtMouse" }}</option>
                                             <option value="5">{{ .Lang "txtDelay" }}</option>
                                             <option value="6">{{ .Lang "txtText" }}</option>
+                                            <option value="20">{{ .Lang "txtMousePosition" }}</option>
                                         </select>
                                     </label>
                                 </div>
 
+                                <!-- Keyboard -->
                                 <div class="settings-row macroKeyId">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtMacroValue" }}</span>
                                     <div class="system-input text-input compact">
@@ -122,6 +124,7 @@
                                     </label>
                                 </div>
 
+                                <!-- Delay -->
                                 <div class="settings-row macroDelayId">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtMacroDelay" }}</span>
                                     <div class="system-input text-input compact">
@@ -135,6 +138,7 @@
                                     </div>
                                 </div>
 
+                                <!-- Text -->
                                 <div class="settings-row macroTextId">
                                     <div class="system-input text-area">
                                         <label for="macroText" class="input-label">
@@ -143,10 +147,37 @@
                                     </div>
                                 </div>
 
+                                <!-- Mouse position -->
+                                <div class="settings-row macroMousePosition">
+                                    <div class="system-input text-input compact">
+                                        <label for="mousePositionX">
+                                            <input
+                                                    type="text"
+                                                    id="mousePositionX"
+                                                    placeholder="{{ .Lang "txtMousePositionX" }}"
+                                                    autocomplete="off">
+                                        </label>
+                                    </div>
+                                    <div class="system-input text-input compact">
+                                        <label for="mousePositionY">
+                                            <input
+                                                    type="text"
+                                                    id="mousePositionY"
+                                                    placeholder="{{ .Lang "txtMousePositionY" }}"
+                                                    autocomplete="off">
+                                        </label>
+                                    </div>
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtAbsolute" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="mousePositionAbsolute">
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">Close</button>
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
                             <button class="system-button" type="button" id="addMacroValue">{{ .Lang "txtAddMacroValue" }}</button>
                         </div>
                     </div>
@@ -201,6 +232,15 @@
                                     <th>
                                         {{ .Lang "txtActionRepeatDelay" }}
                                         <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatDelayInfoToggle"></i>
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtMousePositionX" }}
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtMousePositionY" }}
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtAbsolute" }}
                                     </th>
                                     <th style="width:20%;">{{ .Lang "txtOptions" }}</th>
                                 </tr>

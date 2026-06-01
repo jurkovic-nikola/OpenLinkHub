@@ -7,15 +7,18 @@ package server
 import (
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/backup"
+	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
 	"OpenLinkHub/src/devices/openrgbimport"
+	"OpenLinkHub/src/display"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/language"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/macro"
+	"OpenLinkHub/src/media"
 	"OpenLinkHub/src/metrics"
 	"OpenLinkHub/src/openrgb"
 	"OpenLinkHub/src/rgb"
@@ -30,7 +33,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -152,6 +154,26 @@ func getGpuTemperatures(w http.ResponseWriter, _ *http.Request) {
 		Code:   http.StatusOK,
 		Status: 1,
 		Data:   data,
+	}
+	resp.Send(w)
+}
+
+// getCpuLoad will return current cpu load
+func getCpuLoad(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   systeminfo.GetCpuUtilization(),
+	}
+	resp.Send(w)
+}
+
+// getGpuLoad will return current gpu load
+func getGpuLoad(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   systeminfo.GetGPUUtilization(),
 	}
 	resp.Send(w)
 }
@@ -832,6 +854,60 @@ func getMouseDevice(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getMediaPlayback will return active media playback
+func getMediaPlayback(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{Code: http.StatusOK, Status: 0}
+
+	player, err := media.GetCurrentlyPlaying()
+	if err != nil {
+		resp.Data = err.Error()
+	} else {
+		resp.Data = player
+		resp.Status = 1
+	}
+	resp.Send(w)
+}
+
+// getMediaPlayback will return active media playback
+func mediaPlaybackControl(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{Code: http.StatusOK, Status: 0}
+	mediaPlaybackAction, valid := getVar("/api/media/", r)
+	if !valid {
+		resp.Message = "Invalid playback action"
+	} else {
+		resp.Status = 1
+		resp.Message = "OK"
+
+		switch mediaPlaybackAction {
+		case "previous":
+			inputmanager.InputControlKeyboard(inputmanager.MediaPrev, false)
+			break
+		case "stop":
+			inputmanager.InputControlKeyboard(inputmanager.MediaStop, false)
+			break
+		case "play":
+			inputmanager.InputControlKeyboard(inputmanager.MediaPrev, false)
+			break
+		case "next":
+			inputmanager.InputControlKeyboard(inputmanager.MediaNext, false)
+			break
+		case "volumeDown":
+			inputmanager.InputControlKeyboard(inputmanager.VolumeDown, false)
+			break
+		case "volumeUp":
+			inputmanager.InputControlKeyboard(inputmanager.VolumeUp, false)
+			break
+		case "mute":
+			inputmanager.InputControlKeyboard(inputmanager.VolumeMute, false)
+			break
+		default:
+			resp.Message = "Invalid playback action"
+			resp.Status = 0
+		}
+	}
+	resp.Send(w)
+}
+
 // updateDeviceEqualizers handles device equalizer update
 func updateDeviceEqualizers(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateDeviceEqualizer(r)
@@ -975,6 +1051,17 @@ func setDeviceLcdRotation(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setDeviceLcdBrightness handles device LCD brightness changes
+func setDeviceLcdBrightness(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessLcdBrightnessChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceLcdImage handles device LCD image changes
 func setDeviceLcdImage(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLcdImageChange(r)
@@ -1088,6 +1175,17 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 // setGlobalDeviceColor handles global color changes
 func setGlobalDeviceColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGlobalChangeColor(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setAllDevicesColor pushes a single static color to every registered device
+func setAllDevicesColor(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetAllDevicesColor(r)
 	resp := &Response{
 		Code:    request.Code,
 		Status:  request.Status,
@@ -1921,6 +2019,17 @@ func getChannelData(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// updateDisplayData handles update of display values
+func updateDisplayData(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateDisplayData(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -2289,6 +2398,7 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	web.Dashboard = dashboard.GetDashboard()
 	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
 	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
+	web.Displays = display.GetDisplays()
 	web.AudioSettings = audio.GetAudio()
 	web.OutputDevices = audio.GetSinks()
 	web.SystemService = config.IsSystemService()
@@ -2329,6 +2439,53 @@ func uiSettings(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// uiXeneon handles kiosk page
+func uiXeneon(w http.ResponseWriter, _ *http.Request) {
+	var xeneon *common.Device
+	for _, val := range devices.GetDevices() {
+		if val.ProductType == common.ProductTypeXeneonEdge {
+			xeneon = val
+		}
+	}
+
+	if xeneon == nil {
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: language.GetValue("txtXeneonEdgeUnavailable"),
+		}
+		resp.Send(w)
+		return
+	}
+
+	deviceList := devices.GetDevices()
+	web := templates.Web{}
+	web.Title = dashboard.GetDashboard().PageTitle
+	web.Devices = deviceList
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
+	web.Dashboard = dashboard.GetDashboard()
+	web.BatteryStats = stats.GetBatteryStats()
+	web.Device = xeneon
+	web.Page = "xeneon"
+
+	t := templates.GetTemplate()
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "xeneon.html", web)
+	if err != nil {
+		fmt.Println(err)
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: language.GetValue("txtUnableToServeWebContent"),
+		}
+		resp.Send(w)
+	}
+}
+
 // getVar will extract dynamic path from GET request
 func getVar(path string, r *http.Request) (string, bool) {
 	value := strings.TrimPrefix(r.URL.Path, path)
@@ -2336,7 +2493,7 @@ func getVar(path string, r *http.Request) (string, bool) {
 		return "", false
 	}
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9-;:]+$", value); !m {
+	if !common.AlphanumericDashSemiColon.MatchString(value) {
 		return "", false
 	}
 
@@ -2348,7 +2505,7 @@ func getVarLast(r *http.Request) (string, bool) {
 	parts := strings.Split(r.URL.Path, "/")
 	value := parts[len(parts)-1]
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9-;:]+$", value); !m {
+	if !common.AlphanumericDashSemiColon.MatchString(value) {
 		return "", false
 	}
 	return value, true
@@ -2363,7 +2520,7 @@ func getDeviceID(uri string, r *http.Request) (string, bool) {
 	}
 
 	value := parts[0]
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9-;:]+$", value); !m {
+	if !common.AlphanumericDashSemiColon.MatchString(value) {
 		return "", false
 	}
 	return value, true
@@ -2659,9 +2816,11 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/", http.MethodGet, homePage)
 	handleFunc(r, "/api/cpuTemp", http.MethodGet, getCpuTemperature)
 	handleFunc(r, "/api/cpuTemp/clean", http.MethodGet, getCpuTemperatureClean)
+	handleFunc(r, "/api/cpuLoad", http.MethodGet, getCpuLoad)
 	handleFunc(r, "/api/gpuTemp", http.MethodGet, getGpuTemperature)
 	handleFunc(r, "/api/gpuTemps", http.MethodGet, getGpuTemperatures)
 	handleFunc(r, "/api/gpuTemp/clean", http.MethodGet, getGpuTemperatureClean)
+	handleFunc(r, "/api/gpuLoad", http.MethodGet, getGpuLoad)
 	handleFunc(r, "/api/storageTemp", http.MethodGet, getStorageTemperature)
 	handleFunc(r, "/api/batteryStats", http.MethodGet, getBatteryStats)
 	handleFunc(r, "/api/devices/", http.MethodGet, getDevices)
@@ -2694,6 +2853,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/language/", http.MethodGet, getLanguageData)
 	handleFunc(r, "/api/devices/probes/", http.MethodGet, getTemperatureProbes)
 	handleFunc(r, "/api/devices/mouse", http.MethodGet, getMouseDevice)
+	handleFunc(r, "/api/media/playback", http.MethodGet, getMediaPlayback)
+	handleFunc(r, "/api/media/", http.MethodGet, mediaPlaybackControl)
 
 	// POST
 	handleFunc(r, "/api/openrgbimport/speed", http.MethodPost, setOpenRGBImportSpeed)
@@ -2707,6 +2868,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/operatingMode", http.MethodPost, setOperatingMode)
 	handleFunc(r, "/api/color", http.MethodPost, setDeviceColor)
 	handleFunc(r, "/api/color/global", http.MethodPost, setGlobalDeviceColor)
+	handleFunc(r, "/api/color/all", http.MethodPost, setAllDevicesColor)
 	handleFunc(r, "/api/color/linkAdapter", http.MethodPost, setLinkAdapterColor)
 	handleFunc(r, "/api/color/linkAdapter/bulk", http.MethodPost, setLinkAdapterBulkColor)
 	handleFunc(r, "/api/color/getOverride", http.MethodPost, getRgbOverride)
@@ -2729,6 +2891,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/lcd", http.MethodPost, setDeviceLcd)
 	handleFunc(r, "/api/lcd/device", http.MethodPost, changeDeviceLcd)
 	handleFunc(r, "/api/lcd/rotation", http.MethodPost, setDeviceLcdRotation)
+	handleFunc(r, "/api/lcd/brightness", http.MethodPost, setDeviceLcdBrightness)
 	handleFunc(r, "/api/lcd/profile", http.MethodPost, setDeviceLcdProfile)
 	handleFunc(r, "/api/lcd/image", http.MethodPost, setDeviceLcdImage)
 	handleFunc(r, "/api/brightness", http.MethodPost, changeBrightness)
@@ -2764,6 +2927,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/mouse/leftHandMode", http.MethodPost, changeLeftHandMode)
 	handleFunc(r, "/api/mouse/liftHeight", http.MethodPost, changeLiftHeight)
 	handleFunc(r, "/api/mouse/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
+	handleFunc(r, "/api/headset/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/headset/zoneColors", http.MethodPost, saveHeadsetZoneColors)
 	handleFunc(r, "/api/headset/sleep", http.MethodPost, changeSleepMode)
 	handleFunc(r, "/api/headset/muteIndicator", http.MethodPost, changeMuteIndicator)
@@ -2795,6 +2959,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/audio/update", http.MethodPost, setAudioSettings)
 	handleFunc(r, "/api/audio/outputDevice", http.MethodPost, setAudioOutputDeviceSettings)
 	handleFunc(r, "/api/devices/channel", http.MethodPost, getChannelData)
+	handleFunc(r, "/api/display/update", http.MethodPost, updateDisplayData)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)
@@ -2830,6 +2995,7 @@ func setRoutes() http.Handler {
 		handleFunc(r, "/macros", http.MethodGet, uiMacrosOverview)
 		handleFunc(r, "/lcd", http.MethodGet, uiLcdOverview)
 		handleFunc(r, "/settings", http.MethodGet, uiSettings)
+		//handleFunc(r, "/xeneon", http.MethodGet, uiXeneon)
 	}
 	return r
 }

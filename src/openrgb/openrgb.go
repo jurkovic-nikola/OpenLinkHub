@@ -26,6 +26,8 @@ const (
 	OPCODE_REQUEST_PROTOCOL_VERSION = 40
 	OPCODE_SET_CLIENT_NAME          = 50
 	OPCODE_DEVICE_LIST_UPDATED      = 100
+	OPCODE_REQUEST_PROFILE_LIST     = 150
+	OPCODE_REQUEST_PLUGIN_LIST      = 200
 	OPCODE_RGBCONTROLLER_UPDATELEDS = 1050
 	OPCODE_UPDATE_MODE              = 1101
 )
@@ -405,6 +407,28 @@ func handleConn(conn net.Conn) {
 				}
 			}
 			mutex.Unlock()
+		case OPCODE_REQUEST_PROFILE_LIST:
+			buf := make([]byte, 8)
+			binary.LittleEndian.PutUint32(buf[0:4], uint32(len(buf)))
+			binary.LittleEndian.PutUint32(buf[4:8], 0)
+			sendHeader(conn, 0, OPCODE_REQUEST_PROFILE_LIST, uint32(len(buf)))
+			if _, err = conn.Write(buf); err != nil {
+				if debug {
+					logger.Log(logger.Fields{"error": err}).Error("Failed to send PROFILE LIST")
+				}
+				return
+			}
+		case OPCODE_REQUEST_PLUGIN_LIST:
+			buf := make([]byte, 8)
+			binary.LittleEndian.PutUint32(buf[0:4], uint32(len(buf)))
+			binary.LittleEndian.PutUint32(buf[4:8], 0)
+			sendHeader(conn, 0, OPCODE_REQUEST_PLUGIN_LIST, uint32(len(buf)))
+			if _, err = conn.Write(buf); err != nil {
+				if debug {
+					logger.Log(logger.Fields{"error": err}).Error("Failed to send PLUGIN LIST")
+				}
+				return
+			}
 		}
 	}
 }

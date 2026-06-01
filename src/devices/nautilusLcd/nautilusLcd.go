@@ -16,13 +16,13 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -35,6 +35,7 @@ type DeviceProfile struct {
 	LCDRotation uint8
 	LCDImage    string
 	Label       string
+	RgbOff      bool
 }
 
 type TemperatureProbe struct {
@@ -307,7 +308,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -433,6 +434,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -582,7 +584,7 @@ func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
 			return 0
 		}
 
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", d.DeviceProfile.LCDImage); !m {
+		if !common.AlphanumericRegex.MatchString(d.DeviceProfile.LCDImage) {
 			return 0
 		}
 
@@ -828,7 +830,7 @@ func (d *Device) loadLcdImage() uint8 {
 		return 0
 	}
 
-	if m, _ := regexp.MatchString("^[a-zA-Z0-9]+$", d.DeviceProfile.LCDImage); !m {
+	if !common.AlphanumericRegex.MatchString(d.DeviceProfile.LCDImage) {
 		return 0
 	}
 

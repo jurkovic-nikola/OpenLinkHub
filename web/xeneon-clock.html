@@ -1,0 +1,17 @@
+{{ define "xeneon-clock" }}
+{{ $root := .Root }}
+{{ $widgetArea := .WidgetArea }}
+{{ $widget := $widgetArea.Widget }}
+<div class="edge-panel compact" id="xeneon-clock">
+    <div class="card system-card">
+        <div class="card-body">
+            <div class="clock-box">
+                <div>
+                    <div class="clock-time" id="clockTime">20:48</div>
+                    <div class="clock-date" id="clockDate">Sunday, March 22</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

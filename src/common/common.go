@@ -28,6 +28,15 @@ import (
 	"time"
 )
 
+type Display struct {
+	Index  int
+	Name   string
+	Width  int
+	Height int
+	Left   bool
+	Top    bool
+}
+
 type Slipstream struct {
 	Dev       *hid.Device
 	Listener  *hid.Device
@@ -122,6 +131,10 @@ const (
 	ProductTypeK95                  = 137
 	ProductTypeVanguard96Pro        = 138
 	ProductTypeVanguard96           = 139
+	ProductTypeVanguard99AirWU      = 140
+	ProductTypeVanguard99AirW       = 141
+	ProductTypeVanguard96WU         = 142
+	ProductTypeVanguard96W          = 143
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203
@@ -168,6 +181,8 @@ const (
 	ProductTypeGlaiveRgbPro         = 244
 	ProductTypeGlaiveRgb            = 245
 	ProductTypeSabreV2Pro           = 246
+	ProductTypeIronClawSEW          = 247
+	ProductTypeIronClawSEWU         = 248
 	ProductTypeVirtuosoXTW          = 300
 	ProductTypeVirtuosoXTWU         = 301
 	ProductTypeVirtuosoMAXW         = 302
@@ -179,6 +194,7 @@ const (
 	ProductTypeVoidV2W              = 308
 	ProductTypeVirtuosoWU           = 309
 	ProductTypeVirtuosoW            = 310
+	ProductTypeVoidEliteW           = 311
 	ProductTypeST100                = 401
 	ProductTypeMM700                = 402
 	ProductTypeLT100                = 403
@@ -191,6 +207,7 @@ const (
 	ProductTypeScufEnvisionProV2WU  = 604
 	ProductTypeScufEnvisionProV2W   = 605
 	ProductTypeScufDongleV2         = 606
+	ProductTypeXeneonEdge           = 995
 	ProductTypeMotherboard          = 996
 	ProductTypeDongle               = 997
 	ProductTypeSlipstream           = 998

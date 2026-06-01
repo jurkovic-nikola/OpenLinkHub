@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"math/bits"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -66,6 +65,7 @@ type DeviceProfile struct {
 	RippleControl      int
 	MotionSync         int
 	KeyAssignmentHash  string
+	RgbOff             bool
 }
 
 type DPIProfile struct {
@@ -906,7 +906,7 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		fileName := strings.Split(fi.Name(), ".")[0]
-		if m, _ := regexp.MatchString("^[a-zA-Z0-9-]+$", fileName); !m {
+		if !common.AlphanumericDashRegex.MatchString(fileName) {
 			continue
 		}
 
@@ -1360,6 +1360,41 @@ func (d *Device) triggerKeyAssignment(value byte) {
 						case 5:
 							if v.ActionDelay > 0 {
 								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							}
+						case 20:
+							if v.ActionRepeat > 0 && !v.ActionHold {
+								d.stopRepeatMutex.Lock()
+								if d.stopRepeat != nil {
+									close(d.stopRepeat)
+								}
+
+								d.stopRepeat = make(chan struct{})
+								localStop := d.stopRepeat
+								d.stopRepeatMutex.Unlock()
+
+								go func() {
+									for z := 0; z < int(v.ActionRepeat); z++ {
+										select {
+										case <-localStop:
+											return
+										default:
+											if v.MousePositionAbsolute {
+												inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+											} else {
+												inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+											}
+										}
+										if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+											time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+										}
+									}
+								}()
+							} else {
+								if v.MousePositionAbsolute {
+									inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+								} else {
+									inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+								}
 							}
 						}
 					}

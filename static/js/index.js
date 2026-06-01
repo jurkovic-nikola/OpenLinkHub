@@ -134,23 +134,6 @@ $(document).ready(function () {
                                     <span class="settings-label text-ellipsis">Current Effect</span>
                                     <span class="meta-value text-capitalize">${dev.device.DeviceProfile?.RGBProfile || "None"}</span>
                                 </div>
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Lighting Zones</span>
-                                    <span class="meta-value">${dev.device.ZoneAmount || 0}</span>
-                                </div>
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Supported Effects</span>
-                                    <span class="meta-value">${dev.device.RGBModes ? dev.device.RGBModes.length : 0}</span>
-                                </div>
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Total LEDs</span>
-                                    <span class="meta-value">${dev.device.LEDCount || 0}</span>
-                                </div>
-                                ${dev.device.Version ? `
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Version</span>
-                                    <span class="meta-value">${dev.device.Version}</span>
-                                </div>` : ''}
                             </div>
                         </div>
                     </div>

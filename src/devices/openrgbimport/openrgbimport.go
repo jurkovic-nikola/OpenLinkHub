@@ -1082,6 +1082,7 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	_ = os.WriteFile(profilePath, data, 0o644)
+	d.loadDeviceProfiles()
 }
 
 func (d *Device) loadDeviceProfiles() {
@@ -1111,14 +1112,12 @@ func (d *Device) loadDeviceProfiles() {
 			continue
 		}
 
-		fileSerial := ""
-		if strings.Contains(fileName, "-") {
-			fileSerial = strings.Split(fileName, "-")[0]
+		var profileName string
+		if fileName == d.Serial {
+			profileName = "default"
+		} else if strings.HasPrefix(fileName, d.Serial+"-") {
+			profileName = strings.TrimPrefix(fileName, d.Serial+"-")
 		} else {
-			fileSerial = fileName
-		}
-
-		if fileSerial != d.Serial {
 			continue
 		}
 
@@ -1143,15 +1142,7 @@ func (d *Device) loadDeviceProfiles() {
 		pf.Serial = d.Serial
 		pf.Product = d.Product
 
-		if fileName == d.Serial {
-			profileList["default"] = pf
-		} else {
-			parts := strings.Split(fileName, "-")
-			if len(parts) > 1 {
-				name := parts[1]
-				profileList[name] = pf
-			}
-		}
+		profileList[profileName] = pf
 		logger.Log(logger.Fields{"location": profileLocation, "serial": d.Serial}).Info("Loaded custom user profile")
 	}
 
@@ -1194,14 +1185,48 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 		profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
 		profilePath := filepath.Join(profileDir, d.Serial + "-" + profileName + ".json")
 
+		// Deep copy ZoneColors map
+		copiedZoneColors := make(map[int]ZoneColors)
+		for k, v := range d.DeviceProfile.ZoneColors {
+			var copiedColor *rgb.Color
+			if v.Color != nil {
+				copiedColor = &rgb.Color{
+					Red:        v.Color.Red,
+					Green:      v.Color.Green,
+					Blue:       v.Color.Blue,
+					Brightness: v.Color.Brightness,
+					Hex:        v.Color.Hex,
+				}
+			}
+
+			var copiedColorIndex []int
+			if v.ColorIndex != nil {
+				copiedColorIndex = make([]int, len(v.ColorIndex))
+				copy(copiedColorIndex, v.ColorIndex)
+			}
+
+			copiedZoneColors[k] = ZoneColors{
+				Color:      copiedColor,
+				ColorIndex: copiedColorIndex,
+				Name:       v.Name,
+			}
+		}
+
+		// Deep copy BrightnessSlider pointer
+		var copiedBrightness *uint8
+		if d.DeviceProfile.BrightnessSlider != nil {
+			val := *d.DeviceProfile.BrightnessSlider
+			copiedBrightness = &val
+		}
+
 		newProfile := &DeviceProfile{
 			Active:           false,
 			Path:             profilePath,
 			Product:          d.Product,
 			Serial:           d.Serial,
 			RGBProfile:       d.DeviceProfile.RGBProfile,
-			BrightnessSlider: d.DeviceProfile.BrightnessSlider,
-			ZoneColors:       d.DeviceProfile.ZoneColors,
+			BrightnessSlider: copiedBrightness,
+			ZoneColors:       copiedZoneColors,
 			RGBCluster:       d.DeviceProfile.RGBCluster,
 		}
 

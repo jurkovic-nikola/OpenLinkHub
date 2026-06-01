@@ -31,7 +31,15 @@
 
                                     {{ if .OpenRGBImportDisplaySerial }}
                                     <div class="settings-row">
-                                        <span class="settings-label text-ellipsis" title="Identifier provided by OpenRGB (may be serial or firmware version depending on device)">OpenRGB ID</span>
+                                        <span class="settings-label text-ellipsis" title="Identifier provided by OpenRGB (may be serial or firmware version depending on device)">
+                                            {{ if eq .OpenRGBImportDisplaySerialLabel "VERSION" }}
+                                                {{ $.Lang "txtFirmware" }}
+                                            {{ else if eq .OpenRGBImportDisplaySerialLabel "SERIAL" }}
+                                                Serial
+                                            {{ else }}
+                                                OpenRGB ID
+                                            {{ end }}
+                                        </span>
                                         <span class="meta-value">{{ .OpenRGBImportDisplaySerial }}</span>
                                     </div>
                                     {{ end }}
@@ -222,12 +230,20 @@
                                     </div>
 
                                     {{ if .OpenRGBImportDevice }}
-                                        {{ if .OpenRGBImportDisplaySerial }}
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis" title="Identifier provided by OpenRGB (may be serial or firmware version depending on device)">OpenRGB ID</span>
-                                            <span class="meta-value">{{ .OpenRGBImportDisplaySerial }}</span>
-                                        </div>
-                                        {{ end }}
+                                         {{ if .OpenRGBImportDisplaySerial }}
+                                         <div class="settings-row">
+                                             <span class="settings-label text-ellipsis" title="Identifier provided by OpenRGB (may be serial or firmware version depending on device)">
+                                                 {{ if eq .OpenRGBImportDisplaySerialLabel "VERSION" }}
+                                                     {{ $.Lang "txtFirmware" }}
+                                                 {{ else if eq .OpenRGBImportDisplaySerialLabel "SERIAL" }}
+                                                     Serial
+                                                 {{ else }}
+                                                     OpenRGB ID
+                                                 {{ end }}
+                                             </span>
+                                             <span class="meta-value">{{ .OpenRGBImportDisplaySerial }}</span>
+                                         </div>
+                                         {{ end }}
                                     {{ else }}
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">Serial</span>

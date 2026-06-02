@@ -131,8 +131,29 @@ func (d *Device) AddDeviceController(controller *common.ClusterController) {
 	d.Controllers = append(d.Controllers, controller)
 	d.mutex.Unlock()
 
+	d.SortControllers()
+
 	if len(d.Controllers) == 1 {
 		d.setDeviceColor()
+	}
+}
+
+// SortControllers permanently sorts the controllers array based on the saved DeviceOrder
+func (d *Device) SortControllers() {
+	if d.DeviceProfile != nil && len(d.DeviceProfile.DeviceOrder) > 0 {
+		d.mutex.Lock()
+		defer d.mutex.Unlock()
+		sort.Slice(d.Controllers, func(i, j int) bool {
+			idxI := common.IndexOfString(d.DeviceProfile.DeviceOrder, d.Controllers[i].Serial)
+			idxJ := common.IndexOfString(d.DeviceProfile.DeviceOrder, d.Controllers[j].Serial)
+			if idxI == -1 {
+				return false
+			}
+			if idxJ == -1 {
+				return true
+			}
+			return idxI < idxJ
+		})
 	}
 }
 
@@ -298,6 +319,8 @@ func (d *Device) UpdateDeviceOrder(order []string) uint8 {
 	d.DeviceProfile.DeviceOrder = order
 	d.saveDeviceProfile()
 
+	d.SortControllers()
+
 	if d.activeRgb != nil {
 		d.activeRgb.Exit <- true // Exit current RGB mode
 		d.activeRgb = nil
@@ -416,20 +439,6 @@ func (d *Device) distributeColors(buff []byte) {
 	controllers := make([]*common.ClusterController, len(d.Controllers))
 	copy(controllers, d.Controllers) // copy slice to avoid race
 	d.mutex.RUnlock()
-
-	if d.DeviceProfile != nil && len(d.DeviceProfile.DeviceOrder) > 0 {
-		sort.Slice(controllers, func(i, j int) bool {
-			idxI := common.IndexOfString(d.DeviceProfile.DeviceOrder, controllers[i].Serial)
-			idxJ := common.IndexOfString(d.DeviceProfile.DeviceOrder, controllers[j].Serial)
-			if idxI == -1 {
-				return false
-			}
-			if idxJ == -1 {
-				return true
-			}
-			return idxI < idxJ
-		})
-	}
 
 	var wg sync.WaitGroup
 	offset := 0

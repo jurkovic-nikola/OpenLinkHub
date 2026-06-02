@@ -52,8 +52,9 @@ type ZoneConfig struct {
 }
 
 type DeviceConfig struct {
-	Serial string       `json:"serial"`
-	Zones  []ZoneConfig `json:"zones"`
+	Serial  string       `json:"serial"`
+	Product string       `json:"product,omitempty"`
+	Zones   []ZoneConfig `json:"zones"`
 }
 
 type ZoneColors struct {
@@ -245,7 +246,7 @@ func getDeviceConfig(serial string) *DeviceConfig {
 
 func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
 	nameLower := strings.ToLower(dc.Name)
-	cfg := &DeviceConfig{Serial: serial}
+	cfg := &DeviceConfig{Serial: serial, Product: dc.Name}
 
 	if isLegacyASUSMotherboardImport(dc.Name, dc.Vendor) {
 		cfg.Zones = []ZoneConfig{
@@ -344,6 +345,12 @@ func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredControll
 func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
 	cfg := getDeviceConfig(serial)
 	if isConfigValidForController(cfg, dc) {
+		if cfg.Product != dc.Name {
+			cfg.Product = dc.Name
+			store := loadConfigStore()
+			store.Devices[serial] = *cfg
+			_ = saveConfigStore(store)
+		}
 		return cfg
 	}
 
@@ -467,6 +474,30 @@ func checkOpenRGBStable(attempts int, delay time.Duration) error {
 	return nil
 }
 
+func (d *Device) resolveControllerId() {
+	if d.controllerId >= 0 {
+		return
+	}
+	if strings.HasPrefix(d.Serial, "openrgb-import-") {
+		fmt.Sscanf(d.Serial, "openrgb-import-%d", &d.controllerId)
+	} else if d.Serial == "openrgb-mobo-1" {
+		devices, err := openrgb.DiscoverControllers()
+		if err == nil {
+			for _, dc := range devices {
+				nameOK := strings.Contains(strings.ToLower(dc.Name), "asus rog strix z890-e gaming wifi")
+				vendorOK := strings.Contains(strings.ToLower(dc.Vendor), "asus aura")
+				if nameOK || vendorOK {
+					d.controllerId = dc.ID
+					// Override the config's color count with the actual OpenRGB hardware LED count to prevent dropping
+					d.colorCount = dc.LEDCount
+					d.ZoneAmount = len(dc.Zones)
+					break
+				}
+			}
+		}
+	}
+}
+
 func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 	if cfg == nil {
 		return fmt.Errorf("config is required")
@@ -496,6 +527,8 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 
 	d.stopEffectLoopLocked()
 	d.applyConfigLocked(cfg, brightness)
+
+	d.resolveControllerId()
 
 	if d.controllerId >= 0 {
 		time.Sleep(75 * time.Millisecond)
@@ -729,6 +762,23 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		d.loadDeviceProfiles()
 		d.saveDeviceProfile()
 		d.setupClusterController()
+		
+		// Apply initial state so the device lights up on boot
+		if !d.DeviceProfile.RGBCluster {
+			if d.effect == "static" || d.effect == "off" {
+				d.mu.Lock()
+				frame := d.buildZoneFrame()
+				d.mu.Unlock()
+				if len(frame) > 0 {
+					conn, _ := openrgb.SendFramePersistent(d.openrgbConn, uint32(d.controllerId), frame)
+					d.openrgbConn = conn
+				}
+			} else {
+				go func() {
+					_ = d.SetEffect(d.effect)
+				}()
+			}
+		}
 	}
 
 	return d
@@ -831,6 +881,7 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	d.resolveControllerId()
 	if d.controllerId < 0 {
 		return fmt.Errorf("controllerId not set")
 	}
@@ -885,6 +936,8 @@ func (d *Device) SetBrightness(brightness uint8) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	d.resolveControllerId()
+
 	if brightness > 100 {
 		brightness = 100
 	}
@@ -929,6 +982,8 @@ func (d *Device) SetSpeed(speed string) {
 
 func (d *Device) SetEffect(effect string) error {
 	d.mu.Lock()
+
+	d.resolveControllerId()
 
 	if d.controllerId < 0 {
 		d.mu.Unlock()

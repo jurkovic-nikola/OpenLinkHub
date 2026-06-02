@@ -788,14 +788,14 @@ func (d *Device) createDevice() {
 		Product:     d.Product,
 		Serial:      d.Serial,
 		Firmware:    "",
-		Image:       "icon-motherboard.svg",
+		Image:       "icon-rgb.svg",
 		Instance:    d,
-		GetDevice:   d, // keep existing motherboard template behavior
+		GetDevice:   d,
 	}
 }
 
 func (d *Device) GetDeviceTemplate() string {
-	return "motherboard.html"
+	return "openrgb.html"
 }
 
 func (d *Device) ControllerID() int {

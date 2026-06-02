@@ -54,6 +54,7 @@ func Init() *Device {
 		Product: "Cluster",
 		Serial:  "cluster",
 		RGBModes: []string{
+			"arc",
 			"circle",
 			"circleshift",
 			"colorpulse",
@@ -535,6 +536,11 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 	case "pastelspiralrainbow":
 		{
 			r.PastelSpiralRainbow(*startTime)
+			buff = r.Output
+		}
+	case "arc":
+		{
+			r.Arc(*startTime)
 			buff = r.Output
 		}
 	case "rain":

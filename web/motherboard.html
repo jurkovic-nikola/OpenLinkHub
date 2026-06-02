@@ -149,71 +149,72 @@
                 </div>
 
                 <div class="col-md-9">
-                    <div class="card system-card text-center">
-                        <div class="card-header header-split">
-                            <span class="header-left">{{ .Device.Product }}</span>
-                            <span class="header-right">LINKED</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="settings-list">
-
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Zones</span>
-                                    <span class="meta-value">{{ len .OpenRGBImportConfig.Zones }}</span>
+                    <div class="row g-4 h-100">
+                        <!-- Lighting Control -->
+                        <div class="col-xl-5 col-lg-6">
+                            <div class="card system-card text-center h-100">
+                                <div class="card-header header-split">
+                                    <span class="header-left">{{ .Device.Product }}</span>
+                                    <span class="header-right text-success fw-bold">LINKED</span>
                                 </div>
-
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">Mode</span>
-                                    <span class="meta-value">Grouped</span>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Zones</span>
+                                            <span class="meta-value text-light fw-bold">{{ len .OpenRGBImportConfig.Zones }}</span>
+                                        </div>
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">Mode</span>
+                                            <span class="meta-value text-light fw-bold">Grouped</span>
+                                        </div>
+                                        <div class="settings-row" style="justify-content:space-between; align-items:center;">
+                                            <span class="settings-label text-ellipsis">Color</span>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <input type="color" id="mbColor" value="#63d5ff" style="width:40px;height:30px;padding:0;border:none;border-radius:4px;cursor:pointer;">
+                                                <button class="system-button compact m-0 px-3" id="mbApplyColor" type="button">Apply</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <div class="settings-row" style="justify-content:flex-start;gap:12px;">
-                                    <span class="settings-label text-ellipsis">Color</span>
-                                    <input type="color" id="mbColor" value="#63d5ff" style="width:56px;min-width:56px;flex:0 0 auto;">
-                                </div>
-
-                                <div class="settings-row">
-                                    <button class="system-button compact" id="mbApplyColor" type="button">
-                                        Apply
-                                    </button>
-                                </div>
-
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="row g-4 mb-4">
-                <div class="col-12">
-                    <div class="card system-card text-center">
-                        <div class="card-header">Zone Configuration</div>
-                        <div class="card-body">
-                            <div class="settings-list" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-height:320px;overflow-y:auto;">
-                                {{ range $index, $zone := .OpenRGBImportConfig.Zones }}
-                                <div class="system-input compact no-padding-top" style="display:flex;flex-direction:column;gap:8px;">
-                                    <input
-                                        type="text"
-                                        class="configZoneName"
-                                        data-zone-index="{{ $index }}"
-                                        value="{{ $zone.Name }}"
-                                        placeholder="Zone Name"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="configZoneCount"
-                                        data-zone-index="{{ $index }}"
-                                        data-saved-led-count="{{ $zone.LedCount }}"
-                                        min="1"
-                                        value="{{ $zone.LedCount }}"
-                                        placeholder="LED Count"
-                                    >
+                        <!-- Zone Configuration -->
+                        <div class="col-xl-7 col-lg-6">
+                            <div class="card system-card h-100 d-flex flex-column">
+                                <div class="card-header text-center">Zone Layout</div>
+                                <div class="card-body flex-grow-1">
+                                    <div class="settings-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;max-height:320px;overflow-y:auto;padding-right:5px;">
+                                        {{ range $index, $zone := .OpenRGBImportConfig.Zones }}
+                                        <div class="system-input compact no-padding-top p-3 border border-secondary border-opacity-25 rounded bg-black bg-opacity-25" style="display:flex;flex-direction:column;gap:10px;">
+                                            <input
+                                                type="text"
+                                                class="configZoneName form-control form-control-sm bg-transparent text-white border-secondary"
+                                                data-zone-index="{{ $index }}"
+                                                value="{{ $zone.Name }}"
+                                                placeholder="Zone Name"
+                                                style="font-size: 0.85rem;"
+                                            >
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-transparent border-secondary text-warning" style="font-size: 0.8rem;">LEDs</span>
+                                                <input
+                                                    type="number"
+                                                    class="configZoneCount form-control bg-transparent text-white border-secondary"
+                                                    data-zone-index="{{ $index }}"
+                                                    data-saved-led-count="{{ $zone.LedCount }}"
+                                                    min="1"
+                                                    value="{{ $zone.LedCount }}"
+                                                    style="font-size: 0.85rem;"
+                                                >
+                                            </div>
+                                        </div>
+                                        {{ end }}
+                                    </div>
                                 </div>
-                                {{ end }}
+                                <div class="card-footer card-footer-left border-top border-secondary border-opacity-25">
+                                    <button class="system-button m-0" id="saveZoneConfig" type="button">Save Zone Layout</button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="card-footer card-footer-left">
-                            <button class="system-button" id="saveZoneConfig" type="button">Save Zone Layout</button>
                         </div>
                     </div>
                 </div>

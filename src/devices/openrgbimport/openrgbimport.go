@@ -782,13 +782,39 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 	return d
 }
 
+func (d *Device) resolveDeviceIcon() string {
+	nameLower := strings.ToLower(d.Product)
+	descLower := strings.ToLower(d.Description)
+
+	if strings.Contains(descLower, "motherboard") || strings.Contains(nameLower, "motherboard") || strings.Contains(nameLower, "z690") || strings.Contains(nameLower, "x570") || strings.Contains(nameLower, "z790") || strings.Contains(nameLower, "b650") {
+		return "icon-motherboard.svg"
+	}
+	if strings.Contains(descLower, "gpu") || strings.Contains(descLower, "vga") || strings.Contains(nameLower, "geforce") || strings.Contains(nameLower, "radeon") {
+		return "icon-device.svg"
+	}
+	if strings.Contains(descLower, "dram") || strings.Contains(nameLower, "ram") || strings.Contains(nameLower, "memory") || strings.Contains(nameLower, "ddr4") || strings.Contains(nameLower, "ddr5") {
+		return "icon-ram.svg"
+	}
+	if strings.Contains(descLower, "keyboard") || strings.Contains(nameLower, "keyboard") {
+		return "icon-keyboard.svg"
+	}
+	if strings.Contains(descLower, "mouse") || strings.Contains(nameLower, "mouse") {
+		return "icon-mouse.svg"
+	}
+	if strings.Contains(nameLower, "strimer") || strings.Contains(nameLower, "controller") || strings.Contains(nameLower, "hub") || strings.Contains(nameLower, "node") || strings.Contains(nameLower, "commander") {
+		return "icon-controller.svg"
+	}
+
+	return "icon-rgb.svg"
+}
+
 func (d *Device) createDevice() {
 	d.instance = &common.Device{
 		ProductType: common.ProductTypeMotherboard,
 		Product:     d.Product,
 		Serial:      d.Serial,
 		Firmware:    "",
-		Image:       "icon-rgb.svg",
+		Image:       d.resolveDeviceIcon(),
 		Instance:    d,
 		GetDevice:   d,
 	}

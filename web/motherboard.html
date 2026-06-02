@@ -162,30 +162,45 @@
                             <span class="header-left">Zone Layout</span>
                             <span class="header-right text-muted fw-bold">{{ len .OpenRGBImportConfig.Zones }} Zones | Grouped Mode</span>
                         </div>
-                        <div class="card-body flex-grow-1">
-                            <div class="settings-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:16px;max-height:800px;overflow-y:auto;padding-right:5px;">
+                        <div class="card-body flex-grow-1" style="padding: 1.5rem;">
+                            <div class="row g-4 align-items-start" style="max-height:800px;overflow-y:auto;overflow-x:hidden;">
                                 {{ range $index, $zone := .OpenRGBImportConfig.Zones }}
-                                <div class="system-input compact no-padding-top p-3 border border-secondary border-opacity-25 rounded bg-black bg-opacity-25" style="display:flex;flex-direction:column;gap:10px;">
-                                    <span class="text-warning text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Zone Settings</span>
-                                    <input
-                                        type="text"
-                                        class="configZoneName form-control form-control-sm bg-transparent text-white border-secondary"
-                                        data-zone-index="{{ $index }}"
-                                        value="{{ $zone.Name }}"
-                                        placeholder="Zone Name"
-                                        style="font-size: 0.85rem;"
-                                    >
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-transparent border-secondary text-warning" style="font-size: 0.8rem;">LEDs</span>
-                                        <input
-                                            type="number"
-                                            class="configZoneCount form-control bg-transparent text-white border-secondary"
-                                            data-zone-index="{{ $index }}"
-                                            data-saved-led-count="{{ $zone.LedCount }}"
-                                            min="1"
-                                            value="{{ $zone.LedCount }}"
-                                            style="font-size: 0.85rem;"
-                                        >
+                                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                                    <div class="card system-card m-0 h-100" style="background-color: var(--bs-gray-900); border: 1px solid rgba(255,255,255,0.05);">
+                                        <div class="card-header header-split">
+                                            <span class="header-left text-muted text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">Zone Layout</span>
+                                            <span class="header-right text-warning text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Zone Setup</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="settings-list">
+                                                <div class="settings-row" style="padding-bottom: 8px;">
+                                                    <span class="settings-label text-ellipsis" style="font-size: 0.75rem;">Name</span>
+                                                    <label class="w-100" style="max-width: 140px;">
+                                                        <input
+                                                            type="text"
+                                                            class="configZoneName form-control form-control-sm bg-transparent text-light border-secondary w-100"
+                                                            data-zone-index="{{ $index }}"
+                                                            value="{{ $zone.Name }}"
+                                                            style="font-size: 0.8rem; text-align: right;"
+                                                        >
+                                                    </label>
+                                                </div>
+                                                <div class="settings-row" style="padding-top: 8px;">
+                                                    <span class="settings-label text-ellipsis" style="font-size: 0.75rem;">LEDs</span>
+                                                    <label class="w-100" style="max-width: 140px;">
+                                                        <input
+                                                            type="number"
+                                                            class="configZoneCount form-control form-control-sm bg-transparent text-light border-secondary w-100"
+                                                            data-zone-index="{{ $index }}"
+                                                            data-saved-led-count="{{ $zone.LedCount }}"
+                                                            min="1"
+                                                            value="{{ $zone.LedCount }}"
+                                                            style="font-size: 0.8rem; text-align: right;"
+                                                        >
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 {{ end }}

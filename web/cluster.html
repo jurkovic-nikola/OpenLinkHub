@@ -67,7 +67,8 @@
                             <table class="dataTable text-sm" id="table" style="width: 100%;">
                                 <thead>
                                 <tr>
-                                    <th>{{ .Lang "txtDevice" }} <span class="text-muted fw-normal" style="font-size: 0.75rem; letter-spacing: 0.5px; margin-left: 10px; opacity: 0.7;">(Drag and drop to reorder)</span></th>
+                                    <th style="width: 15%;">Device Order</th>
+                                    <th>{{ .Lang "txtDevice" }}</th>
                                     <th>{{ .Lang "txtDeviceSerial" }}</th>
                                     <th>{{ .Lang "txtRgb" }}</th>
                                 </tr>
@@ -75,7 +76,8 @@
                                 <tbody id="clusterSortable">
                                 {{ range $key, $value := $device.Controllers }}
                                 <tr data-serial="{{ $value.Serial }}" style="cursor: grab;">
-                                    <td><i class="bi bi-list pe-2"></i>{{ $value.Product }}</td>
+                                    <td><i class="bi bi-list fs-5 text-muted"></i></td>
+                                    <td>{{ $value.Product }}</td>
                                     <td>{{ $value.Serial }}</td>
                                     <td>{{ $device.DeviceProfile.RGBProfile }}</td>
                                 </tr>

@@ -64,13 +64,13 @@
                 <div class="col-md-10">
                     <div class="card system-card text-center">
                         <div class="card-body">
-                            <table class="dataTable text-sm" id="table" style="width: 100%;">
+                            <table class="dataTable text-sm mx-auto" id="table" style="width: auto; min-width: 60%;">
                                 <thead>
                                 <tr>
-                                    <th style="width: 15%;">Device Order</th>
-                                    <th>{{ .Lang "txtDevice" }}</th>
-                                    <th>{{ .Lang "txtDeviceSerial" }}</th>
-                                    <th>{{ .Lang "txtRgb" }}</th>
+                                    <th>Device Order</th>
+                                    <th class="px-5">{{ .Lang "txtDevice" }}</th>
+                                    <th class="px-5">{{ .Lang "txtDeviceSerial" }}</th>
+                                    <th class="px-4">{{ .Lang "txtRgb" }}</th>
                                 </tr>
                                 </thead>
                                 <tbody id="clusterSortable">

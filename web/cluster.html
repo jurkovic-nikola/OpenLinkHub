@@ -65,7 +65,7 @@
                             <!-- Table Section -->
                             <div class="table-responsive">
                                 <table class="table table-borderless text-sm text-center mx-auto mb-0" id="table" style="width: auto; min-width: 80%;">
-                                    <thead class="border-bottom border-secondary border-opacity-25 text-muted text-uppercase" style="letter-spacing: 1px;">
+                                    <thead class="border-bottom border-secondary border-opacity-25 text-warning text-uppercase" style="letter-spacing: 1px;">
                                         <tr>
                                             <th class="py-3 font-monospace">Order</th>
                                             <th class="py-3 px-5">{{ .Lang "txtDevice" }}</th>
@@ -76,10 +76,10 @@
                                     <tbody id="clusterSortable">
                                     {{ range $key, $value := $device.Controllers }}
                                     <tr data-serial="{{ $value.Serial }}" style="cursor: grab;" class="border-bottom border-secondary border-opacity-10 align-middle">
-                                        <td class="py-3 text-muted"><i class="bi bi-list fs-5"></i></td>
-                                        <td class="py-3 text-light fw-bold">{{ $value.Product }}</td>
-                                        <td class="py-3 text-muted font-monospace">{{ $value.Serial }}</td>
-                                        <td class="py-3 text-muted">{{ $device.DeviceProfile.RGBProfile }}</td>
+                                        <td class="py-3 text-warning"><i class="bi bi-list fs-5"></i></td>
+                                        <td class="py-3 text-white fw-bold">{{ $value.Product }}</td>
+                                        <td class="py-3 text-light opacity-75 font-monospace">{{ $value.Serial }}</td>
+                                        <td class="py-3 text-light opacity-75">{{ $device.DeviceProfile.RGBProfile }}</td>
                                     </tr>
                                     {{ end }}
                                     </tbody>

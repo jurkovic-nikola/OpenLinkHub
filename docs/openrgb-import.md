@@ -130,6 +130,15 @@ rely on parser-derived LED counts as authoritative
 overwrite saved config after risky changes without validation
 enforce strict LED caps based on assumptions
 Debugging / Usage Notes
+Starting the OpenRGB Server
+
+OpenLinkHub is designed to connect to your existing standalone OpenRGB server. You do not need to run complicated background terminal commands to start the server! 
+You can simply use the official OpenRGB GUI:
+1. Open the official OpenRGB application.
+2. Navigate to the **SDK Server** tab.
+3. Click **Start Server** (ensure it binds to the default port `6742`).
+4. Launch OpenLinkHub. It will automatically detect and connect to your running OpenRGB GUI instance.
+
 Finding Correct LED Counts
 
 Use OpenRGB:

@@ -120,6 +120,16 @@ $(document).ready(function () {
 
     $("#clusterSortable").sortable({
         handle: ".drag-handle",
+        helper: function(e, tr) {
+            var $originals = tr.children();
+            var $helper = tr.clone();
+            $helper.children().each(function(index) {
+                $(this).width($originals.eq(index).width());
+            });
+            $helper.css("background-color", "rgba(255, 255, 255, 0.05)");
+            return $helper;
+        },
+        axis: "y",
         update: function (event, ui) {
             const deviceOrder = [];
             $(this).children('tr').each(function () {
@@ -147,5 +157,5 @@ $(document).ready(function () {
                 }
             });
         }
-    });
+    }).disableSelection();
 });

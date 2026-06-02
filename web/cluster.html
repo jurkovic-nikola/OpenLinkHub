@@ -34,18 +34,18 @@
                             <div class="row align-items-center justify-content-center mb-4 pb-4 border-bottom border-secondary border-opacity-25">
                                 <div class="col-md-5">
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <span class="text-muted text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtBrightness" }}</span>
+                                        <span class="text-warning text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtBrightness" }}</span>
                                         <div class="system-slider w-100 no-padding-top m-0">
                                             <label for="brightnessSlider" class="w-100">
                                                 <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1" class="w-100">
                                             </label>
                                         </div>
-                                        <span class="text-muted ms-3 text-end fw-bold" id="brightnessSliderValue" style="min-width: 50px;">{{ $deviceProfile.BrightnessSlider }} %</span>
+                                        <span class="text-warning ms-3 text-end fw-bold" id="brightnessSliderValue" style="min-width: 50px;">{{ $deviceProfile.BrightnessSlider }} %</span>
                                     </div>
                                 </div>
                                 <div class="col-md-5 offset-md-1">
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <span class="text-muted text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtRgb" }}</span>
+                                        <span class="text-warning text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtRgb" }}</span>
                                         <label for="clusterRgbProfile" class="w-100">
                                             <select id="clusterRgbProfile" class="form-select system-select w-100 clusterRgbProfile" name="clusterRgbProfile">
                                                 <option value="">None</option>
@@ -65,12 +65,12 @@
                             <!-- Table Section -->
                             <div class="table-responsive">
                                 <table class="table table-borderless text-sm text-center mx-auto mb-0" id="table" style="width: auto; min-width: 80%;">
-                                    <thead class="border-bottom border-secondary border-opacity-25 text-warning text-uppercase" style="letter-spacing: 1px;">
+                                    <thead class="border-bottom border-secondary border-opacity-25 text-uppercase" style="letter-spacing: 1px;">
                                         <tr>
-                                            <th class="py-3 font-monospace">Order</th>
-                                            <th class="py-3 px-5">{{ .Lang "txtDevice" }}</th>
-                                            <th class="py-3 px-5">{{ .Lang "txtDeviceSerial" }}</th>
-                                            <th class="py-3 px-4">{{ .Lang "txtRgb" }}</th>
+                                            <th class="py-3 font-monospace text-warning">Order</th>
+                                            <th class="py-3 px-5 text-warning">{{ .Lang "txtDevice" }}</th>
+                                            <th class="py-3 px-5 text-warning">{{ .Lang "txtDeviceSerial" }}</th>
+                                            <th class="py-3 px-4 text-warning">{{ .Lang "txtRgb" }}</th>
                                         </tr>
                                     </thead>
                                     <tbody id="clusterSortable">

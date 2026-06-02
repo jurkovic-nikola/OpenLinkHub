@@ -710,6 +710,7 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
+		deviceProfile.DeviceOrder = d.DeviceProfile.DeviceOrder
 	}
 
 	if err := common.SaveJsonData(profilePath, deviceProfile); err != nil {

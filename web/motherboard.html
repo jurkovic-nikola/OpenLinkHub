@@ -158,9 +158,9 @@
 
                 <div class="col-md-9">
                     <!-- Zone Layout Controls -->
-                    <div class="d-flex justify-content-between align-items-center mb-4 ps-1">
-                        <h6 class="text-uppercase text-light fw-bold mb-0" style="letter-spacing: 1.5px; font-size: 0.8rem;">Zone Configuration <span class="text-muted ms-2 fw-normal" style="font-size: 0.7rem;">({{ len .OpenRGBImportConfig.Zones }} Zones | Grouped)</span></h6>
-                        <button class="system-button m-0" id="saveZoneConfig" type="button" style="padding: 6px 16px;">Save Zone Layout</button>
+                    <div class="d-flex align-items-center gap-3 mb-4 ps-1">
+                        <h6 class="text-uppercase text-light fw-bold mb-0" style="letter-spacing: 1.5px; font-size: 0.8rem;">Zone Configuration <span class="text-secondary text-opacity-75 ms-2 fw-normal" style="font-size: 0.75rem;">({{ len .OpenRGBImportConfig.Zones }} ZONES | GROUPED)</span></h6>
+                        <button class="system-button compact m-0 px-3" id="saveZoneConfig" type="button" style="padding-top: 4px; padding-bottom: 4px; font-size: 0.7rem;">Save Layout</button>
                     </div>
 
                     <!-- Zone Cards Grid -->
@@ -169,8 +169,8 @@
                         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
                             <div class="card system-card m-0 h-100" style="border: 1px solid rgba(255,255,255,0.05);">
                                 <div class="card-header header-split">
-                                    <span class="header-left text-muted text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">ZONE CONFIGURATION</span>
-                                    <span class="header-right text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">SET LAYOUT</span>
+                                    <span class="header-left text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">ZONE CONFIGURATION</span>
+                                    <span class="header-right text-warning text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">SET LAYOUT</span>
                                 </div>
                                 <div class="card-body">
                                     <div class="settings-list">

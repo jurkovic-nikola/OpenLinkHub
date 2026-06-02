@@ -72,10 +72,10 @@
                                     <th>{{ .Lang "txtRgb" }}</th>
                                 </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="clusterSortable">
                                 {{ range $key, $value := $device.Controllers }}
-                                <tr>
-                                    <td>{{ $value.Product }}</td>
+                                <tr data-serial="{{ $value.Serial }}">
+                                    <td class="drag-handle" style="cursor: grab;"><i class="bi bi-list pe-2"></i>{{ $value.Product }}</td>
                                     <td>{{ $value.Serial }}</td>
                                     <td>{{ $device.DeviceProfile.RGBProfile }}</td>
                                 </tr>

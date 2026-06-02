@@ -919,6 +919,17 @@ func updateDeviceEqualizers(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// updateClusterOrder handles cluster device reordering
+func updateClusterOrder(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateClusterOrder(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // updateRgbProfile handles device rgb profile update
 func updateRgbProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateRgbProfile(r)
@@ -2969,6 +2980,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/profile/new", http.MethodPut, saveDeviceProfile)
 	handleFunc(r, "/api/macro/new", http.MethodPut, newMacroProfile)
 	handleFunc(r, "/api/color/change", http.MethodPut, updateRgbProfile)
+	handleFunc(r, "/api/cluster/order", http.MethodPut, updateClusterOrder)
 
 	// DELETE
 	handleFunc(r, "/api/keyboard/profile/delete", http.MethodDelete, deleteKeyboardProfile)

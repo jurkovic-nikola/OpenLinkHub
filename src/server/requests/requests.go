@@ -57,6 +57,7 @@ type Payload struct {
 	FrameDelay                    int                   `json:"frameDelay"`
 	Profile                       string                `json:"profile"`
 	OperatingMode                 int                   `json:"operatingMode"`
+	DeviceOrder                   []string              `json:"deviceOrder"`
 	Label                         string                `json:"label"`
 	Static                        bool                  `json:"static"`
 	AlternateColors               bool                  `json:"alternateColors"`
@@ -627,6 +628,38 @@ func ProcessOperatingMode(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangePwmMode"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessUpdateClusterOrder handles reordering of cluster devices
+func ProcessUpdateClusterOrder(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceOrder) == 0 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		"cluster",
+		"UpdateDeviceOrder",
+		req.DeviceOrder,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: "Cluster order updated", Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: "Unable to update cluster order", Code: http.StatusOK, Status: 0}
 }
 
 // ProcessUpdateRgbProfile will process POST request from a client for RGB profile update

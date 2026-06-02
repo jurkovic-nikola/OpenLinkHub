@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"os"
+	"sort"
 	"slices"
 	"sync"
 	"time"
@@ -29,6 +30,7 @@ type DeviceProfile struct {
 	RGBProfile         string
 	BrightnessSlider   *uint8
 	OriginalBrightness uint8
+	DeviceOrder        []string
 }
 
 type Device struct {
@@ -288,6 +290,22 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	return 1
 }
 
+// UpdateDeviceOrder saves the new sequence of devices for the cluster animations
+func (d *Device) UpdateDeviceOrder(order []string) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	d.DeviceProfile.DeviceOrder = order
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true // Exit current RGB mode
+		d.activeRgb = nil
+	}
+	d.setDeviceColor() // Restart RGB
+	return 1
+}
+
 // ChangeDeviceBrightnessValue will change device brightness via slider
 func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
 	if value < 0 || value > 100 {
@@ -398,6 +416,20 @@ func (d *Device) distributeColors(buff []byte) {
 	controllers := make([]*common.ClusterController, len(d.Controllers))
 	copy(controllers, d.Controllers) // copy slice to avoid race
 	d.mutex.RUnlock()
+
+	if d.DeviceProfile != nil && len(d.DeviceProfile.DeviceOrder) > 0 {
+		sort.Slice(controllers, func(i, j int) bool {
+			idxI := common.IndexOfString(d.DeviceProfile.DeviceOrder, controllers[i].Serial)
+			idxJ := common.IndexOfString(d.DeviceProfile.DeviceOrder, controllers[j].Serial)
+			if idxI == -1 {
+				return false
+			}
+			if idxJ == -1 {
+				return true
+			}
+			return idxI < idxJ
+		})
+	}
 
 	var wg sync.WaitGroup
 	offset := 0

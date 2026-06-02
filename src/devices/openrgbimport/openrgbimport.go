@@ -583,11 +583,9 @@ func Init() *common.Device {
 		"asus aura",
 	)
 	if err != nil {
-		fmt.Println("OpenRGB controller lookup failed:", err)
 		d.controllerId = -1
 	} else {
 		d.controllerId = controllerId
-		fmt.Println("OpenRGB controller lookup succeeded, controllerId =", d.controllerId)
 	}
 
 	cfg := resolveDeviceConfig(d.Serial, openrgb.DiscoveredController{

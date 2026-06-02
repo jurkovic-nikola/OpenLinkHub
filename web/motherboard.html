@@ -157,58 +157,54 @@
                 </div>
 
                 <div class="col-md-9">
-                    <div class="card system-card h-100 d-flex flex-column">
-                        <div class="card-header header-split">
-                            <span class="header-left">Zone Layout</span>
-                            <span class="header-right text-muted fw-bold">{{ len .OpenRGBImportConfig.Zones }} Zones | Grouped Mode</span>
-                        </div>
-                        <div class="card-body flex-grow-1" style="padding: 1.5rem;">
-                            <div class="row g-4 align-items-start" style="max-height:800px;overflow-y:auto;overflow-x:hidden;">
-                                {{ range $index, $zone := .OpenRGBImportConfig.Zones }}
-                                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                                    <div class="card system-card m-0 h-100" style="background-color: var(--bs-gray-900); border: 1px solid rgba(255,255,255,0.05);">
-                                        <div class="card-header header-split">
-                                            <span class="header-left text-muted text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">Zone Layout</span>
-                                            <span class="header-right text-warning text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Zone Setup</span>
+                    <!-- Zone Layout Controls -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 ps-1">
+                        <h6 class="text-uppercase text-light fw-bold mb-0" style="letter-spacing: 1.5px; font-size: 0.8rem;">Zone Configuration <span class="text-muted ms-2 fw-normal" style="font-size: 0.7rem;">({{ len .OpenRGBImportConfig.Zones }} Zones | Grouped)</span></h6>
+                        <button class="system-button m-0" id="saveZoneConfig" type="button" style="padding: 6px 16px;">Save Zone Layout</button>
+                    </div>
+
+                    <!-- Zone Cards Grid -->
+                    <div class="row g-4 align-items-start" style="max-height:800px;overflow-y:auto;overflow-x:hidden;">
+                        {{ range $index, $zone := .OpenRGBImportConfig.Zones }}
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                            <div class="card system-card m-0 h-100" style="border: 1px solid rgba(255,255,255,0.05);">
+                                <div class="card-header header-split">
+                                    <span class="header-left text-muted text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">ZONE CONFIGURATION</span>
+                                    <span class="header-right text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">SET LAYOUT</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row" style="padding-bottom: 8px;">
+                                            <span class="settings-label text-ellipsis" style="font-size: 0.75rem;">Name</span>
+                                            <label class="w-100" style="max-width: 140px;">
+                                                <input
+                                                    type="text"
+                                                    class="configZoneName form-control form-control-sm bg-transparent text-light border-secondary w-100"
+                                                    data-zone-index="{{ $index }}"
+                                                    value="{{ $zone.Name }}"
+                                                    style="font-size: 0.8rem; text-align: right;"
+                                                >
+                                            </label>
                                         </div>
-                                        <div class="card-body">
-                                            <div class="settings-list">
-                                                <div class="settings-row" style="padding-bottom: 8px;">
-                                                    <span class="settings-label text-ellipsis" style="font-size: 0.75rem;">Name</span>
-                                                    <label class="w-100" style="max-width: 140px;">
-                                                        <input
-                                                            type="text"
-                                                            class="configZoneName form-control form-control-sm bg-transparent text-light border-secondary w-100"
-                                                            data-zone-index="{{ $index }}"
-                                                            value="{{ $zone.Name }}"
-                                                            style="font-size: 0.8rem; text-align: right;"
-                                                        >
-                                                    </label>
-                                                </div>
-                                                <div class="settings-row" style="padding-top: 8px;">
-                                                    <span class="settings-label text-ellipsis" style="font-size: 0.75rem;">LEDs</span>
-                                                    <label class="w-100" style="max-width: 140px;">
-                                                        <input
-                                                            type="number"
-                                                            class="configZoneCount form-control form-control-sm bg-transparent text-light border-secondary w-100"
-                                                            data-zone-index="{{ $index }}"
-                                                            data-saved-led-count="{{ $zone.LedCount }}"
-                                                            min="1"
-                                                            value="{{ $zone.LedCount }}"
-                                                            style="font-size: 0.8rem; text-align: right;"
-                                                        >
-                                                    </label>
-                                                </div>
-                                            </div>
+                                        <div class="settings-row" style="padding-top: 8px;">
+                                            <span class="settings-label text-ellipsis" style="font-size: 0.75rem;">LEDs</span>
+                                            <label class="w-100" style="max-width: 140px;">
+                                                <input
+                                                    type="number"
+                                                    class="configZoneCount form-control form-control-sm bg-transparent text-light border-secondary w-100"
+                                                    data-zone-index="{{ $index }}"
+                                                    data-saved-led-count="{{ $zone.LedCount }}"
+                                                    min="1"
+                                                    value="{{ $zone.LedCount }}"
+                                                    style="font-size: 0.8rem; text-align: right;"
+                                                >
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
-                                {{ end }}
                             </div>
                         </div>
-                        <div class="card-footer card-footer-left border-top border-secondary border-opacity-25">
-                            <button class="system-button m-0" id="saveZoneConfig" type="button">Save Zone Layout</button>
-                        </div>
+                        {{ end }}
                     </div>
                 </div>
             </div>

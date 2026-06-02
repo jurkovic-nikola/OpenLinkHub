@@ -119,7 +119,6 @@ $(document).ready(function () {
     }
 
     $("#clusterSortable").sortable({
-        handle: ".drag-handle",
         helper: function(e, tr) {
             var $originals = tr.children();
             var $helper = tr.clone();

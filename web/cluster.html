@@ -74,8 +74,8 @@
                                 </thead>
                                 <tbody id="clusterSortable">
                                 {{ range $key, $value := $device.Controllers }}
-                                <tr data-serial="{{ $value.Serial }}">
-                                    <td class="drag-handle" style="cursor: grab;"><i class="bi bi-list pe-2"></i>{{ $value.Product }}</td>
+                                <tr data-serial="{{ $value.Serial }}" style="cursor: grab;">
+                                    <td><i class="bi bi-list pe-2"></i>{{ $value.Product }}</td>
                                     <td>{{ $value.Serial }}</td>
                                     <td>{{ $device.DeviceProfile.RGBProfile }}</td>
                                 </tr>

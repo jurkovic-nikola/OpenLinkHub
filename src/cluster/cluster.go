@@ -56,6 +56,7 @@ func Init() *Device {
 		Product: "Cluster",
 		Serial:  "cluster",
 		RGBModes: []string{
+			"off",
 			"arc",
 			"circle",
 			"circleshift",

@@ -1,8 +1,8 @@
 package systray
 
 import (
-	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/devices"
+	"OpenLinkHub/src/rgb"
 	"github.com/godbus/dbus/v5"
 	"sort"
 	"strings"
@@ -60,10 +60,6 @@ func RefreshDevicesMenu(parentId int32) {
 	}
 	sort.Strings(validSerials)
 
-	modes := make([]string, len(cluster.Get().RGBModes))
-	copy(modes, cluster.Get().RGBModes)
-	sort.Strings(modes)
-
 	var devicesChildren []dbus.Variant
 
 	for i, serial := range validSerials {
@@ -73,6 +69,17 @@ func RefreshDevicesMenu(parentId int32) {
 		baseId := int32(1000 + (i * 100))
 
 		childItems := make(map[int32]string)
+
+		var modes []string
+		modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
+		if len(modesResult) > 0 && modesResult[0].IsValid() {
+			if rgbData, ok := modesResult[0].Interface().(rgb.RGB); ok {
+				for modeName := range rgbData.Profiles {
+					modes = append(modes, modeName)
+				}
+				sort.Strings(modes)
+			}
+		}
 
 		inCluster := isDeviceInCluster(serial)
 		toggleStr := "[ ] Sync to Global Cluster"

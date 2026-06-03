@@ -31,6 +31,7 @@ type DeviceProfile struct {
 	BrightnessSlider   *uint8
 	OriginalBrightness uint8
 	DeviceOrder        []string
+	DisabledDevices    []string
 }
 
 type Device struct {
@@ -175,6 +176,31 @@ func (d *Device) RemoveDeviceControllerBySerial(serial string) {
 			return
 		}
 	}
+}
+
+// ToggleDeviceSync will toggle a device's participation in the global cluster canvas
+func (d *Device) ToggleDeviceSync(serial string) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.DeviceProfile == nil {
+		return
+	}
+	found := -1
+	for i, s := range d.DeviceProfile.DisabledDevices {
+		if s == serial {
+			found = i
+			break
+		}
+	}
+	if found >= 0 {
+		// Re-enable (remove from DisabledDevices)
+		d.DeviceProfile.DisabledDevices = append(d.DeviceProfile.DisabledDevices[:found], d.DeviceProfile.DisabledDevices[found+1:]...)
+	} else {
+		// Disable (add to DisabledDevices)
+		d.DeviceProfile.DisabledDevices = append(d.DeviceProfile.DisabledDevices, serial)
+	}
+	d.saveDeviceProfile()
 }
 
 // GetRgbProfiles will return RGB profiles for a target device
@@ -457,11 +483,23 @@ func (d *Device) distributeColors(buff []byte) {
 		slice := buff[offset : offset+length]
 
 		if c.WriteColorEx != nil {
-			wg.Add(1)
-			go func(ctrl *common.ClusterController, data []byte) {
-				defer wg.Done()
-				ctrl.WriteColorEx(data, ctrl.ChannelId)
-			}(c, slice)
+			disabled := false
+			if d.DeviceProfile != nil {
+				for _, s := range d.DeviceProfile.DisabledDevices {
+					if s == c.Serial {
+						disabled = true
+						break
+					}
+				}
+			}
+			
+			if !disabled {
+				wg.Add(1)
+				go func(ctrl *common.ClusterController, data []byte) {
+					defer wg.Done()
+					ctrl.WriteColorEx(data, ctrl.ChannelId)
+				}(c, slice)
+			}
 		}
 
 		offset += length
@@ -712,6 +750,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.RGBProfile = d.DeviceProfile.RGBProfile
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.DeviceOrder = d.DeviceProfile.DeviceOrder
+		deviceProfile.DisabledDevices = d.DeviceProfile.DisabledDevices
 	}
 
 	if err := common.SaveJsonData(profilePath, deviceProfile); err != nil {

@@ -3,6 +3,7 @@ package systray
 import (
 	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/stats"
 	"fmt"
@@ -107,6 +108,28 @@ func (m *MenuServer) GetLayout(parentId, recursionDepth int32, propNames []strin
 
 // Event exported method from spec
 func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestamp uint32) *dbus.Error {
+	if id >= 1000 {
+		deviceIndex := int(id-1000) / 100
+		actionOffset := int(id-1000) % 100
+
+		if serial, ok := deviceMap[deviceIndex]; ok {
+			if actionOffset == 0 {
+				cluster.Get().ToggleDeviceSync(serial)
+				RefreshDevicesMenu(106)
+			} else {
+				modes := make([]string, len(cluster.Get().RGBModes))
+				copy(modes, cluster.Get().RGBModes)
+				sort.Strings(modes)
+				
+				idx := actionOffset - 1
+				if idx < len(modes) {
+					devices.CallDeviceMethod(serial, "UpdateRgbProfile", 0, modes[idx])
+				}
+			}
+		}
+		return nil
+	}
+
 	if id >= 200 && id < 300 {
 		modes := make([]string, len(cluster.Get().RGBModes))
 		copy(modes, cluster.Get().RGBModes)
@@ -497,6 +520,12 @@ func Init(ready chan struct{}) {
 	addSubMenu(103, "Global RGB Cluster", "preferences-desktop-display-color", childItems)
 
 	addMenuItem(104, map[string]dbus.Variant{
+		"type": dbus.MakeVariant("separator"),
+	})
+
+	RefreshDevicesMenu(106)
+
+	addMenuItem(107, map[string]dbus.Variant{
 		"type": dbus.MakeVariant("separator"),
 	})
 

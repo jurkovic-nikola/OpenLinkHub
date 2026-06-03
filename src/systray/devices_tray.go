@@ -11,13 +11,7 @@ import (
 var deviceMap = make(map[int]string)
 
 func isDeviceInCluster(serial string) bool {
-	results := devices.CallDeviceMethod(serial, "GetRGBCluster")
-	if len(results) > 0 && results[0].IsValid() {
-		if val, ok := results[0].Interface().(bool); ok {
-			return val
-		}
-	}
-	return true // Default to true if not supported
+	return devices.GetDeviceClusterStatus(serial)
 }
 
 func createSubMenuLayout(id int32, label string, items map[int32]string) MenuLayout {

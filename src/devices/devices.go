@@ -457,6 +457,31 @@ func GetDevicesEx() map[string]*common.Device {
 	return out
 }
 
+// GetDeviceClusterStatus universally extracts the RGBCluster boolean from any hardware device profile using reflection
+func GetDeviceClusterStatus(serial string) bool {
+	dev, ok := devices[serial]
+	if !ok {
+		return false
+	}
+	v := reflect.ValueOf(dev.GetDevice)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Struct {
+		profileField := v.FieldByName("DeviceProfile")
+		if profileField.IsValid() && profileField.Kind() == reflect.Ptr && !profileField.IsNil() {
+			profile := profileField.Elem()
+			if profile.Kind() == reflect.Struct {
+				clusterField := profile.FieldByName("RGBCluster")
+				if clusterField.IsValid() {
+					return clusterField.Bool()
+				}
+			}
+		}
+	}
+	return true
+}
+
 // InitManual will initialize device manually when plugged in
 func InitManual(productId uint16, key string) {
 	var device = Device{

@@ -463,7 +463,17 @@ func GetDeviceClusterStatus(serial string) bool {
 	if !ok {
 		return false
 	}
-	v := reflect.ValueOf(dev.GetDevice)
+	
+	var ptr interface{}
+	if dev.Instance != nil {
+		ptr = dev.Instance
+	} else if dev.GetDevice != nil {
+		ptr = dev.GetDevice
+	} else {
+		return true
+	}
+	
+	v := reflect.ValueOf(ptr)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}

@@ -31,6 +31,7 @@ type DeviceProfile struct {
 	BrightnessSlider   *uint8
 	OriginalBrightness uint8
 	DeviceOrder        []string
+	RgbOff             bool
 }
 
 type Device struct {
@@ -366,6 +367,22 @@ func (d *Device) SchedulerBrightness(value uint8) uint8 {
 	return 1
 }
 
+// ControlDeviceRgb will toggle cluster RGB output on/off
+func (d *Device) ControlDeviceRgb(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.RgbOff = value
+	d.saveDeviceProfile()
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+}
+
 // saveRgbProfile will save rgb profile data
 func (d *Device) saveRgbProfile() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -527,6 +544,10 @@ func (d *Device) setDeviceColor() {
 func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfile string) []byte {
 	buff := make([]byte, 0)
 	rgbCustomColor := true
+
+	if d.DeviceProfile != nil && d.DeviceProfile.RgbOff {
+		rgbProfile = "off"
+	}
 
 	profile := d.GetRgbProfile(rgbProfile)
 	if profile == nil {

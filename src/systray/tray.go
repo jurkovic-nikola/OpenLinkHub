@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -107,7 +108,10 @@ func (m *MenuServer) GetLayout(parentId, recursionDepth int32, propNames []strin
 // Event exported method from spec
 func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestamp uint32) *dbus.Error {
 	if id >= 200 && id < 300 {
-		modes := cluster.Get().RGBModes
+		modes := make([]string, len(cluster.Get().RGBModes))
+		copy(modes, cluster.Get().RGBModes)
+		sort.Strings(modes)
+
 		idx := id - 200
 		if int(idx) < len(modes) {
 			cluster.Get().UpdateRgbProfile(0, modes[idx])
@@ -122,7 +126,7 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 		if err != nil {
 			fmt.Println("Failed to open browser:", err)
 		}
-	case 103: // Exit
+	case 105: // Exit
 		os.Exit(0)
 	}
 	return nil
@@ -150,7 +154,14 @@ func addSubMenu(id int32, label string, icon string, items map[int32]string) {
 
 	var children []dbus.Variant
 
-	for childId, childLabel := range items {
+	var childIds []int32
+	for k := range items {
+		childIds = append(childIds, k)
+	}
+	sort.Slice(childIds, func(i, j int) bool { return childIds[i] < childIds[j] })
+
+	for _, childId := range childIds {
+		childLabel := items[childId]
 		childLayout := MenuLayout{
 			ID: childId,
 			Props: map[string]dbus.Variant{
@@ -465,18 +476,6 @@ func Init(ready chan struct{}) {
 		"visible": dbus.MakeVariant(false),
 	})
 
-	// RGB Cluster Submenu
-	addMenuItem(99, map[string]dbus.Variant{
-		"type": dbus.MakeVariant("separator"),
-	})
-
-	modes := cluster.Get().RGBModes
-	childItems := make(map[int32]string)
-	for i, mode := range modes {
-		childItems[int32(200+i)] = strings.Title(mode)
-	}
-	addSubMenu(100, "Global RGB Cluster", "preferences-desktop-display-color", childItems)
-
 	addMenuItem(101, map[string]dbus.Variant{
 		"label":     dbus.MakeVariant("Open Dashboard"),
 		"icon-name": dbus.MakeVariant("applications-internet"),
@@ -486,7 +485,22 @@ func Init(ready chan struct{}) {
 		"type": dbus.MakeVariant("separator"),
 	})
 
-	addMenuItem(103, map[string]dbus.Variant{
+	// RGB Cluster Submenu
+	modes := make([]string, len(cluster.Get().RGBModes))
+	copy(modes, cluster.Get().RGBModes)
+	sort.Strings(modes)
+
+	childItems := make(map[int32]string)
+	for i, mode := range modes {
+		childItems[int32(200+i)] = strings.Title(mode)
+	}
+	addSubMenu(103, "Global RGB Cluster", "preferences-desktop-display-color", childItems)
+
+	addMenuItem(104, map[string]dbus.Variant{
+		"type": dbus.MakeVariant("separator"),
+	})
+
+	addMenuItem(105, map[string]dbus.Variant{
 		"label":     dbus.MakeVariant("Quit"),
 		"icon-name": dbus.MakeVariant("application-exit"),
 	})

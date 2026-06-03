@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/stats"
 	"fmt"
 	"github.com/godbus/dbus/v5"
@@ -118,12 +119,19 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 				devices.CallDeviceMethod(serial, "ProcessSetRgbCluster", !inCluster)
 				RefreshDevicesMenu(106)
 			} else {
-				modes := make([]string, len(cluster.Get().RGBModes))
-				copy(modes, cluster.Get().RGBModes)
-				sort.Strings(modes)
+				var modes []string
+				modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
+				if len(modesResult) > 0 && modesResult[0].IsValid() {
+					if rgbData, ok := modesResult[0].Interface().(rgb.RGB); ok {
+						for modeName := range rgbData.Profiles {
+							modes = append(modes, modeName)
+						}
+						sort.Strings(modes)
+					}
+				}
 				
 				idx := actionOffset - 1
-				if idx < len(modes) {
+				if idx >= 0 && idx < len(modes) {
 					devices.CallDeviceMethod(serial, "UpdateRgbProfile", 0, modes[idx])
 				}
 			}

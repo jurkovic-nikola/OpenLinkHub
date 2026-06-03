@@ -2,6 +2,7 @@ package systray
 
 import (
 	"OpenLinkHub/src/config"
+	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/stats"
 	"fmt"
 	"github.com/godbus/dbus/v5"
@@ -220,7 +221,7 @@ func clearBatteryItems() {
 func Init(ready chan struct{}) {
 	de := os.Getenv("XDG_CURRENT_DESKTOP")
 	if strings.Contains(strings.ToLower(de), "cinnamon") {
-		fmt.Println("Cinnamon is not supported for systray. Due to incomplete support for modern tray menus (StatusNotifierItem), this application cannot run reliably on Cinnamon.")
+		logger.Log(logger.Fields{}).Warn("Cinnamon is not supported for systray. Due to incomplete support for modern tray menus (StatusNotifierItem), this application cannot run reliably on Cinnamon.")
 		close(ready)
 		return
 	}
@@ -228,20 +229,20 @@ func Init(ready chan struct{}) {
 	var err error
 	conn, err = dbus.ConnectSessionBus()
 	if err != nil {
-		fmt.Println("Failed to connect to session bus for systray:", err)
+		logger.Log(logger.Fields{"error": err}).Warn("Failed to connect to session bus for systray")
 		close(ready)
 		return
 	}
 	defer func(conn *dbus.Conn) {
 		err = conn.Close()
 		if err != nil {
-			fmt.Println("failed to close session bus", err)
+			logger.Log(logger.Fields{"error": err}).Warn("Failed to close session bus")
 		}
 	}(conn)
 
 	resp, err := conn.RequestName(serviceName, dbus.NameFlagDoNotQueue)
 	if err != nil || resp != dbus.RequestNameReplyPrimaryOwner {
-		fmt.Printf("Systray RequestName failed: %v (resp=%v)\n", err, resp)
+		logger.Log(logger.Fields{"error": err, "resp": resp}).Warn("Systray RequestName failed")
 		close(ready)
 		return
 	}

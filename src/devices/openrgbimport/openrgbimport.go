@@ -769,7 +769,7 @@ func newDeviceFromController(dc openrgb.DiscoveredController) *Device {
 		d.loadDeviceProfiles()
 		d.saveDeviceProfile()
 		d.setupClusterController()
-		
+
 		// Apply initial state so the device lights up on boot
 		if !d.DeviceProfile.RGBCluster {
 			if d.effect == "static" || d.effect == "off" {
@@ -1281,7 +1281,7 @@ func (d *Device) saveDeviceProfile() {
 
 	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
 	_ = os.MkdirAll(profileDir, 0o755)
-	
+
 	profilePath := d.DeviceProfile.Path
 	if len(profilePath) == 0 {
 		profilePath = filepath.Join(profileDir, d.Serial+".json")
@@ -1397,7 +1397,7 @@ func (d *Device) getDeviceProfile() {
 func (d *Device) SaveUserProfile(profileName string) uint8 {
 	if d.DeviceProfile != nil {
 		profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
-		profilePath := filepath.Join(profileDir, d.Serial + "-" + profileName + ".json")
+		profilePath := filepath.Join(profileDir, d.Serial+"-"+profileName+".json")
 
 		// Deep copy ZoneColors map
 		copiedZoneColors := make(map[int]ZoneColors)
@@ -1828,7 +1828,7 @@ func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	if d.DeviceProfile.RGBOverride == nil {
 		d.DeviceProfile.RGBOverride = defaultOverride
 	}
-	
+
 	return d.DeviceProfile.RGBOverride
 }
 
@@ -1857,6 +1857,6 @@ func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool,
 	d.saveDeviceProfile()
 
 	_ = d.SetEffect(d.DeviceProfile.RGBProfile)
-	
+
 	return 1
 }

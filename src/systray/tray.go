@@ -1,6 +1,7 @@
 package systray
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"OpenLinkHub/src/stats"
@@ -89,6 +90,12 @@ func (m *MenuServer) GetLayout(parentId, recursionDepth int32, propNames []strin
 	menuMutex.Lock()
 	defer menuMutex.Unlock()
 
+	if parentId != 0 {
+		if layout, ok := menuItems[parentId]; ok {
+			return menuRevision, layout, nil
+		}
+	}
+
 	var children []dbus.Variant
 	for _, id := range menuOrder {
 		children = append(children, dbus.MakeVariant(menuItems[id]))
@@ -99,6 +106,15 @@ func (m *MenuServer) GetLayout(parentId, recursionDepth int32, propNames []strin
 
 // Event exported method from spec
 func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestamp uint32) *dbus.Error {
+	if id >= 200 && id < 300 {
+		modes := cluster.Get().RGBModes
+		idx := id - 200
+		if int(idx) < len(modes) {
+			cluster.Get().UpdateRgbProfile(0, modes[idx])
+		}
+		return nil
+	}
+
 	switch id {
 	case 101: // Open Dashboard
 		url := fmt.Sprintf("http://%s:%d", config.GetConfig().ListenAddress, config.GetConfig().ListenPort)
@@ -125,6 +141,44 @@ func emitMenuUpdate() {
 			log.Println("Failed to emit menu update:", err)
 		}
 	}
+}
+
+// addSubMenu creates a new menu item that contains children
+func addSubMenu(id int32, label string, icon string, items map[int32]string) {
+	menuMutex.Lock()
+	defer menuMutex.Unlock()
+
+	var children []dbus.Variant
+
+	for childId, childLabel := range items {
+		childLayout := MenuLayout{
+			ID: childId,
+			Props: map[string]dbus.Variant{
+				"label": dbus.MakeVariant(childLabel),
+			},
+		}
+		children = append(children, dbus.MakeVariant(childLayout))
+		menuItems[childId] = childLayout 
+	}
+
+	if _, exists := menuItems[id]; !exists {
+		menuOrder = append(menuOrder, id)
+	}
+	
+	props := map[string]dbus.Variant{
+		"label": dbus.MakeVariant(label),
+		"children-display": dbus.MakeVariant("submenu"),
+	}
+	if icon != "" {
+		props["icon-name"] = dbus.MakeVariant(icon)
+	}
+
+	menuItems[id] = MenuLayout{
+		ID: id, 
+		Props: props,
+		Children: children,
+	}
+	menuRevision++
 }
 
 // addMenuItem will create new menu data structure
@@ -411,9 +465,17 @@ func Init(ready chan struct{}) {
 		"visible": dbus.MakeVariant(false),
 	})
 
-	addMenuItem(100, map[string]dbus.Variant{
+	// RGB Cluster Submenu
+	addMenuItem(99, map[string]dbus.Variant{
 		"type": dbus.MakeVariant("separator"),
 	})
+
+	modes := cluster.Get().RGBModes
+	childItems := make(map[int32]string)
+	for i, mode := range modes {
+		childItems[int32(200+i)] = strings.Title(mode)
+	}
+	addSubMenu(100, "Global RGB Cluster", "preferences-desktop-display-color", childItems)
 
 	addMenuItem(101, map[string]dbus.Variant{
 		"label":     dbus.MakeVariant("Open Dashboard"),

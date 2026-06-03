@@ -114,7 +114,14 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 
 		if serial, ok := deviceMap[deviceIndex]; ok {
 			if actionOffset == 0 {
-				cluster.Get().ToggleDeviceSync(serial)
+				inCluster := false
+				results := devices.CallDeviceMethod(serial, "GetRGBCluster")
+				if len(results) > 0 && results[0].IsValid() {
+					if val, ok := results[0].Interface().(bool); ok {
+						inCluster = val
+					}
+				}
+				devices.CallDeviceMethod(serial, "ProcessSetRgbCluster", !inCluster)
 				RefreshDevicesMenu(106)
 			} else {
 				modes := make([]string, len(cluster.Get().RGBModes))

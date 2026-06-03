@@ -10,16 +10,14 @@ import (
 
 var deviceMap = make(map[int]string)
 
-func isDeviceDisabledInCluster(serial string) bool {
-	if cluster.Get().DeviceProfile == nil {
-		return false
-	}
-	for _, s := range cluster.Get().DeviceProfile.DisabledDevices {
-		if s == serial {
-			return true
+func isDeviceInCluster(serial string) bool {
+	results := devices.CallDeviceMethod(serial, "GetRGBCluster")
+	if len(results) > 0 && results[0].IsValid() {
+		if val, ok := results[0].Interface().(bool); ok {
+			return val
 		}
 	}
-	return false
+	return true // Default to true if not supported
 }
 
 func createSubMenuLayout(id int32, label string, items map[int32]string) MenuLayout {
@@ -82,9 +80,9 @@ func RefreshDevicesMenu(parentId int32) {
 
 		childItems := make(map[int32]string)
 
-		disabled := isDeviceDisabledInCluster(serial)
+		inCluster := isDeviceInCluster(serial)
 		toggleStr := "[ ] Sync to Global Cluster"
-		if !disabled {
+		if inCluster {
 			toggleStr = "[✔] Sync to Global Cluster"
 		}
 		childItems[baseId] = toggleStr

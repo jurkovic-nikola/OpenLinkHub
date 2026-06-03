@@ -492,6 +492,41 @@ func GetDeviceClusterStatus(serial string) bool {
 	return true
 }
 
+// GetDeviceRgbProfile universally extracts the RGBProfile string from any hardware device profile using reflection
+func GetDeviceRgbProfile(serial string) string {
+	dev, ok := devices[serial]
+	if !ok {
+		return ""
+	}
+	
+	var ptr interface{}
+	if dev.Instance != nil {
+		ptr = dev.Instance
+	} else if dev.GetDevice != nil {
+		ptr = dev.GetDevice
+	} else {
+		return ""
+	}
+	
+	v := reflect.ValueOf(ptr)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Struct {
+		profileField := v.FieldByName("DeviceProfile")
+		if profileField.IsValid() && profileField.Kind() == reflect.Ptr && !profileField.IsNil() {
+			profile := profileField.Elem()
+			if profile.Kind() == reflect.Struct {
+				rgbField := profile.FieldByName("RGBProfile")
+				if rgbField.IsValid() && rgbField.Kind() == reflect.String {
+					return rgbField.String()
+				}
+			}
+		}
+	}
+	return ""
+}
+
 // InitManual will initialize device manually when plugged in
 func InitManual(productId uint16, key string) {
 	var device = Device{

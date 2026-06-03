@@ -62,6 +62,25 @@ func RefreshDevicesMenu(parentId int32) {
 
 	var devicesChildren []dbus.Variant
 
+	toggleLayout := MenuLayout{
+		ID: 999,
+		Props: map[string]dbus.Variant{
+			"label":     dbus.MakeVariant("Toggle Non-Clustered RGB"),
+			"icon-name": dbus.MakeVariant("weather-clear-night"),
+		},
+	}
+	devicesChildren = append(devicesChildren, dbus.MakeVariant(toggleLayout))
+	menuItems[999] = toggleLayout
+
+	sepLayout := MenuLayout{
+		ID: 998,
+		Props: map[string]dbus.Variant{
+			"type": dbus.MakeVariant("separator"),
+		},
+	}
+	devicesChildren = append(devicesChildren, dbus.MakeVariant(sepLayout))
+	menuItems[998] = sepLayout
+
 	for i, serial := range validSerials {
 		deviceMap[i] = serial
 		dev := allDevices[serial]

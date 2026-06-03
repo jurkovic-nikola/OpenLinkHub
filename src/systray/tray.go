@@ -34,6 +34,8 @@ var (
 	dbusStatusNotifierItem    = "org.kde.StatusNotifierItem"
 	dbusProperties            = "org.freedesktop.DBus.Properties"
 	dbusStatusNotifierWatcher = "org.kde.StatusNotifierWatcher"
+	nonClusteredRgbOff        bool
+	deviceAnimationScrapbook  = map[string]string{}
 )
 
 // Standard SNI props
@@ -160,6 +162,28 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 		}
 	case 105: // Exit
 		os.Exit(0)
+	case 999: // Toggle Non-Clustered RGB
+		nonClusteredRgbOff = !nonClusteredRgbOff
+		if nonClusteredRgbOff {
+			for serial := range devices.GetDevicesEx() {
+				if serial == "cluster" {
+					continue
+				}
+				if !devices.GetDeviceClusterStatus(serial) {
+					currentProfile := devices.GetDeviceRgbProfile(serial)
+					if currentProfile != "" {
+						deviceAnimationScrapbook[serial] = currentProfile
+						devices.CallDeviceMethod(serial, "UpdateRgbProfile", -1, "off")
+					}
+				}
+			}
+		} else {
+			for serial, savedProfile := range deviceAnimationScrapbook {
+				if savedProfile != "" && savedProfile != "off" {
+					devices.CallDeviceMethod(serial, "UpdateRgbProfile", -1, savedProfile)
+				}
+			}
+		}
 	}
 	return nil
 }

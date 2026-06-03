@@ -518,8 +518,12 @@ func GetDeviceRgbProfile(serial string) string {
 			profile := profileField.Elem()
 			if profile.Kind() == reflect.Struct {
 				rgbField := profile.FieldByName("RGBProfile")
-				if rgbField.IsValid() && rgbField.Kind() == reflect.String {
+				if rgbField.IsValid() && rgbField.Kind() == reflect.String && rgbField.String() != "" {
 					return rgbField.String()
+				}
+				multiRgbField := profile.FieldByName("MultiRGB")
+				if multiRgbField.IsValid() && multiRgbField.Kind() == reflect.String {
+					return multiRgbField.String()
 				}
 			}
 		}

@@ -129,13 +129,24 @@ func Get() *Device {
 // AddDeviceController will add a new Cluster Controller
 func (d *Device) AddDeviceController(controller *common.ClusterController) {
 	d.mutex.Lock()
-	d.Controllers = append(d.Controllers, controller)
+	duplicate := false
+	for _, c := range d.Controllers {
+		if c.Serial == controller.Serial && c.ChannelId == controller.ChannelId {
+			duplicate = true
+			break
+		}
+	}
+	if !duplicate {
+		d.Controllers = append(d.Controllers, controller)
+	}
 	d.mutex.Unlock()
 
-	d.SortControllers()
+	if !duplicate {
+		d.SortControllers()
 
-	if len(d.Controllers) == 1 {
-		d.setDeviceColor()
+		if len(d.Controllers) == 1 {
+			d.setDeviceColor()
+		}
 	}
 }
 
@@ -163,16 +174,18 @@ func (d *Device) RemoveDeviceControllerBySerial(serial string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	for i, c := range d.Controllers {
-		if c.Serial == serial {
+	removedAny := false
+	for i := len(d.Controllers) - 1; i >= 0; i-- {
+		if d.Controllers[i].Serial == serial {
 			d.Controllers = append(d.Controllers[:i], d.Controllers[i+1:]...)
-			if len(d.Controllers) == 0 {
-				if d.activeRgb != nil {
-					d.activeRgb.Exit <- true
-					d.activeRgb = nil
-				}
-			}
-			return
+			removedAny = true
+		}
+	}
+	
+	if removedAny && len(d.Controllers) == 0 {
+		if d.activeRgb != nil {
+			d.activeRgb.Exit <- true
+			d.activeRgb = nil
 		}
 	}
 }

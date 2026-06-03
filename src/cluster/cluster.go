@@ -72,6 +72,7 @@ func Init() *Device {
 			"rain",
 			"rainbow",
 			"pastelrainbow",
+			"rotarystack",
 			"rotator",
 			"sequential",
 			"spinner",
@@ -636,6 +637,11 @@ func (d *Device) generateRgbEffect(channels int, startTime *time.Time, rgbProfil
 	case "rotator":
 		{
 			r.Rotator(startTime)
+			buff = r.Output
+		}
+	case "rotarystack":
+		{
+			r.RotaryStack(startTime)
 			buff = r.Output
 		}
 	case "wave":

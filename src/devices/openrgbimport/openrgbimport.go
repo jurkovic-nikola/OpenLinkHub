@@ -1804,6 +1804,15 @@ func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	if d.DeviceProfile == nil {
 		return nil
 	}
+	if d.DeviceProfile.RGBOverride == nil {
+		d.DeviceProfile.RGBOverride = &RGBOverride{
+			Enabled: false,
+			RGBStartColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
+			RGBMiddleColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
+			RGBEndColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
+			RgbModeSpeed: 5.0,
+		}
+	}
 	return d.DeviceProfile.RGBOverride
 }
 

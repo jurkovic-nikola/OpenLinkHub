@@ -907,7 +907,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 	if ok {
 		if callback.DeviceRegister != nil {
 			initWG.Add(1)
-			go func(vid, pid uint16, serial, path string, cb deviceRegister) {
+			func(vid, pid uint16, serial, path string, cb deviceRegister) {
 				defer initWG.Done()
 				dev := cb(vid, pid, serial, path)
 				addDevice(dev)
@@ -916,7 +916,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 
 		if callback.DeviceRegisterEx != nil {
 			initWG.Add(1)
-			go func(vid, pid uint16, serial, path string, cb deviceRegisterEx) {
+			func(vid, pid uint16, serial, path string, cb deviceRegisterEx) {
 				defer initWG.Done()
 				dev := cb(vid, pid, serial, path, addDevice)
 				addDevice(dev)

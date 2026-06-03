@@ -1801,6 +1801,7 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 }
 
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
+	logger.Log(logger.Fields{"channelId": channelId, "subDeviceId": subDeviceId}).Info("ProcessGetRgbOverride CALLED in openrgbimport")
 	defaultOverride := &RGBOverride{
 		Enabled:        false,
 		RGBStartColor:  rgb.Color{Red: 255, Green: 255, Blue: 255},

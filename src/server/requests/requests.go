@@ -4358,7 +4358,7 @@ func ProcessGetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
@@ -4413,7 +4413,7 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 
-	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
 		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
 	}
 

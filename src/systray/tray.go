@@ -164,6 +164,7 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 	case 108: // Toggle All Lights
 		lightsOff = !lightsOff
 		devices.ControlDeviceRgb(lightsOff)
+		cluster.Get().ControlDeviceRgb(lightsOff)
 	}
 	return nil
 }

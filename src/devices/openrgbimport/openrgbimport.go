@@ -1155,6 +1155,17 @@ func (d *Device) SetEffect(effect string) error {
 					}
 				}
 
+				if runner.RGBMiddleColor == nil {
+					runner.RGBMiddleColor = &rgb.Color{}
+				}
+
+				if d.DeviceProfile != nil && d.DeviceProfile.RGBOverride != nil && d.DeviceProfile.RGBOverride.Enabled {
+					runner.RGBStartColor = &d.DeviceProfile.RGBOverride.RGBStartColor
+					runner.RGBEndColor = &d.DeviceProfile.RGBOverride.RGBEndColor
+					runner.RGBMiddleColor = &d.DeviceProfile.RGBOverride.RGBMiddleColor
+					runner.RgbModeSpeed = common.FClamp(d.DeviceProfile.RGBOverride.RgbModeSpeed, 0.1, 10)
+				}
+
 				switch d.effect {
 				case "rainbow":
 					runner.Rainbow(startTime)
@@ -1845,10 +1856,7 @@ func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool,
 
 	d.saveDeviceProfile()
 
-	if enabled {
-		_ = d.SetEffect("override")
-	} else {
-		_ = d.SetEffect(d.DeviceProfile.RGBProfile)
-	}
+	_ = d.SetEffect(d.DeviceProfile.RGBProfile)
+	
 	return 1
 }

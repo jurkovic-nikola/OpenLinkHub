@@ -95,20 +95,10 @@
                                     </div>
 
                                     <div class="settings-row">
-                                        <span class="settings-label text-ellipsis">Speed</span>
-                                        <select id="mbSpeedProfile" class="form-select system-select compact auto-width">
-                                            <option value="slow" {{ if eq .OpenRGBImportSpeed "slow" }}selected{{ end }}>Slow</option>
-                                            <option value="normal" {{ if or (eq .OpenRGBImportSpeed "normal") (eq .OpenRGBImportSpeed "") }}selected{{ end }}>Normal</option>
-                                            <option value="fast" {{ if eq .OpenRGBImportSpeed "fast" }}selected{{ end }}>Fast</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="settings-row">
-                                        <span class="settings-label text-ellipsis">Color</span>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <input type="color" id="mbColor" value="#63d5ff" style="width:30px;height:30px;padding:0;border:none;border-radius:4px;cursor:pointer;">
-                                            <button class="system-button compact m-0 px-2" id="mbApplyColor" type="button" style="padding: 2px 8px;">Apply</button>
-                                        </div>
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtRgbOverride" }}</span>
+                                        <label>
+                                            <button class="system-button compact rgbOverride" data-info="-1" type="button">{{ .Lang "txtConfigure" }}</button>
+                                        </label>
                                     </div>
 
                                     <!-- User profile -->

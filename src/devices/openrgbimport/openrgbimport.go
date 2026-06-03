@@ -63,6 +63,14 @@ type ZoneColors struct {
 	Name       string
 }
 
+type RGBOverride struct {
+	Enabled        bool
+	RGBStartColor  rgb.Color
+	RGBEndColor    rgb.Color
+	RGBMiddleColor rgb.Color
+	RgbModeSpeed   float64
+}
+
 type DeviceProfile struct {
 	Active           bool               `json:"Active"`
 	Path             string             `json:"Path"`
@@ -72,6 +80,7 @@ type DeviceProfile struct {
 	BrightnessSlider *uint8             `json:"BrightnessSlider"`
 	ZoneColors       map[int]ZoneColors `json:"ZoneColors"`
 	RGBCluster       bool               `json:"RGBCluster"`
+	RGBOverride      *RGBOverride       `json:"RGBOverride"`
 }
 
 type Device struct {
@@ -1055,28 +1064,33 @@ func (d *Device) SetEffect(effect string) error {
 	d.doneChan = done
 	d.running = true
 
-	// Initialize runner with initial parameters
 	var initialStartColor *rgb.Color
 	var initialEndColor *rgb.Color
 	var initialSpeed float64 = d.speed
 
-	profile := d.GetRgbProfile(effect)
-	if profile != nil {
-		initialStartColor = &profile.StartColor
-		initialEndColor = &profile.EndColor
-		initialSpeed = profile.Speed
+	if d.DeviceProfile != nil && d.DeviceProfile.RGBOverride != nil && d.DeviceProfile.RGBOverride.Enabled {
+		initialStartColor = &d.DeviceProfile.RGBOverride.RGBStartColor
+		initialEndColor = &d.DeviceProfile.RGBOverride.RGBEndColor
+		initialSpeed = d.DeviceProfile.RGBOverride.RgbModeSpeed
 	} else {
-		initialStartColor = &rgb.Color{
-			Red:        float64(d.lastColor[0]),
-			Green:      float64(d.lastColor[1]),
-			Blue:       float64(d.lastColor[2]),
-			Brightness: rgb.GetBrightnessValueFloat(d.brightness),
-		}
-		initialEndColor = &rgb.Color{
-			Red:        255,
-			Green:      0,
-			Blue:       255,
-			Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+		profile := d.GetRgbProfile(effect)
+		if profile != nil {
+			initialStartColor = &profile.StartColor
+			initialEndColor = &profile.EndColor
+			initialSpeed = profile.Speed
+		} else {
+			initialStartColor = &rgb.Color{
+				Red:        float64(d.lastColor[0]),
+				Green:      float64(d.lastColor[1]),
+				Blue:       float64(d.lastColor[2]),
+				Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+			}
+			initialEndColor = &rgb.Color{
+				Red:        255,
+				Green:      0,
+				Blue:       255,
+				Brightness: rgb.GetBrightnessValueFloat(d.brightness),
+			}
 		}
 	}
 
@@ -1783,5 +1797,44 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	d.saveDeviceProfile()
 
 	_ = d.SetEffect(profile)
+	return 1
+}
+
+func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+	return d.DeviceProfile.RGBOverride
+}
+
+func (d *Device) ProcessSetRgbOverride(channelId, subDeviceId int, enabled bool, startColor, endColor, middleColor rgb.Color, speed float64) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.DeviceProfile.RGBOverride == nil {
+		d.DeviceProfile.RGBOverride = &RGBOverride{}
+	}
+
+	if speed < 0 || speed > 10 {
+		return 0
+	}
+
+	d.DeviceProfile.RGBOverride.Enabled = enabled
+	d.DeviceProfile.RGBOverride.RGBStartColor = startColor
+	d.DeviceProfile.RGBOverride.RGBEndColor = endColor
+	d.DeviceProfile.RGBOverride.RGBMiddleColor = middleColor
+	d.DeviceProfile.RGBOverride.RgbModeSpeed = speed
+	d.DeviceProfile.RGBOverride.RGBStartColor.Brightness = 1
+	d.DeviceProfile.RGBOverride.RGBEndColor.Brightness = 1
+	d.DeviceProfile.RGBOverride.RGBMiddleColor.Brightness = 1
+
+	d.saveDeviceProfile()
+
+	if enabled {
+		_ = d.SetEffect("override")
+	} else {
+		_ = d.SetEffect(d.DeviceProfile.RGBProfile)
+	}
 	return 1
 }

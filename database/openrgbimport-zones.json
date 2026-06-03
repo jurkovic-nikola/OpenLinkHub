@@ -2,15 +2,17 @@
   "devices": {
     "openrgb-import-0": {
       "serial": "openrgb-import-0",
+      "product": "ASUS TUF GeForce RTX 4090 Gaming OC",
       "zones": [
         {
-          "name": "Zone 1",
+          "name": "GPU",
           "ledCount": 4
         }
       ]
     },
     "openrgb-import-2": {
       "serial": "openrgb-import-2",
+      "product": "Lian Li Strimer L Connect",
       "zones": [
         {
           "name": "24 Pin ATX Strip 0",
@@ -64,6 +66,7 @@
     },
     "openrgb-mobo-1": {
       "serial": "openrgb-mobo-1",
+      "product": "ASUS ROG STRIX Z890-E GAMING WIFI",
       "zones": [
         {
           "name": "Aura Mainboard",

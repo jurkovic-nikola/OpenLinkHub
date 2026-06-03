@@ -1801,18 +1801,22 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 }
 
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
+	defaultOverride := &RGBOverride{
+		Enabled:        false,
+		RGBStartColor:  rgb.Color{Red: 255, Green: 255, Blue: 255},
+		RGBMiddleColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
+		RGBEndColor:    rgb.Color{Red: 255, Green: 255, Blue: 255},
+		RgbModeSpeed:   5.0,
+	}
+
 	if d.DeviceProfile == nil {
-		return nil
+		return defaultOverride
 	}
+
 	if d.DeviceProfile.RGBOverride == nil {
-		d.DeviceProfile.RGBOverride = &RGBOverride{
-			Enabled: false,
-			RGBStartColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
-			RGBMiddleColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
-			RGBEndColor: rgb.Color{Red: 255, Green: 255, Blue: 255},
-			RgbModeSpeed: 5.0,
-		}
+		d.DeviceProfile.RGBOverride = defaultOverride
 	}
+	
 	return d.DeviceProfile.RGBOverride
 }
 

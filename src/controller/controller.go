@@ -25,6 +25,7 @@ import (
 	"OpenLinkHub/src/server"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
+	"OpenLinkHub/src/systray"
 	"OpenLinkHub/src/temperatures"
 	"OpenLinkHub/src/version"
 )
@@ -52,6 +53,7 @@ func Start() {
 	monitor.Init()      // Monitor
 	language.Init()     // Language
 	scheduler.Init()    // Scheduler
+	systray.InitTray()  // System Tray
 	server.Init()       // REST & WebUI
 }
 

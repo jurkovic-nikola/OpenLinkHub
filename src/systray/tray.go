@@ -132,7 +132,7 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 				
 				idx := actionOffset - 1
 				if idx >= 0 && idx < len(modes) {
-					devices.CallDeviceMethod(serial, "UpdateRgbProfile", 0, modes[idx])
+					devices.CallDeviceMethod(serial, "UpdateRgbProfile", -1, modes[idx])
 				}
 			}
 		}

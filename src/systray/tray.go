@@ -34,6 +34,7 @@ var (
 	dbusStatusNotifierItem    = "org.kde.StatusNotifierItem"
 	dbusProperties            = "org.freedesktop.DBus.Properties"
 	dbusStatusNotifierWatcher = "org.kde.StatusNotifierWatcher"
+	lightsOff                 bool
 )
 
 // Standard SNI props
@@ -160,6 +161,9 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 		}
 	case 105: // Exit
 		os.Exit(0)
+	case 108: // Toggle All Lights
+		lightsOff = !lightsOff
+		devices.ControlDeviceRgb(lightsOff)
 	}
 	return nil
 }
@@ -536,6 +540,11 @@ func Init(ready chan struct{}) {
 
 	addMenuItem(107, map[string]dbus.Variant{
 		"type": dbus.MakeVariant("separator"),
+	})
+
+	addMenuItem(108, map[string]dbus.Variant{
+		"label":     dbus.MakeVariant("Toggle All Lights"),
+		"icon-name": dbus.MakeVariant("weather-clear-night"),
 	})
 
 	addMenuItem(105, map[string]dbus.Variant{

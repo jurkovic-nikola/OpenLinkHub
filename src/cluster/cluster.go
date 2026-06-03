@@ -23,7 +23,7 @@ var (
 	pwd                   = ""
 	d                     *Device
 	deviceRefreshInterval = 1000
-	rgbProfileUpgrade     = []string{"arc", "gradient", "pastelrainbow", "pastelspiralrainbow", "rain", "off"}
+	rgbProfileUpgrade     = []string{"arc", "gradient", "pastelrainbow", "pastelspiralrainbow", "rain", "off", "rotarystack"}
 )
 
 type DeviceProfile struct {

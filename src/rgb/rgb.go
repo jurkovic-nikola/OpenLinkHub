@@ -265,6 +265,11 @@ func New(
 	rgbLoopDuration time.Duration,
 	RGBCustomColor bool,
 ) *ActiveRGB {
+	lastCycle := map[int]*LastCycle{}
+	for i := 0; i < 64; i++ {
+		lastCycle[i] = &LastCycle{}
+	}
+
 	return &ActiveRGB{
 		LightChannels:   lightChannels,
 		Smoothness:      smoothness,
@@ -275,6 +280,7 @@ func New(
 		RgbLoopDuration: rgbLoopDuration,
 		RGBCustomColor:  RGBCustomColor,
 		Exit:            make(chan bool),
+		LastCycle:       lastCycle,
 	}
 }
 

@@ -1039,13 +1039,25 @@ func (d *Device) SetEffect(effect string) error {
 
 	// off just sets black and exits
 	if effect == "off" {
-		scaled := make([]byte, d.colorCount*3)
+		if d.openrgbConn != nil {
+			d.openrgbConn.Close()
+			d.openrgbConn = nil
+		}
+		
 		d.mu.Unlock()
-		return openrgb.SendFrame(uint32(d.controllerId), scaled)
+		
+		// Wait for hardware buffer to drain, matching the static color sequence
+		time.Sleep(75 * time.Millisecond)
+		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, []byte{0, 0, 0})
 	}
 
 	// Static just reapplies current color once
 	if effect == "static" {
+		if d.openrgbConn != nil {
+			d.openrgbConn.Close()
+			d.openrgbConn = nil
+		}
+		
 		if d.Config != nil && d.ZoneAmount > 0 {
 			time.Sleep(75 * time.Millisecond)
 			frame := d.buildZoneFrame()

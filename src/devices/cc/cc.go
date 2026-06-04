@@ -1108,14 +1108,17 @@ func (d *Device) setDeviceColor() {
 	var buffer []byte
 	lightChannels := 0
 
-	s, l := 0, 0
+	s, l, offCount := 0, 0, 0
 	keys := make([]int, 0)
 	for k, device := range d.RgbDevices {
 		lightChannels += int(device.LedChannels)
 		keys = append(keys, k)
 		l++ // device has LED
-		if device.RGB == "static" {
-			s++ // led profile is set to static
+		if device.RGB == "static" || device.RGB == "off" {
+			s++ // led profile is set to static or off
+		}
+		if device.RGB == "off" {
+			offCount++
 		}
 	}
 	sort.Ints(keys)
@@ -1138,6 +1141,11 @@ func (d *Device) setDeviceColor() {
 
 	buffer = rgb.SetColor(reset)
 	d.writeColor(buffer)
+
+	if offCount > 0 && offCount == l {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to all profiles being Off")
+		return
+	}
 
 	// OpenRGB
 	if d.DeviceProfile.OpenRGBIntegration {
@@ -1172,16 +1180,20 @@ func (d *Device) setDeviceColor() {
 
 		for _, k := range keys {
 			var c *rgb.Color
-			rgbOverride := d.getRgbOverride(k, 0)
-			if rgbOverride != nil && rgbOverride.Enabled && d.RgbDevices[k].LedChannels > 0 {
-				profileOverride := d.GetRgbProfile("static")
-				if profileOverride == nil {
-					return
-				}
-				profileOverride.StartColor = rgbOverride.RGBStartColor
-				c = rgb.ModifyBrightness(profileOverride.StartColor)
+			if d.RgbDevices[k].RGB == "off" {
+				c = &rgb.Color{Red: 0, Green: 0, Blue: 0}
 			} else {
-				c = profileColor
+				rgbOverride := d.getRgbOverride(k, 0)
+				if rgbOverride != nil && rgbOverride.Enabled && d.RgbDevices[k].LedChannels > 0 {
+					profileOverride := d.GetRgbProfile("static")
+					if profileOverride == nil {
+						return
+					}
+					profileOverride.StartColor = rgbOverride.RGBStartColor
+					c = rgb.ModifyBrightness(profileOverride.StartColor)
+				} else {
+					c = profileColor
+				}
 			}
 			for i := 0; i < int(d.RgbDevices[k].LedChannels); i++ {
 				reset[m] = []byte{
@@ -1197,9 +1209,9 @@ func (d *Device) setDeviceColor() {
 		return
 	}
 
+	d.activeRgb = rgb.Exit()
 	go func(lightChannels int) {
 		startTime := time.Now()
-		d.activeRgb = rgb.Exit()
 
 		// Generate random colors
 		d.activeRgb.RGBStartColor = rgb.GenerateRandomColor(1)

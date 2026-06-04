@@ -42,6 +42,8 @@ var rgbModes = []string{
 	"wave",
 }
 
+const hardwareBufferDrainDelay = 75 * time.Millisecond
+
 type ConfigStore struct {
 	Devices map[string]DeviceConfig `json:"devices"`
 }
@@ -268,6 +270,8 @@ func buildDefaultDeviceConfig(serial string, dc openrgb.DiscoveredController) *D
 	}
 
 	if strings.Contains(nameLower, "strimer") {
+		// Compatibility fallback for current OpenRGB-reported zone lengths.
+		// These defaults ensure stable initialization, though they remain user-editable.
 		cfg.Zones = []ZoneConfig{
 			{Name: "24 Pin ATX Strip 0", LedCount: 20},
 			{Name: "24 Pin ATX Strip 1", LedCount: 20},
@@ -419,8 +423,9 @@ func cloneDeviceConfig(cfg *DeviceConfig) *DeviceConfig {
 	}
 
 	cloned := &DeviceConfig{
-		Serial: cfg.Serial,
-		Zones:  append([]ZoneConfig(nil), cfg.Zones...),
+		Serial:  cfg.Serial,
+		Product: cfg.Product,
+		Zones:   append([]ZoneConfig(nil), cfg.Zones...),
 	}
 	return cloned
 }
@@ -540,7 +545,7 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 	d.resolveControllerId()
 
 	if d.controllerId >= 0 {
-		time.Sleep(75 * time.Millisecond)
+		time.Sleep(hardwareBufferDrainDelay)
 		if err := openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame()); err != nil {
 			d.applyConfigLocked(previousCfg, previousBrightness)
 			return err
@@ -953,7 +958,7 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 			d.saveDeviceProfile()
 		}
 
-		time.Sleep(75 * time.Millisecond)
+		time.Sleep(hardwareBufferDrainDelay)
 		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
 	}
 
@@ -1047,7 +1052,7 @@ func (d *Device) SetEffect(effect string) error {
 		d.mu.Unlock()
 		
 		// Wait for hardware buffer to drain, matching the static color sequence
-		time.Sleep(75 * time.Millisecond)
+		time.Sleep(hardwareBufferDrainDelay)
 		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, []byte{0, 0, 0})
 	}
 
@@ -1059,7 +1064,7 @@ func (d *Device) SetEffect(effect string) error {
 		}
 		
 		if d.Config != nil && d.ZoneAmount > 0 {
-			time.Sleep(75 * time.Millisecond)
+			time.Sleep(hardwareBufferDrainDelay)
 			frame := d.buildZoneFrame()
 			d.mu.Unlock()
 			return openrgb.SendFrame(uint32(d.controllerId), frame)
@@ -1819,12 +1824,10 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 	d.DeviceProfile.RGBProfile = profile
 	d.saveDeviceProfile()
 
-	_ = d.SetEffect(profile)
 	return 1
 }
 
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
-	logger.Log(logger.Fields{"channelId": channelId, "subDeviceId": subDeviceId}).Info("ProcessGetRgbOverride CALLED in openrgbimport")
 	defaultOverride := &RGBOverride{
 		Enabled:        false,
 		RGBStartColor:  rgb.Color{Red: 255, Green: 255, Blue: 255},

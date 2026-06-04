@@ -173,7 +173,6 @@ var (
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
 	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093, 7168}
-	initWG              sync.WaitGroup
 	Dispatch            dispatcher.DeviceDispatcher = CallDeviceMethod
 )
 
@@ -769,7 +768,6 @@ func Init() {
 	}
 
 	if config.GetConfig().EnableOpenRGBTargetServer {
-		initWG.Wait()
 		openrgb.Init()
 		openrgb.SendToOpenRGB()
 	}
@@ -955,18 +953,14 @@ func initializeDevice(productId uint16, key, productPath string) {
 	callback, ok := deviceRegisterMap[productId]
 	if ok {
 		if callback.DeviceRegister != nil {
-			initWG.Add(1)
 			func(vid, pid uint16, serial, path string, cb deviceRegister) {
-				defer initWG.Done()
 				dev := cb(vid, pid, serial, path)
 				addDevice(dev)
 			}(vendorId, productId, key, productPath, callback.DeviceRegister)
 		}
 
 		if callback.DeviceRegisterEx != nil {
-			initWG.Add(1)
 			func(vid, pid uint16, serial, path string, cb deviceRegisterEx) {
-				defer initWG.Done()
 				dev := cb(vid, pid, serial, path, addDevice)
 				addDevice(dev)
 			}(vendorId, productId, key, productPath, callback.DeviceRegisterEx)

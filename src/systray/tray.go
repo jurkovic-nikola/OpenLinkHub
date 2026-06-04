@@ -262,6 +262,9 @@ func addMenuItem(id int32, props map[string]dbus.Variant) {
 
 // SyncBatteryToMenu will sync battery data to menu
 func SyncBatteryToMenu(battery map[string]stats.BatteryStats) {
+	if conn == nil {
+		return
+	}
 	// Remove old dynamic battery items first
 	clearBatteryItems()
 

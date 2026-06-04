@@ -737,6 +737,11 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 			continue
 		}
 
+		vendor, err := readORGBString(payload, &offset)
+		if err != nil {
+			vendor = ""
+		}
+
 		description, err := readORGBString(payload, &offset)
 		if err != nil {
 			description = ""
@@ -756,8 +761,6 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		if err != nil {
 			location = ""
 		}
-
-		vendor := ""
 
 		_, ledCount, zones, err := parseControllerZoneAndLEDCount(payload)
 		if err != nil {

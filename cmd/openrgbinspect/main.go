@@ -104,6 +104,10 @@ func main() {
 		fmt.Println("protocol payload failed:", err)
 		os.Exit(1)
 	}
+	if len(payload) < 4 {
+		fmt.Printf("protocol payload too short: %d bytes\n", len(payload))
+		os.Exit(1)
+	}
 	fmt.Println("Protocol version:", binary.LittleEndian.Uint32(payload[:4]))
 
 	// Request controller data for controller 1 by default.

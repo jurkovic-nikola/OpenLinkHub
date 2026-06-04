@@ -125,15 +125,34 @@ func main() {
 
 	fmt.Println("Payload length:", len(payload))
 
+	if len(payload) < 8 {
+		fmt.Printf("payload too short: %d bytes\n", len(payload))
+		os.Exit(1)
+	}
+
 	totalLen := binary.LittleEndian.Uint32(payload[0:4])
 	deviceType := binary.LittleEndian.Uint32(payload[4:8])
 	fmt.Println("TotalLen:", totalLen)
 	fmt.Println("DeviceType:", deviceType)
 
 	offset := 8
-	name, _ := readORGBString(payload, &offset)
-	vendor, _ := readORGBString(payload, &offset)
-	desc, _ := readORGBString(payload, &offset)
+	name, err := readORGBString(payload, &offset)
+	if err != nil {
+		fmt.Println("name parse failed:", err)
+		os.Exit(1)
+	}
+
+	vendor, err := readORGBString(payload, &offset)
+	if err != nil {
+		fmt.Println("vendor parse failed:", err)
+		os.Exit(1)
+	}
+
+	desc, err := readORGBString(payload, &offset)
+	if err != nil {
+		fmt.Println("description parse failed:", err)
+		os.Exit(1)
+	}
 
 	fmt.Println("Name:", name)
 	fmt.Println("Vendor:", vendor)

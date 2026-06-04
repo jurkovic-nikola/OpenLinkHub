@@ -1,3 +1,10 @@
+/*
+Package main (openrgbinspect)
+
+This is a standalone developer diagnostic tool for inspecting raw OpenRGB SDK controller data.
+It is not part of the daemon runtime path, but it gives maintainers and users a simple way
+to gather payload details when reporting unsupported or incorrectly detected OpenRGB hardware.
+*/
 package main
 
 import (

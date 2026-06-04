@@ -627,7 +627,7 @@ func isLegacyASUSMotherboard(name, vendor string) bool {
 }
 
 // parseControllerZoneAndLEDCount explicitly parses controller payload structure:
-// [len][device_type][5 strings][mode_count][active_mode][mode data...][zone_count][zones...][led_list...][colors...]
+// [len][device_type][6 strings][mode_count][active_mode][mode data...][zone_count][zones...][led_list...][colors...]
 // The mode section is treated as opaque and scanned past by searching for a plausible zone block.
 func parseControllerZoneAndLEDCount(payload []byte) (int, int, []DiscoveredZone, error) {
 	if len(payload) < 8 {
@@ -637,7 +637,7 @@ func parseControllerZoneAndLEDCount(payload []byte) (int, int, []DiscoveredZone,
 	offset := 8 // skip total_len + device_type
 
 	// name, vendor, description, fwVersion, location, serial
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 6; i++ {
 		if _, err := readORGBString(payload, &offset); err != nil {
 			return 0, 0, nil, err
 		}

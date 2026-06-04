@@ -158,9 +158,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	fwVersion, err := readORGBString(payload, &offset)
+	if err != nil {
+		fmt.Println("version parse failed:", err)
+		os.Exit(1)
+	}
+
+	serial, err := readORGBString(payload, &offset)
+	if err != nil {
+		fmt.Println("serial parse failed:", err)
+		os.Exit(1)
+	}
+
+	location, err := readORGBString(payload, &offset)
+	if err != nil {
+		fmt.Println("location parse failed:", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("Name:", name)
 	fmt.Println("Vendor:", vendor)
 	fmt.Println("Description:", desc)
+	fmt.Println("Firmware Version:", fwVersion)
+	fmt.Println("Serial:", serial)
+	fmt.Println("Location:", location)
 	fmt.Println("Offset after strings:", offset)
 	fmt.Printf("Next 64 bytes: % x\n", payload[offset:min(offset+64, len(payload))])
 }

@@ -106,7 +106,8 @@ func main() {
 	}
 	fmt.Println("Protocol version:", binary.LittleEndian.Uint32(payload[:4]))
 
-	// motherboard was controller 1 in your earlier output
+	// Request controller data for controller 1 by default.
+	// Adjust the controller ID if inspecting a different OpenRGB device.
 	if err := sendHeader(conn, 1, OPCODE_REQUEST_CONTROLLER_DATA, 0); err != nil {
 		fmt.Println("controller request failed:", err)
 		os.Exit(1)

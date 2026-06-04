@@ -1821,8 +1821,10 @@ func (d *Device) UpdateRgbProfile(_ int, profile string) uint8 {
 		return 5
 	}
 
-	d.DeviceProfile.RGBProfile = profile
-	d.saveDeviceProfile()
+	err := d.SetEffect(profile)
+	if err != nil {
+		return 0
+	}
 
 	return 1
 }

@@ -151,7 +151,7 @@ $(document).ready(function () {
                                 </div>
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">Current Effect</span>
-                                    <span class="meta-value text-capitalize">${dev.device.DeviceProfile?.RGBProfile || "None"}</span>
+                                    <span class="meta-value text-capitalize">${dev.device.DeviceProfile?.RGBCluster ? "Clustered" : (dev.device.DeviceProfile?.RGBProfile || "None")}</span>
                                 </div>
                             </div>
                         </div>

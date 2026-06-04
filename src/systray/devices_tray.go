@@ -10,9 +10,6 @@ import (
 
 var deviceMap = make(map[int]string)
 
-func isDeviceInCluster(serial string) bool {
-	return devices.GetDeviceClusterStatus(serial)
-}
 
 func createSubMenuLayout(id int32, label string, items map[int32]string) MenuLayout {
 	var children []dbus.Variant
@@ -100,15 +97,8 @@ func RefreshDevicesMenu(parentId int32) {
 			}
 		}
 
-		inCluster := isDeviceInCluster(serial)
-		toggleStr := "[ ] Sync to Global Cluster"
-		if inCluster {
-			toggleStr = "[✔] Sync to Global Cluster"
-		}
-		childItems[baseId] = toggleStr
-
 		for j, mode := range modes {
-			childItems[baseId+1+int32(j)] = strings.Title(mode)
+			childItems[baseId+int32(j)] = strings.Title(mode)
 		}
 
 		devLayout := createSubMenuLayout(baseId+99, dev.Product, childItems)

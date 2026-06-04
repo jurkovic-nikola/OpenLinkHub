@@ -116,26 +116,20 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 		actionOffset := int(id-1000) % 100
 
 		if serial, ok := deviceMap[deviceIndex]; ok {
-			if actionOffset == 0 {
-				inCluster := devices.GetDeviceClusterStatus(serial)
-				devices.CallDeviceMethod(serial, "ProcessSetRgbCluster", !inCluster)
-				RefreshDevicesMenu(106)
-			} else {
-				var modes []string
-				modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
-				if len(modesResult) > 0 && modesResult[0].IsValid() {
-					if rgbData, ok := modesResult[0].Interface().(rgb.RGB); ok {
-						for modeName := range rgbData.Profiles {
-							modes = append(modes, modeName)
-						}
-						sort.Strings(modes)
+			var modes []string
+			modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
+			if len(modesResult) > 0 && modesResult[0].IsValid() {
+				if rgbData, ok := modesResult[0].Interface().(rgb.RGB); ok {
+					for modeName := range rgbData.Profiles {
+						modes = append(modes, modeName)
 					}
+					sort.Strings(modes)
 				}
-				
-				idx := actionOffset - 1
-				if idx >= 0 && idx < len(modes) {
-					devices.CallDeviceMethod(serial, "UpdateRgbProfile", -1, modes[idx])
-				}
+			}
+			
+			idx := actionOffset
+			if idx >= 0 && idx < len(modes) {
+				devices.CallDeviceMethod(serial, "UpdateRgbProfile", -1, modes[idx])
 			}
 		}
 		return nil

@@ -62,7 +62,7 @@ func RefreshDevicesMenu(parentId int32) {
 	toggleLayout := MenuLayout{
 		ID: 999,
 		Props: map[string]dbus.Variant{
-			"label":     dbus.MakeVariant("Toggle Non-Clustered RGB"),
+			"label":     dbus.MakeVariant("Toggle All Standalone RGB"),
 			"icon-name": dbus.MakeVariant("weather-clear-night"),
 		},
 	}
@@ -86,29 +86,37 @@ func RefreshDevicesMenu(parentId int32) {
 
 		childItems := make(map[int32]string)
 
-		var modes []string
-		modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
-		if len(modesResult) > 0 && modesResult[0].IsValid() {
-			if rgbData, ok := modesResult[0].Interface().(rgb.RGB); ok {
-				for modeName := range rgbData.Profiles {
-					modes = append(modes, modeName)
+		inCluster := devices.GetDeviceClusterStatus(serial)
+		productLabel := dev.Product
+
+		if inCluster {
+			productLabel += " [Clustered]"
+			childItems[baseId] = "● Managed by Global Cluster"
+		} else {
+			var modes []string
+			modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
+			if len(modesResult) > 0 && modesResult[0].IsValid() {
+				if rgbData, ok := modesResult[0].Interface().(rgb.RGB); ok {
+					for modeName := range rgbData.Profiles {
+						modes = append(modes, modeName)
+					}
+					sort.Strings(modes)
 				}
-				sort.Strings(modes)
+			}
+
+			for j, mode := range modes {
+				childItems[baseId+int32(j)] = strings.Title(mode)
 			}
 		}
 
-		for j, mode := range modes {
-			childItems[baseId+int32(j)] = strings.Title(mode)
-		}
-
-		devLayout := createSubMenuLayout(baseId+99, dev.Product, childItems)
+		devLayout := createSubMenuLayout(baseId+99, productLabel, childItems)
 		devicesChildren = append(devicesChildren, dbus.MakeVariant(devLayout))
 	}
 
 	layout := MenuLayout{
 		ID: parentId,
 		Props: map[string]dbus.Variant{
-			"label":            dbus.MakeVariant("Devices"),
+			"label":            dbus.MakeVariant("Individual Devices"),
 			"children-display": dbus.MakeVariant("submenu"),
 			"icon-name":        dbus.MakeVariant("preferences-desktop-peripherals"),
 		},

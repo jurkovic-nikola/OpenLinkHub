@@ -116,6 +116,9 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 		actionOffset := int(id-1000) % 100
 
 		if serial, ok := deviceMap[deviceIndex]; ok {
+			if devices.GetDeviceClusterStatus(serial) {
+				return nil
+			}
 			var modes []string
 			modesResult := devices.CallDeviceMethod(serial, "GetRgbProfiles")
 			if len(modesResult) > 0 && modesResult[0].IsValid() {

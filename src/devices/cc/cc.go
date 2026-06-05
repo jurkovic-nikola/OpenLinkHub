@@ -1554,11 +1554,17 @@ func (d *Device) getDevices() int {
 
 	// Fans
 	response := d.read(modeGetFans, "getDevices")
+	if len(response) < 6 {
+		return 0
+	}
 	amount := d.getChannelAmount(response)
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response), "amount": amount, "device": d.Product}).Info("getDevices() - Speed")
 	}
 	for i := 0; i < amount; i++ {
+		if 6+i >= len(response) {
+			break
+		}
 		status := response[6:][i]
 		if d.Debug {
 			logger.Log(logger.Fields{"serial": d.Serial, "status": status, "device": d.Product, "channel": i}).Info("getDevices() - Speed")
@@ -1620,11 +1626,18 @@ func (d *Device) getDevices() int {
 
 	// Temperature probe
 	response = d.read(modeGetTemperatures, "getDevices")
+	if len(response) < 9 {
+		d.Devices = devices
+		return len(devices)
+	}
 	sensorData := response[9:]
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("%2x", response)}).Info("getDevices() - Temperature")
 	}
 	for i, s := 0, 0; i < 1; i, s = i+1, s+3 {
+		if s+3 > len(sensorData) {
+			break
+		}
 		label := "Set Label"
 		status := sensorData[s : s+3][0]
 		if d.Debug {
@@ -2090,12 +2103,12 @@ func (d *Device) getDeviceData() {
 
 	// Channels
 	channels := d.read(modeGetFans, "getDeviceData")
-	if channels == nil {
+	if len(channels) < 6 {
 		return
 	}
-	var m = 0
 
-	// Speed
+	// Speeds
+	m := 0
 	response := d.read(modeGetSpeeds, "getDeviceData")
 	if response == nil {
 		return
@@ -2120,6 +2133,9 @@ func (d *Device) getDeviceData() {
 		}
 
 		currentSensor := sensorData[s : s+2]
+		if 6+i >= len(channels) {
+			break
+		}
 		status := channels[6:][i]
 		if status == 0x07 {
 			if _, ok := d.Devices[m]; ok {
@@ -2134,7 +2150,7 @@ func (d *Device) getDeviceData() {
 
 	// Temperature
 	response = d.read(modeGetTemperatures, "getDeviceData")
-	if response == nil {
+	if len(response) < 6 {
 		return
 	}
 

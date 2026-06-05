@@ -266,6 +266,10 @@ func SyncBatteryToMenu(battery map[string]stats.BatteryStats) {
 	clearBatteryItems()
 
 	menuMutex.Lock()
+	if menuItems == nil {
+		menuMutex.Unlock()
+		return
+	}
 	if len(battery) > 0 {
 		menuItems[1].Props["visible"] = dbus.MakeVariant(true)
 		menuItems[2].Props["visible"] = dbus.MakeVariant(true)
@@ -340,6 +344,15 @@ func clearBatteryItems() {
 }
 
 func Init(ready chan struct{}) {
+	defer func() {
+		// Ensure ready is closed so we don't hang the caller if we return early
+		select {
+		case <-ready:
+		default:
+			close(ready)
+		}
+	}()
+
 	de := os.Getenv("XDG_CURRENT_DESKTOP")
 	if strings.Contains(strings.ToLower(de), "cinnamon") {
 		logger.Log(logger.Fields{}).Warn("Cinnamon is not supported for systray. Due to incomplete support for modern tray menus (StatusNotifierItem), this application cannot run reliably on Cinnamon.")
@@ -600,9 +613,8 @@ func InitTray() {
 		Init(ready)
 	}()
 
-	<-ready // Wait for systray to be ready
-
 	go func() {
+		<-ready // Wait for systray to be ready in the background
 		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
 

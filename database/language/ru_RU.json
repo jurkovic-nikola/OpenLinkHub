@@ -633,7 +633,15 @@
         "txtMousePositionY": "Положение мыши Y",
         "txtInvalidMousePosition": "Недопустимое положение мыши",
         "txtXeneonEdgeUnavailable": "Xeneon Edge недоступен",
-    "txtApplyColorToAll": "Apply color to all devices",
-    "txtApplyToAll": "Apply to all"
+        "txtApplyColorToAll": "Применить цвет ко всем устройствам",
+        "txtApplyToAll": "Применить ко всем",
+        "txtLoop": "Цикл",
+        "txtLoopUntilStopped": "Цикл (до остановки)",
+        "txtMacroRepeatAmount": "Количество повторений",
+        "txtMacroSettings": "Настройки макроса",
+        "txtInvalidMacroDelayValue": "Недопустимое значение задержки повторения макроса. Значение должно быть не меньше 0",
+        "txtInvalidMacroLoopValue": "Недопустимое значение цикла макроса. Значение должно быть не меньше 0",
+        "unableToUpdateMacroSettings": "Не удалось обновить настройки макроса",
+        "macroSettingsUpdated": "Настройки макроса успешно обновлены"
     }
 }

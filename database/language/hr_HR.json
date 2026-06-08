@@ -639,7 +639,15 @@
     "txtMousePositionY": "Pozicija miša Y",
     "txtInvalidMousePosition": "Nevažeća pozicija miša",
     "txtXeneonEdgeUnavailable": "Xeneon Edge nije dostupan",
-    "txtApplyColorToAll": "Apply color to all devices",
-    "txtApplyToAll": "Apply to all"
+    "txtApplyColorToAll": "Primijeni boju na sve uređaje",
+    "txtApplyToAll": "Primijeni na sve",
+    "txtLoop": "Petlja",
+    "txtLoopUntilStopped": "Petlja (dok se ne zaustavi)",
+    "txtMacroRepeatAmount": "Broj ponavljanja",
+    "txtMacroSettings": "Postavke makroa",
+    "txtInvalidMacroDelayValue": "Nevažeća vrijednost odgode ponavljanja makroa. Vrijednost mora biti 0 ili veća",
+    "txtInvalidMacroLoopValue": "Nevažeća vrijednost petlje makroa. Vrijednost mora biti 0 ili veća",
+    "unableToUpdateMacroSettings": "Nije moguće ažurirati postavke makroa",
+    "macroSettingsUpdated": "Postavke makroa su uspješno ažurirane"
   }
 }

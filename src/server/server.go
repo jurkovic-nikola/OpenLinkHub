@@ -1815,6 +1815,17 @@ func updateMacroValue(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// updateMacroSettings handles update of macro settings
+func updateMacroSettings(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessUpdateMacroSettings(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // deleteMacroProfile handles deletion of macro profile
 func deleteMacroProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessDeleteMacroProfile(r)
@@ -2628,6 +2639,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/setPerformance", http.MethodPost, setKeyboardPerformance)
 	handleFunc(r, "/api/keyboard/setFlashTap", http.MethodPost, setKeyboardFlashTap)
 	handleFunc(r, "/api/macro/updateValue", http.MethodPost, updateMacroValue)
+	handleFunc(r, "/api/macro/updateSettings", http.MethodPost, updateMacroSettings)
 	handleFunc(r, "/api/keyboard/dial/setColors", http.MethodPost, setKeyboardControlDialColors)
 	handleFunc(r, "/api/setSupportedDevices", http.MethodPost, setSupportedDevices)
 	handleFunc(r, "/api/restore", http.MethodPost, backup.PerformRestore)

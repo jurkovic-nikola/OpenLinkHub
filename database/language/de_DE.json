@@ -639,7 +639,15 @@
     "txtMousePositionY": "Mausposition Y",
     "txtInvalidMousePosition": "Ungültige Mausposition",
     "txtXeneonEdgeUnavailable": "Xeneon Edge ist nicht verfügbar",
-    "txtApplyColorToAll": "Apply color to all devices",
-    "txtApplyToAll": "Apply to all"
+    "txtApplyColorToAll": "Farbe auf alle Geräte anwenden",
+    "txtApplyToAll": "Auf alle anwenden",
+    "txtLoop": "Schleife",
+    "txtLoopUntilStopped": "Schleife (bis zum Stoppen)",
+    "txtMacroRepeatAmount": "Anzahl der Wiederholungen",
+    "txtMacroSettings": "Makroeinstellungen",
+    "txtInvalidMacroDelayValue": "Ungültiger Wiederholungsverzögerungswert für das Makro. Der Wert muss 0 oder größer sein",
+    "txtInvalidMacroLoopValue": "Ungültiger Makroschleifenwert. Der Wert muss 0 oder größer sein",
+    "unableToUpdateMacroSettings": "Makroeinstellungen konnten nicht aktualisiert werden",
+    "macroSettingsUpdated": "Makroeinstellungen wurden erfolgreich aktualisiert"
   }
 }

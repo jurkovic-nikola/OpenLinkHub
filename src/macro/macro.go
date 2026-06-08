@@ -16,9 +16,11 @@ import (
 )
 
 type Macro struct {
-	Id      int             `json:"id"`
-	Name    string          `json:"name"`
-	Actions map[int]Actions `json:"actions"`
+	Id          int             `json:"id"`
+	Name        string          `json:"name"`
+	Repeat      int             `json:"repeat"`
+	RepeatDelay int             `json:"repeatDelay"`
+	Actions     map[int]Actions `json:"actions"`
 }
 
 type Actions struct {
@@ -163,6 +165,21 @@ func UpdateMacroValue(macroId, macroIndex int, macroAction *Actions) uint8 {
 			SaveProfile(profile, val)
 			return 1
 		}
+	}
+	return 0
+}
+
+// UpdateMacroSettings will update macro value
+func UpdateMacroSettings(macroId, macroRepeat, macroDelay int) uint8 {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if val, ok := macros[macroId]; ok {
+		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		val.Repeat = macroRepeat
+		val.RepeatDelay = macroDelay
+		macros[macroId] = val
+		SaveProfile(profile, val)
+		return 1
 	}
 	return 0
 }

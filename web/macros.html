@@ -184,6 +184,63 @@
                 </div>
             </div>
 
+            <div class="modal fade text-start" id="updateMacroSettingsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-custom modal-700">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="updateMacroSettingsLabel">{{ .Lang "txtMacroSettings" }}</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body modal-title">
+                            <div class="settings-list">
+                                <!-- Macro Loop -->
+                                <div class="settings-row macroRepeatLoop">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtLoop" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" id="macroSettingsLoop">
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Repeat -->
+                                <div class="settings-row macroRepeatValue">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtActionRepeat" }}</span>
+                                    <div class="system-input text-input compact">
+                                        <label for="macroDelay">
+                                            <input
+                                                    type="text"
+                                                    id="macroSettingsRepeat"
+                                                    placeholder="{{ .Lang "txtMacroRepeatAmount" }}"
+                                            autocomplete="off">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Delay -->
+                                <div class="settings-row macroDelayId">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtMacroDelay" }}</span>
+                                    <div class="system-input text-input compact">
+                                        <label for="macroDelay">
+                                            <input
+                                                    type="text"
+                                                    id="macroSettingsDelay"
+                                                    placeholder="{{ .Lang "txtDelayInMilliseconds" }}"
+                                            autocomplete="off">
+                                        </label>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="system-button secondary" type="button" data-bs-dismiss="modal">{{ .Lang "txtClose" }}</button>
+                            <button class="system-button" type="button" id="updateMacroSettings">{{ .Lang "txtUpdate" }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <!-- Macros -->
             <div class="row g-4 mb-4 align-items-start">
                 <div class="col-md-2">
@@ -250,6 +307,7 @@
                     </div>
                     <button class="system-button danger top-10" type="button" id="deleteBtn" data-bs-toggle="modal" data-bs-target="#deleteTempModal" style="display:none">{{ .Lang "txtDeleteProfile" }}</button>
                     <button class="system-button" type="button" id="addMacroValueBtn" data-bs-toggle="modal" data-bs-target="#addMacroValueModal" style="display:none">{{ .Lang "txtAddMacroValue" }}</button>
+                    <button class="system-button" type="button" id="updateMacroValueBtn" data-bs-toggle="modal" data-bs-target="#updateMacroSettingsModal" style="display:none">{{ .Lang "txtSettings" }}</button>
                 </div>
             </div>
         </main>

@@ -633,7 +633,15 @@
     "txtMousePositionY": "Musposition Y",
     "txtInvalidMousePosition": "Ogiltig musposition",
     "txtXeneonEdgeUnavailable": "Xeneon Edge är inte tillgänglig",
-    "txtApplyColorToAll": "Apply color to all devices",
-    "txtApplyToAll": "Apply to all"
+    "txtApplyColorToAll": "Tillämpa färg på alla enheter",
+    "txtApplyToAll": "Tillämpa på alla",
+    "txtLoop": "Loop",
+    "txtLoopUntilStopped": "Loop (tills den stoppas)",
+    "txtMacroRepeatAmount": "Antal upprepningar",
+    "txtMacroSettings": "Makroinställningar",
+    "txtInvalidMacroDelayValue": "Ogiltigt värde för makrots upprepningsfördröjning. Värdet måste vara 0 eller högre",
+    "txtInvalidMacroLoopValue": "Ogiltigt värde för makroloop. Värdet måste vara 0 eller högre",
+    "unableToUpdateMacroSettings": "Det gick inte att uppdatera makroinställningarna",
+    "macroSettingsUpdated": "Makroinställningarna har uppdaterats"
   }
 }

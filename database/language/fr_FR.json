@@ -639,7 +639,15 @@
         "txtMousePositionY": "Position de la souris Y",
         "txtInvalidMousePosition": "Position de la souris non valide",
         "txtXeneonEdgeUnavailable": "Xeneon Edge n’est pas disponible",
-    "txtApplyColorToAll": "Apply color to all devices",
-    "txtApplyToAll": "Apply to all"
+        "txtApplyColorToAll": "Appliquer la couleur à tous les appareils",
+        "txtApplyToAll": "Appliquer à tous",
+        "txtLoop": "Boucle",
+        "txtLoopUntilStopped": "Boucle (jusqu'à l'arrêt)",
+        "txtMacroRepeatAmount": "Nombre de répétitions",
+        "txtMacroSettings": "Paramètres de macro",
+        "txtInvalidMacroDelayValue": "Valeur du délai de répétition de la macro non valide. La valeur doit être égale ou supérieure à 0",
+        "txtInvalidMacroLoopValue": "Valeur de boucle de macro non valide. La valeur doit être égale ou supérieure à 0",
+        "unableToUpdateMacroSettings": "Impossible de mettre à jour les paramètres de macro",
+        "macroSettingsUpdated": "Les paramètres de macro ont été mis à jour avec succès"
     }
 }

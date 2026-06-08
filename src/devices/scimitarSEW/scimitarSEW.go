@@ -122,6 +122,8 @@ type Device struct {
 	checkOnlineMu         sync.Mutex
 	stopRepeat            chan struct{}
 	stopRepeatMutex       sync.Mutex
+	macroLoopMutex        sync.Mutex
+	macroLoops            map[uint32]chan struct{}
 }
 
 var (
@@ -231,6 +233,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endp
 		MaxDPI:            maxDpiValue,
 		ZoneAmount:        2,
 		DPIAmount:         6,
+		macroLoops:        make(map[uint32]chan struct{}),
 	}
 
 	d.getDebugMode()       // Debug mode
@@ -2585,7 +2588,16 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 		if isReleased {
 			// Check if we have any queue in macro tracker. If yes, release those keys
 			if len(d.MacroTracker) > 0 {
-				d.releaseMacroTracker()
+				macroLoopRunning := false
+
+				if val.ActionType == 10 {
+					d.macroLoopMutex.Lock()
+					_, macroLoopRunning = d.macroLoops[mask]
+					d.macroLoopMutex.Unlock()
+				}
+				if !macroLoopRunning {
+					d.releaseMacroTracker()
+				}
 			}
 
 			if val.Default || !val.ActionHold {
@@ -2642,69 +2654,234 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
 					return
 				}
-				for i := 0; i < len(macroProfile.Actions); i++ {
-					if v, valid := macroProfile.Actions[i]; valid {
-						// Add to macro tracker for easier release
-						if v.ActionHold {
-							d.addToMacroTracker(i, v.ActionCommand)
+
+				if macroProfile.Repeat < 0 {
+					d.macroLoopMutex.Lock()
+
+					if stop, running := d.macroLoops[mask]; running {
+						close(stop)
+						delete(d.macroLoops, mask)
+						d.macroLoopMutex.Unlock()
+
+						if len(d.MacroTracker) > 0 {
+							d.releaseMacroTracker()
 						}
+						break
+					}
 
-						switch v.ActionType {
-						case 1, 3:
-							inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
-						case 9:
-							inputmanager.InputControlMouse(v.ActionCommand)
-						case 5:
-							if v.ActionDelay > 0 {
-								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+					stop := make(chan struct{})
+					d.macroLoops[mask] = stop
+					d.macroLoopMutex.Unlock()
+
+					go func(macroProfile *macro.Macro, stop chan struct{}) {
+						firstRun := true
+
+						for {
+							select {
+							case <-stop:
+								return
+							default:
 							}
-						case 6:
-							if v.ActionRepeat > 0 {
-								for z := 0; z < int(v.ActionRepeat); z++ {
-									inputmanager.InputControlKeyboardText(v.ActionText)
-									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
-										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+
+							for i := 0; i < len(macroProfile.Actions); i++ {
+								if v, valid := macroProfile.Actions[i]; valid {
+									if v.ActionHold && !firstRun {
+										continue
 									}
-								}
-							} else {
-								inputmanager.InputControlKeyboardText(v.ActionText)
-							}
-						case 20:
-							if v.ActionRepeat > 0 && !v.ActionHold {
-								d.stopRepeatMutex.Lock()
-								if d.stopRepeat != nil {
-									close(d.stopRepeat)
-								}
+									if v.ActionHold {
+										d.addToMacroTracker(i, v.ActionCommand)
+									}
 
-								d.stopRepeat = make(chan struct{})
-								localStop := d.stopRepeat
-								d.stopRepeatMutex.Unlock()
+									switch v.ActionType {
+									case 1, 3:
+										inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+									case 9:
+										inputmanager.InputControlMouse(v.ActionCommand)
+									case 5:
+										if v.ActionDelay > 0 {
+											time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+										}
+									case 6:
+										if v.ActionRepeat > 0 {
+											for z := 0; z < int(v.ActionRepeat); z++ {
+												inputmanager.InputControlKeyboardText(v.ActionText)
 
-								go func() {
-									for z := 0; z < int(v.ActionRepeat); z++ {
-										select {
-										case <-localStop:
-											return
-										default:
+												if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+													time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
+												}
+											}
+										} else {
+											inputmanager.InputControlKeyboardText(v.ActionText)
+										}
+									case 20:
+										if v.ActionRepeat > 0 && !v.ActionHold {
+											d.stopRepeatMutex.Lock()
+											if d.stopRepeat != nil {
+												close(d.stopRepeat)
+											}
+
+											d.stopRepeat = make(chan struct{})
+											localStop := d.stopRepeat
+											d.stopRepeatMutex.Unlock()
+
+											go func(action macro.Actions) {
+												for z := 0; z < int(action.ActionRepeat); z++ {
+													select {
+													case <-localStop:
+														return
+													default:
+														if action.MousePositionAbsolute {
+															inputmanager.InputControlMoveAbsolute(
+																int32(action.MousePositionX),
+																int32(action.MousePositionY),
+															)
+														} else {
+															inputmanager.InputControlMove(
+																int32(action.MousePositionX),
+																int32(action.MousePositionY),
+															)
+														}
+													}
+
+													if action.ActionRepeatDelay > 0 && action.ActionRepeat > 1 {
+														time.Sleep(
+															time.Duration(action.ActionRepeatDelay) *
+																time.Millisecond,
+														)
+													}
+												}
+											}(v)
+										} else {
 											if v.MousePositionAbsolute {
-												inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
+												inputmanager.InputControlMoveAbsolute(
+													int32(v.MousePositionX),
+													int32(v.MousePositionY),
+												)
 											} else {
-												inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+												inputmanager.InputControlMove(
+													int32(v.MousePositionX),
+													int32(v.MousePositionY),
+												)
 											}
 										}
-										if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
-											time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
-										}
 									}
-								}()
-							} else {
-								if v.MousePositionAbsolute {
-									inputmanager.InputControlMoveAbsolute(int32(v.MousePositionX), int32(v.MousePositionY))
-								} else {
-									inputmanager.InputControlMove(int32(v.MousePositionX), int32(v.MousePositionY))
+								}
+							}
+
+							firstRun = false
+							if macroProfile.RepeatDelay > 0 {
+								select {
+								case <-stop:
+									return
+								case <-time.After(
+									time.Duration(macroProfile.RepeatDelay) *
+										time.Millisecond,
+								):
 								}
 							}
 						}
+					}(macroProfile, stop)
+					break
+				}
+
+				repeat := macroProfile.Repeat
+				if repeat <= 0 {
+					repeat = 1
+				}
+
+				for r := 0; r < repeat; r++ {
+					for i := 0; i < len(macroProfile.Actions); i++ {
+						if v, valid := macroProfile.Actions[i]; valid {
+							if v.ActionHold && r > 0 {
+								continue
+							}
+
+							if v.ActionHold {
+								d.addToMacroTracker(i, v.ActionCommand)
+							}
+
+							switch v.ActionType {
+							case 1, 3:
+								inputmanager.InputControlKeyboard(v.ActionCommand, v.ActionHold)
+							case 9:
+								inputmanager.InputControlMouse(v.ActionCommand)
+							case 5:
+								if v.ActionDelay > 0 {
+									time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+								}
+							case 6:
+								if v.ActionRepeat > 0 {
+									for z := 0; z < int(v.ActionRepeat); z++ {
+										inputmanager.InputControlKeyboardText(v.ActionText)
+
+										if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
+											time.Sleep(
+												time.Duration(v.ActionRepeatDelay) *
+													time.Millisecond,
+											)
+										}
+									}
+								} else {
+									inputmanager.InputControlKeyboardText(v.ActionText)
+								}
+							case 20:
+								if v.ActionRepeat > 0 && !v.ActionHold {
+									d.stopRepeatMutex.Lock()
+									if d.stopRepeat != nil {
+										close(d.stopRepeat)
+									}
+
+									d.stopRepeat = make(chan struct{})
+									localStop := d.stopRepeat
+									d.stopRepeatMutex.Unlock()
+
+									go func(action macro.Actions) {
+										for z := 0; z < int(action.ActionRepeat); z++ {
+											select {
+											case <-localStop:
+												return
+											default:
+												if action.MousePositionAbsolute {
+													inputmanager.InputControlMoveAbsolute(
+														int32(action.MousePositionX),
+														int32(action.MousePositionY),
+													)
+												} else {
+													inputmanager.InputControlMove(
+														int32(action.MousePositionX),
+														int32(action.MousePositionY),
+													)
+												}
+											}
+											if action.ActionRepeatDelay > 0 && action.ActionRepeat > 1 {
+												time.Sleep(
+													time.Duration(action.ActionRepeatDelay) *
+														time.Millisecond,
+												)
+											}
+										}
+									}(v)
+								} else {
+									if v.MousePositionAbsolute {
+										inputmanager.InputControlMoveAbsolute(
+											int32(v.MousePositionX),
+											int32(v.MousePositionY),
+										)
+									} else {
+										inputmanager.InputControlMove(
+											int32(v.MousePositionX),
+											int32(v.MousePositionY),
+										)
+									}
+								}
+							}
+						}
+					}
+					if macroProfile.RepeatDelay > 0 && r < repeat-1 {
+						time.Sleep(
+							time.Duration(macroProfile.RepeatDelay) *
+								time.Millisecond,
+						)
 					}
 				}
 				break

@@ -188,6 +188,8 @@ type Payload struct {
 	MousePositionX                int                   `json:"mousePositionX"`
 	MousePositionY                int                   `json:"mousePositionY"`
 	MousePositionAbsolute         bool                  `json:"mousePositionAbsolute"`
+	MacroRepeat                   int                   `json:"macroRepeat"`
+	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -3817,6 +3819,66 @@ func ProcessUpdateMacroValue(r *http.Request) *Payload {
 	default:
 		return &Payload{
 			Message: language.GetValue("txtUnableToUpdateMacroProfileValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+}
+
+// ProcessUpdateMacroSettings will process update of macro profile settings
+func ProcessUpdateMacroSettings(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroId < 0 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroSelected"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroRepeat < -1 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroLoopValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroRepeatDelay < 0 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidMacroDelayValue"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.UpdateMacroSettings(req.MacroId, req.MacroRepeat, req.MacroRepeatDelay)
+	switch res {
+	case 0:
+		return &Payload{
+			Message: language.GetValue("unableToUpdateMacroSettings"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	case 1:
+		return &Payload{
+			Message: language.GetValue("macroSettingsUpdated"),
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	default:
+		return &Payload{
+			Message: language.GetValue("unableToUpdateMacroSettings"),
 			Code:    http.StatusOK,
 			Status:  0,
 		}

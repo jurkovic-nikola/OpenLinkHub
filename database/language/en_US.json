@@ -640,6 +640,14 @@
     "txtInvalidMousePosition": "Invalid mouse position",
     "txtXeneonEdgeUnavailable": "Xeneon Edge is unavailable",
     "txtApplyColorToAll": "Apply color to all devices",
-    "txtApplyToAll": "Apply to all"
+    "txtApplyToAll": "Apply to all",
+    "txtLoop": "Loop",
+    "txtLoopUntilStopped": "Loop (until stopped)",
+    "txtMacroRepeatAmount": "Repeat amount",
+    "txtMacroSettings": "Macro Settings",
+    "txtInvalidMacroDelayValue": "Invalid macro repeat delay value. Value should be 0 or greater",
+    "txtInvalidMacroLoopValue": "Invalid macro loop value. Value should be 0 or greater",
+    "unableToUpdateMacroSettings": "Unable to update macro settings",
+    "macroSettingsUpdated": "Macro settings are successfully updated"
   }
 }

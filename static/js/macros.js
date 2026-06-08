@@ -66,6 +66,105 @@ $(document).ready(function () {
         $(".macroMousePosition").hide();
     });
 
+    $('#updateMacroSettingsModal').on('shown.bs.modal', function () {
+        const macroId = $("#profile").val();
+        $.ajax({
+            url: '/api/macro/' + macroId,
+            dataType: 'JSON',
+            success: function(response) {
+                if (response.code === 0) {
+                    toast.warning(response.message);
+                } else {
+                    const data = response.data;
+                    let repeat = data.repeat;
+                    let repeatDelay = data.repeatDelay;
+
+                    const macroSettingsDelay = $('#macroSettingsDelay');
+                    if (macroSettingsDelay === null) {
+                        return
+                    }
+
+                    const macroSettingsLoop = $('#macroSettingsLoop');
+                    if (macroSettingsLoop === null) {
+                        return
+                    }
+
+                    const updateMacroSettings = $("#updateMacroSettings");
+                    if (updateMacroSettings === null) {
+                        return
+                    }
+
+                    const macroSettingsRepeat = $("#macroSettingsRepeat");
+
+                    const macroRepeatValue = $('.macroRepeatValue');
+                    if (parseInt(repeat) < 0) {
+                        macroRepeatValue.hide();
+                        macroSettingsLoop.attr('Checked','Checked');
+                    } else {
+                        macroRepeatValue.show();
+                    }
+                    macroSettingsDelay.val(repeatDelay);
+
+                    macroSettingsLoop.on("change", function () {
+                        const $toggle = $(this);
+                        const newState = $toggle.prop("checked");
+                        if (newState === true) {
+                            macroRepeatValue.hide();
+                        } else {
+                            macroRepeatValue.show();
+                            macroSettingsRepeat.val(repeat);
+                        }
+                    });
+
+                    macroSettingsRepeat.val(repeat);
+                    
+                    updateMacroSettings.on('click', function () {
+                        const pf = {};
+                        pf["macroId"] = parseInt(macroId);
+                        const macroRepeat = macroRepeatValue.val();
+
+                        if (macroSettingsLoop.is(':checked')) {
+                            pf["macroRepeat"] = -1;
+                        } else {
+                            if (parseInt(macroSettingsRepeat.val()) < -1) {
+                                toast.warning(i18n.t('txtInvalidMacroLoopValue'));
+                                return false;
+                            }
+                            pf["macroRepeat"] = parseInt(macroSettingsRepeat.val());
+                        }
+
+                        const macroDelay = parseInt(macroSettingsDelay.val())
+                        if (macroDelay < 0) {
+                            toast.warning(i18n.t('txtInvalidMacroDelayValue'));
+                            return false;
+                        }
+                        pf["macroRepeatDelay"] = macroDelay;
+
+                        const json = JSON.stringify(pf, null, 2);
+                        $.ajax({
+                            url: '/api/macro/updateSettings',
+                            type: 'POST',
+                            data: json,
+                            cache: false,
+                            success: function(response) {
+                                try {
+                                    if (response.status === 1) {
+                                        toast.success(response.message);
+                                    } else {
+                                        toast.warning(response.message);
+                                    }
+                                } catch (err) {
+                                    toast.warning(response.message);
+                                }
+                            }
+                        });
+                        console.log(json);
+                    });
+                }
+            }
+        });
+    });
+
     $('#btnSaveNewMacroProfile').on('click', function(){
         const profile = $("#profileName").val();
         if (profile.length < 3) {
@@ -331,6 +430,7 @@ $(document).ready(function () {
                     $("#deleteBtn").show();
                     $("#addMacroValueBtn").show();
                     $("#newMacroValue").show();
+                    $("#updateMacroValueBtn").show();
                 }
             }
         });

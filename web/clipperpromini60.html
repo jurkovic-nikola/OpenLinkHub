@@ -119,18 +119,6 @@
                                         <button class="system-button compact keyboardFlashTap" id="keyboardFlashTap" type="button">{{ $root.Lang "txtConfigure" }}</button>
                                     </label>
                                 </div>
-                                
-                                <!-- Control Dial -->
-                                <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtControlDial" }}</span>
-                                    <label for="controlDial">
-                                        <select id="controlDial" class="system-select auto-width compact controlDial" name="controlDial">
-                                            {{ range $key, $dialOptions := $device.ControlDialOptions }}
-                                            <option value="{{ $key }}" {{ if eq $device.DeviceProfile.ControlDial $key }} selected {{ end }}>{{ $dialOptions }}</option>
-                                            {{ end }}
-                                        </select>
-                                    </label>
-                                </div>
 
                                 <!-- Delete user profile -->
                                 <div class="settings-row">

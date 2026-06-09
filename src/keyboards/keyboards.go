@@ -129,6 +129,7 @@ type Key struct {
 	SecondaryActuationPoint       byte      `json:"secondaryActuationPoint"`
 	SecondaryActuationResetPoint  byte      `json:"secondaryActuationResetPoint"`
 	NoActuation                   bool      `json:"noActuation"`
+	FlashTap                      bool      `json:"flashTap"`
 	DeviceId                      string    `json:"deviceId"`
 }
 

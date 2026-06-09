@@ -1,0 +1,1316 @@
+{
+  "version": 1,
+  "uppercaseClass": "key-uppercase",
+  "fontSize": 14,
+  "key": "clipperpromini60-default",
+  "device": "CLIPPER PRO MINI 60",
+  "layout": "US",
+  "rows": 5,
+  "modifierPosition": 17,
+  "row": {
+    "0": {
+      "keys": {
+        "1": {
+          "keyName": "ESC",
+          "subKeyName": "` ~",
+          "width": 70,
+          "height": 70,
+          "left": 0,
+          "top": 0,
+          "packetIndex": [123],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [41, 59],
+          "keyHash": ["2199023255552"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "2": {
+          "keyName": "1",
+          "subKeyName": "F1",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [90],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [30, 59],
+          "keyHash": ["1073741824"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "3": {
+          "keyName": "2",
+          "subKeyName": "F2",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [93],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [31, 59],
+          "keyHash": ["2147483648"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "4": {
+          "keyName": "3",
+          "subKeyName": "F3",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [96],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [32, 59],
+          "keyHash": ["4294967296"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "5": {
+          "keyName": "4",
+          "subKeyName": "F4",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [99],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [33, 59],
+          "keyHash": ["8589934592"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "6": {
+          "keyName": "5",
+          "subKeyName": "F5",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [102],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [34, 59],
+          "keyHash": ["17179869184"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "7": {
+          "keyName": "6",
+          "subKeyName": "F6",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [105],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [35, 59],
+          "keyHash": ["34359738368"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "8": {
+          "keyName": "7",
+          "subKeyName": "F7",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [108],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [36, 59],
+          "keyHash": ["68719476736"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "9": {
+          "keyName": "8",
+          "subKeyName": "F8",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [111],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [37, 59],
+          "keyHash": ["137438953472"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "10": {
+          "keyName": "9",
+          "subKeyName": "F9",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [114],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [38, 59],
+          "keyHash": ["274877906944"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "11": {
+          "keyName": "0",
+          "subKeyName": "F10",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [117],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [39, 59],
+          "keyHash": ["549755813888"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "12": {
+          "keyName": "-",
+          "subKeyName": "F11",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [135],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [45, 59],
+          "keyHash": ["35184372088832"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "13": {
+          "keyName": "=",
+          "subKeyName": "F12",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [138],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [46, 59],
+          "keyHash": ["70368744177664"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "14": {
+          "keyName": "<---",
+          "subKeyName": "DEL",
+          "width": 140,
+          "height": 70,
+          "left": 15,
+          "top": 0,
+          "packetIndex": [126],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide3",
+          "default": true,
+          "keyData": [42, 59],
+          "keyHash": ["4398046511104"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        }
+      }
+    },
+    "1": {
+      "keys": {
+        "16": {
+          "keyName": "TAB",
+          "width": 100,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [129],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [43, 59],
+          "keyHash": ["8796093022208"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "17": {
+          "keyName": "Q",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [60],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [20, 59],
+          "keyHash": ["1048576"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "18": {
+          "keyName": "W",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [78],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [26, 59],
+          "keyHash": ["67108864"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "19": {
+          "keyName": "E",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [24],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [8, 59],
+          "keyHash": ["256"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "20": {
+          "keyName": "R",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [63],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [21, 59],
+          "keyHash": ["2097152"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "21": {
+          "keyName": "T",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [69],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [23, 59],
+          "keyHash": ["8388608"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "22": {
+          "keyName": "Y",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [84],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [28, 57],
+          "keyHash": ["268435456"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "23": {
+          "keyName": "U",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [72],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [24, 57],
+          "keyHash": ["16777216"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "24": {
+          "keyName": "I",
+          "subKeyName": "INS",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [36],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [12, 59],
+          "keyHash": ["4096"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "25": {
+          "keyName": "O",
+          "subKeyName": "SCRLK",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [54],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [18, 59],
+          "keyHash": ["262144"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "26": {
+          "keyName": "P",
+          "subKeyName": "PRTSC",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [57],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [19, 59],
+          "keyHash": ["524288"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "27": {
+          "keyName": "[ {",
+          "subKeyName": "HOME",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [141],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [47, 59],
+          "keyHash": ["140737488355328"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "28": {
+          "keyName": "] }",
+          "subKeyName": "END",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [144],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [48, 59],
+          "keyHash": ["281474976710656"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "29": {
+          "keyName": "\\ |",
+          "subKeyName": "PG UP",
+          "width": 110,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [147],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [49, 59],
+          "keyHash": ["562949953421312"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        }
+      }
+    },
+    "2": {
+      "keys": {
+        "31": {
+          "keyName": "CAPS",
+          "subKeyName": "FT",
+          "width": 120,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [171],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [57, 57],
+          "keyHash": ["144115188075855872"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34,
+          "flashTap": true
+        },
+        "32": {
+          "keyName": "A",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [12],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [4, 57],
+          "keyHash": ["16"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "33": {
+          "keyName": "S",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [66],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [22, 57],
+          "keyHash": ["4194304"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "34": {
+          "keyName": "D",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [21],
+          "color": {
+            "red": 255,
+            "green": 0,
+            "blue": 0
+          },
+          "default": true,
+          "keyData": [7, 57],
+          "keyHash": ["128"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "35": {
+          "keyName": "F",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [27],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [9, 57],
+          "keyHash": ["512"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "36": {
+          "keyName": "G",
+          "subKeyName": "GM",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [30],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [10, 57],
+          "keyHash": ["1024"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "37": {
+          "keyName": "H",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [33],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [11, 57],
+          "keyHash": ["2048"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "38": {
+          "keyName": "J",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [39],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [13, 57],
+          "keyHash": ["8192"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "39": {
+          "keyName": "K",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [42],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [14, 57],
+          "keyHash": ["16384"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "40": {
+          "keyName": "L",
+          "subKeyName": "PLAY",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [45],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [15, 59],
+          "keyHash": ["32768"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "41": {
+          "keyName": "; :",
+          "subKeyName": "PREV",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [153],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [51, 59],
+          "keyHash": ["2251799813685248"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "42": {
+          "keyName": "' ''",
+          "subKeyName": "NEXT",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [156],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [52, 59],
+          "keyHash": ["4503599627370496"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "43": {
+          "keyName": "ENTER",
+          "subKeyName": "PG DN",
+          "width": 175,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [120],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide3",
+          "default": true,
+          "keyData": [40, 59],
+          "keyHash": ["1099511627776"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        }
+      }
+    },
+    "3": {
+      "keys": {
+        "45": {
+          "keyName": "SHIFT",
+          "keyNameInternal": "L SHIFT",
+          "width": 175,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [318],
+          "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 0
+          },
+          "css": "keyboard-key wide3",
+          "default": true,
+          "keyData": [106, 63],
+          "modifierPacketValue": 4,
+          "keyHash": ["81129638414606681695789005144064"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "46": {
+          "keyName": "Z",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [87],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [29, 57],
+          "profileKey": true,
+          "keyHash": ["536870912"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "47": {
+          "keyName": "X",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [81],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [27, 57],
+          "brightnessKey": true,
+          "keyHash": ["134217728"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "48": {
+          "keyName": "C",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [18],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [6, 57],
+          "rgbKey": true,
+          "keyHash": ["64"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "49": {
+          "keyName": "V",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [75],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [25, 57],
+          "rgbKey": true,
+          "keyHash": ["33554432"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "50": {
+          "keyName": "B",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [15],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [5, 57],
+          "rgbKey": true,
+          "keyHash": ["32"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "51": {
+          "keyName": "N",
+          "subKeyName": "BTS -",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [51],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "actionType": 12,
+          "keyData": [17, 59],
+          "keyHash": ["131072"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "52": {
+          "keyName": "M",
+          "subKeyName": "BTS +",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [48],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "actionType": 11,
+          "keyData": [16, 59],
+          "keyHash": ["65536"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "53": {
+          "keyName": ", <",
+          "subKeyName": "MUTE",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [162],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [54, 59],
+          "keyHash": ["18014398509481984"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "54": {
+          "keyName": ". >",
+          "subKeyName": "VOL-",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [165],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [55, 59],
+          "mediaKey": true,
+          "keyHash": ["36028797018963968"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "55": {
+          "keyName": "/ ?",
+          "subKeyName": "VOL+",
+          "width": 70,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [168],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [56, 59],
+          "mediaKey": true,
+          "keyHash": ["72057594037927936"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "56": {
+          "keyName": "SHIFT",
+          "keyNameInternal": "R SHIFT",
+          "subKeyName": "↑",
+          "width": 120,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [330],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide3",
+          "default": true,
+          "keyData": [110, 63],
+          "keyHash": ["1298074214633706907132624082305024"],
+          "modifierPacketValue": 64,
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        }
+      }
+    },
+    "4": {
+      "keys": {
+        "59": {
+          "keyName": "CTRL",
+          "width": 90,
+          "height": 70,
+          "left": 0,
+          "top": 15,
+          "packetIndex": [315],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [105, 63],
+          "keyHash": ["40564819207303340847894502572032"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "60": {
+          "keyName": "WIN",
+          "subKeyName": "LOCK",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [324],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "isLock": true,
+          "keyData": [108, 57],
+          "keyHash": ["324518553658426726783156020576256"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "61": {
+          "keyName": "ALT",
+          "keyNameInternal": "L ALT",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [321],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide",
+          "default": true,
+          "keyData": [107, 63],
+          "keyHash": ["162259276829213363391578010288128"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "62": {
+          "keyName": "SPACE",
+          "width": 520,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [0, 3, 132],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "css": "keyboard-key wide7",
+          "default": true,
+          "keyData": [44, 57],
+          "keyHash": ["17592186044416"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "63": {
+          "keyName": "FN",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [366],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "modifier": true,
+          "functionKey": true,
+          "keyData": [122, 63],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "64": {
+          "keyName": "ALT",
+          "keyNameInternal": "R ALT",
+          "subKeyName": "←",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [333],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [111, 63],
+          "keyHash": ["2596148429267413814265248164610048"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "65": {
+          "keyName": "MENU",
+          "subKeyName": "↓",
+          "width": 90,
+          "height": 70,
+          "left": 15,
+          "top": 15,
+          "packetIndex": [303],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [101, 59],
+          "keyHash": ["2535301200456458802993406410752"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        },
+        "66": {
+          "keyName": "CTRL",
+          "subKeyName": "→",
+          "width": 70,
+          "height": 70,
+          "left": 45,
+          "top": 15,
+          "packetIndex": [327],
+          "color": {
+            "red": 0,
+            "green": 255,
+            "blue": 255
+          },
+          "default": true,
+          "keyData": [109, 63],
+          "keyHash": ["649037107316853453566312041152512"],
+          "actuationPoint": 20,
+          "actuationResetPoint": 19,
+          "secondaryActuationPoint": 35,
+          "secondaryActuationResetPoint": 34
+        }
+      }
+    }
+  }
+}

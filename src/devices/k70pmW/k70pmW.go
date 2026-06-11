@@ -2570,7 +2570,7 @@ func (d *Device) TriggerKeyAssignment(value []byte) {
 			if key.ActionHold {
 				d.KeyboardKey = key
 			}
-			if d.dispatch != nil && len(d.KeyboardKey.DeviceId) > 0 {
+			if d.dispatch != nil && len(key.DeviceId) > 0 {
 				d.dispatch(key.DeviceId, "CallSniperMode", key.ActionHold)
 			}
 			break

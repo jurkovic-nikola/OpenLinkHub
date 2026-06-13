@@ -1,5 +1,68 @@
+## 2026-06-13
+
+* fixup (34ae0152)
+
+## 2026-06-11
+
+* fixups (03844bf5)
+* key states https://github.com/jurkovic-nikola/OpenLinkHub/issues/447 (c8fccad0)
+
+## 2026-06-09
+
+* leftovers (850e62fd)
+* clipper pro mini 60 (22ab027e)
+
+## 2026-06-08
+
+* macro loop for vanguard 96 pro and scimitar se https://github.com/jurkovic-nikola/OpenLinkHub/issues/443 (fe0bb7e4)
+
+## 2026-05-31
+
+* cluster update (1f3a9aa7)
+* align color and button, static brightness (fe4c7945)
+* Merge pull request #428 from stickbug813/feature/color-picker-clean (88ed645d)
+
+## 2026-05-30
+
+* refactor(color-picker): move universal color picker to settings page (de52fbc4)
+* port of https://github.com/jurkovic-nikola/OpenLinkHub/pull/431 (7dc11070)
+
+## 2026-05-29
+
+* azerty / qwerty switch https://github.com/jurkovic-nikola/OpenLinkHub/issues/423 (f649fd46)
+* scale https://github.com/jurkovic-nikola/OpenLinkHub/pull/424 for commander core lcd devices (bb5c43f0)
+* dpi up / down for k100 https://github.com/jurkovic-nikola/OpenLinkHub/issues/432 (3fa3dd9f)
+* Merge pull request #427 from stickbug813/feature/headset-auto-switch (405c104d)
+
+## 2026-05-28
+
+* continue if packet is corrupted https://github.com/jurkovic-nikola/OpenLinkHub/issues/434 (ca8aa1c9)
+* all commands in heaader (750e7b66)
+* Merge pull request #424 from TonyMacDonald1995/main (5c562f50)
+* Merge pull request #422 from Alexconquer/add-k70mk2-fr-layout (29cc6866)
+
+## 2026-05-14
+
+* feat(dashboard): universal color picker to set all devices to one static color (b86c9797)
+* feat(monitor): auto-switch PipeWire sink when VIRTUOSO XT wired USB connects/disconnects (8f1162c1)
+
+## 2026-05-11
+
+* fix: properly format k70mk2-fr.json and add AltGr legends (549e93eb)
+* lcd backlight brightness support for LSH titan aio (d97eaca3)
+
+## 2026-05-10
+
+* feat: add French (AZERTY) keyboard layout for K70 RGB MK2 (aa66f1e9)
+
+## 2026-05-09
+
+* Merge pull request #421 from LJspice/main (dda4aca2)
+* Update devcontainer Go version, added missing apt packages (003dc840)
+
 ## 2026-05-08
 
+* changelog (8b1ecbba)
 * xeneon colors, dynamic values (bff7d17f)
 
 ## 2026-05-07

@@ -304,6 +304,7 @@ var (
 		"circleshift",
 		"colorpulse",
 		"colorshift",
+		"teal-pink-hue-cycle",
 		"colorwarp",
 		"cpu-temperature",
 		"flickering",
@@ -4787,6 +4788,11 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 	case "colorshift":
 		{
 			r.Colorshift(startTime, d.activeRgb)
+			buff = r.Output
+		}
+	case "teal-pink-hue-cycle":
+		{
+			r.TealPinkHueCycle(startTime)
 			buff = r.Output
 		}
 	case "circleshift":

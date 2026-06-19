@@ -657,6 +657,10 @@ func (d *Device) getDevices() int {
 					switch line {
 					case "K":
 						skuLine = "VENGEANCE"
+					case "G":
+						skuLine = "VENGEANCE RGB RS"
+						ledChannels = 6
+						colorRegister = 0x31
 					case "H":
 						skuLine = "VENGEANCE RGB"
 						ledChannels = 10

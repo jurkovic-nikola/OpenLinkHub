@@ -35,6 +35,14 @@ type AmdGPUInfo struct {
 	Usage AmdGpuUsage `json:"usage"`
 }
 
+type AmdSMIUsage struct {
+	GPUData []AmdGPUInfo `json:"gpu_data"`
+}
+
+type AmdSMIModel struct {
+	GPUData []AMDGPUInfo `json:"gpu_data"`
+}
+
 type CpuData struct {
 	Model   string
 	Cores   int
@@ -301,13 +309,14 @@ func GetAMDGpuModel() string {
 		return ""
 	}
 
-	var gpuInfo []AMDGPUInfo
+	var gpuInfo AmdSMIModel
 	err = json.Unmarshal(jsonOutput, &gpuInfo)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data for AmdSMIModel")
 		return ""
 	}
-	return gpuInfo[0].Asic.MarketName
+
+	return gpuInfo.GPUData[0].Asic.MarketName
 }
 
 // GetNVIDIAUtilization will return NVIDIA gpu utilization
@@ -472,16 +481,15 @@ func getAMDUtilization() float64 {
 		return 0
 	}
 
-	var gpus []AmdGPUInfo
-	err = json.Unmarshal(jsonOutput, &gpus)
+	var gpuUsage AmdSMIUsage
+	err = json.Unmarshal(jsonOutput, &gpuUsage)
 	if err != nil {
-		fmt.Println(err)
-		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data for AmdSMIUsage")
 		return 0
 	}
 
-	if len(gpus) > 0 {
-		return gpus[0].Usage.GfxActivity.Value
+	if len(gpuUsage.GPUData) > 0 {
+		return gpuUsage.GPUData[0].Usage.GfxActivity.Value
 	}
 	return 0
 }

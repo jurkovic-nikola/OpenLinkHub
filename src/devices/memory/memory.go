@@ -498,19 +498,17 @@ func (d *Device) loadDeviceMetadata() {
 	if common.FileExists(deviceMetadata) {
 		file, err := os.Open(deviceMetadata)
 		if err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
-			return
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Error("Unable to load devices metadata")
 		}
 		if err = json.NewDecoder(file).Decode(&d.supportedDevices); err != nil {
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to decode devices metadata")
-			return
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Error("Unable to decode devices metadata")
 		}
 		err = file.Close()
 		if err != nil {
 			logger.Log(logger.Fields{"location": deviceMetadata, "serial": d.Serial}).Warn("Failed to close devices metadata")
 		}
 	} else {
-		logger.Log(logger.Fields{"serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
+		logger.Log(logger.Fields{"serial": d.Serial, "location": deviceMetadata}).Error("Unable to load devices metadata")
 	}
 
 	if len(d.supportedDevices) == 0 {

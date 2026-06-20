@@ -30,17 +30,17 @@ type AmdGpuUsage struct {
 	GfxActivity AmdGfxActivity `json:"gfx_activity"`
 }
 
-type AmdGPUInfo struct {
+type AmdGPUUsageData struct {
 	GPU   int         `json:"gpu"`
 	Usage AmdGpuUsage `json:"usage"`
 }
 
 type AmdSMIUsage struct {
-	GPUData []AmdGPUInfo `json:"gpu_data"`
+	GPUData []AmdGPUUsageData `json:"gpu_data"`
 }
 
 type AmdSMIModel struct {
-	GPUData []AMDGPUInfo `json:"gpu_data"`
+	GPUData []AMDGPUModelData `json:"gpu_data"`
 }
 
 type CpuData struct {
@@ -88,7 +88,7 @@ type Asic struct {
 	VendorName string `json:"vendor_name"`
 }
 
-type AMDGPUInfo struct {
+type AMDGPUModelData struct {
 	GPU  int  `json:"gpu"`
 	Asic Asic `json:"asic"`
 }

@@ -1,6 +1,34 @@
+## 2026-06-23
+
+* support for k60 rgb pro lp https://github.com/jurkovic-nikola/OpenLinkHub/issues/425 (9ba2d645)
+
+## 2026-06-20
+
+* naming, errors (8af5665e)
+* process gpu_data field https://github.com/jurkovic-nikola/OpenLinkHub/issues/458 (2488450f)
+* external memory metadata (b94f2ed5)
+
+## 2026-06-19
+
+* Merge pull request #453 from HighLibrarian/K95Platinum-BE (dfa55757)
+* vengeance rs rgb https://github.com/jurkovic-nikola/OpenLinkHub/issues/454 (382a6762)
+
+## 2026-06-18
+
+* Added Belgian Period Layout to fix non working  backtick and backslash keys (5ddec3af)
+
+## 2026-06-14
+
+* Merge pull request #449 from skelettor/main (62053083)
+
 ## 2026-06-13
 
+* changelog (d456b629)
 * fixup (34ae0152)
+
+## 2026-06-12
+
+* add French (AZERTY) keyboard layout for K70 Core RGB (8890d96d)
 
 ## 2026-06-11
 

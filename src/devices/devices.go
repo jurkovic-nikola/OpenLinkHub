@@ -41,6 +41,7 @@ import (
 	"OpenLinkHub/src/devices/k55proXT"
 	"OpenLinkHub/src/devices/k57rgbWU"
 	"OpenLinkHub/src/devices/k60rgbpro"
+	"OpenLinkHub/src/devices/k60rgbprolp"
 	"OpenLinkHub/src/devices/k65plusWU"
 	"OpenLinkHub/src/devices/k65plusWdongle"
 	"OpenLinkHub/src/devices/k65pm"
@@ -766,6 +767,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7073:  {1, 0, "K55 RGB PRO XT", k55proXT.Init, nil},                    // K55 RGB PRO XT
 	7022:  {1, 0, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                  // K57 RGB WIRELESS
 	7072:  {1, 0, "K60 RGB PRO", k60rgbpro.Init, nil},                      // K60 RGB PRO
+	7085:  {1, 0, "K60 RGB PRO LP", k60rgbprolp.Init, nil},                 // K60 RGB PRO LP
 	7104:  {1, 0, "K70 MAX", k70max.Init, nil},                             // K70 MAX
 	7108:  {1, 0, "K70 PRO", k70pro.Init, nil},                             // K70 PRO
 	7110:  {1, 0, "K70 PRO", k70pro.Init, nil},                             // K70 PRO

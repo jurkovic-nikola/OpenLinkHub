@@ -135,6 +135,7 @@ const (
 	ProductTypeVanguard96WU         = 142
 	ProductTypeVanguard96W          = 143
 	ProductTypeClipperProMini60     = 144
+	ProductTypeK60RgbProLp          = 145
 	ProductTypeKatarPro             = 201
 	ProductTypeIronClawRgb          = 202
 	ProductTypeIronClawRgbW         = 203

@@ -356,6 +356,8 @@
                                             <span class="settings-label text-ellipsis">{{ $root.Lang "txtLcdDevice" }}</span>
                                             <label>
                                                 <select class="form-select system-select compact auto-width lcdDevices" name="{{ $device.DeviceId }}">
+                                                    <option value="{{ $device.ChannelId }};" selected>None</option>
+
                                                     {{ range $value := $lcdDevices }}
                                                     {{ if $value.AIO }}
                                                     {{ continue }}

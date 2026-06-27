@@ -3815,21 +3815,21 @@ func (d *Device) getDevices() int {
 		} else {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 		}
-		/*
-			lcdSerial := ""
-			if d.DeviceProfile != nil {
-				// Profile is set
-				if ls, ok := d.DeviceProfile.LCDDevices[i]; ok {
-					if len(ls) > 0 {
-						lcdSerial = ls
-					}
-				} else {
-					logger.Log(logger.Fields{"serial": d.Serial, "lcdSerial": ls}).Warn("Tried to apply rgb profile to the non-existing channel")
+
+		lcdSerial := ""
+		if d.DeviceProfile != nil {
+			// Profile is set
+			if ls, ok := d.DeviceProfile.LCDDevices[i]; ok {
+				if len(ls) > 0 {
+					lcdSerial = ls
 				}
 			} else {
-				logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+				logger.Log(logger.Fields{"serial": d.Serial, "lcdSerial": ls}).Warn("Tried to apply rgb profile to the non-existing channel")
 			}
-		*/
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+		}
+
 		var ledChannels uint8 = 0
 		var adapterLedData uint8 = 0
 		var subDevices = map[int]LinkAdapter{}
@@ -3944,6 +3944,7 @@ func (d *Device) getDevices() int {
 				d.lcdDevices[lcdData.Serial] = lcdHidData
 			}
 		} else if device.ContainsPump && !device.AIO && len(nonAIOLcdData) == 1 {
+			// Single XD5 with LCD
 			if nonAIOLcdData != nil {
 				lcdData := nonAIOLcdData[0]
 				if lcdData.Lcd != nil {
@@ -3953,6 +3954,23 @@ func (d *Device) getDevices() int {
 						Lcd:       lcdData.Lcd,
 					}
 					d.lcdDevices[lcdData.Serial] = lcdHidData
+				}
+			}
+		} else if device.ContainsPump && !device.AIO && len(nonAIOLcdData) > 1 {
+			// Multiple XD5 with LCD
+			if nonAIOLcdData != nil {
+				for key := range nonAIOLcdData {
+					lcdData := nonAIOLcdData[key]
+					if lcdData.Lcd != nil {
+						if lcdData.Serial == lcdSerial {
+							device.LCDSerial = lcdData.Serial
+							lcdHidData := &LCD{
+								ProductId: 0,
+								Lcd:       lcdData.Lcd,
+							}
+							d.lcdDevices[lcdData.Serial] = lcdHidData
+						}
+					}
 				}
 			}
 		}

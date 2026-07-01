@@ -641,8 +641,8 @@
     "txtMacroSettings": "Makroinställningar",
     "txtInvalidMacroDelayValue": "Ogiltigt värde för makrots upprepningsfördröjning. Värdet måste vara 0 eller högre",
     "txtInvalidMacroLoopValue": "Ogiltigt värde för makroloop. Värdet måste vara 0 eller högre",
-    "unableToUpdateMacroSettings": "Det gick inte att uppdatera makroinställningarna",
-    "macroSettingsUpdated": "Makroinställningarna har uppdaterats",
+    "txtUnableToUpdateMacroSettings": "Det gick inte att uppdatera makroinställningarna",
+    "txtMacroSettingsUpdated": "Makroinställningarna har uppdaterats",
     "txtTemperatureSourceChanged": "Temperaturkällan har uppdaterats",
     "txtUnableToUpdateTemperatureSource": "Det går inte att uppdatera temperaturkällan"
   }

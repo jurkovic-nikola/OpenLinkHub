@@ -647,8 +647,8 @@
     "txtMacroSettings": "Postavke makroa",
     "txtInvalidMacroDelayValue": "Nevažeća vrijednost odgode ponavljanja makroa. Vrijednost mora biti 0 ili veća",
     "txtInvalidMacroLoopValue": "Nevažeća vrijednost petlje makroa. Vrijednost mora biti 0 ili veća",
-    "unableToUpdateMacroSettings": "Nije moguće ažurirati postavke makroa",
-    "macroSettingsUpdated": "Postavke makroa su uspješno ažurirane",
+    "txtUnableToUpdateMacroSettings": "Nije moguće ažurirati postavke makroa",
+    "txtMacroSettingsUpdated": "Postavke makroa su uspješno ažurirane",
     "txtTemperatureSourceChanged": "Izvor temperature je uspješno ažuriran",
     "txtUnableToUpdateTemperatureSource": "Nije moguće ažurirati izvor temperature"
   }

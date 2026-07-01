@@ -3866,19 +3866,19 @@ func ProcessUpdateMacroSettings(r *http.Request) *Payload {
 	switch res {
 	case 0:
 		return &Payload{
-			Message: language.GetValue("unableToUpdateMacroSettings"),
+			Message: language.GetValue("txtUnableToUpdateMacroSettings"),
 			Code:    http.StatusOK,
 			Status:  0,
 		}
 	case 1:
 		return &Payload{
-			Message: language.GetValue("macroSettingsUpdated"),
+			Message: language.GetValue("txtMacroSettingsUpdated"),
 			Code:    http.StatusOK,
 			Status:  1,
 		}
 	default:
 		return &Payload{
-			Message: language.GetValue("unableToUpdateMacroSettings"),
+			Message: language.GetValue("txtUnableToUpdateMacroSettings"),
 			Code:    http.StatusOK,
 			Status:  0,
 		}

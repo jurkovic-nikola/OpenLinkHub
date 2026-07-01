@@ -647,8 +647,8 @@
     "txtMacroSettings": "Configurações de macro",
     "txtInvalidMacroDelayValue": "Valor de atraso de repetição da macro inválido. O valor deve ser 0 ou superior",
     "txtInvalidMacroLoopValue": "Valor de repetição em loop da macro inválido. O valor deve ser 0 ou superior",
-    "unableToUpdateMacroSettings": "Não foi possível atualizar as configurações da macro",
-    "macroSettingsUpdated": "As configurações da macro foram atualizadas com sucesso",
+    "txtUnableToUpdateMacroSettings": "Não foi possível atualizar as configurações da macro",
+    "txtMacroSettingsUpdated": "As configurações da macro foram atualizadas com sucesso",
     "txtTemperatureSourceChanged": "A fonte de temperatura foi atualizada com sucesso",
     "txtUnableToUpdateTemperatureSource": "Não foi possível atualizar a fonte de temperatura"
   }

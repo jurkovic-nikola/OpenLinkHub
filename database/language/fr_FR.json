@@ -648,6 +648,8 @@
         "txtInvalidMacroDelayValue": "Valeur du délai de répétition de la macro non valide. La valeur doit être égale ou supérieure à 0",
         "txtInvalidMacroLoopValue": "Valeur de boucle de macro non valide. La valeur doit être égale ou supérieure à 0",
         "unableToUpdateMacroSettings": "Impossible de mettre à jour les paramètres de macro",
-        "macroSettingsUpdated": "Les paramètres de macro ont été mis à jour avec succès"
+        "macroSettingsUpdated": "Les paramètres de macro ont été mis à jour avec succès",
+        "txtTemperatureSourceChanged": "La source de température a été mise à jour avec succès",
+        "txtUnableToUpdateTemperatureSource": "Impossible de mettre à jour la source de température"
     }
 }

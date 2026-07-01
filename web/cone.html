@@ -85,6 +85,15 @@
                                     </label>
                                 </div>
 
+                                <!-- GPU Temperature Source -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtGpuTemperature" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" class="toggleLiquidTemperatureSource" {{ if $deviceProfile.UseGpuTemperature }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
                                 <!-- RGB Profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>

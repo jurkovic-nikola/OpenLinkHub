@@ -67,6 +67,7 @@ type DeviceProfile struct {
 	OpenRGBIntegration bool
 	RGBCluster         bool
 	RgbOff             bool
+	UseGpuTemperature  bool
 }
 
 type DeviceList struct {
@@ -757,6 +758,16 @@ func (d *Device) ControlDeviceRgb(value bool) {
 	d.setDeviceColor()
 }
 
+// SetLiquidTemperatureSource will change liquid temperature source from CPU / GPU
+func (d *Device) SetLiquidTemperatureSource(value bool) {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	d.DeviceProfile.UseGpuTemperature = value
+	d.saveDeviceProfile()
+}
+
 // setDeviceColor will activate and set device RGB
 func (d *Device) setDeviceColor() {
 	// Release existing queue
@@ -818,7 +829,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.
@@ -1317,6 +1328,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
+		deviceProfile.UseGpuTemperature = d.DeviceProfile.UseGpuTemperature
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -2367,6 +2379,16 @@ func (d *Device) getLiquidTemperature() float32 {
 	return 0
 }
 
+// getLiquidGpuTemperature will fetch temperature from AIO device
+func (d *Device) getLiquidGpuTemperature() float32 {
+	for _, device := range d.Devices {
+		if device.ChannelId == 0 {
+			return float32(device.GpuTemperature)
+		}
+	}
+	return 0
+}
+
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
@@ -2408,6 +2430,9 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeLiquidTemperature:
 						{
 							temp = d.getLiquidTemperature()
+							if d.DeviceProfile.UseGpuTemperature {
+								temp = d.getLiquidGpuTemperature()
+							}
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial}).Warn("Unable to get liquid temperature.")
 							}
@@ -2454,6 +2479,9 @@ func (d *Device) updateDeviceSpeed() {
 					case temperatures.SensorTypeGlobalTemperature:
 						{
 							temp = stats.GetDeviceTemperature(profiles.Device, profiles.ChannelId)
+							if d.DeviceProfile.UseGpuTemperature {
+								temp = d.getLiquidGpuTemperature()
+							}
 							if temp == 0 {
 								logger.Log(logger.Fields{"temperature": temp, "serial": d.Serial, "hwmonDeviceId": profiles.Device}).Warn("Unable to get hwmon temperature.")
 							}

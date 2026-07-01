@@ -4856,6 +4856,40 @@ $(document).ready(function () {
         });
     });
 
+    $(".toggleLiquidTemperatureSource").on("change", function () {
+        const $toggle = $(this);
+        const previousState = !$toggle.prop("checked");
+        const newState = $toggle.prop("checked");
+        const deviceId = $("#deviceId").val();
+
+        $toggle.prop("disabled", true);
+
+        $.ajax({
+            url: "/api/temperatures/setLiquidTemperatureSource",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                mode: newState ? 1 : 0
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    $toggle.prop("checked", previousState);
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                $toggle.prop("checked", previousState);
+                toast.warning("Request failed");
+            },
+            complete() {
+                $toggle.prop("disabled", false);
+            }
+        });
+    });
+
     $(".toggleAutoBrightness").on("change", function () {
         const $toggle = $(this);
         const previousState = !$toggle.prop("checked");

@@ -648,6 +648,8 @@
     "txtInvalidMacroDelayValue": "Ungültiger Wiederholungsverzögerungswert für das Makro. Der Wert muss 0 oder größer sein",
     "txtInvalidMacroLoopValue": "Ungültiger Makroschleifenwert. Der Wert muss 0 oder größer sein",
     "unableToUpdateMacroSettings": "Makroeinstellungen konnten nicht aktualisiert werden",
-    "macroSettingsUpdated": "Makroeinstellungen wurden erfolgreich aktualisiert"
+    "macroSettingsUpdated": "Makroeinstellungen wurden erfolgreich aktualisiert",
+    "txtTemperatureSourceChanged": "Die Temperaturquelle wurde erfolgreich aktualisiert",
+    "txtUnableToUpdateTemperatureSource": "Die Temperaturquelle konnte nicht aktualisiert werden"
   }
 }

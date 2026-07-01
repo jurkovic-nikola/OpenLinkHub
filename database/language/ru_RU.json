@@ -642,6 +642,8 @@
         "txtInvalidMacroDelayValue": "Недопустимое значение задержки повторения макроса. Значение должно быть не меньше 0",
         "txtInvalidMacroLoopValue": "Недопустимое значение цикла макроса. Значение должно быть не меньше 0",
         "unableToUpdateMacroSettings": "Не удалось обновить настройки макроса",
-        "macroSettingsUpdated": "Настройки макроса успешно обновлены"
+        "macroSettingsUpdated": "Настройки макроса успешно обновлены",
+        "txtTemperatureSourceChanged": "Источник температуры успешно обновлён",
+        "txtUnableToUpdateTemperatureSource": "Не удалось обновить источник температуры"
     }
 }

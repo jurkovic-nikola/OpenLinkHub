@@ -1267,6 +1267,17 @@ func setRgbCluster(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setRgbCluster saves RGB cluster state
+func setLiquidTemperatureSource(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetLiquidTemperatureSource(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setKeyboardLiveSync saves keyboard live RGB sync state
 func setKeyboardLiveSync(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetKeyboardLiveSync(r)
@@ -2562,6 +2573,7 @@ func setRoutes() http.Handler {
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
+	handleFunc(r, "/api/temperatures/setLiquidTemperatureSource", http.MethodPost, setLiquidTemperatureSource)
 	handleFunc(r, "/api/speed", http.MethodPost, setDeviceSpeed)
 	handleFunc(r, "/api/speed/manual", http.MethodPost, setManualDeviceSpeed)
 	handleFunc(r, "/api/operatingMode", http.MethodPost, setOperatingMode)

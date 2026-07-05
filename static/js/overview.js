@@ -3506,7 +3506,7 @@ $(document).ready(function () {
                                 $modeSelect.append(
                                     $('<option>', {
                                         value: label.ChannelId,
-                                        text: label.Name
+                                        text: `${label.Name} - ${label.Label}`
                                     })
                                 );
                             });

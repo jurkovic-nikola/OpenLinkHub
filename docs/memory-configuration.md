@@ -70,12 +70,12 @@ You will need to change your `memorySmBus`, `memoryType`, and `memorySku` depend
 ### Set permissions
 You will need to change `'KERNEL=="i2c-15"` to your i2c `smbus` device.
 ```bash
-echo 'KERNEL=="i2c-15", MODE="0600", OWNER="openlinkhub"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
+echo 'KERNEL=="i2c-15", MODE="0660", GROUP="openlinkhub"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
 ### Restart OpenLinkHub service
 ```bash
-sudo systemctl restart OpenLinkHub.service
+sudo systemctl restart --user OpenLinkHub.service
 ```

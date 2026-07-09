@@ -54,12 +54,16 @@ type Devices struct {
 	Latency            int     `json:"latency"`
 	LedChannels        uint8   `json:"ledChannels"`
 	ColorRegister      uint8   `json:"colorRegister"`
+	Protocol           string  `json:"protocol,omitempty"`
+	Address            byte    `json:"address,omitempty"`
 	Name               string  `json:"name"`
 	Temperature        float32 `json:"temperature"`
 	TemperatureString  string  `json:"temperatureString"`
 	Label              string  `json:"label"`
 	RGB                string  `json:"rgb"`
 	HwmonPath          string  `json:"hwmonPath"`
+	DirectRegister     uint16  `json:"-"`
+	EffectRegister     uint16  `json:"-"`
 	HasTemps           bool    `json:"-"`
 	HasSpeed           bool
 	ContainsPump       bool
@@ -327,7 +331,7 @@ func (d *Device) Stop() {
 				static[i] = []byte{0, 0, 0}
 			}
 			buffer := rgb.SetColor(static)
-			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister)
+			d.writeDeviceColor(d.Devices[k], buffer)
 		}
 	}
 
@@ -726,6 +730,8 @@ func (d *Device) getDevices() int {
 						MemoryType:        d.RuntimeMemoryType,
 						LedChannels:       uint8(metadata.LedChannels),
 						ColorRegister:     metadata.Register,
+						Protocol:          memoryProtocolCorsair,
+						Address:           colorAddresses[i],
 						Name:              metadata.Name,
 						Temperature:       float32(temperature),
 						TemperatureString: temperatureString,
@@ -783,6 +789,10 @@ func (d *Device) getDevices() int {
 				}
 			}
 		}
+	}
+
+	if len(devices) == 0 {
+		devices = d.getENEDevices(modules)
 	}
 
 	d.Devices = devices
@@ -1206,7 +1216,7 @@ func (d *Device) setDeviceColor() {
 			static[i] = []byte{byte(0), byte(0), byte(0)}
 		}
 		buffer = rgb.SetColor(static)
-		d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister)
+		d.writeDeviceColor(d.Devices[k], buffer)
 		time.Sleep(5 * time.Millisecond)
 	}
 
@@ -1264,7 +1274,7 @@ func (d *Device) setDeviceColor() {
 				}
 			}
 			buffer = rgb.SetColor(static)
-			d.transfer(buffer, colorAddresses[k], d.Devices[k].LedChannels, d.Devices[k].ColorRegister)
+			d.writeDeviceColor(d.Devices[k], buffer)
 			time.Sleep(10 * time.Millisecond)
 		}
 		return
@@ -1498,12 +1508,34 @@ func (d *Device) setDeviceColor() {
 	}(lightChannels)
 }
 
+// writeDeviceColor writes RGB data using the memory module's RGB protocol.
+func (d *Device) writeDeviceColor(device *Devices, data []byte) {
+	if device == nil || device.LedChannels == 0 {
+		return
+	}
+
+	if device.Protocol == memoryProtocolENE {
+		d.transferENE(data, device)
+		return
+	}
+
+	address := device.Address
+	if address == 0 && device.ChannelId >= 0 && device.ChannelId < len(colorAddresses) {
+		address = colorAddresses[device.ChannelId]
+	}
+	if address == 0 {
+		logger.Log(logger.Fields{"channelId": device.ChannelId, "name": device.Name}).Error("Unable to write memory color without SMBus address")
+		return
+	}
+	d.transfer(data, address, device.LedChannels, device.ColorRegister)
+}
+
 // writeColor will write color data to the device
 func (d *Device) writeColor(data []byte, deviceId int) {
 	if d.DeviceProfile.OpenRGBIntegration {
 		return
 	}
-	d.transfer(data, colorAddresses[deviceId], d.Devices[deviceId].LedChannels, d.Devices[deviceId].ColorRegister)
+	d.writeDeviceColor(d.Devices[deviceId], data)
 }
 
 // writeColorEx will write data to the device from OpenRGB client
@@ -1591,7 +1623,7 @@ func (d *Device) startQueueWorker() {
 
 			for _, channelId := range keys {
 				data := packetMap[channelId]
-				d.transfer(data, colorAddresses[channelId], d.Devices[channelId].LedChannels, d.Devices[channelId].ColorRegister)
+				d.writeDeviceColor(d.Devices[channelId], data)
 				_ = channelId
 			}
 			d.deviceLock.Unlock()

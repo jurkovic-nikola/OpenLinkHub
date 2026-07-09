@@ -21,6 +21,7 @@ const (
 	i2cSmbus            = 0x0720
 	i2cRead      uint8  = 1
 	i2cWrite     uint8  = 0
+	i2cByte      uint32 = 1
 	i2cByteData  uint32 = 2
 	i2cWordData  uint32 = 3
 	i2cBlockData uint32 = 5
@@ -110,13 +111,24 @@ func Open(device string) (*Connection, error) {
 
 // WriteBlockData will write a byte array to register
 func WriteBlockData(f *os.File, address, register uint8, buf []byte) error {
+	return writeBlockData(f, address, register, buf, true)
+}
+
+// WriteBlockDataUncached will write a byte array to register without packet caching.
+func WriteBlockDataUncached(f *os.File, address, register uint8, buf []byte) error {
+	return writeBlockData(f, address, register, buf, false)
+}
+
+func writeBlockData(f *os.File, address, register uint8, buf []byte, useCache bool) error {
 	if len(buf) > int(i2csmBusMax) {
 		return errors.New("buffer is too long for this type")
 	}
 
 	k := cacheKey{addr: address, reg: register}
-	if prev, ok := cacheData[k]; ok && bytes.Equal(prev, buf) {
-		return nil
+	if useCache {
+		if prev, ok := cacheData[k]; ok && bytes.Equal(prev, buf) {
+			return nil
+		}
 	}
 
 	if err := ioctl(f.Fd(), i2cSlave, uintptr(address)); err != nil {
@@ -135,12 +147,62 @@ func WriteBlockData(f *os.File, address, register uint8, buf []byte) error {
 	}
 	ptr := unsafe.Pointer(&cmd)
 	err := ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
-	if err == nil {
+	if useCache && err == nil {
 		cp := make([]byte, len(buf))
 		copy(cp, buf)
 		cacheData[k] = cp
 	}
 	return err
+}
+
+// WriteRegister will write a byte to a register
+func WriteRegister(f *os.File, address, register, value uint8) error {
+	if err := ioctl(f.Fd(), i2cSlave, uintptr(address)); err != nil {
+		return err
+	}
+
+	cmd := i2cCommand{
+		mode:    i2cWrite,
+		command: register,
+		length:  i2cByteData,
+		pointer: unsafe.Pointer(&value),
+	}
+	ptr := unsafe.Pointer(&cmd)
+	return ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
+}
+
+// WriteWord writes a 2-byte word to a designated register.
+func WriteWord(f *os.File, addr, reg uint8, value uint16) error {
+	if err := ioctl(f.Fd(), i2cSlave, uintptr(addr)); err != nil {
+		return err
+	}
+
+	cmd := i2cCommand{
+		mode:    i2cWrite,
+		command: reg,
+		length:  i2cWordData,
+		pointer: unsafe.Pointer(&value),
+	}
+	ptr := unsafe.Pointer(&cmd)
+	return ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
+}
+
+// ReadByte will read a byte without specifying a register.
+func ReadByte(f *os.File, address uint8) (uint8, error) {
+	if err := ioctl(f.Fd(), i2cSlave, uintptr(address)); err != nil {
+		return 0, err
+	}
+
+	var v uint8
+	var cmd = i2cCommand{
+		mode:    i2cRead,
+		command: 0,
+		length:  i2cByte,
+		pointer: unsafe.Pointer(&v),
+	}
+	ptr := unsafe.Pointer(&cmd)
+	err := ioctl(f.Fd(), i2cSmbus, uintptr(ptr))
+	return v, err
 }
 
 // ReadRegister will read byte from a register

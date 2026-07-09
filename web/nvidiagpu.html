@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" . }}
+<body>
+
+<div class="container-fluid">
+    {{ $root := . }}
+    {{ $device := .Device }}
+    {{ $devices := $device.Devices }}
+    {{ $rgbModes := .Device.RGBModes }}
+    {{ $deviceProfile := .Device.DeviceProfile }}
+    <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
+    <div class="row">
+        {{ template "sidebar" . }}
+
+        <main class="main-content p-4">
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            <div class="row g-4 mb-4 align-items-start">
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ .Device.Product }}
+                        </div>
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtProfile" }}</span>
+                                    <label for="profiles">
+                                        <select id="profiles" class="form-select system-select auto-width compact userProfile" name="userProfile">
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            <option value="{{ $key }}" {{ if $profile.Active }}selected{{ end }}>{{ $key }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.BrightnessSlider }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <label for="globalRgb">
+                                        <select id="globalRgb" class="form-select system-select auto-width compact globalRgb" name="globalRgb">
+                                            {{ range $key, $mode := $rgbModes }}
+                                            <option value="{{ $mode }}" {{ if eq $mode $deviceProfile.MultiRGB }}selected{{ end }}>{{ $mode }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
+                                    <label for="deleteUserProfiles">
+                                        <select id="deleteUserProfiles" class="form-select system-select auto-width compact deleteUserProfiles" name="deleteUserProfiles">
+                                            <option value="none">None</option>
+                                            {{ range $key, $profile := $device.UserProfiles }}
+                                            {{ if not $profile.Active }}
+                                            <option value="{{ $key }}">{{ $key }}</option>
+                                            {{ end }}
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
+                                    <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-10">
+                    <div class="row g-4 mb-4 align-items-start">
+                        {{ range $device := $devices }}
+                        <div class="col-md-3">
+                            <div class="card system-card text-center" data-info="{{ $device.ChannelId }}">
+                                <div class="card-header header-split">
+                                    <span class="header-left">{{ $device.Name }}</span>
+                                    <span class="header-right newLabel">
+                                        <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                        <span class="labelValue">{{ $device.Label }}</span>
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgb" }}</span>
+                                            <label>
+                                                <select class="system-select auto-width compact rgbProfile" name="{{ $device.DeviceId }}">
+                                                    {{ range $key, $mode := $rgbModes }}
+                                                    <option value="{{ $device.ChannelId }};{{ $mode }}" {{ if eq $mode $device.RGB }}selected{{ end }}>{{ $mode }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script src="/static/js/overview.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
+</body>
+</html>

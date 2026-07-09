@@ -91,6 +91,7 @@ const (
 	ProductTypeHydro                = 11
 	ProductTypeNautilusLcdCap       = 12
 	ProductTypeCorsairOne           = 13
+	ProductTypeNvidiaGPU            = 14
 	ProductTypeK65PM                = 101
 	ProductTypeK70Core              = 102
 	ProductTypeK55Core              = 103

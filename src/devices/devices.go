@@ -89,6 +89,7 @@ import (
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/nightswordrgb"
+	"OpenLinkHub/src/devices/nvidiagpu"
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psudongle"
 	"OpenLinkHub/src/devices/psuhid"
@@ -655,6 +656,13 @@ func Init() {
 			logger.Log(logger.Fields{}).Warn("Unable to get motherboard")
 		} else {
 			devices[motherboards.GetMotherboardSerial()] = motherboard.Init()
+		}
+	}
+
+	// NVIDIA GPU RGB
+	if config.GetConfig().NvidiaGpuRgb {
+		for _, device := range nvidiagpu.InitAll() {
+			addDevice(device)
 		}
 	}
 

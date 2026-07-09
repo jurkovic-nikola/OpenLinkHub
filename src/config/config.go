@@ -44,6 +44,7 @@ type Configuration struct {
 	EnableOpenRGBTargetServer bool     `json:"enableOpenRGBTargetServer"`
 	EnableGamepad             bool     `json:"enableGamepad"`
 	EnableMotherboard         bool     `json:"enableMotherboard"`
+	NvidiaGpuRgb              bool     `json:"nvidiaGpuRgb"`
 	MotherboardBiosOnExit     bool     `json:"motherboardBiosOnExit"`
 	MemoryRegisterOverride    []byte   `json:"memoryRegisterOverride"`
 }
@@ -70,6 +71,7 @@ var (
 		"enableOpenRGBTargetServer": false,
 		"enableGamepad":             true,
 		"enableMotherboard":         false,
+		"nvidiaGpuRgb":              true,
 		"motherboardBiosOnExit":     false,
 		"memoryRegisterOverride":    make([]byte, 0),
 	}
@@ -165,6 +167,7 @@ func upgradeFile(cfg string) {
 			EnableOpenRGBTargetServer: false,
 			EnableGamepad:             true,
 			EnableMotherboard:         false,
+			NvidiaGpuRgb:              true,
 			MotherboardBiosOnExit:     false,
 			MemoryRegisterOverride:    make([]byte, 0),
 		}

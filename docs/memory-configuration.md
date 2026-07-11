@@ -75,7 +75,19 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
+If you are running it in user mode:
+```bash
+echo 'KERNEL=="i2c-15", MODE="0660", GROUP="openlinkhub"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
 ### Restart OpenLinkHub service
 ```bash
 sudo systemctl restart OpenLinkHub.service
+```
+
+If you are running it in user mode:
+```bash
+sudo systemctl restart --user OpenLinkHub.service
 ```

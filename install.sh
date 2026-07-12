@@ -106,13 +106,14 @@ StartLimitIntervalSec=60
 StartLimitBurst=5
 
 [Service]
+Type=simple
 User=$USER_TO_CHECK
 Group=$USER_TO_CHECK
 WorkingDirectory=/opt/$PRODUCT
 ExecStart=/opt/$PRODUCT/$PRODUCT
-ExecReload=/bin/kill -s HUP \$MAINPID
+Restart=on-failure
 RestartSec=10
-Restart=always
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target

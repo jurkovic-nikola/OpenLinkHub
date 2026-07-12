@@ -1,6 +1,6 @@
 # LumenForge
 
-LumenForge is an experimental Linux RGB, cooling, and device-control hub built as a fork of [OpenLinkHub](https://github.com/jurkovic-nikola/OpenLinkHub). It keeps OpenLinkHub's Corsair and Linux control foundation while adding OpenRGB-backed device import, RGB Cluster workflows, rearrangeable mixed-device lighting layouts, dashboard improvements, built-in themes, optional system tray integration, and mixed-device lighting control.
+LumenForge is an experimental Linux RGB, cooling, and device-control hub built as a fork of [OpenLinkHub](https://github.com/jurkovic-nikola/OpenLinkHub). It keeps OpenLinkHub's Corsair and Linux control foundation while adding OpenRGB-backed device import, RGB Cluster workflows with physical-layout ordering, dashboard improvements, built-in themes, optional system tray integration, and mixed-device lighting control.
 
 LumenForge complements OpenLinkHub and OpenRGB; it does not replace either project. Hardware support varies, and OpenRGB-imported devices depend on both OpenRGB support and the metadata LumenForge can obtain for that device.
 
@@ -12,7 +12,7 @@ LumenForge complements OpenLinkHub and OpenRGB; it does not replace either proje
 - OpenRGB-backed device import where supported by OpenRGB and available import metadata
 - Dashboard overview with grouped device cards, lighting status, and card ordering
 - Built-in UI themes
-- Optional system tray integration, configurable from `config.json`
+- Optional built-in system tray integration, tested on KDE Plasma and GNOME; other desktop environments may work if they support StatusNotifierItem and D-Bus menus, while Cinnamon is not currently supported
 - Corsair hardware support inherited from OpenLinkHub
 - Cooling profiles, fan curves, pumps, temperature sensors, and system metrics where supported
 - RGB editor and custom lighting effects
@@ -142,6 +142,11 @@ LumenForge creates `config.json` on first run. It is stored in the working direc
 ```
 
 `openRGBPort` is the port used to connect to an external OpenRGB server for device discovery and import. See the [OpenRGB import guide](docs/openrgb-import.md) for setup and limitations.
+
+> [!WARNING]
+> Keep `listenAddress` set to `127.0.0.1` unless access to the host is otherwise secured. LumenForge's HTTP API can change device, cooling, lighting, profile, and backup settings and does not currently provide built-in authentication.
+
+`enableSystemTray` enables the built-in system tray integration. It has been tested on KDE Plasma and GNOME. Other desktop environments may also work if they provide compatible StatusNotifierItem and `com.canonical.dbusmenu` support. Cinnamon is not currently supported.
 
 ## Progressive Web App
 

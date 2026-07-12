@@ -6,6 +6,7 @@ package controller
 
 import (
 	"LumenForge/src/audio"
+	"LumenForge/src/cleanup"
 	"LumenForge/src/config"
 	"LumenForge/src/dashboard"
 	"LumenForge/src/devices"
@@ -28,16 +29,35 @@ import (
 	"LumenForge/src/systray"
 	"LumenForge/src/temperatures"
 	"LumenForge/src/version"
+	"context"
+	"sync"
+	"time"
 )
+
+const serverShutdownTimeout = 7 * time.Second
+
+var stopOnce sync.Once
+
+var cleanupState struct {
+	sync.Mutex
+	media bool
+	audio bool
+}
 
 // Start will start new controller session
 func Start() {
-	version.Init()      // Build info
-	config.Init()       // Configuration
-	logger.Init()       // Logger
-	display.Init()      // Displays
-	media.Init()        // Media client
-	audio.Init()        // Audio
+	version.Init() // Build info
+	config.Init()  // Configuration
+	logger.Init()  // Logger
+	display.Init() // Displays
+	media.Init()   // Media client
+	cleanupState.Lock()
+	cleanupState.media = true
+	cleanupState.Unlock()
+	audio.Init() // Audio
+	cleanupState.Lock()
+	cleanupState.audio = true
+	cleanupState.Unlock()
 	dashboard.Init()    // Dashboard
 	systeminfo.Init()   // Build system info
 	metrics.Init()      // Metrics
@@ -46,21 +66,41 @@ func Start() {
 	temperatures.Init() // Temperatures
 	keyboards.Init()    // Keyboards
 	inputmanager.Init() // Input Manager
+	cleanup.RegisterInput(inputmanager.Stop)
 	stats.Init()        // Statistics
 	macro.Init()        // Macro
 	motherboards.Init() // Motherboards
 	devices.Init()      // Devices
-	monitor.Init()      // Monitor
-	language.Init()     // Language
-	scheduler.Init()    // Scheduler
-	systray.InitTray()  // System Tray
-	server.Init()       // REST & WebUI
+	cleanup.RegisterDevices(devices.Stop)
+	monitor.Init()     // Monitor
+	language.Init()    // Language
+	scheduler.Init()   // Scheduler
+	systray.InitTray() // System Tray
+	server.Init()      // REST & WebUI
 }
 
 // Stop will stop device control
 func Stop() {
-	devices.Stop()      // Devices
-	inputmanager.Stop() // Cleanup virtual devices
-	audio.StopAudio()   // Virtual Audio
-	media.Stop()        // Media client
+	stopOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeout)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to gracefully stop REST server")
+		}
+
+		systray.Stop()
+		cleanupState.Lock()
+		audioStarted := cleanupState.audio
+		mediaStarted := cleanupState.media
+		cleanupState.Unlock()
+
+		cleanup.StopDevices()
+		cleanup.StopInput()
+		if audioStarted {
+			audio.StopAudio() // Virtual Audio
+		}
+		if mediaStarted {
+			media.Stop() // Media client
+		}
+	})
 }

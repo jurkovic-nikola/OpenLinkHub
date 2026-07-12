@@ -6,14 +6,14 @@ package monitor
 
 import (
 	"LumenForge/src/audio"
+	"LumenForge/src/cleanup"
 	"LumenForge/src/common"
 	"LumenForge/src/config"
 	"LumenForge/src/devices"
-	"LumenForge/src/inputmanager"
+	"LumenForge/src/lifecycle"
 	"LumenForge/src/logger"
 	"LumenForge/src/openrgb"
 	"github.com/godbus/dbus/v5"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -96,8 +96,8 @@ func Init() {
 						}
 
 						// Stop
-						devices.Stop()
-						inputmanager.Stop()
+						cleanup.StopDevices()
+						cleanup.StopInput()
 					} else {
 						time.Sleep(time.Duration(config.GetConfig().ResumeDelay) * time.Millisecond)
 						logger.Log(logger.Fields{}).Info("Resume detected. Process is shutting down...")
@@ -107,7 +107,8 @@ func Init() {
 						// If you're reading this and thinking a resume should work, good luck.
 						// Enough time was spent on tweaking this and trying to do something that makes no sense;
 						// just terminate the process and let systemd do the magic.
-						os.Exit(1)
+						lifecycle.Request(1)
+						return
 					}
 				} else {
 					sleep = false

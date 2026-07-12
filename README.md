@@ -1,6 +1,6 @@
 # LumenForge
 
-LumenForge is an experimental Linux RGB, cooling, and device-control hub built as a fork of [OpenLinkHub](https://github.com/jurkovic-nikola/OpenLinkHub). It keeps OpenLinkHub's Corsair and Linux control foundation while adding OpenRGB-backed device import, RGB Cluster workflows, dashboard improvements, and mixed-device lighting control.
+LumenForge is an experimental Linux RGB, cooling, and device-control hub built as a fork of [OpenLinkHub](https://github.com/jurkovic-nikola/OpenLinkHub). It keeps OpenLinkHub's Corsair and Linux control foundation while adding OpenRGB-backed device import, RGB Cluster workflows, rearrangeable mixed-device lighting layouts, dashboard improvements, built-in themes, optional system tray integration, and mixed-device lighting control.
 
 LumenForge complements OpenLinkHub and OpenRGB; it does not replace either project. Hardware support varies, and OpenRGB-imported devices depend on both OpenRGB support and the metadata LumenForge can obtain for that device.
 
@@ -8,8 +8,11 @@ LumenForge complements OpenLinkHub and OpenRGB; it does not replace either proje
 
 - Web UI at `http://127.0.0.1:27003`
 - RGB Cluster for synchronizing lighting across mixed supported devices
+- Rearrangeable RGB Cluster device order so animations can follow the physical layout of your setup
 - OpenRGB-backed device import where supported by OpenRGB and available import metadata
 - Dashboard overview with grouped device cards, lighting status, and card ordering
+- Built-in UI themes
+- Optional system tray integration, configurable from `config.json`
 - Corsair hardware support inherited from OpenLinkHub
 - Cooling profiles, fan curves, pumps, temperature sensors, and system metrics where supported
 - RGB editor and custom lighting effects

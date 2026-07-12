@@ -1,31 +1,96 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
+name: Go CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'LumenForge-*'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - LumenForge-Dev
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  checks:
     runs-on: ubuntu-latest
+
+    env:
+      CGO_CFLAGS_ALLOW: '-fno-strict-overflow'
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Go
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.0'
-      - name: Update
-        run: sudo apt-get update
+          cache: true
+
       - name: Install system dependencies
-        run: sudo apt-get install -y libudev-dev libpipewire-0.3-dev pkg-config
-      - name: Install dependencies
-        run: go get .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libudev-dev \
+            libpipewire-0.3-dev \
+            pkg-config
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Verify Go modules
+        run: go mod verify
+
+      - name: Check formatting of changed Go files
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="origin/$BASE_REF"
+          elif [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            base="$BEFORE_SHA"
+          else
+            base="HEAD^"
+          fi
+
+          mapfile -t go_files < <(
+            git diff --name-only --diff-filter=ACMRT "$base" HEAD -- '*.go'
+          )
+
+          if ((${#go_files[@]} == 0)); then
+            echo "No changed Go files to check."
+            exit 0
+          fi
+
+          unformatted="$(gofmt -l "${go_files[@]}")"
+
+          if [[ -n "$unformatted" ]]; then
+            echo "The following changed Go files are not formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test ./...
+
       - name: Build
         run: go build -v ./...
+
+      - name: Check shell script syntax
+        run: |
+          bash -n install.sh
+          sh -n upgrade.sh
+          bash -n remote-install.sh
+          bash -n install-user-space.sh

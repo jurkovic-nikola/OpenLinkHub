@@ -1,12 +1,15 @@
 [Unit]
 Description=Open source interface for iCUE LINK System Hub, Corsair AIOs and Hubs
-After=sleep.target
+After=sleep.target systemd-sysusers.service systemd-udevd.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
 
 [Service]
 User=openlinkhub
 WorkingDirectory=/opt/OpenLinkHub
+ExecStartPre=+/usr/bin/udevadm control --reload-rules
+ExecStartPre=+/usr/bin/udevadm trigger --subsystem-match=usb --attr-match=idVendor=1b1c
+ExecStartPre=+/usr/bin/udevadm settle --timeout=30
 ExecStart=/opt/OpenLinkHub/OpenLinkHub
 ExecReload=/bin/kill -s HUP $MAINPID
 RestartSec=5

@@ -4,6 +4,7 @@ import (
 	"LumenForge/src/cluster"
 	"LumenForge/src/config"
 	"LumenForge/src/devices"
+	"LumenForge/src/lifecycle"
 	"LumenForge/src/logger"
 	"LumenForge/src/rgb"
 	"LumenForge/src/stats"
@@ -29,6 +30,12 @@ var (
 	menuRevision              uint32 = 1
 	menuMutex                 sync.Mutex
 	conn                      *dbus.Conn
+	connMutex                 sync.Mutex
+	stateMutex                sync.Mutex
+	trayWorkers               sync.WaitGroup
+	stopped                   bool
+	stopOnce                  sync.Once
+	stop                      = make(chan struct{})
 	dbusMenu                  = "com.canonical.dbusmenu"
 	dbusMenuLayoutUpdate      = "com.canonical.dbusmenu.LayoutUpdated"
 	dbusIntrospectable        = "org.freedesktop.DBus.Introspectable"
@@ -174,7 +181,7 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 			fmt.Println("Failed to open browser:", err)
 		}
 	case 105: // Exit
-		os.Exit(0)
+		lifecycle.Request(0)
 	case 999: // Toggle Non-Clustered RGB
 		nonClusteredRgbOff = !nonClusteredRgbOff
 		if nonClusteredRgbOff {
@@ -208,8 +215,9 @@ func openBrowser(url string) error {
 
 // emitMenuUpdate will send dbus message to update menu
 func emitMenuUpdate() {
-	if conn != nil {
-		err := conn.Emit(menuPath, dbusMenuLayoutUpdate, menuRevision, int32(0))
+	trayConn := connection()
+	if trayConn != nil {
+		err := trayConn.Emit(menuPath, dbusMenuLayoutUpdate, menuRevision, int32(0))
 		if err != nil {
 			log.Println("Failed to emit menu update:", err)
 		}
@@ -268,7 +276,7 @@ func addMenuItem(id int32, props map[string]dbus.Variant) {
 
 // SyncBatteryToMenu will sync battery data to menu
 func SyncBatteryToMenu(battery map[string]stats.BatteryStats) {
-	if conn == nil {
+	if connection() == nil {
 		return
 	}
 	// Remove old dynamic battery items first
@@ -355,41 +363,49 @@ func clearBatteryItems() {
 }
 
 func Init(ready chan struct{}) {
-	defer func() {
-		// Ensure ready is closed so we don't hang the caller if we return early
-		select {
-		case <-ready:
-		default:
-			close(ready)
-		}
-	}()
+	var readyOnce sync.Once
+	signalReady := func() { readyOnce.Do(func() { close(ready) }) }
+	defer signalReady()
 
 	de := os.Getenv("XDG_CURRENT_DESKTOP")
+	select {
+	case <-stop:
+		return
+	default:
+	}
 	if strings.Contains(strings.ToLower(de), "cinnamon") {
 		logger.Log(logger.Fields{}).Warn("Cinnamon is not supported for systray. Due to incomplete support for modern tray menus (StatusNotifierItem), this application cannot run reliably on Cinnamon.")
-		close(ready)
 		return
 	}
 
 	var err error
-	conn, err = dbus.ConnectSessionBus()
+	trayConn, err := dbus.ConnectSessionBus()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Warn("Failed to connect to session bus for systray")
-		close(ready)
 		return
 	}
-	defer func(conn *dbus.Conn) {
-		err = conn.Close()
-		if err != nil {
+	select {
+	case <-stop:
+		if err := trayConn.Close(); err != nil {
 			logger.Log(logger.Fields{"error": err}).Warn("Failed to close session bus")
 		}
-	}(conn)
+		return
+	default:
+	}
+	connMutex.Lock()
+	conn = trayConn
+	connMutex.Unlock()
+	defer closeConnection()
 
-	resp, err := conn.RequestName(serviceName, dbus.NameFlagDoNotQueue)
+	resp, err := trayConn.RequestName(serviceName, dbus.NameFlagDoNotQueue)
 	if err != nil || resp != dbus.RequestNameReplyPrimaryOwner {
 		logger.Log(logger.Fields{"error": err, "resp": resp}).Warn("Systray RequestName failed")
-		close(ready)
 		return
+	}
+	select {
+	case <-stop:
+		return
+	default:
 	}
 
 	// Status
@@ -404,19 +420,19 @@ func Init(ready chan struct{}) {
 		props["IconName"] = dbus.MakeVariant("lumenforge")
 	}
 	status := &Status{}
-	err = conn.Export(status, statusPath, dbusStatusNotifierItem)
+	err = trayConn.Export(status, statusPath, dbusStatusNotifierItem)
 	if err != nil {
 		fmt.Println("org.kde.StatusNotifierItem failed to export status", err)
 		return
 	}
 
-	err = conn.Export(status, statusPath, dbusProperties)
+	err = trayConn.Export(status, statusPath, dbusProperties)
 	if err != nil {
 		fmt.Println("org.freedesktop.DBus.Properties failed to export status", err)
 		return
 	}
 
-	err = conn.Export(introspect.NewIntrospectable(&introspect.Node{
+	err = trayConn.Export(introspect.NewIntrospectable(&introspect.Node{
 		Name: string(statusPath),
 		Interfaces: []introspect.Interface{
 			{
@@ -462,19 +478,19 @@ func Init(ready chan struct{}) {
 
 	// Menu
 	menu := &MenuServer{}
-	err = conn.Export(menu, menuPath, dbusMenu)
+	err = trayConn.Export(menu, menuPath, dbusMenu)
 	if err != nil {
 		fmt.Println("Failed to export menu", err)
 		return
 	}
 
-	err = conn.Export(menu, menuPath, dbusProperties)
+	err = trayConn.Export(menu, menuPath, dbusProperties)
 	if err != nil {
 		fmt.Println("org.freedesktop.DBus.Properties failed to export menu", err)
 		return
 	}
 
-	err = conn.Export(introspect.NewIntrospectable(&introspect.Node{
+	err = trayConn.Export(introspect.NewIntrospectable(&introspect.Node{
 		Name: string(menuPath),
 		Interfaces: []introspect.Interface{
 			{
@@ -546,8 +562,8 @@ func Init(ready chan struct{}) {
 	}
 
 	// Send it
-	conn.Object(dbusStatusNotifierWatcher, "/StatusNotifierWatcher").Call("org.kde.StatusNotifierWatcher.RegisterStatusNotifierItem", 0, serviceName)
-	err = conn.Emit(menuPath, dbusMenuLayoutUpdate, uint32(1), int32(0))
+	trayConn.Object(dbusStatusNotifierWatcher, "/StatusNotifierWatcher").Call("org.kde.StatusNotifierWatcher.RegisterStatusNotifierItem", 0, serviceName)
+	err = trayConn.Emit(menuPath, dbusMenuLayoutUpdate, uint32(1), int32(0))
 	if err != nil {
 		fmt.Println("com.canonical.dbusmenu.LayoutUpdated failed:", err)
 		return
@@ -602,8 +618,8 @@ func Init(ready chan struct{}) {
 	})
 	emitMenuUpdate()
 
-	close(ready) // We good
-	select {}
+	signalReady()
+	<-stop
 }
 
 // createTooltip will create standard tooltip
@@ -625,26 +641,90 @@ func InitTray() {
 		return
 	}
 
+	stateMutex.Lock()
+	if stopped {
+		stateMutex.Unlock()
+		return
+	}
+
 	// Hotfix: Force clear any stuck RgbOff states from previous toggles
 	devices.ControlDeviceRgb(false)
 	cluster.Get().ControlDeviceRgb(false)
 
 	ready := make(chan struct{})
+	trayWorkers.Add(2)
+	stateMutex.Unlock()
 	go func() {
+		defer trayWorkers.Done()
 		Init(ready)
 	}()
 
 	go func() {
-		<-ready // Wait for systray to be ready in the background
-		ticker := time.NewTicker(60 * time.Second)
-		defer ticker.Stop()
-
-		// Initial sync
-		SyncBatteryToMenu(stats.GetBatteryStats())
-		for range ticker.C {
+		defer trayWorkers.Done()
+		runBatterySync(ready, stop, 60*time.Second, func() {
 			SyncBatteryToMenu(stats.GetBatteryStats())
-		}
+		})
 	}()
+}
+
+// Stop halts tray background activity and closes its D-Bus connection.
+func Stop() {
+	stopTray(&stateMutex, &stopped, &stopOnce, stop, closeConnection, &trayWorkers)
+}
+
+func runBatterySync(ready, stop <-chan struct{}, interval time.Duration, syncBattery func()) {
+	select {
+	case <-ready:
+	case <-stop:
+		return
+	}
+
+	select {
+	case <-stop:
+		return
+	default:
+		syncBattery()
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			syncBattery()
+		case <-stop:
+			return
+		}
+	}
+}
+
+func stopTray(stateMutex *sync.Mutex, stopped *bool, stopOnce *sync.Once, stop chan struct{}, closeConnection func(), workers *sync.WaitGroup) {
+	stateMutex.Lock()
+	*stopped = true
+	stopOnce.Do(func() { close(stop) })
+	stateMutex.Unlock()
+
+	closeConnection()
+	workers.Wait()
+}
+
+func closeConnection() {
+	connMutex.Lock()
+	trayConn := conn
+	conn = nil
+	connMutex.Unlock()
+	if trayConn == nil {
+		return
+	}
+	if err := trayConn.Close(); err != nil {
+		logger.Log(logger.Fields{"error": err}).Warn("Failed to close session bus")
+	}
+}
+
+func connection() *dbus.Conn {
+	connMutex.Lock()
+	defer connMutex.Unlock()
+	return conn
 }
 
 func loadIconPixmap(filePath string) ([]Pixmap, error) {

@@ -17,6 +17,7 @@ import (
 	"LumenForge/src/display"
 	"LumenForge/src/inputmanager"
 	"LumenForge/src/language"
+	"LumenForge/src/lifecycle"
 	"LumenForge/src/logger"
 	"LumenForge/src/macro"
 	"LumenForge/src/media"
@@ -31,7 +32,9 @@ import (
 	"LumenForge/src/temperatures"
 	"LumenForge/src/templates"
 	"LumenForge/src/version"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -58,7 +61,11 @@ type Header struct {
 }
 
 var headers []Header
-var server = &http.Server{}
+var (
+	server      *http.Server
+	serveDone   chan struct{}
+	serverMutex sync.Mutex
+)
 
 // Send will process response and send it back to a client
 func (r *Response) Send(w http.ResponseWriter) {
@@ -3032,7 +3039,7 @@ func Init() {
 
 	if config.GetConfig().ListenPort > 0 {
 		templates.Init()
-		server = &http.Server{
+		srv := &http.Server{
 			Addr: fmt.Sprintf(
 				"%s:%v",
 				config.GetConfig().ListenAddress,
@@ -3040,18 +3047,47 @@ func Init() {
 			),
 			Handler: setRoutes(),
 		}
+		serverMutex.Lock()
+		server = srv
+		serveDone = make(chan struct{})
+		done := serveDone
+		serverMutex.Unlock()
 
 		fmt.Println(
 			fmt.Sprintf("[Server] Running REST and WebUI on %s. WebUI is accessible via: http://%s",
-				server.Addr,
-				server.Addr,
+				srv.Addr,
+				srv.Addr,
 			),
 		)
-		err := server.ListenAndServe()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Fatal("Unable to start REST server")
-		}
+		go func() {
+			defer close(done)
+			err := srv.ListenAndServe()
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Log(logger.Fields{"error": err}).Error("Unable to run REST server")
+				lifecycle.Request(1)
+			}
+		}()
 	} else {
 		logger.Log(logger.Fields{}).Info("REST server is disabled")
+	}
+}
+
+// Shutdown stops accepting requests and waits for active requests until ctx expires.
+func Shutdown(ctx context.Context) error {
+	serverMutex.Lock()
+	srv := server
+	done := serveDone
+	serverMutex.Unlock()
+	if srv == nil {
+		return nil
+	}
+	if err := srv.Shutdown(ctx); err != nil {
+		return err
+	}
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }

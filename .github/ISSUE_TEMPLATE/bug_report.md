@@ -4,8 +4,11 @@ about: Create a report to help us improve
 title: ''
 labels: ''
 assignees: ''
-
 ---
+
+> **Privacy warning:** Before attaching configuration or log files, review and
+> redact sensitive information, including IP addresses, hostnames, device serial
+> numbers, tokens, usernames, and private filesystem paths.
 
 **Describe the bug**
 A clear and concise description of what the bug is.

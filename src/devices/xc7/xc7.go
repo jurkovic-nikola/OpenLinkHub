@@ -798,7 +798,7 @@ func (d *Device) setDeviceColor() {
 	if d.DeviceProfile.RgbOff {
 		return
 	}
-	
+
 	if d.DeviceProfile.RGBProfile == "static" {
 		profile := d.GetRgbProfile("static")
 		if profile == nil {
@@ -1550,6 +1550,7 @@ func (d *Device) setupLCD(reload bool) {
 							d.getLiquidTemperature(),
 							float32(systeminfo.GetCpuUtilization()),
 							float32(systeminfo.GetGPUUtilization()),
+							0,
 						}
 						image := lcd.GenerateAnimationScreenImage(values)
 						if image != nil {

@@ -1763,6 +1763,16 @@ func (d *Device) getLiquidTemperature() float32 {
 	return 0
 }
 
+// getPumpSpeed will fetch speed from AIO / Pump device
+func (d *Device) getPumpSpeed() int16 {
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			return device.Rpm
+		}
+	}
+	return 0
+}
+
 // updateDeviceSpeed will update device speed based on a temperature reading
 func (d *Device) updateDeviceSpeed() {
 	d.timerSpeed = time.NewTicker(time.Duration(temperaturePullingInterval) * time.Millisecond)
@@ -3783,6 +3793,7 @@ func (d *Device) setupLCD(reload bool) {
 							d.getLiquidTemperature(),
 							float32(systeminfo.GetCpuUtilization()),
 							float32(systeminfo.GetGPUUtilization()),
+							float32(d.getPumpSpeed()),
 						}
 						image := lcd.GenerateAnimationScreenImage(values)
 						if image != nil {

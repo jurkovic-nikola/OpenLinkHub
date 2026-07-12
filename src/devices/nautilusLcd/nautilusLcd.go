@@ -801,6 +801,7 @@ func (d *Device) setupLCD(reload bool) {
 							0,
 							float32(systeminfo.GetCpuUtilization()),
 							float32(systeminfo.GetGPUUtilization()),
+							0,
 						}
 						image := lcd.GenerateAnimationScreenImage(values)
 						if image != nil {

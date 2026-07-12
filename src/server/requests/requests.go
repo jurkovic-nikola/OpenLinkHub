@@ -1077,7 +1077,7 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 	switch profileId {
 	case lcd.DisplayArc:
 		sensorId := req.Sensor
-		if sensorId < 0 || sensorId > 5 {
+		if sensorId < 0 || sensorId > 30 {
 			return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
 		}
 
@@ -1126,7 +1126,7 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		for i := 0; i < 2; i++ {
 			arc := req.Arcs[uint8(i)]
 			sensorId := arc.Sensor
-			if sensorId < 0 || sensorId > 5 {
+			if sensorId < 0 || sensorId > 30 {
 				return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
 			}
 			arcName := mode.Arcs[i].Name
@@ -1174,7 +1174,7 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		for i := 0; i <= 2; i++ {
 			sensor := req.Sensors[uint8(i)]
 			sensorId := sensor.Sensor
-			if sensorId < 0 || sensorId > 5 {
+			if sensorId < 0 || sensorId > 30 {
 				return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
 			}
 			sensorName := mode.Sensors[i].Name

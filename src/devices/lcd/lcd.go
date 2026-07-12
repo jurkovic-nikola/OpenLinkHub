@@ -62,6 +62,8 @@ const (
 	ImageFormatBmp  = 1
 	ImageFormatWebp = 2
 	ImageFormatGif  = 3
+	SensorDate      = 20
+	SensorTime      = 21
 )
 
 var (
@@ -75,11 +77,14 @@ var (
 	lcdDevices          = map[string]uint16{}
 	vendorId     uint16 = 6940 // Corsair
 	lcdSensors          = map[uint8]string{
-		0: "CPU Temp",
-		1: "GPU Temp",
-		2: "Liquid Temp",
-		3: "CPU Load",
-		4: "GPU Load",
+		0:  "CPU Temp",
+		1:  "GPU Temp",
+		2:  "Liquid Temp",
+		3:  "CPU Load",
+		4:  "GPU Load",
+		5:  "Pump RPM",
+		20: "Date",
+		21: "Time",
 	}
 	sensorTextCache = make(map[uint8]string)
 	lcdPresent      = false
@@ -364,6 +369,8 @@ func sensorMaximumValue(sensor uint8) int {
 		return 60
 	case 3, 4:
 		return 100
+	case 5:
+		return 5000
 	default:
 		return 100
 	}
@@ -372,6 +379,14 @@ func sensorMaximumValue(sensor uint8) int {
 // isSensorTemperature will check if given sensor is temperature one
 func isSensorTemperature(sensor uint8) bool {
 	if sensor == 0 || sensor == 1 || sensor == 2 {
+		return true
+	}
+	return false
+}
+
+// isSensorTemperature will check if given sensor is temperature one
+func isSpeedTemperature(sensor uint8) bool {
+	if sensor == 5 {
 		return true
 	}
 	return false
@@ -722,23 +737,40 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 			for m := 0; m < len(sensors); m++ {
 				sensor := sensors[m]
 				if sensor.Enabled {
-					sensorMax := sensorMaximumValue(sensor.Sensor)
-					sensorValue := values[sensor.Sensor]
-					if sensorValue > float32(sensorMax) {
-						sensorValue = float32(sensorMax)
+					var valueText string
+
+					switch sensor.Sensor {
+					case SensorDate:
+						valueText = common.GetDate()
+
+					case SensorTime:
+						valueText = common.GetTime()
+
+					default:
+						var sensorValue float32
+
+						if int(sensor.Sensor) < len(values) {
+							sensorValue = values[sensor.Sensor]
+						}
+
+						sensorMax := sensorMaximumValue(sensor.Sensor)
+						if sensorValue > float32(sensorMax) {
+							sensorValue = float32(sensorMax)
+						}
+
+						if isSensorTemperature(sensor.Sensor) {
+							valueText = dashboard.GetDashboard().TemperatureToString(sensorValue)
+						} else if isSpeedTemperature(sensor.Sensor) {
+							valueText = fmt.Sprintf("%.0f RPM", sensorValue)
+						} else {
+							valueText = fmt.Sprintf("%.1f %%", sensorValue)
+						}
 					}
-					if isSensorTemperature(sensor.Sensor) {
-						v := dashboard.GetDashboard().TemperatureToString(sensorValue)
-						x, y := calculateStringXY(80, v)
-						drawColorString(x, y+padding, 80, v, canvas, sensor.TextColor)
-					} else {
-						v := fmt.Sprintf("%.1f %%", sensorValue)
-						x, y := calculateStringXY(80, v)
-						drawColorString(x, y+padding, 80, v, canvas, sensor.TextColor)
-					}
+					x, y := calculateStringXY(80, valueText)
+					drawColorString(x, y+padding, 80, valueText, canvas, sensor.TextColor)
 
 					sensorText := sensorTextCache[sensor.Sensor]
-					x, y := calculateStringXY(40, sensorText)
+					x, y = calculateStringXY(40, sensorText)
 					drawColorString(x, y+padding+55, 40, sensorText, canvas, sensor.TextColor)
 
 					if m != len(sensors)-1 {

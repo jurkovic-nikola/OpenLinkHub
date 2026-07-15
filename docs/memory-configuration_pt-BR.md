@@ -84,3 +84,7 @@ sudo udevadm trigger
 ```bash
 sudo systemctl restart OpenLinkHub.service
 ```
+Se você estiver executando no modo de usuário:
+```bash
+systemctl restart --user OpenLinkHub.service
+```

@@ -89,5 +89,5 @@ sudo systemctl restart OpenLinkHub.service
 
 If you are running it in user mode:
 ```bash
-sudo systemctl restart --user OpenLinkHub.service
+systemctl restart --user OpenLinkHub.service
 ```

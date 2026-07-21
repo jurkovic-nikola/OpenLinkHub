@@ -846,6 +846,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11035: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstreamV2.Init},           // SLIPSTREAM WIRELESS V2 USB Receiver
+	7013:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init}, 			// CORSAIR HARPOON RGB WIRELESS Dongle
 	11050: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // Sabre v2 Pro Ultralight Wireless Dongle
 	7041:  {1, 0, "DARK CORE RGB PRO Gaming Dongle", nil, slipstream.Init}, // DARK CORE RGB PRO Gaming Dongle
 	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS

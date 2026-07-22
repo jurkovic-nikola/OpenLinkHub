@@ -2696,18 +2696,8 @@ func setRoutes() http.Handler {
 	}
 
 	if config.GetConfig().Frontend {
-		handleFunc(r, "/", http.MethodGet, uiIndex)
-		handleFunc(r, "/device/", http.MethodGet, uiDeviceOverview)
-		handleFunc(r, "/temperature", http.MethodGet, uiTemperatureOverview)
-		handleFunc(r, "/temperatureGraphs", http.MethodGet, uiTemperatureGraphOverview)
-		handleFunc(r, "/color", http.MethodGet, uiColorOverview)
-		handleFunc(r, "/scheduler", http.MethodGet, uiSchedulerOverview)
-		handleFunc(r, "/rgb", http.MethodGet, uiRgbEditor)
-		handleFunc(r, "/rgbCluster", http.MethodGet, uiRgbCluster)
-		handleFunc(r, "/macros", http.MethodGet, uiMacrosOverview)
-		handleFunc(r, "/lcd", http.MethodGet, uiLcdOverview)
-		handleFunc(r, "/settings", http.MethodGet, uiSettings)
-		//handleFunc(r, "/xeneon", http.MethodGet, uiXeneon)
+		// SvelteKit SPA (built into ./ui). Legacy Go templates are no longer served.
+		r.Handle("/", newSPAHandler(uiDir))
 	}
 	return r
 }

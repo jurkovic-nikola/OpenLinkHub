@@ -2724,7 +2724,6 @@ func Init() {
 	}
 
 	if config.GetConfig().ListenPort > 0 {
-		templates.Init()
 		server = &http.Server{
 			Addr: fmt.Sprintf(
 				"%s:%v",

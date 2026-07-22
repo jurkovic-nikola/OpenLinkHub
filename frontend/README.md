@@ -1,42 +1,22 @@
-# sv
+# OpenLinkHub WebUI
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit 2 + Svelte 5 + Tailwind 4 + [Skeleton](https://www.skeleton.dev/) SPA.
 
-## Creating a project
+## Develop
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@0.16.4 create --template minimal --types ts --no-install frontend
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Vite proxies `/api` (including WebSocket `/api/ws`) to `http://127.0.0.1:27003`.
 
-To create a production version of your app:
+## Production build
 
-```sh
-npm run build
+From the repo root:
+
+```bash
+make frontend-build
 ```
 
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+This runs `npm ci && npm run build` and copies `frontend/build` → `ui/`, which the Go server serves when `frontend` is enabled in `config.json`.

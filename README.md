@@ -77,6 +77,7 @@ $ sudo dnf install OpenLinkHub
 - libpipewire-dev
 - pkg-config
 - go 1.25.0 - https://go.dev/dl/
+- Node.js 20+ (to build the Svelte WebUI)
 ```bash
 # Required packages (deb)
 $ sudo apt-get install libudev-dev
@@ -95,11 +96,13 @@ Or use the provided devcontainer in VScode. This is useful for immutable distrib
 ```bash
 $ git clone https://github.com/jurkovic-nikola/OpenLinkHub.git
 $ cd OpenLinkHub/
+$ make frontend-build   # builds Svelte/Skeleton SPA into ./ui
 $ CGO_CFLAGS_ALLOW='-fno-strict-overflow' go build .
 $ chmod +x install.sh
 $ sudo ./install.sh
 ```
 
+The WebUI is a SvelteKit + Skeleton SPA served from `./ui` (see `frontend/`). Live telemetry uses WebSocket `/api/ws`; device control remains on the REST `/api/*` endpoints.
 ### 3. Installation from compiled build
 ```bash
 # Download latest build from https://github.com/jurkovic-nikola/OpenLinkHub/releases/latest

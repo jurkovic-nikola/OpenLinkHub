@@ -3,6 +3,7 @@ module OpenLinkHub
 go 1.25.0
 
 require (
+	github.com/coder/websocket v1.8.13
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/sstallion/go-hid v0.14.1

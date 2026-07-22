@@ -22,6 +22,7 @@ import (
 	"OpenLinkHub/src/rgb"
 	"OpenLinkHub/src/scheduler"
 	"OpenLinkHub/src/server/requests"
+	"OpenLinkHub/src/server/ws"
 	"OpenLinkHub/src/stats"
 	"OpenLinkHub/src/systeminfo"
 	"OpenLinkHub/src/systray"
@@ -2527,6 +2528,9 @@ func setRoutes() http.Handler {
 	r := http.NewServeMux()
 	fs := http.FileServer(http.Dir("./static"))
 	r.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// WebSocket live telemetry (method-agnostic upgrade)
+	r.HandleFunc("/api/ws", ws.Default.Handler)
 
 	// GET
 	handleFunc(r, "/api/", http.MethodGet, homePage)

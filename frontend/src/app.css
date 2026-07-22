@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton-svelte';
+@import '@skeletonlabs/skeleton/themes/cerberus';
+
+html,
+body {
+	min-height: 100%;
+}
+
+body {
+	background-color: var(--color-surface-950);
+	color: var(--color-surface-50);
+}

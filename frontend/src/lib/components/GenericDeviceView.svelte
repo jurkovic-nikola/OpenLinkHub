@@ -17,6 +17,12 @@
 	let busy = $state(false);
 	let message = $state('');
 
+	const product = $derived(device?.product ?? device?.Product ?? 'Device');
+	const firmware = $derived(device?.firmware ?? device?.Firmware ?? '');
+	const brightnessValue = $derived(
+		device?.DeviceProfile?.BrightnessSlider ?? device?.deviceProfile?.BrightnessSlider
+	);
+
 	async function setBrightness(value: number) {
 		busy = true;
 		try {
@@ -33,7 +39,7 @@
 <div class="space-y-6">
 	<div>
 		<p class="text-xs uppercase tracking-wide opacity-60">{family}</p>
-		<h2 class="h2 break-words">{device?.Product ?? 'Device'}</h2>
+		<h2 class="h2 break-words">{product}</h2>
 		<p class="opacity-60 text-sm break-all">{serial}</p>
 		{#if message}
 			<p class="text-sm mt-2 opacity-70">{message}</p>
@@ -42,11 +48,11 @@
 
 	<div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]">
 		<UiCard title="Overview">
-			<StatRow label="Firmware" value={device?.Firmware} />
+			<StatRow label="Firmware" value={firmware} />
 			{#if device?.BatteryLevel != null}
 				<StatRow label="Battery" value={`${device.BatteryLevel}%`} />
 			{/if}
-			{#if device?.DeviceProfile?.BrightnessSlider != null}
+			{#if brightnessValue != null}
 				<div class="pt-2 space-y-2">
 					<label class="text-xs uppercase tracking-wide text-surface-600-400" for="brightness"
 						>Brightness</label
@@ -57,7 +63,7 @@
 						class="w-full"
 						min="0"
 						max="100"
-						value={device.DeviceProfile.BrightnessSlider}
+						value={brightnessValue}
 						disabled={busy}
 						oninput={(e) => setBrightness(Number((e.currentTarget as HTMLInputElement).value))}
 					/>

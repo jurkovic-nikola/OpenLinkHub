@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { getDevice } from '$lib/api';
+	import { getDevice, getDevices } from '$lib/api';
 	import { ws } from '$lib/ws';
 	import { deviceFamily } from '$lib/deviceTypes';
 	import HubDeviceView from '$lib/components/HubDeviceView.svelte';
@@ -8,20 +8,36 @@
 	import { onMount } from 'svelte';
 
 	let device = $state<Record<string, any> | null>(null);
+	let productType = $state<number | undefined>(undefined);
 	let error = $state('');
 	let serial = $derived($page.params.serial ?? '');
 
 	function unwrap(payload: unknown): Record<string, any> | null {
 		if (!payload || typeof payload !== 'object') return null;
 		const obj = payload as Record<string, any>;
-		// API may return device object directly or nested
-		if (obj.Serial || obj.Product || obj.Devices || obj.DeviceProfile) return obj;
-		if (obj.GetDevice && typeof obj.GetDevice === 'object') return obj.GetDevice;
+		if (obj.GetDevice && typeof obj.GetDevice === 'object') {
+			return obj.GetDevice as Record<string, any>;
+		}
 		return obj;
+	}
+
+	function isHubPayload(d: Record<string, any> | null): boolean {
+		if (!d) return false;
+		if (d.Template === 'cc.html' || d.Template === 'ccxt.html' || d.Template === 'lsh.html') return true;
+		if (d.devices || d.Devices) return true;
+		return deviceFamily(productType) === 'hub';
 	}
 
 	onMount(() => {
 		if (!serial) return;
+
+		getDevices()
+			.then((res) => {
+				const map = (res.device as Record<string, any>) ?? {};
+				const summary = map[serial];
+				if (summary?.ProductType != null) productType = summary.ProductType;
+			})
+			.catch(() => {});
 
 		getDevice(serial)
 			.then((res) => {
@@ -45,14 +61,15 @@
 		};
 	});
 
-	const family = $derived(deviceFamily(device?.ProductType));
+	const family = $derived(deviceFamily(productType));
+	const useHub = $derived(isHubPayload(device) || family === 'hub');
 </script>
 
 {#if error}
 	<p class="text-error-500">{error}</p>
 {:else if !device}
 	<p class="opacity-60">Loading device…</p>
-{:else if family === 'hub'}
+{:else if useHub}
 	<HubDeviceView {serial} {device} />
 {:else}
 	<GenericDeviceView {serial} {device} {family} />

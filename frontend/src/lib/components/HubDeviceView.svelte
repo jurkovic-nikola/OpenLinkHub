@@ -1,7 +1,8 @@
 <script lang="ts">
 	import UiCard from '$lib/components/UiCard.svelte';
 	import StatRow from '$lib/components/StatRow.svelte';
-	import { postJson, putJson, deleteJson } from '$lib/api';
+	import { getTemperatures, postJson, putJson, deleteJson } from '$lib/api';
+	import { onMount } from 'svelte';
 
 	let {
 		serial,
@@ -11,32 +12,40 @@
 		device: Record<string, any>;
 	} = $props();
 
+	const product = $derived(device?.product ?? device?.Product ?? 'Hub');
+	const firmware = $derived(device?.firmware ?? device?.Firmware ?? '');
 	const profile = $derived(device?.DeviceProfile ?? {});
-	const channels = $derived(
-		Array.isArray(device?.Devices) ? (device.Devices as Record<string, any>[]) : []
+	const channels = $derived(asList(device?.devices ?? device?.Devices));
+	const rgbDevices = $derived(asList(device?.rgbDevices ?? device?.RgbDevices));
+	const rgbModes = $derived(
+		Array.isArray(device?.RGBModes) ? (device.RGBModes as string[]) : []
 	);
-	const rgbDevices = $derived(
-		Array.isArray(device?.RgbDevices) ? (device.RgbDevices as Record<string, any>[]) : []
-	);
-	const temps = $derived(
-		device?.TemperatureProfiles && typeof device.TemperatureProfiles === 'object'
-			? (device.TemperatureProfiles as Record<string, any>)
-			: {}
-	);
-	const rgbModes = $derived(Array.isArray(device?.RGBModes) ? (device.RGBModes as string[]) : []);
 	const userProfiles = $derived(
-		device?.UserProfiles && typeof device.UserProfiles === 'object'
-			? (device.UserProfiles as Record<string, any>)
-			: {}
+		(device?.userProfiles ?? device?.UserProfiles ?? {}) as Record<string, any>
 	);
 
+	let temps = $state<Record<string, any>>({});
 	let brightness = $state(100);
 	let busy = $state(false);
 	let message = $state('');
 
+	onMount(() => {
+		getTemperatures()
+			.then((res) => {
+				temps = (res.data as Record<string, any>) ?? {};
+			})
+			.catch(() => {});
+	});
+
 	$effect(() => {
 		brightness = Number(profile?.BrightnessSlider ?? 100);
 	});
+
+	function asList(value: unknown): Record<string, any>[] {
+		if (Array.isArray(value)) return value;
+		if (value && typeof value === 'object') return Object.values(value as Record<string, any>);
+		return [];
+	}
 
 	async function run(label: string, fn: () => Promise<unknown>) {
 		busy = true;
@@ -119,6 +128,20 @@
 		);
 	}
 
+	function isPump(ch: Record<string, any>) {
+		return (
+			!!ch.ContainsPump ||
+			ch.description === 'AIO' ||
+			String(ch.name ?? '').toLowerCase().includes('pump')
+		);
+	}
+
+	function channelTitle(ch: Record<string, any>) {
+		const label = ch.label;
+		if (label && label !== 'Set Label') return label;
+		return ch.name ?? `Channel ${ch.channelId}`;
+	}
+
 	const tempOptions = $derived(
 		Object.entries(temps).filter(([, v]) => !(v as { Hidden?: boolean })?.Hidden)
 	);
@@ -127,7 +150,7 @@
 <div class="space-y-6">
 	<div class="flex flex-wrap items-end justify-between gap-3">
 		<div class="min-w-0">
-			<h2 class="h2 break-words">{device?.Product ?? 'Hub'}</h2>
+			<h2 class="h2 break-words">{product}</h2>
 			<p class="opacity-60 text-sm break-all">{serial}</p>
 		</div>
 		{#if message}
@@ -137,8 +160,8 @@
 
 	<div class="grid gap-4 lg:grid-cols-[minmax(18rem,22rem)_1fr]">
 		<div class="space-y-4 min-w-0">
-			<UiCard title={device?.Product ?? 'Settings'}>
-				<StatRow label="Firmware" value={device?.Firmware} />
+			<UiCard title={product}>
+				<StatRow label="Firmware" value={firmware} />
 				<div class="py-2 border-b border-surface-200-800/60 space-y-1">
 					<label class="text-xs uppercase tracking-wide text-surface-600-400" for="profiles">Profile</label>
 					<select
@@ -242,38 +265,37 @@
 			<section class="space-y-3">
 				<h3 class="h4">Channels</h3>
 				<div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]">
-					{#each channels as ch (ch.ChannelId)}
-						<UiCard title={ch.Label || ch.Name || `Channel ${ch.ChannelId}`}>
+					{#each channels as ch (ch.channelId)}
+						<UiCard title={channelTitle(ch)}>
 							{#snippet actions()}
 								<button
 									type="button"
 									class="btn btn-sm preset-tonal"
-									onclick={() => setLabel(Number(ch.ChannelId))}>Set label</button
+									onclick={() => setLabel(Number(ch.channelId))}>Set label</button
 								>
 							{/snippet}
 							{#if ch.HasTemps}
 								<StatRow
-									label={ch.ContainsPump ? 'Liquid' : 'Temperature'}
-									value={ch.TemperatureString ?? (ch.Temperature != null ? `${ch.Temperature} °C` : '—')}
+									label={isPump(ch) ? 'Liquid' : 'Temperature'}
+									value={ch.temperatureString ?? (ch.temperature != null ? `${ch.temperature} °C` : '—')}
 								/>
 							{/if}
-							<StatRow
-								label="Speed"
-								value={ch.Rpm != null ? `${ch.Rpm} RPM` : ch.SpeedString ?? '—'}
-							/>
+							{#if ch.HasSpeed}
+								<StatRow label="Speed" value={ch.rpm != null ? `${ch.rpm} RPM` : '—'} />
+							{/if}
 							<div class="pt-2 space-y-1">
-								<label class="text-xs uppercase tracking-wide text-surface-600-400" for={`spd-${ch.ChannelId}`}
+								<label class="text-xs uppercase tracking-wide text-surface-600-400" for={`spd-${ch.channelId}`}
 									>Profile</label
 								>
 								<select
-									id={`spd-${ch.ChannelId}`}
+									id={`spd-${ch.channelId}`}
 									class="select w-full"
 									disabled={busy}
 									onchange={(e) =>
-										setSpeed(Number(ch.ChannelId), (e.currentTarget as HTMLSelectElement).value)}
+										setSpeed(Number(ch.channelId), (e.currentTarget as HTMLSelectElement).value)}
 								>
 									{#each tempOptions as [name]}
-										<option value={name} selected={ch.Profile === name}>{name}</option>
+										<option value={name} selected={ch.profile === name}>{name}</option>
 									{/each}
 								</select>
 							</div>
@@ -286,30 +308,30 @@
 				<section class="space-y-3">
 					<h3 class="h4">Lighting</h3>
 					<div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]">
-						{#each rgbDevices as rgb (rgb.ChannelId ?? rgb.Name)}
-							<UiCard title={rgb.Name ?? `RGB ${rgb.ChannelId}`}>
+						{#each rgbDevices as rgb (rgb.channelId ?? rgb.name)}
+							<UiCard title={rgb.name ?? `RGB ${rgb.channelId}`}>
 								<div class="space-y-1">
-									<label class="text-xs uppercase tracking-wide text-surface-600-400" for={`rgb-${rgb.ChannelId}`}
+									<label class="text-xs uppercase tracking-wide text-surface-600-400" for={`rgb-${rgb.channelId}`}
 										>Mode</label
 									>
 									<select
-										id={`rgb-${rgb.ChannelId}`}
+										id={`rgb-${rgb.channelId}`}
 										class="select w-full"
 										disabled={busy}
 										onchange={(e) =>
 											setChannelRgb(
-												Number(rgb.ChannelId),
+												Number(rgb.channelId),
 												(e.currentTarget as HTMLSelectElement).value
 											)}
 									>
 										{#each rgbModes as mode}
-											<option value={mode} selected={rgb.Mode === mode || rgb.Profile === mode}
+											<option value={mode} selected={rgb.rgb === mode || rgb.profile === mode}
 												>{mode}</option
 											>
 										{/each}
 									</select>
 								</div>
-								<a class="anchor text-sm mt-3 inline-block" href={`/rgb?device=${serial}&channel=${rgb.ChannelId}`}
+								<a class="anchor text-sm mt-3 inline-block" href={`/rgb?device=${serial}&channel=${rgb.channelId}`}
 									>Configure</a
 								>
 							</UiCard>

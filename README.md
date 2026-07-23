@@ -39,7 +39,7 @@ This is experimental alpha software developed and tested primarily against my ow
 
 ## Alpha Installation
 
-The currently supported alpha installation path is to build from source. Package repositories, release archives, containers, and automatic remote installation are not yet validated for LumenForge.
+The required starting point for this alpha is a local source build from a fresh checkout. The system-service installer remains the currently supported installation mode. Package repositories, release archives, containers, and automatic remote installation are not yet validated for LumenForge.
 
 ### Requirements
 
@@ -76,18 +76,54 @@ Run directly from the repository:
 ./LumenForge
 ```
 
-Hardware access may require appropriate udev permissions. To install LumenForge under `/opt/LumenForge` as a system service instead:
+Hardware access may require appropriate udev permissions.
+
+### Supported System-Service Installation
+
+After building from source, run `install.sh` to install LumenForge under `/opt/LumenForge` with a system-level systemd service:
 
 ```bash
 chmod +x install.sh
 sudo ./install.sh
 ```
 
+The service runs under the dedicated `lumenforge` account. The installer refuses known conflicting user-service installations rather than enabling both service modes. This remains the currently supported installation mode for the alpha.
+
 Then open `http://127.0.0.1:27003`.
+
+### Experimental User-Service Installation
+
+`install-user-space.sh` is implemented and available for experimental validation, but it is not yet a supported or stable installation path. Build LumenForge from source, then run the installer as the intended desktop user, not as root:
+
+```bash
+chmod +x install-user-space.sh
+./install-user-space.sh
+```
+
+This installer places LumenForge under `/opt/LumenForge` and creates a systemd user service for the current desktop user. It still requests temporary privilege escalation for the shared udev rule, `lumenforge` group creation and membership, installation ownership, and device access. If the user is newly added to the `lumenforge` group, log out and back in or reboot before expecting the service to have device access.
+
+The user-service installer refuses to continue while a conflicting system-level `LumenForge.service` is active or enabled. Only one LumenForge service mode should be installed or active at a time.
+
+### Upgrades
+
+Prepare the new version in a fresh source checkout and build it there. If a release archive becomes available through a validated channel in the future, extract it into a fresh release directory. Run the same installer mode used for the existing installation, and never run either installer from `/opt/LumenForge`.
+
+An installer upgrade refreshes shipped application assets while preserving runtime-owned configuration and user data, including:
+
+- `config.json`
+- Device profiles
+- Per-device RGB data
+- Macros
+- Key assignments
+- Temperature profiles
+- User LCD uploads
+- Other runtime-owned database content
+
+This preservation applies to the defined runtime-owned data; it does not guarantee preservation of every arbitrary file placed under `/opt/LumenForge`.
 
 ### Immutable Distributions
 
-Immutable distributions may require a user-space installation flow, but this has not yet been validated for LumenForge.
+The user-service installer is implemented and available for experimental validation, including investigation on immutable distributions. It is not yet supported, stable, or advertised as a production-ready immutable-distribution installation path.
 
 ### Distribution Status
 
@@ -97,13 +133,13 @@ The following installation channels are not yet validated or advertised as suppo
 - PPA and Copr repositories
 - GitHub release tarballs
 - `remote-install.sh`
-- User-space installation on immutable distributions
+- Stable or production use of the experimental user-service installer on immutable distributions
 
 Docker support is also not yet validated. The inherited `Dockerfile` may require review before use.
 
 ## Configuration
 
-LumenForge creates `config.json` on first run. It is stored in the working directory, which is `/opt/LumenForge/config.json` for the system-service installation. Current generated defaults are:
+LumenForge creates `config.json` on first run. It is stored in the working directory, which is `/opt/LumenForge/config.json` for either installer-managed service mode. Current generated defaults are:
 
 ```json
 {
@@ -141,7 +177,15 @@ LumenForge creates `config.json` on first run. It is stored in the working direc
 }
 ```
 
-`openRGBPort` is the port used to connect to an external OpenRGB server for device discovery and import. See the [OpenRGB import guide](docs/openrgb-import.md) for setup and limitations.
+### OpenRGB Controller Import
+
+OpenRGB must already be running with its SDK Server available on the configured `openRGBPort`. LumenForge does not install, launch, stop, restart, or otherwise manage OpenRGB itself.
+
+Controllers are discovered and explicitly imported through Settings. Imported controllers can be refreshed, removed, and later reimported without losing their stable identity, saved layout, profile, or RGB state.
+
+Some OpenRGB controllers report incomplete metadata or zero LEDs. In those cases, LumenForge may provide a conservative, editable fallback layout. Confirm zone and LED counts in OpenRGB before saving layout changes. An incorrect LED count may cause OpenRGB to ignore lighting updates until the correct values are restored.
+
+See the [OpenRGB import guide](docs/openrgb-import.md) for detailed setup, import, layout, removal, and troubleshooting procedures.
 
 > [!WARNING]
 > Keep `listenAddress` set to `127.0.0.1` unless access to the host is otherwise secured. LumenForge's HTTP API can change device, cooling, lighting, profile, and backup settings and does not currently provide built-in authentication.
@@ -154,7 +198,11 @@ The web UI can be installed as a progressive web app in supported Chromium-based
 
 ## Uninstall
 
-Back up any desired runtime configuration from `/opt/LumenForge` before removing a system-service installation.
+Back up any desired runtime configuration from `/opt/LumenForge` before removing either installer-managed service mode.
+
+Stopping, disabling, and removing one service unit is safe for that service mode. Both modes use the shared `/opt/LumenForge` installation and `/etc/udev/rules.d/99-lumenforge.rules` rule. Remove those shared resources only after confirming that no system-service installation or other user-service installation still needs them. Reload the udev rules after removing the shared rule.
+
+### System-Service Uninstall
 
 ```bash
 sudo systemctl stop LumenForge.service
@@ -162,6 +210,24 @@ sudo systemctl disable LumenForge.service
 sudo rm -f /etc/systemd/system/LumenForge.service
 sudo rm -f /usr/lib/systemd/system/LumenForge.service
 sudo systemctl daemon-reload
+```
+
+### Experimental User-Service Uninstall
+
+Run these commands as the desktop user that owns the user service:
+
+```bash
+systemctl --user stop LumenForge.service
+systemctl --user disable LumenForge.service
+rm -f ~/.config/systemd/user/LumenForge.service
+systemctl --user daemon-reload
+```
+
+### Shared Resource Removal
+
+Only after making the shared-resource confirmation above, remove the shared files and reload the udev rules:
+
+```bash
 sudo rm -f /etc/udev/rules.d/99-lumenforge.rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger
@@ -170,7 +236,7 @@ sudo rm -rf /opt/LumenForge
 
 ## Runtime Notes
 
-- LCD images and animations are stored in `/opt/LumenForge/database/lcd/images/` for a system installation.
+- LCD images and animations are stored in `/opt/LumenForge/database/lcd/images/` for installer-managed installations.
 - The dashboard is available at `http://127.0.0.1:27003/`.
 - Per-device RGB state is generated under `database/rgb/` and can be edited through the RGB editor.
 - LumenForge includes an HTTP server for device overview and control; see the [API documentation](api/README.md).

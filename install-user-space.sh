@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# NOT SUPPORTED FOR LUMENFORGE ALPHA: retained for future validation only.
-# Build from source and use install.sh for the currently supported install path.
+# EXPERIMENTAL FOR LUMENFORGE ALPHA:
+# The user-service installation path is available for validation but is not yet supported.
+# Use install.sh for the currently supported system-service installation.
 
 set -e
 

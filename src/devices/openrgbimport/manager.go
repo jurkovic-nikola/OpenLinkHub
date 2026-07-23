@@ -1,6 +1,7 @@
 package openrgbimport
 
 import (
+	"LumenForge/src/common"
 	"LumenForge/src/config"
 	"LumenForge/src/logger"
 	"LumenForge/src/openrgb"
@@ -10,12 +11,14 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 const (
 	defaultReconcileTimeout = 10 * time.Second
 	defaultHealthyInterval  = 15 * time.Second
+	managerCommandCapacity  = 64
 )
 
 var defaultRetryBackoff = []time.Duration{
@@ -30,6 +33,22 @@ var defaultRetryBackoff = []time.Duration{
 type availabilityUpdater func(serial string, unavailable bool)
 type presentationUpdater func(serial, product, firmware, image string)
 
+type managerCommandKind uint8
+
+const (
+	managerCommandAdd managerCommandKind = iota
+	managerCommandRemove
+	managerCommandRefresh
+)
+
+type managerCommand struct {
+	kind    managerCommandKind
+	devices map[string]*Device
+	result  chan error
+	ctx     context.Context
+	state   atomic.Uint32
+}
+
 type Manager struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -38,6 +57,7 @@ type Manager struct {
 	stopOnce  sync.Once
 	wg        sync.WaitGroup
 	trigger   chan struct{}
+	commands  chan *managerCommand
 
 	devices map[string]*Device
 
@@ -53,7 +73,9 @@ type Manager struct {
 	logRecovery   func()
 	logDiagnostic func(string, error)
 
-	diagnosticMessages map[string]string
+	diagnosticMessages  map[string]string
+	commandClaimed      func(*managerCommand)
+	commandBeforeResult func(*managerCommand)
 }
 
 func newManager(devices map[string]*Device, update availabilityUpdater) *Manager {
@@ -66,6 +88,7 @@ func newManager(devices map[string]*Device, update availabilityUpdater) *Manager
 		ctx:                ctx,
 		cancel:             cancel,
 		trigger:            make(chan struct{}, 1),
+		commands:           make(chan *managerCommand, managerCommandCapacity),
 		devices:            clonedDevices,
 		discover:           openrgb.DiscoverControllersContext,
 		updateAvailable:    update,
@@ -103,6 +126,61 @@ func (m *Manager) Trigger() {
 	case m.trigger <- struct{}{}:
 	default:
 	}
+}
+
+func (m *Manager) sendCommand(ctx context.Context, kind managerCommandKind, devices map[string]*Device) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	command := &managerCommand{
+		kind:    kind,
+		devices: devices,
+		result:  make(chan error, 1),
+		ctx:     ctx,
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-m.ctx.Done():
+		return fmt.Errorf("OpenRGB importer manager is stopped")
+	case m.commands <- command:
+	}
+
+	select {
+	case <-ctx.Done():
+		return waitForDefinitiveCommandResult(command, ctx.Err())
+	case <-m.ctx.Done():
+		return waitForDefinitiveCommandResult(command, fmt.Errorf("OpenRGB importer manager is stopped"))
+	case err := <-command.result:
+		return err
+	}
+}
+
+func waitForDefinitiveCommandResult(command *managerCommand, queuedError error) error {
+	if command.state.CompareAndSwap(0, 2) {
+		return queuedError
+	}
+	return <-command.result
+}
+
+func (m *Manager) Add(ctx context.Context, serial string, device *Device) error {
+	return m.AddDevices(ctx, map[string]*Device{serial: device})
+}
+
+func (m *Manager) AddDevices(ctx context.Context, devices map[string]*Device) error {
+	return m.sendCommand(ctx, managerCommandAdd, devices)
+}
+
+func (m *Manager) Remove(ctx context.Context, serial string, expected *Device) error {
+	return m.RemoveDevices(ctx, map[string]*Device{serial: expected})
+}
+
+func (m *Manager) RemoveDevices(ctx context.Context, devices map[string]*Device) error {
+	return m.sendCommand(ctx, managerCommandRemove, devices)
+}
+
+func (m *Manager) Refresh(ctx context.Context) error {
+	return m.sendCommand(ctx, managerCommandRefresh, nil)
 }
 
 func (m *Manager) run() {
@@ -162,17 +240,125 @@ func (m *Manager) run() {
 func (m *Manager) wait(delay time.Duration) bool {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
-	select {
-	case <-m.ctx.Done():
-		return false
-	case <-m.trigger:
-		return true
-	case <-timer.C:
-		return true
+
+	for {
+		select {
+		case <-m.ctx.Done():
+			return false
+		case command := <-m.commands:
+			needsReconcile := m.handleCommand(command)
+			draining := true
+			for draining {
+				select {
+				case next := <-m.commands:
+					if m.handleCommand(next) {
+						needsReconcile = true
+					}
+				default:
+					draining = false
+				}
+			}
+			if needsReconcile {
+				return true
+			}
+		case <-m.trigger:
+			return true
+		case <-timer.C:
+			return true
+		}
 	}
 }
 
+func (m *Manager) handleCommand(command *managerCommand) bool {
+	if !command.state.CompareAndSwap(0, 1) {
+		command.result <- commandContextError(command)
+		return false
+	}
+	if m.commandClaimed != nil {
+		m.commandClaimed(command)
+	}
+
+	var err error
+	needsReconcile := false
+	switch command.kind {
+	case managerCommandAdd:
+		if len(command.devices) == 0 {
+			err = fmt.Errorf("OpenRGB manager add command has no devices")
+			break
+		}
+		for serial, device := range command.devices {
+			if device == nil {
+				err = fmt.Errorf("cannot add nil OpenRGB import %q to manager", serial)
+				break
+			}
+			if !common.AlphanumericDashRegex.MatchString(serial) || device.Serial != serial {
+				err = fmt.Errorf("OpenRGB manager add serial %q is invalid or does not match device %q", serial, device.Serial)
+				break
+			}
+			if existing, ok := m.devices[serial]; ok && existing != device {
+				err = fmt.Errorf("OpenRGB manager already contains a different device for serial %q", serial)
+				break
+			}
+		}
+		if err == nil {
+			for serial, device := range command.devices {
+				m.devices[serial] = device
+			}
+			needsReconcile = len(m.devices) > 0
+		}
+	case managerCommandRemove:
+		if len(command.devices) == 0 {
+			err = fmt.Errorf("OpenRGB manager remove command has no devices")
+			break
+		}
+		for serial, expected := range command.devices {
+			if expected == nil {
+				err = fmt.Errorf("cannot remove nil OpenRGB import %q from manager", serial)
+				break
+			}
+			existing, ok := m.devices[serial]
+			if !ok {
+				err = fmt.Errorf("OpenRGB manager does not contain serial %q", serial)
+				break
+			}
+			if existing != expected {
+				err = fmt.Errorf("OpenRGB manager device pointer mismatch for serial %q", serial)
+				break
+			}
+		}
+		if err == nil {
+			for serial := range command.devices {
+				delete(m.devices, serial)
+				delete(m.diagnosticMessages, serial)
+			}
+			needsReconcile = len(m.devices) > 0
+		}
+	case managerCommandRefresh:
+		needsReconcile = len(m.devices) > 0
+	default:
+		err = fmt.Errorf("unknown OpenRGB manager command")
+	}
+	if m.commandBeforeResult != nil {
+		m.commandBeforeResult(command)
+	}
+	command.result <- err
+	return err == nil && needsReconcile
+}
+
+func commandContextError(command *managerCommand) error {
+	if command.ctx != nil && command.ctx.Err() != nil {
+		return command.ctx.Err()
+	}
+	return fmt.Errorf("OpenRGB manager command was canceled")
+}
+
 func (m *Manager) reconcile() (bool, error) {
+	if len(m.devices) == 0 {
+		return false, nil
+	}
+	if err := m.ctx.Err(); err != nil {
+		return false, err
+	}
 	ctx, cancel := context.WithTimeout(m.ctx, m.reconcileTimeout)
 	defer cancel()
 
@@ -289,10 +475,12 @@ func matchConfiguredDevices(devices map[string]*Device, discovered []openrgb.Dis
 			}
 			configuredSerial := usableExternalSerial(cfg.ExternalSerial)
 			discoveredSerial := usableExternalSerial(dc.Serial)
-			return configuredSerial != "" && discoveredSerial != "" && configuredSerial == discoveredSerial
+			return configuredSerial != "" && discoveredSerial != "" &&
+				normalizeIdentityField(configuredSerial) == normalizeIdentityField(discoveredSerial)
 		},
 		func(cfg *DeviceConfig, dc openrgb.DiscoveredController) bool {
-			if cfg == nil || strings.TrimSpace(cfg.Location) == "" || strings.TrimSpace(cfg.Location) != strings.TrimSpace(dc.Location) {
+			if cfg == nil || normalizeIdentityField(cfg.Location) == "" ||
+				normalizeIdentityField(cfg.Location) != normalizeIdentityField(dc.Location) {
 				return false
 			}
 			return identifyingMetadataMatches(cfg, dc)
@@ -348,10 +536,11 @@ func matchConfiguredDevices(devices map[string]*Device, discovered []openrgb.Dis
 }
 
 func identifyingMetadataMatches(cfg *DeviceConfig, controller openrgb.DiscoveredController) bool {
-	if strings.TrimSpace(cfg.Product) != strings.TrimSpace(controller.Name) {
+	if normalizeIdentityField(cfg.Product) != normalizeIdentityField(controller.Name) {
 		return false
 	}
-	return strings.TrimSpace(cfg.Vendor) == "" || strings.TrimSpace(cfg.Vendor) == strings.TrimSpace(controller.Vendor)
+	return normalizeIdentityField(cfg.Vendor) == "" ||
+		normalizeIdentityField(cfg.Vendor) == normalizeIdentityField(controller.Vendor)
 }
 
 func internalSerialForController(controller openrgb.DiscoveredController) string {
@@ -374,29 +563,31 @@ func persistIdentityMetadata(matches map[string]openrgb.DiscoveredController) er
 			if !ok {
 				continue
 			}
-			if cfg.ExternalSerial != usableExternalSerial(cfg.ExternalSerial) {
-				cfg.ExternalSerial = usableExternalSerial(cfg.ExternalSerial)
+			sanitizedExternal := safePresentationString(usableExternalSerial(cfg.ExternalSerial), 512)
+			if cfg.ExternalSerial != sanitizedExternal {
+				cfg.ExternalSerial = sanitizedExternal
 				changed = true
 			}
 			if externalSerial := usableExternalSerial(controller.Serial); externalSerial != "" {
+				externalSerial = safePresentationString(externalSerial, 512)
 				if cfg.ExternalSerial != externalSerial {
 					cfg.ExternalSerial = externalSerial
 					changed = true
 				}
 			}
-			if location := strings.TrimSpace(controller.Location); location != "" {
+			if location := safePresentationString(controller.Location, 512); location != "" {
 				if cfg.Location != location {
 					cfg.Location = location
 					changed = true
 				}
 			}
-			if vendor := strings.TrimSpace(controller.Vendor); vendor != "" {
+			if vendor := safePresentationString(controller.Vendor, 512); vendor != "" {
 				if cfg.Vendor != vendor {
 					cfg.Vendor = vendor
 					changed = true
 				}
 			}
-			if product := strings.TrimSpace(controller.Name); product != "" {
+			if product := safePresentationString(controller.Name, 512); product != "" {
 				if cfg.Product != product {
 					cfg.Product = product
 					changed = true
@@ -413,6 +604,8 @@ var (
 	configuredDevices        = make(map[string]*Device)
 	activeManagerMutex       sync.RWMutex
 	activeManager            *Manager
+	managerAvailability      availabilityUpdater
+	managerPresentation      presentationUpdater
 	managerFactory           = newManager
 	localTargetServerEnabled = func() bool {
 		return config.GetConfig().EnableOpenRGBTargetServer
@@ -438,12 +631,95 @@ func configuredDevicesSnapshot() map[string]*Device {
 	return result
 }
 
+func addConfiguredDevices(devices map[string]*Device) error {
+	configuredDevicesMutex.Lock()
+	defer configuredDevicesMutex.Unlock()
+
+	for serial, device := range devices {
+		if device == nil || device.Serial != serial || !common.AlphanumericDashRegex.MatchString(serial) {
+			return fmt.Errorf("invalid configured OpenRGB import %q", serial)
+		}
+		if existing, ok := configuredDevices[serial]; ok && existing != device {
+			return fmt.Errorf("configured OpenRGB import %q already references a different object", serial)
+		}
+	}
+	for serial, device := range devices {
+		configuredDevices[serial] = device
+	}
+	return nil
+}
+
+func removeConfiguredDevices(devices map[string]*Device) error {
+	configuredDevicesMutex.Lock()
+	defer configuredDevicesMutex.Unlock()
+
+	for serial, expected := range devices {
+		if expected == nil {
+			return fmt.Errorf("cannot remove nil configured OpenRGB import %q", serial)
+		}
+		existing, ok := configuredDevices[serial]
+		if !ok {
+			return fmt.Errorf("configured OpenRGB import %q is missing", serial)
+		}
+		if existing != expected {
+			return fmt.Errorf("configured OpenRGB import %q references a different object", serial)
+		}
+	}
+	for serial := range devices {
+		delete(configuredDevices, serial)
+	}
+	return nil
+}
+
+func configuredDevice(serial string) (*Device, bool) {
+	configuredDevicesMutex.RLock()
+	defer configuredDevicesMutex.RUnlock()
+	device, ok := configuredDevices[serial]
+	return device, ok
+}
+
+func enabledConfiguredCount() int {
+	configuredDevicesMutex.RLock()
+	defer configuredDevicesMutex.RUnlock()
+	return len(configuredDevices)
+}
+
+func targetServerConflictError() error {
+	return fmt.Errorf("OpenRGB imports cannot use 127.0.0.1:%d while the LumenForge OpenRGB target server is enabled", config.GetConfig().OpenRGBPort)
+}
+
+func managerCallbacks() (availabilityUpdater, presentationUpdater) {
+	activeManagerMutex.RLock()
+	defer activeManagerMutex.RUnlock()
+	return managerAvailability, managerPresentation
+}
+
+func installManager(devices map[string]*Device) (*Manager, bool) {
+	update, presentation := managerCallbacks()
+	candidate := managerFactory(devices, update)
+	candidate.updatePresentation = presentation
+
+	activeManagerMutex.Lock()
+	if activeManager != nil {
+		manager := activeManager
+		activeManagerMutex.Unlock()
+		candidate.Stop()
+		return manager, false
+	}
+	activeManager = candidate
+	candidate.Start()
+	activeManagerMutex.Unlock()
+	return candidate, true
+}
+
 // StartManager starts asynchronous reconciliation after devices.Init has registered placeholders.
 func StartManager(update availabilityUpdater, updatePresentation presentationUpdater) {
 	devices := configuredDevicesSnapshot()
-	activeManagerMutex.RLock()
+	activeManagerMutex.Lock()
+	managerAvailability = update
+	managerPresentation = updatePresentation
 	alreadyActive := activeManager != nil
-	activeManagerMutex.RUnlock()
+	activeManagerMutex.Unlock()
 	if alreadyActive {
 		logger.Log(logger.Fields{}).Warn("OpenRGB importer manager is already running; ignoring duplicate start")
 		return
@@ -452,7 +728,7 @@ func StartManager(update availabilityUpdater, updatePresentation presentationUpd
 		return
 	}
 	if localTargetServerEnabled() {
-		err := fmt.Errorf("configured OpenRGB imports cannot use 127.0.0.1:%d while the LumenForge OpenRGB target server is enabled", config.GetConfig().OpenRGBPort)
+		err := targetServerConflictError()
 		openrgb.SetDisconnected(err)
 		for serial := range devices {
 			if update != nil {
@@ -463,18 +739,10 @@ func StartManager(update availabilityUpdater, updatePresentation presentationUpd
 		return
 	}
 
-	manager := managerFactory(devices, update)
-	manager.updatePresentation = updatePresentation
-	activeManagerMutex.Lock()
-	if activeManager != nil {
-		activeManagerMutex.Unlock()
-		manager.Stop()
+	_, installed := installManager(devices)
+	if !installed {
 		logger.Log(logger.Fields{}).Warn("OpenRGB importer manager is already running; ignoring duplicate start")
-		return
 	}
-	activeManager = manager
-	manager.Start()
-	activeManagerMutex.Unlock()
 }
 
 // StopManager cancels and joins the importer worker. It is safe to call repeatedly.
@@ -486,6 +754,94 @@ func StopManager() {
 	if manager != nil {
 		manager.Stop()
 	}
+}
+
+func addManagerDevices(ctx context.Context, devices map[string]*Device) (bool, error) {
+	if len(devices) == 0 {
+		return false, nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if localTargetServerEnabled() {
+		return false, targetServerConflictError()
+	}
+
+	activeManagerMutex.RLock()
+	manager := activeManager
+	activeManagerMutex.RUnlock()
+	if manager != nil {
+		return false, manager.AddDevices(ctx, devices)
+	}
+
+	allConfigured := configuredDevicesSnapshot()
+	manager, installed := installManager(allConfigured)
+	if installed {
+		return true, nil
+	}
+	return false, manager.AddDevices(ctx, devices)
+}
+
+func removeManagerDevices(ctx context.Context, devices map[string]*Device) error {
+	if len(devices) == 0 {
+		return nil
+	}
+	activeManagerMutex.RLock()
+	manager := activeManager
+	activeManagerMutex.RUnlock()
+	if manager == nil {
+		return nil
+	}
+	return manager.RemoveDevices(ctx, devices)
+}
+
+func stopManagerIfNoConfigured() bool {
+	if enabledConfiguredCount() != 0 {
+		return false
+	}
+	activeManagerMutex.Lock()
+	manager := activeManager
+	activeManager = nil
+	activeManagerMutex.Unlock()
+	if manager != nil {
+		manager.Stop()
+	}
+	openrgb.SetNotConfigured()
+	return true
+}
+
+// RefreshManager requests one coalesced reconciliation without discovering or
+// importing any new controller.
+func RefreshManager(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if localTargetServerEnabled() {
+		return targetServerConflictError()
+	}
+	devices := configuredDevicesSnapshot()
+	if len(devices) == 0 {
+		openrgb.SetNotConfigured()
+		return fmt.Errorf("OpenRGB imports are not configured")
+	}
+
+	activeManagerMutex.RLock()
+	manager := activeManager
+	activeManagerMutex.RUnlock()
+	if manager == nil {
+		var installed bool
+		manager, installed = installManager(devices)
+		if installed {
+			return nil
+		}
+	}
+	return manager.Refresh(ctx)
 }
 
 func requestReconciliation() {

@@ -37,6 +37,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -65,7 +66,29 @@ var (
 	server      *http.Server
 	serveDone   chan struct{}
 	serverMutex sync.Mutex
+
+	discoverOpenRGBImports = openrgbimport.DiscoverPreview
+	importOpenRGBImports   = func(ctx context.Context, keys []string) (openrgbimport.ImportResult, error) {
+		return openrgbimport.ImportControllers(ctx, keys, openRGBImportRegistryHooks())
+	}
+	removeOpenRGBImports = func(ctx context.Context, serials []string) (openrgbimport.RemoveResult, error) {
+		return openrgbimport.RemoveConfiguredImports(ctx, serials, openRGBImportRegistryHooks())
+	}
+	refreshOpenRGBImports = openrgbimport.RefreshManager
 )
+
+const (
+	openRGBImportRequestLimit = 64 << 10
+	openRGBImportBatchLimit   = 64
+)
+
+func openRGBImportRegistryHooks() openrgbimport.RegistryHooks {
+	return openrgbimport.RegistryHooks{
+		Register: devices.RegisterOpenRGBImport,
+		Remove:   devices.RemoveOpenRGBImport,
+		Lookup:   devices.LookupOpenRGBImport,
+	}
+}
 
 // Send will process response and send it back to a client
 func (r *Response) Send(w http.ResponseWriter) {
@@ -2602,6 +2625,107 @@ func decodeRequestBody(w http.ResponseWriter, r *http.Request, dst any) bool {
 	return true
 }
 
+func decodeOpenRGBImportRequest(w http.ResponseWriter, r *http.Request, dst any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, openRGBImportRequestLimit)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		(&Response{Code: http.StatusOK, Status: 0, Message: "Invalid request body"}).Send(w)
+		return false
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		(&Response{Code: http.StatusOK, Status: 0, Message: "Invalid request body"}).Send(w)
+		return false
+	}
+	return true
+}
+
+func discoverOpenRGBImportControllers(w http.ResponseWriter, r *http.Request) {
+	if r.ContentLength > openRGBImportRequestLimit {
+		(&Response{Code: http.StatusOK, Status: 0, Message: "Request body is too large"}).Send(w)
+		return
+	}
+	data, err := discoverOpenRGBImports(r.Context())
+	if err != nil {
+		(&Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: err.Error(),
+			Data:    data,
+		}).Send(w)
+		return
+	}
+	(&Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "OpenRGB controller discovery completed",
+		Data:    data,
+	}).Send(w)
+}
+
+func importOpenRGBImportControllers(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Keys []string `json:"keys"`
+	}
+	if !decodeOpenRGBImportRequest(w, r, &request) {
+		return
+	}
+	if len(request.Keys) == 0 {
+		(&Response{Code: http.StatusOK, Status: 0, Message: "At least one OpenRGB selection key is required"}).Send(w)
+		return
+	}
+	if len(request.Keys) > openRGBImportBatchLimit {
+		(&Response{Code: http.StatusOK, Status: 0, Message: fmt.Sprintf("Too many OpenRGB selections; maximum batch size is %d", openRGBImportBatchLimit)}).Send(w)
+		return
+	}
+	data, err := importOpenRGBImports(r.Context(), request.Keys)
+	if err != nil {
+		(&Response{Code: http.StatusOK, Status: 0, Message: err.Error(), Data: data}).Send(w)
+		return
+	}
+	(&Response{Code: http.StatusOK, Status: 1, Message: "OpenRGB controllers imported", Data: data}).Send(w)
+}
+
+func removeOpenRGBImportControllers(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Serials []string `json:"serials"`
+	}
+	if !decodeOpenRGBImportRequest(w, r, &request) {
+		return
+	}
+	if len(request.Serials) == 0 {
+		(&Response{Code: http.StatusOK, Status: 0, Message: "At least one OpenRGB import serial is required"}).Send(w)
+		return
+	}
+	if len(request.Serials) > openRGBImportBatchLimit {
+		(&Response{Code: http.StatusOK, Status: 0, Message: fmt.Sprintf("Too many OpenRGB imports; maximum batch size is %d", openRGBImportBatchLimit)}).Send(w)
+		return
+	}
+	data, err := removeOpenRGBImports(r.Context(), request.Serials)
+	if err != nil {
+		(&Response{Code: http.StatusOK, Status: 0, Message: err.Error(), Data: data}).Send(w)
+		return
+	}
+	(&Response{Code: http.StatusOK, Status: 1, Message: "OpenRGB imports removed", Data: data}).Send(w)
+}
+
+func refreshOpenRGBImportManager(w http.ResponseWriter, r *http.Request) {
+	if r.ContentLength > openRGBImportRequestLimit {
+		(&Response{Code: http.StatusOK, Status: 0, Message: "Request body is too large"}).Send(w)
+		return
+	}
+	if err := refreshOpenRGBImports(r.Context()); err != nil {
+		(&Response{Code: http.StatusOK, Status: 0, Message: err.Error()}).Send(w)
+		return
+	}
+	(&Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: "OpenRGB import reconciliation requested",
+		Data:    map[string]bool{"queued": true},
+	}).Send(w)
+}
+
 func setOpenRGBImportColor(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Serial string `json:"serial"`
@@ -2885,6 +3009,10 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/media/", http.MethodGet, mediaPlaybackControl)
 
 	// POST
+	handleFunc(r, "/api/openrgbimport/discover", http.MethodPost, discoverOpenRGBImportControllers)
+	handleFunc(r, "/api/openrgbimport/import", http.MethodPost, importOpenRGBImportControllers)
+	handleFunc(r, "/api/openrgbimport/remove", http.MethodPost, removeOpenRGBImportControllers)
+	handleFunc(r, "/api/openrgbimport/refresh", http.MethodPost, refreshOpenRGBImportManager)
 	handleFunc(r, "/api/openrgbimport/speed", http.MethodPost, setOpenRGBImportSpeed)
 	handleFunc(r, "/api/openrgbimport/effect", http.MethodPost, setOpenRGBImportEffect)
 	handleFunc(r, "/api/openrgbimport/brightness", http.MethodPost, setOpenRGBImportBrightness)

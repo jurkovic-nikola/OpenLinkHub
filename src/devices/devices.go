@@ -132,6 +132,7 @@ import (
 	"LumenForge/src/smbus"
 	"LumenForge/src/usb"
 	"LumenForge/src/version"
+	"fmt"
 	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
@@ -441,6 +442,62 @@ func GetDevices() map[string]*common.Device {
 		snapshot[serial] = &copy
 	}
 	return snapshot
+}
+
+// RegisterOpenRGBImport enrolls one prepared importer wrapper without exposing
+// general registry mutation. The exact importer instance is the collision key.
+func RegisterOpenRGBImport(wrapper *common.Device, expected *openrgbimport.Device) error {
+	if wrapper == nil || expected == nil {
+		return fmt.Errorf("OpenRGB import wrapper and instance are required")
+	}
+	if wrapper.Serial == "" || wrapper.Serial != expected.Serial || !common.AlphanumericDashRegex.MatchString(wrapper.Serial) {
+		return fmt.Errorf("OpenRGB import wrapper serial %q is invalid or mismatched", wrapper.Serial)
+	}
+	if wrapper.Instance != expected {
+		return fmt.Errorf("OpenRGB import wrapper %q references an unexpected instance", wrapper.Serial)
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+	if existing, ok := devices[wrapper.Serial]; ok {
+		if existing == wrapper && existing.Instance == expected {
+			return nil
+		}
+		return fmt.Errorf("device registry already contains a different object for serial %q", wrapper.Serial)
+	}
+	devices[wrapper.Serial] = wrapper
+	return nil
+}
+
+// RemoveOpenRGBImport removes only the wrapper that still references expected.
+func RemoveOpenRGBImport(serial string, expected *openrgbimport.Device) (*common.Device, bool) {
+	if expected == nil {
+		return nil, false
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
+	existing, ok := devices[serial]
+	if !ok || existing == nil || existing.Instance != expected {
+		return nil, false
+	}
+	delete(devices, serial)
+	return existing, true
+}
+
+// LookupOpenRGBImport returns a wrapper snapshot and the exact importer instance.
+func LookupOpenRGBImport(serial string) (*common.Device, *openrgbimport.Device, bool) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	wrapper, ok := devices[serial]
+	if !ok || wrapper == nil {
+		return nil, nil, false
+	}
+	instance, ok := wrapper.Instance.(*openrgbimport.Device)
+	if !ok {
+		return nil, nil, false
+	}
+	copy := *wrapper
+	return &copy, instance, true
 }
 
 func setDeviceAvailability(serial string, unavailable bool) {

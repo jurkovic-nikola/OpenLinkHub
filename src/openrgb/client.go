@@ -739,9 +739,25 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 }
 
 func DiscoverControllersContext(ctx context.Context) ([]DiscoveredController, error) {
+	return discoverControllersContext(ctx, true)
+}
+
+// DiscoverControllersStatusNeutralContext performs one bounded SDK discovery
+// without changing the process-wide importer connection status.
+func DiscoverControllersStatusNeutralContext(ctx context.Context) ([]DiscoveredController, error) {
+	return discoverControllersContext(ctx, false)
+}
+
+func discoverControllersContext(ctx context.Context, updateStatus bool) ([]DiscoveredController, error) {
+	recordFailure := func(err error) {
+		if updateStatus {
+			SetDisconnected(err)
+		}
+	}
+
 	conn, err := dial(ctx)
 	if err != nil {
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 	defer conn.Close()
@@ -750,33 +766,33 @@ func DiscoverControllersContext(ctx context.Context) ([]DiscoveredController, er
 
 	packet := new(bytes.Buffer)
 	if err := writeHeader(packet, 0, opcodeRequestControllerCount, 0); err != nil {
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 	if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 
 	if err := setReadDeadline(ctx, conn); err != nil {
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 	payload, err := readResponse(conn, 0, opcodeRequestControllerCount)
 	if err != nil {
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 	if len(payload) != 4 {
 		err = fmt.Errorf("invalid controller count payload size %d", len(payload))
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 
 	count := binary.LittleEndian.Uint32(payload[:4])
 	if count > maxControllerCount {
 		err = fmt.Errorf("OpenRGB controller count %d exceeds limit %d", count, maxControllerCount)
-		SetDisconnected(err)
+		recordFailure(err)
 		return nil, err
 	}
 	result := make([]DiscoveredController, 0, count)
@@ -787,17 +803,17 @@ func DiscoverControllersContext(ctx context.Context) ([]DiscoveredController, er
 			continue
 		}
 		if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
-			SetDisconnected(err)
+			recordFailure(err)
 			return nil, err
 		}
 
 		if err := setReadDeadline(ctx, conn); err != nil {
-			SetDisconnected(err)
+			recordFailure(err)
 			return nil, err
 		}
 		payload, err = readResponse(conn, i, opcodeRequestControllerData)
 		if err != nil {
-			SetDisconnected(err)
+			recordFailure(err)
 			return nil, err
 		}
 		if len(payload) < 8 {
@@ -860,7 +876,9 @@ func DiscoverControllersContext(ctx context.Context) ([]DiscoveredController, er
 		})
 	}
 
-	setStatus(StateConnected, nil)
+	if updateStatus {
+		setStatus(StateConnected, nil)
+	}
 	return result, nil
 }
 

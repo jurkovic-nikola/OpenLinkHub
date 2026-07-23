@@ -190,6 +190,54 @@ func TestInitAllAndStartManagerPreserveStoreStatus(t *testing.T) {
 	}
 }
 
+func TestInitAllDisabledEntriesRemainValidatedAndDoNotStartManager(t *testing.T) {
+	t.Run("valid disabled store is not configured", func(t *testing.T) {
+		useStorePath(t)
+		cfg := testConfig("openrgb-disabled-only", "Disabled")
+		cfg.Disabled = true
+		if err := saveConfigStore(&ConfigStore{Devices: map[string]DeviceConfig{cfg.Serial: cfg}}); err != nil {
+			t.Fatal(err)
+		}
+		openrgb.SetConnected()
+		if initialized := InitAll(); len(initialized) != 0 {
+			t.Fatalf("initialized disabled imports: %#v", initialized)
+		}
+		state, statusErr := openrgb.GetStatus()
+		if state != openrgb.StateNotConfigured || statusErr != nil || enabledConfiguredCount() != 0 {
+			t.Fatalf("status = %q, %v; configured=%d", state, statusErr, enabledConfiguredCount())
+		}
+
+		previousFactory := managerFactory
+		var factories atomic.Int32
+		managerFactory = func(devices map[string]*Device, update availabilityUpdater) *Manager {
+			factories.Add(1)
+			return newManager(devices, update)
+		}
+		t.Cleanup(func() { managerFactory = previousFactory })
+		StartManager(nil, nil)
+		if factories.Load() != 0 {
+			t.Fatalf("manager factory calls = %d, want 0", factories.Load())
+		}
+	})
+
+	t.Run("invalid disabled entry still fails validation", func(t *testing.T) {
+		useStorePath(t)
+		cfg := testConfig("openrgb-disabled-invalid", "Disabled")
+		cfg.Disabled = true
+		cfg.Zones[0].LedCount = 0
+		if err := saveConfigStore(&ConfigStore{Devices: map[string]DeviceConfig{cfg.Serial: cfg}}); err != nil {
+			t.Fatal(err)
+		}
+		if initialized := InitAll(); len(initialized) != 0 {
+			t.Fatalf("initialized invalid disabled imports: %#v", initialized)
+		}
+		state, statusErr := openrgb.GetStatus()
+		if state != openrgb.StateOffline || statusErr == nil {
+			t.Fatalf("status = %q, %v; want Offline validation error", state, statusErr)
+		}
+	})
+}
+
 func TestInitAllRejectsSemanticallyInvalidStoreBeforeAllocation(t *testing.T) {
 	validSerial := "openrgb-import-invalid-layout"
 	zones := func(count, ledCount int) []ZoneConfig {

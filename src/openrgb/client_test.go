@@ -120,6 +120,46 @@ func TestDiscoverControllersValidTransactionSetsConnected(t *testing.T) {
 	}
 }
 
+func TestStatusNeutralDiscoveryPreservesGlobalStatus(t *testing.T) {
+	withFakeSDKServer(t, func(conn net.Conn) {
+		readRequest(t, conn)
+		if err := writeControllerCount(conn, 0); err != nil {
+			t.Errorf("write response: %v", err)
+		}
+	})
+
+	sentinel := errors.New("manager retry state")
+	SetDisconnected(sentinel)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	controllers, err := DiscoverControllersStatusNeutralContext(ctx)
+	if err != nil {
+		t.Fatalf("DiscoverControllersStatusNeutralContext: %v", err)
+	}
+	if len(controllers) != 0 {
+		t.Fatalf("got %d controllers, want 0", len(controllers))
+	}
+	state, statusErr := GetStatus()
+	if state != StateOffline || statusErr != sentinel {
+		t.Fatalf("status = %q, %v; want unchanged Offline sentinel", state, statusErr)
+	}
+}
+
+func TestStatusNeutralDiscoveryFailurePreservesGlobalStatus(t *testing.T) {
+	previousAddress := sdkAddress
+	sdkAddress = func() (string, error) { return "", errors.New("injected address failure") }
+	t.Cleanup(func() { sdkAddress = previousAddress })
+
+	SetConnected()
+	if _, err := DiscoverControllersStatusNeutralContext(context.Background()); err == nil {
+		t.Fatal("expected status-neutral discovery failure")
+	}
+	state, statusErr := GetStatus()
+	if state != StateConnected || statusErr != nil {
+		t.Fatalf("status = %q, %v; want unchanged Connected status", state, statusErr)
+	}
+}
+
 func TestDialAloneDoesNotMarkSDKConnected(t *testing.T) {
 	clientConn, serverConn := net.Pipe()
 	defer serverConn.Close()

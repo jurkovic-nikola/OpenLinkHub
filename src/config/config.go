@@ -229,6 +229,15 @@ func saveConfigSettings(data any) {
 
 // setSystemService will check and set systemService state
 func setSystemService() {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("LUMENFORGE_SERVICE_MODE"))) {
+	case "system":
+		systemService = true
+		return
+	case "user", "desktop":
+		systemService = false
+		return
+	}
+
 	uid := os.Getuid()
 	if uid < 1000 {
 		systemService = true

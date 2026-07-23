@@ -55,6 +55,9 @@ var (
 		return filepath.Join(config.GetConfig().ConfigPath, "database", "openrgbimport-zones.json")
 	}
 	renameConfigStore = os.Rename
+	sendConfigFrame   = openrgb.SendFrame
+	checkConfigHealth = openrgb.HealthCheck
+	getConfigCluster  = cluster.Get
 )
 
 type ConfigStore struct {
@@ -481,28 +484,34 @@ func configLedCount(cfg *DeviceConfig) int {
 	return total
 }
 
-func validateStoredDeviceConfig(mapSerial string, cfg DeviceConfig) (DeviceConfig, error) {
-	if !common.AlphanumericDashRegex.MatchString(mapSerial) {
-		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has an unusable internal serial", mapSerial)
+func validateDeviceConfig(targetSerial string, input DeviceConfig, allowLegacyEmptySerial bool) (DeviceConfig, error) {
+	if !common.AlphanumericDashRegex.MatchString(targetSerial) {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has an unusable internal serial; expected only letters, numbers, and dashes", targetSerial)
 	}
 
-	if cfg.Serial == "" {
-		cfg.Serial = mapSerial
-	} else if cfg.Serial != mapSerial {
-		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q stores conflicting internal serial %q", mapSerial, cfg.Serial)
+	validated := input
+	validated.Zones = append([]ZoneConfig(nil), input.Zones...)
+
+	if validated.Serial == "" {
+		if !allowLegacyEmptySerial {
+			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has an empty internal serial; expected %q", targetSerial, targetSerial)
+		}
+		validated.Serial = targetSerial
+	} else if validated.Serial != targetSerial {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q stores conflicting internal serial %q; expected %q", targetSerial, validated.Serial, targetSerial)
 	}
 
-	if len(cfg.Zones) < 1 || len(cfg.Zones) > 128 {
-		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has %d zones; expected 1 through 128", mapSerial, len(cfg.Zones))
+	if len(validated.Zones) < 1 || len(validated.Zones) > 128 {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has %d zones; expected 1 through 128", targetSerial, len(validated.Zones))
 	}
 
 	total := 0
-	for index, zone := range cfg.Zones {
+	for index, zone := range validated.Zones {
 		if zone.LedCount < 1 || zone.LedCount > 1024 {
-			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q zone %d has %d LEDs; expected 1 through 1024", mapSerial, index+1, zone.LedCount)
+			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q zone %d has %d LEDs; expected 1 through 1024", targetSerial, index+1, zone.LedCount)
 		}
 		if zone.LedCount > 4096-total {
-			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q exceeds the 4096 LED total limit", mapSerial)
+			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q zone %d has %d LEDs and would exceed the permitted total range of 1 through 4096", targetSerial, index+1, zone.LedCount)
 		}
 		total += zone.LedCount
 
@@ -510,13 +519,17 @@ func validateStoredDeviceConfig(mapSerial string, cfg DeviceConfig) (DeviceConfi
 		if name == "" {
 			name = fmt.Sprintf("Zone %d", index+1)
 		}
-		cfg.Zones[index].Name = name
+		validated.Zones[index].Name = name
 	}
 	if total < 1 {
-		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q must contain at least one LED", mapSerial)
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has a total of %d LEDs; expected 1 through 4096", targetSerial, total)
 	}
 
-	return cfg, nil
+	return validated, nil
+}
+
+func validateStoredDeviceConfig(mapSerial string, cfg DeviceConfig) (DeviceConfig, error) {
+	return validateDeviceConfig(mapSerial, cfg, true)
 }
 
 func validateConfiguredStore(store *ConfigStore) error {
@@ -530,33 +543,20 @@ func validateConfiguredStore(store *ConfigStore) error {
 	return nil
 }
 
-func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredController) bool {
+func validatedConfigForController(cfg *DeviceConfig, _ openrgb.DiscoveredController) (*DeviceConfig, bool) {
 	if cfg == nil {
-		return false
+		return nil, false
 	}
+	validated, err := validateDeviceConfig(cfg.Serial, *cfg, false)
+	if err != nil {
+		return nil, false
+	}
+	return &validated, true
+}
 
-	if strings.TrimSpace(cfg.Serial) == "" {
-		return false
-	}
-	if len(cfg.Zones) == 0 || len(cfg.Zones) > 128 {
-		return false
-	}
-
-	total := 0
-	for i, zone := range cfg.Zones {
-		if zone.LedCount <= 0 || zone.LedCount > 1024 {
-			return false
-		}
-		sanitizedName := sanitizeZoneName(zone.Name)
-		if sanitizedName == "" {
-			cfg.Zones[i].Name = fmt.Sprintf("Zone %d", i+1)
-		} else {
-			cfg.Zones[i].Name = sanitizedName
-		}
-		total += zone.LedCount
-	}
-
-	return total > 0 && total <= 4096
+func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredController) bool {
+	_, valid := validatedConfigForController(cfg, dc)
+	return valid
 }
 
 func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
@@ -565,7 +565,8 @@ func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *Device
 		logger.Log(logger.Fields{"error": err, "serial": serial}).Error("Unable to load OpenRGB import configuration")
 		return nil
 	}
-	if isConfigValidForController(cfg, dc) {
+	if validated, valid := validatedConfigForController(cfg, dc); valid {
+		cfg = validated
 		if cfg.Product != dc.Name {
 			cfg.Product = dc.Name
 			if err := updateConfigStore(func(store *ConfigStore) error {
@@ -581,7 +582,9 @@ func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *Device
 	}
 
 	cfg = buildDefaultDeviceConfig(serial, dc)
-	if !isConfigValidForController(cfg, dc) {
+	if validated, valid := validatedConfigForController(cfg, dc); valid {
+		cfg = validated
+	} else {
 		logger.Log(logger.Fields{
 			"serial":  serial,
 			"product": dc.Name,
@@ -758,7 +761,7 @@ func checkOpenRGBStable(attempts int, delay time.Duration) error {
 		if i > 0 {
 			time.Sleep(delay)
 		}
-		if err := openrgb.HealthCheck(); err != nil {
+		if err := checkConfigHealth(); err != nil {
 			return err
 		}
 	}
@@ -777,28 +780,32 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		return fmt.Errorf("config is required")
 	}
 
+	validated, err := validateDeviceConfig(d.Serial, *cfg, false)
+	if err != nil {
+		return err
+	}
+
+	total := configLedCount(&validated)
+	if total <= 0 {
+		return fmt.Errorf("OpenRGB import %q has a total of %d LEDs; expected 1 through 4096", d.Serial, total)
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	total := configLedCount(cfg)
-	if total <= 0 {
-		return fmt.Errorf("config must contain at least one LED")
-	}
-
-	cfg.Serial = d.Serial
 	savedCfg, err := getDeviceConfig(d.Serial)
 	if err != nil {
 		return err
 	}
 	if savedCfg != nil {
-		cfg.Product = savedCfg.Product
-		cfg.ExternalSerial = savedCfg.ExternalSerial
-		cfg.Location = savedCfg.Location
-		cfg.Vendor = savedCfg.Vendor
-	} else if cfg.Product == "" {
-		cfg.Product = d.Product
+		validated.Product = savedCfg.Product
+		validated.ExternalSerial = savedCfg.ExternalSerial
+		validated.Location = savedCfg.Location
+		validated.Vendor = savedCfg.Vendor
+	} else if validated.Product == "" {
+		validated.Product = d.Product
 	}
-	riskyIncrease := hasLEDCountIncrease(savedCfg, cfg)
+	riskyIncrease := hasLEDCountIncrease(savedCfg, &validated)
 
 	brightness := uint8(d.brightness)
 	if d.DeviceProfile != nil && d.DeviceProfile.BrightnessSlider != nil {
@@ -811,13 +818,13 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 	}
 
 	d.stopEffectLoopLocked()
-	d.applyConfigLocked(cfg, brightness)
+	d.applyConfigLocked(&validated, brightness)
 
 	d.resolveControllerId()
 
 	if d.controllerId >= 0 {
 		time.Sleep(hardwareBufferDrainDelay)
-		if err := openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame()); err != nil {
+		if err := sendConfigFrame(uint32(d.controllerId), d.buildZoneFrame()); err != nil {
 			d.applyConfigLocked(previousCfg, previousBrightness)
 			d.recordOutputFailureLocked(err)
 			return err
@@ -832,14 +839,14 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 
 	if err := updateConfigStore(func(store *ConfigStore) error {
 		if current, ok := store.Devices[d.Serial]; ok {
-			cfg.ExternalSerial = current.ExternalSerial
-			cfg.Location = current.Location
-			cfg.Vendor = current.Vendor
-			if cfg.Product == "" {
-				cfg.Product = current.Product
+			validated.ExternalSerial = current.ExternalSerial
+			validated.Location = current.Location
+			validated.Vendor = current.Vendor
+			if validated.Product == "" {
+				validated.Product = current.Product
 			}
 		}
-		store.Devices[d.Serial] = *cloneDeviceConfig(cfg)
+		store.Devices[d.Serial] = *cloneDeviceConfig(&validated)
 		return nil
 	}); err != nil {
 		return err
@@ -850,7 +857,7 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		if d.DeviceProfile.RGBCluster {
 			serial := d.Serial
 			d.mu.Unlock()
-			if clusterDevice := cluster.Get(); clusterDevice != nil {
+			if clusterDevice := getConfigCluster(); clusterDevice != nil {
 				clusterDevice.RemoveDeviceControllerBySerial(serial)
 			}
 			d.setupClusterController()

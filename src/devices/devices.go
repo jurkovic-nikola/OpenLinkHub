@@ -132,6 +132,7 @@ import (
 	"LumenForge/src/smbus"
 	"LumenForge/src/usb"
 	"LumenForge/src/version"
+	"fmt"
 	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
@@ -165,7 +166,7 @@ type Product struct {
 }
 
 var (
-	mutex               sync.Mutex
+	mutex               sync.RWMutex
 	cls                 *cluster.Device
 	expectedPermissions                             = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
 	vendorId                                        = uint16(6940)  // Corsair
@@ -179,12 +180,16 @@ var (
 
 // Stop will stop all active devices
 func Stop() {
-	// Stop all cluster operations
-	cls.Stop()
+	openrgbimport.StopManager()
 
-	for _, device := range devices {
+	// Stop all cluster operations
+	if cls != nil {
+		cls.Stop()
+	}
+
+	for _, device := range GetDevices() {
 		CallDeviceMethod(device.Serial, "Stop")
-		delete(devices, device.Serial)
+		deleteDevice(device.Serial)
 	}
 	err := hid.Exit()
 	if err != nil {
@@ -386,16 +391,15 @@ func addDevice(device *common.Device) {
 
 // CallDeviceMethod will call device method based on method name and arguments
 func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) []reflect.Value {
-	mutex.Lock()
-	defer mutex.Unlock()
-
+	mutex.RLock()
 	device, ok := devices[deviceId]
+	mutex.RUnlock()
 	if !ok {
 		logger.Log(logger.Fields{"deviceId": deviceId}).Warn("Device not found")
 		return nil
 	}
 
-	method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+	method := reflect.ValueOf(device.Instance).MethodByName(methodName)
 	if !method.IsValid() {
 		return nil
 	}
@@ -415,6 +419,8 @@ func GetProducts() map[string]Device {
 
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	if device, ok := devices[deviceId]; ok {
 		return device.Instance
 	}
@@ -423,7 +429,93 @@ func GetDevice(deviceId string) interface{} {
 
 // GetDevices will return all available devices
 func GetDevices() map[string]*common.Device {
-	return devices
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	snapshot := make(map[string]*common.Device, len(devices))
+	for serial, device := range devices {
+		if device == nil {
+			snapshot[serial] = nil
+			continue
+		}
+		copy := *device
+		snapshot[serial] = &copy
+	}
+	return snapshot
+}
+
+// RegisterOpenRGBImport enrolls one prepared importer wrapper without exposing
+// general registry mutation. The exact importer instance is the collision key.
+func RegisterOpenRGBImport(wrapper *common.Device, expected *openrgbimport.Device) error {
+	if wrapper == nil || expected == nil {
+		return fmt.Errorf("OpenRGB import wrapper and instance are required")
+	}
+	if wrapper.Serial == "" || wrapper.Serial != expected.Serial || !common.AlphanumericDashRegex.MatchString(wrapper.Serial) {
+		return fmt.Errorf("OpenRGB import wrapper serial %q is invalid or mismatched", wrapper.Serial)
+	}
+	if wrapper.Instance != expected {
+		return fmt.Errorf("OpenRGB import wrapper %q references an unexpected instance", wrapper.Serial)
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+	if existing, ok := devices[wrapper.Serial]; ok {
+		if existing == wrapper && existing.Instance == expected {
+			return nil
+		}
+		return fmt.Errorf("device registry already contains a different object for serial %q", wrapper.Serial)
+	}
+	devices[wrapper.Serial] = wrapper
+	return nil
+}
+
+// RemoveOpenRGBImport removes only the wrapper that still references expected.
+func RemoveOpenRGBImport(serial string, expected *openrgbimport.Device) (*common.Device, bool) {
+	if expected == nil {
+		return nil, false
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
+	existing, ok := devices[serial]
+	if !ok || existing == nil || existing.Instance != expected {
+		return nil, false
+	}
+	delete(devices, serial)
+	return existing, true
+}
+
+// LookupOpenRGBImport returns a wrapper snapshot and the exact importer instance.
+func LookupOpenRGBImport(serial string) (*common.Device, *openrgbimport.Device, bool) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	wrapper, ok := devices[serial]
+	if !ok || wrapper == nil {
+		return nil, nil, false
+	}
+	instance, ok := wrapper.Instance.(*openrgbimport.Device)
+	if !ok {
+		return nil, nil, false
+	}
+	copy := *wrapper
+	return &copy, instance, true
+}
+
+func setDeviceAvailability(serial string, unavailable bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if device, ok := devices[serial]; ok && device != nil {
+		device.Unavailable = unavailable
+	}
+}
+
+func setDevicePresentation(serial, product, firmware, image string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if device, ok := devices[serial]; ok && device != nil {
+		device.Product = product
+		device.Firmware = firmware
+		device.Image = image
+	}
 }
 
 // GetMouse will return all available mouse devices
@@ -444,7 +536,7 @@ func GetMouse() map[string]string {
 // GetDevicesEx will return all available devices with partial data
 func GetDevicesEx() map[string]*common.Device {
 	out := make(map[string]*common.Device)
-	for _, device := range devices {
+	for _, device := range GetDevices() {
 		out[device.Serial] = &common.Device{
 			ProductType: 0,
 			Product:     device.Product,
@@ -743,8 +835,11 @@ func Init() {
 	}
 
 	for _, imported := range openrgbimport.InitAll() {
+		mutex.Lock()
 		devices[imported.Serial] = imported
+		mutex.Unlock()
 	}
+	openrgbimport.StartManager(setDeviceAvailability, setDevicePresentation)
 
 	// Legacy devices
 	res := usb.Init(legacyDevices)

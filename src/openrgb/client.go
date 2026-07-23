@@ -3,10 +3,12 @@ package openrgb
 import (
 	"LumenForge/src/config"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +28,29 @@ var (
 	lastError     error
 )
 
+const (
+	connectTimeout     = 2 * time.Second
+	ioTimeout          = 3 * time.Second
+	operationTimeout   = 10 * time.Second
+	maxPayloadSize     = 16 * 1024 * 1024
+	maxControllerCount = 1024
+	maxLEDCount        = 65535
+)
+
+var (
+	sdkAddress = func() (string, error) {
+		port := config.GetConfig().OpenRGBPort
+		if port <= 0 || port > 65535 {
+			return "", fmt.Errorf("OpenRGB port is not configured")
+		}
+		return net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), nil
+	}
+	dialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+		dialer := &net.Dialer{Timeout: connectTimeout}
+		return dialer.DialContext(ctx, network, address)
+	}
+)
+
 func GetStatus() (ConnectionState, error) {
 	statusMutex.RLock()
 	defer statusMutex.RUnlock()
@@ -39,15 +64,19 @@ func setStatus(state ConnectionState, err error) {
 	lastError = err
 }
 
-var startMonitorOnce sync.Once
+// SetNotConfigured marks the SDK client inactive because no imports are configured.
+func SetNotConfigured() {
+	setStatus(StateNotConfigured, nil)
+}
 
-func startMonitorLoop() {
-	go func() {
-		for {
-			time.Sleep(15 * time.Second)
-			_ = HealthCheck()
-		}
-	}()
+// SetDisconnected records an SDK communication failure.
+func SetDisconnected(err error) {
+	setStatus(StateOffline, err)
+}
+
+// SetConnected records a successful SDK protocol exchange.
+func SetConnected() {
+	setStatus(StateConnected, nil)
 }
 
 const (
@@ -134,14 +163,34 @@ func readHeader(conn net.Conn) (uint32, uint32, uint32, error) {
 	controllerId := binary.LittleEndian.Uint32(buf[4:8])
 	opcode := binary.LittleEndian.Uint32(buf[8:12])
 	size := binary.LittleEndian.Uint32(buf[12:16])
+	if size > maxPayloadSize {
+		return 0, 0, 0, fmt.Errorf("OpenRGB payload size %d exceeds limit %d", size, maxPayloadSize)
+	}
 
 	return controllerId, opcode, size, nil
 }
 
 func readPayload(conn net.Conn, size uint32) ([]byte, error) {
+	if size > maxPayloadSize {
+		return nil, fmt.Errorf("OpenRGB payload size %d exceeds limit %d", size, maxPayloadSize)
+	}
 	buf := make([]byte, size)
 	_, err := io.ReadFull(conn, buf)
 	return buf, err
+}
+
+func readResponse(conn net.Conn, expectedControllerID, expectedOpcode uint32) ([]byte, error) {
+	controllerID, opcode, size, err := readHeader(conn)
+	if err != nil {
+		return nil, err
+	}
+	if controllerID != expectedControllerID {
+		return nil, fmt.Errorf("unexpected OpenRGB controller ID %d, expected %d", controllerID, expectedControllerID)
+	}
+	if opcode != expectedOpcode {
+		return nil, fmt.Errorf("unexpected OpenRGB opcode %d, expected %d", opcode, expectedOpcode)
+	}
+	return readPayload(conn, size)
 }
 
 func readORGBString(data []byte, offset *int) (string, error) {
@@ -164,52 +213,56 @@ func readORGBString(data []byte, offset *int) (string, error) {
 	return string(raw), nil
 }
 
-func dial() (net.Conn, error) {
-	port := config.GetConfig().OpenRGBPort
-	if port <= 0 {
-		err := fmt.Errorf("OpenRGB port is not configured")
-		setStatus(StateNotConfigured, err)
-		return nil, err
-	}
-	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+func dial(ctx context.Context) (net.Conn, error) {
+	address, err := sdkAddress()
 	if err != nil {
-		setStatus(StateOffline, err)
 		return nil, err
 	}
-	setStatus(StateConnected, nil)
-	return conn, nil
+	return dialContext(ctx, "tcp", address)
 }
 
 func HealthCheck() error {
-	conn, err := dial()
+	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
+	defer cancel()
+	return HealthCheckContext(ctx)
+}
+
+func HealthCheckContext(ctx context.Context) error {
+	conn, err := dial(ctx)
 	if err != nil {
+		SetDisconnected(err)
 		return err
 	}
 	defer conn.Close()
+	stopContextWatch := watchContext(ctx, conn)
+	defer stopContextWatch()
 
 	packet := new(bytes.Buffer)
 	if err := writeHeader(packet, 0, opcodeRequestControllerCount, 0); err != nil {
 		setStatus(StateOffline, err)
 		return err
 	}
-	if _, err := conn.Write(packet.Bytes()); err != nil {
+	if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
 		setStatus(StateOffline, err)
 		return err
 	}
 
-	_, _, size, err := readHeader(conn)
+	if err := setReadDeadline(ctx, conn); err != nil {
+		SetDisconnected(err)
+		return err
+	}
+	payload, err := readResponse(conn, 0, opcodeRequestControllerCount)
 	if err != nil {
 		setStatus(StateOffline, err)
 		return err
 	}
-
-	payload, err := readPayload(conn, size)
-	if err != nil {
+	if len(payload) != 4 {
+		err := fmt.Errorf("invalid controller count payload size %d", len(payload))
 		setStatus(StateOffline, err)
 		return err
 	}
-	if len(payload) < 4 {
-		err := fmt.Errorf("controller count payload too short")
+	if count := binary.LittleEndian.Uint32(payload); count > maxControllerCount {
+		err := fmt.Errorf("OpenRGB controller count %d exceeds limit %d", count, maxControllerCount)
 		setStatus(StateOffline, err)
 		return err
 	}
@@ -218,78 +271,76 @@ func HealthCheck() error {
 	return nil
 }
 
+func deadlineFor(ctx context.Context, limit time.Duration) time.Time {
+	deadline := time.Now().Add(limit)
+	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
+		return ctxDeadline
+	}
+	return deadline
+}
+
+func setReadDeadline(ctx context.Context, conn net.Conn) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return conn.SetReadDeadline(deadlineFor(ctx, ioTimeout))
+}
+
+func setWriteDeadline(ctx context.Context, conn net.Conn) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return conn.SetWriteDeadline(deadlineFor(ctx, ioTimeout))
+}
+
+func writePacket(ctx context.Context, conn net.Conn, data []byte) error {
+	if err := setWriteDeadline(ctx, conn); err != nil {
+		return err
+	}
+	for len(data) > 0 {
+		written, err := conn.Write(data)
+		if err != nil {
+			return err
+		}
+		if written == 0 {
+			return io.ErrUnexpectedEOF
+		}
+		data = data[written:]
+	}
+	return nil
+}
+
+func watchContext(ctx context.Context, conn net.Conn) func() {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.SetDeadline(time.Now())
+		case <-done:
+		}
+	}()
+	return func() {
+		close(done)
+	}
+}
+
 func FindControllerIDByNameOrVendor(nameMatch string, vendorMatch string) (int, error) {
-	conn, err := dial()
+	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
+	defer cancel()
+
+	controllers, err := DiscoverControllersContext(ctx)
 	if err != nil {
 		return -1, err
 	}
-	defer conn.Close()
-
-	packet := new(bytes.Buffer)
-	if err := writeHeader(packet, 0, opcodeRequestControllerCount, 0); err != nil {
-		return -1, err
-	}
-	if _, err := conn.Write(packet.Bytes()); err != nil {
-		return -1, err
-	}
-
-	_, _, size, err := readHeader(conn)
-	if err != nil {
-		return -1, err
-	}
-
-	payload, err := readPayload(conn, size)
-	if err != nil {
-		return -1, err
-	}
-	if len(payload) < 4 {
-		return -1, fmt.Errorf("controller count payload too short")
-	}
-
-	count := binary.LittleEndian.Uint32(payload[:4])
 
 	nameMatch = strings.ToLower(nameMatch)
 	vendorMatch = strings.ToLower(vendorMatch)
-
-	for i := uint32(0); i < count; i++ {
-		packet.Reset()
-		if err := writeHeader(packet, i, opcodeRequestControllerData, 0); err != nil {
-			return -1, err
-		}
-		if _, err := conn.Write(packet.Bytes()); err != nil {
-			return -1, err
-		}
-
-		_, _, size, err = readHeader(conn)
-		if err != nil {
-			return -1, err
-		}
-
-		payload, err = readPayload(conn, size)
-		if err != nil {
-			return -1, err
-		}
-
-		if len(payload) < 8 {
-			continue
-		}
-
-		offset := 8
-
-		name, err := readORGBString(payload, &offset)
-		if err != nil {
-			continue
-		}
-		vendor, err := readORGBString(payload, &offset)
-		if err != nil {
-			continue
-		}
-
-		nameOK := nameMatch != "" && strings.Contains(strings.ToLower(name), nameMatch)
-		vendorOK := vendorMatch != "" && strings.Contains(strings.ToLower(vendor), vendorMatch)
+	for _, controller := range controllers {
+		nameOK := nameMatch != "" && strings.Contains(strings.ToLower(controller.Name), nameMatch)
+		vendorOK := vendorMatch != "" && strings.Contains(strings.ToLower(controller.Vendor), vendorMatch)
 
 		if nameOK || vendorOK {
-			return int(i), nil
+			return controller.ID, nil
 		}
 	}
 
@@ -682,34 +733,68 @@ func isImportableController(name, vendor string, ledCount int) bool {
 }
 
 func DiscoverControllers() ([]DiscoveredController, error) {
-	startMonitorOnce.Do(startMonitorLoop)
-	conn, err := dial()
+	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
+	defer cancel()
+	return DiscoverControllersContext(ctx)
+}
+
+func DiscoverControllersContext(ctx context.Context) ([]DiscoveredController, error) {
+	return discoverControllersContext(ctx, true)
+}
+
+// DiscoverControllersStatusNeutralContext performs one bounded SDK discovery
+// without changing the process-wide importer connection status.
+func DiscoverControllersStatusNeutralContext(ctx context.Context) ([]DiscoveredController, error) {
+	return discoverControllersContext(ctx, false)
+}
+
+func discoverControllersContext(ctx context.Context, updateStatus bool) ([]DiscoveredController, error) {
+	recordFailure := func(err error) {
+		if updateStatus {
+			SetDisconnected(err)
+		}
+	}
+
+	conn, err := dial(ctx)
 	if err != nil {
+		recordFailure(err)
 		return nil, err
 	}
 	defer conn.Close()
+	stopContextWatch := watchContext(ctx, conn)
+	defer stopContextWatch()
 
 	packet := new(bytes.Buffer)
 	if err := writeHeader(packet, 0, opcodeRequestControllerCount, 0); err != nil {
+		recordFailure(err)
 		return nil, err
 	}
-	if _, err := conn.Write(packet.Bytes()); err != nil {
+	if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
+		recordFailure(err)
 		return nil, err
 	}
 
-	_, _, size, err := readHeader(conn)
-	if err != nil {
+	if err := setReadDeadline(ctx, conn); err != nil {
+		recordFailure(err)
 		return nil, err
 	}
-	payload, err := readPayload(conn, size)
+	payload, err := readResponse(conn, 0, opcodeRequestControllerCount)
 	if err != nil {
+		recordFailure(err)
 		return nil, err
 	}
-	if len(payload) < 4 {
-		return nil, fmt.Errorf("controller count payload too short")
+	if len(payload) != 4 {
+		err = fmt.Errorf("invalid controller count payload size %d", len(payload))
+		recordFailure(err)
+		return nil, err
 	}
 
 	count := binary.LittleEndian.Uint32(payload[:4])
+	if count > maxControllerCount {
+		err = fmt.Errorf("OpenRGB controller count %d exceeds limit %d", count, maxControllerCount)
+		recordFailure(err)
+		return nil, err
+	}
 	result := make([]DiscoveredController, 0, count)
 
 	for i := uint32(0); i < count; i++ {
@@ -717,16 +802,21 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		if err := writeHeader(packet, i, opcodeRequestControllerData, 0); err != nil {
 			continue
 		}
-		if _, err := conn.Write(packet.Bytes()); err != nil {
-			continue
+		if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
+			recordFailure(err)
+			return nil, err
 		}
 
-		_, _, size, err = readHeader(conn)
-		if err != nil {
-			continue
+		if err := setReadDeadline(ctx, conn); err != nil {
+			recordFailure(err)
+			return nil, err
 		}
-		payload, err = readPayload(conn, size)
-		if err != nil || len(payload) < 8 {
+		payload, err = readResponse(conn, i, opcodeRequestControllerData)
+		if err != nil {
+			recordFailure(err)
+			return nil, err
+		}
+		if len(payload) < 8 {
 			continue
 		}
 
@@ -786,18 +876,34 @@ func DiscoverControllers() ([]DiscoveredController, error) {
 		})
 	}
 
-	if len(result) == 0 {
-		return nil, fmt.Errorf("no importable OpenRGB controllers discovered")
+	if updateStatus {
+		setStatus(StateConnected, nil)
 	}
 	return result, nil
 }
 
 func SendColor(controllerId uint32, colorCount int, rgb []byte) error {
-	conn, err := dial()
+	err := SendColorContext(context.Background(), controllerId, colorCount, rgb)
 	if err != nil {
-		return err
+		SetDisconnected(err)
+	}
+	return err
+}
+
+// SendColorContext sends a static color and allows the caller to cancel the SDK operation.
+func SendColorContext(parent context.Context, controllerId uint32, colorCount int, rgb []byte) error {
+	if colorCount < 0 || colorCount > maxLEDCount {
+		return fmt.Errorf("invalid OpenRGB LED count %d", colorCount)
+	}
+	ctx, cancel := boundedOperationContext(parent)
+	defer cancel()
+	conn, err := dial(ctx)
+	if err != nil {
+		return outputOperationError(ctx, err)
 	}
 	defer conn.Close()
+	stopContextWatch := watchContext(ctx, conn)
+	defer stopContextWatch()
 
 	// Switch device into direct/custom mode
 	{
@@ -805,8 +911,8 @@ func SendColor(controllerId uint32, colorCount int, rgb []byte) error {
 		if err := writeHeader(packet, controllerId, opcodeSetCustomMode, 0); err != nil {
 			return err
 		}
-		if _, err := conn.Write(packet.Bytes()); err != nil {
-			return err
+		if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
+			return outputOperationError(ctx, err)
 		}
 	}
 
@@ -838,16 +944,32 @@ func SendColor(controllerId uint32, colorCount int, rgb []byte) error {
 		}
 	}
 
-	_, err = conn.Write(packet.Bytes())
-	return err
+	err = writePacket(ctx, conn, packet.Bytes())
+	return outputOperationError(ctx, err)
 }
 
 func SendFrame(controllerId uint32, frame []byte) error {
-	conn, err := dial()
+	err := SendFrameContext(context.Background(), controllerId, frame)
 	if err != nil {
-		return err
+		SetDisconnected(err)
+	}
+	return err
+}
+
+// SendFrameContext sends an LED frame and allows the caller to cancel the SDK operation.
+func SendFrameContext(parent context.Context, controllerId uint32, frame []byte) error {
+	if len(frame)%3 != 0 || len(frame)/3 > maxLEDCount {
+		return fmt.Errorf("invalid OpenRGB frame length %d", len(frame))
+	}
+	ctx, cancel := boundedOperationContext(parent)
+	defer cancel()
+	conn, err := dial(ctx)
+	if err != nil {
+		return outputOperationError(ctx, err)
 	}
 	defer conn.Close()
+	stopContextWatch := watchContext(ctx, conn)
+	defer stopContextWatch()
 
 	// Switch device into direct/custom mode
 	{
@@ -855,8 +977,8 @@ func SendFrame(controllerId uint32, frame []byte) error {
 		if err := writeHeader(packet, controllerId, opcodeSetCustomMode, 0); err != nil {
 			return err
 		}
-		if _, err := conn.Write(packet.Bytes()); err != nil {
-			return err
+		if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
+			return outputOperationError(ctx, err)
 		}
 	}
 
@@ -889,16 +1011,38 @@ func SendFrame(controllerId uint32, frame []byte) error {
 		}
 	}
 
-	_, err = conn.Write(packet.Bytes())
+	err = writePacket(ctx, conn, packet.Bytes())
+	return outputOperationError(ctx, err)
+}
+
+func boundedOperationContext(parent context.Context) (context.Context, context.CancelFunc) {
+	if parent == nil {
+		parent = context.Background()
+	}
+	return context.WithTimeout(parent, operationTimeout)
+}
+
+func outputOperationError(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return ctxErr
+	}
 	return err
 }
 
 func SendSingleLED(controllerId uint32, ledIndex uint32, rgb []byte) error {
-	conn, err := dial()
+	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
+	defer cancel()
+	conn, err := dial(ctx)
 	if err != nil {
+		SetDisconnected(err)
 		return err
 	}
 	defer conn.Close()
+	stopContextWatch := watchContext(ctx, conn)
+	defer stopContextWatch()
 
 	// Switch device into direct/custom mode
 	{
@@ -906,7 +1050,8 @@ func SendSingleLED(controllerId uint32, ledIndex uint32, rgb []byte) error {
 		if err := writeHeader(packet, controllerId, opcodeSetCustomMode, 0); err != nil {
 			return err
 		}
-		if _, err := conn.Write(packet.Bytes()); err != nil {
+		if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
+			SetDisconnected(err)
 			return err
 		}
 	}
@@ -932,15 +1077,24 @@ func SendSingleLED(controllerId uint32, ledIndex uint32, rgb []byte) error {
 		return err
 	}
 
-	_, err = conn.Write(packet.Bytes())
+	err = writePacket(ctx, conn, packet.Bytes())
+	if err != nil {
+		SetDisconnected(err)
+	}
 	return err
 }
 
 func SendFramePersistent(conn net.Conn, controllerId uint32, frame []byte) (net.Conn, error) {
+	if len(frame)%3 != 0 || len(frame)/3 > maxLEDCount {
+		return nil, fmt.Errorf("invalid OpenRGB frame length %d", len(frame))
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
+	defer cancel()
 	var err error
 	if conn == nil {
-		conn, err = dial()
+		conn, err = dial(ctx)
 		if err != nil {
+			SetDisconnected(err)
 			return nil, err
 		}
 		// Switch device into direct/custom mode
@@ -949,8 +1103,9 @@ func SendFramePersistent(conn net.Conn, controllerId uint32, frame []byte) (net.
 			conn.Close()
 			return nil, err
 		}
-		if _, err := conn.Write(packet.Bytes()); err != nil {
+		if err := writePacket(ctx, conn, packet.Bytes()); err != nil {
 			conn.Close()
+			SetDisconnected(err)
 			return nil, err
 		}
 	}
@@ -988,8 +1143,9 @@ func SendFramePersistent(conn net.Conn, controllerId uint32, frame []byte) (net.
 		}
 	}
 
-	if _, err = conn.Write(packet.Bytes()); err != nil {
+	if err = writePacket(ctx, conn, packet.Bytes()); err != nil {
 		conn.Close()
+		SetDisconnected(err)
 		return nil, err
 	}
 

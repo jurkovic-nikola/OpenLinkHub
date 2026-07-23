@@ -86,7 +86,7 @@ jobs:
         run: go test ./...
 
       - name: Build
-        run: go build -v ./...
+        run: OUTPUT=/tmp/LumenForge-ci ./scripts/build.sh
 
       - name: Check shell script syntax
         run: |
@@ -94,3 +94,4 @@ jobs:
           sh -n upgrade.sh
           bash -n remote-install.sh
           bash -n install-user-space.sh
+          bash -n scripts/build.sh

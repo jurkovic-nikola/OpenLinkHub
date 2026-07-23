@@ -67,7 +67,15 @@ sudo dnf install gcc git libudev-devel pipewire-devel pkg-config usbutils
 ```bash
 git clone https://github.com/Alaric07/LumenForge.git
 cd LumenForge
-CGO_CFLAGS_ALLOW='-fno-strict-overflow' go build -o LumenForge
+./scripts/build.sh
+```
+
+Ordinary source builds use the tracked `0.2.0-alpha-dev` development version. Future authorized release automation can supply `VERSION` to override it; the build script removes one optional leading lowercase `v`.
+
+For example, a future authorized release build could use:
+
+```bash
+VERSION=v0.2.0-alpha ./scripts/build.sh
 ```
 
 Run directly from the repository:

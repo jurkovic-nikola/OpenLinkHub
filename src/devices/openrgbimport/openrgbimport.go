@@ -9,6 +9,7 @@ import (
 	"LumenForge/src/openrgb"
 	"LumenForge/src/rgb"
 	"LumenForge/src/temperatures"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -32,7 +34,7 @@ var rgbModes = []string{
 	"cpu-temperature",
 	"flickering",
 	"flame",
-		"aurora","cyberpunkglitch","gpu-temperature",
+	"aurora", "cyberpunkglitch", "gpu-temperature",
 	"gradient",
 	"off",
 	"rainbow",
@@ -47,6 +49,14 @@ var rgbModes = []string{
 
 const hardwareBufferDrainDelay = 75 * time.Millisecond
 
+var (
+	configStoreMutex sync.Mutex
+	configStorePath  = func() string {
+		return filepath.Join(config.GetConfig().ConfigPath, "database", "openrgbimport-zones.json")
+	}
+	renameConfigStore = os.Rename
+)
+
 type ConfigStore struct {
 	Devices map[string]DeviceConfig `json:"devices"`
 }
@@ -57,9 +67,12 @@ type ZoneConfig struct {
 }
 
 type DeviceConfig struct {
-	Serial  string       `json:"serial"`
-	Product string       `json:"product,omitempty"`
-	Zones   []ZoneConfig `json:"zones"`
+	Serial         string       `json:"serial"`
+	Product        string       `json:"product,omitempty"`
+	ExternalSerial string       `json:"externalSerial,omitempty"`
+	Location       string       `json:"location,omitempty"`
+	Vendor         string       `json:"vendor,omitempty"`
+	Zones          []ZoneConfig `json:"zones"`
 }
 
 type ZoneColors struct {
@@ -121,6 +134,29 @@ type Device struct {
 	mu          sync.Mutex
 }
 
+// DeviceSnapshot is an immutable presentation/configuration view of an imported device.
+// It intentionally excludes live connections, workers, channels, mutexes, and callbacks.
+type DeviceSnapshot struct {
+	Product            string
+	Serial             string
+	IsOpenRGB          bool
+	DisplaySerial      string
+	DisplaySerialLabel string
+	LEDCount           int
+	ZoneAmount         int
+	Version            string
+	Description        string
+	Config             *DeviceConfig
+	DeviceProfile      *DeviceProfile
+	UserProfiles       map[string]*DeviceProfile
+	Rgb                *rgb.RGB
+	RGBModes           []string
+	Effect             string `json:"-"`
+	Speed              string `json:"-"`
+	Brightness         uint8  `json:"-"`
+	RGBCluster         bool   `json:"-"`
+}
+
 func isUsableDisplaySerial(value string) bool {
 	v := sanitizeDisplaySerial(value)
 	if v == "" {
@@ -172,6 +208,14 @@ func sanitizeDisplaySerial(value string) string {
 	return strings.TrimSpace(v)
 }
 
+func usableExternalSerial(value string) string {
+	serial := sanitizeDisplaySerial(value)
+	if !isUsableDisplaySerial(serial) {
+		return ""
+	}
+	return serial
+}
+
 func pickDisplaySerialAndLabel(dc openrgb.DiscoveredController) (string, string) {
 	serial := sanitizeDisplaySerial(dc.Serial)
 	if isUsableDisplaySerial(serial) {
@@ -202,12 +246,14 @@ func isLegacyASUSMotherboardImport(name, vendor string) bool {
 }
 
 func getConfigPath() string {
-	return filepath.Join(config.GetConfig().ConfigPath, "database", "openrgbimport-zones.json")
+	return configStorePath()
 }
 
-func loadConfigStore() *ConfigStore {
-	configPath := getConfigPath()
+func emptyConfigStore() *ConfigStore {
+	return &ConfigStore{Devices: make(map[string]DeviceConfig)}
+}
 
+func loadConfigStoreUnlocked(configPath string) (*ConfigStore, error) {
 	store := &ConfigStore{
 		Devices: make(map[string]DeviceConfig),
 	}
@@ -215,37 +261,44 @@ func loadConfigStore() *ConfigStore {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			_ = os.MkdirAll(filepath.Dir(configPath), 0o755)
-			_ = saveConfigStore(store)
-			return store
+			return store, nil
 		}
-		return store
+		return nil, fmt.Errorf("read OpenRGB import store: %w", err)
 	}
 
 	if len(data) == 0 {
-		return store
+		return nil, fmt.Errorf("OpenRGB import store is empty")
 	}
 
 	if err = json.Unmarshal(data, store); err != nil {
-		return &ConfigStore{Devices: make(map[string]DeviceConfig)}
+		return nil, fmt.Errorf("decode OpenRGB import store: %w", err)
 	}
 
 	if store.Devices == nil {
 		store.Devices = make(map[string]DeviceConfig)
 	}
 
-	return store
+	return store, nil
 }
 
-func saveConfigStore(store *ConfigStore) error {
+func loadConfigStore() (*ConfigStore, error) {
+	configStoreMutex.Lock()
+	defer configStoreMutex.Unlock()
+	return loadConfigStoreUnlocked(getConfigPath())
+}
+
+func saveConfigStoreUnlocked(configPath string, store *ConfigStore) error {
 	if store == nil {
-		store = &ConfigStore{Devices: make(map[string]DeviceConfig)}
+		store = emptyConfigStore()
 	}
 	if store.Devices == nil {
 		store.Devices = make(map[string]DeviceConfig)
 	}
+	for serial, device := range store.Devices {
+		device.ExternalSerial = usableExternalSerial(device.ExternalSerial)
+		store.Devices[serial] = device
+	}
 
-	configPath := getConfigPath()
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 		return err
 	}
@@ -255,16 +308,75 @@ func saveConfigStore(store *ConfigStore) error {
 		return err
 	}
 
-	return os.WriteFile(configPath, data, 0o644)
+	temporary, err := os.CreateTemp(filepath.Dir(configPath), ".openrgbimport-zones-*.tmp")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+
+	if err = temporary.Chmod(0o644); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if _, err = temporary.Write(data); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err = temporary.Sync(); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err = temporary.Close(); err != nil {
+		return err
+	}
+	if err = renameConfigStore(temporaryPath, configPath); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func getDeviceConfig(serial string) *DeviceConfig {
-	store := loadConfigStore()
+func saveConfigStore(store *ConfigStore) error {
+	configStoreMutex.Lock()
+	defer configStoreMutex.Unlock()
+	return saveConfigStoreUnlocked(getConfigPath(), store)
+}
+
+func updateConfigStore(update func(*ConfigStore) error) error {
+	return updateConfigStoreIfChanged(func(store *ConfigStore) (bool, error) {
+		return true, update(store)
+	})
+}
+
+func updateConfigStoreIfChanged(update func(*ConfigStore) (bool, error)) error {
+	configStoreMutex.Lock()
+	defer configStoreMutex.Unlock()
+
+	store, err := loadConfigStoreUnlocked(getConfigPath())
+	if err != nil {
+		return err
+	}
+	changed, err := update(store)
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return nil
+	}
+	return saveConfigStoreUnlocked(getConfigPath(), store)
+}
+
+func getDeviceConfig(serial string) (*DeviceConfig, error) {
+	store, err := loadConfigStore()
+	if err != nil {
+		return nil, err
+	}
 	if cfg, ok := store.Devices[serial]; ok {
 		deviceCfg := cfg
-		return &deviceCfg
+		return &deviceCfg, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func sanitizeZoneName(name string) string {
@@ -369,6 +481,55 @@ func configLedCount(cfg *DeviceConfig) int {
 	return total
 }
 
+func validateStoredDeviceConfig(mapSerial string, cfg DeviceConfig) (DeviceConfig, error) {
+	if !common.AlphanumericDashRegex.MatchString(mapSerial) {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has an unusable internal serial", mapSerial)
+	}
+
+	if cfg.Serial == "" {
+		cfg.Serial = mapSerial
+	} else if cfg.Serial != mapSerial {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q stores conflicting internal serial %q", mapSerial, cfg.Serial)
+	}
+
+	if len(cfg.Zones) < 1 || len(cfg.Zones) > 128 {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q has %d zones; expected 1 through 128", mapSerial, len(cfg.Zones))
+	}
+
+	total := 0
+	for index, zone := range cfg.Zones {
+		if zone.LedCount < 1 || zone.LedCount > 1024 {
+			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q zone %d has %d LEDs; expected 1 through 1024", mapSerial, index+1, zone.LedCount)
+		}
+		if zone.LedCount > 4096-total {
+			return DeviceConfig{}, fmt.Errorf("OpenRGB import %q exceeds the 4096 LED total limit", mapSerial)
+		}
+		total += zone.LedCount
+
+		name := sanitizeZoneName(zone.Name)
+		if name == "" {
+			name = fmt.Sprintf("Zone %d", index+1)
+		}
+		cfg.Zones[index].Name = name
+	}
+	if total < 1 {
+		return DeviceConfig{}, fmt.Errorf("OpenRGB import %q must contain at least one LED", mapSerial)
+	}
+
+	return cfg, nil
+}
+
+func validateConfiguredStore(store *ConfigStore) error {
+	for serial, cfg := range store.Devices {
+		validated, err := validateStoredDeviceConfig(serial, cfg)
+		if err != nil {
+			return err
+		}
+		store.Devices[serial] = validated
+	}
+	return nil
+}
+
 func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredController) bool {
 	if cfg == nil {
 		return false
@@ -399,13 +560,22 @@ func isConfigValidForController(cfg *DeviceConfig, dc openrgb.DiscoveredControll
 }
 
 func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *DeviceConfig {
-	cfg := getDeviceConfig(serial)
+	cfg, err := getDeviceConfig(serial)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": serial}).Error("Unable to load OpenRGB import configuration")
+		return nil
+	}
 	if isConfigValidForController(cfg, dc) {
 		if cfg.Product != dc.Name {
 			cfg.Product = dc.Name
-			store := loadConfigStore()
-			store.Devices[serial] = *cfg
-			_ = saveConfigStore(store)
+			if err := updateConfigStore(func(store *ConfigStore) error {
+				stored := store.Devices[serial]
+				stored.Product = dc.Name
+				store.Devices[serial] = stored
+				return nil
+			}); err != nil {
+				logger.Log(logger.Fields{"error": err, "serial": serial}).Error("Unable to update OpenRGB import configuration")
+			}
 		}
 		return cfg
 	}
@@ -425,9 +595,12 @@ func resolveDeviceConfig(serial string, dc openrgb.DiscoveredController) *Device
 		}
 	}
 
-	store := loadConfigStore()
-	store.Devices[serial] = *cfg
-	_ = saveConfigStore(store)
+	if err := updateConfigStore(func(store *ConfigStore) error {
+		store.Devices[serial] = *cloneDeviceConfig(cfg)
+		return nil
+	}); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": serial}).Error("Unable to save OpenRGB import configuration")
+	}
 
 	return cfg
 }
@@ -476,11 +649,63 @@ func cloneDeviceConfig(cfg *DeviceConfig) *DeviceConfig {
 	}
 
 	cloned := &DeviceConfig{
-		Serial:  cfg.Serial,
-		Product: cfg.Product,
-		Zones:   append([]ZoneConfig(nil), cfg.Zones...),
+		Serial:         cfg.Serial,
+		Product:        cfg.Product,
+		ExternalSerial: cfg.ExternalSerial,
+		Location:       cfg.Location,
+		Vendor:         cfg.Vendor,
+		Zones:          append([]ZoneConfig(nil), cfg.Zones...),
 	}
 	return cloned
+}
+
+func cloneDeviceProfile(profile *DeviceProfile) *DeviceProfile {
+	if profile == nil {
+		return nil
+	}
+	cloned := *profile
+	if profile.BrightnessSlider != nil {
+		brightness := *profile.BrightnessSlider
+		cloned.BrightnessSlider = &brightness
+	}
+	if profile.RGBOverride != nil {
+		override := *profile.RGBOverride
+		cloned.RGBOverride = &override
+	}
+	if profile.ZoneColors != nil {
+		cloned.ZoneColors = make(map[int]ZoneColors, len(profile.ZoneColors))
+		for index, zone := range profile.ZoneColors {
+			zoneCopy := zone
+			if zone.Color != nil {
+				colorCopy := *zone.Color
+				zoneCopy.Color = &colorCopy
+			}
+			zoneCopy.ColorIndex = append([]int(nil), zone.ColorIndex...)
+			cloned.ZoneColors[index] = zoneCopy
+		}
+	}
+	return &cloned
+}
+
+func cloneRGBState(state *rgb.RGB) *rgb.RGB {
+	if state == nil {
+		return nil
+	}
+	cloned := *state
+	if state.Profiles != nil {
+		cloned.Profiles = make(map[string]rgb.Profile, len(state.Profiles))
+		for name, profile := range state.Profiles {
+			profileCopy := profile
+			if profile.Gradients != nil {
+				profileCopy.Gradients = make(map[int]rgb.Color, len(profile.Gradients))
+				for index, color := range profile.Gradients {
+					profileCopy.Gradients[index] = color
+				}
+			}
+			cloned.Profiles[name] = profileCopy
+		}
+	}
+	return &cloned
 }
 
 func hasLEDCountIncrease(savedCfg *DeviceConfig, newCfg *DeviceConfig) bool {
@@ -542,39 +767,8 @@ func checkOpenRGBStable(attempts int, delay time.Duration) error {
 }
 
 func (d *Device) resolveControllerId() {
-	if d.controllerId >= 0 {
-		return
-	}
-	if strings.HasPrefix(d.Serial, "openrgb-hash-") {
-		devices, err := openrgb.DiscoverControllers()
-		if err == nil {
-			for _, dc := range devices {
-				hashInput := fmt.Sprintf("%s|%s|%s|%s|%d", dc.Name, dc.Vendor, dc.Version, dc.Description, len(dc.Zones))
-				hash := sha256.Sum256([]byte(hashInput))
-				expectedSerial := fmt.Sprintf("openrgb-hash-%x", hash[:16])
-				if expectedSerial == d.Serial {
-					d.controllerId = dc.ID
-					d.colorCount = dc.LEDCount
-					d.ZoneAmount = len(dc.Zones)
-					break
-				}
-			}
-		}
-	} else if strings.HasPrefix(d.Serial, "openrgb-import-") {
-		fmt.Sscanf(d.Serial, "openrgb-import-%d", &d.controllerId)
-	} else if d.Serial == "openrgb-mobo-1" {
-		devices, err := openrgb.DiscoverControllers()
-		if err == nil {
-			for _, dc := range devices {
-				if isLegacyASUSMotherboardImport(dc.Name, dc.Vendor) {
-					d.controllerId = dc.ID
-					// Override the config's color count with the actual OpenRGB hardware LED count to prevent dropping
-					d.colorCount = dc.LEDCount
-					d.ZoneAmount = len(dc.Zones)
-					break
-				}
-			}
-		}
+	if d.controllerId < 0 {
+		requestReconciliation()
 	}
 }
 
@@ -592,7 +786,18 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 	}
 
 	cfg.Serial = d.Serial
-	savedCfg := getDeviceConfig(d.Serial)
+	savedCfg, err := getDeviceConfig(d.Serial)
+	if err != nil {
+		return err
+	}
+	if savedCfg != nil {
+		cfg.Product = savedCfg.Product
+		cfg.ExternalSerial = savedCfg.ExternalSerial
+		cfg.Location = savedCfg.Location
+		cfg.Vendor = savedCfg.Vendor
+	} else if cfg.Product == "" {
+		cfg.Product = d.Product
+	}
 	riskyIncrease := hasLEDCountIncrease(savedCfg, cfg)
 
 	brightness := uint8(d.brightness)
@@ -614,6 +819,7 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		time.Sleep(hardwareBufferDrainDelay)
 		if err := openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame()); err != nil {
 			d.applyConfigLocked(previousCfg, previousBrightness)
+			d.recordOutputFailureLocked(err)
 			return err
 		}
 		if riskyIncrease {
@@ -624,17 +830,31 @@ func (d *Device) SaveDeviceConfig(cfg *DeviceConfig) error {
 		}
 	}
 
-	store := loadConfigStore()
-	store.Devices[d.Serial] = *cloneDeviceConfig(cfg)
-	if err := saveConfigStore(store); err != nil {
+	if err := updateConfigStore(func(store *ConfigStore) error {
+		if current, ok := store.Devices[d.Serial]; ok {
+			cfg.ExternalSerial = current.ExternalSerial
+			cfg.Location = current.Location
+			cfg.Vendor = current.Vendor
+			if cfg.Product == "" {
+				cfg.Product = current.Product
+			}
+		}
+		store.Devices[d.Serial] = *cloneDeviceConfig(cfg)
+		return nil
+	}); err != nil {
 		return err
 	}
 
 	if d.DeviceProfile != nil {
 		d.saveDeviceProfile()
 		if d.DeviceProfile.RGBCluster {
-			cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+			serial := d.Serial
+			d.mu.Unlock()
+			if clusterDevice := cluster.Get(); clusterDevice != nil {
+				clusterDevice.RemoveDeviceControllerBySerial(serial)
+			}
 			d.setupClusterController()
+			d.mu.Lock()
 		}
 	}
 
@@ -696,9 +916,14 @@ func Init() *common.Device {
 
 func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 	colorCount := configLedCount(&cfg)
-	productName := "Imported OpenRGB Device"
+	productName := strings.TrimSpace(cfg.Product)
+	if productName == "" {
+		productName = "Imported OpenRGB Device"
+	}
 	if serial == "openrgb-mobo-1" {
-		productName = "Imported ASUS Motherboard"
+		if strings.TrimSpace(cfg.Product) == "" {
+			productName = "Imported ASUS Motherboard"
+		}
 	}
 
 	d := &Device{
@@ -716,7 +941,7 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 		stopChan:           nil,
 		doneChan:           nil,
 		running:            false,
-		Config:             &cfg,
+		Config:             cloneDeviceConfig(&cfg),
 		ZoneAmount:         len(cfg.Zones),
 		LEDCount:           colorCount,
 	}
@@ -739,73 +964,89 @@ func newOfflineDevice(serial string, cfg DeviceConfig) *Device {
 }
 
 func InitAll() []*common.Device {
-	discovered, err := openrgb.DiscoverControllers()
+	store, err := loadConfigStore()
 	if err != nil {
-		store := loadConfigStore()
-		var result []*common.Device
-		for serial, cfg := range store.Devices {
-			d := newOfflineDevice(serial, cfg)
-			d.createDevice()
-			d.instance.Unavailable = true
-			result = append(result, d.instance)
-		}
-		if len(result) == 0 {
-			dev := Init()
-			dev.Unavailable = true
-			result = append(result, dev)
-		}
-		return result
+		openrgb.SetDisconnected(err)
+		logger.Log(logger.Fields{"error": err, "location": getConfigPath()}).Error("Unable to load OpenRGB import store")
+		setConfiguredDevices(nil)
+		return nil
 	}
 
-	result := make([]*common.Device, 0, len(discovered))
-	for _, dc := range discovered {
-		d := newDeviceFromController(dc)
-		if d == nil {
-			continue
-		}
+	if len(store.Devices) == 0 {
+		openrgb.SetNotConfigured()
+		setConfiguredDevices(nil)
+		return nil
+	}
+	if err = validateConfiguredStore(store); err != nil {
+		openrgb.SetDisconnected(err)
+		logger.Log(logger.Fields{"error": err, "location": getConfigPath()}).Error("Invalid OpenRGB import store")
+		setConfiguredDevices(nil)
+		return nil
+	}
+	openrgb.SetDisconnected(nil)
+
+	serials := make([]string, 0, len(store.Devices))
+	for serial := range store.Devices {
+		serials = append(serials, serial)
+	}
+	sort.Strings(serials)
+
+	configured := make(map[string]*Device, len(serials))
+	result := make([]*common.Device, 0, len(serials))
+	for _, serial := range serials {
+		d := newOfflineDevice(serial, store.Devices[serial])
 		d.createDevice()
+		d.instance.Unavailable = true
+		configured[serial] = d
 		result = append(result, d.instance)
 	}
-
-	if len(result) == 0 {
-		// Preserve legacy behavior if filter removes everything.
-		return []*common.Device{Init()}
-	}
-
+	setConfiguredDevices(configured)
 	return result
 }
 
 func migrateDeviceData(dc openrgb.DiscoveredController, newSerial string) {
-	store := loadConfigStore()
-
 	var candidateSerial string
-
-	// Search order 1: Look for any older hash-based serial (openrgb-hash-*) with same product name
-	for s, cfg := range store.Devices {
-		if strings.HasPrefix(s, "openrgb-hash-") && cfg.Product == dc.Name && s != newSerial {
-			candidateSerial = s
-			break
-		}
-	}
-
-	// Search order 2: Look for the specific ID-based serial (openrgb-import-ID)
-	if candidateSerial == "" {
-		oldImportSerial := fmt.Sprintf("openrgb-import-%d", dc.ID)
-		if _, exists := store.Devices[oldImportSerial]; exists {
-			candidateSerial = oldImportSerial
-		}
-	}
-
-	// Search order 3: Look for any other entry with same product name
-	if candidateSerial == "" {
+	err := updateConfigStoreIfChanged(func(store *ConfigStore) (bool, error) {
+		// Search order 1: Look for any older hash-based serial (openrgb-hash-*) with same product name
 		for s, cfg := range store.Devices {
-			if cfg.Product == dc.Name && s != newSerial {
+			if strings.HasPrefix(s, "openrgb-hash-") && cfg.Product == dc.Name && s != newSerial {
 				candidateSerial = s
 				break
 			}
 		}
-	}
 
+		// Search order 2: Look for the specific ID-based serial (openrgb-import-ID)
+		if candidateSerial == "" {
+			oldImportSerial := fmt.Sprintf("openrgb-import-%d", dc.ID)
+			if _, exists := store.Devices[oldImportSerial]; exists {
+				candidateSerial = oldImportSerial
+			}
+		}
+
+		// Search order 3: Look for any other entry with same product name
+		if candidateSerial == "" {
+			for s, cfg := range store.Devices {
+				if cfg.Product == dc.Name && s != newSerial {
+					candidateSerial = s
+					break
+				}
+			}
+		}
+
+		if candidateSerial == "" {
+			return false, nil
+		}
+
+		oldCfg := store.Devices[candidateSerial]
+		oldCfg.Serial = newSerial
+		store.Devices[newSerial] = oldCfg
+		delete(store.Devices, candidateSerial)
+		return true, nil
+	})
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to save migrated OpenRGB import store")
+		return
+	}
 	if candidateSerial == "" {
 		return
 	}
@@ -815,13 +1056,6 @@ func migrateDeviceData(dc openrgb.DiscoveredController, newSerial string) {
 		"newSerial": newSerial,
 		"product":   dc.Name,
 	}).Info("Migrating OpenRGB device config and profiles to new persistent serial")
-
-	// 1. Migrate the config store entry
-	oldCfg := store.Devices[candidateSerial]
-	oldCfg.Serial = newSerial
-	store.Devices[newSerial] = oldCfg
-	delete(store.Devices, candidateSerial)
-	_ = saveConfigStore(store)
 
 	// 2. Migrate dashboard settings
 	dashboard.MigrateDeviceSerial(candidateSerial, newSerial)
@@ -1010,12 +1244,175 @@ func (d *Device) createDevice() {
 	}
 }
 
+// Snapshot returns a race-safe immutable copy for WebUI and JSON presentation.
+func (d *Device) Snapshot() DeviceSnapshot {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	effect := d.effect
+	if effect == "" {
+		effect = "static"
+	}
+	speed := "normal"
+	switch d.speed {
+	case 4.0:
+		speed = "slow"
+	case 0.8:
+		speed = "fast"
+	}
+
+	var userProfiles map[string]*DeviceProfile
+	if d.UserProfiles != nil {
+		userProfiles = make(map[string]*DeviceProfile, len(d.UserProfiles))
+		for name, profile := range d.UserProfiles {
+			userProfiles[name] = cloneDeviceProfile(profile)
+		}
+	}
+	rgbCluster := d.DeviceProfile != nil && d.DeviceProfile.RGBCluster
+
+	d.rgbMutex.RLock()
+	rgbState := cloneRGBState(d.Rgb)
+	d.rgbMutex.RUnlock()
+
+	return DeviceSnapshot{
+		Product:            d.Product,
+		Serial:             d.Serial,
+		IsOpenRGB:          d.IsOpenRGB,
+		DisplaySerial:      d.DisplaySerial,
+		DisplaySerialLabel: d.DisplaySerialLabel,
+		LEDCount:           d.LEDCount,
+		ZoneAmount:         d.ZoneAmount,
+		Version:            d.Version,
+		Description:        d.Description,
+		Config:             cloneDeviceConfig(d.Config),
+		DeviceProfile:      cloneDeviceProfile(d.DeviceProfile),
+		UserProfiles:       userProfiles,
+		Rgb:                rgbState,
+		RGBModes:           append([]string(nil), d.RGBModes...),
+		Effect:             effect,
+		Speed:              speed,
+		Brightness:         d.brightness,
+		RGBCluster:         rgbCluster,
+	}
+}
+
 func (d *Device) GetDeviceTemplate() string {
 	return "openrgb.html"
 }
 
 func (d *Device) ControllerID() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	return d.controllerId
+}
+
+func (d *Device) bindController(dc openrgb.DiscoveredController) bool {
+	d.mu.Lock()
+	changed := d.controllerId != dc.ID
+	if changed {
+		d.stopEffectLoopLocked()
+		if d.openrgbConn != nil {
+			_ = d.openrgbConn.Close()
+			d.openrgbConn = nil
+		}
+	}
+
+	d.controllerId = dc.ID
+	d.LEDCount = dc.LEDCount
+	d.Version = dc.Version
+	d.Description = dc.Description
+	if strings.TrimSpace(dc.Name) != "" {
+		d.Product = dc.Name
+	}
+	d.DisplaySerial, d.DisplaySerialLabel = pickDisplaySerialAndLabel(dc)
+	d.updateIdentityMetadataLocked(dc)
+	clusterController := d.clusterControllerLocked()
+	d.mu.Unlock()
+
+	addClusterController(clusterController)
+	return changed
+}
+
+func (d *Device) wrapperPresentation() (product, firmware, image string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.Product, d.Version, d.resolveDeviceIcon()
+}
+
+func (d *Device) markUnavailable() bool {
+	d.mu.Lock()
+	changed := d.controllerId >= 0 || d.openrgbConn != nil || d.running
+	d.stopEffectLoopLocked()
+	d.controllerId = -1
+	if d.openrgbConn != nil {
+		_ = d.openrgbConn.Close()
+		d.openrgbConn = nil
+	}
+	d.mu.Unlock()
+	return changed
+}
+
+func (d *Device) updateIdentityMetadata(dc openrgb.DiscoveredController) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.updateIdentityMetadataLocked(dc)
+}
+
+func (d *Device) updateIdentityMetadataLocked(dc openrgb.DiscoveredController) {
+	if d.Config == nil {
+		return
+	}
+	d.Config.ExternalSerial = usableExternalSerial(d.Config.ExternalSerial)
+	if externalSerial := usableExternalSerial(dc.Serial); externalSerial != "" {
+		d.Config.ExternalSerial = externalSerial
+	}
+	if location := strings.TrimSpace(dc.Location); location != "" {
+		d.Config.Location = location
+	}
+	if vendor := strings.TrimSpace(dc.Vendor); vendor != "" {
+		d.Config.Vendor = vendor
+	}
+	if strings.TrimSpace(dc.Name) != "" {
+		d.Config.Product = dc.Name
+	}
+}
+
+func (d *Device) resumeDesiredState(ctx context.Context) error {
+	d.mu.Lock()
+	if d.controllerId < 0 || d.DeviceProfile == nil || d.DeviceProfile.RGBCluster {
+		d.mu.Unlock()
+		return nil
+	}
+	effect := d.effect
+	if effect == "" {
+		effect = d.DeviceProfile.RGBProfile
+	}
+	if effect == "" {
+		effect = "static"
+	}
+	d.mu.Unlock()
+
+	return d.setEffectContext(ctx, effect, false)
+}
+
+func (d *Device) recordOutputFailureLocked(err error) {
+	if d.openrgbConn != nil {
+		_ = d.openrgbConn.Close()
+		d.openrgbConn = nil
+	}
+	d.controllerId = -1
+	openrgb.SetDisconnected(err)
+	reportOutputFailure(d, err)
+}
+
+func (d *Device) handleOutputFailure(err error) {
+	if err == nil {
+		return
+	}
+	d.mu.Lock()
+	d.stopEffectLoopLocked()
+	d.recordOutputFailureLocked(err)
+	d.mu.Unlock()
 }
 
 // applyBrightness scales every LED in the frame by the device brightness (0-100).
@@ -1135,7 +1532,11 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 		}
 
 		time.Sleep(hardwareBufferDrainDelay)
-		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+		err := openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+		if err != nil {
+			d.recordOutputFailureLocked(err)
+		}
+		return err
 	}
 
 	if d.DeviceProfile != nil {
@@ -1143,7 +1544,11 @@ func (d *Device) SetColor(rgbBytes []byte) error {
 	}
 
 	scaled := d.applyBrightness(d.lastColor)
-	return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
+	err := openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
+	if err != nil {
+		d.recordOutputFailureLocked(err)
+	}
+	return err
 }
 
 func (d *Device) SetBrightness(brightness uint8) error {
@@ -1151,6 +1556,9 @@ func (d *Device) SetBrightness(brightness uint8) error {
 	defer d.mu.Unlock()
 
 	d.resolveControllerId()
+	if d.controllerId < 0 {
+		return fmt.Errorf("controllerId not set")
+	}
 
 	if brightness > 100 {
 		brightness = 100
@@ -1168,16 +1576,20 @@ func (d *Device) SetBrightness(brightness uint8) error {
 	}
 
 	if d.Config != nil && d.ZoneAmount > 0 {
-		return openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+		err := openrgb.SendFrame(uint32(d.controllerId), d.buildZoneFrame())
+		if err != nil {
+			d.recordOutputFailureLocked(err)
+		}
+		return err
 	}
 
 	scaled := d.applyBrightness(d.lastColor)
 
-	if d.controllerId < 0 {
-		return fmt.Errorf("controllerId not set")
+	err := openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
+	if err != nil {
+		d.recordOutputFailureLocked(err)
 	}
-
-	return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
+	return err
 }
 
 func (d *Device) SetSpeed(speed string) {
@@ -1195,6 +1607,13 @@ func (d *Device) SetSpeed(speed string) {
 }
 
 func (d *Device) SetEffect(effect string) error {
+	return d.setEffectContext(context.Background(), effect, true)
+}
+
+func (d *Device) setEffectContext(ctx context.Context, effect string, reportFailure bool) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	d.mu.Lock()
 
 	d.resolveControllerId()
@@ -1224,12 +1643,20 @@ func (d *Device) SetEffect(effect string) error {
 			d.openrgbConn.Close()
 			d.openrgbConn = nil
 		}
-		
+
+		controllerID := d.controllerId
+		colorCount := d.colorCount
 		d.mu.Unlock()
-		
+
 		// Wait for hardware buffer to drain, matching the static color sequence
-		time.Sleep(hardwareBufferDrainDelay)
-		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, []byte{0, 0, 0})
+		if err := waitForContext(ctx, hardwareBufferDrainDelay); err != nil {
+			return err
+		}
+		err := openrgb.SendColorContext(ctx, uint32(controllerID), colorCount, []byte{0, 0, 0})
+		if err != nil && reportFailure && ctx.Err() == nil {
+			d.handleOutputFailure(err)
+		}
+		return err
 	}
 
 	// Static just reapplies current color once
@@ -1238,17 +1665,35 @@ func (d *Device) SetEffect(effect string) error {
 			d.openrgbConn.Close()
 			d.openrgbConn = nil
 		}
-		
+
 		if d.Config != nil && d.ZoneAmount > 0 {
-			time.Sleep(hardwareBufferDrainDelay)
+			if err := waitForContext(ctx, hardwareBufferDrainDelay); err != nil {
+				d.mu.Unlock()
+				return err
+			}
 			frame := d.buildZoneFrame()
+			controllerID := d.controllerId
 			d.mu.Unlock()
-			return openrgb.SendFrame(uint32(d.controllerId), frame)
+			err := openrgb.SendFrameContext(ctx, uint32(controllerID), frame)
+			if err != nil && reportFailure && ctx.Err() == nil {
+				d.handleOutputFailure(err)
+			}
+			return err
 		}
 
 		scaled := d.applyBrightness(d.lastColor)
+		controllerID := d.controllerId
+		colorCount := d.colorCount
 		d.mu.Unlock()
-		return openrgb.SendColor(uint32(d.controllerId), d.colorCount, scaled)
+		err := openrgb.SendColorContext(ctx, uint32(controllerID), colorCount, scaled)
+		if err != nil && reportFailure && ctx.Err() == nil {
+			d.handleOutputFailure(err)
+		}
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		d.mu.Unlock()
+		return err
 	}
 
 	stop := make(chan struct{})
@@ -1394,9 +1839,9 @@ func (d *Device) SetEffect(effect string) error {
 					runner.Flickering(&startTime)
 				case "flame":
 					runner.Flame(&startTime)
-case "aurora":
+				case "aurora":
 					runner.Aurora(&startTime)
-case "cyberpunkglitch":
+				case "cyberpunkglitch":
 					runner.CyberpunkGlitch(&startTime)
 				case "colorshift":
 					runner.Colorshift(&startTime, runner)
@@ -1417,10 +1862,12 @@ case "cyberpunkglitch":
 
 				conn, err := openrgb.SendFramePersistent(d.openrgbConn, uint32(controllerId), frame)
 				if err != nil {
-					if d.openrgbConn != nil {
-						d.openrgbConn.Close()
-					}
-					d.openrgbConn = nil
+					d.running = false
+					d.stopChan = nil
+					d.doneChan = nil
+					d.recordOutputFailureLocked(err)
+					d.mu.Unlock()
+					return
 				} else {
 					d.openrgbConn = conn
 				}
@@ -1430,6 +1877,17 @@ case "cyberpunkglitch":
 	}()
 
 	return nil
+}
+
+func waitForContext(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func (d *Device) SetRed() error {
@@ -1743,30 +2201,39 @@ func (d *Device) DeleteDeviceProfile(profileName string) uint8 {
 }
 
 func (d *Device) setupClusterController() {
-	if d.DeviceProfile == nil {
-		return
-	}
+	d.mu.Lock()
+	clusterController := d.clusterControllerLocked()
+	d.mu.Unlock()
+	addClusterController(clusterController)
+}
 
-	if !d.DeviceProfile.RGBCluster {
-		return
+func (d *Device) clusterControllerLocked() *common.ClusterController {
+	if d.DeviceProfile == nil || !d.DeviceProfile.RGBCluster {
+		return nil
 	}
-
-	clusterController := &common.ClusterController{
+	return &common.ClusterController{
 		Product:      d.Product,
 		Serial:       d.Serial,
 		LedChannels:  uint32(d.colorCount),
 		WriteColorEx: d.writeColorCluster,
 	}
+}
 
-	cluster.Get().AddDeviceController(clusterController)
+func addClusterController(controller *common.ClusterController) {
+	if controller == nil {
+		return
+	}
+	if clusterDevice := cluster.Get(); clusterDevice != nil {
+		clusterDevice.AddDeviceController(controller)
+	}
 }
 
 // writeColorCluster will write data to the device from cluster client
 func (d *Device) writeColorCluster(data []byte, _ int) {
 	d.mu.Lock()
-	defer d.mu.Unlock()
 
 	if d.controllerId < 0 || d.DeviceProfile == nil || !d.DeviceProfile.RGBCluster {
+		d.mu.Unlock()
 		return
 	}
 
@@ -1784,19 +2251,18 @@ func (d *Device) writeColorCluster(data []byte, _ int) {
 
 	conn, err := openrgb.SendFramePersistent(d.openrgbConn, uint32(d.controllerId), scaled)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "controllerId": d.controllerId}).Error("SendFramePersistent failed in writeColorCluster")
-		d.openrgbConn = nil
+		d.recordOutputFailureLocked(err)
 	} else {
 		d.openrgbConn = conn
 	}
+	d.mu.Unlock()
 }
 
 // ProcessSetRgbCluster will update OpenRGB integration status for cluster
 func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	d.mu.Lock()
-	defer d.mu.Unlock()
-
 	if d.DeviceProfile == nil {
+		d.mu.Unlock()
 		return 0
 	}
 
@@ -1805,23 +2271,27 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 
 	if enabled {
 		d.stopEffectLoopLocked()
-
-		clusterController := &common.ClusterController{
-			Product:      d.Product,
-			Serial:       d.Serial,
-			LedChannels:  uint32(d.colorCount),
-			WriteColorEx: d.writeColorCluster,
+		clusterController := d.clusterControllerLocked()
+		serial := d.Serial
+		d.mu.Unlock()
+		if clusterDevice := cluster.Get(); clusterDevice != nil {
+			clusterDevice.RemoveDeviceControllerBySerial(serial)
 		}
-		cluster.Get().AddDeviceController(clusterController)
+		addClusterController(clusterController)
 	} else {
-		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		serial := d.Serial
 		if d.openrgbConn != nil {
 			d.openrgbConn.Close()
 			d.openrgbConn = nil
 		}
-		if d.effect != "" {
+		effect := d.effect
+		d.mu.Unlock()
+		if clusterDevice := cluster.Get(); clusterDevice != nil {
+			clusterDevice.RemoveDeviceControllerBySerial(serial)
+		}
+		if effect != "" {
 			go func() {
-				_ = d.SetEffect(d.effect)
+				_ = d.SetEffect(effect)
 			}()
 		}
 	}
@@ -1899,6 +2369,9 @@ func (d *Device) loadRgb() {
 	if !common.FileExists(rgbFilename) {
 		profile := rgb.GetRGB()
 		profile.Device = d.Product
+		if profile.Profiles == nil {
+			profile.Profiles = make(map[string]rgb.Profile)
+		}
 
 		if err := common.SaveJsonData(rgbFilename, profile); err != nil {
 			fmt.Printf("Unable to write rgb profile data for %s: %v\n", d.Serial, err)
@@ -1916,6 +2389,9 @@ func (d *Device) loadRgb() {
 	if err = json.NewDecoder(file).Decode(&d.Rgb); err != nil {
 		fmt.Printf("Unable to decode profile for %s: %v\n", d.Serial, err)
 		return
+	}
+	if d.Rgb.Profiles == nil {
+		d.Rgb.Profiles = make(map[string]rgb.Profile)
 	}
 
 	// Upgrade profiles

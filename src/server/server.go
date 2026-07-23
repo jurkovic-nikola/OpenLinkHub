@@ -271,10 +271,18 @@ func getDevices(w http.ResponseWriter, r *http.Request) {
 	} else {
 		resp := &Response{
 			Code:   http.StatusOK,
-			Device: devices.GetDevice(deviceId),
+			Device: snapshotDeviceForResponse(devices.GetDevice(deviceId)),
 		}
 		resp.Send(w)
 	}
+}
+
+func snapshotDeviceForResponse(device interface{}) interface{} {
+	if openrgbDevice, ok := device.(*openrgbimport.Device); ok {
+		snapshot := openrgbDevice.Snapshot()
+		return &snapshot
+	}
+	return device
 }
 
 // getDeviceLed returns response on /led
@@ -2182,16 +2190,19 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web := templates.Web{}
 	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
-	web.Device = device
 	if openrgbDevice, ok := device.(*openrgbimport.Device); ok {
+		snapshot := openrgbDevice.Snapshot()
+		web.Device = &snapshot
 		web.OpenRGBImportDevice = true
-		web.OpenRGBImportConfig = openrgbDevice.Config
-		web.OpenRGBImportDisplaySerial = openrgbDevice.DisplaySerial
-		web.OpenRGBImportDisplaySerialLabel = openrgbDevice.DisplaySerialLabel
-		web.OpenRGBImportEffect = openrgbDevice.GetEffect()
-		web.OpenRGBImportSpeed = openrgbDevice.GetSpeed()
-		web.OpenRGBImportBrightness = openrgbDevice.GetBrightness()
-		web.OpenRGBImportRGBCluster = openrgbDevice.GetRGBCluster()
+		web.OpenRGBImportConfig = snapshot.Config
+		web.OpenRGBImportDisplaySerial = snapshot.DisplaySerial
+		web.OpenRGBImportDisplaySerialLabel = snapshot.DisplaySerialLabel
+		web.OpenRGBImportEffect = snapshot.Effect
+		web.OpenRGBImportSpeed = snapshot.Speed
+		web.OpenRGBImportBrightness = snapshot.Brightness
+		web.OpenRGBImportRGBCluster = snapshot.RGBCluster
+	} else {
+		web.Device = device
 	}
 	web.Lcd = lcd.GetLcdDevices()
 	web.LCDImages = lcd.GetLcdImages()

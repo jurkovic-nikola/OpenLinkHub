@@ -165,7 +165,7 @@ type Product struct {
 }
 
 var (
-	mutex               sync.Mutex
+	mutex               sync.RWMutex
 	cls                 *cluster.Device
 	expectedPermissions                             = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
 	vendorId                                        = uint16(6940)  // Corsair
@@ -179,12 +179,16 @@ var (
 
 // Stop will stop all active devices
 func Stop() {
-	// Stop all cluster operations
-	cls.Stop()
+	openrgbimport.StopManager()
 
-	for _, device := range devices {
+	// Stop all cluster operations
+	if cls != nil {
+		cls.Stop()
+	}
+
+	for _, device := range GetDevices() {
 		CallDeviceMethod(device.Serial, "Stop")
-		delete(devices, device.Serial)
+		deleteDevice(device.Serial)
 	}
 	err := hid.Exit()
 	if err != nil {
@@ -386,16 +390,15 @@ func addDevice(device *common.Device) {
 
 // CallDeviceMethod will call device method based on method name and arguments
 func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) []reflect.Value {
-	mutex.Lock()
-	defer mutex.Unlock()
-
+	mutex.RLock()
 	device, ok := devices[deviceId]
+	mutex.RUnlock()
 	if !ok {
 		logger.Log(logger.Fields{"deviceId": deviceId}).Warn("Device not found")
 		return nil
 	}
 
-	method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+	method := reflect.ValueOf(device.Instance).MethodByName(methodName)
 	if !method.IsValid() {
 		return nil
 	}
@@ -415,6 +418,8 @@ func GetProducts() map[string]Device {
 
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
+	mutex.RLock()
+	defer mutex.RUnlock()
 	if device, ok := devices[deviceId]; ok {
 		return device.Instance
 	}
@@ -423,7 +428,37 @@ func GetDevice(deviceId string) interface{} {
 
 // GetDevices will return all available devices
 func GetDevices() map[string]*common.Device {
-	return devices
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	snapshot := make(map[string]*common.Device, len(devices))
+	for serial, device := range devices {
+		if device == nil {
+			snapshot[serial] = nil
+			continue
+		}
+		copy := *device
+		snapshot[serial] = &copy
+	}
+	return snapshot
+}
+
+func setDeviceAvailability(serial string, unavailable bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if device, ok := devices[serial]; ok && device != nil {
+		device.Unavailable = unavailable
+	}
+}
+
+func setDevicePresentation(serial, product, firmware, image string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if device, ok := devices[serial]; ok && device != nil {
+		device.Product = product
+		device.Firmware = firmware
+		device.Image = image
+	}
 }
 
 // GetMouse will return all available mouse devices
@@ -444,7 +479,7 @@ func GetMouse() map[string]string {
 // GetDevicesEx will return all available devices with partial data
 func GetDevicesEx() map[string]*common.Device {
 	out := make(map[string]*common.Device)
-	for _, device := range devices {
+	for _, device := range GetDevices() {
 		out[device.Serial] = &common.Device{
 			ProductType: 0,
 			Product:     device.Product,
@@ -743,8 +778,11 @@ func Init() {
 	}
 
 	for _, imported := range openrgbimport.InitAll() {
+		mutex.Lock()
 		devices[imported.Serial] = imported
+		mutex.Unlock()
 	}
+	openrgbimport.StartManager(setDeviceAvailability, setDevicePresentation)
 
 	// Legacy devices
 	res := usb.Init(legacyDevices)

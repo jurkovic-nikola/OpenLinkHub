@@ -1,5 +1,74 @@
+## 2026-07-23
+
+* k60 rgb pro packet index (1aeb9c85)
+* Merge pull request #484 from GabrieleVolpato/add-k95-italian-layout (41fadc0e)
+* Merge pull request #480 from ManuelSigle/add-k60rgbprolp-de-layout (4007557d)
+
+## 2026-07-22
+
+* Add Italian layout for K95 keyboard (91163129)
+
+## 2026-07-21
+
+* Merge pull request #482 from ManuelSigle/add-harpoon-rgb-wireless-dongle (0180c52c)
+* Add Corsair Harpoon RGB Wireless dongle (1b1c:1b65) (70b08175)
+
+## 2026-07-20
+
+* Add DE (ISO) layout for K60 RGB PRO Low Profile (87acaf7c)
+
+## 2026-07-19
+
+* Merge pull request #479 from Bayard06/agent/add-k95platinum-fr-layout (a287845a)
+* Add French AZERTY layout for K95 Platinum (c3ff4ce5)
+
+## 2026-07-16
+
+* nct6798 support https://github.com/jurkovic-nikola/OpenLinkHub/issues/477 (47cb31c9)
+
+## 2026-07-15
+
+* docs update (eac1af17)
+
+## 2026-07-12
+
+* add date, time, pump rpm in animation lcd mode (49e850d2)
+* Merge pull request #472 from tokyis/patch-1 (f16b4f19)
+
+## 2026-07-11
+
+* systemd: reload and retrigger udev before starting service (1ecae7e9)
+* Merge pull request #467 from nessgor/patch-1 (3bd85b19)
+
+## 2026-07-09
+
+* Update memory-configuration.md with user mode instructions (36710fc9)
+
+## 2026-07-08
+
+* update deps (6350b3df)
+
+## 2026-07-07
+
+* Update udev rules and service restart command (f8f8ce2a)
+* k65 plus wireless knob https://github.com/jurkovic-nikola/OpenLinkHub/issues/466 (1bf109a4)
+
+## 2026-07-05
+
+* labels in sensor names https://github.com/jurkovic-nikola/OpenLinkHub/issues/464 (462b7dd9)
+
+## 2026-07-01
+
+* typo (1cbfa548)
+* cone gpu temperature source https://github.com/jurkovic-nikola/OpenLinkHub/issues/460 (e7b1600d)
+
+## 2026-06-27
+
+* multi lcd setup for XD pumps https://github.com/jurkovic-nikola/OpenLinkHub/issues/462 (a6e975cb)
+
 ## 2026-06-23
 
+* supported devices, changelog (a68b8b5d)
 * support for k60 rgb pro lp https://github.com/jurkovic-nikola/OpenLinkHub/issues/425 (9ba2d645)
 
 ## 2026-06-20

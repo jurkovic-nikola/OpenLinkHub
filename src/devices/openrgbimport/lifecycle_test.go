@@ -416,6 +416,305 @@ func TestDiscoveryPreviewIdentitySafetyAndStability(t *testing.T) {
 	}
 }
 
+func TestLocationIdentityUsability(t *testing.T) {
+	unusable := []string{
+		"Dir",
+		"Dire",
+		"Direct",
+		"Direct Mode",
+		"Off",
+		"On",
+		"None",
+		"N/A",
+		"NA",
+		"Null",
+		"Unknown",
+		"Default",
+		"Undefined",
+		"Unavailable",
+		"Not Available",
+		"Not Applicable",
+	}
+	for _, location := range unusable {
+		if usableIdentityLocation(location) {
+			t.Errorf("location %q is usable, want rejected", location)
+		}
+		normalized := "  " + strings.ToUpper(strings.ReplaceAll(location, " ", "   ")) + "  "
+		if usableIdentityLocation(normalized) {
+			t.Errorf("normalized location %q is usable, want rejected", normalized)
+		}
+	}
+	if usableIdentityLocation("D\x00irect") {
+		t.Fatal("sanitized Direct location is usable, want rejected")
+	}
+
+	for _, location := range []string{
+		"/dev/hidraw3",
+		"usb:bus-1/device-4",
+		"Direct Bay 1",
+	} {
+		if !usableIdentityLocation(location) {
+			t.Errorf("stable location %q was rejected", location)
+		}
+	}
+}
+
+func TestControllerLocationIdentitySelection(t *testing.T) {
+	direct := lifecycleController("Mode Location Product", "unknown", "Direct", 2)
+	direct.Vendor = "Mode Location Vendor"
+	off := direct
+	off.Location = "Off"
+
+	directIdentity := chooseControllerIdentities([]openrgb.DiscoveredController{direct})[0]
+	offIdentity := chooseControllerIdentities([]openrgb.DiscoveredController{off})[0]
+	if directIdentity.kind != "product-vendor-name" {
+		t.Fatalf("Direct identity = %#v, want product-vendor-name", directIdentity)
+	}
+	if directIdentity.digest != offIdentity.digest {
+		t.Fatalf("mode-location digest drifted: Direct=%q Off=%q", directIdentity.digest, offIdentity.digest)
+	}
+	directCandidate := buildDiscoveryCandidates(emptyConfigStore(), []openrgb.DiscoveredController{direct})[0]
+	offCandidate := buildDiscoveryCandidates(emptyConfigStore(), []openrgb.DiscoveredController{off})[0]
+	if directCandidate.preview.Key != offCandidate.preview.Key {
+		t.Fatalf(
+			"mode-location key drifted: Direct=%q Off=%q",
+			directCandidate.preview.Key,
+			offCandidate.preview.Key,
+		)
+	}
+	if directCandidate.config.Serial != offCandidate.config.Serial {
+		t.Fatalf(
+			"mode-location generated serial drifted: Direct=%q Off=%q",
+			directCandidate.config.Serial,
+			offCandidate.config.Serial,
+		)
+	}
+
+	ambiguous := chooseControllerIdentities([]openrgb.DiscoveredController{direct, off})
+	for index, identity := range ambiguous {
+		if identity.digest != "" {
+			t.Fatalf("ambiguous mode-location identity %d = %#v, want empty", index, identity)
+		}
+	}
+	ambiguousCandidates := buildDiscoveryCandidates(emptyConfigStore(), []openrgb.DiscoveredController{direct, off})
+	for index, candidate := range ambiguousCandidates {
+		if candidate.preview.State != "ambiguous" || candidate.preview.Key != "" {
+			t.Fatalf("ambiguous mode-location preview %d = %#v", index, candidate.preview)
+		}
+	}
+
+	firstLocation := direct
+	firstLocation.Location = "usb:bus-1/device-4"
+	secondLocation := direct
+	secondLocation.Location = "usb:bus-1/device-5"
+	locationIdentities := chooseControllerIdentities([]openrgb.DiscoveredController{firstLocation, secondLocation})
+	for index, identity := range locationIdentities {
+		if identity.kind != "location-product-vendor" || identity.digest == "" {
+			t.Fatalf("stable location identity %d = %#v", index, identity)
+		}
+	}
+	if locationIdentities[0].digest == locationIdentities[1].digest {
+		t.Fatal("distinct stable locations produced the same identity")
+	}
+
+	external := direct
+	external.Serial = "stable-external-serial"
+	externalIdentity := chooseControllerIdentities([]openrgb.DiscoveredController{external})[0]
+	if externalIdentity.kind != "external-serial" {
+		t.Fatalf("external identity with unusable location = %#v", externalIdentity)
+	}
+}
+
+func TestConfiguredModeLocationDriftPreservesSerialAndLayout(t *testing.T) {
+	tests := []struct {
+		name      string
+		disabled  bool
+		wantState string
+	}{
+		{name: "enabled", wantState: "imported"},
+		{name: "disabled", disabled: true, wantState: "selectable"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			storePath, _ := setupLifecycleTest(t)
+			controller := lifecycleController("Mode Drift Product", "unknown", "Off", 0)
+			controller.Vendor = "Mode Drift Vendor"
+			identity := chooseControllerIdentities([]openrgb.DiscoveredController{controller})[0]
+			if identity.kind != "product-vendor-name" {
+				t.Fatalf("fresh identity = %#v, want product-vendor-name", identity)
+			}
+
+			legacyIdentity := identityTuple(
+				"location-product-vendor",
+				"Direct",
+				controller.Name,
+				controller.Vendor,
+			)
+			serial := internalKeyPrefix + legacyIdentity.digest
+			saved := testConfig(serial, controller.Name)
+			saved.Disabled = test.disabled
+			saved.Location = "Direct"
+			saved.Vendor = controller.Vendor
+			saved.Zones = []ZoneConfig{
+				{Name: "Saved Zone 1", LedCount: 3},
+				{Name: "Saved Zone 2", LedCount: 2},
+			}
+			if err := saveConfigStore(&ConfigStore{Devices: map[string]DeviceConfig{serial: saved}}); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.ReadFile(storePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			statusNeutralDiscover = func(context.Context) ([]openrgb.DiscoveredController, error) {
+				return []openrgb.DiscoveredController{controller}, nil
+			}
+
+			preview, err := DiscoverPreview(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(preview.Controllers) != 1 {
+				t.Fatalf("controller previews = %d, want 1", len(preview.Controllers))
+			}
+			item := preview.Controllers[0]
+			key := selectionKeyPrefix + identity.digest
+			if item.State != test.wantState ||
+				item.ConfiguredSerial != serial ||
+				item.IdentityKind != "product-vendor-name" ||
+				item.LEDCount != 0 {
+				t.Fatalf("mode-location drift preview = %#v", item)
+			}
+			if test.disabled && item.Key != key {
+				t.Fatalf("disabled drift key = %q, want %q", item.Key, key)
+			}
+			after, err := os.ReadFile(storePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(after) != string(before) {
+				t.Fatal("mode-location discovery rewrote the configured store")
+			}
+
+			store, err := loadConfigStore()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(store.Devices) != 1 || !reflect.DeepEqual(store.Devices[serial].Zones, saved.Zones) {
+				t.Fatalf("saved mode-location store = %#v", store)
+			}
+			candidate := buildDiscoveryCandidates(store, []openrgb.DiscoveredController{controller})[0]
+			if candidate.prior != serial ||
+				candidate.config.Serial != serial ||
+				!reflect.DeepEqual(candidate.config.Zones, saved.Zones) {
+				t.Fatalf("mode-location drift candidate = %#v", candidate)
+			}
+
+			if !test.disabled {
+				registry := newFakeImportRegistry()
+				live := testDevice(saved)
+				t.Cleanup(live.Stop)
+				if err = addConfiguredDevices(map[string]*Device{serial: live}); err != nil {
+					t.Fatal(err)
+				}
+				wrapper := &common.Device{Serial: serial, Product: saved.Product, Instance: live}
+				if err = registry.register(wrapper, live); err != nil {
+					t.Fatal(err)
+				}
+				var managerAdds atomic.Int32
+				var clusterAdds atomic.Int32
+				addLifecycleManager = func(_ context.Context, _ map[string]*Device) (bool, error) {
+					managerAdds.Add(1)
+					return true, nil
+				}
+				addLifecycleCluster = func(*common.ClusterController) error {
+					clusterAdds.Add(1)
+					return nil
+				}
+
+				imported, err := ImportControllers(context.Background(), []string{key}, registry.hooks())
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(imported.ConfiguredSerials, []string{serial}) ||
+					registry.count() != 1 ||
+					enabledConfiguredCount() != 1 ||
+					managerAdds.Load() != 0 ||
+					clusterAdds.Load() != 0 {
+					t.Fatalf(
+						"enabled mode-location idempotence result=%#v registry=%d configured=%d managerAdds=%d clusterAdds=%d",
+						imported,
+						registry.count(),
+						enabledConfiguredCount(),
+						managerAdds.Load(),
+						clusterAdds.Load(),
+					)
+				}
+				return
+			}
+
+			registry := newFakeImportRegistry()
+			managerMembership := make(map[string]*Device)
+			var managerAdds atomic.Int32
+			var clusterAdds atomic.Int32
+			addLifecycleManager = func(_ context.Context, devices map[string]*Device) (bool, error) {
+				managerAdds.Add(1)
+				for deviceSerial, device := range devices {
+					managerMembership[deviceSerial] = device
+				}
+				return true, nil
+			}
+			addLifecycleCluster = func(*common.ClusterController) error {
+				clusterAdds.Add(1)
+				return nil
+			}
+
+			imported, err := ImportControllers(context.Background(), []string{key}, registry.hooks())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(imported.ConfiguredSerials, []string{serial}) {
+				t.Fatalf("reimported serials = %#v, want %q", imported.ConfiguredSerials, serial)
+			}
+			updated, err := loadConfigStore()
+			if err != nil {
+				t.Fatal(err)
+			}
+			refreshed := updated.Devices[serial]
+			if len(updated.Devices) != 1 ||
+				refreshed.Disabled ||
+				refreshed.Serial != serial ||
+				refreshed.Location != controller.Location ||
+				!reflect.DeepEqual(refreshed.Zones, saved.Zones) {
+				t.Fatalf("reimported mode-location store = %#v", updated)
+			}
+			live, configured := configuredDevice(serial)
+			if !configured ||
+				live == nil ||
+				live.Serial != serial ||
+				live.LEDCount != 5 ||
+				registry.count() != 1 ||
+				enabledConfiguredCount() != 1 ||
+				len(managerMembership) != 1 ||
+				managerMembership[serial] != live ||
+				managerAdds.Load() != 1 ||
+				clusterAdds.Load() != 0 {
+				t.Fatalf(
+					"mode-location duplicate membership live=%#v configured=%v registry=%d configuredCount=%d manager=%d/%d clusterAdds=%d",
+					live,
+					configured,
+					registry.count(),
+					enabledConfiguredCount(),
+					len(managerMembership),
+					managerAdds.Load(),
+					clusterAdds.Load(),
+				)
+			}
+		})
+	}
+}
+
 func TestDeliberateDiscoveryUsesOneDeadlineAndReleasesLifecycleGates(t *testing.T) {
 	t.Run("preview uses default total bound", func(t *testing.T) {
 		_, _ = setupLifecycleTest(t)
@@ -564,6 +863,570 @@ func TestDiscoveryPreviewConfiguredStatesFailureAndTargetConflict(t *testing.T) 
 	activeManagerMutex.RUnlock()
 	if manager != nil {
 		t.Fatal("target-conflicting refresh started a manager")
+	}
+}
+
+func TestConfiguredIdentityPrecedesFreshLayoutValidation(t *testing.T) {
+	storePath, _ := setupLifecycleTest(t)
+
+	enabledZero := lifecycleController("Enabled Saved Layout", "enabled-zero-external", "", 0)
+	enabledZeroIdentity := chooseControllerIdentities([]openrgb.DiscoveredController{enabledZero})[0]
+	enabledZeroSerial := internalKeyPrefix + enabledZeroIdentity.digest
+	enabledZeroConfig := testConfig(enabledZeroSerial, enabledZero.Name)
+	enabledZeroConfig.ExternalSerial = enabledZero.Serial
+	enabledZeroConfig.Zones = []ZoneConfig{{Name: "Saved GPU Layout", LedCount: 4}}
+
+	validFresh := lifecycleController("Valid Fresh Layout", "valid-fresh-external", "", 2)
+	validFreshIdentity := chooseControllerIdentities([]openrgb.DiscoveredController{validFresh})[0]
+	validFreshSerial := internalKeyPrefix + validFreshIdentity.digest
+	validFreshConfig := testConfig(validFreshSerial, validFresh.Name)
+	validFreshConfig.ExternalSerial = validFresh.Serial
+	validFreshConfig.Zones = []ZoneConfig{{Name: "Saved Valid Layout", LedCount: 2}}
+
+	ambiguousZero := lifecycleController("Ambiguous Saved Layout", "ambiguous-zero-external", "", 0)
+	ambiguousIdentity := chooseControllerIdentities([]openrgb.DiscoveredController{ambiguousZero})[0]
+	ambiguousFullSerial := internalKeyPrefix + ambiguousIdentity.digest
+	ambiguousFull := testConfig(ambiguousFullSerial, ambiguousZero.Name)
+	ambiguousFull.ExternalSerial = ambiguousZero.Serial
+	ambiguousLegacy := testConfig("openrgb-hash-ambiguous-zero-legacy", ambiguousZero.Name)
+	ambiguousLegacy.ExternalSerial = ambiguousZero.Serial
+
+	store := &ConfigStore{Devices: map[string]DeviceConfig{
+		enabledZeroSerial:      enabledZeroConfig,
+		validFreshSerial:       validFreshConfig,
+		ambiguousFull.Serial:   ambiguousFull,
+		ambiguousLegacy.Serial: ambiguousLegacy,
+	}}
+	if err := saveConfigStore(store); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	unmatchedZero := lifecycleController("Unmatched Zero Layout", "unmatched-zero-external", "", 0)
+	statusNeutralDiscover = func(context.Context) ([]openrgb.DiscoveredController, error) {
+		return []openrgb.DiscoveredController{
+			enabledZero,
+			validFresh,
+			ambiguousZero,
+			unmatchedZero,
+		}, nil
+	}
+
+	preview, err := DiscoverPreview(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("discovery mutated the configured store")
+	}
+
+	byProduct := make(map[string]ControllerPreview)
+	for _, item := range preview.Controllers {
+		byProduct[item.Product] = item
+	}
+	enabledItem := byProduct[enabledZero.Name]
+	if enabledItem.State != "imported" ||
+		enabledItem.ConfiguredSerial != enabledZeroSerial ||
+		enabledItem.LEDCount != 0 ||
+		len(enabledItem.Zones) != 1 ||
+		enabledItem.Zones[0].LEDCount != 0 ||
+		enabledItem.ReasonCode != "already_imported" ||
+		!strings.Contains(enabledItem.Reason, "active saved layout") {
+		t.Fatalf("enabled zero-LED preview = %#v", enabledItem)
+	}
+	validItem := byProduct[validFresh.Name]
+	if validItem.State != "imported" || validItem.ConfiguredSerial != validFreshSerial {
+		t.Fatalf("valid configured preview = %#v", validItem)
+	}
+	ambiguousItem := byProduct[ambiguousZero.Name]
+	if ambiguousItem.State != "ambiguous" ||
+		ambiguousItem.Key != "" ||
+		ambiguousItem.ReasonCode != "ambiguous_configured_identity" {
+		t.Fatalf("ambiguous zero-LED preview = %#v", ambiguousItem)
+	}
+	unmatchedItem := byProduct[unmatchedZero.Name]
+	if unmatchedItem.State != "selectable" ||
+		unmatchedItem.Key == "" ||
+		unmatchedItem.LEDCount != 0 ||
+		len(unmatchedItem.Zones) != 1 ||
+		unmatchedItem.Zones[0].LEDCount != 0 ||
+		unmatchedItem.ReasonCode != "fallback_layout" {
+		t.Fatalf("unmatched zero-LED preview = %#v", unmatchedItem)
+	}
+
+	unchanged, err := loadConfigStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(unchanged.Devices[enabledZeroSerial].Zones, enabledZeroConfig.Zones) {
+		t.Fatalf("saved enabled layout changed: %#v", unchanged.Devices[enabledZeroSerial])
+	}
+}
+
+func TestDisabledZeroLEDDiscoveryReusesPreservedLayoutTransactionally(t *testing.T) {
+	storePath, root := setupLifecycleTest(t)
+	registry := newFakeImportRegistry()
+	controller := lifecycleController("Current Preserved Product", "preserved-zero-external", "usb:current", 0)
+	controller.Vendor = "Current Preserved Vendor"
+	identity := chooseControllerIdentities([]openrgb.DiscoveredController{controller})[0]
+	serial := "openrgb-hash-preserved-zero-layout"
+	saved := testConfig(serial, "Saved Preserved Product")
+	saved.Disabled = true
+	saved.ExternalSerial = controller.Serial
+	saved.Location = "usb:saved"
+	saved.Vendor = "Saved Preserved Vendor"
+	saved.Zones = []ZoneConfig{
+		{Name: "Saved Zone 1", LedCount: 3},
+		{Name: "Saved Zone 2", LedCount: 2},
+	}
+	if err := saveConfigStore(&ConfigStore{Devices: map[string]DeviceConfig{serial: saved}}); err != nil {
+		t.Fatal(err)
+	}
+
+	rgbPath := filepath.Join(root, "database", "rgb", serial+".json")
+	profilePath := filepath.Join(root, "database", "profiles", serial+".json")
+	if err := os.MkdirAll(filepath.Dir(rgbPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(profilePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rgbData := []byte(`{"device":"preserved-zero-layout","profiles":{}}`)
+	profileData, err := json.Marshal(DeviceProfile{
+		Active:     true,
+		Product:    saved.Product,
+		Serial:     serial,
+		RGBProfile: "static",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(rgbPath, rgbData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(profilePath, profileData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	statusNeutralDiscover = func(context.Context) ([]openrgb.DiscoveredController, error) {
+		return []openrgb.DiscoveredController{controller}, nil
+	}
+
+	preview, err := DiscoverPreview(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	item := preview.Controllers[0]
+	key := selectionKeyPrefix + identity.digest
+	if item.State != "selectable" ||
+		item.Key != key ||
+		item.ConfiguredSerial != serial ||
+		item.LEDCount != 0 ||
+		len(item.Zones) != 1 ||
+		item.Zones[0].LEDCount != 0 {
+		t.Fatalf("disabled zero-LED preview = %#v", item)
+	}
+
+	candidateStore, err := loadConfigStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = validateConfiguredStore(candidateStore); err != nil {
+		t.Fatal(err)
+	}
+	candidate := buildDiscoveryCandidates(candidateStore, []openrgb.DiscoveredController{controller})[0]
+	if candidate.prior != serial ||
+		!candidate.config.Disabled ||
+		!reflect.DeepEqual(candidate.config.Zones, saved.Zones) {
+		t.Fatalf("preserved candidate = %#v", candidate)
+	}
+
+	beforeFailedImport, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.failRegister = true
+	if _, err = ImportControllers(context.Background(), []string{key}, registry.hooks()); err == nil {
+		t.Fatal("injected failed reimport unexpectedly succeeded")
+	}
+	registry.failRegister = false
+	afterFailedImport, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(afterFailedImport) != string(beforeFailedImport) {
+		t.Fatal("failed reimport did not transactionally restore the preserved store entry")
+	}
+	rgbAfterFailure, err := os.ReadFile(rgbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profileAfterFailure, err := os.ReadFile(profilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(rgbAfterFailure) != string(rgbData) || string(profileAfterFailure) != string(profileData) {
+		t.Fatal("failed reimport changed preserved RGB/profile artifacts")
+	}
+
+	imported, err := ImportControllers(context.Background(), []string{key}, registry.hooks())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(imported.ConfiguredSerials, []string{serial}) {
+		t.Fatalf("reimported serials = %#v, want exact preserved serial %q", imported.ConfiguredSerials, serial)
+	}
+	updated, err := loadConfigStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reimported := updated.Devices[serial]
+	if reimported.Disabled ||
+		!reflect.DeepEqual(reimported.Zones, saved.Zones) ||
+		reimported.Product != controller.Name ||
+		reimported.Vendor != controller.Vendor ||
+		reimported.Location != controller.Location {
+		t.Fatalf("reimported preserved config = %#v", reimported)
+	}
+	live, ok := configuredDevice(serial)
+	if !ok ||
+		live.Serial != serial ||
+		live.LEDCount != 5 ||
+		live.Config == nil ||
+		!reflect.DeepEqual(live.Config.Zones, saved.Zones) ||
+		registry.count() != 1 {
+		t.Fatalf("reimported live device = %#v, configured=%v, registry=%d", live, ok, registry.count())
+	}
+	rgbAfter, err := os.ReadFile(rgbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profileAfter, err := os.ReadFile(profilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(rgbAfter) != string(rgbData) || string(profileAfter) != string(profileData) {
+		t.Fatal("successful reimport changed preserved RGB/profile artifacts")
+	}
+}
+
+func TestUnmatchedAllZeroFallbackLayouts(t *testing.T) {
+	oneZone := lifecycleController("One Zero Zone", "one-zero-zone-external", "usb:one", 0)
+	noZones := lifecycleController("No Reported Zones", "no-zones-external", "usb:none", 0)
+	noZones.Zones = nil
+	twoZones := lifecycleController("Two Zero Zones", "two-zero-zones-external", "usb:two", 0)
+	twoZones.Zones = []openrgb.DiscoveredZone{
+		{Name: "First Zero Zone", LEDCount: 0, Classification: "linear"},
+		{Name: "Second Zero Zone", LEDCount: 0, Classification: "matrix"},
+	}
+	strimer := lifecycleController("Lian Li Strimer Plus", "strimer-zero-external", "usb:strimer", 0)
+
+	tests := []struct {
+		name       string
+		controller openrgb.DiscoveredController
+		wantZones  []ZoneConfig
+	}{
+		{
+			name:       "one reported zero zone",
+			controller: oneZone,
+			wantZones:  []ZoneConfig{{Name: "Main Zone", LedCount: 1}},
+		},
+		{
+			name:       "no reported zones",
+			controller: noZones,
+			wantZones:  []ZoneConfig{{Name: "Zone 1", LedCount: 1}},
+		},
+		{
+			name:       "two reported zero zones",
+			controller: twoZones,
+			wantZones: []ZoneConfig{
+				{Name: "First Zero Zone", LedCount: 1},
+				{Name: "Second Zero Zone", LedCount: 1},
+			},
+		},
+		{
+			name:       "Strimer compatibility layout",
+			controller: strimer,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			identity := chooseControllerIdentities([]openrgb.DiscoveredController{test.controller})[0]
+			serial := internalKeyPrefix + identity.digest
+			expected := buildDefaultDeviceConfig(serial, test.controller)
+			wantZones := test.wantZones
+			if wantZones == nil {
+				wantZones = expected.Zones
+			}
+
+			candidate := buildDiscoveryCandidates(
+				emptyConfigStore(),
+				[]openrgb.DiscoveredController{test.controller},
+			)[0]
+			if candidate.preview.State != "selectable" ||
+				candidate.preview.Key != selectionKeyPrefix+identity.digest ||
+				candidate.preview.ReasonCode != "fallback_layout" ||
+				!strings.Contains(candidate.preview.Reason, "safe starting layout") ||
+				candidate.preview.LEDCount != 0 ||
+				len(candidate.preview.Zones) != len(test.controller.Zones) {
+				t.Fatalf("fallback preview = %#v", candidate.preview)
+			}
+			for index, zone := range candidate.preview.Zones {
+				if zone.LEDCount != test.controller.Zones[index].LEDCount {
+					t.Fatalf("preview zone %d = %#v, want raw %#v", index, zone, test.controller.Zones[index])
+				}
+			}
+			if candidate.prior != "" ||
+				candidate.config.Serial != serial ||
+				candidate.config.Product != test.controller.Name ||
+				candidate.config.ExternalSerial != usableExternalSerial(test.controller.Serial) ||
+				candidate.config.Location != test.controller.Location ||
+				candidate.config.Vendor != test.controller.Vendor ||
+				!reflect.DeepEqual(candidate.config.Zones, wantZones) {
+				t.Fatalf("fallback candidate = %#v, want zones %#v", candidate, wantZones)
+			}
+			if _, err := validateDeviceConfig(serial, candidate.config, false); err != nil {
+				t.Fatalf("fallback candidate is invalid: %v", err)
+			}
+		})
+	}
+
+	validStrimer := lifecycleController("Lian Li Strimer Valid Layout", "strimer-valid-external", "usb:strimer-valid", 2)
+	validCandidate := buildDiscoveryCandidates(
+		emptyConfigStore(),
+		[]openrgb.DiscoveredController{validStrimer},
+	)[0]
+	if validCandidate.preview.State != "selectable" ||
+		validCandidate.preview.ReasonCode != "" ||
+		!reflect.DeepEqual(validCandidate.config.Zones, []ZoneConfig{{Name: "Main Zone", LedCount: 2}}) {
+		t.Fatalf("valid Strimer layout was replaced by fallback: %#v", validCandidate)
+	}
+}
+
+func TestUnmatchedAllZeroFallbackImportsOnce(t *testing.T) {
+	_, root := setupLifecycleTest(t)
+	registry := newFakeImportRegistry()
+	controller := lifecycleController("Editable Zero Layout", "editable-zero-external", "usb:editable", 0)
+	identity := chooseControllerIdentities([]openrgb.DiscoveredController{controller})[0]
+	serial := internalKeyPrefix + identity.digest
+	key := selectionKeyPrefix + identity.digest
+	statusNeutralDiscover = func(context.Context) ([]openrgb.DiscoveredController, error) {
+		return []openrgb.DiscoveredController{controller}, nil
+	}
+
+	var managerAdds atomic.Int32
+	managerMembership := make(map[string]*Device)
+	addLifecycleManager = func(_ context.Context, devices map[string]*Device) (bool, error) {
+		managerAdds.Add(1)
+		for deviceSerial, device := range devices {
+			managerMembership[deviceSerial] = device
+		}
+		return true, nil
+	}
+
+	preview, err := DiscoverPreview(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	item := preview.Controllers[0]
+	if item.State != "selectable" ||
+		item.Key != key ||
+		item.ReasonCode != "fallback_layout" ||
+		item.LEDCount != 0 ||
+		len(item.Zones) != 1 ||
+		item.Zones[0].LEDCount != 0 {
+		t.Fatalf("fallback import preview = %#v", item)
+	}
+
+	imported, err := ImportControllers(context.Background(), []string{key}, registry.hooks())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(imported.ConfiguredSerials, []string{serial}) {
+		t.Fatalf("imported serials = %#v, want %q", imported.ConfiguredSerials, serial)
+	}
+
+	store, err := loadConfigStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, ok := store.Devices[serial]
+	if !ok ||
+		cfg.Disabled ||
+		cfg.Serial != serial ||
+		cfg.Product != controller.Name ||
+		cfg.ExternalSerial != controller.Serial ||
+		cfg.Location != controller.Location ||
+		cfg.Vendor != controller.Vendor ||
+		!reflect.DeepEqual(cfg.Zones, []ZoneConfig{{Name: "Main Zone", LedCount: 1}}) {
+		t.Fatalf("persisted fallback config = %#v, present=%v", cfg, ok)
+	}
+
+	live, configured := configuredDevice(serial)
+	if !configured ||
+		live == nil ||
+		live.Serial != serial ||
+		live.LEDCount != 1 ||
+		live.Config == nil ||
+		!reflect.DeepEqual(live.Config.Zones, cfg.Zones) ||
+		live.DeviceProfile == nil ||
+		live.Rgb == nil ||
+		registry.count() != 1 ||
+		enabledConfiguredCount() != 1 ||
+		managerAdds.Load() != 1 ||
+		len(managerMembership) != 1 ||
+		managerMembership[serial] != live {
+		t.Fatalf(
+			"fallback live membership: device=%#v configured=%v registry=%d configuredCount=%d manager=%d/%d",
+			live,
+			configured,
+			registry.count(),
+			enabledConfiguredCount(),
+			managerAdds.Load(),
+			len(managerMembership),
+		)
+	}
+
+	for _, path := range []string{
+		filepath.Join(root, "database", "rgb", serial+".json"),
+		filepath.Join(root, "database", "profiles", serial+".json"),
+	} {
+		if _, err = os.Stat(path); err != nil {
+			t.Fatalf("fallback artifact %q was not created: %v", path, err)
+		}
+	}
+
+	rediscovered, err := DiscoverPreview(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	rediscoveredItem := rediscovered.Controllers[0]
+	if rediscoveredItem.State != "imported" ||
+		rediscoveredItem.ConfiguredSerial != serial ||
+		rediscoveredItem.LEDCount != 0 ||
+		len(rediscoveredItem.Zones) != 1 ||
+		rediscoveredItem.Zones[0].LEDCount != 0 {
+		t.Fatalf("rediscovered fallback import = %#v", rediscoveredItem)
+	}
+	repeated, err := ImportControllers(context.Background(), []string{key}, registry.hooks())
+	if err != nil || !reflect.DeepEqual(repeated.ConfiguredSerials, []string{serial}) {
+		t.Fatalf("idempotent fallback import = %#v, %v", repeated, err)
+	}
+	storeAfterRepeat, err := loadConfigStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if registry.count() != 1 ||
+		enabledConfiguredCount() != 1 ||
+		managerAdds.Load() != 1 ||
+		len(managerMembership) != 1 ||
+		len(storeAfterRepeat.Devices) != 1 {
+		t.Fatalf(
+			"duplicate fallback membership: registry=%d configured=%d manager=%d/%d store=%d",
+			registry.count(),
+			enabledConfiguredCount(),
+			managerAdds.Load(),
+			len(managerMembership),
+			len(storeAfterRepeat.Devices),
+		)
+	}
+}
+
+func TestUnmatchedFallbackRejectsMalformedLayouts(t *testing.T) {
+	excessiveZones := make([]openrgb.DiscoveredZone, 129)
+	for index := range excessiveZones {
+		excessiveZones[index] = openrgb.DiscoveredZone{Name: fmt.Sprintf("Zone %d", index+1)}
+	}
+	excessiveTotalZones := make([]openrgb.DiscoveredZone, 5)
+	for index := range excessiveTotalZones {
+		excessiveTotalZones[index] = openrgb.DiscoveredZone{
+			Name:     fmt.Sprintf("Zone %d", index+1),
+			LEDCount: 1024,
+		}
+	}
+
+	tests := []struct {
+		name       string
+		controller openrgb.DiscoveredController
+	}{
+		{
+			name:       "negative controller count",
+			controller: lifecycleController("Negative Controller", "negative-controller", "", -1),
+		},
+		{
+			name: "negative zone count",
+			controller: openrgb.DiscoveredController{
+				Name:     "Negative Zone",
+				Vendor:   "Test Vendor",
+				Serial:   "negative-zone",
+				LEDCount: 0,
+				Zones:    []openrgb.DiscoveredZone{{Name: "Negative", LEDCount: -1}},
+			},
+		},
+		{
+			name:       "excessive controller count",
+			controller: lifecycleController("Excessive Controller", "excessive-controller", "", 4097),
+		},
+		{
+			name: "excessive per-zone count",
+			controller: openrgb.DiscoveredController{
+				Name:     "Excessive Zone",
+				Vendor:   "Test Vendor",
+				Serial:   "excessive-zone",
+				LEDCount: 1025,
+				Zones:    []openrgb.DiscoveredZone{{Name: "Excessive", LEDCount: 1025}},
+			},
+		},
+		{
+			name: "excessive total count",
+			controller: openrgb.DiscoveredController{
+				Name:     "Excessive Total",
+				Vendor:   "Test Vendor",
+				Serial:   "excessive-total",
+				LEDCount: 4096,
+				Zones:    excessiveTotalZones,
+			},
+		},
+		{
+			name: "excessive zone quantity",
+			controller: openrgb.DiscoveredController{
+				Name:     "Excessive Zones",
+				Vendor:   "Test Vendor",
+				Serial:   "excessive-zones",
+				LEDCount: 0,
+				Zones:    excessiveZones,
+			},
+		},
+		{
+			name: "nonzero malformed layout",
+			controller: openrgb.DiscoveredController{
+				Name:     "Nonzero Missing Zones",
+				Vendor:   "Test Vendor",
+				Serial:   "nonzero-missing-zones",
+				LEDCount: 1,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			candidate := buildDiscoveryCandidates(
+				emptyConfigStore(),
+				[]openrgb.DiscoveredController{test.controller},
+			)[0]
+			if candidate.preview.State != "invalid" ||
+				candidate.preview.Key != "" ||
+				candidate.preview.ReasonCode != "invalid_layout" {
+				t.Fatalf("malformed preview = %#v", candidate.preview)
+			}
+		})
 	}
 }
 

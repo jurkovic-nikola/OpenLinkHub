@@ -470,6 +470,18 @@ $(document).ready(function () {
 
                 renderOpenRGBZones(metadata, controller.zones);
 
+                if (state === 'selectable' &&
+                    controller.reasonCode === 'fallback_layout' &&
+                    typeof controller.reason === 'string' &&
+                    controller.reason.length > 0) {
+                    metadata.append(
+                        $('<div>')
+                            .addClass('alert alert-info py-2 px-3 mt-2 mb-0')
+                            .attr('role', 'note')
+                            .text(controller.reason)
+                    );
+                }
+
                 if ((state === 'ambiguous' || state === 'invalid') &&
                     typeof controller.reason === 'string' &&
                     controller.reason.length > 0) {

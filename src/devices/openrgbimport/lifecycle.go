@@ -188,6 +188,31 @@ func normalizeIdentityField(value string) string {
 	return strings.ToLower(strings.Join(strings.Fields(safePresentationString(value, 512)), " "))
 }
 
+func usableIdentityLocation(value string) bool {
+	switch normalizeIdentityField(value) {
+	case "",
+		"dir",
+		"dire",
+		"direct",
+		"direct mode",
+		"off",
+		"on",
+		"none",
+		"n/a",
+		"na",
+		"null",
+		"unknown",
+		"default",
+		"undefined",
+		"unavailable",
+		"not available",
+		"not applicable":
+		return false
+	default:
+		return true
+	}
+}
+
 func hashIdentity(kind string, fields ...string) string {
 	hash := sha256.New()
 	writeIdentityPart(hash, "openrgb-import-identity-v1")
@@ -234,7 +259,7 @@ func chooseControllerIdentities(discovered []openrgb.DiscoveredController) []con
 			external[index] = identityTuple("external-serial", serial)
 			externalCount[external[index].digest]++
 		}
-		if normalizeIdentityField(controller.Location) != "" &&
+		if usableIdentityLocation(controller.Location) &&
 			normalizeIdentityField(controller.Name) != "" {
 			location[index] = identityTuple("location-product-vendor", controller.Location, controller.Name, controller.Vendor)
 			locationCount[location[index].digest]++
@@ -304,6 +329,31 @@ func defaultConfigForController(serial string, controller openrgb.DiscoveredCont
 		return DeviceConfig{}, err
 	}
 	return validated, nil
+}
+
+func hasAllZeroLEDMetadata(controller openrgb.DiscoveredController) bool {
+	if controller.LEDCount != 0 || len(controller.Zones) > 128 {
+		return false
+	}
+	for _, zone := range controller.Zones {
+		if zone.LEDCount != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func fallbackConfigForController(serial string, controller openrgb.DiscoveredController) (DeviceConfig, error) {
+	cfg := buildDefaultDeviceConfig(serial, controller)
+	cfg.Serial = serial
+	cfg.Product = safePresentationString(controller.Name, 512)
+	if cfg.Product == "" {
+		cfg.Product = "Imported OpenRGB Device"
+	}
+	cfg.ExternalSerial = safePresentationString(usableExternalSerial(controller.Serial), 512)
+	cfg.Location = safePresentationString(controller.Location, 512)
+	cfg.Vendor = safePresentationString(controller.Vendor, 512)
+	return validateDeviceConfig(serial, *cfg, false)
 }
 
 func storeIdentityMatches(cfg DeviceConfig, serial string, identity controllerIdentity, controller openrgb.DiscoveredController) bool {
@@ -426,16 +476,13 @@ func buildDiscoveryCandidates(store *ConfigStore, discovered []openrgb.Discovere
 		candidate.preview.Key = selectionKeyPrefix + identity.digest
 
 		proposedSerial := internalKeyPrefix + identity.digest
-		cfg, err := defaultConfigForController(proposedSerial, controller)
-		if err != nil {
-			candidate.preview.Key = ""
-			candidate.preview.State = "invalid"
-			candidate.preview.ReasonCode = "invalid_layout"
-			candidate.preview.Reason = safePresentationString(err.Error(), 512)
-			result[index] = candidate
-			continue
+		matches := make([]string, 0, 1)
+		for serial, stored := range store.Devices {
+			if storeIdentityMatches(stored, serial, identity, controller) {
+				matches = append(matches, serial)
+			}
 		}
-		candidate.config = cfg
+		sort.Strings(matches)
 
 		if stored, exists := store.Devices[proposedSerial]; exists &&
 			!storeIdentityMatches(stored, proposedSerial, identity, controller) {
@@ -451,27 +498,62 @@ func buildDiscoveryCandidates(store *ConfigStore, discovered []openrgb.Discovere
 			continue
 		}
 
-		matches := make([]string, 0, 1)
-		for serial, stored := range store.Devices {
-			if storeIdentityMatches(stored, serial, identity, controller) {
-				matches = append(matches, serial)
-			}
-		}
-		sort.Strings(matches)
 		if len(matches) > 1 {
 			candidate.preview.Key = ""
 			candidate.preview.State = "ambiguous"
 			candidate.preview.ReasonCode = "ambiguous_configured_identity"
 			candidate.preview.Reason = "Multiple configured imports claim this controller identity."
-		} else if len(matches) == 1 {
+			result[index] = candidate
+			continue
+		}
+
+		cfg, layoutErr := defaultConfigForController(proposedSerial, controller)
+		if len(matches) == 1 {
 			candidate.prior = matches[0]
 			candidate.preview.ConfiguredSerial = matches[0]
-			if !store.Devices[matches[0]].Disabled {
+			stored := store.Devices[matches[0]]
+			if layoutErr != nil {
+				// OpenRGB can report unusable fresh layout metadata, including zero
+				// LEDs, while this exact stable identity is operating from a
+				// previously validated saved layout. Preserve that authoritative layout.
+				candidate.config = *cloneDeviceConfig(&stored)
+			} else {
+				candidate.config = cfg
+			}
+			if !stored.Disabled {
 				candidate.preview.State = "imported"
 				candidate.preview.ReasonCode = "already_imported"
-				candidate.preview.Reason = "This controller is already imported."
+				if layoutErr != nil {
+					candidate.preview.Reason = "This controller is already imported; its active saved layout is retained because the fresh OpenRGB layout is unusable."
+				} else {
+					candidate.preview.Reason = "This controller is already imported."
+				}
 			}
+			result[index] = candidate
+			continue
 		}
+
+		if layoutErr != nil && hasAllZeroLEDMetadata(controller) {
+			fallback, fallbackErr := fallbackConfigForController(proposedSerial, controller)
+			if fallbackErr == nil {
+				candidate.config = fallback
+				candidate.preview.ReasonCode = "fallback_layout"
+				candidate.preview.Reason = "OpenRGB did not report LED counts. LumenForge will import a safe starting layout that can be edited after import."
+				result[index] = candidate
+				continue
+			}
+			layoutErr = fallbackErr
+		}
+
+		if layoutErr != nil {
+			candidate.preview.Key = ""
+			candidate.preview.State = "invalid"
+			candidate.preview.ReasonCode = "invalid_layout"
+			candidate.preview.Reason = safePresentationString(layoutErr.Error(), 512)
+			result[index] = candidate
+			continue
+		}
+		candidate.config = cfg
 		result[index] = candidate
 	}
 	return result

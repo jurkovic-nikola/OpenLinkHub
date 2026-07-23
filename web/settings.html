@@ -23,6 +23,106 @@
             {{ template "temperature-bar" . }}
             {{ end }}
 
+            <div class="modal fade text-start"
+                 id="openrgbImportModal"
+                 tabindex="-1"
+                 aria-labelledby="openrgbImportModalLabel"
+                 aria-describedby="openrgbImportModalDescription"
+                 aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="openrgbImportModalLabel" tabindex="-1">
+                                OpenRGB SDK Controllers
+                            </h5>
+                            <button class="btn-close btn-close-white"
+                                    type="button"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="openrgbImportModalDescription">
+                                Discover controllers from a locally running OpenRGB SDK server, then explicitly
+                                choose which controllers LumenForge should import. OpenRGB remains optional and
+                                LumenForge does not start or manage it.
+                            </p>
+
+                            <div class="alert alert-secondary"
+                                 id="openrgbDiscoveryAlert"
+                                 role="alert"
+                                 aria-live="polite"
+                                 aria-atomic="true">
+                                Select Discover Again to inspect the local OpenRGB SDK server.
+                            </div>
+
+                            <div class="d-none align-items-center gap-2 mb-3"
+                                 id="openrgbLoadingState"
+                                 role="status"
+                                 aria-live="polite">
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span id="openrgbLoadingMessage">Working with OpenRGB SDK controllers...</span>
+                            </div>
+
+                            <section class="mb-4" aria-labelledby="openrgbConfiguredHeading">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                    <h6 class="mb-0" id="openrgbConfiguredHeading">Configured imports</h6>
+                                    <span class="small text-muted">
+                                        Removing an import preserves its profiles and RGB configuration.
+                                    </span>
+                                </div>
+                                <div class="settings-list" id="openrgbConfiguredImports">
+                                    <div class="settings-row">
+                                        <span class="settings-label">
+                                            Discover controllers to inspect configured OpenRGB imports.
+                                        </span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section aria-labelledby="openrgbControllersHeading">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                    <h6 class="mb-0" id="openrgbControllersHeading">Discovered controllers</h6>
+                                    <span class="small text-muted">
+                                        Nothing is imported automatically.
+                                    </span>
+                                </div>
+                                <div class="settings-list" id="openrgbControllerPreviews">
+                                    <div class="settings-row">
+                                        <span class="settings-label">
+                                            No discovery has been requested during this page visit.
+                                        </span>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                        <div class="modal-footer d-flex flex-wrap gap-2">
+                            <button class="system-button secondary"
+                                    id="btnOpenRGBDiscoverAgain"
+                                    type="button">
+                                Discover Again
+                            </button>
+                            <button class="system-button success"
+                                    id="btnOpenRGBImportSelected"
+                                    type="button"
+                                    disabled>
+                                Import Selected
+                            </button>
+                            <button class="system-button danger"
+                                    id="btnOpenRGBRemoveSelected"
+                                    type="button"
+                                    disabled>
+                                Remove Selected
+                            </button>
+                            <button class="system-button secondary"
+                                    type="button"
+                                    data-bs-dismiss="modal">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings -->
             <div class="page-centered-wrapper">
                 <div class="row g-4 mb-4">
@@ -296,7 +396,57 @@
                 </div>
 
                 <div class="row g-4 mb-4">
-                    <!-- Row 3: Supported Devices full-width -->
+                    <!-- Row 3: OpenRGB SDK Integration full-width -->
+                    <div class="col-12">
+                        <div class="card system-card">
+                            <div class="card-header text-center">
+                                <i class="bi bi-plugin pe-2"></i>OpenRGB SDK Integration
+                            </div>
+                            <div class="card-body sentence-text">
+                                <p>
+                                    LumenForge can explicitly import controllers exposed by a locally running
+                                    OpenRGB SDK server. OpenRGB is optional, nothing is imported automatically,
+                                    and LumenForge does not start or manage the OpenRGB process.
+                                </p>
+                                <p>
+                                    Removing an imported controller preserves its profiles and RGB configuration
+                                    so they can be reused if the controller is imported again later.
+                                </p>
+                                <div class="settings-list">
+                                    <div class="settings-row flex-column flex-lg-row align-items-start align-items-lg-center">
+                                        <div class="text-start flex-grow-1">
+                                            <span class="settings-label d-block mb-1">OpenRGB import status</span>
+                                            <span id="openrgbCardSummary">
+                                                Select Discover &amp; Manage Controllers to inspect the local
+                                                OpenRGB SDK server and manage imported controllers.
+                                            </span>
+                                            <span class="d-block small mt-1"
+                                                  id="openrgbCardStatus"
+                                                  role="status"
+                                                  aria-live="polite"
+                                                  aria-atomic="true"></span>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button class="system-button success"
+                                                    id="btnOpenRGBDiscover"
+                                                    type="button">
+                                                Discover &amp; Manage Controllers
+                                            </button>
+                                            <button class="system-button secondary"
+                                                    id="btnOpenRGBRefresh"
+                                                    type="button">
+                                                Refresh Imported Controllers
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- Row 4: Supported Devices full-width -->
                     <div class="col-12">
                         <div class="card system-card text-center">
                             <div class="card-header">

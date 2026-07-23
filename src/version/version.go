@@ -16,8 +16,8 @@ type BuildInfo struct {
 	BuildVersion string    `json:"buildVersion"`
 }
 
-// Version is set via -ldflags automatically upon a build process, no need to modify this manually.
-var Version = "0.0.0"
+// Version is the tracked development fallback. Authorized release builds may override it through -ldflags.
+var Version = "0.2.0-alpha-dev"
 var buildInfo *BuildInfo
 
 // GetBuildInfo will return BuildInfo struct

@@ -21,6 +21,7 @@ and the OpenLinkHub repository.
 - System and user installers detect conflicting service modes.
 - OpenRGB layouts and RGB/profile state persist across restart, removal, and reimport.
 - The LED-count warning now describes ignored lighting updates instead of a presumed OpenRGB crash.
+- Development builds now report `0.2.0-alpha-dev`, and the shared build path supports an explicit build-time version override for future releases.
 
 ### Fixed
 

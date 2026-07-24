@@ -644,6 +644,7 @@
     "txtUnableToUpdateMacroSettings": "Det gick inte att uppdatera makroinställningarna",
     "txtMacroSettingsUpdated": "Makroinställningarna har uppdaterats",
     "txtTemperatureSourceChanged": "Temperaturkällan har uppdaterats",
-    "txtUnableToUpdateTemperatureSource": "Det går inte att uppdatera temperaturkällan"
+    "txtUnableToUpdateTemperatureSource": "Det går inte att uppdatera temperaturkällan",
+    "txtLinkAdapterUpdated": "Link-adaptern har uppdaterats"
   }
 }

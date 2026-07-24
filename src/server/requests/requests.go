@@ -3024,7 +3024,7 @@ func ProcessChangeLinkAdapter(r *http.Request) *Payload {
 		case 2:
 			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
 		case 1:
-			return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
+			return &Payload{Message: language.GetValue("txtLinkAdapterUpdated"), Code: http.StatusOK, Status: 1}
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}

@@ -650,6 +650,7 @@
     "txtUnableToUpdateMacroSettings": "Não foi possível atualizar as configurações da macro",
     "txtMacroSettingsUpdated": "As configurações da macro foram atualizadas com sucesso",
     "txtTemperatureSourceChanged": "A fonte de temperatura foi atualizada com sucesso",
-    "txtUnableToUpdateTemperatureSource": "Não foi possível atualizar a fonte de temperatura"
+    "txtUnableToUpdateTemperatureSource": "Não foi possível atualizar a fonte de temperatura",
+    "txtLinkAdapterUpdated": "O Adaptador Link foi atualizado com sucesso"
   }
 }

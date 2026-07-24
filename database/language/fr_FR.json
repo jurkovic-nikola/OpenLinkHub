@@ -650,6 +650,7 @@
         "txtUnableToUpdateMacroSettings": "Impossible de mettre à jour les paramètres de macro",
         "txtMacroSettingsUpdated": "Les paramètres de macro ont été mis à jour avec succès",
         "txtTemperatureSourceChanged": "La source de température a été mise à jour avec succès",
-        "txtUnableToUpdateTemperatureSource": "Impossible de mettre à jour la source de température"
+        "txtUnableToUpdateTemperatureSource": "Impossible de mettre à jour la source de température",
+        "txtLinkAdapterUpdated": "L’adaptateur Link a été mis à jour avec succès"
     }
 }

@@ -644,6 +644,7 @@
         "txtUnableToUpdateMacroSettings": "Не удалось обновить настройки макроса",
         "txtMacroSettingsUpdated": "Настройки макроса успешно обновлены",
         "txtTemperatureSourceChanged": "Источник температуры успешно обновлён",
-        "txtUnableToUpdateTemperatureSource": "Не удалось обновить источник температуры"
+        "txtUnableToUpdateTemperatureSource": "Не удалось обновить источник температуры",
+        "txtLinkAdapterUpdated": "Адаптер Link успешно обновлён"
     }
 }

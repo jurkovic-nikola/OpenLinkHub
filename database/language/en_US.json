@@ -140,6 +140,7 @@
     "txtNonExistingHwProfile": "Non-existing hardware profile",
     "txtNonExistingRgbStrip": "Non-existing RGB strip",
     "txtNonExistingLinkAdapter": "Non-existing LINK adapter",
+    "txtLinkAdapterUpdated": "Link Adapter is successfully updated",
     "txtRgbStripChanged": "Device RGB strip is successfully changed",
     "txtUnableToChangeRgbStrip": "Unable to change device RGB strip",
     "txtUnableToChangeRgbStripNoLink": "Unable to change device RGB strip. You need the iCUE Link Adapter",

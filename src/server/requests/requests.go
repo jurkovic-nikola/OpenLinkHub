@@ -3067,17 +3067,22 @@ func ProcessChangeLinkAdapter(r *http.Request) *Payload {
 		req.AdapterId,
 	)
 
-	if len(results) > 0 {
-		switch results[0].Uint() {
-		case 0:
-			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
-		case 2:
-			return &Payload{Message: language.GetValue("txtUnableToChangeRgbStripNoLink"), Code: http.StatusOK, Status: 0}
-		case 1:
-			return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 1}
-		}
+	if len(results) == 0 {
+		return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
 	}
-	return &Payload{Message: language.GetValue("txtUnableToChangeRgbStrip"), Code: http.StatusOK, Status: 0}
+	messageKey, status := linkAdapterResult(results[0].Uint())
+	return &Payload{Message: language.GetValue(messageKey), Code: http.StatusOK, Status: status}
+}
+
+func linkAdapterResult(result uint64) (messageKey string, status int) {
+	switch result {
+	case 1:
+		return "txtLinkAdapterUpdated", 1
+	case 2:
+		return "txtUnableToChangeRgbStripNoLink", 0
+	default:
+		return "txtUnableToChangeRgbStrip", 0
+	}
 }
 
 // ProcessExternalHubDeviceType will process POST request from a client for external-LED hub

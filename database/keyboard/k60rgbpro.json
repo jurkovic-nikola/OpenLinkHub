@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k60rgbpro-default",
@@ -1075,7 +1075,7 @@
           "height": 70,
           "left": 15,
           "top": 15,
-          "packetIndex": [30],
+          "packetIndex": [6],
           "color": {
             "red": 0,
             "green": 255,

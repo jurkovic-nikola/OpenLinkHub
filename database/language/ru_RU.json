@@ -136,6 +136,7 @@
         "txtNonExistingHwProfile": "Профиль оборудования отсутствует",
         "txtNonExistingRgbStrip": "RGB-лента отсутствует",
         "txtNonExistingLinkAdapter": "Адаптер LINK отсутствует",
+        "txtLinkAdapterUpdated": "Адаптер Link успешно обновлён",
         "txtRgbStripChanged": "Устройство RGB-лента успешно изменена",
         "txtUnableToChangeRgbStrip": "Невозможно изменить RGB-ленту устройства",
         "txtUnableToChangeRgbStripNoLink": "Невозможно изменить RGB-ленту устройства. Требуется адаптер iCUE Link",

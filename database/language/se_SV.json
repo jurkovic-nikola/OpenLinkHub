@@ -136,6 +136,7 @@
     "txtNonExistingHwProfile": "Icke-existerande hårdvaruprofil",
     "txtNonExistingRgbStrip": "Icke-existerande RGB-strip",
     "txtNonExistingLinkAdapter": "Icke-existerande LINK-adapter",
+    "txtLinkAdapterUpdated": "Link-adaptern har uppdaterats",
     "txtRgbStripChanged": "Enhetens RGB-strip har ändrats",
     "txtUnableToChangeRgbStrip": "Kan inte ändra enhets RGB-strip",
     "txtUnableToChangeRgbStripNoLink": "Kan inte ändra enhets RGB-strip. Du behöver iCUE Link Adaptern",

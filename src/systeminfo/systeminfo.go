@@ -30,7 +30,7 @@ type AmdGpuUsage struct {
 	GfxActivity AmdGfxActivity `json:"gfx_activity"`
 }
 
-type AmdGPUInfo struct {
+type AmdGPUUsageData struct {
 	GPU   int         `json:"gpu"`
 	Usage AmdGpuUsage `json:"usage"`
 }
@@ -80,9 +80,17 @@ type Asic struct {
 	VendorName string `json:"vendor_name"`
 }
 
-type AMDGPUInfo struct {
+type AMDGPUModelData struct {
 	GPU  int  `json:"gpu"`
 	Asic Asic `json:"asic"`
+}
+
+type AmdSMIUsage struct {
+	GPUData []AmdGPUUsageData `json:"gpu_data"`
+}
+
+type AmdSMIModel struct {
+	GPUData []AMDGPUModelData `json:"gpu_data"`
 }
 
 var (
@@ -301,13 +309,23 @@ func GetAMDGpuModel() string {
 		return ""
 	}
 
-	var gpuInfo []AMDGPUInfo
-	err = json.Unmarshal(jsonOutput, &gpuInfo)
+	model, err := parseAMDGPUModel(jsonOutput)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process amd-smi model data")
 		return ""
 	}
-	return gpuInfo[0].Asic.MarketName
+	return model
+}
+
+func parseAMDGPUModel(jsonOutput []byte) (string, error) {
+	var gpuInfo AmdSMIModel
+	if err := json.Unmarshal(jsonOutput, &gpuInfo); err != nil {
+		return "", fmt.Errorf("unmarshal AmdSMIModel: %w", err)
+	}
+	if len(gpuInfo.GPUData) == 0 {
+		return "", fmt.Errorf("AmdSMIModel contains no gpu_data")
+	}
+	return gpuInfo.GPUData[0].Asic.MarketName, nil
 }
 
 // GetNVIDIAUtilization will return NVIDIA gpu utilization
@@ -472,18 +490,23 @@ func getAMDUtilization() float64 {
 		return 0
 	}
 
-	var gpus []AmdGPUInfo
-	err = json.Unmarshal(jsonOutput, &gpus)
+	utilization, err := parseAMDUtilization(jsonOutput)
 	if err != nil {
-		fmt.Println(err)
-		logger.Log(logger.Fields{"error": err}).Error("Unable to unmarshal JSON data")
+		logger.Log(logger.Fields{"error": err}).Error("Unable to process amd-smi usage data")
 		return 0
 	}
+	return utilization
+}
 
-	if len(gpus) > 0 {
-		return gpus[0].Usage.GfxActivity.Value
+func parseAMDUtilization(jsonOutput []byte) (float64, error) {
+	var gpuUsage AmdSMIUsage
+	if err := json.Unmarshal(jsonOutput, &gpuUsage); err != nil {
+		return 0, fmt.Errorf("unmarshal AmdSMIUsage: %w", err)
 	}
-	return 0
+	if len(gpuUsage.GPUData) == 0 {
+		return 0, fmt.Errorf("AmdSMIUsage contains no gpu_data")
+	}
+	return gpuUsage.GPUData[0].Usage.GfxActivity.Value, nil
 }
 
 func GetGPUUtilization() int {

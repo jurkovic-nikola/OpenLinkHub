@@ -140,6 +140,7 @@
     "txtNonExistingHwProfile": "Perfil de hardware inexistente",
     "txtNonExistingRgbStrip": "Faixa RGB inexistente",
     "txtNonExistingLinkAdapter": "Adaptador LINK inexistente",
+    "txtLinkAdapterUpdated": "O Adaptador Link foi atualizado com sucesso",
     "txtRgbStripChanged": "Faixa RGB do dispositivo alterada com sucesso",
     "txtUnableToChangeRgbStrip": "Não foi possível alterar a faixa RGB do dispositivo",
     "txtUnableToChangeRgbStripNoLink": "Não foi possível alterar a faixa RGB do dispositivo. Você precisa do Adaptador iCUE Link",

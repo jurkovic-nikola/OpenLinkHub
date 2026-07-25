@@ -36,6 +36,11 @@ and the OpenLinkHub repository.
 - Made cluster and individual animation speed controls consistently run from Slow to Fast, left to right.
 - Hid irrelevant speed controls for static and temperature-based RGB profiles.
 - Fixed the user-service tray action that opens the configured dashboard in the default browser.
+- Restored AMD SMI GPU reporting for current `gpu_data` responses.
+- Restored K65 Plus Wireless control-dial press actions and included configured labels in temperature-probe selectors.
+- Corrected the K60 RGB PRO G-key lighting packet mapping and Link Adapter success feedback.
+- Moved supported Corsair memory metadata out of hard-coded device logic while retaining safe built-in defaults.
+- Updated the image-processing dependency to include current WebP and font parsing fixes.
 
 ## 0.1.0-alpha
 

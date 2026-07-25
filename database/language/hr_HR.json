@@ -140,6 +140,7 @@
     "txtNonExistingHwProfile": "Hardverski profil ne postoji",
     "txtNonExistingRgbStrip": "RGB traka ne postoji",
     "txtNonExistingLinkAdapter": "LINK adapter ne postoji",
+    "txtLinkAdapterUpdated": "Link adapter je uspješno ažuriran",
     "txtRgbStripChanged": "RGB traka uređaja uspješno je promijenjena",
     "txtUnableToChangeRgbStrip": "Nije moguće promijeniti RGB traku uređaja",
     "txtUnableToChangeRgbStripNoLink": "Nije moguće promijeniti RGB traku uređaja. Potreban je iCUE Link adapter",

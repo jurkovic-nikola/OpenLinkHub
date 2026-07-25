@@ -140,6 +140,7 @@
         "txtNonExistingHwProfile": "Profile matériel non existant",
         "txtNonExistingRgbStrip": "Bande RGB non-existant",
         "txtNonExistingLinkAdapter": "Adaptateur LINK non existant",
+        "txtLinkAdapterUpdated": "L’adaptateur Link a été mis à jour avec succès",
         "txtRgbStripChanged": "Bande RGB du périphérique mis à jour avec succès",
         "txtUnableToChangeRgbStrip": "Impossible de mettre à jour la bande RGB du périphérique",
         "txtUnableToChangeRgbStripNoLink": "Impossible de mettre à jour la bande RGB du périphérique. Vous avec besoin de l'adaptateur Link iCUE",

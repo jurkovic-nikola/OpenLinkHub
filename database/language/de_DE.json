@@ -140,6 +140,7 @@
     "txtNonExistingHwProfile": "Nicht vorhandenes Hardwareprofil",
     "txtNonExistingRgbStrip": "Nicht vorhandener RGB-Streifen",
     "txtNonExistingLinkAdapter": "Nicht vorhandener LINK-Adapter",
+    "txtLinkAdapterUpdated": "Der Link-Adapter wurde erfolgreich aktualisiert",
     "txtRgbStripChanged": "RGB-Streifen des Geräts erfolgreich geändert",
     "txtUnableToChangeRgbStrip": "RGB-Streifen des Geräts kann nicht geändert werden",
     "txtUnableToChangeRgbStripNoLink": "RGB-Streifen des Geräts kann nicht geändert werden. ",

@@ -1979,6 +1979,10 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 		raw[13] = 0x00
 	}
 
+	if isControlDialPress(raw) {
+		d.handleControlDialPress()
+	}
+
 	// Hash it
 	for i, j := 0, len(raw)-1; i < j; i, j = i+1, j-1 {
 		raw[i], raw[j] = raw[j], raw[i]
@@ -2221,6 +2225,64 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 			}
 			break
 		}
+	}
+}
+
+type controlDialPressAction uint8
+
+const (
+	controlDialPressNone controlDialPressAction = iota
+	controlDialPressMute
+	controlDialPressBrightness
+	controlDialPressCtrlEnd
+	controlDialPressZoomReset
+	controlDialPressMediaPlayPause
+	controlDialPressHorizontalScrollReset
+)
+
+func isControlDialPress(raw []byte) bool {
+	return len(raw) > 17 && raw[17] == 0x02
+}
+
+func controlDialAction(controlDial int) controlDialPressAction {
+	switch controlDial {
+	case 1:
+		return controlDialPressMute
+	case 2:
+		return controlDialPressBrightness
+	case 3:
+		return controlDialPressCtrlEnd
+	case 4:
+		return controlDialPressZoomReset
+	case 6:
+		return controlDialPressMediaPlayPause
+	case 7:
+		return controlDialPressHorizontalScrollReset
+	default:
+		return controlDialPressNone
+	}
+}
+
+func (d *Device) handleControlDialPress() {
+	switch controlDialAction(d.DeviceProfile.ControlDial) {
+	case controlDialPressMute:
+		inputmanager.InputControlKeyboard(inputmanager.VolumeMute, false)
+	case controlDialPressBrightness:
+		if d.DeviceProfile.BrightnessLevel > 0 {
+			d.DeviceProfile.BrightnessLevel = 0
+		} else {
+			d.DeviceProfile.BrightnessLevel = 1000
+		}
+		d.saveDeviceProfile()
+		d.setBrightnessLevel()
+	case controlDialPressCtrlEnd:
+		inputmanager.InputControlCtrlEnd()
+	case controlDialPressZoomReset:
+		inputmanager.InputControlZoomReset()
+	case controlDialPressMediaPlayPause:
+		inputmanager.InputControlKeyboard(inputmanager.MediaPlayPause, false)
+	case controlDialPressHorizontalScrollReset:
+		inputmanager.InputControlScrollHorizontalReset()
 	}
 }
 

@@ -195,6 +195,25 @@ $(document).ready(function () {
 
     const $speedSlider = $("#speedSlider");
     const $speedSliderValue = $("#speedSliderValue");
+    const $speedControlGroup = $("#clusterSpeedControlGroup");
+    const $remainingControlGroups = $(
+        "#clusterBrightnessControlGroup, #clusterRgbControlGroup"
+    );
+
+    function updateSpeedControlVisibility(profile) {
+        const visible = LumenForgeRgbSpeed.hasSpeedControl(
+            profile,
+            LumenForgeRgbSpeed.SOFTWARE_CONTROL
+        );
+
+        $speedControlGroup.prop("hidden", !visible);
+        $remainingControlGroups
+            .removeClass("col-md-4 col-md-6")
+            .addClass(visible ? "col-md-4" : "col-md-6");
+        $speedSlider.prop("disabled", !visible);
+        return visible;
+    }
+
     function updateSpeedSlider() {
         const min = Number($speedSlider.attr("min"));
         const max = Number($speedSlider.attr("max"));
@@ -203,26 +222,51 @@ $(document).ready(function () {
         const percent = ((value - min) / (max - min)) * 100;
 
         $speedSlider.css("--slider-progress", percent + "%");
-        $speedSliderValue.text(value.toFixed(1));
+        $speedSliderValue.text(LumenForgeRgbSpeed.formatForSlider($speedSlider[0], value));
     }
 
     if ($speedSlider.length) {
-        $speedSlider.on("input", updateSpeedSlider);
-        updateSpeedSlider();
+        const storedDuration = $speedSlider.attr("data-stored-speed");
+        const profile = $speedSlider.attr("data-rgb-profile");
+
+        if (updateSpeedControlVisibility(profile)) {
+            LumenForgeRgbSpeed.configureSlider(
+                $speedSlider[0],
+                profile,
+                LumenForgeRgbSpeed.SOFTWARE_CONTROL
+            );
+            const uiSpeed = LumenForgeRgbSpeed.storedToUiForSlider(
+                $speedSlider[0],
+                storedDuration
+            );
+            $speedSlider.val(uiSpeed);
+            $speedSlider.on("input", function () {
+                LumenForgeRgbSpeed.markEdited(this);
+                updateSpeedSlider();
+            });
+            updateSpeedSlider();
+        }
     }
 
     $speedSlider.on('change', function () {
         const deviceId = $("#deviceId").val();
-        const speed = $(this).val();
-        const speedValue = parseFloat(speed);
+        const uiSpeed = $(this).val();
 
         const profileVal = $('#clusterRgbProfile').val().split(";");
         if (profileVal.length < 2) return;
         const profile = profileVal[1];
 
-        if (profile === "off" || profile === "static" || profile === "cpu-temperature" || profile === "gpu-temperature" || profile === "") {
+        if (!LumenForgeRgbSpeed.hasSpeedControl(
+            profile,
+            LumenForgeRgbSpeed.SOFTWARE_CONTROL
+        )) {
             return;
         }
+
+        this.dataset.rgbProfile = profile;
+        this.dataset.speedControlMode = LumenForgeRgbSpeed.SOFTWARE_CONTROL;
+        LumenForgeRgbSpeed.markEdited(this);
+        const storedDuration = LumenForgeRgbSpeed.uiToStoredForSlider(this, uiSpeed);
 
         $.ajax({
             url: '/api/color/profile/' + deviceId + '/' + profile,
@@ -235,7 +279,7 @@ $(document).ready(function () {
                     const pf = {};
                     pf["deviceId"] = deviceId;
                     pf["profile"] = profile;
-                    pf["speed"] = speedValue;
+                    pf["speed"] = storedDuration;
 
                     pf["startColor"] = data.start ? {
                         red: data.start.red,

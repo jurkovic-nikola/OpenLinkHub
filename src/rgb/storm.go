@@ -4,9 +4,18 @@ import (
 	"math/rand"
 )
 
-func stormColorEffect(c1, c2 *Color, bts float64) (uint8, uint8, uint8) {
+const defaultStormFlashChance = 0.001
+
+func stormFlashChance(speed float64) float32 {
+	if speed <= 0 {
+		return defaultStormFlashChance
+	}
+	return float32(defaultStormFlashChance * 4 / speed)
+}
+
+func stormColorEffect(c1, c2 *Color, bts float64, flashChance float32) (uint8, uint8, uint8) {
 	r, g, b := c1.Red, c1.Green, c1.Blue
-	if rand.Float32() < 0.001 {
+	if rand.Float32() < flashChance {
 		r, g, b = c2.Red, c2.Green, c2.Blue
 	}
 	color := &Color{Red: r, Green: g, Blue: b, Brightness: bts}
@@ -17,8 +26,14 @@ func stormColorEffect(c1, c2 *Color, bts float64) (uint8, uint8, uint8) {
 // Storm will run RGB function
 func (r *ActiveRGB) Storm() {
 	buf := map[int][]byte{}
+	flashChance := stormFlashChance(r.RgbModeSpeed)
 	for i := 0; i < r.LightChannels; i++ {
-		red, green, blue := stormColorEffect(r.RGBStartColor, r.RGBEndColor, r.RGBStartColor.Brightness)
+		red, green, blue := stormColorEffect(
+			r.RGBStartColor,
+			r.RGBEndColor,
+			r.RGBStartColor.Brightness,
+			flashChance,
+		)
 		if len(r.Buffer) > 0 {
 			r.Buffer[i] = red
 			r.Buffer[i+r.ColorOffset] = green

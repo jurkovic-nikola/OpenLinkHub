@@ -40,7 +40,7 @@ This is experimental alpha software developed and tested primarily against my ow
 
 ## Alpha Installation
 
-The required starting point for this alpha is a local source build from a fresh checkout. The system-service installer remains the currently supported installation mode. Package repositories, release archives, and automatic remote installation are not yet validated for LumenForge.
+The required starting point for this alpha is a local source build from a fresh checkout. Choose the user or system service according to how LumenForge will run. Package repositories and release archives are not yet validated for LumenForge.
 
 ### Requirements
 
@@ -81,52 +81,100 @@ Run directly from the repository:
 
 Hardware access may require appropriate udev permissions.
 
-### Supported System-Service Installation
+### User-Service Installation — Recommended for Desktop Use
 
-After building from source, run `install.sh` to install LumenForge under `/opt/LumenForge` with a system-level systemd service:
-
-```bash
-chmod +x install.sh
-sudo ./install.sh
-```
-
-The service runs under the dedicated `lumenforge` account. The installer refuses known conflicting user-service installations rather than enabling both service modes. This remains the currently supported installation mode for the alpha.
-
-Then open `http://127.0.0.1:27003`.
-
-### Experimental User-Service Installation
-
-`install-user-space.sh` is implemented and available for experimental validation, but it is not yet a supported or stable installation path. Build LumenForge from source, then run the installer as the intended desktop user, not as root:
+After building from source, run `install-user-space.sh` as the intended desktop user, not as root:
 
 ```bash
 chmod +x install-user-space.sh
 ./install-user-space.sh
 ```
 
-This installer places LumenForge under `/opt/LumenForge` and creates a systemd user service for the current desktop user. It still requests temporary privilege escalation for the shared udev rule, `lumenforge` group creation and membership, installation ownership, and device access. If the user is newly added to the `lumenforge` group, log out and back in or reboot before expecting the service to have device access.
+This installer places LumenForge under `/opt/LumenForge` and creates `~/.config/systemd/user/LumenForge.service`. It requests temporary privilege escalation for the shared udev rule, `lumenforge` group creation and membership, installation ownership, and device access. Manage the installed service as the desktop user:
 
-The user-service installer refuses to continue while a conflicting system-level `LumenForge.service` is active or enabled. Only one LumenForge service mode should be installed or active at a time.
+```bash
+systemctl --user status LumenForge.service
+systemctl --user restart LumenForge.service
+```
+
+The user service starts with the logged-in user session and is the required service mode for LumenForge's system tray. Set `enableSystemTray` to `true` in `config.json` and restart the user service to enable it. **Open Dashboard** opens the configured local dashboard in the default browser, normally at `http://127.0.0.1:27003`.
+
+#### First-Install Reboot
+
+If the installer adds the desktop user to the `lumenforge` group, reboot before relying on hardware access. Existing login sessions do not acquire new supplementary group membership, and restarting only the service is not sufficient. A complete logout and login can technically refresh group membership, but reboot is the recommended and tested procedure, particularly for RAM/SMBus and other hardware permissions. The enabled user service starts automatically after the new session begins.
+
+The installer refuses to continue while a conflicting system-level `LumenForge.service` is active or enabled. Only one LumenForge service mode should be installed or active at a time.
+
+### System-Service Installation — Headless or Desktop-Independent Use
+
+Run `install.sh` with root privileges to install LumenForge under `/opt/LumenForge` as a system-level service:
+
+```bash
+chmod +x install.sh
+sudo ./install.sh
+```
+
+The system service starts at system boot under the dedicated `lumenforge` account and is appropriate for headless, server-style, or desktop-independent operation. Manage it with `sudo systemctl`, for example:
+
+```bash
+sudo systemctl status LumenForge.service
+sudo systemctl restart LumenForge.service
+```
+
+Because the system service is outside the logged-in user's graphical and session D-Bus environment, it does not provide the desktop system tray. Open the dashboard directly at `http://127.0.0.1:27003`.
 
 ### Upgrades
 
-Prepare the new version in a fresh source checkout and build it there. If a release archive becomes available through a validated channel in the future, extract it into a fresh release directory. Run the same installer mode used for the existing installation, and never run either installer from `/opt/LumenForge`.
+There is no separate upgrade script. Installation and upgrade use the same
+mode-specific installer.
 
-An installer upgrade refreshes shipped application assets while preserving runtime-owned configuration and user data, including:
+#### User-Service Upgrade
 
-- `config.json`
-- Device profiles
-- Per-device RGB data
-- Macros
-- Key assignments
-- Temperature profiles
-- User LCD uploads
-- Other runtime-owned database content
+Obtain a fresh source checkout or extracted release directory, then build
+LumenForge or use the included release binary as appropriate. Run the installer
+as the desktop user:
 
-This preservation applies to the defined runtime-owned data; it does not guarantee preservation of every arbitrary file placed under `/opt/LumenForge`.
+```bash
+./install-user-space.sh
+```
+
+The installer detects and stops the existing user service, replaces the binary
+and shipped release assets, reloads and enables the user unit, and starts it
+again when the current login session has the required `lumenforge` group
+membership.
+
+#### System-Service Upgrade
+
+Obtain a fresh source checkout or extracted release directory, then build
+LumenForge or use the included release binary as appropriate. Run:
+
+```bash
+sudo ./install.sh
+```
+
+Always use the same installer mode as the existing installation. Never run
+either installer from `/opt/LumenForge`; both intentionally refuse to run from
+the installed directory. To switch service modes, first stop, disable, and
+remove the existing service using the appropriate [uninstall](#uninstall)
+instructions, then run the other installer from a fresh source or release
+directory.
+
+Both installer upgrade paths preserve these runtime-owned paths:
+
+- `/opt/LumenForge/config.json`
+- `/opt/LumenForge/database/profiles`
+- `/opt/LumenForge/database/rgb`
+- `/opt/LumenForge/database/macros`
+- `/opt/LumenForge/database/temperatures`
+- `/opt/LumenForge/database/key-assignments`
+- `/opt/LumenForge/database/led`
+- Existing user media under `/opt/LumenForge/database/lcd/images`
+
+Missing shipped LCD defaults are added without replacing existing media. Preservation applies to these defined runtime-owned paths; it does not guarantee preservation of every arbitrary file placed under `/opt/LumenForge`.
 
 ### Immutable Distributions
 
-The user-service installer is implemented and available for experimental validation, including investigation on immutable distributions. It is not yet supported, stable, or advertised as a production-ready immutable-distribution installation path.
+The user-service path has been validated with systemd user services on KDE Plasma/Wayland. LumenForge does not yet provide a distribution-specific package or release channel for immutable distributions; the source-build requirements and the installer's privileged system changes must still be available.
 
 ### Distribution Status
 
@@ -135,8 +183,6 @@ The following installation channels are not yet validated or advertised as suppo
 - `.deb` and `.rpm` packages
 - PPA and Copr repositories
 - GitHub release tarballs
-- `remote-install.sh`
-- Stable or production use of the experimental user-service installer on immutable distributions
 
 ## Configuration
 
@@ -157,7 +203,7 @@ See the [OpenRGB import guide](docs/openrgb-import.md) for detailed setup, impor
 > [!WARNING]
 > Keep `listenAddress` set to `127.0.0.1` unless access to the host is otherwise secured. LumenForge's HTTP API can change device, cooling, lighting, profile, and backup settings and does not currently provide built-in authentication.
 
-`enableSystemTray` enables the built-in system tray integration. It has been tested on KDE Plasma and GNOME. Other desktop environments may also work if they provide compatible StatusNotifierItem and `com.canonical.dbusmenu` support. Cinnamon is not currently supported.
+`enableSystemTray` enables the built-in system tray integration only when LumenForge runs as the user service inside the desktop session. Enabling it does not make a tray available from the system service. The tray has been tested on KDE Plasma and GNOME; other desktop environments may also work if they provide compatible StatusNotifierItem and `com.canonical.dbusmenu` support. Cinnamon is not currently supported.
 
 ## Progressive Web App
 
@@ -179,7 +225,7 @@ sudo rm -f /usr/lib/systemd/system/LumenForge.service
 sudo systemctl daemon-reload
 ```
 
-### Experimental User-Service Uninstall
+### User-Service Uninstall
 
 Run these commands as the desktop user that owns the user service:
 

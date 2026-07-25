@@ -20,45 +20,46 @@ This is the configuration generated for a new installation:
 ```json
 {
   "debug": false,
-  "listenPort": 27003,
-  "listenAddress": "127.0.0.1",
-  "cpuSensorChip": "",
   "manual": false,
   "frontend": true,
   "metrics": false,
-  "memory": false,
-  "memorySmBus": "i2c-0",
-  "memoryType": 5,
-  "exclude": [],
-  "memorySku": "",
-  "resumeDelay": 15000,
+  "listenAddress": "127.0.0.1",
+  "listenPort": 27003,
   "logFile": "",
   "logLevel": "info",
-  "enhancementKits": "",
-  "temperatureOffset": 0,
-  "amdGpuIndex": 0,
-  "amdsmiPath": "",
+  "enableSystemTray": false,
+  "enableGamepad": true,
+  "enableMotherboard": false,
+  "motherboardBiosOnExit": false,
   "checkDevicePermission": false,
   "graphProfiles": true,
+  "resumeDelay": 15000,
+  "temperatureOffset": 0,
+  "cpuSensorChip": "",
   "cpuTempFile": "",
+  "memory": false,
+  "memoryType": 5,
+  "memorySmBus": "i2c-0",
+  "memorySku": "",
+  "memoryRegisterOverride": "",
   "ramTempViaHwmon": true,
+  "enhancementKits": "",
+  "amdGpuIndex": 0,
+  "amdsmiPath": "",
   "nvidiaGpuIndex": [
     0
   ],
   "defaultNvidiaGPU": 0,
   "openRGBPort": 6742,
-  "enableGamepad": true,
-  "enableMotherboard": false,
-  "motherboardBiosOnExit": false,
-  "memoryRegisterOverride": "",
-  "enableSystemTray": false
+  "exclude": []
 }
 ```
 
 `enableOpenRGBTargetServer` is absent because its default is `false` and its
 JSON field uses `omitempty`, so the generated configuration omits that false
-zero value. It is serialized when enabled. The internal `ConfigPath` field is
-also omitted.
+zero value. It is serialized when enabled. The internal field's JSON tag has
+no alternate name, so it appears as `ConfigPath` when serialized; its empty
+fresh value is omitted by `omitempty`.
 
 ## Server and Network
 
@@ -104,7 +105,7 @@ LumenForge's HTTP port; `openRGBPort` is the local OpenRGB SDK port.
 | `enableGamepad` | boolean, `true` | `true`, `false` | Creates the virtual gamepad input path used by supported assignments. Disable it if virtual gamepad creation is unwanted; keyboard and mouse input handling are separate. | Yes |
 | `enableMotherboard` | boolean, `false` | `true`, `false` | Enables supported motherboard PWM/fan control. This requires compatible hardware and access; see [Motherboard PWM](motherboard-pwm.md). Leave disabled unless deliberately configuring motherboard control. | Yes |
 | `motherboardBiosOnExit` | boolean, `false` | `true`, `false` | Returns a managed motherboard controller to BIOS mode when LumenForge stops. It has no effect unless `enableMotherboard` is enabled. | Yes |
-| `enableSystemTray` | boolean, `false` | `true`, `false` | Starts the StatusNotifierItem/D-Bus tray integration. Enable only in a compatible desktop session; it is normally appropriate for the experimental user-service mode, not a headless system service. | Yes |
+| `enableSystemTray` | boolean, `false` | `true`, `false` | Starts the StatusNotifierItem/D-Bus tray integration when LumenForge runs as a user service inside a compatible desktop session. The system service cannot expose the tray because it runs outside the logged-in user's graphical and session D-Bus environment. **Open Dashboard** opens the configured local dashboard in the default browser, normally at `http://127.0.0.1:27003`. | Yes |
 
 ## Memory
 

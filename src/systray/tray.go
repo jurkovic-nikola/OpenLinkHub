@@ -14,7 +14,6 @@ import (
 	"image/png"
 	"log"
 	"os"
-	"os/exec"
 	"sort"
 	"strings"
 	"sync"
@@ -175,10 +174,9 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 
 	switch id {
 	case 101: // Open Dashboard
-		url := fmt.Sprintf("http://%s:%d", config.GetConfig().ListenAddress, config.GetConfig().ListenPort)
-		err := openBrowser(url)
-		if err != nil {
-			fmt.Println("Failed to open browser:", err)
+		cfg := config.GetConfig()
+		if err := activateDashboard(eventId, cfg.ListenAddress, cfg.ListenPort, launchDashboard); err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to build dashboard URL")
 		}
 	case 105: // Exit
 		lifecycle.Request(0)
@@ -206,11 +204,6 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 		}
 	}
 	return nil
-}
-
-// openBrowser will try to open Dashboard
-func openBrowser(url string) error {
-	return exec.Command("xdg-open", url).Start()
 }
 
 // emitMenuUpdate will send dbus message to update menu

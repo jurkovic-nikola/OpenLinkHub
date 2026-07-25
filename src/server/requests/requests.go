@@ -726,9 +726,26 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 	}
 
 	// Speed
-	if req.Speed < 1 || req.Speed > 10 {
-		return &Payload{Message: language.GetValue("txtInvalidSpeed"), Code: http.StatusOK, Status: 0}
+	speed := req.Speed
+	storedSpeed := speed
+	if rgb.HasSpeedControl(profile) {
+		minimumSpeed, maximumSpeed := rgb.ProfileSpeedRange(profile)
+		if speed < minimumSpeed || speed > maximumSpeed {
+			return &Payload{Message: language.GetValue("txtInvalidSpeed"), Code: http.StatusOK, Status: 0}
+		}
+	} else {
+		results := devices.CallDeviceMethod(deviceId, "GetRgbProfile", profile)
+		if len(results) == 0 {
+			return &Payload{Message: language.GetValue("txtRgbProfileNotUpdated"), Code: http.StatusOK, Status: 0}
+		}
+
+		currentProfile, ok := results[0].Interface().(*rgb.Profile)
+		if !ok || currentProfile == nil {
+			return &Payload{Message: language.GetValue("txtRgbProfileNotUpdated"), Code: http.StatusOK, Status: 0}
+		}
+		storedSpeed = currentProfile.Speed
 	}
+	speed = rgb.ProfileSpeedForUpdate(profile, speed, storedSpeed)
 
 	if req.RgbMinTemp < 0 || req.RgbMinTemp > 100 {
 		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
@@ -752,7 +769,7 @@ func ProcessUpdateRgbProfile(r *http.Request) *Payload {
 	middleColor.Brightness = 1
 
 	rgbProfile := rgb.Profile{
-		Speed:           req.Speed,
+		Speed:           speed,
 		Brightness:      1,
 		StartColor:      startColor,
 		MiddleColor:     middleColor,
@@ -4460,7 +4477,18 @@ func ProcessGetRgbOverride(r *http.Request) *Payload {
 
 // ProcessSetRgbOverride will process setting RGB override
 func ProcessSetRgbOverride(r *http.Request) *Payload {
-	req := &Payload{}
+	type rgbOverrideUpdate struct {
+		DeviceId    string    `json:"deviceId"`
+		ChannelId   int       `json:"channelId"`
+		SubDeviceId int       `json:"subDeviceId"`
+		Enabled     bool      `json:"enabled"`
+		StartColor  rgb.Color `json:"startColor"`
+		EndColor    rgb.Color `json:"endColor"`
+		MiddleColor rgb.Color `json:"middleColor"`
+		Speed       *float64  `json:"speed"`
+	}
+
+	req := &rgbOverrideUpdate{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
@@ -4487,8 +4515,39 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
 	}
 
-	if req.Speed < 0 || req.Speed > 10 {
-		return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
+	speed := 0.0
+	if req.Speed != nil {
+		speed = *req.Speed
+		if speed < 0 || speed > 10 {
+			return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
+		}
+	} else {
+		results := devices.CallDeviceMethod(
+			req.DeviceId,
+			"ProcessGetRgbOverride",
+			req.ChannelId,
+			req.SubDeviceId,
+		)
+		if len(results) == 0 {
+			return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
+		}
+
+		currentOverride := results[0]
+		for currentOverride.Kind() == reflect.Interface || currentOverride.Kind() == reflect.Pointer {
+			if currentOverride.IsNil() {
+				return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
+			}
+			currentOverride = currentOverride.Elem()
+		}
+		if currentOverride.Kind() != reflect.Struct {
+			return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
+		}
+
+		currentSpeed := currentOverride.FieldByName("RgbModeSpeed")
+		if !currentSpeed.IsValid() || !currentSpeed.CanFloat() {
+			return &Payload{Message: language.GetValue("txtRgbOverrideFailed"), Code: http.StatusOK, Status: 0}
+		}
+		speed = currentSpeed.Float()
 	}
 
 	results := devices.CallDeviceMethod(
@@ -4500,7 +4559,7 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		req.StartColor,
 		req.EndColor,
 		req.MiddleColor,
-		req.Speed,
+		speed,
 	)
 
 	if len(results) > 0 {

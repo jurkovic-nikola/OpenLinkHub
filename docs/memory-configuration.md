@@ -81,14 +81,44 @@ upstream documentation/implementation mismatch, not as a confirmed deliberate
 LumenForge divergence.
 
 ### Set permissions
-You will need to change `'KERNEL=="i2c-15"` to your i2c `smbus` device.
+Change `KERNEL=="i2c-15"` to your I2C SMBus device and use the rule that matches
+your service mode.
+
+For a user-service installation, grant the `lumenforge` group access:
+
+```bash
+echo 'KERNEL=="i2c-15", MODE="0660", GROUP="lumenforge"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+For a system-service installation, grant the dedicated `lumenforge` account
+access:
+
 ```bash
 echo 'KERNEL=="i2c-15", MODE="0600", OWNER="lumenforge"' | sudo tee /etc/udev/rules.d/98-corsair-memory.rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-### Restart LumenForge service
+### Start or restart LumenForge
+
+After the first user-service installation, reboot before testing RAM access if
+the installer added the desktop user to the `lumenforge` group. A complete
+logout and login can refresh supplementary groups, but reboot is the
+recommended and tested procedure. Restarting only the service does not update
+group membership in the existing login session. The enabled user service starts
+automatically after the new session begins.
+
+For later user-service configuration changes, when the current session already
+has group membership:
+
+```bash
+systemctl --user restart LumenForge.service
+```
+
+For the system service:
+
 ```bash
 sudo systemctl restart LumenForge.service
 ```

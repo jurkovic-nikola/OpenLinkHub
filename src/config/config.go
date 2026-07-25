@@ -14,39 +14,48 @@ import (
 )
 
 type Configuration struct {
-	Debug                     bool     `json:"debug"`
-	ListenPort                int      `json:"listenPort"`
-	ListenAddress             string   `json:"listenAddress"`
-	CPUSensorChip             string   `json:"cpuSensorChip"`
-	Manual                    bool     `json:"manual"`
-	Frontend                  bool     `json:"frontend"`
-	Metrics                   bool     `json:"metrics"`
-	Memory                    bool     `json:"memory"`
-	MemorySmBus               string   `json:"memorySmBus"`
-	MemoryType                int      `json:"memoryType"`
-	Exclude                   []uint16 `json:"exclude"`
-	MemorySku                 string   `json:"memorySku"`
-	ConfigPath                string   `json:",omitempty"`
-	ResumeDelay               int      `json:"resumeDelay"`
-	LogFile                   string   `json:"logFile"`
-	LogLevel                  string   `json:"logLevel"`
-	EnhancementKits           []byte   `json:"enhancementKits"`
-	TemperatureOffset         int      `json:"temperatureOffset"`
-	AMDGpuIndex               int      `json:"amdGpuIndex"`
-	AMDSmiPath                string   `json:"amdsmiPath"`
-	CheckDevicePermission     bool     `json:"checkDevicePermission"`
-	GraphProfiles             bool     `json:"graphProfiles"`
-	CpuTempFile               string   `json:"cpuTempFile"`
-	RamTempViaHwmon           bool     `json:"ramTempViaHwmon"`
-	NvidiaGpuIndex            []int    `json:"nvidiaGpuIndex"`
-	DefaultNvidiaGPU          int      `json:"defaultNvidiaGPU"`
-	OpenRGBPort               int      `json:"openRGBPort"`
-	EnableOpenRGBTargetServer bool     `json:"enableOpenRGBTargetServer,omitempty"` // Deprecated: legacy target listener compatibility.
-	EnableGamepad             bool     `json:"enableGamepad"`
-	EnableMotherboard         bool     `json:"enableMotherboard"`
-	MotherboardBiosOnExit     bool     `json:"motherboardBiosOnExit"`
-	MemoryRegisterOverride    []byte   `json:"memoryRegisterOverride"`
-	EnableSystemTray          bool     `json:"enableSystemTray"`
+	Debug      bool   `json:"debug"`
+	Manual     bool   `json:"manual"`
+	Frontend   bool   `json:"frontend"`
+	Metrics    bool   `json:"metrics"`
+	ConfigPath string `json:",omitempty"`
+
+	ListenAddress string `json:"listenAddress"`
+	ListenPort    int    `json:"listenPort"`
+
+	LogFile  string `json:"logFile"`
+	LogLevel string `json:"logLevel"`
+
+	EnableSystemTray          bool `json:"enableSystemTray"`
+	EnableGamepad             bool `json:"enableGamepad"`
+	EnableMotherboard         bool `json:"enableMotherboard"`
+	EnableOpenRGBTargetServer bool `json:"enableOpenRGBTargetServer,omitempty"` // Deprecated: legacy target listener compatibility.
+	MotherboardBiosOnExit     bool `json:"motherboardBiosOnExit"`
+
+	CheckDevicePermission bool `json:"checkDevicePermission"`
+	GraphProfiles         bool `json:"graphProfiles"`
+	ResumeDelay           int  `json:"resumeDelay"`
+	TemperatureOffset     int  `json:"temperatureOffset"`
+
+	CPUSensorChip string `json:"cpuSensorChip"`
+	CpuTempFile   string `json:"cpuTempFile"`
+
+	Memory                 bool   `json:"memory"`
+	MemoryType             int    `json:"memoryType"`
+	MemorySmBus            string `json:"memorySmBus"`
+	MemorySku              string `json:"memorySku"`
+	MemoryRegisterOverride []byte `json:"memoryRegisterOverride"`
+	RamTempViaHwmon        bool   `json:"ramTempViaHwmon"`
+	EnhancementKits        []byte `json:"enhancementKits"`
+
+	AMDGpuIndex      int    `json:"amdGpuIndex"`
+	AMDSmiPath       string `json:"amdsmiPath"`
+	NvidiaGpuIndex   []int  `json:"nvidiaGpuIndex"`
+	DefaultNvidiaGPU int    `json:"defaultNvidiaGPU"`
+
+	OpenRGBPort int `json:"openRGBPort"`
+
+	Exclude []uint16 `json:"exclude"`
 }
 
 var (
@@ -138,37 +147,46 @@ func IsSystemService() bool {
 func upgradeFile(cfg string) {
 	if !common.FileExists(cfg) {
 		value := &Configuration{
-			Debug:                  false,
-			ListenPort:             27003,
-			ListenAddress:          "127.0.0.1",
-			CPUSensorChip:          "",
-			Manual:                 false,
-			Frontend:               true,
-			Metrics:                false,
+			Debug:    false,
+			Manual:   false,
+			Frontend: true,
+			Metrics:  false,
+
+			ListenAddress: "127.0.0.1",
+			ListenPort:    27003,
+
+			LogFile:  "",
+			LogLevel: "info",
+
+			EnableSystemTray:      false,
+			EnableGamepad:         true,
+			EnableMotherboard:     false,
+			MotherboardBiosOnExit: false,
+
+			CheckDevicePermission: false,
+			GraphProfiles:         true,
+			ResumeDelay:           15000,
+			TemperatureOffset:     0,
+
+			CPUSensorChip: "",
+			CpuTempFile:   "",
+
 			Memory:                 false,
-			MemorySmBus:            "i2c-0",
 			MemoryType:             5,
-			Exclude:                make([]uint16, 0),
+			MemorySmBus:            "i2c-0",
 			MemorySku:              "",
-			ResumeDelay:            15000,
-			LogLevel:               "info",
-			LogFile:                "",
-			EnhancementKits:        make([]byte, 0),
-			TemperatureOffset:      0,
-			AMDGpuIndex:            0,
-			AMDSmiPath:             "",
-			CheckDevicePermission:  false,
-			CpuTempFile:            "",
-			GraphProfiles:          true,
-			RamTempViaHwmon:        true,
-			NvidiaGpuIndex:         []int{0},
-			DefaultNvidiaGPU:       0,
-			OpenRGBPort:            6742,
-			EnableGamepad:          true,
-			EnableMotherboard:      false,
-			MotherboardBiosOnExit:  false,
 			MemoryRegisterOverride: make([]byte, 0),
-			EnableSystemTray:       false,
+			RamTempViaHwmon:        true,
+			EnhancementKits:        make([]byte, 0),
+
+			AMDGpuIndex:      0,
+			AMDSmiPath:       "",
+			NvidiaGpuIndex:   []int{0},
+			DefaultNvidiaGPU: 0,
+
+			OpenRGBPort: 6742,
+
+			Exclude: make([]uint16, 0),
 		}
 		saveConfigSettings(value)
 	} else {

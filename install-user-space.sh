@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# EXPERIMENTAL FOR LUMENFORGE ALPHA:
-# The user-service installation path is available for validation but is not yet supported.
-# Use install.sh for the currently supported system-service installation.
+# Recommended for desktop users and required for LumenForge system-tray support.
+# Use install.sh for headless or desktop-independent system-service operation.
+# Run this script as the intended desktop user, not root.
+# Reboot after first installation to acquire hardware-access group membership.
 
 set -e
 
@@ -159,14 +160,14 @@ copy_release_assets() {
     "$INSTALL_DIR/database/rgb" \
     "$INSTALL_DIR/database/temperatures"
 
-  # Remove the old standalone upgrader; upgrades run an installer from a new source checkout.
-  rm -f "$INSTALL_DIR/upgrade.sh"
+  # Install and upgrade only from a fresh source or release directory. Remove
+  # legacy maintenance copies that cannot be run from the installed directory.
+  rm -f \
+    "$INSTALL_DIR/install.sh" \
+    "$INSTALL_DIR/install-user-space.sh" \
+    "$INSTALL_DIR/upgrade.sh" \
+    "$INSTALL_DIR/99-lumenforge.rules"
 
-  for file in 99-lumenforge.rules install.sh install-user-space.sh; do
-    if [ -f "$SOURCE_DIR/$file" ]; then
-      install -m 755 "$SOURCE_DIR/$file" "$INSTALL_DIR/$file"
-    fi
-  done
   for file in README.md LICENSE CHANGELOG.md; do
     if [ -f "$SOURCE_DIR/$file" ]; then
       install -m 644 "$SOURCE_DIR/$file" "$INSTALL_DIR/$file"
@@ -190,11 +191,6 @@ echo "Setting ownership and permissions under $INSTALL_DIR..."
 chown -R "$TARGET_USER:$DEVICE_GROUP" "$INSTALL_DIR"
 chmod -R u+rwX,go+rX,go-w "$INSTALL_DIR"
 chmod 755 "$INSTALL_DIR/$PRODUCT"
-for script in install.sh install-user-space.sh; do
-  if [ -f "$INSTALL_DIR/$script" ]; then
-    chmod 755 "$INSTALL_DIR/$script"
-  fi
-done
 
 echo "Installing group-based udev device permissions..."
 install -m 644 "$TEMPORARY_RULE" "$PERMISSION_TARGET"

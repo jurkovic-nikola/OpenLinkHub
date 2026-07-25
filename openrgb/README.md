@@ -46,9 +46,9 @@ to the newer importer; those terms do not indicate reduced functionality.
 
 ## Configure the Target Server
 
-Use the service commands that match the installation mode already in use. The
-user-service installer remains experimental; the user-service commands below
-are for users already testing that installation mode.
+Use the service commands that match the installation mode already in use.
+User-service commands run as the desktop user; system-service commands require
+root privileges.
 
 ### Step 1: Stop LumenForge
 

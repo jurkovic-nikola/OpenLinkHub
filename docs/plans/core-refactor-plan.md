@@ -1,190 +1,225 @@
-Summary & scope
-- Repo inspected: RGB effects, OpenRGB imports, device/profile persistence, cluster, systray, temperatures, and UI handlers.
-- Goal: identify duplicated/repeated code and propose a safe, incremental refactor plan that preserves runtime behavior.
+# LumenForge Core Refactor Backlog
 
-Low-risk cleanup
-1) Effect timing normalization
-- Files: src/rgb/* (e.g., rainbow.go, wave.go)
-- Duplication: elapsed/time and speedFactor calculations repeated.
-- Helper: rgb.EffectClock { ElapsedSeconds(start), SpeedFactor(r, default) }
-- Risk: low. Tests: unit tests for fixed start times and speeds.
-- Quick win: extract computeElapsed/SpeedFactor and replace in a few effects.
+## Purpose
 
-2) JSON decode + invalid body handling
-- Files: many server handlers (src/server/server.go)
-- Duplication: json.NewDecoder(r.Body).Decode(&req) + identical Response on error.
-- Helper: server.decodeJsonOrRespond[T](w,r,out *T) bool
-- Risk: low. Tests: httptest invalid JSON -> identical response.
-- Quick win: refactor 2–3 handlers.
-- Status: completed.
-- Note: decodeRequestBody was added in src/server/server.go. All five OpenRGB import handlers now use decodeRequestBody: setOpenRGBImportColor, setOpenRGBImportBrightness, setOpenRGBImportEffect, setOpenRGBImportSpeed, and setOpenRGBImportConfig. Manual UI testing passed for brightness, effect, speed, RGB Override color apply, and Zone Configuration Save Layout controls on an OpenRGB imported device. go test ./src/server returned [no test files].
+This document tracks optional code-quality and safety work that may be worth revisiting after the current alpha has been tested in normal use.
 
-3) Template execute error handling
-- Files: server UI handlers
-- Duplication: ExecuteTemplate + same error logging/Response.Send.
-- Helper: server.executeTemplateOrRespond(w,tpl,data) bool
-- Risk: low. Tests: simulate template error path.
-- Status: completed for fixed-template handlers.
-- Note: executeTemplateOrRespond was added in src/server/server.go and now supports optional error logging. No-log fixed-template handlers were refactored. Logging fixed-template handlers uiIndex, uiRgbCluster, and uiLcdOverview were refactored with logging preserved. Dynamic/special handlers uiDeviceOverview, uiTemperatureOverview, and uiXeneon were intentionally deferred. Manual UI testing passed for /, /rgbCluster, /lcd, /temperatureGraphs, /color, /settings, /scheduler, /rgb, and /macros. The cluster activeRgb panic was fixed separately in commit 5d93b73d and is not part of the template refactor.
+It is not a release blocker or an active implementation roadmap. Completed refactors and bug fixes have been removed. New work should begin only when a concrete maintenance need, bug, or feature change justifies it.
 
-4) Parsing helpers
-- Files: temperatures, display, rgb modules
-- Duplication: strconv.Atoi/ParseFloat + trim/err handling.
-- Helper: common.AtoiTrim, common.ParseFloatTrim
-- Risk: low. Tests: unit tests for edge cases.
-- Status: proof-of-concept completed.
-- Note: common.AtoiTrim was added in src/common/common.go. GetNVIDIAGpuTemperature and getHwMonTemperature were refactored in src/temperatures/temperatures.go. go test ./src/common ./src/temperatures passed. Manual runtime validation confirmed temperature readings still display and update. common.ParseFloatTrim was inspected but deferred because only one matching behavior-compatible ParseFloat + TrimSpace site currently exists; no implementation is needed yet. Full go build currently requires CGO_CFLAGS_ALLOW='-fno-strict-overflow' because of an unrelated src/audio/pkg-config flag issue.
+## Priority 1: Add deterministic RGB output tests
 
-5) Systray menu utilities
-- Files: src/systray/tray.go
-- Duplication: addMenuItem/addSubMenu/insert logic.
-- Helper: systray.MenuBuilder with AddItem/AddSubMenu/InsertAfter
-- Risk: low. Tests: unit tests assert menu state.
-- Status: proof-of-concept completed.
-- Note: newMenuLayout was added in src/systray/tray.go and approved MenuLayout construction sites in tray.go were refactored. devices_tray.go was intentionally not touched. Manual systray validation passed, including tray menu visibility, menu order, Open Dashboard, Global RGB Cluster submenu, Individual Devices submenu, Toggle All Standalone RGB, and Quit.
+Before making broad changes to RGB effect rendering, add deterministic tests for representative effects.
 
-Medium-risk refactors
-1) OpenRGB import handlers
-- Files: src/server/server.go (setOpenRGBImport* endpoints)
-- Duplication: JSON decode -> default serial -> device lookup -> identical responses.
-- Helper: server.handleOpenRGBImport[T](w,r,defaultSerial string, action func(dev, payload) error)
-- Risk: medium — centralizes request lifecycle; test with mocked device and httptest.
-- Quick win: extract getDeviceFromJsonRequest and respondInvalidBody.
+Recommended coverage:
 
-2) Profile load/save path and file ops
-- Files: src/led/led.go, src/cluster/cluster.go, many device drivers
-- Duplication: path construction using ConfigPath + "/database/<category>/<id>.json", open+decode, SaveJsonData usage and logging.
-- Helper: profiles.Manager { ProfilePath, LoadProfile[T], SaveProfile, EnsureDefault }
-- Risk: medium — persistence semantics must be preserved; test via temp ConfigPath.
-- Quick win: extract profilePath(category,id) and thin wrappers for device drivers.
+- Rainbow
+- Wave
+- Static
+- Gradient
+- Temperature-based effects
+- Inverted output
+- AIO and LCD masking behaviour
+- Fixed start times and deterministic random seeds
 
-3) Cluster effect dispatch switch
-- Files: src/cluster/cluster.go::generateRgbEffect
-- Duplication: switch/case calling r.<Effect> then buff = r.Output.
-- Helper: dispatch map map[string]func(*rgb.ActiveRGB,*time.Time)[]byte or small helper callEffectAndReturnOutput
-- Risk: medium — must preserve side-effects and special cases (temperature, gradient args).
-- Quick win: extract repeated call pattern into helper.
+The tests should compare exact output bytes for known inputs.
 
-High-risk / avoid for now (require strong tests)
-1) Per-effect output assembly
-- Files: src/rgb/*.go (many effect implementations)
-- Duplication: per-pixel writes to r.Buffer vs temporary map, AIO/HasLCD special-case index masking, then r.Raw = buf and r.Output = SetColor/SetColorInverted(buf)
-- Suggested abstraction: rgb.OutputBuilder with Write(index, r,g,b) and Finalize() that sets r.Raw and r.Output
-- Risk: high — touches runtime-critical rendering path; byte-order/offset/masking regressions would be visible on devices.
-- Tests: golden outputs for representative effects (rainbow, wave, static, gradient) for fixed start time and seed; unit tests for AIO masking and inverted output.
-- Safe plan: Stage 1 add golden tests, Stage 2 extract finalizeOutput helper, Stage 3 migrate to OutputBuilder incrementally.
+### Why this matters
 
-2) Profile migrations manager
-- Files: profile provisioning/upgrade across cluster, temperatures, lcd, etc.
-- Duplication: "if !FileExists then SaveJsonData(default)" and ad-hoc upgrade heuristics.
-- Suggested abstraction: profiles.Migrator with EnsureDefault and versioned migrations.
-- Risk: high — could overwrite user data if applied incorrectly.
-- Tests: integration tests in tempdir, backups before migration.
+RGB rendering is highly visible and sensitive to byte ordering, offsets, device-specific masking, and timing. Golden tests would make later cleanup safer and help catch regressions that may otherwise appear only on physical hardware.
 
-Incremental implementation plan (small, reviewable PRs)
-1) Low-risk helpers (PR #1)
-- Add: server.decodeJsonOrRespond, server.executeTemplateOrRespond, common.AtoiTrim.
-- Replace: 2–3 server handlers and 1 UI handler, with unit tests using httptest and small template errors.
+### When to do it
 
-2) Profile helpers (PR #2)
-- Add: profiles.Path and thin wrappers LoadLedProfile/SaveLedProfile.
-- Replace: device driver one-liners.
-- Tests: temp ConfigPath read/write.
+Do this before any broad refactor of effect output assembly, timing, dispatch, or buffer finalization.
 
-3) Cluster dispatch cleanup (PR #3)
-- Add: callEffectAndReturnOutput helper, replace repeated case bodies.
-- Tests: per-profile outputs compared to pre-refactor outputs for a small set.
+---
 
-4) Systray utilities (PR #4)
-- Add: MenuBuilder (internal package) and migrate add/insert functions.
-- Tests: unit tests for ordering.
+## Priority 2: Inspect lifecycle and resource safety when touching device modules
 
-5) Output finalize (PR #5 — cautious)
-- Add: finalizeOutput(r, buf) and replace finalization lines in a few effects; run golden tests.
-- If safe, proceed to full OutputBuilder migration (PR #6) with broad golden/integration tests.
+Several targeted lifecycle and file-safety issues have already been fixed. Do not perform a broad sweep solely for consistency.
 
-6) OpenRGB handler consolidation (PR #7)
-- Add: handleOpenRGBImport generic wrapper and refactor endpoints incrementally with mocked device tests.
+When modifying a device module, inspect nearby code for:
 
-7) Migrations/EnsureDefault (PR #8)
-- Create profiles.EnsureDefault and migrate modules conservatively with backups and tests.
+- goroutines starting before required state is assigned
+- shared `activeRgb` access without a stable local reference
+- `os.Open` or ZIP entry readers used before checking errors
+- missing `Close` calls
+- duplicate HTTP responses after an error response
+- persistence operations that silently replace or discard user data
 
-Testing strategy
-- Unit tests for all new helpers using httptest, temp directories, and deterministic inputs.
-- Golden tests for RGB outputs: record outputs from key effects, run them after refactor and assert equal bytes.
-- Integration smoke: run app in dev with simulated controllers where possible; verify systray/menu and UI pages render.
+### Why this matters
 
-Next steps
-- Current status:
-  - LumenForge-CoreRefactor has been merged into LumenForge-Dev.
-  - LumenForge-ActiveRgbRaceFix has been merged into LumenForge-Dev.
-  - LumenForge-TemperatureTemplateHelper has been merged into LumenForge-Dev.
-  - LumenForge-Dev is clean, pushed, and up to date with origin.
-- Completed work:
-  - Low-risk helper cleanup pass is complete.
-  - JSON decode helper is complete.
-  - Template execution helper is complete for fixed-template handlers.
-  - uiTemperatureOverview now uses executeTemplateOrRespond with logging preserved.
-  - uiDeviceOverview now uses executeTemplateOrRespond with logging preserved.
-  - uiDeviceOverview double-response bug has been fixed:
-    - The invalid path variable branch now returns immediately after resp.Send(w).
-    - The empty template branch now returns immediately after resp.Send(w).
-    - This prevents duplicate/superfluous HTTP response writes.
-    - Response contents, status codes, template selection, and executeTemplateOrRespond were not changed.
-  - AtoiTrim parsing helper proof-of-concept is complete.
-  - Tiny systray newMenuLayout helper proof-of-concept is complete.
-  - Cluster activeRgb nil-pointer panic fix is complete.
-  - Cluster activeRgb lifecycle race follow-up is complete:
-    - activeRgb is now created/assigned before the cluster color loop goroutine starts.
-  - First device-module activeRgb follow-up is complete:
-    - src/devices/cc/cc.go now creates and assigns activeRgb before launching its RGB goroutine.
-    - The goroutine now uses the local activeRgb for Exit, random colors, Colorshift, and Colorwarp.
-    - This mirrors the cluster activeRgb lifecycle fix.
-    - This was intentionally limited to Commander Core / cc.go only.
-  - Commander Core XT and Commander Duo activeRgb lifecycle follow-ups are complete:
-    - src/devices/ccxt/ccxt.go now creates and assigns activeRgb before launching its RGB goroutine.
-    - src/devices/cduo/cduo.go now creates and assigns activeRgb before launching its RGB goroutine.
-    - Both goroutines now use the local activeRgb for Exit, random colors, Colorshift, and Colorwarp.
-    - These fixes mirror the cluster.go and cc.go activeRgb lifecycle fixes.
-    - These changes were intentionally limited to ccxt.go and cduo.go.
-  - File-open and resource safety follow-up is complete:
-    - src/audio/audio.go now checks os.Open errors before deferring file.Close().
-    - audio.Init no longer attempts to close or decode a nil file handle if audio.json is missing or inaccessible.
-    - src/config/config.go now closes the config file opened in config.Init.
-    - src/config/config.go now checks os.Open errors before deferring file.Close() in upgradeFile.
-    - Existing behavior was preserved:
-      - audio.Init logs open/decode errors without panicking.
-      - config.Init / upgradeFile continue to panic on config open/decode failures as before.
-    - fmt.Errorf(msg) in audio.go was changed to fmt.Errorf("%s", msg) to preserve the same error string while satisfying Go format validation.
-  - Backup restore safety fix is complete:
-    - src/backup/backup.go now checks the error from f.Open() when reading _hash.txt during restore integrity verification.
-    - verifyZipIntegrity no longer calls io.ReadAll or Close on a nil ZIP entry reader if opening _hash.txt fails.
-    - verifyZipIntegrity now checks io.ReadAll errors for _hash.txt and returns the error.
-    - Existing restore behavior is preserved: PerformRestore still aborts restore with "Backup verification failed" when verification returns an error.
-    - Backup ZIP format and hash calculation behavior were not changed.
-  - Dashboard/display file-open safety fix is complete:
-    - src/dashboard/dashboard.go now checks os.Open errors before deferring file.Close() in Init.
-    - src/dashboard/dashboard.go now checks os.Open errors before deferring file.Close() in upgradeFile.
-    - src/display/display.go now checks os.Open errors before deferring file.Close() in Init.
-    - These changes prevent nil file.Close panics if dashboard/display config files are missing or inaccessible.
-    - Existing logging and return/panic behavior was preserved.
-  - LCD/Nexus file descriptor safety fix is complete:
-    - src/devices/lcd/lcd.go now closes the LCD background image file opened during Init on both success and error paths.
-    - src/devices/nexus/nexus.go now closes LCD background image files opened in loadLcdBackground.
-    - src/devices/nexus/nexus.go now closes overlay icon files opened in loadLcdBackground.
-    - src/devices/nexus/nexus.go now closes the LCD profiles file opened in loadLcdProfiles.
-    - src/devices/nexus/nexus.go now closes device profile files in loadDeviceProfiles even when JSON decoding fails.
-    - Existing decode, resize, logging, return, and continue behavior was preserved.
-- Current known state / completed bugfix list:
-  - audio/config file-open nil pointer and config file close fixes are complete.
-  - backup restore hash entry open/read fix is complete.
-  - dashboard/display file-open nil pointer fixes are complete.
-  - LCD/Nexus file descriptor leak fixes are complete.
-  - cluster/cc/ccxt/cduo activeRgb lifecycle fixes are complete.
-  - uiDeviceOverview double-response fix is complete.
-- Recommendations / Next steps:
-  - Stop here for now.
-  - Future work should start from a new branch based on LumenForge-Dev.
-  - Do not sweep activeRgb across all remaining device modules.
-  - Treat broad profile read/write file-handle leak audits as backlog only.
-  - Avoid broad file-loading refactors unless started as separate inspection-first branches.
+These issues can cause panics, races, descriptor leaks, or damaged runtime state. Targeted inspection keeps the risk lower than a repository-wide refactor.
+
+### When to do it
+
+Perform this review as part of work already touching the relevant module or when a concrete bug points to that area.
+
+---
+
+## Priority 3: Introduce thin profile-path helpers when persistence code next changes
+
+Profile and runtime-state code still contains repeated path construction and file operations across modules.
+
+A future cleanup may introduce small helpers for:
+
+- constructing category and profile paths
+- loading typed JSON from a known path
+- saving profile data through the existing persistence behaviour
+- ensuring directories exist without changing overwrite semantics
+
+### Constraints
+
+- Preserve current filenames and directory layout.
+- Preserve existing fallback and error behaviour.
+- Use temporary directories in tests.
+- Do not introduce automatic migrations as part of this work.
+- Do not overwrite or normalize existing user files unexpectedly.
+
+### Why this matters
+
+Thin helpers could reduce repetition without creating a large persistence framework.
+
+### When to do it
+
+Only when profile persistence is already being changed for a feature or bug fix.
+
+---
+
+## Priority 4: Normalize effect timing only when modifying effects
+
+Many effects repeat elapsed-time and speed calculations.
+
+A small helper could eventually centralize:
+
+- elapsed seconds from a start time
+- speed-factor calculation
+- default-speed handling
+
+### Constraints
+
+- Add deterministic timing tests first.
+- Preserve current animation speed and direction exactly.
+- Migrate only the effects already being modified.
+- Avoid a repository-wide conversion in one branch.
+
+### Why this matters
+
+This could reduce repeated calculations, but it has little user-visible value by itself and can subtly change animation behaviour.
+
+---
+
+## Priority 5: Simplify cluster effect dispatch if it becomes difficult to maintain
+
+The cluster effect dispatcher contains repeated patterns that call an effect and then return its output.
+
+A small helper may reduce repetition while keeping special cases explicit.
+
+### Constraints
+
+- Preserve effect-specific arguments and side effects.
+- Keep temperature, gradient, and other special cases readable.
+- Compare outputs before and after the change.
+- Do not replace the dispatcher with a generic map if that hides meaningful differences.
+
+### When to do it
+
+Only when adding or changing cluster effects makes the existing switch materially harder to maintain.
+
+---
+
+## Priority 6: Revisit OpenRGB handler sharing only for a concrete need
+
+The OpenRGB handlers already share request decoding where behaviour is compatible.
+
+Further consolidation should be approached cautiously because the endpoints differ in:
+
+- persistence behaviour
+- profile-save error handling
+- live versus durable state
+- speed override behaviour
+- layout rollback behaviour
+- active-controller requirements
+- asynchronous lifecycle operations
+
+### Recommendation
+
+Prefer small, narrowly scoped helpers over one generic handler wrapper.
+
+Do not consolidate endpoints merely to reduce line count.
+
+---
+
+## Deferred unless required by a real migration
+
+### Versioned profile migration system
+
+Do not introduce a generalized migration manager pre-emptively.
+
+Create migration infrastructure only when LumenForge has an actual profile or configuration schema change that cannot be handled safely by the existing compatibility logic.
+
+Any future migration system must include:
+
+- backups before destructive changes
+- temporary-directory integration tests
+- idempotent migration behaviour
+- clear version detection
+- protection against overwriting user data
+
+---
+
+## Not currently recommended
+
+### Full RGB `OutputBuilder` migration
+
+A broad conversion of all RGB effects to a shared output builder is not currently justified.
+
+It would touch runtime-critical rendering behaviour involving:
+
+- byte ordering
+- offsets
+- inverted output
+- AIO and LCD masking
+- temporary buffers
+- device-specific layout assumptions
+
+A small finalization helper may be considered later, but only after deterministic RGB tests exist and only when there is a concrete maintenance benefit.
+
+### Repository-wide `activeRgb` sweep
+
+Do not modify every remaining device module simply to match previously fixed modules.
+
+Inspect and correct lifecycle handling only when:
+
+- a race or nil-pointer bug is observed
+- tests expose unsafe ordering
+- the module is already being changed
+
+### Broad file-loading abstraction
+
+Do not replace existing file-loading code across the repository with a generic framework.
+
+Target concrete safety issues and preserve current module-specific behaviour.
+
+---
+
+## Current status
+
+The previous low-risk helper cleanup and targeted safety work are complete, including:
+
+- shared JSON request decoding for compatible handlers
+- shared fixed-template execution handling
+- trimmed integer parsing helper
+- targeted systray menu-layout cleanup
+- cluster and selected device `activeRgb` lifecycle fixes
+- HTTP double-response prevention
+- file-open error handling and descriptor cleanup
+- backup integrity-reader safety
+- OpenRGB lifecycle and persistence fixes completed in later focused branches
+
+No item in this document is required before testing or releasing the current alpha.
+
+## Working rule
+
+Prefer small, inspection-first branches tied to a concrete bug or feature.
+
+Do not start broad refactors solely to remove duplication from stable hardware-control paths.

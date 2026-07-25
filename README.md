@@ -22,6 +22,7 @@ LumenForge complements OpenLinkHub and OpenRGB; it does not replace either proje
 Related documentation:
 
 - [Supported device list](docs/supported-devices.md)
+- [Configuration reference](docs/configuration.md)
 - [OpenRGB device import](docs/openrgb-import.md)
 - [Memory DDR4 / DDR5](docs/memory-configuration.md)
 - [Motherboard PWM](docs/motherboard-pwm.md)
@@ -147,43 +148,9 @@ Docker support is also not yet validated. The inherited `Dockerfile` may require
 
 ## Configuration
 
-LumenForge creates `config.json` on first run. It is stored in the working directory, which is `/opt/LumenForge/config.json` for either installer-managed service mode. Current generated defaults are:
+LumenForge creates `config.json` on first run. It is stored in the working directory, which is `/opt/LumenForge/config.json` for either installer-managed service mode.
 
-```json
-{
-  "debug": false,
-  "listenPort": 27003,
-  "listenAddress": "127.0.0.1",
-  "cpuSensorChip": "",
-  "manual": false,
-  "frontend": true,
-  "metrics": false,
-  "memory": false,
-  "memorySmBus": "i2c-0",
-  "memoryType": 5,
-  "exclude": [],
-  "memorySku": "",
-  "resumeDelay": 15000,
-  "logFile": "",
-  "logLevel": "info",
-  "enhancementKits": "",
-  "temperatureOffset": 0,
-  "amdGpuIndex": 0,
-  "amdsmiPath": "",
-  "checkDevicePermission": false,
-  "graphProfiles": true,
-  "cpuTempFile": "",
-  "ramTempViaHwmon": true,
-  "nvidiaGpuIndex": [0],
-  "defaultNvidiaGPU": 0,
-  "openRGBPort": 6742,
-  "enableGamepad": true,
-  "enableMotherboard": false,
-  "motherboardBiosOnExit": false,
-  "memoryRegisterOverride": "",
-  "enableSystemTray": false
-}
-```
+See the [configuration reference](docs/configuration.md) for the complete generated defaults, exact JSON types and accepted values, restart requirements, dependencies, legacy fields, and service-mode environment behaviour.
 
 ### OpenRGB Controller Import
 

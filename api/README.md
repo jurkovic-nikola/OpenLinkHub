@@ -1,4 +1,531 @@
-## API Documentation and Examples
+# API Documentation and Examples
+
+## OpenRGB Importer API
+
+These endpoints manage controllers imported from a separately running OpenRGB
+SDK server. LumenForge connects to that server at
+`127.0.0.1:<openRGBPort>`; see the
+[configuration reference](../docs/configuration.md#openrgb-integration).
+
+The lifecycle is:
+
+1. **Discover** obtains a status-neutral preview and selection keys that import
+   revalidates against a fresh scan.
+2. **Import** re-discovers and enrolls only explicitly selected controllers.
+3. An imported and currently registered controller is **active** and can use
+   the live color, brightness, effect, speed, and layout endpoints.
+4. **Remove** disables importer membership. It is not the same as a temporary
+   OpenRGB disconnection.
+5. **Refresh** asks the manager to asynchronously discover current OpenRGB SDK
+   state and reconcile controllers already represented by configured imports.
+   It does not enroll unknown controllers, create imports, or change saved
+   layouts.
+
+For installation and UI guidance, see
+[OpenRGB device import](../docs/openrgb-import.md).
+
+### Response and Request Conventions
+
+Successful and application-level error responses from the endpoints in this
+section use HTTP `200` and this JSON envelope:
+
+```json
+{
+  "code": 200,
+  "status": 1,
+  "message": "Operation-specific message",
+  "data": {}
+}
+```
+
+`status` is `1` for success and `0` for an application error. `message` and
+`data` are omitted when the handler has no value for them. Clients must inspect
+`status`; HTTP `200` by itself does not indicate application success. Using the
+wrong HTTP method returns HTTP `405` with a plain-text method-not-allowed
+message instead of this JSON envelope.
+
+The import and remove endpoints accept at most 64 KiB, reject unknown JSON
+fields and trailing JSON values, and limit each batch to 64 entries. Discovery
+and refresh need no request body; they reject a declared body larger than
+64 KiB but otherwise ignore it. The live-control and layout endpoints use the
+older permissive JSON decoder: it decodes the first JSON value, ignores unknown
+fields, and does not check for or reject trailing JSON or additional values
+after the first decoded object. Omitted fields receive their Go zero values.
+
+Common handler-level error bodies are:
+
+| Condition | HTTP and JSON response |
+| --- | --- |
+| Malformed body, wrong JSON type, strict-body unknown field, or strict-body trailing value | HTTP `200`; `{"code":200,"status":0,"message":"Invalid request body"}` |
+| Declared discovery/refresh body over 64 KiB | HTTP `200`; `{"code":200,"status":0,"message":"Request body is too large"}` |
+| Empty import batch | HTTP `200`; `{"code":200,"status":0,"message":"At least one OpenRGB selection key is required"}` |
+| More than 64 import keys | HTTP `200`; `{"code":200,"status":0,"message":"Too many OpenRGB selections; maximum batch size is 64"}` |
+| Empty remove batch | HTTP `200`; `{"code":200,"status":0,"message":"At least one OpenRGB import serial is required"}` |
+| More than 64 remove serials | HTTP `200`; `{"code":200,"status":0,"message":"Too many OpenRGB imports; maximum batch size is 64"}` |
+
+### OpenRGB Connection Status
+
+`GET /api/openrgb/status` reports LumenForge's current global OpenRGB client
+state. It takes no query parameters or request body and performs no connection,
+discovery, device, or persistence operation.
+
+```bash
+curl --silent http://127.0.0.1:27003/api/openrgb/status
+```
+
+Success:
+
+```json
+{
+  "code": 200,
+  "status": 1,
+  "data": {
+    "state": "Connected"
+  }
+}
+```
+
+`data.state` is exactly `"Connected"`, `"Offline"`, or `"Not Configured"`.
+When the OpenRGB state has an associated error, `data.error` contains its text.
+The endpoint still returns `status: 1`; the state and optional error are the
+result being queried.
+
+`"Not Configured"` means no enabled importer is being managed. `"Offline"`
+means configured imports currently cannot use the SDK server. Temporary
+offline status does not remove imports or delete saved data.
+
+### Discover Controllers
+
+`POST /api/openrgbimport/discover` performs a deliberate, status-neutral scan
+of the OpenRGB SDK server and compares the result with the saved importer
+store. It acts on discovered controllers, not active devices, and does not
+import, enable, remove, or persist anything.
+
+```bash
+curl --silent -X POST \
+  http://127.0.0.1:27003/api/openrgbimport/discover
+```
+
+Representative success:
+
+```json
+{
+  "code": 200,
+  "status": 1,
+  "message": "OpenRGB controller discovery completed",
+  "data": {
+    "discoveryState": "available",
+    "configured": [
+      {
+        "serial": "openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "product": "Example Controller"
+      }
+    ],
+    "controllers": [
+      {
+        "key": "orgb-v1-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "identityKind": "external-serial",
+        "product": "Example Controller",
+        "vendor": "Example Vendor",
+        "displaySerial": "ABC123",
+        "displaySerialLabel": "OpenRGB serial",
+        "zoneCount": 1,
+        "ledCount": 12,
+        "zones": [
+          {
+            "name": "Main",
+            "ledCount": 12
+          }
+        ],
+        "state": "selectable"
+      }
+    ]
+  }
+}
+```
+
+`data` uses these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `discoveryState` | `"available"` when the scan completed, `"offline"` when OpenRGB could not be reached, or `"conflict"` when LumenForge's deprecated local OpenRGB target server prevents importer use. |
+| `error` | Optional discovery error text. |
+| `configured` | Saved importer entries. Each has `serial`, `product`, and optional `disabled: true`. This list can include controllers not present in the current scan. |
+| `controllers` | Current OpenRGB controller previews. |
+
+Each controller preview always contains `product`, `displaySerial`,
+`displaySerialLabel`, `zoneCount`, `ledCount`, `zones`, and `state`. It may
+also contain `key`, `identityKind`, `vendor`, `version`, `description`,
+`configuredSerial`, `reasonCode`, or `reason`. Zone objects contain `name` and
+`ledCount`, plus optional `classification`.
+
+Controller `state` is:
+
+| State | Meaning |
+| --- | --- |
+| `selectable` | A stable, unique identity was derived and `key` can be passed to import. This includes a previously removed/disabled import that can be reimported. |
+| `imported` | The controller already matches an enabled configured import; `configuredSerial` identifies it. |
+| `ambiguous` | Available metadata cannot uniquely identify the controller. No usable selection key is returned. |
+| `invalid` | Metadata, layout, or saved identity conflicts make import unsafe. `reasonCode` and `reason` describe the rejection. |
+
+`identityKind`, when present, is `"external-serial"`,
+`"location-product-vendor"`, or `"product-vendor-name"`. A controller that
+reports zero LEDs may receive a conservative fallback layout in the preview;
+that is initial import configuration, not a change to OpenRGB.
+
+On failure the handler returns HTTP `200`, `status: 0`, the underlying error in
+`message`, and the same discovery-shaped `data` when available. This lets
+clients display saved imports even while OpenRGB is offline.
+
+### Import Controllers
+
+`POST /api/openrgbimport/import` imports explicitly selected discovery
+candidates. It requires:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `keys` | array of strings | Required; 1-64 entries. Each value must be the `orgb-v1-` key returned by discovery (the prefix followed by 64 hexadecimal characters). Whitespace is trimmed and duplicates are coalesced. |
+
+The controller keys, import serials, and zone values in the import, remove,
+control, and layout curl examples below are placeholders. Replace them with a
+`key` returned by discovery, a `serial` returned by import or
+`configuredSerial` returned by discovery, and valid zone names and LED counts
+from your own OpenRGB environment.
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"keys":["orgb-v1-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]}' \
+  http://127.0.0.1:27003/api/openrgbimport/import
+```
+
+Success:
+
+```json
+{
+  "code": 200,
+  "status": 1,
+  "message": "OpenRGB controllers imported",
+  "data": {
+    "configuredSerials": [
+      "openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    ],
+    "configured": [
+      {
+        "serial": "openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "product": "Example Controller"
+      }
+    ],
+    "controllers": [
+      {
+        "serial": "openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "product": "Example Controller"
+      }
+    ]
+  }
+}
+```
+
+The endpoint performs a fresh status-neutral discovery and validates each key
+against that result. A stale, missing, ambiguous, or invalid candidate is
+rejected rather than inferred from the earlier preview. Import is idempotent
+when the selected controller is already imported with consistent live
+membership.
+
+A successful import writes or enables its entry in
+`database/openrgbimport-zones.json`, registers the device, joins it to importer
+management, and creates default device-profile/RGB files only when they do not
+already exist. Reimporting a disabled controller reuses its stable LumenForge
+identity, saved layout, profiles, RGB artifacts, and preserved ordering state.
+The lifecycle is transactional and attempts to roll back partial changes when
+activation fails.
+
+Errors returned by the import lifecycle use HTTP `200`, `status: 0`, an exact
+implementation message, and an import-shaped `data` object whose result arrays
+are empty. Those arrays are populated only after a successful import, including
+a successful idempotent request for controllers that are already imported.
+Handler-level malformed/oversized input and batch-limit errors use the common
+responses above and omit `data`. Other error categories include an invalid or
+stale key, unavailable OpenRGB, local target-server conflict, and activation or
+persistence failure.
+
+### Remove Imports
+
+`POST /api/openrgbimport/remove` disables enabled importer memberships. It
+requires:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `serials` | array of strings | Required; 1-64 configured LumenForge import serials. Values are trimmed and deduplicated; each may contain only letters, numbers, and `-`. |
+
+Use the `serial` returned by import or `configuredSerial` returned by
+discovery:
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"serials":["openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]}' \
+  http://127.0.0.1:27003/api/openrgbimport/remove
+```
+
+Success:
+
+```json
+{
+  "code": 200,
+  "status": 1,
+  "message": "OpenRGB imports removed",
+  "data": {
+    "removedSerials": [
+      "openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    ]
+  }
+}
+```
+
+Removal detaches the active wrapper from the registry, cluster, and importer
+manager and saves the importer entry as disabled. It preserves the stable
+identity, zone layout, profiles, RGB files, dashboard/cluster ordering, and
+other reimport artifacts. Reimport is therefore different from importing a new
+controller.
+
+An OpenRGB outage is not removal. During a temporary disconnection an enabled
+import remains registered and configured, is marked unavailable, and is
+reconciled by the manager when possible.
+
+Errors use HTTP `200`, `status: 0`, `message`, and a remove-shaped `data`
+object. Missing imports, already-disabled imports, inconsistent manager or
+registry membership, malformed input, more than 64 serials, and transactional
+detach/persistence failures are rejected without silently deleting artifacts.
+
+### Refresh Configured Imports
+
+`POST /api/openrgbimport/refresh` requests one coalesced importer-manager
+reconciliation for already enabled imports. It takes no fields:
+
+```bash
+curl --silent -X POST \
+  http://127.0.0.1:27003/api/openrgbimport/refresh
+```
+
+Success:
+
+```json
+{
+  "code": 200,
+  "status": 1,
+  "message": "OpenRGB import reconciliation requested",
+  "data": {
+    "queued": true
+  }
+}
+```
+
+The request wakes or installs the manager and returns after the reconciliation
+request is accepted and queued; it does not wait for reconciliation to finish.
+The ensuing asynchronous reconciliation discovers current OpenRGB SDK
+controllers and matches them only to configured imports. It may reconnect or
+rebind known controllers, change their availability, update active
+presentation/runtime metadata, persist backfilled identity metadata in
+`database/openrgbimport-zones.json`, and replay desired lighting state after a
+reconnection.
+
+Reconciliation does not enroll unknown controllers, create new imports, change
+importer membership, or modify saved layouts. Errors include
+`"OpenRGB imports are not configured"`, a local target-server conflict, or
+request-context/manager failure and use HTTP `200`, `status: 0`.
+
+### Active-Device Control Conventions
+
+The remaining endpoints act only on an imported controller currently present
+in LumenForge's active device registry. Merely appearing in discovery is not
+enough. Every body has an optional string `serial`; when omitted or empty it
+uses the legacy default `openrgb-mobo-1`. New clients should always send the
+actual serial returned by import.
+
+If no registry entry matches, the response is HTTP `200` with `status: 0` and
+`message: "Device not found"`. A matching non-import device returns
+`"Invalid device instance"`. A temporarily unavailable import can remain in
+the registry, but operations that require OpenRGB output can return lifecycle,
+controller, or transport error text. Devices controlled by RGB Cluster reject
+direct color and effect operations with
+`"device is controlled by RGB cluster"`.
+
+Color, brightness, and effect operations update live or in-memory state and,
+when an active device profile exists, LumenForge attempts to save that profile.
+The profile-save helper suppresses directory-creation, serialization, and file
+write errors, so a successful endpoint response does not guarantee that the
+profile change reached durable storage.
+
+#### Set Color
+
+`POST /api/openrgbimport/color` stops the current animation, selects the
+`static` effect, applies one RGB color to all configured zones, and sends it to
+the active controller.
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `serial` | string | Optional legacy default; actual import serial recommended. |
+| `r`, `g`, `b` | integer | The decoder accepts any Go `int`; use `0`-`255`. Omitted values become `0`. Values outside the byte range are converted modulo 256 rather than rejected. |
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","r":255,"g":96,"b":0}' \
+  http://127.0.0.1:27003/api/openrgbimport/color
+```
+
+Success is:
+
+```json
+{"code":200,"status":1,"message":"Color set"}
+```
+
+The static effect and zone colors are updated in the active device profile when
+one exists, and LumenForge attempts the profile save described above. This is a
+live output operation even if durable profile persistence fails. It does not
+change importer identity or zone layout. Output, inactive-lifecycle,
+missing-controller, and RGB Cluster errors return `status: 0`.
+
+#### Set Brightness
+
+`POST /api/openrgbimport/brightness` changes the active import's brightness:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `serial` | string | Optional legacy default; actual import serial recommended. |
+| `brightness` | unsigned integer | JSON decoder accepts `0`-`255`; the device clamps `101`-`255` to `100`. Negative, fractional, or greater-than-255 values make the body invalid. Omitted is `0`. |
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","brightness":75}' \
+  http://127.0.0.1:27003/api/openrgbimport/brightness
+```
+
+Success is:
+
+```json
+{"code":200,"status":1,"message":"Brightness set"}
+```
+
+Brightness is updated in the active device profile when one exists, and
+LumenForge attempts the profile save described above. A running effect reads
+the new value on subsequent frames; otherwise LumenForge sends an updated frame
+immediately. This does not change importer configuration.
+
+#### Set Effect
+
+`POST /api/openrgbimport/effect` stops the previous effect and starts or applies
+the requested effect:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `serial` | string | Optional legacy default; actual import serial recommended. |
+| `effect` | string | The handler does not validate this field. Implemented names are listed below; clients should use them. An omitted string is empty. |
+
+Implemented effect names are `circle`, `circleshift`, `colorpulse`,
+`colorshift`, `colorwarp`, `cpu-temperature`, `flickering`, `flame`, `aurora`,
+`cyberpunkglitch`, `gpu-temperature`, `gradient`, `off`, `rainbow`,
+`pastelrainbow`, `pastelspiralrainbow`, `rotator`, `spinner`,
+`spiralrainbow`, `static`, `storm`, `watercolor`, and `wave`.
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","effect":"rainbow"}' \
+  http://127.0.0.1:27003/api/openrgbimport/effect
+```
+
+Success is:
+
+```json
+{"code":200,"status":1,"message":"Effect set"}
+```
+
+The effect name is updated in the active device profile before output starts,
+and LumenForge attempts the profile save described above. `off` sends black,
+`static` sends the current in-memory color, and other implemented names run their
+animation. Because validation is absent, an unknown name remains in active
+state and may reach persistent storage even though it has no defined public
+effect behaviour; do not rely on that fallback. This endpoint does not change
+layout or importer membership.
+
+#### Set Effect Speed
+
+`POST /api/openrgbimport/speed` changes the in-memory timing used by the active
+importer's fallback effect runner:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `serial` | string | Optional legacy default; actual import serial recommended. |
+| `speed` | string | `"slow"` selects a 4.0 timing value, `"fast"` selects 0.8, and every other string (including `"normal"` or omitted) selects 2.0. |
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","speed":"fast"}' \
+  http://127.0.0.1:27003/api/openrgbimport/speed
+```
+
+Success is:
+
+```json
+{"code":200,"status":1,"message":"Speed set"}
+```
+
+This endpoint sends no immediate OpenRGB frame and does not persist the speed.
+It also does not report an inactive lifecycle from `SetSpeed`; after a valid
+registry lookup the handler returns success even if the device became detached.
+Saved effect-profile speed or an enabled RGB override supersedes this in-memory
+fallback value. The effect loop reloads saved profile speed on each frame, so a
+successful request may have little or no visible effect for profile-backed or
+shipped modes. Effects without a saved profile can still use the fallback
+value. Use the effect/profile APIs for persistent profile speed behaviour.
+
+#### Save Zone Layout
+
+`POST /api/openrgbimport/config` validates and persists the imported
+controller's zone layout:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `serial` | string | Optional legacy default; actual import serial recommended. It must match the active device. |
+| `zones` | array of objects | Required; 1-128 zones and 1-4096 LEDs total. |
+| `zones[].name` | string | Sanitized for persistence; an empty value becomes `"Zone N"`. |
+| `zones[].ledCount` | integer | Required operationally; `1`-`1024` per zone. |
+
+```bash
+curl --silent -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","zones":[{"name":"Main","ledCount":12},{"name":"Accent","ledCount":8}]}' \
+  http://127.0.0.1:27003/api/openrgbimport/config
+```
+
+Success is:
+
+```json
+{"code":200,"status":1,"message":"Config saved"}
+```
+
+Unlike the color, brightness, effect, and speed endpoints, this changes
+persistent importer configuration in `database/openrgbimport-zones.json`. It
+preserves the saved product, external serial, location, vendor, and disabled
+membership fields, updates the active device/profile/cluster representation,
+and sends a frame using the proposed layout when connected.
+
+If any LED count increases beyond the previously saved working value,
+LumenForge performs four OpenRGB health checks after the test frame. The first
+check occurs immediately, with 500 ms between subsequent attempts. If frame
+delivery or health validation fails, the previous in-memory layout is restored
+and the new config is not saved.
+
+A persistent store-write failure happens later: the proposed layout is already
+installed in memory and may already have been sent to OpenRGB. That failure
+returns HTTP `200`, `status: 0`, but does not restore the previous in-memory
+layout. Invalid zone counts and totals above 4096 are rejected before applying
+the layout; inactive-lifecycle and other implementation errors also return
+HTTP `200`, `status: 0` with their error text in `message`.
 
 ### Get all data
 ```bash

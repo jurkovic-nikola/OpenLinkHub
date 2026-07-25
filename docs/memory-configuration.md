@@ -49,7 +49,10 @@ sudo i2cdetect -y 15
 ```
 
 ### Find your memory SKU
-Find your memory SKU and take a note of it.
+LumenForge attempts DDR5 SKU decoding automatically where the supported
+`spd5118` EEPROM path is available. Find your memory SKU and take a note of it
+as a manual fallback when automatic decoding produces no usable value.
+
 ```bash
 sudo dmidecode -t memory | grep 'Part Number'
         Part Number: CMT64GX5M2B5600Z40
@@ -57,15 +60,25 @@ sudo dmidecode -t memory | grep 'Part Number'
 ```
 
 ### Configure LumenForge `config.json`
-You will need to change your `memorySmBus`, `memoryType`, and `memorySku` depending on your system values.
+Change `memorySmBus` and `memoryType` for your system. Set `memorySku` only when
+the automatic decoder produces no usable SKU; it does not override a non-empty
+decoded value.
+
 ```json
 "memory": true,
 "memorySmBus": "i2c-15",
 "memoryType": 5,
-"decodeMemorySku": false,
 "memorySku": "CMT64GX5M2B5600Z40",
 "ramTempViaHwmon": true,
 ```
+
+LumenForge does not implement a `decodeMemorySku` configuration field, alias,
+command-line flag, or environment-variable override. The current
+[OpenLinkHub README](https://github.com/jurkovic-nikola/OpenLinkHub#6-configuration)
+may still mention that option, but its presence there should not be taken as
+evidence that the setting is available in LumenForge. This is treated as an
+upstream documentation/implementation mismatch, not as a confirmed deliberate
+LumenForge divergence.
 
 ### Set permissions
 You will need to change `'KERNEL=="i2c-15"` to your i2c `smbus` device.

@@ -118,6 +118,15 @@ type Device struct {
 	SkuLine           string
 	RuntimeMemoryType int
 	instance          *common.Device
+	supportedDevices  []SupportedDevice
+}
+
+type SupportedDevice struct {
+	Name        string `json:"name"`
+	LedChannels int    `json:"ledChannels"`
+	DdrType     int    `json:"ddrType"`
+	Register    byte   `json:"register"`
+	MemoryType  string `json:"memoryType"`
 }
 
 // https://www.3dbrew.org/wiki/CRC-8-CCITT
@@ -217,6 +226,7 @@ func Init(_, _ uint16, _, path string) *common.Device {
 
 	d.setRuntimeMemoryType(mt)
 	d.getDebugMode()       // Debug mode
+	d.loadDeviceMetadata() // Metadata
 	d.loadRgb()            // Load RGB
 	d.loadDeviceProfiles() // Load all device profiles
 	count := d.getDevices()
@@ -484,6 +494,64 @@ func (d *Device) getEnhancementKit(address byte) bool {
 	return false
 }
 
+var defaultSupportedDevices = []SupportedDevice{
+	{Name: "VENGEANCE LED", DdrType: 4, MemoryType: "U"},
+	{Name: "VENGEANCE RGB PRO", LedChannels: 10, DdrType: 4, Register: 0x31, MemoryType: "W"},
+	{Name: "VENGEANCE RGB PRO SL", LedChannels: 10, DdrType: 4, Register: 0x31, MemoryType: "H"},
+	{Name: "VENGEANCE RGB RT", LedChannels: 10, DdrType: 4, Register: 0x31, MemoryType: "N"},
+	{Name: "VENGEANCE RGB RS", LedChannels: 6, DdrType: 4, Register: 0x31, MemoryType: "G"},
+	{Name: "DOMINATOR PLATINUM", DdrType: 4, MemoryType: "D"},
+	{Name: "DOMINATOR PLATINUM RGB", LedChannels: 12, DdrType: 4, Register: 0x31, MemoryType: "T"},
+	{Name: "VENGEANCE LPX", DdrType: 4, MemoryType: "K"},
+	{Name: "DOMINATOR TITANIUM", DdrType: 4, MemoryType: "P"},
+	{Name: "VENGEANCE", DdrType: 5, MemoryType: "K"},
+	{Name: "VENGEANCE RGB RS", LedChannels: 6, DdrType: 5, Register: 0x31, MemoryType: "G"},
+	{Name: "VENGEANCE RGB", LedChannels: 10, DdrType: 5, Register: 0x31, MemoryType: "H"},
+	{Name: "DOMINATOR PLATINUM RGB", LedChannels: 12, DdrType: 5, Register: 0x31, MemoryType: "T"},
+	{Name: "DOMINATOR TITANIUM RGB", LedChannels: 11, DdrType: 5, Register: 0x31, MemoryType: "P"},
+}
+
+func loadSupportedDevices(path string) ([]SupportedDevice, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var devices []SupportedDevice
+	if err = json.NewDecoder(file).Decode(&devices); err != nil {
+		return nil, err
+	}
+	if len(devices) == 0 {
+		return nil, fmt.Errorf("memory metadata contains no devices")
+	}
+	return devices, nil
+}
+
+// loadDeviceMetadata loads external metadata and retains safe built-in defaults
+// when an installed metadata file is missing or invalid.
+func (d *Device) loadDeviceMetadata() {
+	deviceMetadata := filepath.Join(pwd, "database", "external", "memory.json")
+	devices, err := loadSupportedDevices(deviceMetadata)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Error("Unable to load memory device metadata; using built-in defaults")
+		d.supportedDevices = append([]SupportedDevice(nil), defaultSupportedDevices...)
+		return
+	}
+	d.supportedDevices = devices
+}
+
+// getDeviceMetadata returns memory metadata for a DIMM family.
+func (d *Device) getDeviceMetadata(ddrType int, memoryType string) *SupportedDevice {
+	for i := range d.supportedDevices {
+		device := &d.supportedDevices[i]
+		if device.MemoryType == memoryType && device.DdrType == ddrType {
+			return device
+		}
+	}
+	return nil
+}
+
 // getTemperature will read hwmon temperature file
 func (d *Device) getTemperature(filePath string) (float32, error) {
 	if d.RuntimeMemoryType == 5 {
@@ -605,10 +673,7 @@ func (d *Device) getDevices() int {
 				logger.Log(logger.Fields{"dimmInfo": dimmInfo}).Info("Memory DIMM Info")
 			}
 
-			skuLine := ""
-			ledChannels := 0
 			vendor := dimmInfo[0:2]
-			colorRegister := 0
 
 			if d.Debug {
 				logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
@@ -620,61 +685,10 @@ func (d *Device) getDevices() int {
 					logger.Log(logger.Fields{"dimmInfoLine": line}).Info("Memory DIMM Info - Data")
 				}
 
-				if d.RuntimeMemoryType == 4 {
-					// DDR4
-					switch line {
-					case "U":
-						skuLine = "VENGEANCE LED"
-					case "W":
-						skuLine = "VENGEANCE RGB PRO"
-						ledChannels = 10
-						colorRegister = 0x31
-					case "H":
-						skuLine = "VENGEANCE RGB PRO SL"
-						ledChannels = 10
-						colorRegister = 0x31
-					case "N":
-						skuLine = "VENGEANCE RGB RT"
-						ledChannels = 10
-						colorRegister = 0x31
-					case "G":
-						skuLine = "VENGEANCE RGB RS"
-						ledChannels = 6
-						colorRegister = 0x31
-					case "D":
-						skuLine = "DOMINATOR PLATINUM"
-					case "T":
-						skuLine = "DOMINATOR PLATINUM RGB"
-						ledChannels = 12
-						colorRegister = 0x31
-					case "K":
-						skuLine = "VENGEANCE LPX"
-					case "P":
-						skuLine = "DOMINATOR TITANIUM"
-						//ledChannels = 11
-					}
-				} else {
-					// DDR5
-					switch line {
-					case "K":
-						skuLine = "VENGEANCE"
-					case "G":
-						skuLine = "VENGEANCE RGB RS"
-						ledChannels = 6
-						colorRegister = 0x31
-					case "H":
-						skuLine = "VENGEANCE RGB"
-						ledChannels = 10
-						colorRegister = 0x31
-					case "T":
-						skuLine = "DOMINATOR PLATINUM RGB"
-						ledChannels = 12
-						colorRegister = 0x31
-					case "P":
-						skuLine = "DOMINATOR TITANIUM RGB"
-						ledChannels = 11
-						colorRegister = 0x31
-					}
+				metadata := d.getDeviceMetadata(d.RuntimeMemoryType, line)
+				if metadata == nil {
+					logger.Log(logger.Fields{"dimmInfoLine": line, "memoryType": d.RuntimeMemoryType}).Warn("Memory info not found in metadata")
+					continue
 				}
 
 				temperature := 0.0
@@ -711,15 +725,15 @@ func (d *Device) getDevices() int {
 					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
 				}
 
-				if len(skuLine) > 0 {
+				if len(metadata.Name) > 0 {
 					device := &Devices{
 						ChannelId:         i,
 						DeviceId:          i,
 						Sku:               dimmInfo,
 						MemoryType:        d.RuntimeMemoryType,
-						LedChannels:       uint8(ledChannels),
-						ColorRegister:     uint8(colorRegister),
-						Name:              skuLine,
+						LedChannels:       uint8(metadata.LedChannels),
+						ColorRegister:     metadata.Register,
+						Name:              metadata.Name,
 						Temperature:       float32(temperature),
 						TemperatureString: temperatureString,
 						Label:             label,
@@ -727,7 +741,7 @@ func (d *Device) getDevices() int {
 					}
 
 					if len(d.SkuLine) < 1 {
-						d.SkuLine = skuLine
+						d.SkuLine = metadata.Name
 					}
 					if d.getEnhancementKit(colorAddresses[i]) {
 						device.Size = 0
@@ -772,7 +786,7 @@ func (d *Device) getDevices() int {
 						logger.Log(logger.Fields{"memoryDevice": device}).Info("Memory DIMM Info - Device")
 					}
 					devices[i] = device
-					d.LEDChannels += ledChannels
+					d.LEDChannels += metadata.LedChannels
 				}
 			}
 		}

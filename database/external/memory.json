@@ -1,0 +1,99 @@
+[
+  {
+    "name": "VENGEANCE LED",
+    "ledChannels": 0,
+    "ddrType": 4,
+    "memoryType": "U"
+  },
+  {
+    "name": "VENGEANCE RGB PRO",
+    "ledChannels": 10,
+    "ddrType": 4,
+    "register": 49,
+    "memoryType": "W"
+  },
+  {
+    "name": "VENGEANCE RGB PRO SL",
+    "ledChannels": 10,
+    "ddrType": 4,
+    "register": 49,
+    "memoryType": "H"
+  },
+  {
+    "name": "VENGEANCE RGB RT",
+    "ledChannels": 10,
+    "ddrType": 4,
+    "register": 49,
+    "memoryType": "N"
+  },
+  {
+    "name": "VENGEANCE RGB RS",
+    "ledChannels": 6,
+    "ddrType": 4,
+    "register": 49,
+    "memoryType": "G"
+  },
+  {
+    "name": "DOMINATOR PLATINUM",
+    "ledChannels": 0,
+    "ddrType": 4,
+    "register": 0,
+    "memoryType": "D"
+  },
+  {
+    "name": "DOMINATOR PLATINUM RGB",
+    "ledChannels": 12,
+    "ddrType": 4,
+    "register": 49,
+    "memoryType": "T"
+  },
+  {
+    "name": "VENGEANCE LPX",
+    "ledChannels": 0,
+    "ddrType": 4,
+    "register": 0,
+    "memoryType": "K"
+  },
+  {
+    "name": "DOMINATOR TITANIUM",
+    "ledChannels": 0,
+    "ddrType": 4,
+    "register": 0,
+    "memoryType": "P"
+  },
+  {
+    "name": "VENGEANCE",
+    "ledChannels": 0,
+    "ddrType": 5,
+    "register": 0,
+    "memoryType": "K"
+  },
+  {
+    "name": "VENGEANCE RGB RS",
+    "ledChannels": 6,
+    "ddrType": 5,
+    "register": 49,
+    "memoryType": "G"
+  },
+  {
+    "name": "VENGEANCE RGB",
+    "ledChannels": 10,
+    "ddrType": 5,
+    "register": 49,
+    "memoryType": "H"
+  },
+  {
+    "name": "DOMINATOR PLATINUM RGB",
+    "ledChannels": 12,
+    "ddrType": 5,
+    "register": 49,
+    "memoryType": "T"
+  },
+  {
+    "name": "DOMINATOR TITANIUM RGB",
+    "ledChannels": 11,
+    "ddrType": 5,
+    "register": 49,
+    "memoryType": "P"
+  }
+]

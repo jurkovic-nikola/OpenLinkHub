@@ -53,14 +53,14 @@ copy_release_assets() {
     "$INSTALL_DIR/database/rgb" \
     "$INSTALL_DIR/database/temperatures"
 
-  # Remove the old standalone upgrader; upgrades now run install.sh from a new source checkout.
-  rm -f "$INSTALL_DIR/upgrade.sh"
+  # Install and upgrade only from a fresh source or release directory. Remove
+  # legacy maintenance copies that cannot be run from the installed directory.
+  rm -f \
+    "$INSTALL_DIR/install.sh" \
+    "$INSTALL_DIR/install-user-space.sh" \
+    "$INSTALL_DIR/upgrade.sh" \
+    "$INSTALL_DIR/99-lumenforge.rules"
 
-  for file in 99-lumenforge.rules install.sh install-user-space.sh; do
-    if [ -f "$SOURCE_DIR/$file" ]; then
-      install -m 755 "$SOURCE_DIR/$file" "$INSTALL_DIR/$file"
-    fi
-  done
   for file in README.md LICENSE CHANGELOG.md; do
     if [ -f "$SOURCE_DIR/$file" ]; then
       install -m 644 "$SOURCE_DIR/$file" "$INSTALL_DIR/$file"

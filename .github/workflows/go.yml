@@ -91,7 +91,5 @@ jobs:
       - name: Check shell script syntax
         run: |
           bash -n install.sh
-          sh -n upgrade.sh
-          bash -n remote-install.sh
           bash -n install-user-space.sh
           bash -n scripts/build.sh

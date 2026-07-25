@@ -197,6 +197,13 @@ func (e *Entry) Error(msg string) {
 	e.logWithLevel("error", msg)
 }
 
+// Debug will log when debug diagnostics are enabled.
+func (e *Entry) Debug(msg string) {
+	if config.GetConfig().Debug {
+		e.logWithLevel("debug", msg)
+	}
+}
+
 // Fatal will log fatal and panic
 func (e *Entry) Fatal(msg string) {
 	e.logWithLevel("fatal", msg)

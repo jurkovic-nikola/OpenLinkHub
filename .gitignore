@@ -2,7 +2,6 @@
 build/
 rpmbuild/
 release/
-docker/
 ppa/
 build.sh
 !scripts/build.sh
@@ -39,7 +38,5 @@ LumenForge.spec.template
 *.tar.gz
 update.json
 update.json.sig
-.devcontainer/devcontainer-lock.json
-
 # Local editor settings
 .vscode/

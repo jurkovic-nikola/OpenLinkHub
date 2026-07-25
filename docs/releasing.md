@@ -30,36 +30,21 @@ VERSION=v0.2.0-alpha ./scripts/build.sh
    `LumenForge-Dev`.
 2. Run one combined validation pass on `LumenForge-Dev`.
 3. Review the accumulated changes as an alpha release candidate.
-4. Decide whether Docker publishing is included or deliberately withheld.
-5. Change the changelog heading from `Unreleased` to the release version and
+4. Change the changelog heading from `Unreleased` to the release version and
    date.
-6. Build with the authorized release version supplied through `VERSION`.
-7. Confirm the binary reports the intended release version.
-8. Merge the approved release into `main`.
-9. Create the matching Git tag, such as `v0.2.0-alpha`.
-10. Push the approved branch and tag.
-11. Move the tracked development fallback to the next selected development
+5. Build with the authorized release version supplied through `VERSION`.
+6. Confirm the binary reports the intended release version.
+7. Merge the approved release into `main`.
+8. Create the matching Git tag, such as `v0.2.0-alpha`.
+9. Push the approved branch and tag.
+10. Move the tracked development fallback to the next selected development
     version after release.
 
-The exact release process may change as Docker support and release automation
-are finalized.
-
-## Docker Status
-
-- Docker publishing is not yet authorized as part of the alpha release
-  process.
-- The inherited Docker build path currently requires separate validation.
-- Docker version injection and publishing controls will be documented after
-  the `LumenForge-Docker-Publish-Guard` work is completed.
-
-Do not invent or infer a Docker release command before that work defines and
-validates the publishing path.
+The exact release process may change as release automation is finalized.
 
 ## Safety Notes
 
 - Perform release work from a clean working tree and index.
 - Validate the exact commit that will be tagged.
 - Do not assume that creating a tag changes the embedded binary version.
-- Do not publish Docker images until that path is explicitly validated and
-  authorized.
 - Preserve runtime and personal device data outside release artifacts.

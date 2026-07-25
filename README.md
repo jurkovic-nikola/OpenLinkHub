@@ -40,7 +40,7 @@ This is experimental alpha software developed and tested primarily against my ow
 
 ## Alpha Installation
 
-The required starting point for this alpha is a local source build from a fresh checkout. The system-service installer remains the currently supported installation mode. Package repositories, release archives, containers, and automatic remote installation are not yet validated for LumenForge.
+The required starting point for this alpha is a local source build from a fresh checkout. The system-service installer remains the currently supported installation mode. Package repositories, release archives, and automatic remote installation are not yet validated for LumenForge.
 
 ### Requirements
 
@@ -137,8 +137,6 @@ The following installation channels are not yet validated or advertised as suppo
 - GitHub release tarballs
 - `remote-install.sh`
 - Stable or production use of the experimental user-service installer on immutable distributions
-
-Docker support is also not yet validated. The inherited `Dockerfile` may require review before use.
 
 ## Configuration
 

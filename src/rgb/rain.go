@@ -135,19 +135,19 @@ func generateRainColors(
 	return colors
 }
 
+// rainSpeedFactor preserves the original slow/medium/fast timings at stored
+// values 3, 2, and 1, retains the old fallback outside that range, and allows
+// software-rendered Rain to interpolate smoothly between the three levels.
+func rainSpeedFactor(speed float64) float64 {
+	if speed < 1 || speed > 3 {
+		return 1
+	}
+	return 0.7 - 0.2*speed
+}
+
 // Rain will generate rain rgb effect
 func (r *ActiveRGB) Rain(startTime time.Time) {
 	elapsed := time.Since(startTime).Seconds()
-
-	speedFactor := 1.0
-	switch r.RgbModeSpeed {
-	case 1:
-		speedFactor = 0.5
-	case 2:
-		speedFactor = 0.3
-	case 3:
-		speedFactor = 0.1
-	}
 
 	random := false
 	if r.RGBStartColor != nil && r.RGBEndColor != nil && *r.RGBStartColor == *r.RGBEndColor {
@@ -159,7 +159,7 @@ func (r *ActiveRGB) Rain(startTime time.Time) {
 		r.LightChannels,
 		elapsed,
 		r.RGBBrightness,
-		speedFactor,
+		rainSpeedFactor(r.RgbModeSpeed),
 		random,
 		r.RGBStartColor,
 		r.RGBEndColor,

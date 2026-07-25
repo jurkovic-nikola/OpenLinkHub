@@ -47,6 +47,29 @@ $(document).ready(function () {
         } : null;
     }
 
+    function selectedRgbProfile() {
+        const selectors = [
+            "#globalRgbProfile",
+            "#keyboardRgbProfile",
+            "#mbRgbProfile",
+            "#rgbProfile",
+            ".globalRgb",
+            ".keyboardRgbProfile",
+            ".mouseRgbProfile",
+            ".miscRgbProfile"
+        ];
+
+        for (const selector of selectors) {
+            const value = $(selector).first().val();
+            if (value != null && value !== "") {
+                const parts = String(value).split(";");
+                return parts[parts.length - 1];
+            }
+        }
+
+        return "";
+    }
+
     function fetchAssignmentTypes(deviceId, selectedType, callback) {
         $.ajax({
             url: '/api/keyboard/assignmentsTypes/' + deviceId,
@@ -3569,6 +3592,7 @@ $(document).ready(function () {
     $('.rgbOverride').on('click', function () {
         const deviceId = $("#deviceId").val();
         const channelId = $(this).attr("data-info");
+        const rgbProfile = selectedRgbProfile();
 
         const pf = {};
         pf["deviceId"] = deviceId;
@@ -3588,6 +3612,36 @@ $(document).ready(function () {
                         const startColor = rgbToHex(data.RGBStartColor.red, data.RGBStartColor.green, data.RGBStartColor.blue);
                         const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
                         const middleColor = rgbToHex(data.RGBMiddleColor.red, data.RGBMiddleColor.green, data.RGBMiddleColor.blue);
+                        const speedRange = LumenForgeRgbSpeed.rangeForProfile(rgbProfile);
+                        const uiSpeed = LumenForgeRgbSpeed.storedToUi(
+                            data.RgbModeSpeed,
+                            speedRange.min,
+                            speedRange.max,
+                            speedRange.step,
+                            rgbProfile
+                        );
+                        const speedRowHtml = LumenForgeRgbSpeed.hasSpeedControl(
+                            rgbProfile,
+                            LumenForgeRgbSpeed.SOFTWARE_CONTROL
+                        ) ? `
+                                        <div class="settings-row rgb-speed-control">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
+                                            <div class="d-flex align-items-center flex-grow-1 gap-3">
+                                                <div class="system-slider no-padding-top d-flex align-items-center flex-grow-1 gap-2">
+                                                    <span class="text-nowrap d-inline-flex align-items-center" title="Slow" aria-label="Slow">
+                                                        <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="" aria-hidden="true" />
+                                                    </span>
+                                                    <label for="speedSlider" class="flex-grow-1 m-0" style="min-width: 0;">
+                                                        <input type="range" id="speedSlider" name="speedSlider" min="${speedRange.min}" max="${speedRange.max}" value="${uiSpeed}" step="${speedRange.step}" data-rgb-profile="${rgbProfile}" data-speed-control-mode="software" data-stored-speed="${data.RgbModeSpeed}" data-speed-edited="false" aria-label="Animation speed from Slow to Fast">
+                                                    </label>
+                                                    <span class="text-nowrap d-inline-flex align-items-center" title="Fast" aria-label="Fast">
+                                                        <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="" aria-hidden="true" />
+                                                    </span>
+                                                </div>
+                                                <span id="speedSliderValue" class="text-warning text-end fw-bold" style="min-width: 32px;"></span>
+                                            </div>
+                                        </div>
+                        ` : "";
 
                         let modalElement = `
                           <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
@@ -3640,16 +3694,7 @@ $(document).ready(function () {
                                             </div>
                                         </div>
                                         
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
-                                            <div class="system-slider no-padding-top">
-                                                <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
-                                                <label for="speedSlider" class="margin-lr-10">
-                                                    <input type="range" id="speedSlider" name="speedSlider" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1">
-                                                </label>
-                                                <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="Sloe" />
-                                            </div>
-                                        </div>
+                                        ${speedRowHtml}
                                     </div>
                                 </div>
                         
@@ -3681,11 +3726,20 @@ $(document).ready(function () {
                                 const percent = ((value - min) / (max - min)) * 100;
 
                                 $speedSlider.css("--slider-progress", percent + "%");
-                                $speedSliderValue.text(value);
+                                $speedSliderValue.text(
+                                    LumenForgeRgbSpeed.formatForSlider($speedSlider[0], value)
+                                );
                             }
 
                             if ($speedSlider.length) {
-                                $speedSlider.on("input", updateSpeedSlider);
+                                LumenForgeRgbSpeed.storedToUiForSlider(
+                                    $speedSlider[0],
+                                    data.RgbModeSpeed
+                                );
+                                $speedSlider.on("input", function () {
+                                    LumenForgeRgbSpeed.markEdited(this);
+                                    updateSpeedSlider();
+                                });
                                 updateSpeedSlider();
                             }
 
@@ -3695,7 +3749,7 @@ $(document).ready(function () {
                                 let endColorRgb = {}
                                 let middleColorRgb = {}
 
-                                let speed = $("#speedSlider").val();
+                                const uiSpeed = $speedSlider.val();
                                 const startColorVal = $("#startColor").val();
                                 const endColorVal = $("#endColor").val();
                                 const middleColorVal = $("#middleColor").val();
@@ -3722,7 +3776,12 @@ $(document).ready(function () {
                                 pf["startColor"] = startColorRgb;
                                 pf["endColor"] = endColorRgb;
                                 pf["middleColor"] = middleColorRgb;
-                                pf["speed"] = parseFloat(speed);
+                                if ($speedSlider.length) {
+                                    pf["speed"] = LumenForgeRgbSpeed.uiToStoredForSlider(
+                                        $speedSlider[0],
+                                        uiSpeed
+                                    );
+                                }
 
                                 const json = JSON.stringify(pf, null, 2);
                                 $.ajax({
@@ -4104,6 +4163,7 @@ $(document).ready(function () {
     $('.rgbOverrideLinkAdapter').on('click', function () {
         const deviceId = $("#deviceId").val();
         const channelId = $(this).attr("data-info").split(';');
+        const rgbProfile = selectedRgbProfile();
 
         const pf = {};
         pf["deviceId"] = deviceId;
@@ -4123,6 +4183,36 @@ $(document).ready(function () {
 
                         const startColor = rgbToHex(data.RGBStartColor.red, data.RGBStartColor.green, data.RGBStartColor.blue);
                         const endColor = rgbToHex(data.RGBEndColor.red, data.RGBEndColor.green, data.RGBEndColor.blue);
+                        const speedRange = LumenForgeRgbSpeed.rangeForProfile(rgbProfile);
+                        const uiSpeed = LumenForgeRgbSpeed.storedToUi(
+                            data.RgbModeSpeed,
+                            speedRange.min,
+                            speedRange.max,
+                            speedRange.step,
+                            rgbProfile
+                        );
+                        const speedRowHtml = LumenForgeRgbSpeed.hasSpeedControl(
+                            rgbProfile,
+                            LumenForgeRgbSpeed.SOFTWARE_CONTROL
+                        ) ? `
+                                        <div class="settings-row rgb-speed-control">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
+                                            <div class="d-flex align-items-center flex-grow-1 gap-3">
+                                                <div class="system-slider no-padding-top d-flex align-items-center flex-grow-1 gap-2">
+                                                    <span class="text-nowrap d-inline-flex align-items-center" title="Slow" aria-label="Slow">
+                                                        <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="" aria-hidden="true" />
+                                                    </span>
+                                                    <label for="speedSlider" class="flex-grow-1 m-0" style="min-width: 0;">
+                                                        <input type="range" id="speedSlider" name="speedSlider" min="${speedRange.min}" max="${speedRange.max}" value="${uiSpeed}" step="${speedRange.step}" data-rgb-profile="${rgbProfile}" data-speed-control-mode="software" data-stored-speed="${data.RgbModeSpeed}" data-speed-edited="false" aria-label="Animation speed from Slow to Fast">
+                                                    </label>
+                                                    <span class="text-nowrap d-inline-flex align-items-center" title="Fast" aria-label="Fast">
+                                                        <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="" aria-hidden="true" />
+                                                    </span>
+                                                </div>
+                                                <span id="speedSliderValue" class="text-warning text-end fw-bold" style="min-width: 32px;"></span>
+                                            </div>
+                                        </div>
+                        ` : "";
 
                         let modalElement = `
                           <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
@@ -4159,16 +4249,7 @@ $(document).ready(function () {
                                             </div>
                                         </div>
                                         
-                                        <div class="settings-row">
-                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
-                                            <div class="system-slider no-padding-top">
-                                                <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
-                                                <label for="speedSlider" class="margin-lr-10">
-                                                    <input type="range" id="speedSlider" name="speedSlider" min="1" max="10" value="${data.RgbModeSpeed}" step="0.1">
-                                                </label>
-                                                <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="Sloe" />
-                                            </div>
-                                        </div>
+                                        ${speedRowHtml}
                                     </div>
                                 </div>
                         
@@ -4200,11 +4281,20 @@ $(document).ready(function () {
                                 const percent = ((value - min) / (max - min)) * 100;
 
                                 $speedSlider.css("--slider-progress", percent + "%");
-                                $speedSliderValue.text(value);
+                                $speedSliderValue.text(
+                                    LumenForgeRgbSpeed.formatForSlider($speedSlider[0], value)
+                                );
                             }
 
                             if ($speedSlider.length) {
-                                $speedSlider.on("input", updateSpeedSlider);
+                                LumenForgeRgbSpeed.storedToUiForSlider(
+                                    $speedSlider[0],
+                                    data.RgbModeSpeed
+                                );
+                                $speedSlider.on("input", function () {
+                                    LumenForgeRgbSpeed.markEdited(this);
+                                    updateSpeedSlider();
+                                });
                                 updateSpeedSlider();
                             }
                             
@@ -4213,7 +4303,7 @@ $(document).ready(function () {
                                 let startColorRgb = {}
                                 let endColorRgb = {}
 
-                                let speed = $("#speedSlider").val();
+                                const uiSpeed = $speedSlider.val();
                                 const startColorVal = $("#startColor").val();
                                 const endColorVal = $("#endColor").val();
 
@@ -4231,7 +4321,12 @@ $(document).ready(function () {
                                 pf["enabled"] = enabled;
                                 pf["startColor"] = startColorRgb;
                                 pf["endColor"] = endColorRgb;
-                                pf["speed"] = parseFloat(speed);
+                                if ($speedSlider.length) {
+                                    pf["speed"] = LumenForgeRgbSpeed.uiToStoredForSlider(
+                                        $speedSlider[0],
+                                        uiSpeed
+                                    );
+                                }
 
                                 const json = JSON.stringify(pf, null, 2);
                                 $.ajax({

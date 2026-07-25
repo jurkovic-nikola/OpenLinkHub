@@ -38,23 +38,16 @@
                                 {{ $selectedProfile = $deviceProfile.LastNonOffProfile }}
                             {{ end }}
                             {{ $speed := 1.0 }}
-                            {{ $speedDisabled := "" }}
                             {{ if $activeProfile }}
                                 {{ $profileData := index .Device.Rgb.Profiles $activeProfile }}
                                 {{ if $profileData }}
                                     {{ $speed = $profileData.Speed }}
                                  {{ end }}
                             {{ end }}
-                            {{ if lt $speed 1.0 }}
-                                {{ $speed = 1.0 }}
-                            {{ end }}
-                            {{ if or (eq $activeProfile "static") (eq $activeProfile "off") (eq $activeProfile "cpu-temperature") (eq $activeProfile "gpu-temperature") (eq $activeProfile "") }}
-                                {{ $speedDisabled = "disabled" }}
-                            {{ end }}
 
                             <!-- Top Controls Row -->
                             <div class="row align-items-center justify-content-center mb-4 pb-4 border-bottom border-secondary border-opacity-25">
-                                <div class="col-md-4">
+                                <div class="col-md-4" id="clusterBrightnessControlGroup">
                                     <div class="d-flex align-items-center justify-content-center">
                                         <span class="text-warning text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtBrightness" }}</span>
                                         <div class="system-slider w-100 no-padding-top m-0">
@@ -65,18 +58,24 @@
                                         <span class="text-warning ms-3 text-end fw-bold" id="brightnessSliderValue" style="min-width: 50px;">{{ $deviceProfile.BrightnessSlider }} %</span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-4" id="clusterSpeedControlGroup" hidden>
                                     <div class="d-flex align-items-center justify-content-center">
                                         <span class="text-warning text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtSpeed" }}</span>
-                                        <div class="system-slider w-100 no-padding-top m-0">
-                                            <label for="speedSlider" class="w-100">
-                                                <input type="range" id="speedSlider" name="speedSlider" min="1" max="10" value="{{ $speed }}" step="0.1" class="w-100" {{ $speedDisabled }}>
+                                        <div class="system-slider w-100 no-padding-top m-0 d-flex align-items-center gap-2">
+                                            <span class="text-nowrap d-inline-flex align-items-center" title="Slow" aria-label="Slow">
+                                                <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="" aria-hidden="true" />
+                                            </span>
+                                            <label for="speedSlider" class="flex-grow-1 m-0" style="min-width: 0;">
+                                                <input type="range" id="speedSlider" name="speedSlider" min="1" max="10" value="{{ $speed }}" step="0.1" class="w-100" data-stored-speed="{{ $speed }}" data-rgb-profile="{{ $activeProfile }}" data-speed-control-mode="software" aria-label="Animation speed from Slow to Fast">
                                             </label>
+                                            <span class="text-nowrap d-inline-flex align-items-center" title="Fast" aria-label="Fast">
+                                                <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="" aria-hidden="true" />
+                                            </span>
                                         </div>
-                                        <span class="text-warning ms-3 text-end fw-bold" id="speedSliderValue" style="min-width: 50px;">{{ $speed }}</span>
+                                        <span class="text-warning ms-3 text-end fw-bold" id="speedSliderValue" style="min-width: 50px;"></span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-4" id="clusterRgbControlGroup">
                                     <div class="d-flex align-items-center justify-content-center">
                                         <span class="text-warning text-uppercase text-sm fw-bold me-3" style="min-width: 90px; letter-spacing: 1px;">{{ .Lang "txtRgb" }}</span>
                                         <label for="clusterRgbProfile" class="w-100">
@@ -149,7 +148,7 @@
         </main>
     </div>
 </div>
-<script src="/static/js/cluster.js"></script>
+<script src="/static/js/cluster.js?v=3"></script>
 <script src="/static/js/sidebar.js"></script>
 {{ if .Dashboard.TemperatureBar }}
 <script src="/static/js/temperature-bar.js"></script>

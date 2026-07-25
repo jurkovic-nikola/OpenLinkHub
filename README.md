@@ -71,13 +71,7 @@ cd LumenForge
 ./scripts/build.sh
 ```
 
-Ordinary source builds use the tracked `0.2.0-alpha-dev` development version. Future authorized release automation can supply `VERSION` to override it; the build script removes one optional leading lowercase `v`.
-
-For example, a future authorized release build could use:
-
-```bash
-VERSION=v0.2.0-alpha ./scripts/build.sh
-```
+Maintainers preparing a release should follow the [release process](docs/releasing.md).
 
 Run directly from the repository:
 

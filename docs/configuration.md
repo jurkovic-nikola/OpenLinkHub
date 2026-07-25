@@ -55,8 +55,10 @@ This is the configuration generated for a new installation:
 }
 ```
 
-`enableOpenRGBTargetServer` is intentionally absent because it is deprecated
-and its default is `false`. The internal `ConfigPath` field is also omitted.
+`enableOpenRGBTargetServer` is absent because its default is `false` and its
+JSON field uses `omitempty`, so the generated configuration omits that false
+zero value. It is serialized when enabled. The internal `ConfigPath` field is
+also omitted.
 
 ## Server and Network
 
@@ -76,7 +78,7 @@ LumenForge's HTTP port; `openRGBPort` is the local OpenRGB SDK port.
 | --- | --- | --- | --- | --- |
 | `logLevel` | string, `"info"` | `"info"`, `"warn"`, `"error"`, `"fatal"`, or `"silent"`; matching is case-insensitive | Minimum emitted log severity. Any unrecognized value silently behaves as `"info"`. Use `"silent"` only when loss of diagnostic output is acceptable. | Yes |
 | `logFile` | string, `""` | Empty, `"-"`, or a filesystem path | Empty writes to `stdout.log` beside `config.json`; `"-"` writes to standard error; another value selects that file. At startup an existing log is archived as a timestamped `.tar.gz`. The service user must be able to create the file and archive in its parent directory. | Yes |
-| `debug` | boolean, `false` | `true`, `false` | Enables additional device and legacy OpenRGB target-server diagnostics. It does not change `logLevel`; normally leave it disabled because output can be verbose. | Yes |
+| `debug` | boolean, `false` | `true`, `false` | Enables additional device and inherited OpenRGB-compatible target-server diagnostics. It does not change `logLevel`; normally leave it disabled because output can be verbose. | Yes |
 
 ## Temperature, GPU, and Profile Selection
 
@@ -128,13 +130,20 @@ requires them.
 
 | Key | Type and default | Accepted values | Purpose and guidance | Restart |
 | --- | --- | --- | --- | --- |
-| `openRGBPort` | integer, `6742` | `1`-`65535` | Port of the OpenRGB SDK server on `127.0.0.1`. Imported controllers require an OpenRGB server at this port. An invalid port prevents OpenRGB client connection. | Yes |
-| `enableOpenRGBTargetServer` | boolean, `false`; deprecated and omitted from new files | `true`, `false` | Enables LumenForge's legacy OpenRGB-compatible target listener on `listenAddress:openRGBPort`. This conflicts with importing devices from OpenRGB on the same port and is unsupported for normal importer use. Leave it absent or `false`; retain it only for deliberate legacy compatibility testing. | Yes |
+| `openRGBPort` | integer, `6742` | `1`-`65535` | Port used by the selected OpenRGB workflow. The importer connects to an external OpenRGB SDK Server at this port on `127.0.0.1`; the target server listens on this port at `listenAddress`. An invalid port prevents the applicable connection or listener. | Yes |
+| `enableOpenRGBTargetServer` | boolean, `false`; optional and omitted from generated defaults | `true`, `false` | Enables LumenForge's inherited OpenRGB-compatible target server, which exposes supported LumenForge-managed native devices to an OpenRGB client. This is the reverse of the importer workflow. Leave it `false` unless deliberately using the target server. | Yes |
+
+The target-server workflow remains functional inherited OpenLinkHub behavior.
+Here, inherited and secondary describe its origin and relationship to the newer
+importer, not deprecation or reduced functionality. See
+[OpenRGB target server](../openrgb/README.md) for setup and supported devices.
 
 LumenForge always connects to the importer SDK endpoint on loopback; changing
-`listenAddress` does not change that client address. `enableOpenRGBTargetServer`
-uses the same `openRGBPort`, so it and OpenRGB importer operation are mutually
-exclusive.
+`listenAddress` does not change that client address. The target server and an
+external OpenRGB SDK Server cannot listen on the same `openRGBPort`, and the
+importer manager does not run while the local target server is enabled.
+Importer and target-server workflows may be used only when their port and
+device-ownership arrangements do not conflict.
 
 Imported-controller identities, layouts, disabled membership, RGB profiles,
 cluster membership, and other files below `database/` are runtime state. They

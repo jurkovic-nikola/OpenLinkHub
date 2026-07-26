@@ -93,8 +93,8 @@ var (
 type ImageData struct {
 	Name           string
 	Frames         int
-	Buffer         []Frames
-	PalettedFrames []*image.Paletted
+	Buffer         []Frames          `json:"-"`
+	PalettedFrames []*image.Paletted `json:"-"`
 }
 
 type Frames struct {

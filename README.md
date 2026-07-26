@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="static/img/lumenforge_banner.png" alt="LumenForge — Unified RGB Control">
+</p>
+
 # LumenForge
 
 LumenForge is an experimental Linux RGB, cooling, and device-control hub built as a fork of [OpenLinkHub](https://github.com/jurkovic-nikola/OpenLinkHub). It keeps OpenLinkHub's Corsair and Linux control foundation while adding OpenRGB-backed device import, RGB Cluster workflows with physical-layout ordering, dashboard improvements, built-in themes, optional system tray integration, and mixed-device lighting control.

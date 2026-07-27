@@ -1034,7 +1034,7 @@ func (d *Device) UpdateLiftHeight(liftHeight int) uint8 {
 		return 0
 	}
 
-	if liftHeight < 2 || liftHeight > 6 {
+	if liftHeight < 1 || liftHeight > 3 {
 		return 0
 	}
 	if d.DeviceProfile.LiftHeight == liftHeight {
@@ -1589,9 +1589,9 @@ func (d *Device) buildLiftHeightPacket(LiftHeight int) []byte {
 	case 1:
 		val = 0x00
 	case 2:
-		val = 0x01
-	case 3:
 		val = 0x03
+	case 3:
+		val = 0x04
 	}
 
 	buf := make([]byte, 14)

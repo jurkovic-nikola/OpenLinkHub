@@ -62,14 +62,15 @@ const (
 )
 
 var (
-	bufferSize      = 64
-	bufferSizeWrite = bufferSize + 1
-	headerSize      = 2
-	deviceKeepAlive = 2000
-	cmdReadDongle   = []byte{0x03}
-	cmdRead         = []byte{0x04}
-	transferTimeout = 200
-	mouseProductId  = uint16(11048)
+	bufferSize       = 64
+	bufferSizeWrite  = bufferSize + 1
+	headerSize       = 2
+	deviceKeepAlive  = 2000
+	cmdReadDongle    = []byte{0x03}
+	cmdRead          = []byte{0x04}
+	transferTimeout  = 200
+	mouseProductId   = uint16(11048)
+	mouseProductIdMg = uint16(11049)
 )
 
 func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
@@ -140,6 +141,29 @@ func (d *Device) addDevices() {
 				object := &common.Device{
 					ProductType: common.ProductTypeSabreV2Pro,
 					Product:     "SABRE V2 PRO",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 11049: // SABRE V2 PRO MG
+			{
+				dev := sabrev2proW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeSabreV2Pro,
+					Product:     "SABRE V2 PRO MG",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",
@@ -287,6 +311,10 @@ func (d *Device) getDevices() {
 		Serial:    strconv.Itoa(int(mouseProductId)),
 		VendorId:  d.VendorId,
 		ProductId: mouseProductId,
+	}
+
+	if d.ProductId == 11060 {
+		devices[0].ProductId = mouseProductId
 	}
 	d.Devices = devices
 }

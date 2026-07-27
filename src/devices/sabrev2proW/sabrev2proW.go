@@ -1416,9 +1416,9 @@ func (d *Device) buildLiftHeightPacket(LiftHeight int) []byte {
 	case 1:
 		val = 0x00
 	case 2:
-		val = 0x01
-	case 3:
 		val = 0x03
+	case 3:
+		val = 0x04
 	}
 
 	buf := make([]byte, 14)

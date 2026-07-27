@@ -835,6 +835,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7033:  {1, 0, "SABRE RGB PRO", sabrergbpro.Init, nil},                  // SABRE RGB PRO
 	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                    // SABRE PRO CS
 	11048: {1, 0, "SABRE V2 PRO", sabrev2proWU.Init, nil},                  // SABRE V2 PRO
+	11049: {1, 0, "SABRE V2 PRO MG", sabrev2proWU.Init, nil},               // SABRE V2 PRO MG
 	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},           // DARKSTAR RGB WIRELESS Gaming Mouse
 	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil},   // VIRTUOSO RGB WIRELESS XT
 	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                        // VIRTUOSO USB Gaming Headset
@@ -846,8 +847,9 @@ var deviceRegisterMap = map[uint16]Product{
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11035: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstreamV2.Init},           // SLIPSTREAM WIRELESS V2 USB Receiver
-	7013:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init}, 			// CORSAIR HARPOON RGB WIRELESS Dongle
+	7013:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // CORSAIR HARPOON RGB WIRELESS Dongle
 	11050: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // Sabre v2 Pro Ultralight Wireless Dongle
+	11060: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // SABRE v2 PRO WIRELESS MG receiver
 	7041:  {1, 0, "DARK CORE RGB PRO Gaming Dongle", nil, slipstream.Init}, // DARK CORE RGB PRO Gaming Dongle
 	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS
 	10755: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS XBOX

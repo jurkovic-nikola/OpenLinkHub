@@ -1,6 +1,7 @@
 package openrgb
 
 import (
+	"LumenForge/src/config"
 	"bytes"
 	"context"
 	"encoding/binary"
@@ -181,6 +182,33 @@ func TestDialAloneDoesNotMarkSDKConnected(t *testing.T) {
 	state, _ := GetStatus()
 	if state != StateOffline {
 		t.Fatalf("status = %q after dial, want Offline", state)
+	}
+}
+
+func TestSDKAddressUsesIPv4LoopbackAndConfiguredOpenRGBPort(t *testing.T) {
+	tests := []struct {
+		name          string
+		listenAddress string
+		openRGBPort   int
+		want          string
+	}{
+		{name: "default port", listenAddress: "0.0.0.0", openRGBPort: 6742, want: "127.0.0.1:6742"},
+		{name: "configured port", listenAddress: "192.168.1.50", openRGBPort: 6743, want: "127.0.0.1:6743"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			address, err := sdkAddressForConfig(config.Configuration{
+				ListenAddress: test.listenAddress,
+				OpenRGBPort:   test.openRGBPort,
+			})
+			if err != nil {
+				t.Fatalf("sdkAddressForConfig() returned error: %v", err)
+			}
+			if address != test.want {
+				t.Fatalf("sdkAddressForConfig() = %q, want %q", address, test.want)
+			}
+		})
 	}
 }
 

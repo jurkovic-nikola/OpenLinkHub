@@ -14,12 +14,12 @@ OpenRGB support alone does not guarantee complete LumenForge support. Device nam
 
 OpenRGB is a separate external dependency. It must already be running with its SDK Server enabled and reachable before LumenForge can discover or control OpenRGB-backed devices. LumenForge does not install, launch, stop, restart, configure, or otherwise manage OpenRGB itself.
 
-LumenForge connects to the local OpenRGB SDK Server at `127.0.0.1` on the port configured by `openRGBPort`. New LumenForge configurations default to port `6742`. Remote OpenRGB hosts are not currently supported by this importer.
+LumenForge connects only to the local OpenRGB SDK Server at `127.0.0.1` on the port configured by `openRGBPort`. New LumenForge configurations default to port `6742`. Remote OpenRGB hosts are unsupported. In OpenRGB itself, configure the SDK Server Host as `127.0.0.1`; LumenForge documents this setting but does not change OpenRGB's configuration.
 
 ## Discover and Import Controllers
 
 1. Start the OpenRGB application, or a local headless OpenRGB instance, with its SDK Server enabled.
-2. Confirm the SDK Server port in OpenRGB.
+2. Set OpenRGB's SDK Server Host to `127.0.0.1` and confirm its SDK Server port.
 3. If OpenRGB is not using port `6742`, set `openRGBPort` in LumenForge's `config.json` to the same port.
 4. Start LumenForge.
 5. Open **Settings** in LumenForge.
@@ -105,7 +105,7 @@ Deleting the import store does not itself remove the separate device-profile or 
 LumenForge contains two distinct OpenRGB integrations:
 
 1. **Import into LumenForge (primary):** LumenForge connects as an SDK client to a separate, locally running OpenRGB SDK Server and explicitly imports selected OpenRGB-backed controllers into the LumenForge UI.
-2. **Expose LumenForge devices to OpenRGB (inherited/secondary):** inherited OpenLinkHub functionality can run a legacy OpenRGB-compatible target listener so an OpenRGB client can control supported native devices.
+2. **Expose LumenForge devices to OpenRGB (inherited/secondary):** inherited OpenLinkHub functionality can run an optional OpenRGB-compatible target listener on `127.0.0.1` so a local OpenRGB client can control supported native devices.
 
 The inherited target listener is separate from the importer. It does not discover or import external OpenRGB-backed controllers and is not involved in the Settings import-management workflow.
 

@@ -1,5 +1,8 @@
 # API Documentation and Examples
 
+LumenForge's dashboard and HTTP API are local-only and listen on
+`127.0.0.1:<listenPort>`. Remote API access is unsupported.
+
 ## OpenRGB Importer API
 
 These endpoints manage controllers imported from a separately running OpenRGB

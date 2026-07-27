@@ -7,6 +7,8 @@ package config
 import (
 	"LumenForge/src/common"
 	"encoding/json"
+	"io"
+	"net"
 	"os"
 	"os/user"
 	"slices"
@@ -20,7 +22,9 @@ type Configuration struct {
 	Metrics    bool   `json:"metrics"`
 	ConfigPath string `json:",omitempty"`
 
-	ListenAddress string `json:"listenAddress"`
+	// Deprecated: retained only so existing config.json files continue to
+	// decode and preserve a legacy value when configuration is saved.
+	ListenAddress string `json:"listenAddress,omitempty"`
 	ListenPort    int    `json:"listenPort"`
 
 	LogFile  string `json:"logFile"`
@@ -29,7 +33,7 @@ type Configuration struct {
 	EnableSystemTray          bool `json:"enableSystemTray"`
 	EnableGamepad             bool `json:"enableGamepad"`
 	EnableMotherboard         bool `json:"enableMotherboard"`
-	EnableOpenRGBTargetServer bool `json:"enableOpenRGBTargetServer,omitempty"` // Deprecated: legacy target listener compatibility.
+	EnableOpenRGBTargetServer bool `json:"enableOpenRGBTargetServer,omitempty"` // Optional inherited target listener.
 	MotherboardBiosOnExit     bool `json:"motherboardBiosOnExit"`
 
 	CheckDevicePermission bool `json:"checkDevicePermission"`
@@ -59,9 +63,10 @@ type Configuration struct {
 }
 
 var (
-	location      = ""
-	configuration Configuration
-	upgrade       = map[string]any{
+	location                      = ""
+	configuration                 Configuration
+	legacyListenAddressConfigured bool
+	upgrade                       = map[string]any{
 		"memorySku":              "",
 		"resumeDelay":            15000,
 		"logLevel":               "info",
@@ -110,15 +115,53 @@ func Init() {
 		panic(err.Error())
 	}
 	defer f.Close()
-	if err = json.NewDecoder(f).Decode(&configuration); err != nil {
+	configuration, legacyListenAddressConfigured, err = decodeConfiguration(f)
+	if err != nil {
 		panic(err.Error())
 	}
 	configuration.ConfigPath = configPath
 }
 
+func decodeConfiguration(reader io.Reader) (Configuration, bool, error) {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return Configuration{}, false, err
+	}
+
+	var decoded Configuration
+	if err = json.Unmarshal(data, &decoded); err != nil {
+		return Configuration{}, false, err
+	}
+
+	var fields map[string]json.RawMessage
+	if err = json.Unmarshal(data, &fields); err != nil {
+		return Configuration{}, false, err
+	}
+	_, hasLegacyListenAddress := fields["listenAddress"]
+	return decoded, hasLegacyListenAddress, nil
+}
+
 // GetConfig will return structs.Configuration struct
 func GetConfig() Configuration {
 	return configuration
+}
+
+// IgnoredListenAddress returns a configured legacy non-loopback value that
+// should produce a one-time startup warning.
+func IgnoredListenAddress() (string, bool) {
+	if !legacyListenAddressConfigured {
+		return "", false
+	}
+
+	address := strings.TrimSpace(configuration.ListenAddress)
+	host := strings.TrimSuffix(strings.TrimPrefix(address, "["), "]")
+	if strings.EqualFold(host, "localhost") {
+		return "", false
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		return "", false
+	}
+	return configuration.ListenAddress, true
 }
 
 // UpdateSupportedDevices will update the Exclude slice based on the enabled flag for each product ID
@@ -152,8 +195,7 @@ func upgradeFile(cfg string) {
 			Frontend: true,
 			Metrics:  false,
 
-			ListenAddress: "127.0.0.1",
-			ListenPort:    27003,
+			ListenPort: 27003,
 
 			LogFile:  "",
 			LogLevel: "info",

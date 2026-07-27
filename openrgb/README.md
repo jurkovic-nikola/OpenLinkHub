@@ -10,6 +10,8 @@ The target server remains functional inherited OpenLinkHub behavior.
 LumenForge retains direct hardware ownership and native device management,
 including supported cooling, telemetry, LCD, profiles, and other controls.
 OpenRGB connects to LumenForge to control the exposed lighting functionality.
+The listener is local-only and always binds to `127.0.0.1`; remote clients are
+unsupported.
 
 This avoids having OpenRGB and LumenForge both attempt direct ownership of the
 same native device. LumenForge keeps the hardware connection and exposes
@@ -77,7 +79,8 @@ Update the installation's `config.json`:
 
 - `enableOpenRGBTargetServer` enables LumenForge's OpenRGB-compatible
   listener. It is a target-server setting, not an importer option.
-- `openRGBPort` is the listener port while target-server mode is enabled.
+- `openRGBPort` is the configurable listener port while target-server mode is
+  enabled. The address is fixed at `127.0.0.1`.
 - The listener cannot share a port with an external OpenRGB SDK Server. Users
   commonly choose `6743` when OpenRGB itself uses `6742`.
 - Target-server mode and importer mode cannot use the same `openRGBPort`
@@ -114,8 +117,8 @@ In LumenForge, toggle **OpenRGB Integration** for each device to expose.
 
 ### Step 6: Connect the OpenRGB Client
 
-In OpenRGB, open the **Client** tab and connect to the LumenForge host on port
-`6743`, or the alternate port configured above.
+In the locally running OpenRGB application, open the **Client** tab and connect
+to `127.0.0.1` on port `6743`, or the alternate port configured above.
 
 ![OpenRGB client connected to the inherited LumenForge target server](../static/img/openrgb-client.png)
 

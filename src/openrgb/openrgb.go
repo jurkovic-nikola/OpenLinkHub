@@ -7,6 +7,7 @@ package openrgb
 import (
 	"LumenForge/src/common"
 	"LumenForge/src/config"
+	"LumenForge/src/localnetwork"
 	"LumenForge/src/logger"
 	"bytes"
 	"encoding/binary"
@@ -157,11 +158,7 @@ func Init() {
 	if enabled {
 		debug = config.GetConfig().Debug
 		go func() {
-			address := fmt.Sprintf(
-				"%s:%v",
-				config.GetConfig().ListenAddress,
-				config.GetConfig().OpenRGBPort,
-			)
+			address := targetListenAddress(config.GetConfig())
 
 			var err error
 			listener, err = net.Listen("tcp", address)
@@ -192,6 +189,10 @@ func Init() {
 			}
 		}()
 	}
+}
+
+func targetListenAddress(cfg config.Configuration) string {
+	return localnetwork.Address(cfg.OpenRGBPort)
 }
 
 // Close will close any active connections and listener

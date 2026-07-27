@@ -573,8 +573,6 @@ $(document).ready(function () {
             $.ajax({
                 url: '/api/openrgbimport/discover',
                 type: 'POST',
-                data: JSON.stringify({}),
-                contentType: 'application/json',
                 dataType: 'json',
                 cache: false
             }).done(function (response) {
@@ -770,8 +768,6 @@ $(document).ready(function () {
             $.ajax({
                 url: '/api/openrgbimport/refresh',
                 type: 'POST',
-                data: JSON.stringify({}),
-                contentType: 'application/json',
                 dataType: 'json',
                 cache: false
             }).done(function (response) {

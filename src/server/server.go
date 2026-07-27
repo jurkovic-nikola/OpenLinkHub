@@ -76,6 +76,7 @@ var (
 		return openrgbimport.RemoveConfiguredImports(ctx, serials, openRGBImportRegistryHooks())
 	}
 	refreshOpenRGBImports = openrgbimport.RefreshManager
+	mediaInputControl     = inputmanager.InputControlKeyboard
 )
 
 const (
@@ -937,25 +938,25 @@ func mediaPlaybackControl(w http.ResponseWriter, r *http.Request) {
 
 		switch mediaPlaybackAction {
 		case "previous":
-			inputmanager.InputControlKeyboard(inputmanager.MediaPrev, false)
+			mediaInputControl(inputmanager.MediaPrev, false)
 			break
 		case "stop":
-			inputmanager.InputControlKeyboard(inputmanager.MediaStop, false)
+			mediaInputControl(inputmanager.MediaStop, false)
 			break
 		case "play":
-			inputmanager.InputControlKeyboard(inputmanager.MediaPrev, false)
+			mediaInputControl(inputmanager.MediaPlayPause, false)
 			break
 		case "next":
-			inputmanager.InputControlKeyboard(inputmanager.MediaNext, false)
+			mediaInputControl(inputmanager.MediaNext, false)
 			break
 		case "volumeDown":
-			inputmanager.InputControlKeyboard(inputmanager.VolumeDown, false)
+			mediaInputControl(inputmanager.VolumeDown, false)
 			break
 		case "volumeUp":
-			inputmanager.InputControlKeyboard(inputmanager.VolumeUp, false)
+			mediaInputControl(inputmanager.VolumeUp, false)
 			break
 		case "mute":
-			inputmanager.InputControlKeyboard(inputmanager.VolumeMute, false)
+			mediaInputControl(inputmanager.VolumeMute, false)
 			break
 		default:
 			resp.Message = "Invalid playback action"
@@ -2960,6 +2961,7 @@ func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.Res
 
 // setRoutes will set up all routes
 func setRoutes() http.Handler {
+	protection := newLocalAPIProtection(config.GetConfig().ListenPort)
 	r := http.NewServeMux()
 	fs := http.FileServer(http.Dir("./static"))
 	r.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -3007,9 +3009,10 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/devices/probes/", http.MethodGet, getTemperatureProbes)
 	handleFunc(r, "/api/devices/mouse", http.MethodGet, getMouseDevice)
 	handleFunc(r, "/api/media/playback", http.MethodGet, getMediaPlayback)
-	handleFunc(r, "/api/media/", http.MethodGet, mediaPlaybackControl)
+	handleFunc(r, "/api/security/token", http.MethodGet, protection.tokenHandler)
 
 	// POST
+	handleFunc(r, "/api/media/", http.MethodPost, mediaPlaybackControl)
 	handleFunc(r, "/api/openrgbimport/discover", http.MethodPost, discoverOpenRGBImportControllers)
 	handleFunc(r, "/api/openrgbimport/import", http.MethodPost, importOpenRGBImportControllers)
 	handleFunc(r, "/api/openrgbimport/remove", http.MethodPost, removeOpenRGBImportControllers)
@@ -3157,7 +3160,7 @@ func setRoutes() http.Handler {
 		handleFunc(r, "/settings", http.MethodGet, uiSettings)
 		//handleFunc(r, "/xeneon", http.MethodGet, uiXeneon)
 	}
-	return r
+	return protection.wrap(r)
 }
 
 // Init will start a new web server used for metrics and fan control

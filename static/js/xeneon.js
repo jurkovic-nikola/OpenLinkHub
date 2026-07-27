@@ -276,7 +276,7 @@ $(document).ready(function () {
 
             $.ajax({
                 url: urlAction,
-                method: 'GET',
+                method: 'POST',
                 dataType: 'json',
                 success: function (response) {
                     // No result

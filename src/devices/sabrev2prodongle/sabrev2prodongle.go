@@ -314,7 +314,7 @@ func (d *Device) getDevices() {
 	}
 
 	if d.ProductId == 11060 {
-		devices[0].ProductId = mouseProductId
+		devices[0].ProductId = mouseProductIdMg
 	}
 	d.Devices = devices
 }

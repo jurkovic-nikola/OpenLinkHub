@@ -1,7 +1,45 @@
 # API Documentation and Examples
 
 LumenForge's dashboard and HTTP API are local-only and listen on
-`127.0.0.1:<listenPort>`. Remote API access is unsupported.
+`127.0.0.1:<listenPort>`. Requests must identify the service through a Host of
+`127.0.0.1` or `localhost`, optionally followed by the configured
+`listenPort`. Wildcard, LAN, Tailscale, arbitrary-domain, reverse-proxy, and
+remote API access are unsupported.
+
+## Local Request Protection
+
+GET routes are read-only. Browser requests that change state use POST, PUT,
+PATCH, or DELETE and must come from the same origin as the dashboard. They also
+require the process-local request proof in `X-LumenForge-Request-Proof`.
+LumenForge does not enable CORS, and remote web clients and cross-origin
+preflights are unsupported.
+
+The dashboard obtains and submits this proof automatically. A local
+command-line client must fetch it after each LumenForge restart and include it
+on every mutation. The helpers below are used by all mutation examples in this
+document:
+
+```bash
+LUMENFORGE_URL='http://127.0.0.1:27003'
+LUMENFORGE_TOKEN="$(curl --silent "$LUMENFORGE_URL/api/security/token" | jq -r '.token')"
+
+lfcurl() {
+  curl --header "X-LumenForge-Request-Proof: $LUMENFORGE_TOKEN" \
+    --header 'Content-Type: application/json' "$@"
+}
+
+lfcurl_empty() {
+  curl --header "X-LumenForge-Request-Proof: $LUMENFORGE_TOKEN" "$@"
+}
+```
+
+Use `lfcurl` for JSON mutations and `lfcurl_empty` for documented mutations
+that have no body. Multipart clients must include the same proof header but
+must let curl generate the multipart Content-Type and boundary, for example
+with `--form`. The temperature-profile form endpoint retains
+`application/x-www-form-urlencoded`. A missing, stale, or invalid proof is
+rejected with HTTP `403`; fetch a new token or reload the dashboard. An
+unsupported mutation Content-Type is rejected with HTTP `415`.
 
 ## OpenRGB Importer API
 
@@ -105,7 +143,7 @@ store. It acts on discovered controllers, not active devices, and does not
 import, enable, remove, or persist anything.
 
 ```bash
-curl --silent -X POST \
+lfcurl_empty --silent -X POST \
   http://127.0.0.1:27003/api/openrgbimport/discover
 ```
 
@@ -196,8 +234,7 @@ control, and layout curl examples below are placeholders. Replace them with a
 from your own OpenRGB environment.
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"keys":["orgb-v1-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]}' \
   http://127.0.0.1:27003/api/openrgbimport/import
 ```
@@ -265,8 +302,7 @@ Use the `serial` returned by import or `configuredSerial` returned by
 discovery:
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"serials":["openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]}' \
   http://127.0.0.1:27003/api/openrgbimport/remove
 ```
@@ -307,7 +343,7 @@ detach/persistence failures are rejected without silently deleting artifacts.
 reconciliation for already enabled imports. It takes no fields:
 
 ```bash
-curl --silent -X POST \
+lfcurl_empty --silent -X POST \
   http://127.0.0.1:27003/api/openrgbimport/refresh
 ```
 
@@ -372,8 +408,7 @@ the active controller.
 | `r`, `g`, `b` | integer | The decoder accepts any Go `int`; use `0`-`255`. Omitted values become `0`. Values outside the byte range are converted modulo 256 rather than rejected. |
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","r":255,"g":96,"b":0}' \
   http://127.0.0.1:27003/api/openrgbimport/color
 ```
@@ -400,8 +435,7 @@ missing-controller, and RGB Cluster errors return `status: 0`.
 | `brightness` | unsigned integer | JSON decoder accepts `0`-`255`; the device clamps `101`-`255` to `100`. Negative, fractional, or greater-than-255 values make the body invalid. Omitted is `0`. |
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","brightness":75}' \
   http://127.0.0.1:27003/api/openrgbimport/brightness
 ```
@@ -434,8 +468,7 @@ Implemented effect names are `circle`, `circleshift`, `colorpulse`,
 `spiralrainbow`, `static`, `storm`, `watercolor`, and `wave`.
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","effect":"rainbow"}' \
   http://127.0.0.1:27003/api/openrgbimport/effect
 ```
@@ -465,8 +498,7 @@ importer's fallback effect runner:
 | `speed` | string | `"slow"` selects a 4.0 timing value, `"fast"` selects 0.8, and every other string (including `"normal"` or omitted) selects 2.0. |
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","speed":"fast"}' \
   http://127.0.0.1:27003/api/openrgbimport/speed
 ```
@@ -499,8 +531,7 @@ controller's zone layout:
 | `zones[].ledCount` | integer | Required operationally; `1`-`1024` per zone. |
 
 ```bash
-curl --silent -X POST \
-  -H 'Content-Type: application/json' \
+lfcurl --silent -X POST \
   -d '{"serial":"openrgb-hash-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","zones":[{"name":"Main","ledCount":12},{"name":"Accent","ledCount":8}]}' \
   http://127.0.0.1:27003/api/openrgbimport/config
 ```
@@ -1146,320 +1177,331 @@ $ curl -X GET http://127.0.0.1:27003/api/media/playback --silent | jq
 }
 
 ```
+### Control media playback (requires LumenForge to run in a user context)
+
+Media control is state-changing and therefore uses POST. Supported actions are
+`previous`, `stop`, `play`, `next`, `volumeDown`, `volumeUp`, and `mute`.
+
+```bash
+$ lfcurl_empty -X POST http://127.0.0.1:27003/api/media/play --silent | jq
+```
+
+The former GET form is no longer supported.
+
 ### Create temperature profile - CPU
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-cpu-profile", "sensor":0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-cpu-profile", "sensor":0}' --silent | jq
 ```
 ### Create temperature profile - GPU
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-gpu-profile", "sensor":1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-gpu-profile", "sensor":1}' --silent | jq
 ```
 ### Create temperature profile - Liquid
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-liquid-profile", "sensor":2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-liquid-profile", "sensor":2}' --silent | jq
 ```
 ### Create temperature profile - Static
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-static-profile", "sensor":2, "static":true}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-static-profile", "sensor":2, "static":true}' --silent | jq
 ```
 ### Set device speed profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/speed -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "profile":"example-profile"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/speed -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "profile":"example-profile"}' --silent | jq
 ```
 ### Set device speed profile on all channels
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/speed -d '{ "deviceId":"EXAMPLE-DEVICE-002", "channelId":0, "profile":"example-profile" }' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/speed -d '{ "deviceId":"EXAMPLE-DEVICE-002", "channelId":0, "profile":"example-profile" }' --silent | jq
 ```
 ### Set device speed
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/speed/manual -d '{ "deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "value":50 }' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/speed/manual -d '{ "deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "value":50 }' --silent | jq
 ```
 ### Set device RGB profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/color -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "profile":"rainbow"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/color -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "profile":"rainbow"}' --silent | jq
 ```
 ### Set device RGB profile on all channels
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/color -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":-1, "profile":"rainbow"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/color -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":-1, "profile":"rainbow"}' --silent | jq
 ```
 ### Set LED Strip type (Link System Hub)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/hub/strip -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 3, "stripId": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/hub/strip -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 3, "stripId": 1}' --silent | jq
 ```
 ### Set external LED device type (CC XT, Commander Pro, Lightning Node Pro)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/hub/type -d '{"deviceId":"EXAMPLE-DEVICE-001", "portId": 1, "deviceType": 2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/hub/type -d '{"deviceId":"EXAMPLE-DEVICE-001", "portId": 1, "deviceType": 2}' --silent | jq
 ```
 ### Set external LED device amount (CC XT, Commander Pro, Lightning Node Pro)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/hub/amount -d '{"deviceId":"EXAMPLE-DEVICE-001", "portId": 1, "deviceAmount": 2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/hub/amount -d '{"deviceId":"EXAMPLE-DEVICE-001", "portId": 1, "deviceAmount": 2}' --silent | jq
 ```
 ### Set device label
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/label -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "deviceType": 0, "label": "Example Fan"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/label -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "deviceType": 0, "label": "Example Fan"}' --silent | jq
 ```
 ### Setup multiple LCD devices (Link System Hub)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/device -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "deviceType": 0, "lcdSerial": "EXAMPLE-LCD-001"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/device -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "deviceType": 0, "lcdSerial": "EXAMPLE-LCD-001"}' --silent | jq
 ```
 ### Change LCD animation image
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/image -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "image": "example-animation"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/image -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "image": "example-animation"}' --silent | jq
 ```
 ### Change LCD rotation - default
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 0}' --silent | jq
 ```
 ### Change LCD rotation - 90 degrees
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 1}' --silent | jq
 ```
 ### Change LCD rotation - 180 degrees
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 2}' --silent | jq
 ```
 ### Change LCD rotation - 270 degrees
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 3}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/rotation -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId": 1, "rotation": 3}' --silent | jq
 ```
 ### Change LCD profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/lcd/profile -d '{"deviceId":"EXAMPLE-DEVICE-001", "profile": "100"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/lcd/profile -d '{"deviceId":"EXAMPLE-DEVICE-001", "profile": "100"}' --silent | jq
 ```
 ### Change brightness - Dropdown
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/brightness -d '{"deviceId":"EXAMPLE-DEVICE-001", "brightness": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/brightness -d '{"deviceId":"EXAMPLE-DEVICE-001", "brightness": 1}' --silent | jq
 ```
 ### Change brightness - Slider
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/brightness/gradual -d '{"deviceId":"EXAMPLE-DEVICE-001", "brightness": 75}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/brightness/gradual -d '{"deviceId":"EXAMPLE-DEVICE-001", "brightness": 75}' --silent | jq
 ```
 ### Change device position (Link System Hub) - To Left
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/position -d '{"deviceId":"EXAMPLE-DEVICE-001", "position": 3, "deviceIdString": "EXAMPLE-COMPONENT-002", "direction": 0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/position/update -d '{"deviceId":"EXAMPLE-DEVICE-001", "position": 3, "deviceIdString": "EXAMPLE-COMPONENT-002", "direction": 0}' --silent | jq
 ```
 ### Change device position (Link System Hub) - To Right
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/position -d '{"deviceId":"EXAMPLE-DEVICE-001", "position": 3, "deviceIdString": "EXAMPLE-COMPONENT-002", "direction": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/position/update -d '{"deviceId":"EXAMPLE-DEVICE-001", "position": 3, "deviceIdString": "EXAMPLE-COMPONENT-002", "direction": 1}' --silent | jq
 ```
 ### Set dashboard settings
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/dashboard/update -d '{"showCpu": true, "showGpu": true, "showDisk": true, "showDevices": true, "showLabels": true, "celsius": true}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/dashboard/update -d '{"showCpu": true, "showGpu": true, "showDisk": true, "showDevices": true, "showLabels": true, "celsius": true}' --silent | jq
 ```
 ### Set custom ARGB device (Commander Core, Commander Core XT)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/argb -d '{"deviceId":"EXAMPLE-DEVICE-002", "portId": 6, "deviceType": 2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/argb -d '{"deviceId":"EXAMPLE-DEVICE-002", "portId": 6, "deviceType": 2}' --silent | jq
 ```
 ### Set keyboard color - Single key
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyId": 15, "keyOption": 0, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyId": 15, "keyOption": 0, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set keyboard color - Single row
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyId": 15, "keyOption": 1, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyId": 15, "keyOption": 1, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set keyboard color - All keys
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyId": 15, "keyOption": 2, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyId": 15, "keyOption": 2, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set misc color - Current area (MM700, ST100)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "areaId": 1, "areaOption": 0, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "areaId": 1, "areaOption": 0, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set misc color - Current row (MM700, ST100)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "areaId": 1, "areaOption": 1, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "areaId": 1, "areaOption": 1, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Set misc color - All rows (MM700, ST100)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "areaId": 1, "areaOption": 2, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/misc/color -d '{"deviceId":"EXAMPLE-DEVICE-002", "areaId": 1, "areaOption": 2, "color": {"red":255, "green":255, "blue":255}}' --silent | jq
 ```
 ### Change user profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/userProfile/change -d '{"deviceId":"EXAMPLE-DEVICE-002", "userProfileName": "example-profile"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/userProfile/change -d '{"deviceId":"EXAMPLE-DEVICE-002", "userProfileName": "example-profile"}' --silent | jq
 ```
 ### Change keyboard profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/profile/change -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/profile/change -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile"}' --silent | jq
 ```
 ### Save current keyboard profile
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/profile/save -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile", "new": false}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/profile/save -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile", "new": false}' --silent | jq
 ```
 ### Change keyboard layout
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/layout -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardLayout": "US"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/layout -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardLayout": "US"}' --silent | jq
 ```
 ### Change keyboard dial option
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/dial -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardControlDial": 0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/dial -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardControlDial": 0}' --silent | jq
 ```
 ### Change keyboard sleep mode
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 3}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 3}' --silent | jq
 ```
 ### Change keyboard polling rate
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/keyboard/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 3}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/keyboard/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 3}' --silent | jq
 ```
 ### Change rgb scheduler
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/scheduler/rgb -d '{"rgbControl":true, "rgbOff": "time-value", "rgbOn": "time-value"}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/scheduler/rgb -d '{"rgbControl":true, "rgbOff": "time-value", "rgbOn": "time-value"}' --silent | jq
 ```
 ### Set PSU fan speed
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/psu/speed -d '{"deviceId":"EXAMPLE-DEVICE-002", "fanMode": 7}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/psu/speed -d '{"deviceId":"EXAMPLE-DEVICE-002", "fanMode": 7}' --silent | jq
 ```
 ### Set mouse DPI values
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/dpi -d '{"deviceId":"EXAMPLE-DEVICE-002", "stages":{"0":100,"1":200,"2":300,"3":400,"4":500}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/dpi -d '{"deviceId":"EXAMPLE-DEVICE-002", "stages":{"0":100,"1":200,"2":300,"3":400,"4":500}}' --silent | jq
 ```
 ### Set mouse DPI colors
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/dpiColors -d '{"deviceId":"EXAMPLE-DEVICE-002", "colorZones":{"0":{"red":255, "green":255, "blue":255},"1":{"red":255, "green":255, "blue":255}}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/dpiColors -d '{"deviceId":"EXAMPLE-DEVICE-002", "colorZones":{"0":{"red":255, "green":255, "blue":255},"1":{"red":255, "green":255, "blue":255}}}' --silent | jq
 ```
 ### Set mouse Zone colors
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/zoneColors -d '{"deviceId":"EXAMPLE-DEVICE-002", "colorZones":{"0":{"red":255, "green":255, "blue":255},"1":{"red":255, "green":255, "blue":255}}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/zoneColors -d '{"deviceId":"EXAMPLE-DEVICE-002", "colorZones":{"0":{"red":255, "green":255, "blue":255},"1":{"red":255, "green":255, "blue":255}}}' --silent | jq
 ```
 ### Set mouse Sleep mode - 1 minute
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 1}' --silent | jq
 ```
 ### Set mouse Sleep mode - 5 minutes
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 5}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 5}' --silent | jq
 ```
 ### Set mouse Sleep mode - 10 minutes
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 10}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 10}' --silent | jq
 ```
 ### Set mouse Sleep mode - 15 minutes
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 15}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 15}' --silent | jq
 ```
 ### Set mouse Sleep mode - 30 minutes
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 30}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 30}' --silent | jq
 ```
 ### Set mouse Sleep mode - 1 hour
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 60}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 60}' --silent | jq
 ```
 ### Set mouse Polling Rate - 125 Hz / 8 msec (check your device polling rates)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 1}' --silent | jq
 ```
 ### Set mouse Polling Rate - 250 Hz / 4 msec (check your device polling rates)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 2}' --silent | jq
 ```
 ### Set mouse Polling Rate - 500 Hz / 2 msec (check your device polling rates)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 3}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 3}' --silent | jq
 ```
 ### Set mouse Polling Rate - 1000 Hz / 1 msec (check your device polling rates)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 4}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/pollingRate -d '{"deviceId":"EXAMPLE-DEVICE-002", "pollingRate": 4}' --silent | jq
 ```
 ### Set mouse Angle Snapping
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/angleSnapping -d '{"deviceId":"EXAMPLE-DEVICE-002", "angleSnapping": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/angleSnapping -d '{"deviceId":"EXAMPLE-DEVICE-002", "angleSnapping": 1}' --silent | jq
 ```
 ### Set mouse Button Optimization
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/buttonOptimization -d '{"deviceId":"EXAMPLE-DEVICE-002", "buttonOptimization": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/buttonOptimization -d '{"deviceId":"EXAMPLE-DEVICE-002", "buttonOptimization": 1}' --silent | jq
 ```
 ### Set mouse Key Assignment
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/updateKeyAssignment -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyIndex": 10, "enabled":true,"pressAndHold":false,"keyAssignmentType": 3,"keyAssignmentValue":55}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/updateKeyAssignment -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyIndex": 10, "enabled":true,"pressAndHold":false,"keyAssignmentType": 3,"keyAssignmentValue":55}' --silent | jq
 ```
 ### Set headset Zone colors
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/mouse/zoneColors -d '{"deviceId":"EXAMPLE-DEVICE-002", "colorZones":{"0":{"red":255, "green":255, "blue":255},"1":{"red":255, "green":255, "blue":255}}}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/mouse/zoneColors -d '{"deviceId":"EXAMPLE-DEVICE-002", "colorZones":{"0":{"red":255, "green":255, "blue":255},"1":{"red":255, "green":255, "blue":255}}}' --silent | jq
 ```
 ### Change headset sleep mode
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 3}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/sleep -d '{"deviceId":"EXAMPLE-DEVICE-002", "sleepMode": 3}' --silent | jq
 ```
 ### Change headset mute indicator
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/muteIndicator -d '{"deviceId":"EXAMPLE-DEVICE-002", "muteIndicator": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/muteIndicator -d '{"deviceId":"EXAMPLE-DEVICE-002", "muteIndicator": 1}' --silent | jq
 ```
 ### Create new macro value
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/macro/newValue -d '{"macroId":1, "macroType": 1, "macroValue": 13, "macroDelay":200}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/macro/newValue -d '{"macroId":1, "macroType": 1, "macroValue": 13, "macroDelay":200}' --silent | jq
 ```
 ### Update temperature graph - Fans
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile": "example-profile", "updateType": 1,"points": [{"x": 0,"y": 25}]}' --silent | jq
+$ lfcurl -X PUT http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile": "example-profile", "updateType": 1,"points": [{"x": 0,"y": 25}]}' --silent | jq
 ```
 ### Update temperature graph - Pump
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile": "example-profile", "updateType": 0,"points": [{"x": 0,"y": 25}]}' --silent | jq
+$ lfcurl -X PUT http://127.0.0.1:27003/api/temperatures/updateGraph -d '{"profile": "example-profile", "updateType": 0,"points": [{"x": 0,"y": 25}]}' --silent | jq
 ```
 
 ### Headset Active Noise Cancellation - Off (require Sidetone Off)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "EXAMPLE-DEVICE-002", "noiseCancellation": 0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "EXAMPLE-DEVICE-002", "noiseCancellation": 0}' --silent | jq
 ```
 ### Headset Active Noise Cancellation - On (require Sidetone Off)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "EXAMPLE-DEVICE-002", "noiseCancellation": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "EXAMPLE-DEVICE-002", "noiseCancellation": 1}' --silent | jq
 ```
 ### Headset Active Noise Cancellation - Transparency (require Sidetone Off)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "EXAMPLE-DEVICE-002", "noiseCancellation": 2}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/anc -d '{"deviceId": "EXAMPLE-DEVICE-002", "noiseCancellation": 2}' --silent | jq
 ```
 ### Headset Sidetone - Off (require Active Noise Cancellation Off)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/sidetone -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideTone": 0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/sidetone -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideTone": 0}' --silent | jq
 ```
 ### Headset Sidetone - On (require Active Noise Cancellation Off)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/sidetone -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideTone": 1}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/sidetone -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideTone": 1}' --silent | jq
 ```
 ### Headset Sidetone Value - 0 (require Sidetone On)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideToneValue": 0}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideToneValue": 0}' --silent | jq
 ```
 ### Headset Sidetone Value - 50 (require Sidetone On)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideToneValue": 50}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideToneValue": 50}' --silent | jq
 ```
 ### Headset Sidetone Value - 100 (require Sidetone On)
 ```bash
-$ curl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideToneValue": 100}' --silent | jq
+$ lfcurl -X POST http://127.0.0.1:27003/api/headset/sidetoneValue -d '{"deviceId": "EXAMPLE-DEVICE-002", "sideToneValue": 100}' --silent | jq
 ```
 ### Save new user profile
 ```bash
-$ curl -X PUT http://127.0.0.1:27003/api/userProfile -d '{"deviceId":"EXAMPLE-DEVICE-002", "userProfileName": "example-profile"}' --silent | jq
+$ lfcurl -X PUT http://127.0.0.1:27003/api/userProfile -d '{"deviceId":"EXAMPLE-DEVICE-002", "userProfileName": "example-profile"}' --silent | jq
 ```
 ### Save new keyboard profile
 ```bash
-$ curl -X PUT http://127.0.0.1:27003/api/keyboard/profile/new -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile", "new": true}' --silent | jq
+$ lfcurl -X PUT http://127.0.0.1:27003/api/keyboard/profile/new -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile", "new": true}' --silent | jq
 ```
 ### Save new macro profile
 ```bash
-$ curl -X PUT http://127.0.0.1:27003/api/macro/new -d '{"macroName":"example-macro"}' --silent | jq
+$ lfcurl -X PUT http://127.0.0.1:27003/api/macro/new -d '{"macroName":"example-macro"}' --silent | jq
 ```
 ### Save device RGB profile
 ```bash
-$ curl -X PUT http://127.0.0.1:27003/api/macro/new -d '{"deviceId":"EXAMPLE-DEVICE-002", "profile":"static", "startColor":{"red":255, "green":255, "blue":255}, "endColor":{"red":255, "green":255, "blue":255}, "speed":4}' --silent | jq
+$ lfcurl -X PUT http://127.0.0.1:27003/api/color/change -d '{"deviceId":"EXAMPLE-DEVICE-002", "profile":"static", "startColor":{"red":255, "green":255, "blue":255}, "endColor":{"red":255, "green":255, "blue":255}, "speed":4}' --silent | jq
 ```
 ### Delete keyboard profile
 ```bash
-$ curl -X DELETE http://127.0.0.1:27003/api/keyboard/profile/delete -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile"}' --silent | jq
+$ lfcurl -X DELETE http://127.0.0.1:27003/api/keyboard/profile/delete -d '{"deviceId":"EXAMPLE-DEVICE-002", "keyboardProfileName": "example-profile"}' --silent | jq
 ```
 ### Delete macro value
 ```bash
-$ curl -X DELETE http://127.0.0.1:27003/api/macro/value -d '{"macroId":1, "macroIndex": 3}' --silent | jq
+$ lfcurl -X DELETE http://127.0.0.1:27003/api/macro/value -d '{"macroId":1, "macroIndex": 3}' --silent | jq
 ```
 ### Delete temperature profile (If any of your devices are using given profile, they will be reset to Normal profile)
 ```bash
-$ curl -X DELETE http://127.0.0.1:27003/api/temperatures/delete -d '{"profile":"example-profile"}' --silent | jq
+$ lfcurl -X DELETE http://127.0.0.1:27003/api/temperatures/delete -d '{"profile":"example-profile"}' --silent | jq
 ```
 ### Delete macro profile
 ```bash
-$ curl -X DELETE http://127.0.0.1:27003/api/macro/profile -d '{"macroId":1}' --silent | jq
+$ lfcurl -X DELETE http://127.0.0.1:27003/api/macro/profile -d '{"macroId":1}' --silent | jq
 ```

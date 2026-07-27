@@ -73,6 +73,13 @@ loopback at `127.0.0.1:<listenPort>`. No configuration value can expose this
 listener on a wildcard, LAN, Tailscale, or other network interface, and remote
 dashboard/API access is unsupported.
 
+Dashboard and API requests may identify the listener only as
+`127.0.0.1:<listenPort>` or `localhost:<listenPort>`. Browser mutations must be
+same-origin and carry LumenForge's local request proof. CORS, reverse proxies,
+forwarded hosts, and remote web clients are unsupported. See the
+[HTTP API guide](../api/README.md#local-request-protection) for command-line
+mutation examples.
+
 `listenAddress` is a deprecated compatibility field. Existing configurations
 containing it still load, and LumenForge does not rewrite a config merely to
 remove it, but the value is ignored by every listener and is no longer written

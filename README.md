@@ -10,6 +10,13 @@ LumenForge complements OpenLinkHub and OpenRGB; it does not replace either proje
 
 LumenForge is a local-only application. Its dashboard, HTTP API, OpenRGB importer, and optional inherited OpenRGB-compatible target listener are restricted to `127.0.0.1`; remote dashboard or API access is unsupported.
 
+The dashboard is supported through `http://127.0.0.1:<listenPort>` and
+`http://localhost:<listenPort>`. HTTP Host validation accepts only those local
+identities. Browser mutations require same-origin validation and a
+LumenForge-specific request proof; CORS and remote web clients are unsupported.
+See the [HTTP API guide](api/README.md#local-request-protection) before using a
+local command-line client for POST, PUT, PATCH, or DELETE requests.
+
 ## Features
 
 - Web UI at `http://127.0.0.1:27003`

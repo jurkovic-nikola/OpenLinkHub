@@ -64,6 +64,7 @@ func TestOpenRGBImportLifecycleRoutesAndResponseCompatibility(t *testing.T) {
 	}
 	for _, test := range tests {
 		request := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
+		addLocalRequestProtection(t, router, request)
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 		if recorder.Code != http.StatusOK {
@@ -79,6 +80,7 @@ func TestOpenRGBImportLifecycleRoutesAndResponseCompatibility(t *testing.T) {
 	}
 
 	request := httptest.NewRequest(http.MethodGet, "/api/openrgbimport/discover", nil)
+	addLocalRequestProtection(t, router, request)
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusMethodNotAllowed {
@@ -102,6 +104,7 @@ func TestOpenRGBImportLifecycleHandlersRejectInvalidRequests(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
+			addLocalRequestProtection(t, router, request)
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)
 			response := decodeLifecycleResponse(t, recorder)
@@ -123,6 +126,7 @@ func TestOpenRGBImportLifecycleHandlersRejectInvalidRequests(t *testing.T) {
 	} {
 		data, _ := json.Marshal(body)
 		request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(string(data)))
+		addLocalRequestProtection(t, router, request)
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, request)
 		response := decodeLifecycleResponse(t, recorder)
@@ -147,9 +151,11 @@ func TestOpenRGBImportDiscoveryFailureKeepsUsefulData(t *testing.T) {
 		return data, errors.New("SDK unavailable")
 	}
 
+	router := setRoutes()
 	request := httptest.NewRequest(http.MethodPost, "/api/openrgbimport/discover", nil)
+	addLocalRequestProtection(t, router, request)
 	recorder := httptest.NewRecorder()
-	setRoutes().ServeHTTP(recorder, request)
+	router.ServeHTTP(recorder, request)
 	response := decodeLifecycleResponse(t, recorder)
 	if recorder.Code != http.StatusOK || response.Status != 0 || response.Data == nil {
 		t.Fatalf("failure response = %#v", response)

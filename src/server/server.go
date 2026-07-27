@@ -18,6 +18,7 @@ import (
 	"LumenForge/src/inputmanager"
 	"LumenForge/src/language"
 	"LumenForge/src/lifecycle"
+	"LumenForge/src/localnetwork"
 	"LumenForge/src/logger"
 	"LumenForge/src/macro"
 	"LumenForge/src/media"
@@ -3178,12 +3179,9 @@ func Init() {
 
 	if config.GetConfig().ListenPort > 0 {
 		templates.Init()
+		address := httpListenAddress(config.GetConfig())
 		srv := &http.Server{
-			Addr: fmt.Sprintf(
-				"%s:%v",
-				config.GetConfig().ListenAddress,
-				config.GetConfig().ListenPort,
-			),
+			Addr:    address,
 			Handler: setRoutes(),
 		}
 		serverMutex.Lock()
@@ -3209,6 +3207,10 @@ func Init() {
 	} else {
 		logger.Log(logger.Fields{}).Info("REST server is disabled")
 	}
+}
+
+func httpListenAddress(cfg config.Configuration) string {
+	return localnetwork.Address(cfg.ListenPort)
 }
 
 // Shutdown stops accepting requests and waits for active requests until ctx expires.

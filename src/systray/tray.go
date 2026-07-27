@@ -175,7 +175,7 @@ func (m *MenuServer) Event(id int32, eventId string, data dbus.Variant, timestam
 	switch id {
 	case 101: // Open Dashboard
 		cfg := config.GetConfig()
-		if err := activateDashboard(eventId, cfg.ListenAddress, cfg.ListenPort, launchDashboard); err != nil {
+		if err := activateDashboard(eventId, cfg.ListenPort, launchDashboard); err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to build dashboard URL")
 		}
 	case 105: // Exit

@@ -23,7 +23,6 @@ This is the configuration generated for a new installation:
   "manual": false,
   "frontend": true,
   "metrics": false,
-  "listenAddress": "127.0.0.1",
   "listenPort": 27003,
   "logFile": "",
   "logLevel": "info",
@@ -65,10 +64,20 @@ fresh value is omitted by `omitempty`.
 
 | Key | Type and default | Accepted values | Purpose and guidance | Restart |
 | --- | --- | --- | --- | --- |
-| `listenPort` | integer, `27003` | `1`-`65535` starts the HTTP server; `0` or a negative value disables it | Port for the web UI and HTTP API. Users normally change it only to resolve a port conflict. An out-of-range positive port makes server startup fail. | Yes |
-| `listenAddress` | string, `"127.0.0.1"` | An address accepted by Go's TCP listener; an empty string binds all interfaces | Address for the web UI and HTTP API. Keep the loopback default unless the host is otherwise secured: the API has no built-in authentication and includes state-changing endpoints. | Yes |
+| `listenPort` | integer, `27003` | `1`-`65535` starts the HTTP server; `0` or a negative value disables it | Port for the web UI and HTTP API on `127.0.0.1`. Users normally change it only to resolve a local port conflict. An out-of-range positive port makes server startup fail. | Yes |
 | `frontend` | boolean, `true` | `true`, `false` | Registers the HTML interface routes. Setting it to `false` does not disable the HTTP API or static-file route. Most users should leave it enabled. | Yes |
 | `metrics` | boolean, `false` | `true`, `false` | Registers the `/api/metrics` endpoint. Enable only when a local monitoring client needs it. It uses the same listener and security boundary as the rest of the API. | Yes |
+
+LumenForge is local-only. The dashboard and HTTP API always listen on IPv4
+loopback at `127.0.0.1:<listenPort>`. No configuration value can expose this
+listener on a wildcard, LAN, Tailscale, or other network interface, and remote
+dashboard/API access is unsupported.
+
+`listenAddress` is a deprecated compatibility field. Existing configurations
+containing it still load, and LumenForge does not rewrite a config merely to
+remove it, but the value is ignored by every listener and is no longer written
+to new configurations. A configured non-loopback legacy value produces a
+startup warning explaining that LumenForge is restricted to `127.0.0.1`.
 
 The server settings are independent of OpenRGB's SDK server. `listenPort` is
 LumenForge's HTTP port; `openRGBPort` is the local OpenRGB SDK port.
@@ -131,7 +140,7 @@ requires them.
 
 | Key | Type and default | Accepted values | Purpose and guidance | Restart |
 | --- | --- | --- | --- | --- |
-| `openRGBPort` | integer, `6742` | `1`-`65535` | Port used by the selected OpenRGB workflow. The importer connects to an external OpenRGB SDK Server at this port on `127.0.0.1`; the target server listens on this port at `listenAddress`. An invalid port prevents the applicable connection or listener. | Yes |
+| `openRGBPort` | integer, `6742` | `1`-`65535` | Port used by the selected OpenRGB workflow. The importer connects to a local OpenRGB SDK Server at `127.0.0.1` on this port; the optional target server listens on `127.0.0.1` on this port. An invalid port prevents the applicable connection or listener. | Yes |
 | `enableOpenRGBTargetServer` | boolean, `false`; optional and omitted from generated defaults | `true`, `false` | Enables LumenForge's inherited OpenRGB-compatible target server, which exposes supported LumenForge-managed native devices to an OpenRGB client. This is the reverse of the importer workflow. Leave it `false` unless deliberately using the target server. | Yes |
 
 The target-server workflow remains functional inherited OpenLinkHub behavior.
@@ -139,12 +148,12 @@ Here, inherited and secondary describe its origin and relationship to the newer
 importer, not deprecation or reduced functionality. See
 [OpenRGB target server](../openrgb/README.md) for setup and supported devices.
 
-LumenForge always connects to the importer SDK endpoint on loopback; changing
-`listenAddress` does not change that client address. The target server and an
-external OpenRGB SDK Server cannot listen on the same `openRGBPort`, and the
-importer manager does not run while the local target server is enabled.
-Importer and target-server workflows may be used only when their port and
-device-ownership arrangements do not conflict.
+For importer mode, configure OpenRGB's own SDK Server Host as `127.0.0.1` and
+match its port to `openRGBPort`. LumenForge does not change OpenRGB's
+configuration. The target server and a local OpenRGB SDK Server cannot listen
+on the same `openRGBPort`, and the importer manager does not run while the
+local target server is enabled. Importer and target-server workflows may be
+used only when their port and device-ownership arrangements do not conflict.
 
 Imported-controller identities, layouts, disabled membership, RGB profiles,
 cluster membership, and other files below `database/` are runtime state. They

@@ -2,13 +2,13 @@ package openrgb
 
 import (
 	"LumenForge/src/config"
+	"LumenForge/src/localnetwork"
 	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -39,17 +39,20 @@ const (
 
 var (
 	sdkAddress = func() (string, error) {
-		port := config.GetConfig().OpenRGBPort
-		if port <= 0 || port > 65535 {
-			return "", fmt.Errorf("OpenRGB port is not configured")
-		}
-		return net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), nil
+		return sdkAddressForConfig(config.GetConfig())
 	}
 	dialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
 		dialer := &net.Dialer{Timeout: connectTimeout}
 		return dialer.DialContext(ctx, network, address)
 	}
 )
+
+func sdkAddressForConfig(cfg config.Configuration) (string, error) {
+	if cfg.OpenRGBPort <= 0 || cfg.OpenRGBPort > 65535 {
+		return "", fmt.Errorf("OpenRGB port is not configured")
+	}
+	return localnetwork.Address(cfg.OpenRGBPort), nil
+}
 
 func GetStatus() (ConnectionState, error) {
 	statusMutex.RLock()

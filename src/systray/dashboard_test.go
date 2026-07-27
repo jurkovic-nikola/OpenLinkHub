@@ -9,64 +9,25 @@ import (
 
 func TestBuildDashboardURL(t *testing.T) {
 	tests := []struct {
-		name          string
-		listenAddress string
-		listenPort    int
-		want          string
+		name       string
+		listenPort int
+		want       string
 	}{
 		{
-			name:          "IPv4 loopback",
-			listenAddress: "127.0.0.1",
-			listenPort:    27003,
-			want:          "http://127.0.0.1:27003",
+			name:       "default port",
+			listenPort: 27003,
+			want:       "http://127.0.0.1:27003",
 		},
 		{
-			name:          "localhost",
-			listenAddress: "localhost",
-			listenPort:    27003,
-			want:          "http://localhost:27003",
-		},
-		{
-			name:          "IPv4 wildcard",
-			listenAddress: "0.0.0.0",
-			listenPort:    27003,
-			want:          "http://127.0.0.1:27003",
-		},
-		{
-			name:          "IPv6 wildcard",
-			listenAddress: "::",
-			listenPort:    27003,
-			want:          "http://[::1]:27003",
-		},
-		{
-			name:          "LAN address",
-			listenAddress: "192.168.1.50",
-			listenPort:    27003,
-			want:          "http://192.168.1.50:27003",
-		},
-		{
-			name:          "IPv6 literal",
-			listenAddress: "2001:db8::50",
-			listenPort:    27003,
-			want:          "http://[2001:db8::50]:27003",
-		},
-		{
-			name:          "bracketed IPv6 literal",
-			listenAddress: "[::1]",
-			listenPort:    27003,
-			want:          "http://[::1]:27003",
-		},
-		{
-			name:          "configured port",
-			listenAddress: "127.0.0.1",
-			listenPort:    8080,
-			want:          "http://127.0.0.1:8080",
+			name:       "configured port",
+			listenPort: 8080,
+			want:       "http://127.0.0.1:8080",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := buildDashboardURL(test.listenAddress, test.listenPort)
+			got, err := buildDashboardURL(test.listenPort)
 			if err != nil {
 				t.Fatalf("buildDashboardURL() returned error: %v", err)
 			}
@@ -79,7 +40,7 @@ func TestBuildDashboardURL(t *testing.T) {
 
 func TestDashboardActivationLaunchesConfiguredURL(t *testing.T) {
 	var launchedURL string
-	err := activateDashboard("clicked", "0.0.0.0", 28080, func(dashboardURL string) {
+	err := activateDashboard("clicked", 28080, func(dashboardURL string) {
 		launchedURL = dashboardURL
 	})
 	if err != nil {

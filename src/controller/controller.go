@@ -30,6 +30,8 @@ import (
 	"LumenForge/src/temperatures"
 	"LumenForge/src/version"
 	"context"
+	"fmt"
+	"os"
 	"sync"
 	"time"
 )
@@ -48,6 +50,13 @@ var cleanupState struct {
 func Start() {
 	version.Init() // Build info
 	config.Init()  // Configuration
+	if legacyAddress, ignored := config.IgnoredListenAddress(); ignored {
+		_, _ = fmt.Fprintf(
+			os.Stderr,
+			"WARNING: deprecated non-loopback listenAddress %q is ignored; LumenForge listeners are restricted to 127.0.0.1\n",
+			legacyAddress,
+		)
+	}
 	logger.Init()  // Logger
 	display.Init() // Displays
 	media.Init()   // Media client

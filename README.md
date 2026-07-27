@@ -8,6 +8,8 @@ LumenForge is an experimental Linux RGB, cooling, and device-control hub built a
 
 LumenForge complements OpenLinkHub and OpenRGB; it does not replace either project. Hardware support varies, and OpenRGB-imported devices depend on both OpenRGB support and the metadata LumenForge can obtain for that device.
 
+LumenForge is a local-only application. Its dashboard, HTTP API, OpenRGB importer, and optional inherited OpenRGB-compatible target listener are restricted to `127.0.0.1`; remote dashboard or API access is unsupported.
+
 ## Features
 
 - Web UI at `http://127.0.0.1:27003`
@@ -196,7 +198,7 @@ See the [configuration reference](docs/configuration.md) for the complete genera
 
 ### OpenRGB Controller Import
 
-OpenRGB must already be running with its SDK Server available on the configured `openRGBPort`. LumenForge does not install, launch, stop, restart, or otherwise manage OpenRGB itself.
+OpenRGB must already be running on the same computer with its SDK Server host set to `127.0.0.1` and its port matching LumenForge's configured `openRGBPort`. LumenForge does not install, launch, stop, restart, configure, or otherwise manage OpenRGB itself.
 
 Controllers are discovered and explicitly imported through Settings. Imported controllers can be refreshed, removed, and later reimported without losing their stable identity, saved layout, profile, or RGB state.
 
@@ -205,7 +207,7 @@ Some OpenRGB controllers report incomplete metadata or zero LEDs. In those cases
 See the [OpenRGB import guide](docs/openrgb-import.md) for detailed setup, import, layout, removal, and troubleshooting procedures.
 
 > [!WARNING]
-> Keep `listenAddress` set to `127.0.0.1` unless access to the host is otherwise secured. LumenForge's HTTP API can change device, cooling, lighting, profile, and backup settings and does not currently provide built-in authentication.
+> LumenForge is local-only. The dashboard and HTTP API listen only on `127.0.0.1`, and remote access is unsupported. A legacy `listenAddress` value in an existing configuration is ignored.
 
 `enableSystemTray` enables the built-in system tray integration only when LumenForge runs as the user service inside the desktop session. Enabling it does not make a tray available from the system service. The tray has been tested on KDE Plasma and GNOME; other desktop environments may also work if they provide compatible StatusNotifierItem and `com.canonical.dbusmenu` support. Cinnamon is not currently supported.
 

@@ -1,13 +1,11 @@
 package systray
 
 import (
+	"LumenForge/src/localnetwork"
 	"LumenForge/src/logger"
 	"fmt"
-	"net"
 	"net/url"
 	"os/exec"
-	"strconv"
-	"strings"
 )
 
 const dashboardOpener = "xdg-open"
@@ -32,39 +30,24 @@ func (e *dashboardOpenError) Unwrap() error {
 	return e.err
 }
 
-func buildDashboardURL(listenAddress string, listenPort int) (string, error) {
+func buildDashboardURL(listenPort int) (string, error) {
 	if listenPort < 1 || listenPort > 65535 {
 		return "", fmt.Errorf("invalid listen port %d", listenPort)
 	}
 
-	host := strings.TrimSpace(listenAddress)
-	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-		host = strings.TrimSuffix(strings.TrimPrefix(host, "["), "]")
-	}
-
-	ip := net.ParseIP(host)
-	switch {
-	case host == "":
-		host = "127.0.0.1"
-	case ip != nil && ip.IsUnspecified() && strings.Contains(host, ":"):
-		host = "::1"
-	case ip != nil && ip.IsUnspecified():
-		host = "127.0.0.1"
-	}
-
 	return (&url.URL{
 		Scheme: "http",
-		Host:   net.JoinHostPort(host, strconv.Itoa(listenPort)),
+		Host:   localnetwork.Address(listenPort),
 	}).String(), nil
 }
 
-func activateDashboard(eventID, listenAddress string, listenPort int, launch func(string)) error {
+func activateDashboard(eventID string, listenPort int, launch func(string)) error {
 	logger.Log(logger.Fields{
 		"eventId": eventID,
 		"menuId":  101,
 	}).Debug("Open Dashboard tray action received")
 
-	dashboardURL, err := buildDashboardURL(listenAddress, listenPort)
+	dashboardURL, err := buildDashboardURL(listenPort)
 	if err != nil {
 		return err
 	}

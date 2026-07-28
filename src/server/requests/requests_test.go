@@ -159,6 +159,19 @@ func TestExternalSourceSelectionMessageUsesLanguageSystem(t *testing.T) {
 	useRequestLocalizationTestState(t)
 
 	dash := dashboard.GetDashboard()
+	originalLanguage := dash.LanguageCode
+	t.Cleanup(func() {
+		restored := dashboard.GetDashboard()
+		restored.LanguageCode = originalLanguage
+		if dashboard.SaveDashboardSettings(restored, true) != 1 {
+			t.Errorf("unable to restore dashboard language %q", originalLanguage)
+			return
+		}
+		if got := dashboard.GetDashboard().LanguageCode; got != originalLanguage {
+			t.Errorf("restored dashboard language = %q, want %q", got, originalLanguage)
+		}
+	})
+
 	dash.LanguageCode = "de_DE"
 	if dashboard.SaveDashboardSettings(dash, true) != 1 {
 		t.Fatal("unable to select German dashboard language")

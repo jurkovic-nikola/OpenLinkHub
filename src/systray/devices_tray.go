@@ -10,7 +10,6 @@ import (
 
 var deviceMap = make(map[int]string)
 
-
 func createSubMenuLayout(id int32, label string, items map[int32]string) MenuLayout {
 	var children []dbus.Variant
 

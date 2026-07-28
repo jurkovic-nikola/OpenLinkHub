@@ -1,12 +1,15 @@
 package lcd
 
 import (
+	"bytes"
+	"errors"
 	"image"
 	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -312,41 +315,196 @@ func TestCleanupMutableLCDSiblingsKeepsRestartStateConsistent(t *testing.T) {
 	}
 }
 
-func TestActivateMutableLCDUploadCleanupFailureDoesNotChangeLiveState(t *testing.T) {
+func TestTransactionalLCDUploadCreatesNewMedia(t *testing.T) {
 	root := t.TempDir()
-	keepPath := filepath.Join(root, "shared.gif")
-	writeTestGIF(t, keepPath, color.RGBA{B: 255, A: 255})
-	if err := os.Mkdir(filepath.Join(root, "shared.bmp"), 0o700); err != nil {
+	destination := filepath.Join(root, "fresh.gif")
+	tempPath := stageTestLCDUpload(t, root, "fresh", color.RGBA{G: 255, A: 255})
+	preserveLCDTransactionState(t, nil, nil)
+
+	if err := transactMutableLCDUpload(
+		root,
+		"fresh",
+		tempPath,
+		destination,
+		ImageFormatGif,
+		defaultLCDUploadTransactionOps(),
+	); err != nil {
 		t.Fatal(err)
 	}
 
-	mutex.Lock()
-	originalImageData := lcd.ImageData
-	originalAnimation := animation
-	lcd.ImageData = []ImageData{{Name: "shared", Frames: 7}}
-	animation = &Animation{Images: map[string][]AnimationFrames{
+	info, err := os.Stat(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode := info.Mode().Perm(); mode != 0o600 {
+		t.Fatalf("destination mode = %#o, want 0600", mode)
+	}
+	if imageData := GetPalettedFrames("fresh"); imageData.PalettedFrames == nil {
+		t.Fatal("new upload was not installed in live image state")
+	}
+	if frames, ok := animationFramesForTest("fresh"); !ok || len(frames) != 1 {
+		t.Fatalf("new upload animation = %#v, present=%v", frames, ok)
+	}
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestTransactionalLCDUploadOverwritesExistingDestination(t *testing.T) {
+	root := t.TempDir()
+	destination := filepath.Join(root, "shared.gif")
+	writeTestGIF(t, destination, color.RGBA{R: 255, A: 255})
+	originalBytes, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
 		"shared": {{Delay: 99}},
-	}}
-	mutex.Unlock()
-	t.Cleanup(func() {
-		mutex.Lock()
-		lcd.ImageData = originalImageData
-		animation = originalAnimation
-		mutex.Unlock()
 	})
 
-	if err := activateMutableLCDUpload(root, "shared", keepPath, ImageFormatGif); err == nil {
-		t.Fatal("activation succeeded despite an unremovable same-name directory sibling")
+	if err = transactMutableLCDUpload(
+		root,
+		"shared",
+		tempPath,
+		destination,
+		ImageFormatGif,
+		defaultLCDUploadTransactionOps(),
+	); err != nil {
+		t.Fatal(err)
 	}
-	if imageData := GetPalettedFrames("shared"); imageData.Frames != 7 {
-		t.Fatalf("live image changed after cleanup failure: %#v", imageData)
+
+	replacementBytes, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if frames, ok := animationFramesForTest("shared"); !ok || len(frames) != 1 || frames[0].Delay != 99 {
-		t.Fatalf("live animation changed after cleanup failure: %#v, present=%v", frames, ok)
+	if bytes.Equal(replacementBytes, originalBytes) {
+		t.Fatal("successful overwrite retained the previous destination bytes")
 	}
-	if _, err := os.Stat(keepPath); err != nil {
-		t.Fatalf("replacement file disappeared during cleanup failure: %v", err)
+	if imageData := GetPalettedFrames("shared"); imageData.PalettedFrames == nil || imageData.Frames != 1 {
+		t.Fatalf("live image after overwrite = %#v", imageData)
 	}
+	if frames, ok := animationFramesForTest("shared"); !ok || len(frames) != 1 || frames[0].Delay == 99 {
+		t.Fatalf("animation after overwrite = %#v, present=%v", frames, ok)
+	}
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestTransactionalLCDUploadActivationFailureRestoresDestinationAndLiveState(t *testing.T) {
+	root := t.TempDir()
+	destination := filepath.Join(root, "shared.gif")
+	writeTestGIF(t, destination, color.RGBA{R: 255, A: 255})
+	originalBytes, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
+		"shared": {{Delay: 99}},
+	})
+
+	ops := defaultLCDUploadTransactionOps()
+	ops.beforeActivate = func() error {
+		return errors.New("injected activation failure")
+	}
+	err = transactMutableLCDUpload(root, "shared", tempPath, destination, ImageFormatGif, ops)
+	if err == nil || !strings.Contains(err.Error(), "injected activation failure") {
+		t.Fatalf("activation failure = %v", err)
+	}
+
+	restoredBytes, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(restoredBytes, originalBytes) {
+		t.Fatal("activation failure changed the original destination")
+	}
+	assertLCDLiveStateUnchanged(t, "shared")
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestTransactionalLCDUploadSiblingCleanupFailureRollsBack(t *testing.T) {
+	root := t.TempDir()
+	destination := filepath.Join(root, "shared.gif")
+	sibling := filepath.Join(root, "shared.jpg")
+	writeTestGIF(t, destination, color.RGBA{R: 255, A: 255})
+	writeTestJPEG(t, sibling, color.RGBA{G: 255, A: 255})
+	originalDestination, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalSibling, err := os.ReadFile(sibling)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
+		"shared": {{Delay: 99}},
+	})
+
+	ops := defaultLCDUploadTransactionOps()
+	ops.rename = func(oldPath, newPath string) error {
+		if oldPath == sibling {
+			return errors.New("injected sibling cleanup failure")
+		}
+		return os.Rename(oldPath, newPath)
+	}
+	err = transactMutableLCDUpload(root, "shared", tempPath, destination, ImageFormatGif, ops)
+	if err == nil || !strings.Contains(err.Error(), "injected sibling cleanup failure") {
+		t.Fatalf("sibling cleanup failure = %v", err)
+	}
+
+	restoredDestination, readErr := os.ReadFile(destination)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	restoredSibling, readErr := os.ReadFile(sibling)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Equal(restoredDestination, originalDestination) {
+		t.Fatal("cleanup failure changed the original destination")
+	}
+	if !bytes.Equal(restoredSibling, originalSibling) {
+		t.Fatal("cleanup failure changed the obsolete sibling")
+	}
+	assertLCDLiveStateUnchanged(t, "shared")
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestTransactionalLCDUploadCrossExtensionCleanupRunsAfterActivation(t *testing.T) {
+	root := t.TempDir()
+	destination := filepath.Join(root, "shared.gif")
+	sibling := filepath.Join(root, "shared.jpg")
+	writeTestJPEG(t, sibling, color.RGBA{R: 255, A: 255})
+	tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
+		"shared": {{Delay: 99}},
+	})
+
+	activationObserved := false
+	ops := defaultLCDUploadTransactionOps()
+	ops.beforeActivate = func() error {
+		activationObserved = true
+		if _, err := os.Stat(sibling); err != nil {
+			return errors.New("obsolete sibling removed before activation")
+		}
+		if imageData := GetPalettedFrames("shared"); imageData.Frames != 7 {
+			return errors.New("live state changed before activation")
+		}
+		return nil
+	}
+	if err := transactMutableLCDUpload(root, "shared", tempPath, destination, ImageFormatGif, ops); err != nil {
+		t.Fatal(err)
+	}
+	if !activationObserved {
+		t.Fatal("activation seam was not reached")
+	}
+	if _, err := os.Stat(sibling); !os.IsNotExist(err) {
+		t.Fatalf("obsolete sibling remains after successful activation: %v", err)
+	}
+	if _, err := os.Stat(destination); err != nil {
+		t.Fatal(err)
+	}
+	assertNoLCDTransactionArtifacts(t, root)
 }
 
 func writeTestGIF(t *testing.T, path string, frameColors ...color.RGBA) {
@@ -404,4 +562,70 @@ func animationFramesForTest(name string) ([]AnimationFrames, bool) {
 	defer mutex.Unlock()
 	frames, ok := animation.Images[name]
 	return frames, ok
+}
+
+func stageTestLCDUpload(t *testing.T, root, baseName string, fill color.RGBA) string {
+	t.Helper()
+	file, err := os.CreateTemp(root, "."+baseName+"-upload-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempPath := file.Name()
+	if err = file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	writeTestGIF(t, tempPath, fill)
+	if err = os.Chmod(tempPath, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return tempPath
+}
+
+func preserveLCDTransactionState(
+	t *testing.T,
+	imageData []ImageData,
+	animationImages map[string][]AnimationFrames,
+) {
+	t.Helper()
+	mutex.Lock()
+	originalImageData := lcd.ImageData
+	originalAnimation := animation
+	originalWidth := imgWidth
+	originalHeight := imgHeight
+	lcd.ImageData = imageData
+	animation = &Animation{Images: animationImages}
+	imgWidth = 2
+	imgHeight = 2
+	mutex.Unlock()
+	t.Cleanup(func() {
+		mutex.Lock()
+		lcd.ImageData = originalImageData
+		animation = originalAnimation
+		imgWidth = originalWidth
+		imgHeight = originalHeight
+		mutex.Unlock()
+	})
+}
+
+func assertLCDLiveStateUnchanged(t *testing.T, name string) {
+	t.Helper()
+	if imageData := GetPalettedFrames(name); imageData.Frames != 7 {
+		t.Fatalf("live image changed after failed transaction: %#v", imageData)
+	}
+	if frames, ok := animationFramesForTest(name); !ok || len(frames) != 1 || frames[0].Delay != 99 {
+		t.Fatalf("live animation changed after failed transaction: %#v, present=%v", frames, ok)
+	}
+}
+
+func assertNoLCDTransactionArtifacts(t *testing.T, root string) {
+	t.Helper()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.Contains(entry.Name(), "-upload-") || strings.Contains(entry.Name(), "-rollback-") {
+			t.Errorf("LCD transaction artifact remains: %s", entry.Name())
+		}
+	}
 }

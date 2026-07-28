@@ -26,6 +26,7 @@ const (
 	maxNameLength    = 128
 	maxProcessOutput = 4 * 1024
 	commandTimeout   = 2 * time.Second
+	commandWaitDelay = 250 * time.Millisecond
 )
 
 var (
@@ -63,6 +64,7 @@ type source struct {
 	executable string
 	args       []string
 	fileInfo   os.FileInfo
+	policy     executablePolicy
 }
 
 // Registry is an immutable validated snapshot of external-sources.json.
@@ -75,6 +77,13 @@ type Registry struct {
 type filePolicy struct {
 	checkOwner     bool
 	expectedOwner  uint32
+	checkWriteMode bool
+	executable     executablePolicy
+}
+
+type executablePolicy struct {
+	allowedOwners  []uint32
+	checkOwner     bool
 	checkWriteMode bool
 }
 
@@ -132,6 +141,8 @@ func (registry Registry) Execute(id string) (float32, error) {
 	stdout := &limitedCapture{limit: maxProcessOutput}
 	stderr := &limitedCapture{limit: maxProcessOutput}
 	command := exec.CommandContext(ctx, selected.executable, selected.args...)
+	// Bound cleanup when a descendant inherits and retains stdout or stderr.
+	command.WaitDelay = commandWaitDelay
 	command.Stdout = stdout
 	command.Stderr = stderr
 	runErr := command.Run()
@@ -154,11 +165,38 @@ func (registry Registry) Execute(id string) (float32, error) {
 }
 
 func policyForMode(mode config.ServiceMode) filePolicy {
+	currentOwner := uint32(os.Geteuid())
 	switch mode {
 	case config.ServiceModeSystem:
-		return filePolicy{checkOwner: true, expectedOwner: 0, checkWriteMode: true}
+		return filePolicy{
+			checkOwner:     true,
+			expectedOwner:  0,
+			checkWriteMode: true,
+			executable: executablePolicy{
+				allowedOwners:  []uint32{0},
+				checkOwner:     true,
+				checkWriteMode: true,
+			},
+		}
 	case config.ServiceModeUser:
-		return filePolicy{checkOwner: true, expectedOwner: uint32(os.Geteuid()), checkWriteMode: true}
+		return filePolicy{
+			checkOwner:     true,
+			expectedOwner:  currentOwner,
+			checkWriteMode: true,
+			executable: executablePolicy{
+				allowedOwners:  []uint32{currentOwner, 0},
+				checkOwner:     true,
+				checkWriteMode: true,
+			},
+		}
+	case config.ServiceModeDevelopment:
+		return filePolicy{
+			executable: executablePolicy{
+				allowedOwners:  []uint32{currentOwner, 0},
+				checkOwner:     true,
+				checkWriteMode: true,
+			},
+		}
 	default:
 		return filePolicy{}
 	}
@@ -229,7 +267,7 @@ func loadFile(path string, policy filePolicy) (Registry, error) {
 		ordered: make([]Info, 0, len(*decoded.Sources)),
 	}
 	for index, entry := range *decoded.Sources {
-		validated, validateErr := validateEntry(entry)
+		validated, validateErr := validateEntry(entry, policy.executable)
 		if validateErr != nil {
 			return Registry{}, fmt.Errorf("%w: source %d: %v", ErrRegistryInvalid, index, validateErr)
 		}
@@ -257,7 +295,7 @@ func requireJSONEOF(decoder *json.Decoder) error {
 	return err
 }
 
-func validateEntry(entry registryEntry) (source, error) {
+func validateEntry(entry registryEntry, policy executablePolicy) (source, error) {
 	if entry.ID == "" || len(entry.ID) > maxIDLength || !idPattern.MatchString(entry.ID) {
 		return source{}, fmt.Errorf("id must contain 1-%d letters, numbers, dots, underscores, or hyphens", maxIDLength)
 	}
@@ -271,7 +309,7 @@ func validateEntry(entry registryEntry) (source, error) {
 	if entry.Args == nil {
 		return source{}, errors.New("args must be a JSON string array")
 	}
-	executable, fileInfo, err := validateExecutable(entry.Executable)
+	executable, fileInfo, err := validateExecutable(entry.Executable, policy)
 	if err != nil {
 		return source{}, err
 	}
@@ -280,10 +318,11 @@ func validateEntry(entry registryEntry) (source, error) {
 		executable: executable,
 		args:       append([]string(nil), (*entry.Args)...),
 		fileInfo:   fileInfo,
+		policy:     policy,
 	}, nil
 }
 
-func validateExecutable(path string) (string, os.FileInfo, error) {
+func validateExecutable(path string, policy executablePolicy) (string, os.FileInfo, error) {
 	if !filepath.IsAbs(path) {
 		return "", nil, errors.New("executable must be an absolute path")
 	}
@@ -301,22 +340,53 @@ func validateExecutable(path string) (string, os.FileInfo, error) {
 	if fileInfo.Mode().Perm()&0o111 == 0 {
 		return "", nil, errors.New("executable file has no execute bit")
 	}
+	if err = validateExecutableTrust(fileInfo, policy); err != nil {
+		return "", nil, err
+	}
 	return canonical, fileInfo, nil
 }
 
 func revalidateExecutable(selected source) error {
-	canonical, fileInfo, err := validateExecutable(selected.executable)
+	canonical, fileInfo, err := validateExecutable(selected.executable, selected.policy)
 	if err != nil {
 		return fmt.Errorf("%w: source %q: %v", ErrExecutableUnavailable, selected.info.ID, err)
 	}
 	if canonical != selected.executable ||
 		!os.SameFile(fileInfo, selected.fileInfo) ||
+		!sameOwnership(fileInfo, selected.fileInfo) ||
 		fileInfo.Mode() != selected.fileInfo.Mode() ||
 		fileInfo.Size() != selected.fileInfo.Size() ||
 		!fileInfo.ModTime().Equal(selected.fileInfo.ModTime()) {
 		return fmt.Errorf("%w: source %q changed after registry validation", ErrExecutableUnavailable, selected.info.ID)
 	}
 	return nil
+}
+
+func validateExecutableTrust(fileInfo os.FileInfo, policy executablePolicy) error {
+	if policy.checkWriteMode && fileInfo.Mode().Perm()&0o022 != 0 {
+		return errors.New("executable must not be group- or world-writable")
+	}
+	if !policy.checkOwner {
+		return nil
+	}
+	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return errors.New("executable ownership is unavailable")
+	}
+	for _, allowedOwner := range policy.allowedOwners {
+		if stat.Uid == allowedOwner {
+			return nil
+		}
+	}
+	return fmt.Errorf("executable owner %d is not trusted", stat.Uid)
+}
+
+func sameOwnership(first, second os.FileInfo) bool {
+	firstStat, firstOK := first.Sys().(*syscall.Stat_t)
+	secondStat, secondOK := second.Sys().(*syscall.Stat_t)
+	return firstOK && secondOK &&
+		firstStat.Uid == secondStat.Uid &&
+		firstStat.Gid == secondStat.Gid
 }
 
 func (registry Registry) lookup(id string) (source, error) {

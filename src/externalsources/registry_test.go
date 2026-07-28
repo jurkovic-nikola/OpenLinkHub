@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -52,8 +53,10 @@ func TestLoadValidSystemRegistryPolicy(t *testing.T) {
 	}
 	if os.Geteuid() != 0 {
 		// A non-root test process cannot create the required root-owned fixture.
-		// Retain every other system-mode check while exercising valid decoding.
+		// Retain every other system-mode check while exercising valid decoding
+		// through the policy seam used only by this test.
 		policy.expectedOwner = uint32(os.Geteuid())
+		policy.executable.allowedOwners = []uint32{uint32(os.Geteuid())}
 	}
 	registry, err := loadFile(path, policy)
 	if err != nil {
@@ -61,6 +64,129 @@ func TestLoadValidSystemRegistryPolicy(t *testing.T) {
 	}
 	if len(registry.sources) != 1 {
 		t.Fatalf("system registry sources = %d, want 1", len(registry.sources))
+	}
+}
+
+func TestExecutablePolicyForMode(t *testing.T) {
+	currentOwner := uint32(os.Geteuid())
+	tests := []struct {
+		name          string
+		mode          config.ServiceMode
+		allowedOwners []uint32
+	}{
+		{name: "system", mode: config.ServiceModeSystem, allowedOwners: []uint32{0}},
+		{name: "user", mode: config.ServiceModeUser, allowedOwners: []uint32{currentOwner, 0}},
+		{name: "development", mode: config.ServiceModeDevelopment, allowedOwners: []uint32{currentOwner, 0}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			policy := policyForMode(test.mode).executable
+			if !policy.checkOwner || !policy.checkWriteMode {
+				t.Fatalf("executable policy = %#v", policy)
+			}
+			if fmt.Sprint(policy.allowedOwners) != fmt.Sprint(test.allowedOwners) {
+				t.Fatalf("allowed owners = %v, want %v", policy.allowedOwners, test.allowedOwners)
+			}
+		})
+	}
+}
+
+func TestLoadExecutableOwnershipPolicy(t *testing.T) {
+	t.Run("system accepts root owner", func(t *testing.T) {
+		if os.Geteuid() != 0 {
+			t.Skip("root-owned executable fixture requires root")
+		}
+		executable := copyExecutable(t, helperExecutable(t))
+		path := writeRegistry(t, 0o600, []testEntry{{
+			ID: "root-system", Name: "Root System", Executable: executable, Args: []string{},
+		}})
+		if _, err := loadFile(path, policyForMode(config.ServiceModeSystem)); err != nil {
+			t.Fatalf("root-owned executable rejected in system mode: %v", err)
+		}
+	})
+
+	t.Run("system rejects non-root owner", func(t *testing.T) {
+		executable := copyExecutable(t, helperExecutable(t))
+		if os.Geteuid() == 0 {
+			if err := os.Chown(executable, 65534, -1); err != nil {
+				t.Skipf("non-root ownership fixture unavailable: %v", err)
+			}
+		}
+		path := writeRegistry(t, 0o600, []testEntry{{
+			ID: "non-root-system", Name: "Non-root System", Executable: executable, Args: []string{},
+		}})
+		policy := policyForMode(config.ServiceModeSystem)
+		if os.Geteuid() != 0 {
+			policy.expectedOwner = uint32(os.Geteuid())
+		}
+		_, err := loadFile(path, policy)
+		if !errors.Is(err, ErrRegistryInvalid) || !strings.Contains(err.Error(), "owner") {
+			t.Fatalf("non-root executable load error = %v, want ownership rejection", err)
+		}
+	})
+
+	for _, mode := range []config.ServiceMode{config.ServiceModeUser, config.ServiceModeDevelopment} {
+		t.Run(string(mode)+" accepts current owner", func(t *testing.T) {
+			executable := copyExecutable(t, helperExecutable(t))
+			path := writeRegistry(t, 0o600, []testEntry{{
+				ID: "current-owner", Name: "Current Owner", Executable: executable, Args: []string{},
+			}})
+			if _, err := loadFile(path, policyForMode(mode)); err != nil {
+				t.Fatalf("current-user-owned executable rejected in %s mode: %v", mode, err)
+			}
+		})
+
+		t.Run(string(mode)+" accepts root owner", func(t *testing.T) {
+			if os.Geteuid() != 0 {
+				t.Skip("root-owned executable fixture requires root")
+			}
+			executable := copyExecutable(t, helperExecutable(t))
+			path := writeRegistry(t, 0o600, []testEntry{{
+				ID: "root-owner", Name: "Root Owner", Executable: executable, Args: []string{},
+			}})
+			if _, err := loadFile(path, policyForMode(mode)); err != nil {
+				t.Fatalf("root-owned executable rejected in %s mode: %v", mode, err)
+			}
+		})
+	}
+}
+
+func TestLoadRejectsWritableExecutableInAllModes(t *testing.T) {
+	tests := []struct {
+		name string
+		mode os.FileMode
+	}{
+		{name: "group writable", mode: 0o720},
+		{name: "world writable", mode: 0o702},
+	}
+	serviceModes := []config.ServiceMode{
+		config.ServiceModeSystem,
+		config.ServiceModeUser,
+		config.ServiceModeDevelopment,
+	}
+
+	for _, serviceMode := range serviceModes {
+		for _, test := range tests {
+			t.Run(string(serviceMode)+"/"+test.name, func(t *testing.T) {
+				executable := copyExecutable(t, helperExecutable(t))
+				if err := os.Chmod(executable, test.mode); err != nil {
+					t.Fatal(err)
+				}
+				path := writeRegistry(t, 0o600, []testEntry{{
+					ID: "writable", Name: "Writable", Executable: executable, Args: []string{},
+				}})
+				policy := policyForMode(serviceMode)
+				if serviceMode == config.ServiceModeSystem && os.Geteuid() != 0 {
+					policy.expectedOwner = uint32(os.Geteuid())
+				}
+				_, err := loadFile(path, policy)
+				if !errors.Is(err, ErrRegistryInvalid) ||
+					!strings.Contains(err.Error(), "group- or world-writable") {
+					t.Fatalf("writable executable load error = %v, want mode rejection", err)
+				}
+			})
+		}
 	}
 }
 
@@ -260,6 +386,22 @@ func TestExecuteTimeoutIsTwoSeconds(t *testing.T) {
 	}
 }
 
+func TestExecuteBoundsLingeringInheritedPipes(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("external source execution is supported only on Linux")
+	}
+	registry := helperRegistry(t, "linger", "linger-pipes", "2s")
+	start := time.Now()
+	_, err := registry.Execute("linger")
+	elapsed := time.Since(start)
+	if !errors.Is(err, ErrExecutionFailed) {
+		t.Fatalf("Execute() error = %v, want ErrExecutionFailed", err)
+	}
+	if elapsed > commandWaitDelay+750*time.Millisecond {
+		t.Fatalf("lingering inherited pipe delayed Execute() for %v", elapsed)
+	}
+}
+
 func TestExecuteOutputValidation(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -340,6 +482,49 @@ func TestExecuteRevalidatesExecutable(t *testing.T) {
 	}
 }
 
+func TestExecuteRejectsExecutableMadeWritableAfterLoading(t *testing.T) {
+	sourcePath := copyExecutable(t, helperExecutable(t))
+	path := writeRegistry(t, 0o600, []testEntry{{
+		ID:         "writable-after-load",
+		Name:       "Writable After Load",
+		Executable: sourcePath,
+		Args:       []string{"-test.run=^TestExternalSourceHelperProcess$", "--", "value", "20"},
+	}})
+	registry, err := loadFile(path, policyForMode(config.ServiceModeDevelopment))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Chmod(sourcePath, 0o720); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = registry.Execute("writable-after-load"); !errors.Is(err, ErrExecutableUnavailable) {
+		t.Fatalf("Execute() error = %v, want ErrExecutableUnavailable", err)
+	}
+}
+
+func TestExecuteRejectsExecutableOwnershipChangeAfterLoading(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("changing executable ownership requires root")
+	}
+	sourcePath := copyExecutable(t, helperExecutable(t))
+	path := writeRegistry(t, 0o600, []testEntry{{
+		ID:         "owner-changed",
+		Name:       "Owner Changed",
+		Executable: sourcePath,
+		Args:       []string{"-test.run=^TestExternalSourceHelperProcess$", "--", "value", "20"},
+	}})
+	registry, err := loadFile(path, policyForMode(config.ServiceModeDevelopment))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Chown(sourcePath, 65534, -1); err != nil {
+		t.Skipf("ownership change unavailable: %v", err)
+	}
+	if _, err = registry.Execute("owner-changed"); !errors.Is(err, ErrExecutableUnavailable) {
+		t.Fatalf("Execute() error = %v, want ErrExecutableUnavailable", err)
+	}
+}
+
 func TestExternalSourceHelperProcess(t *testing.T) {
 	separator := -1
 	for index, arg := range os.Args {
@@ -372,6 +557,24 @@ func TestExternalSourceHelperProcess(t *testing.T) {
 		duration, _ := time.ParseDuration(args[1])
 		time.Sleep(duration)
 		fmt.Print("10")
+	case "linger-pipes":
+		command := exec.Command(
+			os.Args[0],
+			"-test.run=^TestExternalSourceHelperProcess$",
+			"--",
+			"hold-pipes",
+			args[1],
+		)
+		command.Stdout = os.Stdout
+		command.Stderr = os.Stderr
+		if err := command.Start(); err != nil {
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(13)
+		}
+		fmt.Print("42.5")
+	case "hold-pipes":
+		duration, _ := time.ParseDuration(args[1])
+		time.Sleep(duration)
 	case "large":
 		fmt.Print(strings.Repeat("1", maxProcessOutput+1))
 	case "large-stderr":

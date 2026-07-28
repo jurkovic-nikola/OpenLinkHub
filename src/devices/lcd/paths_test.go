@@ -1,6 +1,7 @@
 package lcd
 
 import (
+	"LumenForge/src/logger"
 	"bytes"
 	"errors"
 	"image"
@@ -507,6 +508,331 @@ func TestTransactionalLCDUploadCrossExtensionCleanupRunsAfterActivation(t *testi
 	assertNoLCDTransactionArtifacts(t, root)
 }
 
+func TestConcurrentSameNameLCDTransactionsSerialize(t *testing.T) {
+	root := t.TempDir()
+	destination := filepath.Join(root, "shared.gif")
+	writeTestGIF(t, destination, color.RGBA{R: 255, A: 255})
+	firstTemp := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+	secondTemp := stageTestLCDUpload(t, root, "shared", color.RGBA{G: 255, A: 255})
+	secondBytes, err := os.ReadFile(secondTemp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
+		"shared": {{Delay: 99}},
+	})
+
+	firstPaused := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	firstFailure := errors.New("injected first upload failure")
+	firstOps := defaultLCDUploadTransactionOps()
+	firstOps.beforeActivate = func() error {
+		close(firstPaused)
+		<-releaseFirst
+		return firstFailure
+	}
+	firstResult := make(chan error, 1)
+	go func() {
+		firstResult <- transactMutableLCDUpload(
+			root,
+			"shared",
+			firstTemp,
+			destination,
+			ImageFormatGif,
+			firstOps,
+		)
+	}()
+	<-firstPaused
+
+	secondCalling := make(chan struct{})
+	secondResult := make(chan error, 1)
+	go func() {
+		close(secondCalling)
+		secondResult <- transactMutableLCDUpload(
+			root,
+			"shared",
+			secondTemp,
+			destination,
+			ImageFormatGif,
+			defaultLCDUploadTransactionOps(),
+		)
+	}()
+	<-secondCalling
+	if uploadMutex.TryLock() {
+		uploadMutex.Unlock()
+		t.Fatal("first upload did not retain the transaction lock while paused")
+	}
+
+	close(releaseFirst)
+	if err = <-firstResult; !errors.Is(err, firstFailure) {
+		t.Fatalf("first upload error = %v, want %v", err, firstFailure)
+	}
+	if err = <-secondResult; err != nil {
+		t.Fatalf("second upload failed after first rollback: %v", err)
+	}
+
+	finalBytes, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(finalBytes, secondBytes) {
+		t.Fatal("older failed upload changed the newer successful destination")
+	}
+	finalImage := GetPalettedFrames("shared")
+	if finalImage.PalettedFrames == nil {
+		t.Fatal("newer successful image is missing from live state")
+	}
+	finalColor := color.RGBAModel.Convert(finalImage.PalettedFrames[0].At(0, 0)).(color.RGBA)
+	if finalColor.G <= finalColor.B || finalColor.G <= finalColor.R {
+		t.Fatalf("final live image color = %#v, want second green upload", finalColor)
+	}
+	if frames, ok := animationFramesForTest("shared"); !ok || len(frames) != 1 {
+		t.Fatalf("newer successful animation = %#v, present=%v", frames, ok)
+	}
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestConcurrentDifferentNameLCDTransactionsPreserveSuccessfulState(t *testing.T) {
+	root := t.TempDir()
+	firstDestination := filepath.Join(root, "first.gif")
+	secondDestination := filepath.Join(root, "second.gif")
+	writeTestGIF(t, firstDestination, color.RGBA{R: 255, A: 255})
+	originalFirst, err := os.ReadFile(firstDestination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstTemp := stageTestLCDUpload(t, root, "first", color.RGBA{B: 255, A: 255})
+	secondTemp := stageTestLCDUpload(t, root, "second", color.RGBA{G: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "first", Frames: 7}}, map[string][]AnimationFrames{
+		"first": {{Delay: 99}},
+	})
+
+	firstPaused := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	firstFailure := errors.New("injected first-name failure")
+	firstOps := defaultLCDUploadTransactionOps()
+	firstOps.beforeActivate = func() error {
+		close(firstPaused)
+		<-releaseFirst
+		return firstFailure
+	}
+	firstResult := make(chan error, 1)
+	go func() {
+		firstResult <- transactMutableLCDUpload(
+			root,
+			"first",
+			firstTemp,
+			firstDestination,
+			ImageFormatGif,
+			firstOps,
+		)
+	}()
+	<-firstPaused
+
+	secondResult := make(chan error, 1)
+	go func() {
+		secondResult <- transactMutableLCDUpload(
+			root,
+			"second",
+			secondTemp,
+			secondDestination,
+			ImageFormatGif,
+			defaultLCDUploadTransactionOps(),
+		)
+	}()
+
+	close(releaseFirst)
+	if err = <-firstResult; !errors.Is(err, firstFailure) {
+		t.Fatalf("first upload error = %v, want %v", err, firstFailure)
+	}
+	if err = <-secondResult; err != nil {
+		t.Fatalf("second upload failed after first rollback: %v", err)
+	}
+
+	restoredFirst, err := os.ReadFile(firstDestination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(restoredFirst, originalFirst) {
+		t.Fatal("failed first-name upload did not restore its destination")
+	}
+	if _, err = os.Stat(secondDestination); err != nil {
+		t.Fatalf("successful second-name destination is missing: %v", err)
+	}
+	if firstImage := GetPalettedFrames("first"); firstImage.Frames != 7 {
+		t.Fatalf("first-name live state was not restored: %#v", firstImage)
+	}
+	if frames, ok := animationFramesForTest("first"); !ok || len(frames) != 1 || frames[0].Delay != 99 {
+		t.Fatalf("first-name animation was not restored: %#v, present=%v", frames, ok)
+	}
+	if secondImage := GetPalettedFrames("second"); secondImage.PalettedFrames == nil {
+		t.Fatal("successful second-name image is missing from live state")
+	}
+	if frames, ok := animationFramesForTest("second"); !ok || len(frames) != 1 {
+		t.Fatalf("successful second-name animation = %#v, present=%v", frames, ok)
+	}
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestTransactionalLCDUploadEarlyValidationRemovesStagedFile(t *testing.T) {
+	t.Run("invalid containment", func(t *testing.T) {
+		root := t.TempDir()
+		tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+		err := transactMutableLCDUpload(
+			root,
+			"shared",
+			tempPath,
+			filepath.Join(t.TempDir(), "shared.gif"),
+			ImageFormatGif,
+			defaultLCDUploadTransactionOps(),
+		)
+		if err == nil {
+			t.Fatal("invalid containment succeeded")
+		}
+		if _, statErr := os.Lstat(tempPath); !os.IsNotExist(statErr) {
+			t.Fatalf("staged file remains after containment failure: %v", statErr)
+		}
+	})
+
+	t.Run("invalid upload root", func(t *testing.T) {
+		parent := t.TempDir()
+		root := filepath.Join(parent, "upload")
+		realRoot := filepath.Join(parent, "real-upload")
+		if err := os.Mkdir(root, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+		if err := os.Rename(root, realRoot); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(realRoot, root); err != nil {
+			t.Fatal(err)
+		}
+
+		err := transactMutableLCDUpload(
+			root,
+			"shared",
+			tempPath,
+			filepath.Join(root, "shared.gif"),
+			ImageFormatGif,
+			defaultLCDUploadTransactionOps(),
+		)
+		if err == nil {
+			t.Fatal("symlink upload root succeeded")
+		}
+		realTempPath := filepath.Join(realRoot, filepath.Base(tempPath))
+		if _, statErr := os.Lstat(realTempPath); !os.IsNotExist(statErr) {
+			t.Fatalf("staged file remains after root failure: %v", statErr)
+		}
+	})
+
+	t.Run("invalid staged file", func(t *testing.T) {
+		root := t.TempDir()
+		outside := filepath.Join(t.TempDir(), "outside.gif")
+		writeTestGIF(t, outside, color.RGBA{R: 255, A: 255})
+		tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+		if err := os.Remove(tempPath); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(outside, tempPath); err != nil {
+			t.Fatal(err)
+		}
+
+		err := transactMutableLCDUpload(
+			root,
+			"shared",
+			tempPath,
+			filepath.Join(root, "shared.gif"),
+			ImageFormatGif,
+			defaultLCDUploadTransactionOps(),
+		)
+		if err == nil {
+			t.Fatal("symlink staged file succeeded")
+		}
+		if _, statErr := os.Lstat(tempPath); !os.IsNotExist(statErr) {
+			t.Fatalf("staged symlink remains after inspection failure: %v", statErr)
+		}
+		if _, statErr := os.Stat(outside); statErr != nil {
+			t.Fatalf("staged symlink cleanup changed its target: %v", statErr)
+		}
+	})
+}
+
+func TestTransactionalLCDUploadReportsRollbackRestorationFailure(t *testing.T) {
+	logger.Init()
+	root := t.TempDir()
+	destination := filepath.Join(root, "shared.gif")
+	writeTestGIF(t, destination, color.RGBA{R: 255, A: 255})
+	originalBytes, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempPath := stageTestLCDUpload(t, root, "shared", color.RGBA{B: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
+		"shared": {{Delay: 99}},
+	})
+
+	originalFailure := errors.New("injected activation failure")
+	ops := defaultLCDUploadTransactionOps()
+	ops.beforeActivate = func() error {
+		return originalFailure
+	}
+	ops.restore = func(string, string) error {
+		return errors.New("injected rollback rename failure")
+	}
+	err = transactMutableLCDUpload(root, "shared", tempPath, destination, ImageFormatGif, ops)
+	if !errors.Is(err, originalFailure) {
+		t.Fatalf("rollback error did not preserve original failure: %v", err)
+	}
+	if !strings.Contains(err.Error(), "injected rollback rename failure") {
+		t.Fatalf("rollback error did not report restoration problem: %v", err)
+	}
+	restoredBytes, readErr := os.ReadFile(destination)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Equal(restoredBytes, originalBytes) {
+		t.Fatal("snapshot fallback did not restore the original destination")
+	}
+	assertLCDLiveStateUnchanged(t, "shared")
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
+func TestTransactionalStaticLCDUploadRemovesGIFAnimation(t *testing.T) {
+	root := t.TempDir()
+	oldGIF := filepath.Join(root, "shared.gif")
+	destination := filepath.Join(root, "shared.jpg")
+	writeTestGIF(t, oldGIF, color.RGBA{R: 255, A: 255})
+	tempPath := stageTestLCDJPEGUpload(t, root, "shared", color.RGBA{G: 255, A: 255})
+	preserveLCDTransactionState(t, []ImageData{{Name: "shared", Frames: 7}}, map[string][]AnimationFrames{
+		"shared": {{Delay: 99}},
+	})
+
+	if err := transactMutableLCDUpload(
+		root,
+		"shared",
+		tempPath,
+		destination,
+		ImageFormatJpg,
+		defaultLCDUploadTransactionOps(),
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(destination); err != nil {
+		t.Fatalf("static destination is missing: %v", err)
+	}
+	if _, err := os.Stat(oldGIF); !os.IsNotExist(err) {
+		t.Fatalf("obsolete GIF remains after static replacement: %v", err)
+	}
+	if imageData := GetPalettedFrames("shared"); imageData.PalettedFrames != nil || imageData.Frames != 1 {
+		t.Fatalf("static replacement live image = %#v", imageData)
+	}
+	if frames, ok := animationFramesForTest("shared"); ok {
+		t.Fatalf("stale GIF animation remains after static replacement: %#v", frames)
+	}
+	assertNoLCDTransactionArtifacts(t, root)
+}
+
 func writeTestGIF(t *testing.T, path string, frameColors ...color.RGBA) {
 	t.Helper()
 	frames := make([]*image.Paletted, len(frameColors))
@@ -575,6 +901,23 @@ func stageTestLCDUpload(t *testing.T, root, baseName string, fill color.RGBA) st
 		t.Fatal(err)
 	}
 	writeTestGIF(t, tempPath, fill)
+	if err = os.Chmod(tempPath, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return tempPath
+}
+
+func stageTestLCDJPEGUpload(t *testing.T, root, baseName string, fill color.RGBA) string {
+	t.Helper()
+	file, err := os.CreateTemp(root, "."+baseName+"-upload-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempPath := file.Name()
+	if err = file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	writeTestJPEG(t, tempPath, fill)
 	if err = os.Chmod(tempPath, 0o600); err != nil {
 		t.Fatal(err)
 	}

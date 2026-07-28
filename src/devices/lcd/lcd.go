@@ -71,6 +71,7 @@ var (
 	shippedImages = ""
 	fontLocation  = ""
 	mutex         sync.Mutex
+	uploadMutex   sync.Mutex
 	imgWidth             = 480
 	imgHeight            = 480
 	lcdDevices           = map[string]uint16{}
@@ -569,6 +570,7 @@ func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 
 type lcdUploadTransactionOps struct {
 	rename         func(string, string) error
+	restore        func(string, string) error
 	removeAll      func(string) error
 	beforeActivate func() error
 }
@@ -589,6 +591,7 @@ type lcdLiveStateSnapshot struct {
 func defaultLCDUploadTransactionOps() lcdUploadTransactionOps {
 	return lcdUploadTransactionOps{
 		rename:    os.Rename,
+		restore:   os.Rename,
 		removeAll: os.RemoveAll,
 		beforeActivate: func() error {
 			return nil
@@ -638,12 +641,28 @@ func transactMutableLCDUpload(
 	root, baseName, tempPath, destination string,
 	format uint8,
 	ops lcdUploadTransactionOps,
-) error {
+) (returnErr error) {
+	uploadMutex.Lock()
+	defer uploadMutex.Unlock()
+
 	ops = normalizeLCDUploadTransactionOps(ops)
 
 	cleanRoot := filepath.Clean(root)
 	cleanTempPath := filepath.Clean(tempPath)
 	cleanDestination := filepath.Clean(destination)
+	if !strings.HasPrefix(filepath.Base(cleanTempPath), "."+baseName+"-upload-") {
+		return fmt.Errorf("invalid staged LCD upload %q", filepath.Base(cleanTempPath))
+	}
+	defer func() {
+		if removeErr := os.Remove(cleanTempPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			if returnErr == nil {
+				returnErr = fmt.Errorf("remove staged LCD upload: %w", removeErr)
+			} else {
+				returnErr = fmt.Errorf("%w (remove staged LCD upload: %v)", returnErr, removeErr)
+			}
+		}
+	}()
+
 	if filepath.Dir(cleanTempPath) != cleanRoot || filepath.Dir(cleanDestination) != cleanRoot {
 		return fmt.Errorf("LCD upload transaction escapes mutable root %q", cleanRoot)
 	}
@@ -717,12 +736,14 @@ func transactMutableLCDUpload(
 			rollbackDirectory,
 			snapshots,
 			newDestinationInstalled,
+			ops.restore,
 		); rollbackErr != nil {
 			logger.Log(logger.Fields{
 				"error":         rollbackErr,
 				"originalError": originalErr,
 				"location":      cleanDestination,
 			}).Error("Failed to completely roll back LCD upload")
+			return fmt.Errorf("%w (LCD upload rollback failed: %v)", originalErr, rollbackErr)
 		}
 		return originalErr
 	}
@@ -766,6 +787,9 @@ func normalizeLCDUploadTransactionOps(ops lcdUploadTransactionOps) lcdUploadTran
 	defaults := defaultLCDUploadTransactionOps()
 	if ops.rename == nil {
 		ops.rename = defaults.rename
+	}
+	if ops.restore == nil {
+		ops.restore = defaults.restore
 	}
 	if ops.removeAll == nil {
 		ops.removeAll = defaults.removeAll
@@ -879,6 +903,7 @@ func rollbackMutableLCDFiles(
 	destination, tempPath, rollbackDirectory string,
 	snapshots []lcdFileSnapshot,
 	newDestinationInstalled bool,
+	restore func(string, string) error,
 ) error {
 	var rollbackErrors []string
 	if newDestinationInstalled {
@@ -897,8 +922,11 @@ func rollbackMutableLCDFiles(
 
 		backupPath := filepath.Join(rollbackDirectory, filepath.Base(snapshot.path))
 		if _, err := os.Lstat(backupPath); err == nil {
-			if renameErr := os.Rename(backupPath, snapshot.path); renameErr != nil {
+			if renameErr := restore(backupPath, snapshot.path); renameErr != nil {
 				rollbackErrors = append(rollbackErrors, fmt.Sprintf("restore %s: %v", snapshot.path, renameErr))
+				if snapshotErr := restoreLCDFileSnapshot(snapshot); snapshotErr != nil {
+					rollbackErrors = append(rollbackErrors, snapshotErr.Error())
+				}
 			}
 			continue
 		} else if !os.IsNotExist(err) {

@@ -285,8 +285,8 @@ var (
 
 // Init will initialize temperature data
 func Init() {
-	pwd = config.GetConfig().ConfigPath
-	location = pwd + "/database/temperatures/"
+	pwd = config.GetPaths().MutableDataRoot
+	location = config.GetPaths().MutableTemperaturesRoot
 
 	// Load any custom profile user created
 	LoadUserProfiles(profiles)
@@ -615,7 +615,7 @@ func DeleteTemperatureProfile(profile string) {
 	defer mutex.Unlock()
 
 	if _, ok := temperatures.Profiles[profile]; ok {
-		profileLocation := location + profile + ".json"
+		profileLocation := filepath.Join(location, profile+".json")
 		err := os.Remove(profileLocation)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "location": profileLocation, "caller": "DeleteTemperatureProfile()"}).Warn("Unable to delete speed profile")
@@ -702,7 +702,7 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 		}
 
 		// Define a full path of filename
-		profileLocation := location + fi.Name()
+		profileLocation := filepath.Join(location, fi.Name())
 
 		// Check if filename has .json extension
 		if !common.IsValidExtension(profileLocation, ".json") {
@@ -734,7 +734,7 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 
 // saveProfileToDisk will save profile to the disk
 func saveProfileToDisk(profile string, values TemperatureProfileData) error {
-	profileLocation := location + profile + ".json"
+	profileLocation := filepath.Join(location, profile+".json")
 
 	if err := common.SaveJsonData(profileLocation, values); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profileLocation}).Error("Unable to save temperature profile data")

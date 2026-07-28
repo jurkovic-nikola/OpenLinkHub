@@ -14,6 +14,7 @@ import (
 	"image/png"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -402,7 +403,7 @@ func Init(ready chan struct{}) {
 	}
 
 	// Status
-	iconPath := config.GetConfig().ConfigPath + "/static/img/lumenforge.png"
+	iconPath := filepath.Join(config.GetPaths().StaticAssetRoot, "img", "lumenforge.png")
 	pixmaps, pErr := loadIconPixmap(iconPath)
 	if pErr != nil {
 		logger.Log(logger.Fields{"error": pErr, "path": iconPath}).Warn("Failed to load custom tray icon pixmap, falling back to theme icon")

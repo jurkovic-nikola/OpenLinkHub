@@ -42,11 +42,14 @@ OpenRGB device support alone does not guarantee that a controller exposes enough
 
 ## Import Configuration and Runtime State
 
-LumenForge stores imported-controller identity and saved layout information in:
+LumenForge stores imported-controller identity and saved layout information in
+`openrgbimport-zones.json` beneath the mutable database root:
 
-```text
-database/openrgbimport-zones.json
-```
+| Mode | Path |
+| --- | --- |
+| User service | `$XDG_DATA_HOME/lumenforge/database/openrgbimport-zones.json`, or `~/.local/share/lumenforge/database/openrgbimport-zones.json` |
+| System service | `/var/lib/lumenforge/database/openrgbimport-zones.json` |
+| Direct development | `database/openrgbimport-zones.json` beneath the working directory |
 
 This is generated runtime state and is not shipped with personal device information. Discovery alone does not add an unimported controller to this file. The store is written when an import or later configuration lifecycle change saves an imported-controller record.
 
@@ -89,12 +92,15 @@ Confirm the real values in OpenRGB before saving a layout in LumenForge. LumenFo
 
 ## Resetting Saved Import Records
 
-Deleting `database/openrgbimport-zones.json` resets all saved OpenRGB import identity and layout records contained in that file. This can discard manual zone-name and LED-count corrections and is not a routine troubleshooting step.
+Deleting `openrgbimport-zones.json` from the applicable mutable database root
+resets all saved OpenRGB import identity and layout records contained in that
+file. This can discard manual zone-name and LED-count corrections and is not a
+routine troubleshooting step.
 
 If a full import-record reset is necessary:
 
 1. Stop LumenForge.
-2. Back up `database/openrgbimport-zones.json`.
+2. Back up `openrgbimport-zones.json` from the mutable database root.
 3. Remove the original file.
 4. Start LumenForge and explicitly discover and import the desired controllers again.
 

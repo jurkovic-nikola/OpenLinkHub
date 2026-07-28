@@ -126,7 +126,7 @@ var (
 	deliberateDiscoveryTimeout = 10 * time.Second
 
 	statusNeutralDiscover = openrgb.DiscoverControllersStatusNeutralContext
-	lifecycleConfigRoot   = func() string { return config.GetConfig().ConfigPath }
+	lifecycleConfigRoot   = func() string { return config.GetPaths().MutableDataRoot }
 	lifecycleRGBTemplate  = rgb.GetRGB
 	createArtifactFile    = createArtifactExclusive
 	removeArtifactFile    = os.Remove

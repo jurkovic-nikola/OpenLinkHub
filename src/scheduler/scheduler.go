@@ -11,6 +11,7 @@ import (
 	"LumenForge/src/logger"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -43,7 +44,7 @@ type Schedule struct {
 
 // Init will initialize a new config object
 func Init() {
-	location = config.GetConfig().ConfigPath + "/database/scheduler.json"
+	location = filepath.Join(config.GetPaths().MutableDatabaseRoot, "scheduler.json")
 	upgradeFile()
 	file, err := os.Open(location)
 

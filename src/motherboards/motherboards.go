@@ -50,7 +50,7 @@ var (
 )
 
 func Init() {
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().ApplicationRoot
 
 	// Read actual board name from DMI
 	dmiBoardNamePath := "/sys/class/dmi/id/board_name"
@@ -62,7 +62,7 @@ func Init() {
 		boardSerial = hex.EncodeToString(sum[:])
 	}
 
-	location := pwd + "/database/motherboard/motherboard.json"
+	location := filepath.Join(config.GetPaths().ShippedDatabaseRoot, "motherboard", "motherboard.json")
 
 	file, fe := os.Open(location)
 	if fe != nil {

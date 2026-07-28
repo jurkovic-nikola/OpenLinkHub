@@ -150,7 +150,7 @@ var (
 	maxDpiValue           = 18000
 	deviceRefreshInterval = 1000
 	LEDPacketLength       = 16
-	rgbProfileUpgrade = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes              = []string{
 		"colorpulse",
 		"colorshift",
@@ -158,7 +158,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"mouse",
 		"off",
@@ -174,7 +174,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev, err := hid.OpenPath(path)
 	if err != nil {
@@ -1780,35 +1780,35 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				case "flickering":
-				{
+					{
 
 						r.Flickering(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "flame":
-				{
+					{
 
 						r.Flame(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "aurora":
-				{
+					{
 
 						r.Aurora(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "cyberpunkglitch":
-				{
+					{
 
 						r.CyberpunkGlitch(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "tokyonight":
-				{
+					{
 
 						r.TokyoNight(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "colorshift":
 					{
 						r.Colorshift(&startTime, d.activeRgb)

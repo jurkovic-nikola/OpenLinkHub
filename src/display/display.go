@@ -25,7 +25,7 @@ var (
 
 // Init will create and load display configuration
 func Init() {
-	location = config.GetConfig().ConfigPath + "/display.json"
+	location = config.GetPaths().DisplayFile
 
 	if !common.FileExists(location) {
 		monitors := getScreenBounds()

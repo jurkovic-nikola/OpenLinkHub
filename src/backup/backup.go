@@ -27,9 +27,9 @@ const (
 
 // PerformBackup creates a ZIP with SHA-256 integrity hash
 func PerformBackup(w http.ResponseWriter, _ *http.Request) {
-	cfg := config.GetConfig()
-	srcFolder := filepath.Join(cfg.ConfigPath, "database")
-	extraFile := filepath.Join(cfg.ConfigPath, "config.json")
+	paths := config.GetPaths()
+	srcFolder := paths.MutableDatabaseRoot
+	extraFile := paths.BackupConfigurationFile
 	backupName := "backup_" + time.Now().Format("2006-01-02-15-04-05") + ".zip"
 
 	tmpFile, err := os.CreateTemp("", backupName)
@@ -64,6 +64,18 @@ func PerformBackup(w http.ResponseWriter, _ *http.Request) {
 	if err := hashAndZipFile(extraFile, archive, hasher); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	for _, runtimeFile := range []string{"dashboard.json", "display.json"} {
+		path := filepath.Join(paths.BackupDataRoot, runtimeFile)
+		if _, err := os.Stat(path); err == nil {
+			if err = hashAndZipFile(path, archive, hasher); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else if !os.IsNotExist(err) {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Write hash file
@@ -100,7 +112,7 @@ func PerformBackup(w http.ResponseWriter, _ *http.Request) {
 
 // PerformRestore validates and restores a ZIP backup
 func PerformRestore(w http.ResponseWriter, r *http.Request) {
-	path := config.GetConfig().ConfigPath
+	paths := config.GetPaths()
 	if r.Method != http.MethodPost {
 		http.Error(w, "Use POST to upload backup file", http.StatusMethodNotAllowed)
 		return
@@ -159,7 +171,7 @@ func PerformRestore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := unzipFile(tmpZip, path); err != nil {
+	if err := unzipFile(tmpZip, paths.RestoreConfigurationRoot, paths.RestoreDataRoot); err != nil {
 		http.Error(w,
 			fmt.Sprintf("%s - %s", "Restore failed", err.Error()),
 			http.StatusBadRequest,
@@ -328,7 +340,7 @@ func verifyZipIntegrity(zipPath string) error {
 }
 
 // unzipFile extracts all files (skipping _hash.txt)
-func unzipFile(src, dest string) error {
+func unzipFile(src, configurationRoot, dataRoot string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -344,28 +356,39 @@ func unzipFile(src, dest string) error {
 		if f.Name == hashFileName {
 			continue
 		}
-		path := filepath.Join(dest, f.Name)
-		if !strings.HasPrefix(path, filepath.Clean(dest)+string(os.PathSeparator)) {
+		destinationRoot := dataRoot
+		if filepath.Clean(f.Name) == "config.json" {
+			destinationRoot = configurationRoot
+		}
+		path := filepath.Join(destinationRoot, f.Name)
+		if !strings.HasPrefix(path, filepath.Clean(destinationRoot)+string(os.PathSeparator)) {
 			return fmt.Errorf("illegal path: %s", f.Name)
 		}
 
 		if f.FileInfo().IsDir() {
-			err := os.MkdirAll(path, os.ModePerm)
+			err := os.MkdirAll(path, 0o700)
 			if err != nil {
 				logger.Log(logger.Fields{"error": err}).Error("Unable to create directory")
 				return err
 			}
 			continue
 		}
-		err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+		err := os.MkdirAll(filepath.Dir(path), 0o700)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to create directory")
 			return err
 		}
 
-		outFile, err := os.Create(path)
+		outFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 		if err != nil {
 			return err
+		}
+		if err = outFile.Chmod(0o600); err != nil {
+			chmodErr := err
+			if closeErr := outFile.Close(); closeErr != nil {
+				logger.Log(logger.Fields{"error": closeErr}).Warn("Unable to close backup file after chmod failure")
+			}
+			return chmodErr
 		}
 		rc, err := f.Open()
 		if err != nil {

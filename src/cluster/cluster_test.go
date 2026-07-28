@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"LumenForge/src/config"
 	"LumenForge/src/rgb"
 	"encoding/json"
 	"os"
@@ -16,22 +17,27 @@ func TestFreshClusterRgbUsesCanonicalDefaults(t *testing.T) {
 	}
 
 	repositoryRoot := filepath.Clean(filepath.Join(originalWorkingDirectory, "..", ".."))
-	if err = os.Chdir(repositoryRoot); err != nil {
-		t.Fatalf("change to repository root: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(originalWorkingDirectory); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
+	temporaryConfig := t.TempDir()
+	paths, err := config.ResolvePaths(config.PathOptions{
+		Mode:             config.ServiceModeDevelopment,
+		ApplicationRoot:  repositoryRoot,
+		ConfigRoot:       temporaryConfig,
+		DataRoot:         temporaryConfig,
+		WorkingDirectory: repositoryRoot,
 	})
+	if err != nil {
+		t.Fatalf("resolve temporary paths: %v", err)
+	}
+	t.Cleanup(config.UsePathsForTest(paths))
 
 	rgb.Init()
 	canonical := rgb.GetRGB()
 	canonical.Device = "Cluster"
 
-	temporaryConfig := t.TempDir()
-	if err = os.MkdirAll(filepath.Join(temporaryConfig, "database", "rgb"), 0o755); err != nil {
-		t.Fatalf("create isolated RGB directory: %v", err)
+	for _, directory := range []string{"rgb", "profiles"} {
+		if err = os.MkdirAll(filepath.Join(temporaryConfig, "database", directory), 0o755); err != nil {
+			t.Fatalf("create isolated %s directory: %v", directory, err)
+		}
 	}
 
 	originalConfigPath := pwd
@@ -49,6 +55,10 @@ func TestFreshClusterRgbUsesCanonicalDefaults(t *testing.T) {
 		Product:  "Cluster",
 		Serial:   "cluster",
 		RGBModes: rgbModes,
+	}
+	device.saveDeviceProfile()
+	if _, err = os.Stat(filepath.Join(temporaryConfig, "database", "profiles", "cluster.json")); err != nil {
+		t.Fatalf("cluster profile was not written beneath mutable database root: %v", err)
 	}
 	device.loadRgb()
 

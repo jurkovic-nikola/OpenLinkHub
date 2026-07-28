@@ -150,7 +150,7 @@ var (
 
 func Init(vendorId, productId uint16, dev *hid.Device, serial string) *Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Init new struct with HID device
 	d := &Device{

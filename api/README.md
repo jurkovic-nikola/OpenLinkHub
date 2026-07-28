@@ -273,10 +273,11 @@ when the selected controller is already imported with consistent live
 membership.
 
 A successful import writes or enables its entry in
-`database/openrgbimport-zones.json`, registers the device, joins it to importer
-management, and creates default device-profile/RGB files only when they do not
-already exist. Reimporting a disabled controller reuses its stable LumenForge
-identity, saved layout, profiles, RGB artifacts, and preserved ordering state.
+`openrgbimport-zones.json` beneath the mutable database root, registers the
+device, joins it to importer management, and creates default device-profile/RGB
+files only when they do not already exist. Reimporting a disabled controller
+reuses its stable LumenForge identity, saved layout, profiles, RGB artifacts,
+and preserved ordering state.
 The lifecycle is transactional and attempts to roll back partial changes when
 activation fails.
 
@@ -366,7 +367,7 @@ The ensuing asynchronous reconciliation discovers current OpenRGB SDK
 controllers and matches them only to configured imports. It may reconnect or
 rebind known controllers, change their availability, update active
 presentation/runtime metadata, persist backfilled identity metadata in
-`database/openrgbimport-zones.json`, and replay desired lighting state after a
+`openrgbimport-zones.json` in the mutable database root, and replay desired lighting state after a
 reconnection.
 
 Reconciliation does not enroll unknown controllers, create new imports, change
@@ -543,10 +544,11 @@ Success is:
 ```
 
 Unlike the color, brightness, effect, and speed endpoints, this changes
-persistent importer configuration in `database/openrgbimport-zones.json`. It
-preserves the saved product, external serial, location, vendor, and disabled
-membership fields, updates the active device/profile/cluster representation,
-and sends a frame using the proposed layout when connected.
+persistent importer configuration in `openrgbimport-zones.json` beneath the
+mutable database root. It preserves the saved product, external serial,
+location, vendor, and disabled membership fields, updates the active
+device/profile/cluster representation, and sends a frame using the proposed
+layout when connected.
 
 If any LED count increases beyond the previously saved working value,
 LumenForge performs four OpenRGB health checks after the test frame. The first

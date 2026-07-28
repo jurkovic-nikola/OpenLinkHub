@@ -48,3 +48,7 @@ The exact release process may change as release automation is finalized.
 - Validate the exact commit that will be tagged.
 - Do not assume that creating a tag changes the embedded binary version.
 - Preserve runtime and personal device data outside release artifacts.
+- Release artifacts may contain only immutable application content. The
+  installers stage that content as `root:root` under `/opt/LumenForge`; they do
+  not install `config.json`, mutable database directories, uploads, or logs
+  there.

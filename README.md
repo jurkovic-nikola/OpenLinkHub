@@ -103,7 +103,14 @@ chmod +x install-user-space.sh
 ./install-user-space.sh
 ```
 
-This installer places LumenForge under `/opt/LumenForge` and creates `~/.config/systemd/user/LumenForge.service`. It requests temporary privilege escalation for the shared udev rule, `lumenforge` group creation and membership, installation ownership, and device access. Manage the installed service as the desktop user:
+This installer places immutable application files under `/opt/LumenForge`,
+creates configuration and mutable data beneath the desktop user's XDG
+directories, and installs the user unit at
+`$XDG_CONFIG_HOME/systemd/user/LumenForge.service` (falling back to
+`~/.config/systemd/user/LumenForge.service`). It requests temporary privilege
+escalation only for the root-owned application tree, shared udev rule, and
+`lumenforge` device-access group. Manage the installed service as the desktop
+user:
 
 ```bash
 systemctl --user status LumenForge.service
@@ -172,18 +179,9 @@ remove the existing service using the appropriate [uninstall](#uninstall)
 instructions, then run the other installer from a fresh source or release
 directory.
 
-Both installer upgrade paths preserve these runtime-owned paths:
-
-- `/opt/LumenForge/config.json`
-- `/opt/LumenForge/database/profiles`
-- `/opt/LumenForge/database/rgb`
-- `/opt/LumenForge/database/macros`
-- `/opt/LumenForge/database/temperatures`
-- `/opt/LumenForge/database/key-assignments`
-- `/opt/LumenForge/database/led`
-- Existing user media under `/opt/LumenForge/database/lcd/images`
-
-Missing shipped LCD defaults are added without replacing existing media. Preservation applies to these defined runtime-owned paths; it does not guarantee preservation of every arbitrary file placed under `/opt/LumenForge`.
+Both installer paths replace only the root-owned immutable application tree.
+Configuration, profiles, generated state, and uploads remain in the external
+mode-specific paths documented under [Filesystem Layout](#filesystem-layout).
 
 ### Immutable Distributions
 
@@ -199,9 +197,44 @@ The following installation channels are not yet validated or advertised as suppo
 
 ## Configuration
 
-LumenForge creates `config.json` on first run. It is stored in the working directory, which is `/opt/LumenForge/config.json` for either installer-managed service mode.
+LumenForge creates `config.json` on first run. The user service uses
+`$XDG_CONFIG_HOME/lumenforge/config.json`, falling back to
+`~/.config/lumenforge/config.json`. The system service uses
+`/var/lib/lumenforge/config.json`. A direct development run uses `config.json`
+in the repository/current working directory.
 
 See the [configuration reference](docs/configuration.md) for the complete generated defaults, exact JSON types and accepted values, restart requirements, dependencies, legacy fields, and service-mode environment behaviour.
+
+## Filesystem Layout
+
+Installed services share a root-owned, read-only application tree:
+
+| Content | User service | System service |
+| --- | --- | --- |
+| Immutable application | `/opt/LumenForge` | `/opt/LumenForge` |
+| Configuration | `$XDG_CONFIG_HOME/lumenforge/config.json` or `~/.config/lumenforge/config.json` | `/var/lib/lumenforge/config.json` |
+| Mutable data | `$XDG_DATA_HOME/lumenforge/` or `~/.local/share/lumenforge/` | `/var/lib/lumenforge/` |
+| Mutable database | data root + `database/` | `/var/lib/lumenforge/database/` |
+| Future administrator configuration | `/etc/lumenforge/` (reserved) | `/etc/lumenforge/` (reserved) |
+
+`/opt/LumenForge` contains the binary, templates, frontend assets,
+documentation, shipped device definitions, RGB definitions, and bundled
+default media. It is owned by `root:root` and is not writable by either runtime
+identity. Profiles, RGB state, temperature profiles, macros, key assignments,
+LED state, imported OpenRGB state, dashboard state, and LCD uploads are stored
+under the mutable data root. Installed services do not use their working
+directory to locate state.
+
+The dashboard does not provide a general editor for `config.json`. LumenForge
+does create, upgrade, and persist limited runtime-managed fields such as
+supported-device exclusions. Empty `logFile` uses standard error and therefore
+the systemd journal; a relative explicit log path is resolved beneath the
+mutable data root.
+
+Dashboard backups contain `config.json`, mutable `database/` content, and
+dashboard/display state. They do not contain the binary, templates, static
+assets, documentation, or shipped definitions. See the complete
+[filesystem and ownership reference](docs/filesystem-layout.md).
 
 ### OpenRGB Controller Import
 
@@ -224,7 +257,8 @@ The web UI can be installed as a progressive web app in supported Chromium-based
 
 ## Uninstall
 
-Back up any desired runtime configuration from `/opt/LumenForge` before removing either installer-managed service mode.
+Create a dashboard backup or copy the applicable external configuration and
+mutable-data roots before removing a service.
 
 Stopping, disabling, and removing one service unit is safe for that service mode. Both modes use the shared `/opt/LumenForge` installation and `/etc/udev/rules.d/99-lumenforge.rules` rule. Remove those shared resources only after confirming that no system-service installation or other user-service installation still needs them. Reload the udev rules after removing the shared rule.
 
@@ -245,7 +279,7 @@ Run these commands as the desktop user that owns the user service:
 ```bash
 systemctl --user stop LumenForge.service
 systemctl --user disable LumenForge.service
-rm -f ~/.config/systemd/user/LumenForge.service
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/LumenForge.service"
 systemctl --user daemon-reload
 ```
 
@@ -262,7 +296,9 @@ sudo rm -rf /opt/LumenForge
 
 ## Runtime Notes
 
-- LCD images and animations are stored in `/opt/LumenForge/database/lcd/images/` for installer-managed installations.
+- LCD uploads are stored below the mode's mutable data root in
+  `database/lcd/images/`; bundled media remains under `/opt/LumenForge`.
 - The dashboard is available at `http://127.0.0.1:27003/`.
-- Per-device RGB state is generated under `database/rgb/` and can be edited through the RGB editor.
+- Per-device RGB state is generated under the mutable database root in
+  `rgb/` and can be edited through the RGB editor.
 - LumenForge includes an HTTP server for device overview and control; see the [API documentation](api/README.md).

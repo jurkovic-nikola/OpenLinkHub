@@ -17,7 +17,10 @@ and the OpenLinkHub repository.
 
 ### Changed
 
-- Installer upgrades now preserve runtime-owned configuration and user data.
+- Installed application files are now root-owned and immutable under
+  `/opt/LumenForge`, while user and system configuration, profiles, uploads,
+  generated state, and logs use separate XDG or `/var/lib/lumenforge` paths.
+- Installer upgrades preserve external runtime-owned configuration and data.
 - Installation and upgrade now use the same mode-specific installer without a separate upgrade wrapper.
 - System and user installers detect conflicting service modes.
 - Installer upgrades remove obsolete maintenance-file copies from the installed directory.

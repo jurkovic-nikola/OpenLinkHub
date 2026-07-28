@@ -113,7 +113,7 @@ var (
 	cmdGetFirmware        = []byte{0x01, 0x05}
 	cmdWriteColor         = []byte{0x22, 0x14}
 	colorPacketLength     = 28
-	rgbProfileUpgrade = []string{"gradient", "spiralrainbow", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade     = []string{"gradient", "spiralrainbow", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -123,7 +123,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"off",
 		"rainbow",
@@ -141,7 +141,7 @@ var (
 
 func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
@@ -1272,7 +1272,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	if d.DeviceProfile.RGBProfile == "stand" {
 		var buf = make([]byte, colorPacketLength)
 		for _, rows := range d.DeviceProfile.Stand.Row {
@@ -1461,35 +1461,35 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				case "flickering":
-				{
+					{
 
 						r.Flickering(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "flame":
-				{
+					{
 
 						r.Flame(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "aurora":
-				{
+					{
 
 						r.Aurora(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "cyberpunkglitch":
-				{
+					{
 
 						r.CyberpunkGlitch(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "tokyonight":
-				{
+					{
 
 						r.TokyoNight(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "colorshift":
 					{
 						r.Colorshift(&startTime, d.activeRgb)

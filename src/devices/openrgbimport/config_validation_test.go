@@ -220,7 +220,7 @@ func TestSaveDeviceConfigRejectsInvalidLayoutWithoutSideEffects(t *testing.T) {
 	if err = os.WriteFile(profilePath, profileBefore, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	generatedProfilePath := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles", serial+".json")
+	generatedProfilePath := filepath.Join(config.GetPaths().MutableDataRoot, "database", "profiles", serial+".json")
 	if _, statErr := os.Stat(generatedProfilePath); !os.IsNotExist(statErr) {
 		t.Fatalf("generated profile path unexpectedly exists before test: %v", statErr)
 	}

@@ -352,7 +352,7 @@ func (d *Device) hardLedReset() {
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)

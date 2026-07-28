@@ -7,6 +7,7 @@ import (
 	"LumenForge/src/rgb"
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
 type DoubleArc struct {
@@ -35,7 +36,7 @@ var (
 
 // InitDoubleArc will init Double Arc LCD mode
 func InitDoubleArc() {
-	profile := config.GetConfig().ConfigPath + "/database/lcd/double-arc.json"
+	profile := filepath.Join(config.GetPaths().MutableLCDRoot, "double-arc.json")
 	if common.FileExists(profile) {
 		file, err := os.Open(profile)
 		if err != nil {
@@ -144,7 +145,7 @@ func GetDoubleArc() *DoubleArc {
 // SaveDoubleArc will save double arc profile
 func SaveDoubleArc(value *DoubleArc) uint8 {
 	doubleRrc = value
-	profile := config.GetConfig().ConfigPath + "/database/lcd/double-arc.json"
+	profile := filepath.Join(config.GetPaths().MutableLCDRoot, "double-arc.json")
 
 	if err := common.SaveJsonData(profile, doubleRrc); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"math"
 	"os"
+	"path/filepath"
 )
 
 type Arc struct {
@@ -37,7 +38,7 @@ var (
 
 // InitArc will init Arc LCD mode
 func InitArc() {
-	arcProfile := config.GetConfig().ConfigPath + "/database/lcd/arc.json"
+	arcProfile := filepath.Join(config.GetPaths().MutableLCDRoot, "arc.json")
 	if common.FileExists(arcProfile) {
 		file, err := os.Open(arcProfile)
 		if err != nil {
@@ -110,7 +111,7 @@ func GetArc() *Arc {
 // SaveArc will save arc profile
 func SaveArc(value *Arc) uint8 {
 	arc = value
-	profile := config.GetConfig().ConfigPath + "/database/lcd/arc.json"
+	profile := filepath.Join(config.GetPaths().MutableLCDRoot, "arc.json")
 
 	if err := common.SaveJsonData(profile, arc); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")

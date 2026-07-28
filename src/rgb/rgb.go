@@ -2,10 +2,12 @@ package rgb
 
 import (
 	"LumenForge/src/common"
+	"LumenForge/src/config"
 	"encoding/json"
 	"math"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 )
@@ -105,8 +107,7 @@ func GetRGB() RGB {
 
 // Init will initialize RGB configuration
 func Init() {
-	pwd, _ := os.Getwd()
-	cfg := pwd + "/database/rgb.json"
+	cfg := filepath.Join(config.GetPaths().ShippedDatabaseRoot, "rgb.json")
 	f, err := os.Open(cfg)
 	if err != nil {
 		panic(err.Error())

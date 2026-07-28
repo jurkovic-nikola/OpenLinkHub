@@ -10,9 +10,11 @@ import (
 	"LumenForge/src/logger"
 	"encoding/json"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/sstallion/go-hid"
 )
 
 // DeviceProfile struct contains all device profile
@@ -72,7 +74,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev, err := hid.OpenPath(path)
 	if err != nil {
@@ -150,7 +152,7 @@ func (d *Device) getSerial() {
 
 // loadWidgets will load xeneon widgets
 func (d *Device) loadWidgets() {
-	location := pwd + "/database/xeneon/xeneon.json"
+	location := filepath.Join(config.GetPaths().ShippedDatabaseRoot, "xeneon", "xeneon.json")
 
 	file, fe := os.Open(location)
 	if fe != nil {

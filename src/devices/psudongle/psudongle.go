@@ -137,7 +137,7 @@ var decodeTable = [256]uint8{
 
 func Init(vendorId, productId uint16, _, _ string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	devs, err := common.FindTtyByUsbId(vendorId, productId)
 	if err != nil {

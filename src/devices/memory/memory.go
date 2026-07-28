@@ -156,7 +156,7 @@ var (
 	colorAddresses        = []byte{0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f} // DDR4
 	temperatureAddresses  = []string{"0018", "0019", "001a", "001b", "001c", "001d", "001e", "001f"}
 	basePath              = "/sys/bus/i2c/drivers"
-	rgbProfileUpgrade = []string{"led", "nebula", "marquee", "spiralrainbow", "gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade     = []string{"led", "nebula", "marquee", "spiralrainbow", "gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -166,7 +166,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"led",
 		"marquee",
@@ -193,7 +193,7 @@ func Init(_, _ uint16, _, path string) *common.Device {
 	}
 
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev, err := smbus.Open(path)
 	if err != nil {
@@ -531,7 +531,7 @@ func loadSupportedDevices(path string) ([]SupportedDevice, error) {
 // loadDeviceMetadata loads external metadata and retains safe built-in defaults
 // when an installed metadata file is missing or invalid.
 func (d *Device) loadDeviceMetadata() {
-	deviceMetadata := filepath.Join(pwd, "database", "external", "memory.json")
+	deviceMetadata := filepath.Join(config.GetPaths().ShippedDeviceDefinitionsRoot, "memory.json")
 	devices, err := loadSupportedDevices(deviceMetadata)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Error("Unable to load memory device metadata; using built-in defaults")
@@ -1456,35 +1456,35 @@ func (d *Device) setDeviceColor() {
 							buff = r.Output
 						}
 					case "flickering":
-					{
+						{
 
 							r.Flickering(&startTime)
 							buff = r.Output
-					}
+						}
 					case "flame":
-					{
+						{
 
 							r.Flame(&startTime)
 							buff = r.Output
-					}
+						}
 					case "aurora":
-					{
+						{
 
 							r.Aurora(&startTime)
 							buff = r.Output
-					}
+						}
 					case "cyberpunkglitch":
-					{
+						{
 
 							r.CyberpunkGlitch(&startTime)
 							buff = r.Output
-					}
+						}
 					case "tokyonight":
-					{
+						{
 
 							r.TokyoNight(&startTime)
 							buff = r.Output
-					}
+						}
 					case "colorshift":
 						{
 							r.Colorshift(&startTime, d.activeRgb)

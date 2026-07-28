@@ -130,6 +130,7 @@ type Device struct {
 
 var (
 	pwd                        = ""
+	applicationRoot            = ""
 	lcdRefreshInterval         = 1000
 	deviceRefreshInterval      = 1000
 	lcdHeaderSize              = 8
@@ -144,7 +145,8 @@ var (
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
+	applicationRoot = config.GetPaths().ApplicationRoot
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
@@ -332,7 +334,7 @@ func (d *Device) loadLcdFonts() {
 	if d.LCDProfiles != nil {
 		if len(d.LCDProfiles.Profiles) > 0 {
 			for key, value := range d.LCDProfiles.Profiles {
-				fontLocation := pwd + value.FontPath
+				fontLocation := filepath.Join(applicationRoot, strings.TrimPrefix(value.FontPath, "/"))
 
 				fontBytes, e := os.ReadFile(fontLocation)
 				if e != nil {
@@ -369,7 +371,7 @@ func (d *Device) loadLcdBackground() {
 				x, y := 0, 0
 
 				// Load image
-				background := pwd + value.Background
+				background := filepath.Join(applicationRoot, strings.TrimPrefix(value.Background, "/"))
 				file, err := os.Open(background)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": background}).Error("Unable to load LCD profile background")
@@ -455,7 +457,7 @@ func (d *Device) loadLcdBackground() {
 
 						// Icons
 						if len(v.Icon) > 0 && v.ShowIcon {
-							icon := pwd + v.Icon
+							icon := filepath.Join(applicationRoot, strings.TrimPrefix(v.Icon, "/"))
 							overlayFile, e := os.Open(icon)
 							if e != nil {
 								logger.Log(logger.Fields{"error": e, "serial": d.Serial, "location": icon}).Error("Unable to load LCD profile icon")
@@ -517,7 +519,7 @@ func (d *Device) loadLcdProfiles() {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	lcdProfilesFile := pwd + "/database/nexus/nexus.json"
+	lcdProfilesFile := filepath.Join(config.GetPaths().ShippedDatabaseRoot, "nexus", "nexus.json")
 	file, err := os.Open(lcdProfilesFile)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": lcdProfilesFile}).Error("Unable to load LCD profile")

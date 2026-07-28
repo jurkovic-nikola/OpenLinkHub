@@ -152,7 +152,7 @@ var (
 	keyAmount                 = 17
 	minDpiValue               = 100
 	maxDpiValue               = 33000
-	rgbProfileUpgrade = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade         = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes                  = []string{
 		"colorpulse",
 		"colorshift",
@@ -160,7 +160,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"mouse",
 		"off",
@@ -176,7 +176,7 @@ var (
 
 func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endpoint byte, serial string) *Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Init new struct with HID device
 	d := &Device{
@@ -2036,35 +2036,35 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				case "flickering":
-				{
+					{
 
 						r.Flickering(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "flame":
-				{
+					{
 
 						r.Flame(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "aurora":
-				{
+					{
 
 						r.Aurora(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "cyberpunkglitch":
-				{
+					{
 
 						r.CyberpunkGlitch(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "tokyonight":
-				{
+					{
 
 						r.TokyoNight(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "colorshift":
 					{
 						r.Colorshift(&startTime, d.activeRgb)

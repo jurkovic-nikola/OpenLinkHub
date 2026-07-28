@@ -11,6 +11,7 @@ import (
 	"LumenForge/src/logger"
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -27,8 +28,8 @@ type Language struct {
 
 // Init will initialize a new language object
 func Init() {
-	pwd = config.GetConfig().ConfigPath
-	location = pwd + "/database/language/"
+	pwd = config.GetPaths().ApplicationRoot
+	location = filepath.Join(config.GetPaths().ShippedDatabaseRoot, "language")
 
 	files, err := os.ReadDir(location)
 	if err != nil {
@@ -41,7 +42,7 @@ func Init() {
 		}
 
 		// Define a full path of filename
-		pullPath := location + fileInfo.Name()
+		pullPath := filepath.Join(location, fileInfo.Name())
 
 		// Check if filename has .json extension
 		if !common.IsValidExtension(pullPath, ".json") {

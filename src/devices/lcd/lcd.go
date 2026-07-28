@@ -1200,6 +1200,17 @@ func loadImage(imagePath string, format uint8) {
 		PalettedFrames: paletted,
 	}
 	paletted = nil
+
+	// Replace rather than append when the name is already known. Re-uploading
+	// an existing image otherwise leaves the previous copy in the slice with
+	// every frame still decoded, and nothing ever drops it. GetLcdImage
+	// returns the first match, so the stale copy is unreachable but retained.
+	for i := range lcd.ImageData {
+		if lcd.ImageData[i].Name == fileName {
+			lcd.ImageData[i] = *imageList
+			return
+		}
+	}
 	lcd.ImageData = append(lcd.ImageData, *imageList)
 }
 

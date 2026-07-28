@@ -43,9 +43,21 @@ test("temperature UI has no arbitrary executable input", function () {
     const repositoryRoot = path.join(__dirname, "..", "..");
     for (const templateName of ["temperature.html", "temperatureGraph.html"]) {
         const template = fs.readFileSync(path.join(repositoryRoot, "web", templateName), "utf8");
-        assert.match(template, /<select[^>]+id="externalSourceId"/);
-        assert.doesNotMatch(template, /binary-probeData|Path to binary|type="text"[^>]+external/i);
+        assert.match(template, /<option value="7">\{\{ \.Lang "txtExternalSource" \}\}<\/option>/);
+        assert.match(template, /<select[^>]+id="externalSourceId"[^>]+aria-label="\{\{ \.Lang "txtExternalSource" \}\}"/);
+        assert.doesNotMatch(template, /External binary|binary-probeData|Path to binary|type="text"[^>]+external/i);
     }
+
+    assert.match(script, /i18n\.t\('txtExternalSource'\)/);
+    assert.match(script, /i18n\.t\('txtSensorExternalSourceInfo'\)/);
+    assert.doesNotMatch(script, /External binary|txtSensorExternalBinaryInfo/);
+
+    const english = JSON.parse(fs.readFileSync(
+        path.join(repositoryRoot, "database", "language", "en_US.json"),
+        "utf8"
+    ));
+    assert.equal(english.values.txtExternalSource, "External source");
+    assert.match(english.values.txtSensorExternalSourceInfo, /external source/i);
 
     const styles = fs.readFileSync(
         path.join(repositoryRoot, "static", "css", "themes", "default.css"),

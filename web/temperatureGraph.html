@@ -86,7 +86,7 @@
                                             <option value="4">Temperature Probe</option>
                                             <option value="5">CPU + GPU</option>
                                             <option value="6">External HWMON</option>
-                                            <option value="7">External binary</option>
+                                            <option value="7">{{ .Lang "txtExternalSource" }}</option>
                                             <option value="8">Multi GPU</option>
                                             <option value="9">Global Temperature Probe</option>
                                             <option value="10">PSU</option>
@@ -125,7 +125,7 @@
 
                                 <div class="settings-row" id="external-source-data">
                                     <label for="externalSourceId" class="full-width">
-                                        <select class="system-select full-width tempProfile" id="externalSourceId" disabled>
+                                        <select class="system-select full-width tempProfile" id="externalSourceId" aria-label="{{ .Lang "txtExternalSource" }}" disabled>
                                             <option value="" disabled selected>Loading external sources...</option>
                                         </select>
                                     </label>

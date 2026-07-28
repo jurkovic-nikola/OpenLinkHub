@@ -648,8 +648,8 @@ $('.sensorInfoToggle').on('click', function () {
                         <span class="settings-label text-ellipsis">${i18n.t('txtSensorHwMonInfo')}</span>
                     </div>
                     <div class="settings-row">
-                        <span class="settings-label text-ellipsis">External binary</span>
-                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorExternalBinaryInfo')}</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtExternalSource')}</span>
+                        <span class="settings-label text-ellipsis">${i18n.t('txtSensorExternalSourceInfo')}</span>
                     </div>
                     <div class="settings-row">
                         <span class="settings-label text-ellipsis">Multi GPU</span>

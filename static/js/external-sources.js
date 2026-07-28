@@ -10,15 +10,7 @@
     "use strict";
 
     function dropdownOptions(sources, emptyLabel) {
-        if (!Array.isArray(sources) || sources.length === 0) {
-            return [{
-                value: "",
-                label: emptyLabel || "No external sources are configured",
-                disabled: true
-            }];
-        }
-
-        return sources
+        const options = Array.isArray(sources) ? sources
             .filter(function (source) {
                 return source &&
                     typeof source.id === "string" &&
@@ -28,7 +20,17 @@
             })
             .map(function (source) {
                 return {value: source.id, label: source.name, disabled: false};
-            });
+            }) : [];
+
+        if (options.length === 0) {
+            return [{
+                value: "",
+                label: emptyLabel || "No external sources are configured",
+                disabled: true
+            }];
+        }
+
+        return options;
     }
 
     function selectionPayload(selectedID) {

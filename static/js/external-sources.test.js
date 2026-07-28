@@ -34,6 +34,18 @@ test("empty registry produces a disabled empty-state option", function () {
     );
 });
 
+test("registry with only malformed entries produces a disabled empty-state option", function () {
+    assert.deepEqual(
+        externalSources.dropdownOptions([
+            null,
+            {},
+            {id: "", name: "Missing ID"},
+            {id: "missing-name", name: ""}
+        ], "Nothing configured"),
+        [{value: "", label: "Nothing configured", disabled: true}]
+    );
+});
+
 test("temperature UI has no arbitrary executable input", function () {
     const script = fs.readFileSync(path.join(__dirname, "temperature.js"), "utf8");
     assert.match(script, /url:\s*['"]\/api\/external-sources['"]/);

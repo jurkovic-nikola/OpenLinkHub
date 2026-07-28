@@ -105,7 +105,6 @@ type Frames struct {
 type AnimationFrames struct {
 	Delay  float64
 	Canvas *image.RGBA
-	RGBA   *image.RGBA
 }
 type LCD struct {
 	image     image.Image
@@ -697,7 +696,17 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 	mutex.Unlock()
 
 	if !ok {
-		return nil
+		// The background is loaded lazily, so the first pass after startup or
+		// after a background change finds nothing cached.
+		if !ensureAnimationLoaded(background) {
+			return nil
+		}
+		mutex.Lock()
+		val, ok = animation.Images[background]
+		mutex.Unlock()
+		if !ok {
+			return nil
+		}
 	}
 
 	z := 0
@@ -712,21 +721,41 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 	imageBuffer := make([]Frames, len(val))
 	var wg sync.WaitGroup
 	wg.Add(len(val))
-	sem := make(chan struct{}, animation.Workers)
+
+	// One scratch canvas per worker rather than per frame. A frame's scratch is
+	// only live between copying the background in and encoding the result, so
+	// at most Workers of them are ever in use; keeping one per frame pinned a
+	// full size RGBA for every frame of the animation for the process lifetime.
+	// The pool doubles as the concurrency limit.
+	workers := animation.Workers
+	if workers < 1 {
+		workers = 1
+	}
+	if workers > len(val) {
+		workers = len(val)
+	}
+	pool := make(chan *image.RGBA, workers)
+	for w := 0; w < workers; w++ {
+		pool <- image.NewRGBA(val[0].Canvas.Bounds())
+	}
 
 	for i := 0; i < len(val); i++ {
-		sem <- struct{}{}
+		canvas := <-pool
 
 		i := i
 		canvasSource := val[i].Canvas
-		canvasRGBA := val[i].RGBA
 		delay := val[i].Delay
+
+		// Frames of a gif may carry different bounds; swap in a correctly sized
+		// canvas rather than copying into a mismatched one.
+		if canvas.Rect != canvasSource.Rect {
+			canvas = image.NewRGBA(canvasSource.Bounds())
+		}
 
 		go func() {
 			defer wg.Done()
-			defer func() { <-sem }()
+			defer func() { pool <- canvas }()
 
-			canvas := canvasRGBA
 			copy(canvas.Pix, canvasSource.Pix)
 
 			total := z * 125

@@ -123,12 +123,12 @@
                                 </div>
                                 {{ end }}
 
-                                <div class="settings-row" id="binary-sensors-probe-data">
-                                    <div class="system-input text-input">
-                                        <label for="binary-probeData" class="full-width">
-                                            <input type="text" id="binary-probeData" placeholder="Path to binary">
-                                        </label>
-                                    </div>
+                                <div class="settings-row" id="external-source-data">
+                                    <label for="externalSourceId" class="full-width">
+                                        <select class="system-select full-width tempProfile" id="externalSourceId" disabled>
+                                            <option value="" disabled selected>Loading external sources...</option>
+                                        </select>
+                                    </label>
                                 </div>
 
                                 {{ if .SystemInfo.Storage }}
@@ -284,6 +284,7 @@
         </main>
     </div>
 </div>
+<script src="/static/js/external-sources.js"></script>
 <script src="/static/js/temperature.js"></script>
 <script src="/static/js/sidebar.js"></script>
 {{ if .Dashboard.TemperatureBar }}

@@ -13,7 +13,7 @@ installer rerun to replace the application without altering user-created state.
 | Configuration file | configuration directory + `config.json` | `/var/lib/lumenforge/config.json` |
 | Mutable data root | `$XDG_DATA_HOME/lumenforge/`, or `~/.local/share/lumenforge/` | `/var/lib/lumenforge/` |
 | Mutable database | data root + `database/` | `/var/lib/lumenforge/database/` |
-| Reserved administrator configuration | `/etc/lumenforge/` | `/etc/lumenforge/` |
+| External Source Registry | configuration directory + `external-sources.json` | `/etc/lumenforge/external-sources.json` |
 
 Custom `XDG_CONFIG_HOME` and `XDG_DATA_HOME` values must be absolute. The user
 installer resolves them when it creates the service unit.
@@ -82,5 +82,8 @@ immutable application content. Restore maps `config.json` to the configuration
 directory and mutable entries to the data root; it never restores into
 `/opt/LumenForge`.
 
-`/etc/lumenforge/` is reserved for future root-controlled administrator
-configuration and is not populated by the current installers.
+The optional `/etc/lumenforge/external-sources.json` file is root-controlled
+administrator configuration for the system service. The current installers do
+not create it. The user-service equivalent is stored in that user's resolved
+configuration directory. See [External Temperature Sources](external-sources.md)
+for ownership, permissions, schema, and execution rules.

@@ -2,6 +2,36 @@
 $(document).ready(function () {
     let dt = null;
 
+    function renderExternalSources(sources, emptyLabel) {
+        const select = $("#externalSourceId");
+        const options = ExternalSourcesUI.dropdownOptions(sources, emptyLabel);
+        select.empty();
+        $.each(options, function (_, option) {
+            $("<option>")
+                .val(option.value)
+                .text(option.label)
+                .prop("disabled", option.disabled)
+                .appendTo(select);
+        });
+        select.prop("disabled", options.length === 1 && options[0].disabled);
+    }
+
+    $.ajax({
+        url: '/api/external-sources',
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 1) {
+                renderExternalSources(response.data, response.message);
+                return;
+            }
+            renderExternalSources([], response.message || 'External source registry unavailable');
+        },
+        error: function () {
+            renderExternalSources([], 'External source registry unavailable');
+        }
+    });
+
     window.i18n = {
         locale: null,
         values: {},
@@ -106,12 +136,12 @@ $(document).ready(function () {
         }
 
         if (parseInt(sensor) === 7) {
-            const binaryPath = $("#binary-probeData").val();
-            if (binaryPath.length === 0) {
-                toast.warning('Define path to binary');
+            const selection = ExternalSourcesUI.selectionPayload($("#externalSourceId").val());
+            if (selection === null) {
+                toast.warning('Select a configured external source');
                 return false;
             }
-            pf["externalExecutable"] = binaryPath;
+            pf["externalSourceId"] = selection.externalSourceId;
         }
 
         if (parseInt(sensor) === 8) {
@@ -533,43 +563,43 @@ $(document).ready(function () {
             $("#storage-data").show();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
-            $("#binary-sensors-probe-data").hide();
+            $("#external-source-data").hide();
             $("#gpu-data").hide();
         } else if (value === "4") {
             $("#storage-data").hide();
             $("#temperature-probe-data").show();
             $("#hwmon-sensors-probe-data").hide();
-            $("#binary-sensors-probe-data").hide();
+            $("#external-source-data").hide();
             $("#gpu-data").hide();
         } else if (value === "6") {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").show();
-            $("#binary-sensors-probe-data").hide();
+            $("#external-source-data").hide();
             $("#gpu-data").hide();
         } else if (value === "7") {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
-            $("#binary-sensors-probe-data").show();
+            $("#external-source-data").show();
             $("#gpu-data").hide();
         } else if (value === "8") {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
-            $("#binary-sensors-probe-data").hide();
+            $("#external-source-data").hide();
             $("#gpu-data").show();
         } else if (value === "9") {
             $("#storage-data").hide();
             $("#temperature-probe-data").show();
             $("#hwmon-sensors-probe-data").hide();
-            $("#binary-sensors-probe-data").hide();
+            $("#external-source-data").hide();
             $("#gpu-data").hide();
         } else {
             $("#storage-data").hide();
             $("#temperature-probe-data").hide();
             $("#hwmon-sensors-probe-data").hide();
-            $("#binary-sensors-probe-data").hide();
+            $("#external-source-data").hide();
             $("#gpu-data").hide();
 
         }

@@ -6,6 +6,10 @@ const path = require("node:path");
 const test = require("node:test");
 const externalSources = require("./external-sources.js");
 
+const configuredSources = [
+    {id: "gpu-temperature", name: "GPU Temperature"}
+];
+
 test("external source dropdown uses registry ids and names", function () {
     assert.deepEqual(
         externalSources.dropdownOptions([
@@ -46,16 +50,70 @@ test("registry with only malformed entries produces a disabled empty-state optio
     );
 });
 
+test("external source sensor displays the registry selector", function () {
+    const visibility = externalSources.sensorControlVisibility("7");
+    const state = externalSources.externalSourceControlState("7", configuredSources);
+
+    assert.equal(visibility.externalSource, true);
+    assert.equal(visibility.storage, false);
+    assert.equal(visibility.hwmon, false);
+    assert.equal(state.visible, true);
+    assert.deepEqual(
+        state.options,
+        [{value: "gpu-temperature", label: "GPU Temperature", disabled: false}]
+    );
+});
+
+test("CPU sensor does not display the external source selector", function () {
+    const visibility = externalSources.sensorControlVisibility("0");
+    const state = externalSources.externalSourceControlState("0", configuredSources);
+
+    assert.equal(visibility.externalSource, false);
+    assert.equal(state.visible, false);
+    assert.deepEqual(state.options, []);
+});
+
+test("storage sensor displays only its storage selector", function () {
+    const visibility = externalSources.sensorControlVisibility("3");
+
+    assert.equal(visibility.storage, true);
+    assert.equal(visibility.externalSource, false);
+    assert.equal(visibility.hwmon, false);
+});
+
+test("external HWMON sensor displays only its HWMON selector", function () {
+    const visibility = externalSources.sensorControlVisibility("6");
+
+    assert.equal(visibility.hwmon, true);
+    assert.equal(visibility.externalSource, false);
+    assert.equal(visibility.storage, false);
+});
+
+test("switching away hides and switching back restores the registry selector", function () {
+    const externalState = externalSources.externalSourceControlState("7", configuredSources);
+    const cpuState = externalSources.externalSourceControlState("0", configuredSources);
+    const restoredState = externalSources.externalSourceControlState("7", configuredSources);
+
+    assert.equal(externalState.visible, true);
+    assert.equal(cpuState.visible, false);
+    assert.deepEqual(cpuState.options, []);
+    assert.deepEqual(restoredState, externalState);
+});
+
 test("temperature UI has no arbitrary executable input", function () {
     const script = fs.readFileSync(path.join(__dirname, "temperature.js"), "utf8");
     assert.match(script, /url:\s*['"]\/api\/external-sources['"]/);
     assert.match(script, /selectionPayload\(\$\("#externalSourceId"\)\.val\(\)\)/);
+    assert.match(script, /updateSensorControls\(\$\("#sensor"\)\.val\(\)\)/);
+    assert.match(script, /externalSourceControlState\(/);
+    assert.match(script, /\$\("#externalSourceId"\)\.empty\(\)\.val\(""\)\.prop\("disabled", true\)/);
     assert.doesNotMatch(script, /externalExecutable|binary-probeData|Path to binary/);
 
     const repositoryRoot = path.join(__dirname, "..", "..");
     for (const templateName of ["temperature.html", "temperatureGraph.html"]) {
         const template = fs.readFileSync(path.join(repositoryRoot, "web", templateName), "utf8");
         assert.match(template, /<option value="7">\{\{ \.Lang "txtExternalSource" \}\}<\/option>/);
+        assert.match(template, /id="external-source-data" data-sensor-type="7" hidden/);
         assert.match(template, /<select[^>]+id="externalSourceId"[^>]+aria-label="\{\{ \.Lang "txtExternalSource" \}\}"/);
         assert.doesNotMatch(template, /External binary|binary-probeData|Path to binary|type="text"[^>]+external/i);
     }

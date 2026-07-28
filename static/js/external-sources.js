@@ -40,8 +40,30 @@
         return {externalSourceId: selectedID};
     }
 
+    function sensorControlVisibility(sensorType) {
+        const selectedType = String(sensorType);
+        return {
+            linear: selectedType === "2",
+            storage: selectedType === "3",
+            temperatureProbe: selectedType === "4" || selectedType === "9",
+            hwmon: selectedType === "6",
+            externalSource: selectedType === "7",
+            gpu: selectedType === "8"
+        };
+    }
+
+    function externalSourceControlState(sensorType, sources, emptyLabel) {
+        const visible = sensorControlVisibility(sensorType).externalSource;
+        return {
+            visible: visible,
+            options: visible ? dropdownOptions(sources, emptyLabel) : []
+        };
+    }
+
     return {
         dropdownOptions: dropdownOptions,
-        selectionPayload: selectionPayload
+        selectionPayload: selectionPayload,
+        sensorControlVisibility: sensorControlVisibility,
+        externalSourceControlState: externalSourceControlState
     };
 }));

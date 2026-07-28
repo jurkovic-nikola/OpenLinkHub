@@ -1,10 +1,13 @@
 "use strict";
 $(document).ready(function () {
     let dt = null;
+    let externalSourceRegistry = {
+        sources: [],
+        emptyLabel: "Loading external sources..."
+    };
 
-    function renderExternalSources(sources, emptyLabel) {
+    function renderExternalSourceOptions(options) {
         const select = $("#externalSourceId");
-        const options = ExternalSourcesUI.dropdownOptions(sources, emptyLabel);
         select.empty();
         $.each(options, function (_, option) {
             $("<option>")
@@ -16,19 +19,52 @@ $(document).ready(function () {
         select.prop("disabled", options.length === 1 && options[0].disabled);
     }
 
+    function updateExternalSourceSelector(sensorType) {
+        const state = ExternalSourcesUI.externalSourceControlState(
+            sensorType,
+            externalSourceRegistry.sources,
+            externalSourceRegistry.emptyLabel
+        );
+        const container = $("#external-source-data");
+        container.prop("hidden", !state.visible).toggle(state.visible);
+        if (!state.visible) {
+            $("#externalSourceId").empty().val("").prop("disabled", true);
+            return;
+        }
+        renderExternalSourceOptions(state.options);
+    }
+
+    function updateSensorControls(sensorType) {
+        const visibility = ExternalSourcesUI.sensorControlVisibility(sensorType);
+        $("#linear-data").toggle(visibility.linear);
+        $("#storage-data").toggle(visibility.storage);
+        $("#temperature-probe-data").toggle(visibility.temperatureProbe);
+        $("#hwmon-sensors-probe-data").toggle(visibility.hwmon);
+        $("#gpu-data").toggle(visibility.gpu);
+        updateExternalSourceSelector(sensorType);
+    }
+
+    function storeExternalSources(sources, emptyLabel) {
+        externalSourceRegistry = {
+            sources: sources,
+            emptyLabel: emptyLabel
+        };
+        updateExternalSourceSelector($("#sensor").val());
+    }
+
     $.ajax({
         url: '/api/external-sources',
         method: 'GET',
         dataType: 'json',
         success: function (response) {
             if (response.status === 1) {
-                renderExternalSources(response.data, response.message);
+                storeExternalSources(response.data, response.message);
                 return;
             }
-            renderExternalSources([], response.message || 'External source registry unavailable');
+            storeExternalSources([], response.message || 'External source registry unavailable');
         },
         error: function () {
-            renderExternalSources([], 'External source registry unavailable');
+            storeExternalSources([], 'External source registry unavailable');
         }
     });
 
@@ -553,57 +589,9 @@ $(document).ready(function () {
     });
 
     $('#sensor').on('change', function () {
-        const value = $(this).val();
-        if (value === "2") {
-            $("#linear-data").show();
-        } else {
-            $("#linear-data").hide();
-        }
-        if (value === "3") {
-            $("#storage-data").show();
-            $("#temperature-probe-data").hide();
-            $("#hwmon-sensors-probe-data").hide();
-            $("#external-source-data").hide();
-            $("#gpu-data").hide();
-        } else if (value === "4") {
-            $("#storage-data").hide();
-            $("#temperature-probe-data").show();
-            $("#hwmon-sensors-probe-data").hide();
-            $("#external-source-data").hide();
-            $("#gpu-data").hide();
-        } else if (value === "6") {
-            $("#storage-data").hide();
-            $("#temperature-probe-data").hide();
-            $("#hwmon-sensors-probe-data").show();
-            $("#external-source-data").hide();
-            $("#gpu-data").hide();
-        } else if (value === "7") {
-            $("#storage-data").hide();
-            $("#temperature-probe-data").hide();
-            $("#hwmon-sensors-probe-data").hide();
-            $("#external-source-data").show();
-            $("#gpu-data").hide();
-        } else if (value === "8") {
-            $("#storage-data").hide();
-            $("#temperature-probe-data").hide();
-            $("#hwmon-sensors-probe-data").hide();
-            $("#external-source-data").hide();
-            $("#gpu-data").show();
-        } else if (value === "9") {
-            $("#storage-data").hide();
-            $("#temperature-probe-data").show();
-            $("#hwmon-sensors-probe-data").hide();
-            $("#external-source-data").hide();
-            $("#gpu-data").hide();
-        } else {
-            $("#storage-data").hide();
-            $("#temperature-probe-data").hide();
-            $("#hwmon-sensors-probe-data").hide();
-            $("#external-source-data").hide();
-            $("#gpu-data").hide();
-
-        }
+        updateSensorControls($(this).val());
     });
+    updateSensorControls($("#sensor").val());
 });
 
 $('.sensorInfoToggle').on('click', function () {

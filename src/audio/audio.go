@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"unsafe"
 )
@@ -58,7 +59,7 @@ var (
 )
 
 func Init() {
-	location = config.GetConfig().ConfigPath + "/database/audio.json"
+	location = filepath.Join(config.GetPaths().MutableDatabaseRoot, "audio.json")
 	if !common.FileExists(location) {
 		logger.Log(logger.Fields{"file": location}).Info("Audio file is missing, creating initial one.")
 		data := &Audio{

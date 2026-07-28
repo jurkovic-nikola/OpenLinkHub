@@ -9,7 +9,6 @@ import (
 	"image"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"golang.org/x/image/draw"
@@ -39,7 +38,7 @@ var (
 )
 
 func InitAnimation() {
-	animationProfile := config.GetConfig().ConfigPath + "/database/lcd/animation.json"
+	animationProfile := filepath.Join(config.GetPaths().MutableLCDRoot, "animation.json")
 	if common.FileExists(animationProfile) {
 		file, err := os.Open(animationProfile)
 		if err != nil {
@@ -111,37 +110,18 @@ func InitAnimation() {
 		}
 	}
 
-	animationsFolder := pwd + "/database/lcd/images/"
-	files, err := os.ReadDir(animationsFolder)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": animationsFolder}).Error("Unable to read content of a folder")
-		return
-	}
-
 	animationData := make(map[string][]AnimationFrames)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	for _, fi := range files {
+	for _, imageData := range lcd.ImageData {
+		if imageData.PalettedFrames == nil {
+			continue
+		}
 		wg.Add(1)
 
-		go func(fi os.DirEntry) {
+		go func(fileName string) {
 			defer wg.Done()
-
-			imagePath := animationsFolder + fi.Name()
-
-			filenameFull := filepath.Base(imagePath)
-			fileName := strings.TrimSuffix(filenameFull, filepath.Ext(filenameFull))
-
-			// Validate file name
-			if !common.AlphanumericRegex.MatchString(fileName) {
-				logger.Log(logger.Fields{"location": animationsFolder, "image": imagePath}).Warn("Image name can only have letters and numbers. Please rename your image")
-				return
-			}
-
-			if strings.ToLower(filepath.Ext(imagePath)) != ".gif" {
-				return
-			}
 
 			palettedFrames := GetPalettedFrames(fileName)
 			if palettedFrames.PalettedFrames == nil {
@@ -170,7 +150,7 @@ func InitAnimation() {
 			mu.Lock()
 			animationData[fileName] = imageBuffer
 			mu.Unlock()
-		}(fi)
+		}(imageData.Name)
 	}
 	wg.Wait()
 	animation.Images = animationData
@@ -178,17 +158,60 @@ func InitAnimation() {
 
 // LoadAnimation will load animation based on filename
 func LoadAnimation(fileName string) uint8 {
+	mutex.Lock()
 	if animation.Images == nil {
+		mutex.Unlock()
 		return 0
 	}
 
 	if _, ok := animation.Images[fileName]; ok {
+		mutex.Unlock()
 		return 2
 	}
+	mutex.Unlock()
 
-	palettedFrames := GetPalettedFrames(fileName)
-	if palettedFrames.PalettedFrames == nil {
+	imageBuffer, ok := buildAnimationFrames(fileName)
+	if !ok {
 		return 0
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+	if animation.Images == nil {
+		return 0
+	}
+	if _, ok = animation.Images[fileName]; ok {
+		return 2
+	}
+	animation.Images[fileName] = imageBuffer
+	return 1
+}
+
+func refreshAnimationCache(fileName string, animated bool) bool {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(animation.Images, fileName)
+	if !animated {
+		return true
+	}
+	imageBuffer, ok := buildAnimationFramesFrom(getPalettedFrames(fileName))
+	if !ok {
+		return false
+	}
+	if animation.Images == nil {
+		animation.Images = make(map[string][]AnimationFrames)
+	}
+	animation.Images[fileName] = imageBuffer
+	return true
+}
+
+func buildAnimationFrames(fileName string) ([]AnimationFrames, bool) {
+	return buildAnimationFramesFrom(GetPalettedFrames(fileName))
+}
+
+func buildAnimationFramesFrom(palettedFrames ImageData) ([]AnimationFrames, bool) {
+	if palettedFrames.PalettedFrames == nil {
+		return nil, false
 	}
 
 	imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
@@ -209,12 +232,17 @@ func LoadAnimation(fileName string) uint8 {
 			RGBA:   image.NewRGBA(canvas.Bounds()),
 		}
 	}
-	animation.Images[fileName] = imageBuffer
-	return 1
+	return imageBuffer, true
 }
 
 // GetPalettedFrames will return
 func GetPalettedFrames(fileName string) ImageData {
+	mutex.Lock()
+	defer mutex.Unlock()
+	return getPalettedFrames(fileName)
+}
+
+func getPalettedFrames(fileName string) ImageData {
 	for _, val := range lcd.ImageData {
 		if val.Name == fileName {
 			return val
@@ -231,7 +259,7 @@ func GetAnimation() *Animation {
 // SaveAnimation will save animation profile
 func SaveAnimation(value *Animation) uint8 {
 	animation = value
-	profile := config.GetConfig().ConfigPath + "/database/lcd/animation.json"
+	profile := filepath.Join(config.GetPaths().MutableLCDRoot, "animation.json")
 
 	if err := common.SaveJsonData(profile, animation); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")

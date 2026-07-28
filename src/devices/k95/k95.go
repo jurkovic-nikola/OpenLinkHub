@@ -126,7 +126,7 @@ var (
 	keyboardKey           = "k95-default"
 	defaultLayout         = "k95-default-US"
 	maximumPacketSize     = 60
-	rgbProfileUpgrade = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch"}
+	rgbProfileUpgrade     = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch"}
 	rgbModes              = []string{
 		"circle",
 		"circleshift",
@@ -136,7 +136,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch","gpu-temperature",
+		"aurora", "cyberpunkglitch", "gpu-temperature",
 		"gradient",
 		"keyboard",
 		"off",
@@ -153,7 +153,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev, err := hid.OpenPath(path)
 	if err != nil {
@@ -1699,25 +1699,25 @@ func (d *Device) setDeviceColor() {
 						r.Storm()
 					}
 				case "flickering":
-				{
+					{
 
 						r.Flickering(&startTime)
-				}
+					}
 				case "flame":
-				{
+					{
 
 						r.Flame(&startTime)
-				}
+					}
 				case "aurora":
-				{
+					{
 
 						r.Aurora(&startTime)
-				}
+					}
 				case "cyberpunkglitch":
-				{
+					{
 
 						r.CyberpunkGlitch(&startTime)
-				}
+					}
 				case "colorshift":
 					{
 						r.Colorshift(&startTime, d.activeRgb)

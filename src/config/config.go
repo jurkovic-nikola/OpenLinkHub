@@ -10,17 +10,15 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/user"
 	"slices"
 	"strings"
 )
 
 type Configuration struct {
-	Debug      bool   `json:"debug"`
-	Manual     bool   `json:"manual"`
-	Frontend   bool   `json:"frontend"`
-	Metrics    bool   `json:"metrics"`
-	ConfigPath string `json:",omitempty"`
+	Debug    bool `json:"debug"`
+	Manual   bool `json:"manual"`
+	Frontend bool `json:"frontend"`
+	Metrics  bool `json:"metrics"`
 
 	// Deprecated: retained only so existing config.json files continue to
 	// decode and preserve a legacy value when configuration is saved.
@@ -93,19 +91,20 @@ var (
 
 // Init will initialize a new config object
 func Init() {
-	setSystemService()
-
-	var configPath = ""
-
-	pwd, _ := os.Getwd()
-	isAtomic := common.FileExists(pwd + "/atomic")
-	if isAtomic {
-		pwd = "/etc/LumenForge"
-		configPath = "/etc/LumenForge"
-	} else {
-		configPath = pwd
+	resolvedPaths, err := ResolveRuntimePaths()
+	if err != nil {
+		panic(err.Error())
 	}
-	location = pwd + "/config.json"
+	initWithPaths(resolvedPaths)
+}
+
+func initWithPaths(resolvedPaths Paths) {
+	if err := EnsureRuntimeDirectories(resolvedPaths); err != nil {
+		panic(err.Error())
+	}
+	runtimePaths = resolvedPaths
+	systemService = resolvedPaths.Mode == ServiceModeSystem
+	location = resolvedPaths.ConfigurationFile
 
 	// Create or upgrade
 	upgradeFile(location)
@@ -119,7 +118,6 @@ func Init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	configuration.ConfigPath = configPath
 }
 
 func decodeConfiguration(reader io.Reader) (Configuration, bool, error) {
@@ -234,7 +232,7 @@ func upgradeFile(cfg string) {
 	} else {
 		save := false
 		var data map[string]interface{}
-		file, err := os.Open(location)
+		file, err := os.Open(cfg)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -269,8 +267,12 @@ func saveConfigSettings(data any) {
 	}
 
 	// Create profile filename
-	file, err := os.Create(location)
+	file, err := os.OpenFile(location, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
+		panic(err.Error())
+	}
+	if err = file.Chmod(0o600); err != nil {
+		_ = file.Close()
 		panic(err.Error())
 	}
 
@@ -285,36 +287,4 @@ func saveConfigSettings(data any) {
 	if err != nil {
 		panic(err.Error())
 	}
-}
-
-// setSystemService will check and set systemService state
-func setSystemService() {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("LUMENFORGE_SERVICE_MODE"))) {
-	case "system":
-		systemService = true
-		return
-	case "user", "desktop":
-		systemService = false
-		return
-	}
-
-	uid := os.Getuid()
-	if uid < 1000 {
-		systemService = true
-		return
-	}
-
-	if os.Getenv("DISPLAY") != "" ||
-		os.Getenv("WAYLAND_DISPLAY") != "" ||
-		os.Getenv("XDG_SESSION_TYPE") != "" {
-		systemService = false
-	}
-
-	u, err := user.Current()
-	if err != nil {
-		systemService = true
-		return
-	}
-
-	systemService = !strings.HasPrefix(u.HomeDir, "/home/")
 }

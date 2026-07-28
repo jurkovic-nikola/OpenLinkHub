@@ -247,7 +247,7 @@ var (
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
 	manualSpeedModes           = map[int]*SpeedMode{}
-	rgbProfileUpgrade = []string{"led", "spiralrainbow", "gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade          = []string{"led", "spiralrainbow", "gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes                   = []string{
 		"circle",
 		"circleshift",
@@ -257,7 +257,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"led",
 		"liquid-temperature",
@@ -307,7 +307,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Open device, return if failure
 	dev, err := hid.OpenFirst(vendorId, productId)
@@ -819,7 +819,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.
@@ -1033,35 +1033,35 @@ func (d *Device) setDeviceColor() {
 							buff = append(buff, r.Output...)
 						}
 					case "flickering":
-					{
+						{
 
 							r.Flickering(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "flame":
-					{
+						{
 
 							r.Flame(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "aurora":
-					{
+						{
 
 							r.Aurora(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "cyberpunkglitch":
-					{
+						{
 
 							r.CyberpunkGlitch(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "tokyonight":
-					{
+						{
 
 							r.TokyoNight(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "colorshift":
 						{
 							r.Colorshift(&startTime, d.activeRgb)

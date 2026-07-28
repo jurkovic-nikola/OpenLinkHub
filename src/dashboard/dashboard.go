@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -60,7 +61,7 @@ var (
 
 // Init will initialize a new config object
 func Init() {
-	location = config.GetConfig().ConfigPath + "/dashboard.json"
+	location = config.GetPaths().DashboardFile
 	upgradeFile()
 	file, err := os.Open(location)
 	if err != nil {
@@ -159,7 +160,7 @@ func upgradeFile() {
 func loadThemes() {
 	dashboard.Themes = nil
 
-	themesPath := config.GetConfig().ConfigPath + "/static/css/themes/"
+	themesPath := filepath.Join(config.GetPaths().StaticAssetRoot, "css", "themes")
 	files, err := os.ReadDir(themesPath)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "location": themesPath}).Fatal("Unable to read content of a folder")
@@ -171,7 +172,7 @@ func loadThemes() {
 		}
 
 		// Define a full path of filename
-		themeLocation := themesPath + fi.Name()
+		themeLocation := filepath.Join(themesPath, fi.Name())
 
 		// Check if filename has .json extension
 		if !common.IsValidExtension(themeLocation, ".css") {

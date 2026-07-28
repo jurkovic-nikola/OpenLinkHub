@@ -1,9 +1,11 @@
 # Configuration Reference
 
-LumenForge reads `config.json` once during startup. Installer-managed system and
-user services both use `/opt/LumenForge/config.json`; a direct source run uses
-`config.json` in the process working directory. Stop LumenForge before editing
-the file, keep a backup, and restart it after saving.
+LumenForge reads `config.json` once during startup. The user service uses
+`$XDG_CONFIG_HOME/lumenforge/config.json`, falling back to
+`~/.config/lumenforge/config.json`. The system service uses
+`/var/lib/lumenforge/config.json`. A direct source run uses `config.json` in the
+process working directory. Stop LumenForge before editing the file, keep a
+backup, and restart it after saving.
 
 The file is JSON. Field names are case-sensitive, JSON types must match the
 types below, and malformed JSON prevents startup. LumenForge currently ignores
@@ -56,9 +58,8 @@ This is the configuration generated for a new installation:
 
 `enableOpenRGBTargetServer` is absent because its default is `false` and its
 JSON field uses `omitempty`, so the generated configuration omits that false
-zero value. It is serialized when enabled. The internal field's JSON tag has
-no alternate name, so it appears as `ConfigPath` when serialized; its empty
-fresh value is omitted by `omitempty`.
+zero value. It is serialized when enabled. Internal filesystem roots are not
+configuration fields and are never serialized.
 
 ## Server and Network
 
@@ -94,7 +95,7 @@ LumenForge's HTTP port; `openRGBPort` is the local OpenRGB SDK port.
 | Key | Type and default | Accepted values | Purpose and guidance | Restart |
 | --- | --- | --- | --- | --- |
 | `logLevel` | string, `"info"` | `"info"`, `"warn"`, `"error"`, `"fatal"`, or `"silent"`; matching is case-insensitive | Minimum emitted log severity. Any unrecognized value silently behaves as `"info"`. Use `"silent"` only when loss of diagnostic output is acceptable. | Yes |
-| `logFile` | string, `""` | Empty, `"-"`, or a filesystem path | Empty writes to `stdout.log` beside `config.json`; `"-"` writes to standard error; another value selects that file. At startup an existing log is archived as a timestamped `.tar.gz`. The service user must be able to create the file and archive in its parent directory. | Yes |
+| `logFile` | string, `""` | Empty, `"-"`, or a filesystem path | Empty or `"-"` writes to standard error, which an installed service records in journald. A relative path is resolved beneath the mutable data root; a safe absolute path selects that file. Destinations beneath `/opt/LumenForge` are rejected. At startup an existing file log is archived as a timestamped `.tar.gz`. | Yes |
 | `debug` | boolean, `false` | `true`, `false` | Enables additional device and inherited OpenRGB-compatible target-server diagnostics. It does not change `logLevel`; normally leave it disabled because output can be verbose. | Yes |
 
 ## Temperature, GPU, and Profile Selection
@@ -163,21 +164,16 @@ local target server is enabled. Importer and target-server workflows may be
 used only when their port and device-ownership arrangements do not conflict.
 
 Imported-controller identities, layouts, disabled membership, RGB profiles,
-cluster membership, and other files below `database/` are runtime state. They
-are managed by the application and are not `config.json` options. See
-[OpenRGB device import](openrgb-import.md) for that lifecycle.
+cluster membership, and other files below the mutable database root are runtime
+state. They are managed by the application and are not `config.json` options.
+See [OpenRGB device import](openrgb-import.md) for that lifecycle.
 
 ## Generated and Internal Values
 
-`ConfigPath` is an internal field populated from the process working directory
-after `config.json` is loaded. It may appear with that exact capitalized name
-after LumenForge rewrites the configuration, but its file value is ignored and
-replaced at every startup. Do not add or edit it.
-
-If an `atomic` marker exists in the working directory, LumenForge internally
-uses `/etc/LumenForge/config.json` and `/etc/LumenForge` for configuration data.
-The current installers do not create that marker; it is an internal legacy
-deployment mode rather than an ordinary user setting.
+Application, configuration, and mutable-data roots are internal runtime values.
+They are centrally resolved, are not `config.json` fields, and cannot be
+changed through the dashboard or API. `/etc/lumenforge/` is reserved for future
+root-controlled administrator configuration; it is not used for `config.json`.
 
 LumenForge may add newly introduced keys when it loads an older configuration.
 That upgrade rewrite preserves known and unknown JSON fields. Two compatibility
@@ -190,16 +186,18 @@ There are no command-line configuration flags and no environment-variable
 overrides for the JSON keys above. For those settings, the value loaded from
 `config.json` is the only configured value.
 
-`LUMENFORGE_SERVICE_MODE` is a separate runtime-context override, not a JSON
-setting:
+The installed service units set runtime path environment values. They are not
+JSON settings and are validated before use:
 
-| Value | Effect |
+| Variable | Effect |
 | --- | --- |
-| `system` | Forces system-service behaviour. |
-| `user` or `desktop` | Forces desktop/user-service behaviour. |
-| Empty or unrecognized | LumenForge infers the mode from UID, desktop-session environment, and home directory. |
+| `LUMENFORGE_SERVICE_MODE` | `system` selects installed system-service behavior; `user` or `desktop` selects installed user-service behavior. Empty selects direct development mode. Other values are rejected. |
+| `LUMENFORGE_APPLICATION_ROOT` | Absolute immutable application root. Installed units set `/opt/LumenForge`. |
+| `LUMENFORGE_CONFIG_ROOT` | Absolute directory containing `config.json`. |
+| `LUMENFORGE_DATA_ROOT` | Absolute mutable data root. |
 
-Values are trimmed and compared case-insensitively. The installed service units
-set this variable explicitly, so its recognized environment value takes
-precedence over automatic service-mode detection. It does not override any
-`config.json` field.
+Installed configuration and data roots are rejected if relative or if they are
+equal to or nested beneath the application root. The user installer resolves
+custom absolute XDG homes and records the resulting roots in its unit. Direct
+development mode uses the working directory only when no installed service mode
+is selected. See [Filesystem Layout and Ownership](filesystem-layout.md).

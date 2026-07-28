@@ -159,14 +159,14 @@ var (
 	BufferSize                 = 64
 	deviceRefreshInterval      = 1000
 	temperaturePullingInterval = 3000
-	rgbProfileUpgrade = []string{
+	rgbProfileUpgrade          = []string{
 		"arc",
 		"gradient",
 		"pastelrainbow",
 		"pastelspiralrainbow",
 		"rain",
 		"flame",
-	"aurora","cyberpunkglitch", "tokyonight",}
+		"aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes = []string{
 		"arc",
 		"circle",
@@ -237,7 +237,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Open device, return if failure
 	dev, err := usb.Open(path)
@@ -919,7 +919,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	go func(lightChannels int) {
 		startTime := time.Now()
 		d.activeRgb = rgb.Exit()
@@ -1073,35 +1073,35 @@ func (d *Device) setDeviceColor() {
 							buff = append(buff, r.Output...)
 						}
 					case "flickering":
-					{
+						{
 
 							r.Flickering(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "flame":
-					{
+						{
 
 							r.Flame(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "aurora":
-					{
+						{
 
 							r.Aurora(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "cyberpunkglitch":
-					{
+						{
 
 							r.CyberpunkGlitch(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "tokyonight":
-					{
+						{
 
 							r.TokyoNight(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "colorshift":
 						{
 							r.Colorshift(&startTime, d.activeRgb)

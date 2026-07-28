@@ -124,7 +124,7 @@ var (
 	maxBufferSizePerRequest = 50
 	ledsPerTower            = 27
 	deviceKeepAlive         = 2000
-	rgbProfileUpgrade = []string{"nebula", "marquee", "rotarystack", "sequential", "gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade       = []string{"nebula", "marquee", "rotarystack", "sequential", "gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes                = []string{
 		"circle",
 		"circleshift",
@@ -134,7 +134,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"marquee",
 		"nebula",
@@ -154,7 +154,7 @@ var (
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
@@ -1531,35 +1531,35 @@ func (d *Device) setDeviceColor() {
 							buff = append(buff, r.Output...)
 						}
 					case "flickering":
-					{
+						{
 
 							r.Flickering(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "flame":
-					{
+						{
 
 							r.Flame(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "aurora":
-					{
+						{
 
 							r.Aurora(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "cyberpunkglitch":
-					{
+						{
 
 							r.CyberpunkGlitch(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "tokyonight":
-					{
+						{
 
 							r.TokyoNight(&startTime)
 							buff = append(buff, r.Output...)
-					}
+						}
 					case "colorshift":
 						{
 							r.Colorshift(&startTime, d.activeRgb)

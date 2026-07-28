@@ -248,7 +248,7 @@ type Device struct {
 // Init will initialize a new device
 func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	// Open device, return if failure
 	dev, err := hid.Open(vendorId, productId, serial)
@@ -461,7 +461,7 @@ func (d *Device) StopDirty() uint8 {
 
 // loadExternalDevices will load external device definitions
 func (d *Device) loadExternalDevices() {
-	externalDevicesFile := pwd + "/database/external/ccxt.json"
+	externalDevicesFile := filepath.Join(config.GetPaths().ShippedDeviceDefinitionsRoot, "ccxt.json")
 	if common.FileExists(externalDevicesFile) {
 		file, err := os.Open(externalDevicesFile)
 		if err != nil {

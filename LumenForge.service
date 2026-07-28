@@ -7,9 +7,12 @@ StartLimitBurst=5
 [Service]
 Type=simple
 Environment=LUMENFORGE_SERVICE_MODE=system
+Environment=LUMENFORGE_APPLICATION_ROOT=/opt/LumenForge
+Environment=LUMENFORGE_CONFIG_ROOT=/var/lib/lumenforge
+Environment=LUMENFORGE_DATA_ROOT=/var/lib/lumenforge
 User=lumenforge
 Group=lumenforge
-WorkingDirectory=/opt/LumenForge
+UMask=0077
 ExecStart=/opt/LumenForge/LumenForge
 Restart=on-failure
 RestartSec=10

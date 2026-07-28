@@ -2963,7 +2963,7 @@ func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.Res
 func setRoutes() http.Handler {
 	protection := newLocalAPIProtection(config.GetConfig().ListenPort)
 	r := http.NewServeMux()
-	fs := http.FileServer(http.Dir("./static"))
+	fs := http.FileServer(http.Dir(config.GetPaths().StaticAssetRoot))
 	r.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// GET

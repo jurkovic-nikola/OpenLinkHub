@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -137,8 +138,8 @@ type Key struct {
 
 // Init will load and initialize keyboard data
 func Init() {
-	pwd = config.GetConfig().ConfigPath
-	location = pwd + "/database/keyboard/"
+	pwd = config.GetPaths().ApplicationRoot
+	location = filepath.Join(config.GetPaths().ShippedDatabaseRoot, "keyboard")
 
 	files, err := os.ReadDir(location)
 	if err != nil {
@@ -151,7 +152,7 @@ func Init() {
 		}
 
 		// Define a full path of filename
-		pullPath := location + fileInfo.Name()
+		pullPath := filepath.Join(location, fileInfo.Name())
 
 		// Check if filename has .json extension
 		if !common.IsValidExtension(pullPath, ".json") {

@@ -10,8 +10,8 @@ import (
 	"LumenForge/src/logger"
 	"LumenForge/src/rgb"
 	"encoding/json"
-	"fmt"
 	"os"
+	"path/filepath"
 )
 
 type Device struct {
@@ -32,7 +32,7 @@ type DeviceData struct {
 
 // LoadProfile loads device LED profile
 func LoadProfile(serial string) *Device {
-	profile := fmt.Sprintf("%s/database/led/%s.json", config.GetConfig().ConfigPath, serial)
+	profile := filepath.Join(config.GetPaths().MutableLEDRoot, serial+".json")
 	file, err := os.Open(profile)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to load led profile")
@@ -49,7 +49,7 @@ func LoadProfile(serial string) *Device {
 
 // SaveProfile saves device LED profile
 func SaveProfile(serial string, data Device) {
-	profile := fmt.Sprintf("%s/database/led/%s.json", config.GetConfig().ConfigPath, serial)
+	profile := filepath.Join(config.GetPaths().MutableLEDRoot, serial+".json")
 
 	if err := common.SaveJsonData(profile, data); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to save LED profile")

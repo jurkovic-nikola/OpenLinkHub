@@ -9,8 +9,8 @@ import (
 	"LumenForge/src/config"
 	"LumenForge/src/logger"
 	"encoding/json"
-	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -50,8 +50,8 @@ var (
 
 // Init will load all available macro profiles
 func Init() {
-	pwd = config.GetConfig().ConfigPath
-	location = pwd + "/database/macros/"
+	pwd = config.GetPaths().MutableDataRoot
+	location = config.GetPaths().MutableMacrosRoot
 
 	files, err := os.ReadDir(location)
 	if err != nil {
@@ -65,7 +65,7 @@ func Init() {
 		}
 
 		// Define a full path of filename
-		profileLocation := location + fi.Name()
+		profileLocation := filepath.Join(location, fi.Name())
 
 		// Check if filename has .json extension
 		if !common.IsValidExtension(profileLocation, ".json") {
@@ -108,7 +108,7 @@ func DeleteMacroValue(macroId, macroIndex int) uint8 {
 	defer mutex.Unlock()
 
 	if val, ok := macros[macroId]; ok {
-		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		profile := filepath.Join(config.GetPaths().MutableMacrosRoot, strings.ToLower(val.Name)+".json")
 		if _, ok := val.Actions[macroIndex]; ok {
 			delete(val.Actions, macroIndex)
 			macros[macroId] = val
@@ -147,7 +147,7 @@ func UpdateMacroValue(macroId, macroIndex int, macroAction *Actions) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if val, ok := macros[macroId]; ok {
-		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		profile := filepath.Join(config.GetPaths().MutableMacrosRoot, strings.ToLower(val.Name)+".json")
 		if action, ok := val.Actions[macroIndex]; ok {
 			if macroAction.ActionHold {
 				if !validatePressAndHold(macroId) {
@@ -174,7 +174,7 @@ func UpdateMacroSettings(macroId, macroRepeat, macroDelay int) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if val, ok := macros[macroId]; ok {
-		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		profile := filepath.Join(config.GetPaths().MutableMacrosRoot, strings.ToLower(val.Name)+".json")
 		val.Repeat = macroRepeat
 		val.RepeatDelay = macroDelay
 		macros[macroId] = val
@@ -190,7 +190,7 @@ func DeleteMacroProfile(macroId int) uint8 {
 	defer mutex.Unlock()
 
 	if val, ok := macros[macroId]; ok {
-		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		profile := filepath.Join(config.GetPaths().MutableMacrosRoot, strings.ToLower(val.Name)+".json")
 		if common.FileExists(profile) {
 			err := os.Remove(profile)
 			if err != nil {
@@ -209,7 +209,7 @@ func NewMacroProfile(macroName string) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(macroName))
+	profile := filepath.Join(config.GetPaths().MutableMacrosRoot, strings.ToLower(macroName)+".json")
 	if common.FileExists(profile) {
 		return 0
 	}
@@ -241,7 +241,7 @@ func NewMacroProfileValue(macroId int, macroAction *Actions) uint8 {
 	defer mutex.Unlock()
 
 	if val, ok := macros[macroId]; ok {
-		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
+		profile := filepath.Join(config.GetPaths().MutableMacrosRoot, strings.ToLower(val.Name)+".json")
 		if common.FileExists(profile) {
 			length := len(val.Actions)
 			val.Actions[length] = Actions{

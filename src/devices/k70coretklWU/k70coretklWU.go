@@ -153,7 +153,7 @@ var (
 	keyboardKey             = "k70coretklW-default"
 	defaultLayout           = "k70coretklW-default-US"
 	keyAssignmentLength     = 123
-	rgbProfileUpgrade = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade       = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	rgbModes                = []string{
 		"circle",
 		"circleshift",
@@ -163,7 +163,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"keyboard",
 		"off",
@@ -180,7 +180,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev, err := hid.OpenPath(path)
 	if err != nil {
@@ -1887,35 +1887,35 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				case "flickering":
-				{
+					{
 
 						r.Flickering(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "flame":
-				{
+					{
 
 						r.Flame(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "aurora":
-				{
+					{
 
 						r.Aurora(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "cyberpunkglitch":
-				{
+					{
 
 						r.CyberpunkGlitch(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "tokyonight":
-				{
+					{
 
 						r.TokyoNight(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "colorshift":
 					{
 						r.Colorshift(&startTime, d.activeRgb)

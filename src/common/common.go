@@ -919,8 +919,12 @@ func SaveJsonData(path string, data interface{}) error {
 		return err
 	}
 
-	file, fileErr := os.Create(path)
+	file, fileErr := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if fileErr != nil {
+		return fileErr
+	}
+	if fileErr = file.Chmod(0o600); fileErr != nil {
+		_ = file.Close()
 		return fileErr
 	}
 	defer func(file *os.File) {

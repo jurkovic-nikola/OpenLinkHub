@@ -52,7 +52,7 @@ const hardwareBufferDrainDelay = 75 * time.Millisecond
 var (
 	configStoreMutex sync.Mutex
 	configStorePath  = func() string {
-		return filepath.Join(config.GetConfig().ConfigPath, "database", "openrgbimport-zones.json")
+		return config.GetPaths().OpenRGBImportFile
 	}
 	renameConfigStore = os.Rename
 	sendConfigFrame   = openrgb.SendFrame
@@ -1138,7 +1138,7 @@ func migrateDeviceData(dc openrgb.DiscoveredController, newSerial string) {
 	}
 
 	// 3. Migrate profile files in database/profiles/
-	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+	profileDir := filepath.Join(config.GetPaths().MutableDataRoot, "database", "profiles")
 	files, err := os.ReadDir(profileDir)
 	if err != nil {
 		return
@@ -2033,7 +2033,7 @@ func (d *Device) saveDeviceProfile() {
 		return
 	}
 
-	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+	profileDir := filepath.Join(config.GetPaths().MutableDataRoot, "database", "profiles")
 	_ = os.MkdirAll(profileDir, 0o755)
 
 	profilePath := d.DeviceProfile.Path
@@ -2055,7 +2055,7 @@ func (d *Device) saveDeviceProfile() {
 
 func (d *Device) loadDeviceProfiles() {
 	profileList := make(map[string]*DeviceProfile)
-	profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+	profileDir := filepath.Join(config.GetPaths().MutableDataRoot, "database", "profiles")
 	_ = os.MkdirAll(profileDir, 0o755)
 
 	files, err := os.ReadDir(profileDir)
@@ -2156,7 +2156,7 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 	}
 
 	if d.DeviceProfile != nil {
-		profileDir := filepath.Join(config.GetConfig().ConfigPath, "database", "profiles")
+		profileDir := filepath.Join(config.GetPaths().MutableDataRoot, "database", "profiles")
 		profilePath := filepath.Join(profileDir, d.Serial+"-"+profileName+".json")
 
 		// Deep copy ZoneColors map
@@ -2594,7 +2594,7 @@ func (d *Device) loadRgb() {
 	d.rgbMutex.Lock()
 	defer d.rgbMutex.Unlock()
 
-	pwd := config.GetConfig().ConfigPath
+	pwd := config.GetPaths().MutableDataRoot
 	rgbDirectory := filepath.Join(pwd, "database", "rgb")
 	rgbFilename := filepath.Join(rgbDirectory, d.Serial+".json")
 
@@ -2666,7 +2666,7 @@ func (d *Device) saveRgbProfile() {
 		return
 	}
 
-	pwd := config.GetConfig().ConfigPath
+	pwd := config.GetPaths().MutableDataRoot
 	rgbFilename := filepath.Join(pwd, "database", "rgb", d.Serial+".json")
 
 	if err := common.SaveJsonData(rgbFilename, d.Rgb); err != nil {

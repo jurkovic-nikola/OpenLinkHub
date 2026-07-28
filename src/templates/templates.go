@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 )
@@ -106,14 +107,14 @@ func (w Web) RenderTemplate(name string, data any) template.HTML {
 // Init will parse all templates
 func Init() {
 	var templateList []string
-	htmlDirectory := config.GetConfig().ConfigPath + "/web/"
+	htmlDirectory := config.GetPaths().TemplateRoot
 	files, err := os.ReadDir(htmlDirectory)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "path": htmlDirectory}).Fatal("Unable to read content of a html directory")
 	}
 
 	for _, fi := range files {
-		templateFile := fmt.Sprintf("%s%s", htmlDirectory, fi.Name())
+		templateFile := filepath.Join(htmlDirectory, fi.Name())
 
 		// Check if filename has .html extension
 		if !common.IsValidExtension(templateFile, ".html") {

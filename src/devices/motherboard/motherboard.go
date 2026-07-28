@@ -113,7 +113,7 @@ type Device struct {
 // Init will initialize a new device
 func Init() *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev := motherboards.GetMotherboard()
 	if dev == nil {

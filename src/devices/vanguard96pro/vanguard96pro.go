@@ -162,7 +162,7 @@ var (
 	keyboardKey             = "vanguard96-default"
 	defaultLayout           = "vanguard96-default-US"
 	keyAssignmentLength     = 137
-	rgbProfileUpgrade = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
+	rgbProfileUpgrade       = []string{"gradient", "pastelrainbow", "pastelspiralrainbow", "flame", "aurora", "cyberpunkglitch", "tokyonight"}
 	keyActuations           = []byte{
 		0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
 		0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13,
@@ -192,7 +192,7 @@ var (
 		"cpu-temperature",
 		"flickering",
 		"flame",
-		"aurora","cyberpunkglitch", "tokyonight","gpu-temperature",
+		"aurora", "cyberpunkglitch", "tokyonight", "gpu-temperature",
 		"gradient",
 		"keyboard",
 		"off",
@@ -209,7 +209,7 @@ var (
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 
 	dev, err := hid.OpenPath(path)
 	if err != nil {
@@ -2407,35 +2407,35 @@ func (d *Device) setDeviceColor() {
 						buff = append(buff, r.Output...)
 					}
 				case "flickering":
-				{
+					{
 
 						r.Flickering(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "flame":
-				{
+					{
 
 						r.Flame(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "aurora":
-				{
+					{
 
 						r.Aurora(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "cyberpunkglitch":
-				{
+					{
 
 						r.CyberpunkGlitch(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "tokyonight":
-				{
+					{
 
 						r.TokyoNight(&startTime)
 						buff = append(buff, r.Output...)
-				}
+					}
 				case "colorshift":
 					{
 						r.Colorshift(&startTime, d.activeRgb)

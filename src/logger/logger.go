@@ -33,9 +33,10 @@ var (
 func Init() {
 	logLevel = levelFromString(config.GetConfig().LogLevel)
 
-	logFilename := config.GetConfig().LogFile
-	if logFilename == "" {
-		logFilename = config.GetConfig().ConfigPath + "/stdout.log"
+	logFilename, pathErr := config.GetPaths().ResolveLogFile(config.GetConfig().LogFile)
+	if pathErr != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Invalid log file path: %v; using stderr\n", pathErr)
+		logFilename = "-"
 	}
 
 	if _, err := os.Stat(logFilename); err == nil {
@@ -50,9 +51,15 @@ func Init() {
 	if logFilename == "-" {
 		output = os.Stderr
 	} else {
-		output, err = os.OpenFile(logFilename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		output, err = os.OpenFile(logFilename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
 			if _, e := fmt.Fprintf(os.Stderr, "Failed to log to file: %v, using stderr\n", err); e != nil {
+				panic("Unable to write to stderr: " + e.Error())
+			}
+			output = os.Stderr
+		} else if err = output.Chmod(0o600); err != nil {
+			_ = output.Close()
+			if _, e := fmt.Fprintf(os.Stderr, "Failed to secure log file: %v, using stderr\n", err); e != nil {
 				panic("Unable to write to stderr: " + e.Error())
 			}
 			output = os.Stderr
@@ -83,7 +90,7 @@ func archiveLog(logFilename string) error {
 		}
 	}(logFile)
 
-	outFile, err := os.Create(archiveName)
+	outFile, err := os.OpenFile(archiveName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,7 @@ type Device struct {
 
 func Init() *Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwd = config.GetPaths().MutableDataRoot
 	d = &Device{
 		Product: "Cluster",
 		Serial:  "cluster",

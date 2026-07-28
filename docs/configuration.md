@@ -172,8 +172,11 @@ See [OpenRGB device import](openrgb-import.md) for that lifecycle.
 
 Application, configuration, and mutable-data roots are internal runtime values.
 They are centrally resolved, are not `config.json` fields, and cannot be
-changed through the dashboard or API. `/etc/lumenforge/` is reserved for future
-root-controlled administrator configuration; it is not used for `config.json`.
+changed through the dashboard or API. The optional
+[External Source Registry](external-sources.md) is separate from `config.json`.
+It uses `$XDG_CONFIG_HOME/lumenforge/external-sources.json` (falling back to
+`~/.config/lumenforge/external-sources.json`) for a user service and
+`/etc/lumenforge/external-sources.json` for a system service.
 
 LumenForge may add newly introduced keys when it loads an older configuration.
 That upgrade rewrite preserves known and unknown JSON fields. Two compatibility

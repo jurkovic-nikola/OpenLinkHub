@@ -24,6 +24,9 @@ func TestResolvePathsInstalledUserWithXDGRoots(t *testing.T) {
 	if paths.ConfigurationFile != "/srv/alice-config/lumenforge/config.json" {
 		t.Fatalf("ConfigurationFile = %q", paths.ConfigurationFile)
 	}
+	if paths.ExternalSourcesFile != "/srv/alice-config/lumenforge/external-sources.json" {
+		t.Fatalf("ExternalSourcesFile = %q", paths.ExternalSourcesFile)
+	}
 	if paths.MutableDataRoot != "/srv/alice-data/lumenforge" {
 		t.Fatalf("MutableDataRoot = %q", paths.MutableDataRoot)
 	}
@@ -57,6 +60,7 @@ func TestResolvePathsInstalledSystem(t *testing.T) {
 	checks := map[string]string{
 		"application": paths.ApplicationRoot,
 		"config":      paths.ConfigurationFile,
+		"external":    paths.ExternalSourcesFile,
 		"data":        paths.MutableDataRoot,
 		"database":    paths.MutableDatabaseRoot,
 		"templates":   paths.TemplateRoot,
@@ -65,6 +69,7 @@ func TestResolvePathsInstalledSystem(t *testing.T) {
 	wants := map[string]string{
 		"application": "/opt/LumenForge",
 		"config":      "/var/lib/lumenforge/config.json",
+		"external":    "/etc/lumenforge/external-sources.json",
 		"data":        "/var/lib/lumenforge",
 		"database":    "/var/lib/lumenforge/database",
 		"templates":   "/opt/LumenForge/web",
@@ -88,6 +93,9 @@ func TestResolvePathsDevelopmentAndExplicitTemporaryRoots(t *testing.T) {
 	}
 	if paths.ApplicationRoot != workingDirectory || paths.ConfigurationDirectory != workingDirectory || paths.MutableDataRoot != workingDirectory {
 		t.Fatalf("development roots = %#v", paths)
+	}
+	if paths.ExternalSourcesFile != filepath.Join(workingDirectory, "external-sources.json") {
+		t.Fatalf("development ExternalSourcesFile = %q", paths.ExternalSourcesFile)
 	}
 
 	root := t.TempDir()

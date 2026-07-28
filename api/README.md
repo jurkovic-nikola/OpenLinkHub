@@ -845,6 +845,27 @@ $ curl -X GET http://127.0.0.1:27003/api/temperatures/ --silent | jq
   }
 }
 ```
+### Get External Source Registry entries
+
+This read-only endpoint returns only the opaque id stored by a sensor-type-7
+profile and its dashboard label. Executable paths and fixed arguments are never
+returned. See the [External Source Registry](../docs/external-sources.md) for
+the local registry format and trust rules.
+
+```bash
+$ curl -X GET http://127.0.0.1:27003/api/external-sources --silent | jq
+{
+  "code": 200,
+  "status": 1,
+  "data": [
+    {
+      "id": "gpu-temperature",
+      "name": "GPU Temperature"
+    }
+  ]
+}
+```
+
 ### Get temperature profile
 ```bash
 $ curl -X GET http://127.0.0.1:27003/api/temperatures/example-profile --silent | jq
@@ -1206,6 +1227,15 @@ $ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"exa
 ```bash
 $ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-static-profile", "sensor":2, "static":true}' --silent | jq
 ```
+### Create temperature profile - External Source
+
+The `externalSourceId` must match an entry returned by
+`GET /api/external-sources`. Executable paths and arguments are not accepted.
+
+```bash
+$ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-external-profile", "sensor":7, "externalSourceId":"gpu-temperature"}' --silent | jq
+```
+
 ### Set device speed profile
 ```bash
 $ lfcurl -X POST http://127.0.0.1:27003/api/speed -d '{"deviceId":"EXAMPLE-DEVICE-001", "channelId":1, "profile":"example-profile"}' --silent | jq

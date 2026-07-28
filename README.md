@@ -203,7 +203,7 @@ LumenForge creates `config.json` on first run. The user service uses
 `/var/lib/lumenforge/config.json`. A direct development run uses `config.json`
 in the repository/current working directory.
 
-See the [configuration reference](docs/configuration.md) for the complete generated defaults, exact JSON types and accepted values, restart requirements, dependencies, legacy fields, and service-mode environment behaviour.
+See the [configuration reference](docs/configuration.md) for the complete generated defaults, exact JSON types and accepted values, restart requirements, dependencies, legacy fields, and service-mode environment behaviour. Trusted command-backed temperature inputs are configured separately through the [External Source Registry](docs/external-sources.md).
 
 ## Filesystem Layout
 
@@ -215,7 +215,7 @@ Installed services share a root-owned, read-only application tree:
 | Configuration | `$XDG_CONFIG_HOME/lumenforge/config.json` or `~/.config/lumenforge/config.json` | `/var/lib/lumenforge/config.json` |
 | Mutable data | `$XDG_DATA_HOME/lumenforge/` or `~/.local/share/lumenforge/` | `/var/lib/lumenforge/` |
 | Mutable database | data root + `database/` | `/var/lib/lumenforge/database/` |
-| Future administrator configuration | `/etc/lumenforge/` (reserved) | `/etc/lumenforge/` (reserved) |
+| External Source Registry | user configuration directory + `external-sources.json` | `/etc/lumenforge/external-sources.json` |
 
 `/opt/LumenForge` contains the binary, templates, frontend assets,
 documentation, shipped device definitions, RGB definitions, and bundled

@@ -12,6 +12,7 @@ import (
 	"LumenForge/src/devices"
 	"LumenForge/src/devices/lcd"
 	"LumenForge/src/display"
+	"LumenForge/src/externalsources"
 	"LumenForge/src/inputmanager"
 	"LumenForge/src/keyboards"
 	"LumenForge/src/language"
@@ -22,6 +23,7 @@ import (
 	"LumenForge/src/scheduler"
 	"LumenForge/src/temperatures"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -69,7 +71,7 @@ type Payload struct {
 	HwmonDeviceId                 string                `json:"hwmonDeviceId"`
 	HwmonDevice                   string                `json:"hwmonDevice"`
 	TemperatureInputId            string                `json:"temperatureInputId"`
-	ExternalExecutable            string                `json:"externalExecutable"`
+	ExternalSourceID              string                `json:"externalSourceId"`
 	GpuIndex                      uint8                 `json:"gpuIndex"`
 	Enabled                       bool                  `json:"enabled"`
 	OnRelease                     bool                  `json:"onRelease"`
@@ -460,22 +462,14 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	}
 
 	if sensor == temperatures.SensorTypeExternalExecutable {
-		if !common.AlphanumericUnderDashPath.MatchString(req.ExternalExecutable) {
-			return &Payload{
-				Message: language.GetValue("txtInvalidExternalFile"),
-				Code:    http.StatusOK,
-				Status:  0,
-			}
+		if err = externalsources.ValidateSelection(config.GetPaths(), req.ExternalSourceID); err != nil {
+			logger.Log(logger.Fields{
+				"externalSourceId": req.ExternalSourceID,
+				"error":            err,
+				"caller":           "ProcessNewTemperatureProfile()",
+			}).Error("Unable to validate external source selection")
+			return &Payload{Message: externalSourceSelectionMessage(err), Code: http.StatusOK, Status: 0}
 		}
-
-		if !common.FileExists(req.ExternalExecutable) {
-			return &Payload{
-				Message: language.GetValue("txtInvalidExternalFile"),
-				Code:    http.StatusOK,
-				Status:  0,
-			}
-		}
-		deviceId = req.ExternalExecutable
 	}
 
 	gpuIndex := req.GpuIndex
@@ -490,6 +484,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 	newTemperatureProfile := &temperatures.NewTemperatureProfile{
 		Profile:            profile,
 		DeviceId:           deviceId,
+		ExternalSourceID:   req.ExternalSourceID,
 		Static:             static,
 		ZeroRpm:            zeroRpm,
 		Linear:             linear,
@@ -512,6 +507,19 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 			Code:    http.StatusOK,
 			Status:  0,
 		}
+	}
+}
+
+func externalSourceSelectionMessage(err error) string {
+	switch {
+	case errors.Is(err, externalsources.ErrRegistryMissing):
+		return language.GetValue("txtNoExternalSourcesConfigured")
+	case errors.Is(err, externalsources.ErrRegistryInvalid):
+		return language.GetValue("txtExternalSourceRegistryUnavailable")
+	case errors.Is(err, externalsources.ErrSourceUnknown):
+		return language.GetValue("txtSelectRegisteredExternalSource")
+	default:
+		return language.GetValue("txtUnableToValidateExternalSource")
 	}
 }
 

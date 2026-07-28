@@ -43,6 +43,7 @@ type Paths struct {
 	ApplicationRoot           string
 	ConfigurationDirectory    string
 	ConfigurationFile         string
+	ExternalSourcesFile       string
 	MutableDataRoot           string
 	MutableDatabaseRoot       string
 	DashboardFile             string
@@ -193,6 +194,10 @@ func ResolvePaths(options PathOptions) (Paths, error) {
 	mutableDatabaseRoot := filepath.Join(dataRoot, "database")
 	shippedLCDRoot := filepath.Join(shippedDatabaseRoot, "lcd")
 	mutableLCDRoot := filepath.Join(mutableDatabaseRoot, "lcd")
+	externalSourcesFile := filepath.Join(configRoot, "external-sources.json")
+	if mode == ServiceModeSystem {
+		externalSourcesFile = "/etc/lumenforge/external-sources.json"
+	}
 
 	return Paths{
 		Mode: mode,
@@ -200,6 +205,7 @@ func ResolvePaths(options PathOptions) (Paths, error) {
 		ApplicationRoot:           applicationRoot,
 		ConfigurationDirectory:    configRoot,
 		ConfigurationFile:         filepath.Join(configRoot, "config.json"),
+		ExternalSourcesFile:       externalSourcesFile,
 		MutableDataRoot:           dataRoot,
 		MutableDatabaseRoot:       mutableDatabaseRoot,
 		DashboardFile:             filepath.Join(dataRoot, "dashboard.json"),

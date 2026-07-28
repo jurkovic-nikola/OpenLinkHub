@@ -13,7 +13,7 @@ installer rerun to replace the application without altering user-created state.
 | Configuration file | configuration directory + `config.json` | `/var/lib/lumenforge/config.json` |
 | Mutable data root | `$XDG_DATA_HOME/lumenforge/`, or `~/.local/share/lumenforge/` | `/var/lib/lumenforge/` |
 | Mutable database | data root + `database/` | `/var/lib/lumenforge/database/` |
-| Reserved administrator configuration | `/etc/lumenforge/` | `/etc/lumenforge/` |
+| External Source Registry | configuration directory + `external-sources.json` | `/etc/lumenforge/external-sources.json` |
 
 Custom `XDG_CONFIG_HOME` and `XDG_DATA_HOME` values must be absolute. The user
 installer resolves them when it creates the service unit.
@@ -65,9 +65,9 @@ settings.
 
 Installed service paths are absolute, cleaned, and independent of the process
 working directory. A direct run without `LUMENFORGE_SERVICE_MODE` is
-development mode: it uses the current repository directory for shipped
-resources, `config.json`, and mutable data so source development remains
-practical.
+development mode: it uses the current working directory for shipped resources,
+`config.json`, mutable data, and `external-sources.json`. When started from the
+repository root, the registry is `<repository>/external-sources.json`.
 
 ## Logging and backups
 
@@ -82,5 +82,8 @@ immutable application content. Restore maps `config.json` to the configuration
 directory and mutable entries to the data root; it never restores into
 `/opt/LumenForge`.
 
-`/etc/lumenforge/` is reserved for future root-controlled administrator
-configuration and is not populated by the current installers.
+The optional `/etc/lumenforge/external-sources.json` file is root-controlled
+administrator configuration for the system service. The current installers do
+not create it. The user-service equivalent is stored in that user's resolved
+configuration directory. See [External Source Registry](external-sources.md)
+for ownership, permissions, schema, and execution rules.

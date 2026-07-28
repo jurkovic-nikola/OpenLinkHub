@@ -8,6 +8,7 @@ import (
 	"LumenForge/src/common"
 	"LumenForge/src/config"
 	"LumenForge/src/dashboard"
+	"LumenForge/src/externalsources"
 	"LumenForge/src/logger"
 	"encoding/json"
 	"fmt"
@@ -69,6 +70,7 @@ type TemperatureProfileData struct {
 	Profiles           []TemperatureProfile `json:"profiles"`
 	Points             map[uint8][]Point    `json:"points"`
 	Device             string               `json:"device"`
+	ExternalSourceID   string               `json:"externalSourceId,omitempty"`
 	HwmonDevice        string               `json:"hwmonDevice"`
 	TemperatureInputId string               `json:"temperatureInputId"`
 	ChannelId          int                  `json:"channelId"`
@@ -101,6 +103,7 @@ type HwMonSensor struct {
 type NewTemperatureProfile struct {
 	Profile            string
 	DeviceId           string
+	ExternalSourceID   string
 	Static             bool
 	ZeroRpm            bool
 	Linear             bool
@@ -385,6 +388,17 @@ func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	if newTemperatureProfile.Sensor == SensorTypeExternalExecutable {
+		if err := externalsources.ValidateSelection(config.GetPaths(), newTemperatureProfile.ExternalSourceID); err != nil {
+			logger.Log(logger.Fields{
+				"externalSourceId": newTemperatureProfile.ExternalSourceID,
+				"error":            err,
+				"caller":           "AddTemperatureProfile()",
+			}).Error("Unable to validate external source selection")
+			return false
+		}
+	}
+
 	if _, ok := temperatures.Profiles[newTemperatureProfile.Profile]; !ok {
 		pf := TemperatureProfileData{}
 		if newTemperatureProfile.Static || newTemperatureProfile.Linear {
@@ -399,6 +413,9 @@ func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 			}
 			if len(newTemperatureProfile.DeviceId) > 0 {
 				pf.Device = newTemperatureProfile.DeviceId
+			}
+			if newTemperatureProfile.Sensor == SensorTypeExternalExecutable {
+				pf.ExternalSourceID = newTemperatureProfile.ExternalSourceID
 			}
 			if newTemperatureProfile.Sensor == 4 || newTemperatureProfile.Sensor == 9 {
 				pf.ChannelId = newTemperatureProfile.ChannelId
@@ -505,6 +522,9 @@ func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 
 		if len(newTemperatureProfile.DeviceId) > 0 {
 			pf.Device = newTemperatureProfile.DeviceId
+		}
+		if newTemperatureProfile.Sensor == SensorTypeExternalExecutable {
+			pf.ExternalSourceID = newTemperatureProfile.ExternalSourceID
 		}
 
 		if newTemperatureProfile.Sensor == 4 || newTemperatureProfile.Sensor == 9 {
@@ -728,6 +748,7 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 			deviceId := fmt.Sprintf("%s/%s", path, profile.TemperatureInputId)
 			profile.Device = deviceId
 		}
+		profile = sanitizeExternalSourceProfile(profile)
 		profiles[profileName] = profile
 	}
 }
@@ -735,6 +756,7 @@ func LoadUserProfiles(profiles map[string]TemperatureProfileData) {
 // saveProfileToDisk will save profile to the disk
 func saveProfileToDisk(profile string, values TemperatureProfileData) error {
 	profileLocation := filepath.Join(location, profile+".json")
+	values = sanitizeExternalSourceProfile(values)
 
 	if err := common.SaveJsonData(profileLocation, values); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profileLocation}).Error("Unable to save temperature profile data")
@@ -743,6 +765,21 @@ func saveProfileToDisk(profile string, values TemperatureProfileData) error {
 
 	LoadUserProfiles(profiles)
 	return nil
+}
+
+func sanitizeExternalSourceProfile(profile TemperatureProfileData) TemperatureProfileData {
+	if profile.Sensor == SensorTypeExternalExecutable {
+		// Legacy type-7 profiles may still contain an arbitrary executable in
+		// Device. It is neither exposed nor used after loading.
+		profile.Device = ""
+		profile.HwmonDevice = ""
+		profile.TemperatureInputId = ""
+		profile.ChannelId = 0
+		profile.GPUIndex = 0
+	} else {
+		profile.ExternalSourceID = ""
+	}
+	return profile
 }
 
 // friendlyTempLabel will attempt to make friendly name of the sensor
@@ -976,22 +1013,18 @@ func GetHwMonTemperature(hwmonDevice string) float32 {
 	return float32(math.Round(float64(tempMilliC)/10.0) / 100.0)
 }
 
-// GetExternalBinaryTemperature will return temperature of external binary
-func GetExternalBinaryTemperature(filePath string) float32 {
-	cmd := exec.Command(filePath)
-	output, err := cmd.Output()
+// GetExternalSourceTemperature returns the temperature reported by a trusted
+// External Source Registry entry.
+func GetExternalSourceTemperature(externalSourceID string) float32 {
+	temperature, err := externalsources.Execute(config.GetPaths(), externalSourceID)
 	if err != nil {
+		logger.Log(logger.Fields{
+			"externalSourceId": externalSourceID,
+			"error":            err,
+		}).Error("Unable to read external source temperature")
 		return 0
 	}
-
-	temp := strings.TrimSpace(string(output))
-	tempFloat, err := strconv.ParseFloat(temp, 64)
-	if err != nil {
-		logger.Log(logger.Fields{"file": filePath, "error": err}).Error("Unable to parse binary temperature output")
-		return 0
-	}
-
-	return float32(math.Round(tempFloat*100) / 100)
+	return temperature
 }
 
 // Interpolate will perform linear interpolation

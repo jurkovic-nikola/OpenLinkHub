@@ -15,6 +15,7 @@ import (
 	"LumenForge/src/devices/lcd"
 	"LumenForge/src/devices/openrgbimport"
 	"LumenForge/src/display"
+	"LumenForge/src/externalsources"
 	"LumenForge/src/inputmanager"
 	"LumenForge/src/language"
 	"LumenForge/src/lifecycle"
@@ -441,6 +442,35 @@ func getTemperature(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	resp.Send(w)
+}
+
+// getExternalSources returns only registry ids and human-readable names.
+func getExternalSources(w http.ResponseWriter, _ *http.Request) {
+	entries, missing, err := externalsources.List(config.GetPaths())
+	if err != nil {
+		logger.Log(logger.Fields{
+			"error":  err,
+			"caller": "getExternalSources()",
+		}).Error("Unable to load external source registry")
+		(&Response{
+			Code:    http.StatusOK,
+			Status:  0,
+			Message: "The external source registry is unavailable",
+			Data:    []externalsources.Info{},
+		}).Send(w)
+		return
+	}
+
+	message := ""
+	if missing {
+		message = "No external sources are configured"
+	}
+	(&Response{
+		Code:    http.StatusOK,
+		Status:  1,
+		Message: message,
+		Data:    entries,
+	}).Send(w)
 }
 
 // getTemperatureGraph returns response on for temperature graph
@@ -2984,6 +3014,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/override/", http.MethodGet, getCommanderDuoOverride)
 	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
 	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
+	handleFunc(r, "/api/external-sources", http.MethodGet, getExternalSources)
 	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
 	handleFunc(r, "/api/input/keyboard", http.MethodGet, getInputKeys)
 	handleFunc(r, "/api/input/mouse", http.MethodGet, getMouseButtons)

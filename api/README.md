@@ -845,11 +845,11 @@ $ curl -X GET http://127.0.0.1:27003/api/temperatures/ --silent | jq
   }
 }
 ```
-### Get registered external temperature sources
+### Get External Source Registry entries
 
 This read-only endpoint returns only the opaque id stored by a sensor-type-7
 profile and its dashboard label. Executable paths and fixed arguments are never
-returned. See [External Temperature Sources](../docs/external-sources.md) for
+returned. See the [External Source Registry](../docs/external-sources.md) for
 the local registry format and trust rules.
 
 ```bash
@@ -1227,7 +1227,7 @@ $ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"exa
 ```bash
 $ lfcurl -X POST http://127.0.0.1:27003/api/temperatures/new -d '{"profile":"example-static-profile", "sensor":2, "static":true}' --silent | jq
 ```
-### Create temperature profile - registered external source
+### Create temperature profile - External Source
 
 The `externalSourceId` must match an entry returned by
 `GET /api/external-sources`. Executable paths and arguments are not accepted.

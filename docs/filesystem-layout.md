@@ -65,9 +65,9 @@ settings.
 
 Installed service paths are absolute, cleaned, and independent of the process
 working directory. A direct run without `LUMENFORGE_SERVICE_MODE` is
-development mode: it uses the current repository directory for shipped
-resources, `config.json`, and mutable data so source development remains
-practical.
+development mode: it uses the current working directory for shipped resources,
+`config.json`, mutable data, and `external-sources.json`. When started from the
+repository root, the registry is `<repository>/external-sources.json`.
 
 ## Logging and backups
 
@@ -85,5 +85,5 @@ directory and mutable entries to the data root; it never restores into
 The optional `/etc/lumenforge/external-sources.json` file is root-controlled
 administrator configuration for the system service. The current installers do
 not create it. The user-service equivalent is stored in that user's resolved
-configuration directory. See [External Temperature Sources](external-sources.md)
+configuration directory. See [External Source Registry](external-sources.md)
 for ownership, permissions, schema, and execution rules.

@@ -133,7 +133,7 @@ var (
 		SensorTypeTemperatureProbe:   "Probe",
 		SensorTypeCpuGpu:             "CPU + GPU",
 		SensorTypeExternalHwMon:      "External HwMon",
-		SensorTypeExternalExecutable: "External Executable",
+		SensorTypeExternalExecutable: "External Source",
 		SensorTypeMultiGPU:           "Multi GPU",
 		SensorTypeGlobalTemperature:  "Global Temperature",
 		SensorTypePSU:                "PSU",

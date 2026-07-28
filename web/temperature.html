@@ -223,7 +223,7 @@
                                     <!-- Sensor -->
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ $root.Lang "txtSensor" }}</span>
-                                        <span class="settings-label">{{ $value.SensorString }}</span>
+                                        <span class="settings-label">{{ if eq $value.Sensor 7 }}{{ $root.Lang "txtExternalSource" }}{{ else }}{{ $value.SensorString }}{{ end }}</span>
                                     </div>
 
                                     <!-- Zero RPM -->

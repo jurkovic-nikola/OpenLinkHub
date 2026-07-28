@@ -136,3 +136,34 @@ test("temperature UI has no arbitrary executable input", function () {
     assert.match(styles, /#external-source-data\s*\{\s*display:\s*none;/);
     assert.doesNotMatch(styles, /#binary-sensors-probe-data/);
 });
+
+test("saved external source profiles use current localized terminology", function () {
+    const repositoryRoot = path.join(__dirname, "..", "..");
+    const obsoleteVisibleWording = /External (?:Executable|Binary)/i;
+
+    for (const templateName of ["temperature.html", "temperatureGraph.html"]) {
+        const template = fs.readFileSync(path.join(repositoryRoot, "web", templateName), "utf8");
+        assert.match(
+            template,
+            /\{\{ if eq \$value\.Sensor 7 \}\}\{\{ \$root\.Lang "txtExternalSource" \}\}\{\{ else \}\}\{\{ \$value\.SensorString \}\}\{\{ end \}\}/
+        );
+        assert.doesNotMatch(template, obsoleteVisibleWording);
+    }
+
+    const temperatures = fs.readFileSync(
+        path.join(repositoryRoot, "src", "temperatures", "temperatures.go"),
+        "utf8"
+    );
+    assert.match(temperatures, /SensorTypeExternalExecutable:\s+"External Source"/);
+    assert.doesNotMatch(temperatures, /"External Executable"/);
+
+    const languageDirectory = path.join(repositoryRoot, "database", "language");
+    for (const fileName of fs.readdirSync(languageDirectory).filter((name) => name.endsWith(".json"))) {
+        const language = JSON.parse(
+            fs.readFileSync(path.join(languageDirectory, fileName), "utf8")
+        );
+        assert.equal(typeof language.values.txtExternalSource, "string", fileName);
+        assert.notEqual(language.values.txtExternalSource.trim(), "", fileName);
+        assert.doesNotMatch(language.values.txtExternalSource, obsoleteVisibleWording, fileName);
+    }
+});

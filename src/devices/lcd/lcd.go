@@ -71,6 +71,7 @@ var (
 	shippedImages = ""
 	fontLocation  = ""
 	mutex         sync.Mutex
+	uploadMutex   sync.Mutex
 	imgWidth             = 480
 	imgHeight            = 480
 	lcdDevices           = map[string]uint16{}
@@ -538,68 +539,21 @@ func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destinationExisted := false
-	if destinationInfo, statErr := os.Lstat(savePath); statErr == nil {
-		destinationExisted = true
-		if !destinationInfo.Mode().IsRegular() {
-			logger.Log(logger.Fields{"location": savePath}).Error("LCD upload destination is not a regular file")
-			http.Error(w, "Invalid upload destination", http.StatusBadRequest)
-			return
-		}
-	} else if !os.IsNotExist(statErr) {
-		logger.Log(logger.Fields{"error": statErr, "location": savePath}).Error("Unable to inspect LCD upload destination")
-		http.Error(w, "Invalid upload destination", http.StatusInternalServerError)
-		return
-	}
-
-	out, err := os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	tempPath, err := writeMutableLCDUploadTemp(images, name, file)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Failed to save file")
-		http.Error(w, "Failed to save file", http.StatusInternalServerError)
-		return
-	}
-	if err = out.Chmod(0o600); err != nil {
-		_ = out.Close()
-		if !destinationExisted {
-			if removeErr := os.Remove(savePath); removeErr != nil && !os.IsNotExist(removeErr) {
-				logger.Log(logger.Fields{"error": removeErr, "location": savePath}).Error("Failed to roll back unsecured LCD upload")
-			}
-		}
-		logger.Log(logger.Fields{"error": err}).Error("Failed to secure uploaded file")
+		logger.Log(logger.Fields{"error": err}).Error("Failed to stage uploaded file")
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
 	}
 
-	if _, err := io.Copy(out, file); err != nil {
-		if closeErr := out.Close(); closeErr != nil {
-			logger.Log(logger.Fields{"error": closeErr, "location": savePath}).Error("Failed to close incomplete LCD upload")
-		}
-		if !destinationExisted {
-			if removeErr := os.Remove(savePath); removeErr != nil && !os.IsNotExist(removeErr) {
-				logger.Log(logger.Fields{"error": removeErr, "location": savePath}).Error("Failed to roll back incomplete LCD upload")
-			}
-		}
-		logger.Log(logger.Fields{"error": err}).Error("Failed to write file")
-		http.Error(w, "Failed to write file", http.StatusInternalServerError)
-		return
-	}
-	if err = out.Close(); err != nil {
-		if !destinationExisted {
-			if removeErr := os.Remove(savePath); removeErr != nil && !os.IsNotExist(removeErr) {
-				logger.Log(logger.Fields{"error": removeErr, "location": savePath}).Error("Failed to roll back unclosed LCD upload")
-			}
-		}
-		logger.Log(logger.Fields{"error": err, "location": savePath}).Error("Failed to close LCD upload")
-		http.Error(w, "Failed to save file", http.StatusInternalServerError)
-		return
-	}
-
-	if err = activateMutableLCDUpload(images, name, savePath, spec.format); err != nil {
-		if !destinationExisted {
-			if removeErr := os.Remove(savePath); removeErr != nil && !os.IsNotExist(removeErr) {
-				logger.Log(logger.Fields{"error": removeErr, "location": savePath}).Error("Failed to roll back LCD upload after activation failure")
-			}
-		}
+	if err = transactMutableLCDUpload(
+		images,
+		name,
+		tempPath,
+		savePath,
+		spec.format,
+		defaultLCDUploadTransactionOps(),
+	); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": savePath}).Error("Failed to activate LCD upload")
 		http.Error(w, "Failed to activate image", http.StatusInternalServerError)
 		return
@@ -614,15 +568,414 @@ func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func activateMutableLCDUpload(root, baseName, keepPath string, format uint8) error {
-	if err := cleanupMutableLCDSiblings(root, baseName, keepPath); err != nil {
+type lcdUploadTransactionOps struct {
+	rename         func(string, string) error
+	restore        func(string, string) error
+	removeAll      func(string) error
+	beforeActivate func() error
+}
+
+type lcdFileSnapshot struct {
+	path          string
+	mode          os.FileMode
+	data          []byte
+	symlinkTarget string
+}
+
+type lcdLiveStateSnapshot struct {
+	imageData       []ImageData
+	animationWasNil bool
+	animationImages map[string][]AnimationFrames
+}
+
+func defaultLCDUploadTransactionOps() lcdUploadTransactionOps {
+	return lcdUploadTransactionOps{
+		rename:    os.Rename,
+		restore:   os.Rename,
+		removeAll: os.RemoveAll,
+		beforeActivate: func() error {
+			return nil
+		},
+	}
+}
+
+func writeMutableLCDUploadTemp(root, baseName string, source io.Reader) (tempPath string, err error) {
+	rootInfo, err := os.Lstat(root)
+	if err != nil {
+		return "", fmt.Errorf("inspect mutable LCD root: %w", err)
+	}
+	if rootInfo.Mode()&os.ModeSymlink != 0 || !rootInfo.IsDir() {
+		return "", fmt.Errorf("mutable LCD root is not a real directory: %s", root)
+	}
+
+	tempFile, err := os.CreateTemp(root, "."+baseName+"-upload-*")
+	if err != nil {
+		return "", fmt.Errorf("create staged LCD upload: %w", err)
+	}
+	tempPath = tempFile.Name()
+	defer func() {
+		if err != nil {
+			_ = tempFile.Close()
+			if removeErr := os.Remove(tempPath); removeErr != nil && !os.IsNotExist(removeErr) {
+				logger.Log(logger.Fields{"error": removeErr, "location": tempPath}).Error("Failed to remove staged LCD upload")
+			}
+		}
+	}()
+
+	if err = tempFile.Chmod(0o600); err != nil {
+		return "", fmt.Errorf("secure staged LCD upload: %w", err)
+	}
+	if _, err = io.Copy(tempFile, source); err != nil {
+		return "", fmt.Errorf("write staged LCD upload: %w", err)
+	}
+	if err = tempFile.Sync(); err != nil {
+		return "", fmt.Errorf("sync staged LCD upload: %w", err)
+	}
+	if err = tempFile.Close(); err != nil {
+		return "", fmt.Errorf("close staged LCD upload: %w", err)
+	}
+	return tempPath, nil
+}
+
+func transactMutableLCDUpload(
+	root, baseName, tempPath, destination string,
+	format uint8,
+	ops lcdUploadTransactionOps,
+) (returnErr error) {
+	uploadMutex.Lock()
+	defer uploadMutex.Unlock()
+
+	ops = normalizeLCDUploadTransactionOps(ops)
+
+	cleanRoot := filepath.Clean(root)
+	cleanTempPath := filepath.Clean(tempPath)
+	cleanDestination := filepath.Clean(destination)
+	if !strings.HasPrefix(filepath.Base(cleanTempPath), "."+baseName+"-upload-") {
+		return fmt.Errorf("invalid staged LCD upload %q", filepath.Base(cleanTempPath))
+	}
+	defer func() {
+		if removeErr := os.Remove(cleanTempPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			if returnErr == nil {
+				returnErr = fmt.Errorf("remove staged LCD upload: %w", removeErr)
+			} else {
+				returnErr = fmt.Errorf("%w (remove staged LCD upload: %v)", returnErr, removeErr)
+			}
+		}
+	}()
+
+	if filepath.Dir(cleanTempPath) != cleanRoot || filepath.Dir(cleanDestination) != cleanRoot {
+		return fmt.Errorf("LCD upload transaction escapes mutable root %q", cleanRoot)
+	}
+	destinationName := filepath.Base(cleanDestination)
+	if strings.TrimSuffix(destinationName, filepath.Ext(destinationName)) != baseName ||
+		!supportedLCDImageExtension(filepath.Ext(destinationName)) {
+		return fmt.Errorf("invalid LCD upload destination %q", destinationName)
+	}
+
+	rootInfo, err := os.Lstat(cleanRoot)
+	if err != nil {
+		return fmt.Errorf("inspect mutable LCD root: %w", err)
+	}
+	if rootInfo.Mode()&os.ModeSymlink != 0 || !rootInfo.IsDir() {
+		return fmt.Errorf("mutable LCD root is not a real directory: %s", cleanRoot)
+	}
+	tempInfo, err := os.Lstat(cleanTempPath)
+	if err != nil {
+		return fmt.Errorf("inspect staged LCD upload: %w", err)
+	}
+	if !tempInfo.Mode().IsRegular() {
+		return fmt.Errorf("staged LCD upload is not a regular file: %s", cleanTempPath)
+	}
+
+	imageData, err := decodeLCDImage(cleanTempPath, baseName, format)
+	if err != nil {
+		_ = os.Remove(cleanTempPath)
+		return fmt.Errorf("validate staged LCD upload: %w", err)
+	}
+
+	var animationFrames []AnimationFrames
+	if format == ImageFormatGif {
+		mutex.Lock()
+		animationFrames, _ = buildAnimationFramesFrom(imageData)
+		mutex.Unlock()
+		if animationFrames == nil {
+			_ = os.Remove(cleanTempPath)
+			return fmt.Errorf("build LCD animation %q", baseName)
+		}
+	}
+
+	snapshots, err := inspectMutableLCDFiles(cleanRoot, baseName)
+	if err != nil {
+		_ = os.Remove(cleanTempPath)
 		return err
 	}
-	if !loadImage(keepPath, format) {
-		return fmt.Errorf("failed to load LCD image %q", filepath.Base(keepPath))
+
+	rollbackDirectory, err := os.MkdirTemp(cleanRoot, "."+baseName+"-rollback-*")
+	if err != nil {
+		_ = os.Remove(cleanTempPath)
+		return fmt.Errorf("create LCD upload rollback directory: %w", err)
 	}
-	if !refreshAnimationCache(baseName, format == ImageFormatGif) {
-		return fmt.Errorf("failed to refresh LCD animation %q", baseName)
+	if err = os.Chmod(rollbackDirectory, 0o700); err != nil {
+		_ = os.Remove(cleanTempPath)
+		_ = os.RemoveAll(rollbackDirectory)
+		return fmt.Errorf("secure LCD upload rollback directory: %w", err)
+	}
+
+	newDestinationInstalled := false
+	liveStateInstalled := false
+	var liveSnapshot lcdLiveStateSnapshot
+	rollback := func(originalErr error) error {
+		if liveStateInstalled {
+			mutex.Lock()
+			restoreLCDLiveStateLocked(liveSnapshot)
+			mutex.Unlock()
+		}
+		if rollbackErr := rollbackMutableLCDFiles(
+			cleanDestination,
+			cleanTempPath,
+			rollbackDirectory,
+			snapshots,
+			newDestinationInstalled,
+			ops.restore,
+		); rollbackErr != nil {
+			logger.Log(logger.Fields{
+				"error":         rollbackErr,
+				"originalError": originalErr,
+				"location":      cleanDestination,
+			}).Error("Failed to completely roll back LCD upload")
+			return fmt.Errorf("%w (LCD upload rollback failed: %v)", originalErr, rollbackErr)
+		}
+		return originalErr
+	}
+
+	if hasLCDSnapshot(snapshots, cleanDestination) {
+		if err = ops.rename(cleanDestination, filepath.Join(rollbackDirectory, destinationName)); err != nil {
+			return rollback(fmt.Errorf("preserve existing LCD destination: %w", err))
+		}
+	}
+	if err = ops.rename(cleanTempPath, cleanDestination); err != nil {
+		return rollback(fmt.Errorf("install staged LCD upload: %w", err))
+	}
+	newDestinationInstalled = true
+
+	if err = ops.beforeActivate(); err != nil {
+		return rollback(fmt.Errorf("activate LCD upload: %w", err))
+	}
+
+	mutex.Lock()
+	liveSnapshot = snapshotLCDLiveStateLocked()
+	installLCDLiveStateLocked(imageData, animationFrames, format == ImageFormatGif)
+	mutex.Unlock()
+	liveStateInstalled = true
+
+	for _, snapshot := range snapshots {
+		if snapshot.path == cleanDestination {
+			continue
+		}
+		if err = ops.rename(snapshot.path, filepath.Join(rollbackDirectory, filepath.Base(snapshot.path))); err != nil {
+			return rollback(fmt.Errorf("preserve obsolete LCD sibling %q: %w", filepath.Base(snapshot.path), err))
+		}
+	}
+
+	if err = ops.removeAll(rollbackDirectory); err != nil {
+		return rollback(fmt.Errorf("remove obsolete LCD media: %w", err))
+	}
+	return nil
+}
+
+func normalizeLCDUploadTransactionOps(ops lcdUploadTransactionOps) lcdUploadTransactionOps {
+	defaults := defaultLCDUploadTransactionOps()
+	if ops.rename == nil {
+		ops.rename = defaults.rename
+	}
+	if ops.restore == nil {
+		ops.restore = defaults.restore
+	}
+	if ops.removeAll == nil {
+		ops.removeAll = defaults.removeAll
+	}
+	if ops.beforeActivate == nil {
+		ops.beforeActivate = defaults.beforeActivate
+	}
+	return ops
+}
+
+func inspectMutableLCDFiles(root, baseName string) ([]lcdFileSnapshot, error) {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, fmt.Errorf("read mutable LCD root: %w", err)
+	}
+
+	snapshots := make([]lcdFileSnapshot, 0, len(entries))
+	for _, entry := range entries {
+		entryName := entry.Name()
+		if !supportedLCDImageExtension(filepath.Ext(entryName)) ||
+			strings.TrimSuffix(entryName, filepath.Ext(entryName)) != baseName {
+			continue
+		}
+		entryPath := filepath.Join(root, entryName)
+		info, statErr := os.Lstat(entryPath)
+		if statErr != nil {
+			return nil, fmt.Errorf("inspect LCD media %q: %w", entryName, statErr)
+		}
+
+		snapshot := lcdFileSnapshot{path: entryPath, mode: info.Mode()}
+		switch {
+		case info.Mode().IsRegular():
+			snapshot.data, err = os.ReadFile(entryPath)
+			if err != nil {
+				return nil, fmt.Errorf("snapshot LCD media %q: %w", entryName, err)
+			}
+		case info.Mode()&os.ModeSymlink != 0:
+			snapshot.symlinkTarget, err = os.Readlink(entryPath)
+			if err != nil {
+				return nil, fmt.Errorf("snapshot LCD media symlink %q: %w", entryName, err)
+			}
+		default:
+			return nil, fmt.Errorf("same-name LCD sibling is not a regular file or symlink: %s", entryName)
+		}
+		snapshots = append(snapshots, snapshot)
+	}
+	return snapshots, nil
+}
+
+func hasLCDSnapshot(snapshots []lcdFileSnapshot, path string) bool {
+	for _, snapshot := range snapshots {
+		if snapshot.path == path {
+			return true
+		}
+	}
+	return false
+}
+
+func snapshotLCDLiveStateLocked() lcdLiveStateSnapshot {
+	snapshot := lcdLiveStateSnapshot{
+		imageData:       slices.Clone(lcd.ImageData),
+		animationWasNil: animation == nil,
+	}
+	if animation != nil && animation.Images != nil {
+		snapshot.animationImages = make(map[string][]AnimationFrames, len(animation.Images))
+		for name, frames := range animation.Images {
+			snapshot.animationImages[name] = frames
+		}
+	}
+	return snapshot
+}
+
+func installLCDLiveStateLocked(imageData ImageData, animationFrames []AnimationFrames, animated bool) {
+	replaced := false
+	for index := range lcd.ImageData {
+		if lcd.ImageData[index].Name == imageData.Name {
+			lcd.ImageData[index] = imageData
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		lcd.ImageData = append(lcd.ImageData, imageData)
+	}
+
+	if animation == nil {
+		animation = new(Animation)
+	}
+	if animation.Images == nil {
+		animation.Images = make(map[string][]AnimationFrames)
+	}
+	delete(animation.Images, imageData.Name)
+	if animated {
+		animation.Images[imageData.Name] = animationFrames
+	}
+}
+
+func restoreLCDLiveStateLocked(snapshot lcdLiveStateSnapshot) {
+	lcd.ImageData = snapshot.imageData
+	if snapshot.animationWasNil {
+		animation = nil
+		return
+	}
+	if animation == nil {
+		animation = new(Animation)
+	}
+	animation.Images = snapshot.animationImages
+}
+
+func rollbackMutableLCDFiles(
+	destination, tempPath, rollbackDirectory string,
+	snapshots []lcdFileSnapshot,
+	newDestinationInstalled bool,
+	restore func(string, string) error,
+) error {
+	var rollbackErrors []string
+	if newDestinationInstalled {
+		if err := os.Remove(destination); err != nil && !os.IsNotExist(err) {
+			rollbackErrors = append(rollbackErrors, fmt.Sprintf("remove attempted destination: %v", err))
+		}
+	}
+
+	for _, snapshot := range snapshots {
+		if _, err := os.Lstat(snapshot.path); err == nil {
+			continue
+		} else if !os.IsNotExist(err) {
+			rollbackErrors = append(rollbackErrors, fmt.Sprintf("inspect %s: %v", snapshot.path, err))
+			continue
+		}
+
+		backupPath := filepath.Join(rollbackDirectory, filepath.Base(snapshot.path))
+		if _, err := os.Lstat(backupPath); err == nil {
+			if renameErr := restore(backupPath, snapshot.path); renameErr != nil {
+				rollbackErrors = append(rollbackErrors, fmt.Sprintf("restore %s: %v", snapshot.path, renameErr))
+				if snapshotErr := restoreLCDFileSnapshot(snapshot); snapshotErr != nil {
+					rollbackErrors = append(rollbackErrors, snapshotErr.Error())
+				}
+			}
+			continue
+		} else if !os.IsNotExist(err) {
+			rollbackErrors = append(rollbackErrors, fmt.Sprintf("inspect rollback file %s: %v", backupPath, err))
+			continue
+		}
+
+		if err := restoreLCDFileSnapshot(snapshot); err != nil {
+			rollbackErrors = append(rollbackErrors, err.Error())
+		}
+	}
+
+	if err := os.Remove(tempPath); err != nil && !os.IsNotExist(err) {
+		rollbackErrors = append(rollbackErrors, fmt.Sprintf("remove staged upload: %v", err))
+	}
+	if err := os.RemoveAll(rollbackDirectory); err != nil {
+		rollbackErrors = append(rollbackErrors, fmt.Sprintf("remove rollback directory: %v", err))
+	}
+	if len(rollbackErrors) > 0 {
+		return fmt.Errorf("%s", strings.Join(rollbackErrors, "; "))
+	}
+	return nil
+}
+
+func restoreLCDFileSnapshot(snapshot lcdFileSnapshot) error {
+	if snapshot.mode&os.ModeSymlink != 0 {
+		if err := os.Symlink(snapshot.symlinkTarget, snapshot.path); err != nil {
+			return fmt.Errorf("restore LCD symlink %s: %w", snapshot.path, err)
+		}
+		return nil
+	}
+
+	file, err := os.OpenFile(snapshot.path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, snapshot.mode.Perm())
+	if err != nil {
+		return fmt.Errorf("recreate LCD media %s: %w", snapshot.path, err)
+	}
+	if _, err = file.Write(snapshot.data); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("restore LCD media %s: %w", snapshot.path, err)
+	}
+	if err = file.Sync(); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("sync restored LCD media %s: %w", snapshot.path, err)
+	}
+	if err = file.Close(); err != nil {
+		return fmt.Errorf("close restored LCD media %s: %w", snapshot.path, err)
+	}
+	if err = os.Chmod(snapshot.path, snapshot.mode.Perm()); err != nil {
+		return fmt.Errorf("restore LCD media mode %s: %w", snapshot.path, err)
 	}
 	return nil
 }
@@ -1183,21 +1536,32 @@ func drawColorString(x, y int, fontSite float64, text string, rgba *image.RGBA, 
 }
 
 func loadImage(imagePath string, format uint8) bool {
-	file, err := os.Open(imagePath)
+	filename := filepath.Base(imagePath)
+	fileName := strings.TrimSuffix(filename, filepath.Ext(filename))
+	imageData, err := decodeLCDImage(imagePath, fileName, format)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to open image")
+		logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to load image")
 		return false
 	}
 
-	defer func(file *os.File) {
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to close image")
-		}
-	}(file)
+	mutex.Lock()
+	defer mutex.Unlock()
+	installLCDImageDataLocked(imageData)
+	return true
+}
 
-	filename := filepath.Base(imagePath)
-	fileName := strings.TrimSuffix(filename, filepath.Ext(filename))
+func decodeLCDImage(imagePath, fileName string, format uint8) (ImageData, error) {
+	file, err := os.Open(imagePath)
+	if err != nil {
+		return ImageData{}, fmt.Errorf("open image: %w", err)
+	}
+
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			logger.Log(logger.Fields{"error": closeErr, "location": images, "image": imagePath}).Warn("Unable to close image")
+		}
+	}()
+
 	imageBuffer := make([]Frames, 1)
 	var paletted []*image.Paletted
 
@@ -1209,15 +1573,13 @@ func loadImage(imagePath string, format uint8) bool {
 
 			src, err = jpeg.Decode(file)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to decode image")
-				return false
+				return ImageData{}, fmt.Errorf("decode JPEG: %w", err)
 			}
 
 			resized := common.ResizeImage(src, imgWidth, imgHeight)
 			err = jpeg.Encode(&buffer, resized, nil)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Failed to encode image frame")
-				return false
+				return ImageData{}, fmt.Errorf("encode JPEG frame: %w", err)
 			}
 			imageBuffer[0] = Frames{
 				Buffer: buffer.Bytes(),
@@ -1232,15 +1594,13 @@ func loadImage(imagePath string, format uint8) bool {
 
 			src, err = bmp.Decode(file)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to decode image")
-				return false
+				return ImageData{}, fmt.Errorf("decode BMP: %w", err)
 			}
 
 			resized := common.ResizeImage(src, imgWidth, imgHeight)
 			err = jpeg.Encode(&buffer, resized, nil)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Failed to encode image frame")
-				return false
+				return ImageData{}, fmt.Errorf("encode BMP frame: %w", err)
 			}
 			imageBuffer[0] = Frames{
 				Buffer: buffer.Bytes(),
@@ -1255,15 +1615,13 @@ func loadImage(imagePath string, format uint8) bool {
 
 			src, err = webp.Decode(file)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Unable to decode image")
-				return false
+				return ImageData{}, fmt.Errorf("decode WEBP: %w", err)
 			}
 
 			resized := common.ResizeImage(src, imgWidth, imgHeight)
 			err = jpeg.Encode(&buffer, resized, nil)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Failed to encode image frame")
-				return false
+				return ImageData{}, fmt.Errorf("encode WEBP frame: %w", err)
 			}
 			imageBuffer[0] = Frames{
 				Buffer: buffer.Bytes(),
@@ -1276,8 +1634,7 @@ func loadImage(imagePath string, format uint8) bool {
 			var src *gif.GIF
 			src, err = gif.DecodeAll(file)
 			if err != nil {
-				logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath}).Warn("Error decoding gif animation")
-				return false
+				return ImageData{}, fmt.Errorf("decode GIF animation: %w", err)
 			}
 			imageBuffer = make([]Frames, len(src.Image))
 			paletted = common.ResizeGifImage(src, imgWidth, imgHeight)
@@ -1285,8 +1642,7 @@ func loadImage(imagePath string, format uint8) bool {
 				var buffer bytes.Buffer
 				err = jpeg.Encode(&buffer, frame, nil)
 				if err != nil {
-					logger.Log(logger.Fields{"error": err, "location": images, "image": imagePath, "frame": i}).Warn("Failed to encode image frame")
-					continue
+					return ImageData{}, fmt.Errorf("encode GIF frame %d: %w", i, err)
 				}
 				imageBuffer[i] = Frames{
 					Buffer: buffer.Bytes(),
@@ -1295,25 +1651,26 @@ func loadImage(imagePath string, format uint8) bool {
 			}
 		}
 		break
+	default:
+		return ImageData{}, fmt.Errorf("unsupported LCD image format %d", format)
 	}
 
-	imageList := &ImageData{
+	return ImageData{
 		Name:           fileName,
 		Frames:         len(imageBuffer),
 		Buffer:         imageBuffer,
 		PalettedFrames: paletted,
-	}
-	paletted = nil
-	mutex.Lock()
-	defer mutex.Unlock()
+	}, nil
+}
+
+func installLCDImageDataLocked(imageData ImageData) {
 	for index := range lcd.ImageData {
-		if lcd.ImageData[index].Name == fileName {
-			lcd.ImageData[index] = *imageList
-			return true
+		if lcd.ImageData[index].Name == imageData.Name {
+			lcd.ImageData[index] = imageData
+			return
 		}
 	}
-	lcd.ImageData = append(lcd.ImageData, *imageList)
-	return true
+	lcd.ImageData = append(lcd.ImageData, imageData)
 }
 
 // loadLcdImages will load all LCD images

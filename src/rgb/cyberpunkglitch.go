@@ -32,7 +32,7 @@ func (r *ActiveRGB) CyberpunkGlitch(startTime *time.Time) {
 		// Check active ripples from the current and previous slots to allow overlaps
 		for slotOffset := -1; slotOffset <= 0; slotOffset++ {
 			slot := currentSlot + float64(slotOffset)
-			
+
 			// Deterministic pseudo-random generation based on slot index
 			if random01(slot, 11.0) > 0.4 { // 60% chance of a ripple in this slot
 				// Ripple center position
@@ -47,7 +47,7 @@ func (r *ActiveRGB) CyberpunkGlitch(startTime *time.Time) {
 				speed := 1.8 + random01(slot, 16.0)*2.0 // 1.8 to 3.8 units per second
 
 				// Calculate age of the ripple in real time
-				rippleAge := (tScaled - (slot * slotDuration + startOffset))
+				rippleAge := (tScaled - (slot*slotDuration + startOffset))
 
 				if rippleAge >= 0 && rippleAge < duration {
 					progress := rippleAge / duration

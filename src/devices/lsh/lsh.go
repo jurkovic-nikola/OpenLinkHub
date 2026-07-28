@@ -753,13 +753,14 @@ func (d *Device) loadDeviceMetadata() {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
 			return
 		}
+		defer func() {
+			if err = file.Close(); err != nil {
+				logger.Log(logger.Fields{"location": deviceMetadata, "serial": d.Serial}).Warn("Failed to close devices metadata")
+			}
+		}()
 		if err = json.NewDecoder(file).Decode(&d.supportedDevices); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to decode devices metadata")
 			return
-		}
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"location": deviceMetadata, "serial": d.Serial}).Warn("Failed to close devices metadata")
 		}
 	} else {
 		logger.Log(logger.Fields{"serial": d.Serial, "location": deviceMetadata}).Fatal("Unable to load devices metadata")
@@ -775,13 +776,14 @@ func (d *Device) loadExternalDevices() {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")
 			return
 		}
+		defer func() {
+			if err = file.Close(); err != nil {
+				logger.Log(logger.Fields{"location": externalDevicesFile, "serial": d.Serial}).Warn("Failed to close external devices metadata")
+			}
+		}()
 		if err = json.NewDecoder(file).Decode(&d.LinkAdapter); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to decode external devices metadata")
 			return
-		}
-		err = file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"location": externalDevicesFile, "serial": d.Serial}).Warn("Failed to close external devices metadata")
 		}
 	} else {
 		logger.Log(logger.Fields{"serial": d.Serial, "location": externalDevicesFile}).Warn("Unable to load external devices metadata")

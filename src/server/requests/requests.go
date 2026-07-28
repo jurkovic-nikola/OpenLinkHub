@@ -513,13 +513,13 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 func externalSourceSelectionMessage(err error) string {
 	switch {
 	case errors.Is(err, externalsources.ErrRegistryMissing):
-		return "No external sources are configured"
+		return language.GetValue("txtNoExternalSourcesConfigured")
 	case errors.Is(err, externalsources.ErrRegistryInvalid):
-		return "The external source registry is unavailable"
+		return language.GetValue("txtExternalSourceRegistryUnavailable")
 	case errors.Is(err, externalsources.ErrSourceUnknown):
-		return "Select a registered external source"
+		return language.GetValue("txtSelectRegisteredExternalSource")
 	default:
-		return "Unable to validate the external source"
+		return language.GetValue("txtUnableToValidateExternalSource")
 	}
 }
 

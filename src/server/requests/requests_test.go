@@ -2,10 +2,14 @@ package requests
 
 import (
 	"LumenForge/src/config"
+	"LumenForge/src/dashboard"
+	"LumenForge/src/externalsources"
+	"LumenForge/src/language"
 	"LumenForge/src/logger"
 	"LumenForge/src/temperatures"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -37,19 +41,7 @@ func TestLinkAdapterResult(t *testing.T) {
 }
 
 func TestProcessNewTemperatureProfileExternalSourceValidation(t *testing.T) {
-	root := t.TempDir()
-	paths, err := config.ResolvePaths(config.PathOptions{
-		Mode:             config.ServiceModeDevelopment,
-		WorkingDirectory: root,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = config.EnsureRuntimeDirectories(paths); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(config.UsePathsForTest(paths))
-	logger.Init()
+	paths, root := useRequestLocalizationTestState(t)
 
 	executable, err := os.Executable()
 	if err != nil {
@@ -157,7 +149,93 @@ func TestProcessNewTemperatureProfileExternalSourceValidation(t *testing.T) {
 	missingRegistryResponse := ProcessNewTemperatureProfile(
 		httptest.NewRequest("POST", "/api/temperatures/new", bytes.NewReader(missingRegistryBody)),
 	)
-	if missingRegistryResponse.Status != 0 || missingRegistryResponse.Message != "No external sources are configured" {
+	if missingRegistryResponse.Status != 0 ||
+		missingRegistryResponse.Message != language.GetValue("txtNoExternalSourcesConfigured") {
 		t.Fatalf("missing registry response = %#v", missingRegistryResponse)
 	}
+}
+
+func TestExternalSourceSelectionMessageUsesLanguageSystem(t *testing.T) {
+	useRequestLocalizationTestState(t)
+
+	dash := dashboard.GetDashboard()
+	dash.LanguageCode = "de_DE"
+	if dashboard.SaveDashboardSettings(dash, true) != 1 {
+		t.Fatal("unable to select German dashboard language")
+	}
+
+	english := language.GetLanguage("en_US")
+	german := language.GetLanguage("de_DE")
+	if english == nil || german == nil {
+		t.Fatal("expected English and German language catalogs")
+	}
+
+	tests := []struct {
+		name string
+		err  error
+		key  string
+	}{
+		{
+			name: "missing registry",
+			err:  externalsources.ErrRegistryMissing,
+			key:  "txtNoExternalSourcesConfigured",
+		},
+		{
+			name: "invalid registry",
+			err:  externalsources.ErrRegistryInvalid,
+			key:  "txtExternalSourceRegistryUnavailable",
+		},
+		{
+			name: "unknown source",
+			err:  externalsources.ErrSourceUnknown,
+			key:  "txtSelectRegisteredExternalSource",
+		},
+		{
+			name: "default validation failure",
+			err:  errors.New("unexpected validation failure"),
+			key:  "txtUnableToValidateExternalSource",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := externalSourceSelectionMessage(test.err)
+			if got != language.GetValue(test.key) || got != german.Values[test.key] {
+				t.Fatalf("externalSourceSelectionMessage(%v) = %q, want localized %q",
+					test.err, got, german.Values[test.key])
+			}
+			if got == english.Values[test.key] {
+				t.Fatalf("externalSourceSelectionMessage(%v) returned hardcoded English %q",
+					test.err, got)
+			}
+		})
+	}
+}
+
+func useRequestLocalizationTestState(t *testing.T) (config.Paths, string) {
+	t.Helper()
+
+	packageDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	repositoryRoot := filepath.Clean(filepath.Join(packageDirectory, "..", "..", ".."))
+	root := t.TempDir()
+	paths, err := config.ResolvePaths(config.PathOptions{
+		Mode:             config.ServiceModeDevelopment,
+		ApplicationRoot:  repositoryRoot,
+		WorkingDirectory: root,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = config.EnsureRuntimeDirectories(paths); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(config.UsePathsForTest(paths))
+
+	logger.Init()
+	dashboard.Init()
+	language.Init()
+	return paths, root
 }

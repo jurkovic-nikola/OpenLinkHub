@@ -874,10 +874,11 @@ $(document).ready(function () {
     $("#restoreForm").on("submit", function (e) {
         e.preventDefault();
 
+        var restoreForm = $(this);
         var formData = new FormData();
         var file = $("#backupFile")[0].files[0];
         if (!file) {
-            toast.warning('Please select a .zip file first!');
+            toast.warning(restoreForm.data("select-message"));
             return;
         }
         formData.append("backupFile", file);
@@ -890,9 +891,10 @@ $(document).ready(function () {
             contentType: false,
             success: function (response) {
                 toast.success(response);
+                $("#restoreRestartWarning").attr("role", "alert");
             },
             error: function (xhr) {
-                toast.warning("Restore failed: " + xhr.responseText);
+                toast.warning(restoreForm.data("failure-prefix") + ": " + xhr.responseText);
             }
         });
     });

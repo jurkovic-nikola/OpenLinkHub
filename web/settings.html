@@ -366,6 +366,14 @@
                             </div>
                             <div class="card-body text-left sentence-text">
                                 <p class="mb-4">{{ .Lang "txtBackupInfo" }}</p>
+                                <p id="restoreRestartWarning" class="mb-3 text-warning fw-bold">
+                                    {{ .Lang "txtRestoreRestartWarning" }}
+                                </p>
+                                <p class="mb-4">
+                                    <a href="https://github.com/Alaric07/LumenForge/blob/LumenForge-Dev/docs/backup-restore.md"
+                                       target="_blank"
+                                       rel="noopener noreferrer">{{ .Lang "txtRestoreGuide" }}</a>
+                                </p>
                                 <div class="settings-list mt-2">
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ .Lang "txtBackup" }}</span>
@@ -378,7 +386,11 @@
                                     </div>
 
                                     <div class="settings-row">
-                                        <form id="restoreForm" enctype="multipart/form-data" class="file-form full-width">
+                                        <form id="restoreForm"
+                                              enctype="multipart/form-data"
+                                              class="file-form full-width"
+                                              data-select-message="{{ .Lang "txtSelectBackupFile" }}"
+                                              data-failure-prefix="{{ .Lang "txtRestoreFailed" }}">
                                             <input type="file"
                                                    class="system-input file-input mb-2"
                                                    id="backupFile"

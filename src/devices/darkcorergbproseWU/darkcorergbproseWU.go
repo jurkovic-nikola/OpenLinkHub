@@ -245,7 +245,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		MacroTracker:      make(map[int]uint16),
 		MinDPI:            minDpiValue,
 		MaxDPI:            maxDpiValue,
-		ZoneAmount:        8,
+		ZoneAmount:        9,
 		DPIAmount:         6,
 	}
 
@@ -1202,6 +1202,17 @@ func (d *Device) saveDeviceProfile() {
 				},
 				Name: "Side Accent 6",
 			},
+			8: { // Battery Indicator
+				ColorIndex: []int{11, 23, 35},
+				Color: &rgb.Color{
+					Red:        255,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 255),
+				},
+				Name: "Battery Indicator",
+			},
 		}
 		deviceProfile.DPIColor = &rgb.Color{
 			Red:        0,
@@ -1256,6 +1267,9 @@ func (d *Device) saveDeviceProfile() {
 	} else {
 		// Upgrade DPI profile
 		d.upgradeDpiProfiles()
+
+		// Upgrade zone colors
+		d.upgradeZoneColors()
 
 		if d.DeviceProfile.BrightnessSlider == nil {
 			deviceProfile.BrightnessSlider = &defaultBrightness
@@ -1315,6 +1329,32 @@ func (d *Device) saveDeviceProfile() {
 	}
 
 	d.loadDeviceProfiles()
+}
+
+// upgradeZoneColors will add newly introduced LED zones to existing device profiles
+func (d *Device) upgradeZoneColors() {
+	if d.DeviceProfile == nil || d.DeviceProfile.ZoneColors == nil {
+		return
+	}
+
+	for _, zone := range d.DeviceProfile.ZoneColors {
+		if strings.EqualFold(zone.Name, "Battery Indicator") {
+			return
+		}
+	}
+
+	index := len(d.DeviceProfile.ZoneColors)
+	d.DeviceProfile.ZoneColors[index] = ZoneColors{
+		ColorIndex: []int{11, 23, 35},
+		Color: &rgb.Color{
+			Red:        255,
+			Green:      255,
+			Blue:       255,
+			Brightness: 1,
+			Hex:        fmt.Sprintf("#%02x%02x%02x", 255, 255, 255),
+		},
+		Name: "Battery Indicator",
+	}
 }
 
 // upgradeDpiProfiles will perform upgrade of DPI profiles in needed

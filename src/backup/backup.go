@@ -31,22 +31,52 @@ var backupRestoreMutex sync.Mutex
 
 // PerformBackup creates a ZIP with a SHA-256 corruption-detection hash.
 func PerformBackup(w http.ResponseWriter, _ *http.Request) {
-	backupRestoreMutex.Lock()
-	defer backupRestoreMutex.Unlock()
-
 	paths := config.GetPaths()
-	srcFolder := paths.MutableDatabaseRoot
-	extraFile := paths.BackupConfigurationFile
-	backupName := "backup_" + time.Now().Format("2006-01-02-15-04-05") + ".zip"
-
-	tmpFile, err := os.CreateTemp("", "lumenforge-backup-*.zip")
+	tmpPath, backupName, err := buildBackupArchive(paths)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Warn("Unable to perform database backup")
 		http.Error(w, "Unable to create backup", http.StatusInternalServerError)
 		return
 	}
-	tmpPath := tmpFile.Name()
 	defer removeTemporaryFile(tmpPath, "backup")
+
+	tmpFile, err := os.Open(tmpPath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to reopen database backup")
+		http.Error(w, "Unable to read backup", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename="+backupName)
+	w.Header().Set("Content-Type", "application/zip")
+	_, copyErr := io.Copy(w, tmpFile)
+	err = joinPrimaryError(copyErr, "close backup download file", tmpFile.Close())
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to send database backup")
+	}
+}
+
+func buildBackupArchive(paths config.Paths) (tmpPath, backupName string, resultErr error) {
+	backupRestoreMutex.Lock()
+	defer backupRestoreMutex.Unlock()
+
+	srcFolder := paths.MutableDatabaseRoot
+	extraFile := paths.BackupConfigurationFile
+	backupName = "backup_" + time.Now().Format("2006-01-02-15-04-05") + ".zip"
+
+	tmpFile, err := os.CreateTemp("", "lumenforge-backup-*.zip")
+	if err != nil {
+		return "", "", err
+	}
+	tmpPath = tmpFile.Name()
+	cleanupPath := tmpPath
+	defer func() {
+		if resultErr == nil {
+			return
+		}
+		if removeErr := os.Remove(cleanupPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			resultErr = errors.Join(resultErr, fmt.Errorf("remove failed backup archive: %w", removeErr))
+		}
+	}()
 
 	archive := zip.NewWriter(tmpFile)
 	hasher := sha256.New()
@@ -77,24 +107,9 @@ func PerformBackup(w http.ResponseWriter, _ *http.Request) {
 	err = joinPrimaryError(err, "close backup archive", archive.Close())
 	err = joinPrimaryError(err, "close backup temporary file", tmpFile.Close())
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Warn("Unable to perform database backup")
-		http.Error(w, "Unable to create backup", http.StatusInternalServerError)
-		return
+		return "", "", err
 	}
-
-	tmpFile, err = os.Open(tmpPath)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to reopen database backup")
-		http.Error(w, "Unable to read backup", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Disposition", "attachment; filename="+backupName)
-	w.Header().Set("Content-Type", "application/zip")
-	_, copyErr := io.Copy(w, tmpFile)
-	err = joinPrimaryError(copyErr, "close backup download file", tmpFile.Close())
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to send database backup")
-	}
+	return tmpPath, backupName, nil
 }
 
 // PerformRestore validates, stages, and replaces mutable state from a ZIP backup.

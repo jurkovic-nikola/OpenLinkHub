@@ -103,6 +103,137 @@ func TestBackupIncludesOnlyConfigurationAndMutableData(t *testing.T) {
 	}
 }
 
+func TestBackupReleasesMutexBeforeStreaming(t *testing.T) {
+	root := t.TempDir()
+	paths, err := config.ResolvePaths(config.PathOptions{
+		Mode:            config.ServiceModeUser,
+		ApplicationRoot: filepath.Join(root, "app"),
+		ConfigRoot:      filepath.Join(root, "config"),
+		DataRoot:        filepath.Join(root, "data"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = config.EnsureRuntimeDirectories(paths); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(config.UsePathsForTest(paths))
+	logger.Init()
+	if err = os.WriteFile(paths.ConfigurationFile, []byte(`{"listenPort":27003}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(paths.MutableProfilesRoot, "device.json"), []byte(`{"serial":"device"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	temporaryDirectory := t.TempDir()
+	t.Setenv("TMPDIR", temporaryDirectory)
+	writer := &blockingBackupResponseWriter{
+		header:     make(http.Header),
+		lockResult: make(chan bool, 1),
+		release:    make(chan struct{}),
+	}
+	done := make(chan struct{})
+	go func() {
+		PerformBackup(writer, httptest.NewRequest("GET", "/api/backup", nil))
+		close(done)
+	}()
+
+	var acquired bool
+	select {
+	case acquired = <-writer.lockResult:
+	case <-done:
+		t.Fatal("backup completed before reaching the controlled response stream")
+	}
+	if !acquired {
+		close(writer.release)
+		<-done
+		t.Fatal("backup/restore mutex remained held while response streaming was blocked")
+	}
+	select {
+	case <-done:
+		t.Fatal("backup response unexpectedly completed while its writer was blocked")
+	default:
+	}
+	if disposition := writer.header.Get("Content-Disposition"); !strings.HasPrefix(disposition, "attachment; filename=backup_") {
+		t.Errorf("Content-Disposition = %q", disposition)
+	}
+	if contentType := writer.header.Get("Content-Type"); contentType != "application/zip" {
+		t.Errorf("Content-Type = %q, want application/zip", contentType)
+	}
+
+	close(writer.release)
+	<-done
+	temporaryFiles, err := os.ReadDir(temporaryDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(temporaryFiles) != 0 {
+		t.Fatalf("completed backup left temporary files: %v", temporaryFiles)
+	}
+}
+
+func TestBuildBackupArchiveCleansTemporaryFileOnFailure(t *testing.T) {
+	root := t.TempDir()
+	paths, err := config.ResolvePaths(config.PathOptions{
+		Mode:            config.ServiceModeUser,
+		ApplicationRoot: filepath.Join(root, "app"),
+		ConfigRoot:      filepath.Join(root, "config"),
+		DataRoot:        filepath.Join(root, "data"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = config.EnsureRuntimeDirectories(paths); err != nil {
+		t.Fatal(err)
+	}
+
+	temporaryDirectory := t.TempDir()
+	t.Setenv("TMPDIR", temporaryDirectory)
+	if _, _, err = buildBackupArchive(paths); err == nil {
+		t.Fatal("buildBackupArchive() succeeded without its required configuration file")
+	}
+
+	temporaryFiles, err := os.ReadDir(temporaryDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(temporaryFiles) != 0 {
+		t.Fatalf("failed backup left temporary files: %v", temporaryFiles)
+	}
+	if !backupRestoreMutex.TryLock() {
+		t.Fatal("backup/restore mutex remained held after archive construction failed")
+	}
+	backupRestoreMutex.Unlock()
+}
+
+type blockingBackupResponseWriter struct {
+	header     http.Header
+	lockResult chan bool
+	release    chan struct{}
+	checked    bool
+}
+
+func (writer *blockingBackupResponseWriter) Header() http.Header {
+	return writer.header
+}
+
+func (*blockingBackupResponseWriter) WriteHeader(int) {}
+
+func (writer *blockingBackupResponseWriter) Write(data []byte) (int, error) {
+	if writer.checked {
+		return len(data), nil
+	}
+	writer.checked = true
+	acquired := backupRestoreMutex.TryLock()
+	if acquired {
+		backupRestoreMutex.Unlock()
+	}
+	writer.lockResult <- acquired
+	<-writer.release
+	return len(data), nil
+}
+
 func TestRestoreUploadFilesAreUniquePrivateAndRemoved(t *testing.T) {
 	first, err := createRestoreUpload()
 	if err != nil {

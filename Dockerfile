@@ -1,6 +1,9 @@
 FROM golang:1.25.0-bookworm AS build
 ARG GIT_TAG
 ENV DEBIAN_FRONTEND=noninteractive
+# libpipewire-0.3.pc advertises -fno-strict-overflow, which is not on cgo's
+# list of accepted compiler flags, so pkg-config output alone fails the build.
+ENV CGO_CFLAGS_ALLOW=-fno-strict-overflow
 RUN apt-get update && apt-get install -y libudev-dev i2c-tools libpipewire-0.3-dev pkg-config
 RUN mkdir -p /opt/OpenLinkHub
 

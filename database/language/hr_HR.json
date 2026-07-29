@@ -356,7 +356,7 @@
     "txtBackup": "Sigurnosna kopija",
     "txtRestore": "Vrati",
     "txtRestoreRestartWarning": "Nakon uspješnog vraćanja odmah ponovno pokrenite LumenForge prije daljnjih promjena.",
-    "txtRestoreGuide": "Pročitajte vodič za sigurno vraćanje",
+    "txtRestoreGuide": "Vodič za sigurno vraćanje:",
     "txtRestoreSuccessRestartRequired": "Vraćanje je uspješno završeno. Ponovno pokrenite LumenForge prije daljnjih promjena.",
     "txtSelectBackupFile": "Najprije odaberite .zip sigurnosnu kopiju",
     "txtRestoreFailed": "Vraćanje nije uspjelo",

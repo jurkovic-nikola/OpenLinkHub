@@ -352,7 +352,7 @@
     "txtBackup": "Säkerhetskopiera",
     "txtRestore": "Återställ",
     "txtRestoreRestartWarning": "Efter en lyckad återställning ska du starta om LumenForge omedelbart innan du gör fler ändringar.",
-    "txtRestoreGuide": "Läs guiden för säker återställning",
+    "txtRestoreGuide": "Guide för säker återställning:",
     "txtRestoreSuccessRestartRequired": "Återställningen slutfördes. Starta om LumenForge innan du gör fler ändringar.",
     "txtSelectBackupFile": "Välj först en .zip-säkerhetskopia",
     "txtRestoreFailed": "Återställningen misslyckades",

@@ -23,8 +23,11 @@ test("restore errors and file selection use localized template messages", functi
     assert.match(settingsScript, /restoreForm\.data\("failure-prefix"\)/);
 });
 
-test("settings links to the focused restore guide without automatic restart behavior", function () {
-    assert.match(settingsTemplate, /docs\/backup-restore\.md/);
+test("settings names the shipped restore guide without a moving branch link", function () {
+    assert.match(settingsTemplate, /<code>docs\/backup-restore\.md<\/code>/);
+    assert.match(settingsTemplate, /txtRestoreGuide/);
+    assert.doesNotMatch(settingsTemplate, /LumenForge-Dev\/docs\/backup-restore|main\/docs\/backup-restore/);
+    assert.doesNotMatch(settingsTemplate, /href="[^"]*backup-restore\.md/);
     const restoreHandler = settingsScript.match(
         /\$\("#restoreForm"\)\.on\("submit"[\s\S]+?\n    \}\);/
     );

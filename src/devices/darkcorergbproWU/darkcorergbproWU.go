@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -59,6 +60,7 @@ type DeviceProfile struct {
 	OpenRGBIntegration bool
 	RGBCluster         bool
 	RgbOff             bool
+	BatteryIndicator   bool
 }
 
 type DPIProfile struct {
@@ -101,6 +103,8 @@ type Device struct {
 	SleepModes               map[int]string
 	mutex                    sync.Mutex
 	deviceLock               sync.Mutex
+	overlayMutex             sync.Mutex
+	lastColorBuf             []byte
 	timerKeepAlive           *time.Ticker
 	keepAliveChan            chan struct{}
 	timer                    *time.Ticker
@@ -273,6 +277,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
 	d.startQueueWorker()       // Queue
+	d.batteryOverlayRefresh()  // Battery indicator overlay
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -1310,6 +1315,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
+		deviceProfile.BatteryIndicator = d.DeviceProfile.BatteryIndicator
 	}
 
 	// Fix profile paths if folder database/ folder is moved
@@ -2040,6 +2046,107 @@ func (d *Device) UpdateButtonOptimization(buttonOptimizationMode int) uint8 {
 	return 1
 }
 
+// UpdateBatteryIndicator will enable or disable the battery level overlay on the Battery Indicator zone
+func (d *Device) UpdateBatteryIndicator(batteryIndicatorMode int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	enabled := batteryIndicatorMode == 1
+	if d.DeviceProfile.BatteryIndicator == enabled {
+		return 0
+	}
+
+	d.DeviceProfile.BatteryIndicator = enabled
+	d.saveDeviceProfile()
+
+	if !enabled {
+		// Restore the base zone color by re-sending the last buffer without overlay
+		d.overlayMutex.Lock()
+		buf := make([]byte, len(d.lastColorBuf))
+		copy(buf, d.lastColorBuf)
+		d.overlayMutex.Unlock()
+		if len(buf) > 0 {
+			d.writeColor(buf)
+		}
+	}
+	return 1
+}
+
+// getBatteryOverlayColor returns the current overlay color for the Battery Indicator zone.
+// States follow the Corsair user guide defaults:
+// critical (<=10%) pulsing red, low (<=25%) blinking red, medium (<=60%) blinking amber,
+// high (<100%) blinking green, charged (100%) solid green.
+// Battery charging indication is handled by device firmware.
+func (d *Device) getBatteryOverlayColor() (byte, byte, byte) {
+	level := d.BatteryLevel
+	now := time.Now().UnixMilli()
+
+	var red, green, blue float64
+	blink := false
+	pulse := false
+
+	switch {
+	case level >= 100: // Charged - solid green
+		red, green, blue = 0, 255, 0
+	case level > 60: // High - blinking green
+		red, green, blue = 0, 255, 0
+		blink = true
+	case level > 25: // Medium - blinking amber
+		red, green, blue = 255, 191, 0
+		blink = true
+	case level > 10: // Low - blinking red
+		red, green, blue = 255, 0, 0
+		blink = true
+	default: // Critical - pulsing red
+		red, green, blue = 255, 0, 0
+		pulse = true
+	}
+
+	if blink && (now/500)%2 == 1 {
+		return 0, 0, 0
+	}
+
+	factor := 1.0
+	if pulse {
+		factor = 0.5 + 0.5*math.Sin(2*math.Pi*float64(now%2000)/2000.0)
+	}
+
+	if d.DeviceProfile != nil && d.DeviceProfile.BrightnessSlider != nil {
+		factor *= float64(*d.DeviceProfile.BrightnessSlider) / 100.0
+	}
+
+	return byte(red * factor), byte(green * factor), byte(blue * factor)
+}
+
+// batteryOverlayRefresh periodically re-sends the last color buffer so that
+// blinking / pulsing of the Battery Indicator zone also works with static
+// RGB profiles that do not refresh on their own
+func (d *Device) batteryOverlayRefresh() {
+	go func() {
+		for {
+			if d.Exit {
+				return
+			}
+			time.Sleep(250 * time.Millisecond)
+
+			if d.DeviceProfile == nil || !d.DeviceProfile.BatteryIndicator {
+				continue
+			}
+
+			d.overlayMutex.Lock()
+			buf := make([]byte, len(d.lastColorBuf))
+			copy(buf, d.lastColorBuf)
+			d.overlayMutex.Unlock()
+
+			if len(buf) == 0 {
+				continue
+			}
+			d.writeColor(buf)
+		}
+	}()
+}
+
 func (d *Device) ModifyDpi(increment bool) {
 	if increment {
 		if d.DeviceProfile.Profile >= 2 {
@@ -2348,6 +2455,25 @@ func (d *Device) writeColor(data []byte) {
 	if d.Exit {
 		return
 	}
+
+	// Keep a copy of the base buffer so the battery overlay refresher can
+	// re-send it periodically for blink / pulse animation
+	d.overlayMutex.Lock()
+	if len(d.lastColorBuf) != len(data) {
+		d.lastColorBuf = make([]byte, len(data))
+	}
+	copy(d.lastColorBuf, data)
+	d.overlayMutex.Unlock()
+
+	// Battery indicator overlay - override the battery indicator zone with
+	// a color / pattern representing the current battery level
+	if d.DeviceProfile != nil && d.DeviceProfile.BatteryIndicator && len(data) >= 36 {
+		red, green, blue := d.getBatteryOverlayColor()
+		data[11] = red
+		data[23] = green
+		data[35] = blue
+	}
+
 	buffer := make([]byte, len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:], data)

@@ -93,6 +93,7 @@ type Payload struct {
 	LiftHeight                    int                   `json:"liftHeight"`
 	MultiGestures                 int                   `json:"multiGestures"`
 	AngleSnapping                 int                   `json:"angleSnapping"`
+	BatteryIndicator              int                   `json:"batteryIndicator"`
 	RippleControl                 int                   `json:"rippleControl"`
 	MotionSync                    int                   `json:"motionSync"`
 	AutoBrightness                int                   `json:"autoBrightness"`
@@ -1541,6 +1542,51 @@ func ProcessChangePollingRate(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangePollingRate"), Code: http.StatusOK, Status: 0}
+}
+
+
+// ProcessChangeBatteryIndicator will process POST request from a client for battery indicator mode change
+func ProcessChangeBatteryIndicator(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.BatteryIndicator < 0 || req.BatteryIndicator > 1 {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateBatteryIndicator",
+		req.BatteryIndicator,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtBatteryIndicatorChanged"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeBatteryIndicator"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeAngleSnapping will process POST request from a client for angle-snapping mode change

@@ -153,6 +153,15 @@
                                         </label>
                                     </div>
 
+                                    <!-- Battery Indicator -->
+                                    <div class="settings-row">
+                                        <span title="{{ .Lang "txtBatteryIndicator" }}" class="settings-label text-ellipsis">{{ .Lang "txtBatteryIndicator" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" class="toggleBatteryIndicator" {{ if $deviceProfile.BatteryIndicator }} checked {{ end }}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+
                                     <!-- Button Response Optimization -->
                                     <div class="settings-row">
                                         <span title="{{ .Lang "txtButtonResponseOptimization" }}" class="settings-label text-ellipsis">{{ .Lang "txtButtonResponseOptimization" }}</span>

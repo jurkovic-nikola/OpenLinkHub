@@ -1529,7 +1529,18 @@ func changePollingRate(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// changeAngleSnapping handles device angle snapping mode
+// changeBatteryIndicator handles device battery indicator mode
+func changeBatteryIndicator(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeBatteryIndicator(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeAngleSnapping handles device angle-snapping mode
 func changeAngleSnapping(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeAngleSnapping(r)
 	resp := &Response{
@@ -2632,6 +2643,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/mouse/sleep", http.MethodPost, changeSleepMode)
 	handleFunc(r, "/api/mouse/pollingRate", http.MethodPost, changePollingRate)
 	handleFunc(r, "/api/mouse/angleSnapping", http.MethodPost, changeAngleSnapping)
+	handleFunc(r, "/api/mouse/batteryIndicator", http.MethodPost, changeBatteryIndicator)
 	handleFunc(r, "/api/mouse/rippleControl", http.MethodPost, changeRippleControl)
 	handleFunc(r, "/api/mouse/motionSync", http.MethodPost, changeMotionSync)
 	handleFunc(r, "/api/mouse/buttonOptimization", http.MethodPost, changeButtonOptimization)

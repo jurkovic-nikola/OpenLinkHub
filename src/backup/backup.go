@@ -6,113 +6,102 @@ package backup
 
 import (
 	"LumenForge/src/config"
+	"LumenForge/src/language"
 	"LumenForge/src/logger"
 	"archive/zip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
+	"sync"
 	"time"
 )
 
 const (
-	maxUploadSize = 5 * 1024 * 1024 // 5 MB
+	maxUploadSize = 5 * 1024 * 1024 // 5 MiB
 	hashFileName  = "_hash.txt"
 )
 
-// PerformBackup creates a ZIP with SHA-256 integrity hash
+var backupRestoreMutex sync.Mutex
+
+// PerformBackup creates a ZIP with a SHA-256 corruption-detection hash.
 func PerformBackup(w http.ResponseWriter, _ *http.Request) {
+	backupRestoreMutex.Lock()
+	defer backupRestoreMutex.Unlock()
+
 	paths := config.GetPaths()
 	srcFolder := paths.MutableDatabaseRoot
 	extraFile := paths.BackupConfigurationFile
 	backupName := "backup_" + time.Now().Format("2006-01-02-15-04-05") + ".zip"
 
-	tmpFile, err := os.CreateTemp("", backupName)
+	tmpFile, err := os.CreateTemp("", "lumenforge-backup-*.zip")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Warn("Unable to perform database backup")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Unable to create backup", http.StatusInternalServerError)
 		return
 	}
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to remove temp database backup")
-		}
-	}(tmpFile.Name())
-	defer func(tmpFile *os.File) {
-		err := tmpFile.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close temp database backup")
-		}
-	}(tmpFile)
+	tmpPath := tmpFile.Name()
+	defer removeTemporaryFile(tmpPath, "backup")
 
 	archive := zip.NewWriter(tmpFile)
 	hasher := sha256.New()
 
-	// Add database folder
-	if err := hashAndZipFolder(srcFolder, archive, hasher); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err = hashAndZipFolder(srcFolder, archive, hasher); err == nil {
+		err = hashAndZipFile(extraFile, archive, hasher)
 	}
-
-	// Add config.json
-	if err := hashAndZipFile(extraFile, archive, hasher); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	for _, runtimeFile := range []string{"dashboard.json", "display.json"} {
-		path := filepath.Join(paths.BackupDataRoot, runtimeFile)
-		if _, err := os.Stat(path); err == nil {
-			if err = hashAndZipFile(path, archive, hasher); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+	if err == nil {
+		for _, runtimeFile := range []string{"dashboard.json", "display.json"} {
+			filePath := filepath.Join(paths.BackupDataRoot, runtimeFile)
+			if _, statErr := os.Stat(filePath); statErr == nil {
+				if err = hashAndZipFile(filePath, archive, hasher); err != nil {
+					break
+				}
+			} else if !os.IsNotExist(statErr) {
+				err = statErr
+				break
 			}
-		} else if !os.IsNotExist(err) {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
 		}
 	}
-
-	// Write hash file
-	sum := hex.EncodeToString(hasher.Sum(nil))
-	hf, err := archive.Create(hashFileName)
+	if err == nil {
+		var hashWriter io.Writer
+		hashWriter, err = archive.Create(hashFileName)
+		if err == nil {
+			_, err = hashWriter.Write([]byte(hex.EncodeToString(hasher.Sum(nil))))
+		}
+	}
+	err = joinPrimaryError(err, "close backup archive", archive.Close())
+	err = joinPrimaryError(err, "close backup temporary file", tmpFile.Close())
 	if err != nil {
-		http.Error(w, "Unable to create hash file in archive", http.StatusInternalServerError)
-		return
-	}
-	if _, err := hf.Write([]byte(sum)); err != nil {
-		http.Error(w, "Unable to write hash file", http.StatusInternalServerError)
+		logger.Log(logger.Fields{"error": err}).Warn("Unable to perform database backup")
+		http.Error(w, "Unable to create backup", http.StatusInternalServerError)
 		return
 	}
 
-	if err := archive.Close(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	tmpFile, err = os.Open(tmpPath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to reopen database backup")
+		http.Error(w, "Unable to read backup", http.StatusInternalServerError)
 		return
 	}
-
 	w.Header().Set("Content-Disposition", "attachment; filename="+backupName)
 	w.Header().Set("Content-Type", "application/zip")
-
-	_, err = tmpFile.Seek(0, 0)
+	_, copyErr := io.Copy(w, tmpFile)
+	err = joinPrimaryError(copyErr, "close backup download file", tmpFile.Close())
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to perform database backup")
-		return
-	}
-	_, err = io.Copy(w, tmpFile)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to perform database backup")
-		return
+		logger.Log(logger.Fields{"error": err}).Error("Unable to send database backup")
 	}
 }
 
-// PerformRestore validates and restores a ZIP backup
+// PerformRestore validates, stages, and replaces mutable state from a ZIP backup.
 func PerformRestore(w http.ResponseWriter, r *http.Request) {
-	paths := config.GetPaths()
+	backupRestoreMutex.Lock()
+	defer backupRestoreMutex.Unlock()
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Use POST to upload backup file", http.StatusMethodNotAllowed)
 		return
@@ -123,81 +112,94 @@ func PerformRestore(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "File too large or invalid upload", http.StatusBadRequest)
 		return
 	}
+	if r.MultipartForm != nil {
+		defer func() {
+			if err := r.MultipartForm.RemoveAll(); err != nil {
+				logger.Log(logger.Fields{"error": err}).Warn("Unable to remove multipart restore files")
+			}
+		}()
+	}
 
-	file, handler, err := r.FormFile("backupFile")
+	upload, _, err := r.FormFile("backupFile")
 	if err != nil {
-		http.Error(w,
-			fmt.Sprintf("%s - %s", "Failed to read uploaded file", err.Error()),
-			http.StatusBadRequest,
-		)
+		http.Error(w, "Failed to read uploaded backup", http.StatusBadRequest)
 		return
 	}
-	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close temp database backup")
-		}
-	}(file)
-
-	tmpZip := filepath.Join(os.TempDir(), handler.Filename)
-	out, err := os.Create(tmpZip)
+	tmpFile, err := createRestoreUpload()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		err = errors.Join(err, wrapOptionalError("close uploaded backup", upload.Close()))
+		logger.Log(logger.Fields{"error": err}).Warn("Unable to create restore upload file")
+		http.Error(w, "Unable to stage uploaded backup", http.StatusInternalServerError)
 		return
 	}
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to remove temp database backup")
-		}
-	}(tmpZip)
-	defer func(out *os.File) {
-		err := out.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close temp database backup")
-		}
-	}(out)
+	tmpPath := tmpFile.Name()
+	defer removeTemporaryFile(tmpPath, "restore upload")
 
-	if _, err := io.Copy(out, file); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	copyErr := copyMultipartUpload(tmpFile, upload)
+	if copyErr != nil {
+		logger.Log(logger.Fields{"error": copyErr}).Warn("Unable to stage restore upload")
+		http.Error(w, "Unable to stage uploaded backup", http.StatusInternalServerError)
 		return
 	}
 
-	if err := verifyZipIntegrity(tmpZip); err != nil {
-		http.Error(w,
-			fmt.Sprintf("%s - %s", "Backup verification failed", err.Error()),
-			http.StatusBadRequest,
-		)
+	paths := config.GetPaths()
+	if err = restoreBackup(tmpPath, paths.RestoreConfigurationRoot, paths.RestoreDataRoot, defaultRestoreFileOps()); err != nil {
+		logRestoreError(err)
+		http.Error(w, restorePublicMessage(err), http.StatusBadRequest)
 		return
 	}
 
-	if err := unzipFile(tmpZip, paths.RestoreConfigurationRoot, paths.RestoreDataRoot); err != nil {
-		http.Error(w,
-			fmt.Sprintf("%s - %s", "Restore failed", err.Error()),
-			http.StatusBadRequest,
-		)
-		return
+	message := language.GetValue("txtRestoreSuccessRestartRequired")
+	if message == "" {
+		message = "Restore completed successfully. Restart LumenForge before making further changes."
 	}
-
-	_, err = fmt.Fprintln(w, "Restore completed successfully")
-	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Warn("Unable to perform database restore")
-		return
+	if _, err = fmt.Fprintln(w, message); err != nil {
+		logger.Log(logger.Fields{"error": err}).Warn("Unable to send database restore response")
 	}
 }
 
-// hashAndZipFolder zips folder and feeds data to hash
+func createRestoreUpload() (*os.File, error) {
+	file, err := os.CreateTemp("", "lumenforge-restore-upload-*.zip")
+	if err != nil {
+		return nil, err
+	}
+	if err = file.Chmod(0o600); err != nil {
+		closeErr := file.Close()
+		removeErr := os.Remove(file.Name())
+		return nil, errors.Join(err, closeErr, removeErr)
+	}
+	return file, nil
+}
+
+func copyMultipartUpload(destination *os.File, upload multipart.File) error {
+	_, copyErr := io.Copy(destination, upload)
+	uploadCloseErr := upload.Close()
+	destinationCloseErr := destination.Close()
+	return errors.Join(
+		copyErr,
+		wrapOptionalError("close uploaded backup", uploadCloseErr),
+		wrapOptionalError("close restore upload file", destinationCloseErr),
+	)
+}
+
+func removeTemporaryFile(name, purpose string) {
+	if err := os.Remove(name); err != nil && !os.IsNotExist(err) {
+		logger.Log(logger.Fields{"error": err, "purpose": purpose}).Warn("Unable to remove temporary backup file")
+	}
+}
+
+// hashAndZipFolder zips a folder and feeds regular-file data to the hash.
 func hashAndZipFolder(src string, archive *zip.Writer, hasher io.Writer) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	return filepath.Walk(src, func(filePath string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
 
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
 		}
-		header.Name, err = filepath.Rel(filepath.Dir(src), path)
+		header.Name, err = filepath.Rel(filepath.Dir(src), filePath)
 		if err != nil {
 			return err
 		}
@@ -207,40 +209,31 @@ func hashAndZipFolder(src string, archive *zip.Writer, hasher io.Writer) error {
 		} else {
 			header.Method = zip.Deflate
 		}
-
-		w, err := archive.CreateHeader(header)
+		writer, err := archive.CreateHeader(header)
 		if err != nil {
 			return err
 		}
-
-		if !info.IsDir() {
-			f, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer func(f *os.File) {
-				err := f.Close()
-				if err != nil {
-					logger.Log(logger.Fields{"error": err}).Warn("Unable to close temp database backup")
-				}
-			}(f)
-			mw := io.MultiWriter(w, hasher)
-			if _, err := io.Copy(mw, f); err != nil {
-				return err
-			}
+		if info.IsDir() {
+			return nil
 		}
-		return nil
+
+		file, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.Copy(io.MultiWriter(writer, hasher), file)
+		return joinPrimaryError(copyErr, "close backup source file", file.Close())
 	})
 }
 
-// hashAndZipFile adds single file to ZIP and hash
+// hashAndZipFile adds one regular file to a ZIP and hash.
 func hashAndZipFile(filePath string, archive *zip.Writer, hasher io.Writer) error {
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return err
 	}
-	if info.IsDir() {
-		return fmt.Errorf("%s is a directory", filePath)
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", filePath)
 	}
 
 	header, err := zip.FileInfoHeader(info)
@@ -249,179 +242,26 @@ func hashAndZipFile(filePath string, archive *zip.Writer, hasher io.Writer) erro
 	}
 	header.Method = zip.Deflate
 	header.Name = filepath.Base(filePath)
-
 	writer, err := archive.CreateHeader(header)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Open(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close temp database backup")
-		}
-	}(f)
-
-	mw := io.MultiWriter(writer, hasher)
-	_, err = io.Copy(mw, f)
-	return err
+	_, copyErr := io.Copy(io.MultiWriter(writer, hasher), file)
+	return joinPrimaryError(copyErr, "close backup source file", file.Close())
 }
 
-// verifyZipIntegrity recalculates hash and compares it to stored _hash.txt
-func verifyZipIntegrity(zipPath string) error {
-	r, err := zip.OpenReader(zipPath)
-	if err != nil {
-		return err
-	}
-	defer func(r *zip.ReadCloser) {
-		err := r.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close temp database backup")
-		}
-	}(r)
-
-	hasher := sha256.New()
-	var expectedHash string
-
-	for _, f := range r.File {
-		if f.Name == hashFileName {
-			rc, err := f.Open()
-			if err != nil {
-				return err
-			}
-			data, err := io.ReadAll(rc)
-			if err != nil {
-				_ = rc.Close()
-				return err
-			}
-			err = rc.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to close backup hash file")
-				return err
-			}
-			expectedHash = strings.TrimSpace(string(data))
-			continue
-		}
-		if f.FileInfo().IsDir() {
-			continue
-		}
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		if _, err := io.Copy(hasher, rc); err != nil {
-			err := rc.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-				return err
-			}
-			return err
-		}
-		err = rc.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-			return err
-		}
-	}
-
-	if expectedHash == "" {
-		return fmt.Errorf("missing %s in archive", hashFileName)
-	}
-
-	actualHash := hex.EncodeToString(hasher.Sum(nil))
-	if expectedHash != actualHash {
-		return fmt.Errorf("hash mismatch")
-	}
-	return nil
+func joinPrimaryError(primary error, closeOperation string, closeErr error) error {
+	return errors.Join(primary, wrapOptionalError(closeOperation, closeErr))
 }
 
-// unzipFile extracts all files (skipping _hash.txt)
-func unzipFile(src, configurationRoot, dataRoot string) error {
-	r, err := zip.OpenReader(src)
-	if err != nil {
-		return err
+func wrapOptionalError(operation string, err error) error {
+	if err == nil {
+		return nil
 	}
-	defer func(r *zip.ReadCloser) {
-		err := r.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close backup file")
-		}
-	}(r)
-
-	for _, f := range r.File {
-		if f.Name == hashFileName {
-			continue
-		}
-		destinationRoot := dataRoot
-		if filepath.Clean(f.Name) == "config.json" {
-			destinationRoot = configurationRoot
-		}
-		path := filepath.Join(destinationRoot, f.Name)
-		if !strings.HasPrefix(path, filepath.Clean(destinationRoot)+string(os.PathSeparator)) {
-			return fmt.Errorf("illegal path: %s", f.Name)
-		}
-
-		if f.FileInfo().IsDir() {
-			err := os.MkdirAll(path, 0o700)
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to create directory")
-				return err
-			}
-			continue
-		}
-		err := os.MkdirAll(filepath.Dir(path), 0o700)
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to create directory")
-			return err
-		}
-
-		outFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
-		if err != nil {
-			return err
-		}
-		if err = outFile.Chmod(0o600); err != nil {
-			chmodErr := err
-			if closeErr := outFile.Close(); closeErr != nil {
-				logger.Log(logger.Fields{"error": closeErr}).Warn("Unable to close backup file after chmod failure")
-			}
-			return chmodErr
-		}
-		rc, err := f.Open()
-		if err != nil {
-			err := outFile.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-				return err
-			}
-			return err
-		}
-		if _, err := io.Copy(outFile, rc); err != nil {
-			err := outFile.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-				return err
-			}
-			err = rc.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-				return err
-			}
-			return err
-		}
-		err = outFile.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-			return err
-		}
-		err = rc.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Warn("Unable to close backup file")
-			return err
-		}
-	}
-	return nil
+	return fmt.Errorf("%s: %w", operation, err)
 }

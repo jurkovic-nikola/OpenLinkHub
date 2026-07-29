@@ -356,7 +356,7 @@
     "txtBackup": "Sichern",
     "txtRestore": "Wiederherstellen",
     "txtRestoreRestartWarning": "Starte LumenForge nach einer erfolgreichen Wiederherstellung sofort neu, bevor Du weitere Änderungen vornimmst.",
-    "txtRestoreGuide": "Anleitung zur sicheren Wiederherstellung:",
+    "txtRestoreGuide": "Anleitung zur Sicherung und Wiederherstellung: Verfügbar im LumenForge-GitHub-Repository unter",
     "txtRestoreSuccessRestartRequired": "Wiederherstellung erfolgreich abgeschlossen. Starte LumenForge neu, bevor Du weitere Änderungen vornimmst.",
     "txtSelectBackupFile": "Bitte wähle zuerst eine .zip-Sicherung aus",
     "txtRestoreFailed": "Wiederherstellung fehlgeschlagen",

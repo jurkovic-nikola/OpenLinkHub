@@ -8,6 +8,7 @@ const test = require("node:test");
 const repositoryRoot = path.resolve(__dirname, "../..");
 const settingsScript = fs.readFileSync(path.join(__dirname, "settings.js"), "utf8");
 const settingsTemplate = fs.readFileSync(path.join(repositoryRoot, "web/settings.html"), "utf8");
+const languageDirectory = path.join(repositoryRoot, "database/language");
 
 test("restore success keeps the server restart message prominent", function () {
     assert.match(settingsScript, /toast\.success\(response\)/);
@@ -23,11 +24,20 @@ test("restore errors and file selection use localized template messages", functi
     assert.match(settingsScript, /restoreForm\.data\("failure-prefix"\)/);
 });
 
-test("settings names the shipped restore guide without a moving branch link", function () {
-    assert.match(settingsTemplate, /<code>docs\/backup-restore\.md<\/code>/);
+test("settings identifies the repository-only backup guide without a moving branch link", function () {
+    assert.match(settingsTemplate, /<code>docs\/backup-restore\.md<\/code>\./);
     assert.match(settingsTemplate, /txtRestoreGuide/);
     assert.doesNotMatch(settingsTemplate, /LumenForge-Dev\/docs\/backup-restore|main\/docs\/backup-restore/);
     assert.doesNotMatch(settingsTemplate, /href="[^"]*backup-restore\.md/);
+    const english = JSON.parse(fs.readFileSync(path.join(languageDirectory, "en_US.json"), "utf8"));
+    assert.equal(
+        english.values.txtRestoreGuide,
+        "Backup and restore guide: Available in the LumenForge GitHub repository under"
+    );
+    for (const filename of fs.readdirSync(languageDirectory).filter((name) => name.endsWith(".json"))) {
+        const language = JSON.parse(fs.readFileSync(path.join(languageDirectory, filename), "utf8"));
+        assert.match(language.values.txtRestoreGuide, /GitHub/, `${filename} identifies the GitHub repository`);
+    }
     const restoreHandler = settingsScript.match(
         /\$\("#restoreForm"\)\.on\("submit"[\s\S]+?\n    \}\);/
     );

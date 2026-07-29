@@ -356,7 +356,7 @@
     "txtBackup": "Backup",
     "txtRestore": "Restore",
     "txtRestoreRestartWarning": "After a successful restore, restart LumenForge immediately before making further changes.",
-    "txtRestoreGuide": "Secure restore guide:",
+    "txtRestoreGuide": "Backup and restore guide: Available in the LumenForge GitHub repository under",
     "txtRestoreSuccessRestartRequired": "Restore completed successfully. Restart LumenForge before making further changes.",
     "txtSelectBackupFile": "Please select a .zip backup first",
     "txtRestoreFailed": "Restore failed",

@@ -80,7 +80,10 @@ Dashboard backup creation includes the resolved `config.json`, mutable
 `database/`, `dashboard.json`, and `display.json` when present. It excludes all
 immutable application content. Restore maps `config.json` to the configuration
 directory and mutable entries to the data root; it never restores into
-`/opt/LumenForge`.
+`/opt/LumenForge`. Restore validates and stages the complete snapshot before
+replacement, preserves the current `logFile` and `amdsmiPath`, and requires an
+immediate service restart. See [Backup and Restore](backup-restore.md) for the
+accepted ZIP structure, limits, and snapshot semantics.
 
 The optional `/etc/lumenforge/external-sources.json` file is root-controlled
 administrator configuration for the system service. The current installers do

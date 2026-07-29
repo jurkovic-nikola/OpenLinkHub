@@ -7,6 +7,11 @@ LumenForge reads `config.json` once during startup. The user service uses
 process working directory. Stop LumenForge before editing the file, keep a
 backup, and restart it after saving.
 
+Dashboard backup restore preserves the current host's `logFile` and
+`amdsmiPath` values while restoring other archived configuration fields. See
+[Backup and Restore](backup-restore.md) for the accepted archive structure,
+limits, snapshot behavior, and required post-restore restart.
+
 The file is JSON. Field names are case-sensitive, JSON types must match the
 types below, and malformed JSON prevents startup. LumenForge currently ignores
 unknown fields and performs little general range validation, so an accepted

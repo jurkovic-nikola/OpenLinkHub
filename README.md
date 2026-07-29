@@ -36,6 +36,7 @@ Related documentation:
 
 - [Supported device list](docs/supported-devices.md)
 - [Configuration reference](docs/configuration.md)
+- [Backup and restore](docs/backup-restore.md)
 - [OpenRGB device import](docs/openrgb-import.md)
 - [Memory DDR4 / DDR5](docs/memory-configuration.md)
 - [Motherboard PWM](docs/motherboard-pwm.md)
@@ -234,6 +235,7 @@ mutable data root.
 Dashboard backups contain `config.json`, mutable `database/` content, and
 dashboard/display state. They do not contain the binary, templates, static
 assets, documentation, or shipped definitions. See the complete
+[backup and restore guide](docs/backup-restore.md) and
 [filesystem and ownership reference](docs/filesystem-layout.md).
 
 ### OpenRGB Controller Import

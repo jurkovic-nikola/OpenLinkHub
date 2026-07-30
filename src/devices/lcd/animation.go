@@ -121,14 +121,22 @@ func InitAnimation() {
 // ready to be copied and annotated at render time. Returns nil when the image
 // has no decoded frames to work from.
 func buildAnimationFrames(fileName string) []AnimationFrames {
-	palettedFrames := GetPalettedFrames(fileName)
-	if palettedFrames.PalettedFrames == nil {
+	paletted := decodePalettedFrames(fileName)
+	if paletted == nil {
 		return nil
 	}
+	// Delays live with the encoded frames, which are retained.
+	var delays []Frames
+	if img := GetLcdImage(fileName); img != nil {
+		delays = img.Buffer
+	}
 
-	imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
-	for i, pf := range palettedFrames.PalettedFrames {
-		delay := palettedFrames.Buffer[i].Delay
+	imageBuffer := make([]AnimationFrames, len(paletted))
+	for i, pf := range paletted {
+		var delay float64
+		if i < len(delays) {
+			delay = delays[i].Delay
+		}
 		if delay == 0 {
 			if animation.FrameDelay > 0 {
 				delay = float64(animation.FrameDelay)
@@ -222,20 +230,12 @@ func LoadAnimation(fileName string) uint8 {
 	// Validate only. Uploading an image says nothing about whether it will ever
 	// be drawn, and caching it here would retain a canvas per frame on the
 	// strength of that guess. The render path decodes what it actually needs.
-	if GetPalettedFrames(fileName).PalettedFrames == nil {
+	// The upload handler has already decoded the file to check it, so knowing
+	// the image registered with frames is enough.
+	if img := GetLcdImage(fileName); img == nil || img.Frames < 1 {
 		return 0
 	}
 	return 1
-}
-
-// GetPalettedFrames will return
-func GetPalettedFrames(fileName string) ImageData {
-	for _, val := range lcd.ImageData {
-		if val.Name == fileName {
-			return val
-		}
-	}
-	return ImageData{}
 }
 
 // GetAnimation will return Animation object

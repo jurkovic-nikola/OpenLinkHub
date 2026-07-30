@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"image"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"golang.org/x/image/draw"
 )
@@ -108,27 +110,60 @@ func InitAnimation() {
 		}
 	}
 
-	// Nothing is decoded here. Every cached frame holds a full size RGBA
-	// canvas, and only the background named in the profile can ever be drawn,
-	// so walking the image folder tied the resident set to how many images the
-	// user happens to keep. Most panels never select the animation mode at all,
-	// so even the one background is only worth decoding once something asks to
-	// render it.
-	pruneAnimationCache(animation.Background)
+	// Keep the filename catalog used by the UI, but leave every frame slice nil.
+	// Only the selected background is worth decoding when something renders it.
+	loadAnimationCatalog()
+}
+
+// loadAnimationCatalog records the GIFs available to the animation UI without
+// decoding their frames. Animation.Images historically supplied both this
+// catalog and the decoded-frame cache, so dropping all entries to save memory
+// also made the background dropdown empty after every restart.
+func loadAnimationCatalog() {
+	entries, err := os.ReadDir(images)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": images}).Error("Unable to read content of a folder")
+		return
+	}
+
+	catalog := make(map[string][]AnimationFrames)
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".gif") {
+			continue
+		}
+		name := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		if !common.AlphanumericRegex.MatchString(name) {
+			logger.Log(logger.Fields{"location": images, "image": entry.Name()}).Warn("Image name can only have letters and numbers. Please rename your image")
+			continue
+		}
+		catalog[name] = nil
+	}
+
+	mutex.Lock()
+	animation.Images = catalog
+	mutex.Unlock()
 }
 
 // buildAnimationFrames composites every frame of an image onto its own canvas,
 // ready to be copied and annotated at render time. Returns nil when the image
 // has no decoded frames to work from.
 func buildAnimationFrames(fileName string) []AnimationFrames {
-	palettedFrames := GetPalettedFrames(fileName)
-	if palettedFrames.PalettedFrames == nil {
+	paletted := decodePalettedFrames(fileName)
+	if paletted == nil {
 		return nil
 	}
+	// Delays live with the encoded frames, which are retained.
+	var delays []Frames
+	if img := GetLcdImage(fileName); img != nil {
+		delays = img.Buffer
+	}
 
-	imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
-	for i, pf := range palettedFrames.PalettedFrames {
-		delay := palettedFrames.Buffer[i].Delay
+	imageBuffer := make([]AnimationFrames, len(paletted))
+	for i, pf := range paletted {
+		var delay float64
+		if i < len(delays) {
+			delay = delays[i].Delay
+		}
 		if delay == 0 {
 			if animation.FrameDelay > 0 {
 				delay = float64(animation.FrameDelay)
@@ -158,9 +193,13 @@ func pruneAnimationCache(keep string) {
 		animation.Images = make(map[string][]AnimationFrames)
 		return
 	}
-	for name := range animation.Images {
+	for name, frames := range animation.Images {
 		if name != keep {
-			delete(animation.Images, name)
+			// Preserve the lightweight key: the template uses this map as the
+			// complete animation catalog. Only decoded canvases are discarded.
+			if frames != nil {
+				animation.Images[name] = nil
+			}
 		}
 	}
 }
@@ -173,11 +212,11 @@ func ensureAnimationLoaded(fileName string) bool {
 	if animation.Images == nil {
 		animation.Images = make(map[string][]AnimationFrames)
 	}
-	_, ok := animation.Images[fileName]
+	cached := len(animation.Images[fileName]) > 0
 	mutex.Unlock()
 
 	var frames []AnimationFrames
-	if !ok {
+	if !cached {
 		if fileName == "" {
 			return false
 		}
@@ -193,9 +232,11 @@ func ensureAnimationLoaded(fileName string) bool {
 	if frames != nil {
 		animation.Images[fileName] = frames
 	}
-	for name := range animation.Images {
+	for name, cachedFrames := range animation.Images {
 		if name != fileName {
-			delete(animation.Images, name)
+			if cachedFrames != nil {
+				animation.Images[name] = nil
+			}
 		}
 	}
 	return true
@@ -203,44 +244,42 @@ func ensureAnimationLoaded(fileName string) bool {
 
 // LoadAnimation will load animation based on filename
 func LoadAnimation(fileName string) uint8 {
-	// Called from the upload handler, so it races the render path. The cache is
-	// now pruned as well as extended, and an unguarded read against a delete is
-	// a fatal concurrent map access rather than a stale answer.
-	mutex.Lock()
-	initialised := animation.Images != nil
-	_, cached := animation.Images[fileName]
-	mutex.Unlock()
-
-	if !initialised {
-		return 0
-	}
-
-	if cached {
-		return 2
-	}
-
 	// Validate only. Uploading an image says nothing about whether it will ever
-	// be drawn, and caching it here would retain a canvas per frame on the
-	// strength of that guess. The render path decodes what it actually needs.
-	if GetPalettedFrames(fileName).PalettedFrames == nil {
+	// be drawn. Register a nil frame slice so the UI can offer it without
+	// retaining decoded canvases; the render path fills the slice on demand.
+	// Assigning nil also invalidates stale frames when an existing file is
+	// uploaded again.
+	if img := GetLcdImage(fileName); img == nil || img.Frames < 1 {
 		return 0
 	}
-	return 1
-}
 
-// GetPalettedFrames will return
-func GetPalettedFrames(fileName string) ImageData {
-	for _, val := range lcd.ImageData {
-		if val.Name == fileName {
-			return val
-		}
+	mutex.Lock()
+	if animation.Images == nil {
+		animation.Images = make(map[string][]AnimationFrames)
 	}
-	return ImageData{}
+	animation.Images[fileName] = nil
+	mutex.Unlock()
+	return 1
 }
 
 // GetAnimation will return Animation object
 func GetAnimation() *Animation {
-	return animation
+	// Templates range over Images after this function returns. Give callers a
+	// snapshot so upload or lazy decoding cannot mutate the same map during a
+	// template iteration.
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	result := *animation
+	result.Sensors = make(map[int]Sensors, len(animation.Sensors))
+	for index, sensor := range animation.Sensors {
+		result.Sensors[index] = sensor
+	}
+	result.Images = make(map[string][]AnimationFrames, len(animation.Images))
+	for name, frames := range animation.Images {
+		result.Images[name] = frames
+	}
+	return &result
 }
 
 // SaveAnimation will save animation profile

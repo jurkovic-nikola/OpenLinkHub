@@ -995,7 +995,7 @@ func (d *Device) UpdateLiftHeight(liftHeight int) uint8 {
 		return 0
 	}
 
-	if liftHeight < 2 || liftHeight > 6 {
+	if liftHeight < 1 || liftHeight > 3 {
 		return 0
 	}
 	if d.DeviceProfile.LiftHeight == liftHeight {

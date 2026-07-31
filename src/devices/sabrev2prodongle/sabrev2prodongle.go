@@ -315,6 +315,7 @@ func (d *Device) getDevices() {
 
 	if d.ProductId == 11060 {
 		devices[0].ProductId = mouseProductIdMg
+		devices[0].Serial = strconv.Itoa(int(mouseProductIdMg))
 	}
 	d.Devices = devices
 }

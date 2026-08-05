@@ -285,7 +285,7 @@ func (d *Device) getManufacturer() {
 
 // getSerial will return device serial number
 func (d *Device) getSerial() {
-	d.Serial = "11048"
+	d.Serial = strconv.Itoa(int(d.ProductId))
 }
 
 // GetDeviceTemplate will return device template name

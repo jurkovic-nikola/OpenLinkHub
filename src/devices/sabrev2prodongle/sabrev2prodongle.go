@@ -62,15 +62,14 @@ const (
 )
 
 var (
-	bufferSize       = 64
-	bufferSizeWrite  = bufferSize + 1
-	headerSize       = 2
-	deviceKeepAlive  = 2000
-	cmdReadDongle    = []byte{0x03}
-	cmdRead          = []byte{0x04}
-	transferTimeout  = 200
-	mouseProductId   = uint16(11048)
-	mouseProductIdMg = uint16(11049)
+	bufferSize      = 64
+	bufferSizeWrite = bufferSize + 1
+	headerSize      = 2
+	deviceKeepAlive = 2000
+	cmdReadDongle   = []byte{0x03}
+	cmdRead         = []byte{0x04}
+	transferTimeout = 200
+	mouseProductId  = uint16(11048)
 )
 
 func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
@@ -305,17 +304,15 @@ func (d *Device) GetDevice() *hid.Device {
 func (d *Device) getDevices() {
 	var devices = make(map[int]*Devices)
 
+	if d.ProductId == 11060 {
+		mouseProductId = 11049
+	}
 	devices[0] = &Devices{
 		Type:      1,
 		Endpoint:  0x08,
 		Serial:    strconv.Itoa(int(mouseProductId)),
 		VendorId:  d.VendorId,
 		ProductId: mouseProductId,
-	}
-
-	if d.ProductId == 11060 {
-		devices[0].ProductId = mouseProductIdMg
-		devices[0].Serial = strconv.Itoa(int(mouseProductIdMg))
 	}
 	d.Devices = devices
 }

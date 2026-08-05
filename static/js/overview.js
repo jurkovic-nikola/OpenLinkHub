@@ -2198,7 +2198,7 @@ $(document).ready(function () {
         const keyboardRgbProfile = $('.keyboardRgbProfile');
         if (keyboardRgbProfile.length > 0 && typeof (deviceProfile.RGBProfile === "string") || deviceProfile.SlipstreamRGBProfile === "string") {
             let rgbProfileValue = "0;" + deviceProfile.RGBProfile;
-            if (deviceProfile.SlipstreamRGBProfile.length > 0) {
+            if (deviceProfile.SlipstreamRGBProfile != null && deviceProfile.SlipstreamRGBProfile.length > 0) {
                 rgbProfileValue = "0;" + deviceProfile.SlipstreamRGBProfile;
             }
             if (keyboardRgbProfile.find('option[value="' + rgbProfileValue + '"]').length > 0) {

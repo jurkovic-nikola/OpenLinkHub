@@ -1556,6 +1556,9 @@ func (d *Device) setupLCD(reload bool) {
 						if image != nil {
 							imageLen := len(image)
 							for i := 0; i < imageLen; i++ {
+								if d.DeviceProfile.LCDMode != lcd.DisplayAnimation {
+									break
+								}
 								d.transfer(image[i].Buffer, transferTypeLcd)
 								if i != imageLen-1 {
 									if image[i].Delay > 0 {
@@ -1616,6 +1619,9 @@ func (d *Device) setupLCDImage() {
 					for i := 0; i < d.LCDImage.Frames; i++ {
 						if d.Exit {
 							return
+						}
+						if d.DeviceProfile.LCDMode != lcd.DisplayImage {
+							break
 						}
 						data := d.LCDImage.Buffer[i]
 						buffer := data.Buffer

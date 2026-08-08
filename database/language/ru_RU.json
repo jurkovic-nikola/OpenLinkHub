@@ -645,6 +645,10 @@
         "txtMacroSettingsUpdated": "Настройки макроса успешно обновлены",
         "txtTemperatureSourceChanged": "Источник температуры успешно обновлён",
         "txtUnableToUpdateTemperatureSource": "Не удалось обновить источник температуры",
-        "txtLinkAdapterUpdated": "Адаптер Link успешно обновлён"
+        "txtLinkAdapterUpdated": "Адаптер Link успешно обновлён",
+        "txtSurfaceSelection": "Выбор поверхности",
+        "txtInvalidSurfaceSelectionOption": "Недопустимый параметр выбора поверхности",
+        "txtSurfaceSelectionUpdated": "Выбор поверхности успешно обновлён",
+        "txtUnableToUpdateSurfaceSelection": "Не удалось обновить выбор поверхности"
     }
 }

@@ -89,6 +89,7 @@ import (
 	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/nightsabreWU"
 	"OpenLinkHub/src/devices/nightswordrgb"
+	"OpenLinkHub/src/devices/nightswordv2WU"
 	"OpenLinkHub/src/devices/platinum"
 	"OpenLinkHub/src/devices/psudongle"
 	"OpenLinkHub/src/devices/psuhid"
@@ -836,6 +837,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                    // SABRE PRO CS
 	11048: {1, 0, "SABRE V2 PRO", sabrev2proWU.Init, nil},                  // SABRE V2 PRO
 	11049: {1, 0, "SABRE V2 PRO MG", sabrev2proWU.Init, nil},               // SABRE V2 PRO MG
+	11036: {1, 0, "NIGHTSWORD V2", nightswordv2WU.Init, nil},               // NIGHTSWORD v2 WIRELESS SD
 	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},           // DARKSTAR RGB WIRELESS Gaming Mouse
 	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil},   // VIRTUOSO RGB WIRELESS XT
 	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                        // VIRTUOSO USB Gaming Headset

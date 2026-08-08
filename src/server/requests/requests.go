@@ -91,6 +91,7 @@ type Payload struct {
 	DebounceTime                  int                   `json:"debounceTime"`
 	LeftHandMode                  int                   `json:"leftHandMode"`
 	LiftHeight                    int                   `json:"liftHeight"`
+	SurfaceSelection              int                   `json:"surfaceSelection"`
 	MultiGestures                 int                   `json:"multiGestures"`
 	AngleSnapping                 int                   `json:"angleSnapping"`
 	RippleControl                 int                   `json:"rippleControl"`
@@ -1832,7 +1833,7 @@ func ProcessChangeLiftHeight(r *http.Request) *Payload {
 		}
 	}
 
-	if req.LiftHeight < 1 || req.ButtonOptimization > 7 {
+	if req.LiftHeight < 1 || req.LiftHeight > 7 {
 		return &Payload{Message: language.GetValue("txtInvalidLiftHeightOption"), Code: http.StatusOK, Status: 0}
 	}
 
@@ -1863,6 +1864,52 @@ func ProcessChangeLiftHeight(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToUpdateLiftHeight"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessChangeSurfaceSelection will process POST request from a client for surface selection change
+func ProcessChangeSurfaceSelection(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.SurfaceSelection < 0 || req.SurfaceSelection > 5 {
+		return &Payload{Message: language.GetValue("txtInvalidSurfaceSelectionOption"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateSurfaceSelection",
+		req.SurfaceSelection,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtSurfaceSelectionUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateSurfaceSelection"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateSurfaceSelection"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessChangeDebounceTime will process POST request from a client for switch debounce time

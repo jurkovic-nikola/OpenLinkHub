@@ -645,6 +645,10 @@
     "txtMacroSettingsUpdated": "Makroinställningarna har uppdaterats",
     "txtTemperatureSourceChanged": "Temperaturkällan har uppdaterats",
     "txtUnableToUpdateTemperatureSource": "Det går inte att uppdatera temperaturkällan",
-    "txtLinkAdapterUpdated": "Link-adaptern har uppdaterats"
+    "txtLinkAdapterUpdated": "Link-adaptern har uppdaterats",
+    "txtSurfaceSelection": "Ytval",
+    "txtInvalidSurfaceSelectionOption": "Ogiltigt alternativ för ytval",
+    "txtSurfaceSelectionUpdated": "Ytvalet har uppdaterats",
+    "txtUnableToUpdateSurfaceSelection": "Det gick inte att uppdatera ytvalet"
   }
 }

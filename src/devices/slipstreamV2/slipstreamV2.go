@@ -8,15 +8,20 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/m65rgbultraW"
+	"OpenLinkHub/src/devices/nightswordv2W"
 	"OpenLinkHub/src/devices/vanguard96W"
 	"OpenLinkHub/src/devices/vanguard99airW"
 	"OpenLinkHub/src/logger"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"os"
+	"path/filepath"
 	"reflect"
+	"slices"
 	"sync"
 	"time"
 )
@@ -41,6 +46,7 @@ type Device struct {
 	PairedDevices  map[uint16]any
 	SharedDevices  func(device *common.Device)
 	DeviceList     map[string]*common.Device
+	DeviceProfile  *DeviceProfile
 	SingleDevice   bool
 	Template       string
 	Debug          bool
@@ -50,33 +56,49 @@ type Device struct {
 	keepAliveChan  chan struct{}
 	sleepChan      chan struct{}
 	instance       *common.Device
+	PollingRates   map[int]string
+}
+
+type DeviceProfile struct {
+	Active      bool
+	Path        string
+	Product     string
+	Serial      string
+	PollingRate int
+	RgbOff      bool
 }
 
 var (
-	bufferSize       = 64
-	bufferSizeWrite  = bufferSize + 1
-	headerSize       = 4
-	deviceKeepAlive  = 10000
-	cmdSoftwareMode  = []byte{0x01, 0x03, 0x00, 0x02}
-	cmdHardwareMode  = []byte{0x01, 0x03, 0x00, 0x01}
-	cmdGetDevices    = []byte{0x24}
-	cmdHeartbeat     = []byte{0x02, 0xe1}
-	cmdInactivity    = []byte{0x02, 0x40}
-	cmdOpenEndpoint  = []byte{0x0d, 0x00}
-	cmdCloseEndpoint = []byte{0x05, 0x01}
-	cmdGetFirmware   = []byte{0x02, 0x13}
-	cmdRead          = []byte{0x08, 0x00}
-	cmdWrite         = []byte{0x09, 0x00}
-	cmdBatteryLevel  = []byte{0x02, 0x0f}
-	cmdLogin         = []byte{0x1b, 0x01}
-	cmdCommand       = byte(0x02)
-	cmdBase          = byte(0x01)
-	cmdDongle        = byte(0x00)
-	transferTimeout  = 100
-	connectDelay     = 10000
+	pwd                = ""
+	bufferSize         = 64
+	bufferSizeWrite    = bufferSize + 1
+	headerSize         = 4
+	deviceKeepAlive    = 10000
+	cmdSoftwareMode    = []byte{0x01, 0x03, 0x00, 0x02}
+	cmdHardwareMode    = []byte{0x01, 0x03, 0x00, 0x01}
+	cmdGetDevices      = []byte{0x24}
+	cmdHeartbeat       = []byte{0x02, 0xe1}
+	cmdInactivity      = []byte{0x02, 0x40}
+	cmdOpenEndpoint    = []byte{0x0d, 0x00}
+	cmdCloseEndpoint   = []byte{0x05, 0x01}
+	cmdGetFirmware     = []byte{0x02, 0x13}
+	cmdRead            = []byte{0x08, 0x00}
+	cmdWrite           = []byte{0x09, 0x00}
+	cmdBatteryLevel    = []byte{0x02, 0x0f}
+	cmdLogin           = []byte{0x1b, 0x01}
+	cmdSetPollingRate  = []byte{0x01, 0x01, 0x00}
+	cmdCommand         = byte(0x02)
+	cmdBase            = byte(0x01)
+	cmdDongle          = byte(0x00)
+	transferTimeout    = 100
+	connectDelay       = 10000
+	pollingRateDevices = []uint16{11035}
 )
 
 func Init(vendorId, productId uint16, _, path string, callback func(device *common.Device)) *common.Device {
+	// Set global working directory
+	pwd = config.GetConfig().ConfigPath
+
 	// Open device, return if failure
 	dev, err := hid.OpenPath(path)
 	if err != nil {
@@ -103,12 +125,24 @@ func Init(vendorId, productId uint16, _, path string, callback func(device *comm
 		timerSleep:     &time.Ticker{},
 		timerKeepAlive: &time.Ticker{},
 		SharedDevices:  callback,
+		PollingRates: map[int]string{
+			0: "Not Set",
+			1: "125 Hz / 8 msec",
+			2: "250 Hz / 4 msec",
+			3: "500 Hz / 2 msec",
+			4: "1000 Hz / 1 msec",
+			5: "2000 Hz / 0.5 msec",
+			6: "4000 Hz / 0.25 msec",
+			7: "8000 Hz / 0.125 msec",
+		},
 	}
 
 	d.getDebugMode()         // Debug
 	d.getManufacturer()      // Manufacturer
 	d.getProduct()           // Product
 	d.getSerial()            // Serial
+	d.loadDeviceProfile()    // Load device profile
+	d.saveDeviceProfile()    // Save profile
 	d.setDeviceLogin()       // Login
 	d.getDeviceFirmware()    // Firmware
 	d.setSoftwareMode()      // Switch to software mode
@@ -184,6 +218,30 @@ func (d *Device) addDevices() {
 					Image:       "icon-keyboard.svg",
 					Instance:    dev,
 					DeviceType:  common.DeviceTypeKeyboard,
+					ProductId:   value.ProductId,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 11036: // NIGHTSWORD V2
+			{
+				dev := nightswordv2W.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.slipstream,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeNightswordV2W,
+					Product:     "NIGHTSWORD V2",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
 					ProductId:   value.ProductId,
 				}
 				d.SharedDevices(object)
@@ -327,6 +385,100 @@ func (d *Device) getDevices() {
 		d.SingleDevice = true
 	}
 	d.Devices = devices
+}
+
+// loadDeviceProfiles will load custom user profiles
+func (d *Device) loadDeviceProfile() {
+	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
+	pf := &DeviceProfile{}
+
+	// Check if filename has .json extension
+	if !common.IsValidExtension(profilePath, ".json") {
+		return
+	}
+
+	file, err := os.Open(profilePath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profilePath}).Warn("Unable to load profile")
+		return
+	}
+	if err = json.NewDecoder(file).Decode(pf); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": profilePath}).Warn("Unable to decode profile")
+		return
+	}
+	err = file.Close()
+	if err != nil {
+		logger.Log(logger.Fields{"location": profilePath, "serial": d.Serial}).Warn("Failed to close file handle")
+	}
+	d.DeviceProfile = pf
+}
+
+// saveDeviceProfile will save device profile for persistent configuration
+func (d *Device) saveDeviceProfile() {
+	profilePath := pwd + "/database/profiles/" + d.Serial + ".json"
+	deviceProfile := &DeviceProfile{
+		Product: d.Product,
+		Serial:  d.Serial,
+		Path:    profilePath,
+	}
+
+	if d.DeviceProfile == nil {
+		deviceProfile.Active = true
+		deviceProfile.PollingRate = 4
+	} else {
+		if d.DeviceProfile.PollingRate == 0 {
+			deviceProfile.PollingRate = 4
+		} else {
+			deviceProfile.PollingRate = d.DeviceProfile.PollingRate
+		}
+		deviceProfile.Active = d.DeviceProfile.Active
+		if len(d.DeviceProfile.Path) < 1 {
+			deviceProfile.Path = profilePath
+			d.DeviceProfile.Path = profilePath
+		} else {
+			deviceProfile.Path = d.DeviceProfile.Path
+		}
+		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
+	}
+
+	// Fix profile paths if folder database/ folder is moved
+	filename := filepath.Base(deviceProfile.Path)
+	path := fmt.Sprintf("%s/database/profiles/%s", pwd, filename)
+	if deviceProfile.Path != path {
+		logger.Log(logger.Fields{"original": deviceProfile.Path, "new": path}).Warn("Detected mismatching device profile path. Fixing paths...")
+		deviceProfile.Path = path
+	}
+
+	// Save profile
+	if err := common.SaveJsonData(deviceProfile.Path, deviceProfile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": deviceProfile.Path}).Error("Unable to write device profile data")
+		return
+	}
+	d.loadDeviceProfile()
+}
+
+// UpdatePollingRate will set device polling rate
+func (d *Device) UpdatePollingRate(pullingRate int) uint8 {
+	if !slices.Contains(pollingRateDevices, d.ProductId) {
+		logger.Log(logger.Fields{}).Error("Unsupported device for polling rate change")
+		return 0
+	}
+
+	if _, ok := d.PollingRates[pullingRate]; ok {
+		if d.DeviceProfile == nil {
+			return 0
+		}
+		d.Exit = true
+		time.Sleep(40 * time.Millisecond)
+
+		d.DeviceProfile.PollingRate = pullingRate
+		d.saveDeviceProfile()
+		buf := make([]byte, 1)
+		buf[0] = byte(pullingRate)
+		_, _ = d.transfer(cmdDongle, cmdCommand, cmdSetPollingRate, buf)
+		return 1
+	}
+	return 0
 }
 
 // getSerial will return device serial number
@@ -720,6 +872,19 @@ func (d *Device) TriggerKeyboardKeyAssignment(data []byte) {
 
 				reflectArgs := make([]reflect.Value, 1)
 				reflectArgs[0] = reflect.ValueOf(data)
+				keyAssignment.Call(reflectArgs)
+			}
+
+			if val.DeviceType == common.DeviceTypeMouse {
+				keyAssignment := reflect.ValueOf(d.PairedDevices[val.ProductId]).MethodByName("TriggerKeyAssignment")
+				if !keyAssignment.IsValid() {
+					logger.Log(logger.Fields{"productId": val.ProductId, "method": "TriggerKeyAssignment"}).Warn("Invalid or non-existing method called")
+					return
+				}
+
+				value := binary.LittleEndian.Uint16(data[4:6])
+				reflectArgs := make([]reflect.Value, 1)
+				reflectArgs[0] = reflect.ValueOf(value)
 				keyAssignment.Call(reflectArgs)
 			}
 		}

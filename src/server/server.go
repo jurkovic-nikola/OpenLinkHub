@@ -1573,6 +1573,17 @@ func changeLiftHeight(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeSurfaceSelection handles device surface selection change
+func changeSurfaceSelection(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessChangeSurfaceSelection(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changeRippleControl handles device ripple control mode
 func changeRippleControl(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeRippleControl(r)
@@ -2637,6 +2648,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/mouse/buttonOptimization", http.MethodPost, changeButtonOptimization)
 	handleFunc(r, "/api/mouse/leftHandMode", http.MethodPost, changeLeftHandMode)
 	handleFunc(r, "/api/mouse/liftHeight", http.MethodPost, changeLiftHeight)
+	handleFunc(r, "/api/mouse/surfaceSelection", http.MethodPost, changeSurfaceSelection)
 	handleFunc(r, "/api/mouse/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/headset/updateKeyAssignment", http.MethodPost, changeKeyAssignment)
 	handleFunc(r, "/api/headset/zoneColors", http.MethodPost, saveHeadsetZoneColors)

@@ -651,6 +651,10 @@
         "txtMacroSettingsUpdated": "Les paramètres de macro ont été mis à jour avec succès",
         "txtTemperatureSourceChanged": "La source de température a été mise à jour avec succès",
         "txtUnableToUpdateTemperatureSource": "Impossible de mettre à jour la source de température",
-        "txtLinkAdapterUpdated": "L’adaptateur Link a été mis à jour avec succès"
+        "txtLinkAdapterUpdated": "L’adaptateur Link a été mis à jour avec succès",
+        "txtSurfaceSelection": "Sélection de surface",
+        "txtInvalidSurfaceSelectionOption": "Option de sélection de surface non valide",
+        "txtSurfaceSelectionUpdated": "La sélection de surface a été mise à jour avec succès",
+        "txtUnableToUpdateSurfaceSelection": "Impossible de mettre à jour la sélection de surface"
     }
 }

@@ -738,6 +738,31 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    $(".mouseSurfaceSelection").on("change", function () {
+        const value = $(this).val();
+        const deviceId = $("#deviceId").val();
+
+        $.ajax({
+            url: "/api/mouse/surfaceSelection",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                deviceId: deviceId,
+                surfaceSelection: parseInt(value)
+            }),
+            success(response) {
+                if (response?.status !== 1) {
+                    toast.warning(response?.message || "Operation failed");
+                } else {
+                    toast.success(response?.message || "Operation failed");
+                }
+            },
+            error() {
+                toast.warning("Request failed");
+            }
+        });
+    });
+
     $('#saveGestures').on('click', function () {
         const $btn = $(this);
         const deviceId = $("#deviceId").val();

@@ -651,6 +651,10 @@
     "txtMacroSettingsUpdated": "Postavke makroa su uspješno ažurirane",
     "txtTemperatureSourceChanged": "Izvor temperature je uspješno ažuriran",
     "txtUnableToUpdateTemperatureSource": "Nije moguće ažurirati izvor temperature",
-    "txtLinkAdapterUpdated": "Link adapter je uspješno ažuriran"
+    "txtLinkAdapterUpdated": "Link adapter je uspješno ažuriran",
+    "txtSurfaceSelection": "Odabir površine",
+    "txtInvalidSurfaceSelectionOption": "Nevažeća opcija odabira površine",
+    "txtSurfaceSelectionUpdated": "Odabir površine je uspješno ažuriran",
+    "txtUnableToUpdateSurfaceSelection": "Nije moguće ažurirati odabir površine"
   }
 }

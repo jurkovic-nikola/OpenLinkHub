@@ -651,6 +651,10 @@
     "txtMacroSettingsUpdated": "Macro settings are successfully updated",
     "txtTemperatureSourceChanged": "Temperature source is successfully updated",
     "txtUnableToUpdateTemperatureSource": "Unable to update temperature source",
-    "txtLinkAdapterUpdated": "Link Adapter is successfully updated"
+    "txtLinkAdapterUpdated": "Link Adapter is successfully updated",
+    "txtSurfaceSelection": "Surface Selection",
+    "txtInvalidSurfaceSelectionOption": "Invalid Surface Selection option",
+    "txtSurfaceSelectionUpdated": "Surface Selection is successfully updated",
+    "txtUnableToUpdateSurfaceSelection": "Unable to update Surface Selection"
   }
 }

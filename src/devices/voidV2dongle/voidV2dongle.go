@@ -112,7 +112,7 @@ func (d *Device) createDevice() {
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	switch d.Devices.ProductId {
-	case 10761:
+	case 10761, 10768:
 		{
 			dev := voidV2W.Init(
 				d.Devices.VendorId,
@@ -224,6 +224,10 @@ func (d *Device) getDevice() {
 		Serial:    d.Serial + "W",
 		VendorId:  d.VendorId,
 		ProductId: 10761,
+	}
+
+	if d.ProductId == 10770 {
+		d.Devices.ProductId = 10768
 	}
 }
 
@@ -382,8 +386,15 @@ func (d *Device) getListenerData() []byte {
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
+		interfaceId := 4
+		switch d.ProductId {
+		case 10770:
+			interfaceId = 3
+		default:
+			interfaceId = 4
+		}
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
-			if info.InterfaceNbr == 4 {
+			if info.InterfaceNbr == interfaceId {
 				listener, err := hid.OpenPath(info.Path)
 				if err != nil {
 					return err

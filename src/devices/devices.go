@@ -872,6 +872,7 @@ var deviceRegisterMap = map[uint16]Product{
 	2621:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},               // CORSAIR VIRTUOSO SE USB Gaming Headset
 	2623:  {3, 65346, "VIRTUOSO SE", virtuosoSEWU.Init, nil},               // CORSAIR VIRTUOSO SE USB Gaming Headset
 	10760: {4, 0, "VOID WIRELESS V2", nil, voidV2dongle.Init},              // VOID WIRELESS V2
+	10770: {3, 0, "VOID MAX WIRELESS V2", nil, voidV2dongle.Init},          // VOID WIRELESS MAX V2
 	7168:  {0, 0, "CORSAIR LINK TM USB DONGLE", psudongle.Init, nil},       // CORSAIR LINK TM USB DONGLE
 	17229: {4, 0, "SCUF ENVISION PRO", scufenvisionproWU.Init, nil},        // SCUF Envision Pro Controller
 	14853: {4, 0, "SCUF ENVISION PRO V2", scufenvisionproV2WU.Init, nil},   // SCUF Envision Pro Controller V2

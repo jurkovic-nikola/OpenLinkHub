@@ -889,6 +889,7 @@ func (d *Device) saveDeviceProfile() {
 			9:  {Name: "8K", Value: 0},
 			10: {Name: "16K", Value: 0},
 		}
+		deviceProfile.SideToneValue = 100
 	} else {
 		if d.DeviceProfile.Equalizers == nil {
 			deviceProfile.Equalizers = map[int]Equalizer{

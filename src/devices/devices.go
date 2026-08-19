@@ -764,6 +764,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7027:  {1, 0, "K70 RGB TKL", k70rgbtklcs.Init, nil},                    // K70 RGB TKL
 	6973:  {1, 0, "K55 RGB", k55.Init, nil},                                // K55 RGB
 	7166:  {1, 0, "K55 CORE RGB", k55core.Init, nil},                       // K55 CORE RGB
+	11013: {1, 0, "K55 CORE RGB", k55core.Init, nil},                       // K55 CORE RGB Gray
 	11040: {1, 0, "K55 CORE TKL RGB", k55coretkl.Init, nil},                // K55 CORE RGB
 	7076:  {1, 0, "K55 PRO RGB", k55pro.Init, nil},                         // K55 PRO RGB
 	7073:  {1, 0, "K55 RGB PRO XT", k55proXT.Init, nil},                    // K55 RGB PRO XT

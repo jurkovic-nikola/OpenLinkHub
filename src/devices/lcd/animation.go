@@ -8,9 +8,6 @@ import (
 	"encoding/json"
 	"image"
 	"os"
-	"path/filepath"
-	"strings"
-	"sync"
 
 	"golang.org/x/image/draw"
 )
@@ -111,89 +108,35 @@ func InitAnimation() {
 		}
 	}
 
-	animationsFolder := pwd + "/database/lcd/images/"
-	files, err := os.ReadDir(animationsFolder)
-	if err != nil {
-		logger.Log(logger.Fields{"error": err, "location": animationsFolder}).Error("Unable to read content of a folder")
-		return
-	}
-
-	animationData := make(map[string][]AnimationFrames)
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-
-	for _, fi := range files {
-		wg.Add(1)
-
-		go func(fi os.DirEntry) {
-			defer wg.Done()
-
-			imagePath := animationsFolder + fi.Name()
-
-			filenameFull := filepath.Base(imagePath)
-			fileName := strings.TrimSuffix(filenameFull, filepath.Ext(filenameFull))
-
-			// Validate file name
-			if !common.AlphanumericRegex.MatchString(fileName) {
-				logger.Log(logger.Fields{"location": animationsFolder, "image": imagePath}).Warn("Image name can only have letters and numbers. Please rename your image")
-				return
-			}
-
-			if strings.ToLower(filepath.Ext(imagePath)) != ".gif" {
-				return
-			}
-
-			palettedFrames := GetPalettedFrames(fileName)
-			if palettedFrames.PalettedFrames == nil {
-				return
-			}
-
-			imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
-			for i, pf := range palettedFrames.PalettedFrames {
-				delay := palettedFrames.Buffer[i].Delay
-				if delay == 0 {
-					if animation.FrameDelay > 0 {
-						delay = float64(animation.FrameDelay)
-					}
-				}
-
-				canvas := image.NewRGBA(pf.Bounds())
-				draw.Draw(canvas, canvas.Bounds(), pf, image.Point{}, draw.Over)
-
-				imageBuffer[i] = AnimationFrames{
-					Delay:  delay,
-					Canvas: canvas,
-					RGBA:   image.NewRGBA(canvas.Bounds()),
-				}
-			}
-
-			mu.Lock()
-			animationData[fileName] = imageBuffer
-			mu.Unlock()
-		}(fi)
-	}
-	wg.Wait()
-	animation.Images = animationData
+	// Nothing is decoded here. Every cached frame holds a full size RGBA
+	// canvas, and only the background named in the profile can ever be drawn,
+	// so walking the image folder tied the resident set to how many images the
+	// user happens to keep. Most panels never select the animation mode at all,
+	// so even the one background is only worth decoding once something asks to
+	// render it.
+	pruneAnimationCache(animation.Background)
 }
 
-// LoadAnimation will load animation based on filename
-func LoadAnimation(fileName string) uint8 {
-	if animation.Images == nil {
-		return 0
+// buildAnimationFrames composites every frame of an image onto its own canvas,
+// ready to be copied and annotated at render time. Returns nil when the image
+// has no decoded frames to work from.
+func buildAnimationFrames(fileName string) []AnimationFrames {
+	paletted := decodePalettedFrames(fileName)
+	if paletted == nil {
+		return nil
+	}
+	// Delays live with the encoded frames, which are retained.
+	var delays []Frames
+	if img := GetLcdImage(fileName); img != nil {
+		delays = img.Buffer
 	}
 
-	if _, ok := animation.Images[fileName]; ok {
-		return 2
-	}
-
-	palettedFrames := GetPalettedFrames(fileName)
-	if palettedFrames.PalettedFrames == nil {
-		return 0
-	}
-
-	imageBuffer := make([]AnimationFrames, len(palettedFrames.PalettedFrames))
-	for i, pf := range palettedFrames.PalettedFrames {
-		delay := palettedFrames.Buffer[i].Delay
+	imageBuffer := make([]AnimationFrames, len(paletted))
+	for i, pf := range paletted {
+		var delay float64
+		if i < len(delays) {
+			delay = delays[i].Delay
+		}
 		if delay == 0 {
 			if animation.FrameDelay > 0 {
 				delay = float64(animation.FrameDelay)
@@ -206,21 +149,93 @@ func LoadAnimation(fileName string) uint8 {
 		imageBuffer[i] = AnimationFrames{
 			Delay:  delay,
 			Canvas: canvas,
-			RGBA:   image.NewRGBA(canvas.Bounds()),
 		}
 	}
-	animation.Images[fileName] = imageBuffer
-	return 1
+	return imageBuffer
 }
 
-// GetPalettedFrames will return
-func GetPalettedFrames(fileName string) ImageData {
-	for _, val := range lcd.ImageData {
-		if val.Name == fileName {
-			return val
+// pruneAnimationCache drops every cached animation except keep, without loading
+// anything. Used when the selected background changes: the old one is dead
+// weight immediately, while the new one is only worth decoding if something
+// actually renders it.
+func pruneAnimationCache(keep string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if animation.Images == nil {
+		animation.Images = make(map[string][]AnimationFrames)
+		return
+	}
+	for name := range animation.Images {
+		if name != keep {
+			delete(animation.Images, name)
 		}
 	}
-	return ImageData{}
+}
+
+// ensureAnimationLoaded caches the frames for the named image and drops every
+// other entry. Only the background named in the profile is ever rendered, so
+// holding more than one costs a full canvas per frame for nothing.
+func ensureAnimationLoaded(fileName string) bool {
+	mutex.Lock()
+	if animation.Images == nil {
+		animation.Images = make(map[string][]AnimationFrames)
+	}
+	_, ok := animation.Images[fileName]
+	mutex.Unlock()
+
+	var frames []AnimationFrames
+	if !ok {
+		if fileName == "" {
+			return false
+		}
+		// Built outside the lock: decoding is slow and the render path takes
+		// the same mutex.
+		if frames = buildAnimationFrames(fileName); frames == nil {
+			return false
+		}
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+	if frames != nil {
+		animation.Images[fileName] = frames
+	}
+	for name := range animation.Images {
+		if name != fileName {
+			delete(animation.Images, name)
+		}
+	}
+	return true
+}
+
+// LoadAnimation will load animation based on filename
+func LoadAnimation(fileName string) uint8 {
+	// Called from the upload handler, so it races the render path. The cache is
+	// now pruned as well as extended, and an unguarded read against a delete is
+	// a fatal concurrent map access rather than a stale answer.
+	mutex.Lock()
+	initialised := animation.Images != nil
+	_, cached := animation.Images[fileName]
+	mutex.Unlock()
+
+	if !initialised {
+		return 0
+	}
+
+	if cached {
+		return 2
+	}
+
+	// Validate only. Uploading an image says nothing about whether it will ever
+	// be drawn, and caching it here would retain a canvas per frame on the
+	// strength of that guess. The render path decodes what it actually needs.
+	// The upload handler has already decoded the file to check it, so knowing
+	// the image registered with frames is enough.
+	if img := GetLcdImage(fileName); img == nil || img.Frames < 1 {
+		return 0
+	}
+	return 1
 }
 
 // GetAnimation will return Animation object
@@ -237,5 +252,10 @@ func SaveAnimation(value *Animation) uint8 {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")
 		return 0
 	}
+
+	// The background may have just changed, which makes the previously cached
+	// one dead weight. Drop it; the render path decodes the new one when it
+	// first needs it.
+	pruneAnimationCache(animation.Background)
 	return 1
 }

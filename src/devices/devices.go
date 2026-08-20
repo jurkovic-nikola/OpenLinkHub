@@ -760,12 +760,12 @@ var deviceRegisterMap = map[uint16]Product{
 	11009: {1, 0, "K70 CORE TKL", k70coretkl.Init, nil},                    // K70 CORE TKL
 	11010: {1, 0, "K70 CORE TKL", k70coretklWU.Init, nil},                  // K70 CORE TKL WIRELESS
 	11028: {1, 0, "K70 PRO TKL", k70protkl.Init, nil},                      // K70 PRO TKL WIRELESS
-	7097:  {1, 0, "K70 RGB TKL CS", k70rgbtklcs.Init, nil},                 // K70 RGB TKL
+	7097:  {1, 0, "K70 RGB TKL CS", k70rgbtklcs.Init, nil},                 // K70 RGB TKL CS
 	7027:  {1, 0, "K70 RGB TKL", k70rgbtklcs.Init, nil},                    // K70 RGB TKL
 	6973:  {1, 0, "K55 RGB", k55.Init, nil},                                // K55 RGB
 	7166:  {1, 0, "K55 CORE RGB", k55core.Init, nil},                       // K55 CORE RGB
 	11013: {1, 0, "K55 CORE RGB", k55core.Init, nil},                       // K55 CORE RGB Gray
-	11040: {1, 0, "K55 CORE TKL RGB", k55coretkl.Init, nil},                // K55 CORE RGB
+	11040: {1, 0, "K55 CORE TKL RGB", k55coretkl.Init, nil},                // K55 CORE TKL RGB
 	7076:  {1, 0, "K55 PRO RGB", k55pro.Init, nil},                         // K55 PRO RGB
 	7073:  {1, 0, "K55 RGB PRO XT", k55proXT.Init, nil},                    // K55 RGB PRO XT
 	7022:  {1, 0, "K57 RGB WIRELESS", k57rgbWU.Init, nil},                  // K57 RGB WIRELESS

@@ -1,5 +1,69 @@
+## 2026-08-20
+
+* device desc (48428ce1)
+
+## 2026-08-19
+
+* k55 core rgb https://github.com/jurkovic-nikola/OpenLinkHub/issues/501 (8806e45c)
+* void v2 max https://github.com/jurkovic-nikola/OpenLinkHub/issues/478 (5dbabb8b)
+
+## 2026-08-18
+
+* Merge pull request #503 from EricJDev90/vanguard96-g4-bug (c51f820a)
+* bump version for vanguard96 and vanguard96w json files (30bd8bf5)
+
+## 2026-08-17
+
+* fix duplicate key 71 on vanguard96 and vanguard96w to resolve inability to change G4 key bindings (4459a02e)
+
+## 2026-08-09
+
+* Merge pull request #497 from l-sola/feature/spec-omega-lighting-node-pro (4d8b6f3a)
+* Document tested SPEC-OMEGA lighting setup (c5c54cdd)
+* Add SPEC-OMEGA Lighting Node Pro support (0516a8c5)
+
+## 2026-08-08
+
+* dpi steps (6c327403)
+* nightsword v2 (8073995d)
+
+## 2026-08-07
+
+* lcd mode check https://github.com/jurkovic-nikola/OpenLinkHub/issues/496 (4a4e9c60)
+
+## 2026-08-05
+
+* sabre v2 wireless update (42ef9ca4)
+
+## 2026-07-31
+
+* sabre v2 wireless update (39463f38)
+
+## 2026-07-29
+
+* Merge pull request #491 from reinauer/flags (afa2f57a)
+
+## 2026-07-27
+
+* missing id (c26bb62a)
+* support for sabre v2 pro mg (7e138d86)
+
+## 2026-07-26
+
+* build: allow -fno-strict-overflow from pkg-config (2e12a089)
+* Merge pull request #490 from reinauer/memory (9d2beb60)
+
+## 2026-07-25
+
+* lcd: exclude decoded frame data from JSON output (c8eff002)
+
+## 2026-07-24
+
+* wrong link adapter message https://github.com/jurkovic-nikola/OpenLinkHub/issues/488 (ef5c8804)
+
 ## 2026-07-23
 
+* changelog (51ae5180)
 * k60 rgb pro packet index (1aeb9c85)
 * Merge pull request #484 from GabrieleVolpato/add-k95-italian-layout (41fadc0e)
 * Merge pull request #480 from ManuelSigle/add-k60rgbprolp-de-layout (4007557d)

@@ -2187,6 +2187,12 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 // getListenerData will listen for keyboard events and return data on success or nil on failure.
 // ReadWithTimeout is mandatory due to the nature of listening for events
 func (d *Device) getListenerData() []byte {
+	if d.listener == nil {
+		// Device handle is gone (e.g. USB re-enumeration from a KVM switch);
+		// pace the loop to avoid a busy-spin until enumeration recovers it.
+		time.Sleep(100 * time.Millisecond)
+		return nil
+	}
 	data := make([]byte, bufferSize)
 	n, err := d.listener.ReadWithTimeout(data, 100*time.Millisecond)
 	if err != nil || n == 0 {
@@ -2198,6 +2204,11 @@ func (d *Device) getListenerData() []byte {
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Log(logger.Fields{"recover": r, "vendorId": d.VendorId}).Error("Recovered from panic in k70pro backendListener")
+			}
+		}()
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 2 {
 				listener, err := hid.OpenPath(info.Path)

@@ -1324,7 +1324,7 @@ func (d *Device) saveDeviceProfile() {
 			rgbProfiles[device.ChannelId] = "static"
 			labels[device.ChannelId] = "Set Label"
 			rgbProbes[device.ChannelId] = 0
-			minTemps[device.ChannelId] = 0
+			minTemps[device.ChannelId] = 20
 			maxTemps[device.ChannelId] = 60
 			devicePositions[m] = device.DeviceId
 			m++
@@ -4770,12 +4770,17 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 			r.MinTemp = profile.MinTemp
 			r.MaxTemp = profile.MaxTemp
 
+			r.RGBStartColor.Temperature = r.MinTemp
+			r.RGBEndColor.Temperature = r.MaxTemp
+
 			if d.Devices[k].MinTemp >= 0 {
 				r.MinTemp = d.Devices[k].MinTemp
+				r.RGBStartColor.Temperature = d.Devices[k].MinTemp
 			}
 
 			if d.Devices[k].MaxTemp > 0 {
 				r.MaxTemp = d.Devices[k].MaxTemp
+				r.RGBEndColor.Temperature = d.Devices[k].MaxTemp
 			}
 
 			probeTemp := d.getTemperatureProbeTemperature(d.Devices[k].ProbeId)

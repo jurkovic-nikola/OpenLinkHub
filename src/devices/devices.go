@@ -22,6 +22,7 @@ import (
 	"OpenLinkHub/src/devices/elite"
 	"OpenLinkHub/src/devices/glaivergb"
 	"OpenLinkHub/src/devices/glaivergbpro"
+	"OpenLinkHub/src/devices/harpoonV2WU"
 	"OpenLinkHub/src/devices/harpoonWU"
 	"OpenLinkHub/src/devices/harpoonrgbpro"
 	"OpenLinkHub/src/devices/headsetdongle"
@@ -831,6 +832,7 @@ var deviceRegisterMap = map[uint16]Product{
 	6958:  {1, 0, "M65 PRO RGB", m65prorgb.Init, nil},                      // M65 PRO RGB Mouse
 	7029:  {1, 0, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},              // HARPOON RGB PRO Gaming Mouse
 	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                          // HARPOON Gaming Mouse
+	11054: {1, 0, "HARPOON V2", harpoonV2WU.Init, nil},                     // HARPOON Gaming Mouse
 	7004:  {1, 0, "NIGHTSWORD RGB", nightswordrgb.Init, nil},               // NIGHTSWORD RGB Gaming Mouse
 	7028:  {1, 0, "GLAIVE RGB PRO", glaivergbpro.Init, nil},                // GLAIVE RGB PRO Gaming Mouse
 	6964:  {1, 0, "GLAIVE RGB", glaivergb.Init, nil},                       // GLAIVE RGB Gaming Mouse

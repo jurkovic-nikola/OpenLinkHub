@@ -1578,6 +1578,10 @@ func (d *Device) writeColor(data []byte, lightChannels int) {
 		return
 	}
 
+	if len(data) < lightChannels*3 {
+		return
+	}
+
 	// Packets are sent like:
 	// 50 packets of red, 50 packets on green, 50 packets of blue
 	// Repeat until the buffer is empty.

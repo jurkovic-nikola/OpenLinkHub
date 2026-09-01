@@ -649,6 +649,18 @@
         "txtSurfaceSelection": "Выбор поверхности",
         "txtInvalidSurfaceSelectionOption": "Недопустимый параметр выбора поверхности",
         "txtSurfaceSelectionUpdated": "Выбор поверхности успешно обновлён",
-        "txtUnableToUpdateSurfaceSelection": "Не удалось обновить выбор поверхности"
+        "txtUnableToUpdateSurfaceSelection": "Не удалось обновить выбор поверхности",
+        "txtTimeWarp": "Timewarp",
+        "txtNoRgbTimewarp": "RGB Timewarp не найден",
+        "txtDirection": "Направление",
+        "txtStatic": "Статический",
+        "txtClockwise": "По часовой стрелке",
+        "txtCounterClockwise": "Против часовой стрелки",
+        "txtUnableToChangeRgbTimewarpOpenRgb": "Невозможно изменить RGB Timewarp, пока включена интеграция OpenRGB",
+        "txtUnableToChangeRgbTimewarpCluster": "Невозможно изменить RGB Timewarp, пока включён RGB Cluster",
+        "txtUnableToChangeOpenRgbRgbTimewarp": "Невозможно изменить интеграцию OpenRGB, пока включён RGB Timewarp",
+        "txtUnableToChangeClusterRgbTimewarp": "Невозможно изменить RGB Cluster, пока включён RGB Timewarp",
+        "txtTimeWarpUpdated": "RGB Timewarp успешно обновлён",
+        "txtUnableToUpdateRgbTimewarp": "Невозможно обновить RGB Timewarp"
     }
 }

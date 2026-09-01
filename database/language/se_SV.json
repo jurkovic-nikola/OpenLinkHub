@@ -649,6 +649,18 @@
     "txtSurfaceSelection": "Ytval",
     "txtInvalidSurfaceSelectionOption": "Ogiltigt alternativ för ytval",
     "txtSurfaceSelectionUpdated": "Ytvalet har uppdaterats",
-    "txtUnableToUpdateSurfaceSelection": "Det gick inte att uppdatera ytvalet"
+    "txtUnableToUpdateSurfaceSelection": "Det gick inte att uppdatera ytvalet",
+    "txtTimeWarp": "Timewarp",
+    "txtNoRgbTimewarp": "Ingen RGB Timewarp hittades",
+    "txtDirection": "Riktning",
+    "txtStatic": "Statisk",
+    "txtClockwise": "Medurs",
+    "txtCounterClockwise": "Moturs",
+    "txtUnableToChangeRgbTimewarpOpenRgb": "Det går inte att ändra RGB Timewarp medan OpenRGB-integrationen är aktiverad",
+    "txtUnableToChangeRgbTimewarpCluster": "Det går inte att ändra RGB Timewarp medan RGB Cluster är aktiverat",
+    "txtUnableToChangeOpenRgbRgbTimewarp": "Det går inte att ändra OpenRGB-integrationen medan RGB Timewarp är aktiverat",
+    "txtUnableToChangeClusterRgbTimewarp": "Det går inte att ändra RGB Cluster medan RGB Timewarp är aktiverat",
+    "txtTimeWarpUpdated": "RGB Timewarp har uppdaterats",
+    "txtUnableToUpdateRgbTimewarp": "Det går inte att uppdatera RGB Timewarp"
   }
 }

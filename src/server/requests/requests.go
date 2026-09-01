@@ -4472,6 +4472,120 @@ func ProcessGetRgbOverride(r *http.Request) *Payload {
 	}
 }
 
+// ProcessGetRgbTimewarp will process getting data for RGB timewarp
+func ProcessGetRgbTimewarp(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.SubDeviceId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetRgbTimewarp",
+		req.ChannelId,
+	)
+
+	if len(results) > 0 {
+		return &Payload{
+			Data:   results[0].Interface(),
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNoRgbTimewarp"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
+// ProcessSetRgbTimewarp will process setting RGB timewarp
+func ProcessSetRgbTimewarp(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ChannelId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.Speed < 0 || req.Speed > 2 {
+		return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.Direction < 1 || req.Direction > 3 {
+		return &Payload{Message: language.GetValue("txtNonExistingDirection"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetRgbTimewarp",
+		req.ChannelId,
+		req.Enabled,
+		req.StartColor,
+		req.Speed,
+		req.Direction,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtTimeWarpUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbTimewarpOpenRgb"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToChangeRgbTimewarpCluster"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateRgbTimewarp"), Code: http.StatusOK, Status: 0}
+}
+
 // ProcessSetRgbOverride will process setting RGB override
 func ProcessSetRgbOverride(r *http.Request) *Payload {
 	req := &Payload{}
@@ -4501,7 +4615,7 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
 	}
 
-	if req.Speed < 0 || req.Speed > 10 {
+	if req.Speed < 0 || req.Speed > 2 {
 		return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
 	}
 
@@ -4743,6 +4857,8 @@ func ProcessSetOpenRgbIntegration(r *http.Request) *Payload {
 			return &Payload{Message: language.GetValue("txtOpenRGBIntegrationEnabled"), Code: http.StatusOK, Status: 1}
 		case 2:
 			return &Payload{Message: language.GetValue("txtOpenRGBClusterEnabled"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToChangeOpenRgbRgbTimewarp"), Code: http.StatusOK, Status: 0}
 		}
 	}
 	return &Payload{Message: language.GetValue("txtOpenRGBIntegrationError"), Code: http.StatusOK, Status: 0}
@@ -4787,6 +4903,8 @@ func ProcessSetRgbCluster(r *http.Request) *Payload {
 			return &Payload{Message: language.GetValue("txtRgbClusterAdded"), Code: http.StatusOK, Status: 1}
 		case 2:
 			return &Payload{Message: language.GetValue("txtRgbClusterORGB"), Code: http.StatusOK, Status: 0}
+		case 3:
+			return &Payload{Message: language.GetValue("txtUnableToChangeClusterRgbTimewarp"), Code: http.StatusOK, Status: 0}
 		}
 	}
 

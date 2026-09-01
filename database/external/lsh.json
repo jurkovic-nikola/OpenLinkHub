@@ -10,7 +10,8 @@
     "temperatureProbe": true,
     "linkAdapter": false,
     "cpuBlock": false,
-    "hasSpeed": true
+    "hasSpeed": true,
+    "timewarp": true
   },
   {
     "deviceId": 2,

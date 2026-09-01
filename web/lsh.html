@@ -275,6 +275,16 @@
                                             </label>
                                         </div>
 
+                                        {{ if $device.TimewarpCapable }}
+                                        <!-- Timewarp -->
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtTimeWarp" }}</span>
+                                            <label>
+                                                <button class="system-button compact timeWarp" data-info="{{ $device.ChannelId }}" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                            </label>
+                                        </div>
+                                        {{ end }}
+
                                         {{ if not $device.IsLinkAdapter }}
                                         <!-- RGB Override -->
                                         <div class="settings-row">

@@ -655,6 +655,18 @@
     "txtSurfaceSelection": "Odabir površine",
     "txtInvalidSurfaceSelectionOption": "Nevažeća opcija odabira površine",
     "txtSurfaceSelectionUpdated": "Odabir površine je uspješno ažuriran",
-    "txtUnableToUpdateSurfaceSelection": "Nije moguće ažurirati odabir površine"
+    "txtUnableToUpdateSurfaceSelection": "Nije moguće ažurirati odabir površine",
+    "txtTimeWarp": "Timewarp",
+    "txtNoRgbTimewarp": "Nije pronađen RGB Timewarp",
+    "txtDirection": "Smjer",
+    "txtStatic": "Statično",
+    "txtClockwise": "U smjeru kazaljke na satu",
+    "txtCounterClockwise": "Suprotno od smjera kazaljke na satu",
+    "txtUnableToChangeRgbTimewarpOpenRgb": "Nije moguće promijeniti RGB Timewarp dok je OpenRGB integracija omogućena",
+    "txtUnableToChangeRgbTimewarpCluster": "Nije moguće promijeniti RGB Timewarp dok je RGB Cluster omogućen",
+    "txtUnableToChangeOpenRgbRgbTimewarp": "Nije moguće promijeniti OpenRGB integraciju dok je RGB Timewarp omogućen",
+    "txtUnableToChangeClusterRgbTimewarp": "Nije moguće promijeniti RGB Cluster dok je RGB Timewarp omogućen",
+    "txtTimeWarpUpdated": "RGB Timewarp je uspješno ažuriran",
+    "txtUnableToUpdateRgbTimewarp": "Nije moguće ažurirati RGB Timewarp"
   }
 }

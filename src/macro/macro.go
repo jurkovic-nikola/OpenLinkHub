@@ -120,25 +120,28 @@ func DeleteMacroValue(macroId, macroIndex int) uint8 {
 }
 
 // validatePressAndHold will validate press and hold action
-func validatePressAndHold(macroId int) bool {
+func validatePressAndHold(macroId, macroIndex int) bool {
 	count := 0
 	length := 0
+
 	if val, ok := macros[macroId]; ok {
-		for _, v := range val.Actions {
+		for index, v := range val.Actions {
 			if v.ActionType == 5 {
 				continue
 			}
 
 			length++
-			if v.ActionHold {
+
+			if index == macroIndex || v.ActionHold {
 				count++
 			}
 		}
 
-		if count+1 == length {
+		if count == length {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -150,7 +153,7 @@ func UpdateMacroValue(macroId, macroIndex int, macroAction *Actions) uint8 {
 		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
 		if action, ok := val.Actions[macroIndex]; ok {
 			if macroAction.ActionHold {
-				if !validatePressAndHold(macroId) {
+				if !validatePressAndHold(macroId, macroIndex) {
 					return 2
 				}
 			}

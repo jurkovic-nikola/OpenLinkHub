@@ -49,21 +49,24 @@ type Device struct {
 }
 
 type Widget struct {
-	Id          int     `json:"id"`
-	Name        string  `json:"name"`
-	Template    string  `json:"template"`
-	Columns     []int   `json:"columns"`
-	City        string  `json:"city"`
-	Country     string  `json:"country"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	Source      string  `json:"source"`
-	AutoWeather bool    `json:"autoWeather"`
-	DataColor   string  `json:"dataColor"`
-	Max         int     `json:"max"`
-	HeaderText  string  `json:"headerText"`
-	Unit        string  `json:"unit"`
-	TextColor   string  `json:"textColor"`
+	Id           int     `json:"id"`
+	Name         string  `json:"name"`
+	Template     string  `json:"template"`
+	Columns      []int   `json:"columns"`
+	City         string  `json:"city"`
+	Country      string  `json:"country"`
+	Latitude     float64 `json:"latitude"`
+	Longitude    float64 `json:"longitude"`
+	Source       string  `json:"source"`
+	AutoWeather  bool    `json:"autoWeather"`
+	DataColor    string  `json:"dataColor"`
+	Max          int     `json:"max"`
+	HeaderText   string  `json:"headerText"`
+	Unit         string  `json:"unit"`
+	TextColor    string  `json:"textColor"`
+	FontSize     int     `json:"fontSize"`
+	SubTextColor string  `json:"subTextColor"`
+	SubFontSize  int     `json:"subFontSize"`
 }
 
 var (

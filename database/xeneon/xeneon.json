@@ -4,7 +4,11 @@
       "id": 1,
       "name": "Date / Time",
       "template": "xeneon-clock",
-      "columns": [1,3]
+      "columns": [1,3],
+      "textColor": "#e6e6e6",
+      "fontSize": 80,
+      "subTextColor": "#a1a1a1",
+      "subFontSize": 50
     },
     {
       "id": 2,

@@ -488,6 +488,10 @@ code {
     font-family: "Teko", sans-serif;
 }
 
+.edge-segment:has(> .edge-panel:nth-child(3)) .thermal-temp {
+    font-size: 55px;
+}
+
 .thermal-label {
     font-size: 30px;
     line-height: 1;

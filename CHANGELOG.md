@@ -1,5 +1,31 @@
+## 2026-09-01
+
+* xeneon changes (dc45b449)
+* backup - restore changes (2af2d13a)
+* macro fixup (bee2155d)
+* k70 core https://github.com/jurkovic-nikola/OpenLinkHub/issues/513 (840ff0f3)
+
+## 2026-08-31
+
+* nightsword dpi https://github.com/jurkovic-nikola/OpenLinkHub/issues/511 (dcce89cf)
+
+## 2026-08-27
+
+* harpoon v2 (230c33ab)
+
+## 2026-08-26
+
+* probe temperature fixups (dc02c3fc)
+* check packet len https://github.com/jurkovic-nikola/OpenLinkHub/issues/509 (0772cb99)
+
+## 2026-08-25
+
+* vanguard 96 uk layout https://github.com/jurkovic-nikola/OpenLinkHub/issues/506 (03560040)
+* k70 pro tkl multi-function knob press, ES layout https://github.com/jurkovic-nikola/OpenLinkHub/issues/507 (f557b699)
+
 ## 2026-08-20
 
+* changelog (ba9643d2)
 * device desc (48428ce1)
 
 ## 2026-08-19

@@ -2188,9 +2188,6 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 // ReadWithTimeout is mandatory due to the nature of listening for events
 func (d *Device) getListenerData() []byte {
 	if d.listener == nil {
-		// Device handle is gone (e.g. USB re-enumeration from a KVM switch);
-		// pace the loop to avoid a busy-spin until enumeration recovers it.
-		time.Sleep(100 * time.Millisecond)
 		return nil
 	}
 	data := make([]byte, bufferSize)
@@ -2204,11 +2201,6 @@ func (d *Device) getListenerData() []byte {
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				logger.Log(logger.Fields{"recover": r, "vendorId": d.VendorId}).Error("Recovered from panic in k70pro backendListener")
-			}
-		}()
 		enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 			if info.InterfaceNbr == 2 {
 				listener, err := hid.OpenPath(info.Path)
@@ -2239,6 +2231,9 @@ func (d *Device) backendListener() {
 
 				data := d.getListenerData()
 				if len(data) == 0 || data == nil {
+					// continue skips the sleep at the tail of the loop, so pace here too:
+					// with a nil handle there is no blocking read to rate-limit the loop.
+					time.Sleep(5 * time.Millisecond)
 					continue
 				}
 

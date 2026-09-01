@@ -3754,6 +3754,163 @@ $(document).ready(function () {
         });
     });
 
+    $('.timeWarp').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const channelId = $(this).attr("data-info");
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["channelId"] = parseInt(channelId);
+        pf["subDeviceId"] = 0;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/color/getTimewarp',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        const data = response.data;
+                        const color = rgbToHex(data.Color.red, data.Color.green, data.Color.blue);
+
+                        let modalElement = `
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-500">
+                              <div class="modal-content">
+                        
+                                <div class="modal-header">
+                                  <h5 class="modal-title">${i18n.t('txtTimeWarp')}</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="settings-list">
+                                        <div class="settings-row ">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtEnable')}</span>
+                                            <label class="system-toggle compact">
+                                                <input type="checkbox" id="enabledCheckbox" ${data.Enabled ? "checked" : ""}>
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </div>
+    
+                                        <div class="settings-row rgb-editor">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtColor')}</span>
+                                            <div class="system-color">
+                                                <label for="startColor">
+                                                    <input type="color" id="startColor" value="${color}">
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtDirection')}</span>
+                                            <div class="no-padding-top">
+                                                <select class="system-select compact full-width timewarpDirection" id="timewarpDirection">
+                                                    <option value="1" ${data.Direction === 1 ? "selected" : ""}>${i18n.t('txtStatic')}</option>
+                                                    <option value="2" ${data.Direction === 2 ? "selected" : ""}>${i18n.t('txtClockwise')}</option>
+                                                    <option value="3" ${data.Direction === 3 ? "selected" : ""}>${i18n.t('txtCounterClockwise')}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">${i18n.t('txtSpeed')}</span>
+                                            <div class="system-slider no-padding-top">
+                                                <img src="/static/img/icons/icon-slow.svg" width="20" height="20" alt="Sloe" />
+                                                <label for="speedSlider" class="margin-lr-10">
+                                                    <input type="range" id="speedSlider" name="speedSlider" min="0" max="2" value="${data.Speed}" step="1">
+                                                </label>
+                                                <img src="/static/img/icons/icon-fast.svg" width="20" height="20" alt="Fast" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        
+                                <div class="modal-footer">
+                                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                  <button class="btn btn-primary" type="button" id="btnSaveRgbTimewarp">${i18n.t('txtSave')}</button>
+                                </div>
+                        
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            const $speedSlider = modal.find("#speedSlider");
+                            const $speedSliderValue = modal.find("#speedSliderValue");
+
+                            function updateSpeedSlider() {
+                                const min = Number($speedSlider.attr("min"));
+                                const max = Number($speedSlider.attr("max"));
+                                const value = Number($speedSlider.val());
+
+                                const percent = ((value - min) / (max - min)) * 100;
+
+                                $speedSlider.css("--slider-progress", percent + "%");
+                                $speedSliderValue.text(value);
+                            }
+
+                            if ($speedSlider.length) {
+                                $speedSlider.on("input", updateSpeedSlider);
+                                updateSpeedSlider();
+                            }
+
+                            modal.find('#btnSaveRgbTimewarp').on('click', function () {
+                                const pf = {};
+                                let color = {}
+
+                                let speed = $("#speedSlider").val();
+                                let direction = $("#timewarpDirection").val();
+                                const startColorVal = $("#startColor").val();
+                                const startColor = hexToRgb(startColorVal);
+                                const startColorRgb = {red:startColor.r, green:startColor.g, blue:startColor.b}
+
+                                const enabled = $("#enabledCheckbox").is(':checked');
+
+                                pf["deviceId"] = deviceId;
+                                pf["channelId"] = parseInt(channelId);
+                                pf["enabled"] = enabled;
+                                pf["startColor"] = startColorRgb;
+                                pf["speed"] = parseFloat(speed);
+                                pf["direction"] = parseInt(direction);
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/color/setTimewarp',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     function createLinearLEDs(cnt, leds, spacing, data, startX = 0, startY = 0) {
         let count = leds.length;
         cnt.style.width = `${startX + count * spacing + spacing/2}px`;

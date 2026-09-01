@@ -1041,12 +1041,17 @@ func (d *Device) setDeviceColor() {
 							r.MinTemp = profile.MinTemp
 							r.MaxTemp = profile.MaxTemp
 
+							r.RGBStartColor.Temperature = r.MinTemp
+							r.RGBEndColor.Temperature = r.MaxTemp
+
 							if d.RgbDevices[k].MinTemp >= 0 {
 								r.MinTemp = d.RgbDevices[k].MinTemp
+								r.RGBStartColor.Temperature = d.RgbDevices[k].MinTemp
 							}
 
 							if d.RgbDevices[k].MaxTemp > 0 {
 								r.MaxTemp = d.RgbDevices[k].MaxTemp
+								r.RGBEndColor.Temperature = d.RgbDevices[k].MaxTemp
 							}
 
 							probeTemp := d.getTemperatureProbeTemperature(d.RgbDevices[k].ProbeId)
@@ -1186,7 +1191,7 @@ func (d *Device) setupCommanderDuo() {
 	}
 }
 
-// setDefaults will set default mode for all devices
+// getDeviceData will get connected device data
 func (d *Device) getDeviceData() {
 	if d.Exit {
 		return
@@ -1219,6 +1224,11 @@ func (d *Device) getDeviceData() {
 		if d.Exit {
 			break
 		}
+
+		if s+2 > len(sensorData) || i >= len(channels[6:]) {
+			continue
+		}
+
 		currentSensor := sensorData[s : s+2]
 		status := channels[6:][i]
 		if status == 0x03 {
@@ -1248,6 +1258,11 @@ func (d *Device) getDeviceData() {
 		if d.Exit {
 			break
 		}
+
+		if s+3 > len(sensorData) {
+			continue
+		}
+
 		currentSensor := sensorData[s : s+3]
 		status := currentSensor[0]
 		if status == 0x00 {
@@ -2295,7 +2310,7 @@ func (d *Device) saveDeviceProfile() {
 			}
 			rgbLabels[device.ChannelId] = "Set Label"
 			rgbProbes[device.ChannelId] = 0
-			minTemps[device.ChannelId] = 0
+			minTemps[device.ChannelId] = 20
 			maxTemps[device.ChannelId] = 60
 		}
 		for _, device := range d.Devices {

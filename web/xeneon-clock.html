@@ -7,8 +7,14 @@
         <div class="card-body">
             <div class="clock-box">
                 <div>
-                    <div class="clock-time" id="clockTime">20:48</div>
-                    <div class="clock-date" id="clockDate">Sunday, March 22</div>
+                    <div class="clock-time" id="clockTime" style="
+                        color: {{ $widget.TextColor }};
+                        font-size: {{ $widget.FontSize }}px;
+                    ">20:48</div>
+                    <div class="clock-date" id="clockDate" style="
+                        color: {{ $widget.SubTextColor }};
+                        font-size: {{ $widget.SubFontSize }}px;
+                    ">Sunday, March 22</div>
                 </div>
             </div>
         </div>

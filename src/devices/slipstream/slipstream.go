@@ -10,6 +10,7 @@ import (
 	"OpenLinkHub/src/devices/darkcorergbproW"
 	"OpenLinkHub/src/devices/darkcorergbproseW"
 	"OpenLinkHub/src/devices/darkstarW"
+	"OpenLinkHub/src/devices/harpoonV2W"
 	"OpenLinkHub/src/devices/harpoonW"
 	"OpenLinkHub/src/devices/ironclawSEW"
 	"OpenLinkHub/src/devices/ironclawW"
@@ -485,6 +486,30 @@ func (d *Device) addDevices() {
 				object := &common.Device{
 					ProductType: common.ProductTypeHarpoonRgbW,
 					Product:     "HARPOON RGB",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
+					ProductId:   value.ProductId,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
+		case 11054: // HARPOON V2 WIRELESS
+			{
+				dev := harpoonV2W.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.slipstream,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeHarpoonV2W,
+					Product:     "HARPOON V2",
 					Serial:      dev.Serial,
 					Firmware:    dev.Firmware,
 					Image:       "icon-mouse.svg",

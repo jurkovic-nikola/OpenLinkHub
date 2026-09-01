@@ -76,6 +76,14 @@ type DeviceProfile struct {
 	OpenRGBIntegration   bool
 	RGBCluster           bool
 	RgbOff               bool
+	Timewarp             map[int]Timewarp
+}
+
+type Timewarp struct {
+	Enabled   bool
+	Color     rgb.Color
+	Direction int
+	Speed     int
 }
 
 // LinkAdapter contains a list of supported external-LED devices connected to a LINK adapter
@@ -123,6 +131,7 @@ type SupportedDevice struct {
 	CommanderDuo     bool   `json:"commanderDuo"`
 	Psu              bool   `json:"psu"`
 	VrmCooler        bool   `json:"vrmCooler"`
+	Timewarp         bool   `json:"timewarp"`
 }
 
 type RailData struct {
@@ -179,6 +188,7 @@ type Devices struct {
 	SubDevices         map[int]LinkAdapter
 	DeviceCode         byte
 	TitanAIO           bool
+	TimewarpCapable    bool
 }
 
 type Device struct {
@@ -257,6 +267,7 @@ var (
 	cmdResetLedPower            = []byte{0x15, 0x01}
 	cmdDeviceCommandCodes       = []byte{0x1e}
 	cmdDeviceCommandLeds        = []byte{0x1d}
+	cmdTimeWarp                 = []byte{0x37}
 	cmdLcdPower                 = []byte{0x03, 0x19, 0x00, 0x01}
 	cmdLcdOff                   = []byte{0x03, 0x0b, 0x00, 0x01}
 	cmdLcdBrightness            = []byte{0x03, 0x0b, 0x64, 0x01}
@@ -276,6 +287,7 @@ var (
 	dataTypeSubColor            = []byte{0x07, 0x00}
 	dataTypeCommandMode         = []byte{0x0d, 0x00}
 	dataTypeLedCount            = []byte{0x0c, 0x00}
+	dataTypeTimeWarp            = []byte{0x35, 0x00}
 	psuInitHeader               = byte(0x19)
 	bufferSize                  = 512
 	headerSize                  = 3
@@ -456,6 +468,7 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 		d.setupLCD()         // LCD
 		d.setupLCDImage()    // LCD images
 	}
+	d.setTimeWarp()            // Timewarp
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
@@ -1051,6 +1064,7 @@ func (d *Device) saveDeviceProfile() {
 	rgbOverride := make(map[int]map[int]RGBOverride, len(d.Devices))
 	rgbPerLed := make(map[int]map[int]map[int]rgb.Color, len(d.Devices))
 	commanderDuoOverride := make(map[int]CommanderDuoOverride, len(d.Devices))
+	timewarp := make(map[int]Timewarp, len(d.Devices))
 	rgbProbes := make(map[int]int, len(d.Devices))
 	minTemps := make(map[int]float64, len(d.Devices))
 	maxTemps := make(map[int]float64, len(d.Devices))
@@ -1321,10 +1335,24 @@ func (d *Device) saveDeviceProfile() {
 					LedChannels: 0,
 				}
 			}
+
+			if device.TimewarpCapable {
+				timewarp[device.ChannelId] = Timewarp{
+					Enabled: false,
+					Color: rgb.Color{
+						Red:   0,
+						Green: 255,
+						Blue:  255,
+						Hex:   "#00FFFF",
+					},
+					Direction: 1,
+					Speed:     1,
+				}
+			}
 			rgbProfiles[device.ChannelId] = "static"
 			labels[device.ChannelId] = "Set Label"
 			rgbProbes[device.ChannelId] = 0
-			minTemps[device.ChannelId] = 0
+			minTemps[device.ChannelId] = 20
 			maxTemps[device.ChannelId] = 60
 			devicePositions[m] = device.DeviceId
 			m++
@@ -1346,6 +1374,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDDevices = lcdDevices
 		deviceProfile.RGBOverride = rgbOverride
 		deviceProfile.Positions = positions
+		deviceProfile.Timewarp = timewarp
 		d.DeviceProfile = deviceProfile
 	} else {
 		devLen := 0
@@ -1365,6 +1394,51 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.Positions = positions
 		} else {
 			deviceProfile.Positions = d.DeviceProfile.Positions
+		}
+
+		if d.DeviceProfile.Timewarp == nil {
+			for _, device := range d.Devices {
+				if device.TimewarpCapable {
+					timewarp[device.ChannelId] = Timewarp{
+						Enabled: false,
+						Color: rgb.Color{
+							Red:   0,
+							Green: 255,
+							Blue:  255,
+							Hex:   "#00FFFF",
+						},
+						Direction: 1,
+						Speed:     1,
+					}
+				}
+			}
+			deviceProfile.Timewarp = timewarp
+		} else {
+			for _, device := range d.Devices {
+				if device.TimewarpCapable {
+					if warp, ok := d.DeviceProfile.Timewarp[device.ChannelId]; ok {
+						timewarp[device.ChannelId] = Timewarp{
+							Enabled:   warp.Enabled,
+							Color:     warp.Color,
+							Direction: warp.Direction,
+							Speed:     warp.Speed,
+						}
+					} else {
+						timewarp[device.ChannelId] = Timewarp{
+							Enabled: false,
+							Color: rgb.Color{
+								Red:   0,
+								Green: 255,
+								Blue:  255,
+								Hex:   "#00FFFF",
+							},
+							Direction: 1,
+							Speed:     1,
+						}
+					}
+				}
+			}
+			deviceProfile.Timewarp = timewarp
 		}
 
 		if d.DeviceProfile.CommanderDuoOverride == nil {
@@ -1929,6 +2003,74 @@ func (d *Device) UpdateDeviceLcdBrightness(channelId int, brightness uint8) uint
 		return 1
 	}
 	return 2
+}
+
+// setTimeWarp will set timewarp effect on timewarp capable device
+func (d *Device) setTimeWarp() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Warn("Exiting Timewarp due to RGB Cluster")
+		return
+	}
+
+	if d.DeviceProfile.OpenRGBIntegration {
+		logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Warn("Exiting Timewarp due to OpenRGB Integration")
+		return
+	}
+
+	valid := 0
+
+	keys := make([]int, 0)
+	for k, device := range d.Devices {
+		if device.TimewarpCapable {
+			keys = append(keys, k)
+		}
+	}
+	sort.Ints(keys)
+	if len(keys) < 1 {
+		return
+	}
+
+	buf := make([]byte, len(keys)*4+1)
+	buf[0] = byte(len(keys))
+	offset := 1
+
+	for _, k := range keys {
+		if device, ok := d.Devices[k]; ok {
+			if device.TimewarpCapable {
+				data := make([]byte, 4)
+				data[0] = byte(device.ChannelId)
+				valid++
+				if effect, found := d.DeviceProfile.Timewarp[device.ChannelId]; found {
+					if effect.Enabled {
+						direction := effect.Direction
+						speed := effect.Speed
+
+						if direction < 1 || direction > 3 {
+							direction = 1
+						}
+
+						if speed < 0 || speed > 2 {
+							speed = 1
+						}
+						data[1] = byte(direction)
+						data[2] = byte(speed)
+						data[3] = 0x00
+					}
+				}
+				copy(buf[offset:offset+4], data)
+				offset += 4
+			}
+		}
+	}
+
+	if valid > 0 {
+		d.write(cmdTimeWarp, dataTypeTimeWarp, buf)
+		_, _ = d.transfer(cmdResetLedPower, nil, false)
+	}
 }
 
 // setLcdBrightness sends the LCD backlight brightness command to the device
@@ -2740,6 +2882,11 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 	if d.DeviceProfile.RGBCluster {
 		return 2
 	}
+
+	if d.isTimewarpActive() {
+		return 3
+	}
+
 	d.clearQueue()
 	d.DeviceProfile.OpenRGBIntegration = enabled
 	d.saveDeviceProfile() // Save profile
@@ -2751,6 +2898,74 @@ func (d *Device) ProcessSetOpenRgbIntegration(enabled bool) uint8 {
 	return 1
 }
 
+func (d *Device) isTimewarpActive() bool {
+	for _, device := range d.Devices {
+		if device.TimewarpCapable {
+			if effect, found := d.DeviceProfile.Timewarp[device.ChannelId]; found {
+				if effect.Enabled {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// ProcessGetRgbTimewarp will get rgb timewarp data
+func (d *Device) ProcessGetRgbTimewarp(deviceId int) interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+
+	if device, ok := d.Devices[deviceId]; ok {
+		if device.TimewarpCapable {
+			if value, valid := d.DeviceProfile.Timewarp[deviceId]; valid {
+				return &value
+			}
+		}
+	}
+	return nil
+}
+
+// ProcessSetRgbTimewarp will update RGB timewarp settings
+func (d *Device) ProcessSetRgbTimewarp(channelId int, enabled bool, startColor rgb.Color, speed float64, direction int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if speed < 0 || speed > 2 {
+		return 0
+	}
+
+	if direction < 1 || direction > 3 {
+		return 0
+	}
+
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 2
+	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 3
+	}
+
+	if device, ok := d.Devices[channelId]; ok {
+		if device.TimewarpCapable {
+			if value, valid := d.DeviceProfile.Timewarp[channelId]; valid {
+				value.Enabled = enabled
+				value.Color = startColor
+				value.Speed = int(speed)
+				value.Direction = direction
+				d.DeviceProfile.Timewarp[channelId] = value
+
+				d.saveDeviceProfile()
+				d.setTimeWarp()
+			}
+		}
+	}
+	return 1
+}
+
 // ProcessSetRgbCluster will update OpenRGB integration status
 func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	if d.DeviceProfile == nil {
@@ -2758,6 +2973,10 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 	}
 	if d.DeviceProfile.OpenRGBIntegration {
 		return 2
+	}
+
+	if d.isTimewarpActive() {
+		return 3
 	}
 
 	lightChannels := 0
@@ -3897,6 +4116,7 @@ func (d *Device) getDevices() int {
 			ProbeId:            probeId,
 			MinTemp:            minTemp,
 			MaxTemp:            maxTemp,
+			TimewarpCapable:    deviceMeta.Timewarp,
 		}
 
 		if device.IsLinkAdapter {
@@ -4514,37 +4734,56 @@ func (d *Device) setDeviceColor() {
 					}
 				}
 			} else {
-				rgbOverride := d.getRgbOverride(k, 0)
-				if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {
-					profileOverride := d.GetRgbProfile("static")
-					if profileOverride == nil {
-						return
+				tw := false
+				if d.Devices[k].TimewarpCapable {
+					if timewarp, ok := d.DeviceProfile.Timewarp[k]; ok {
+						tw = timewarp.Enabled
+						if tw {
+							for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+								static[m] = []byte{
+									byte(timewarp.Color.Red),
+									byte(timewarp.Color.Green),
+									byte(timewarp.Color.Blue),
+								}
+								m++
+							}
+						}
 					}
-					profileOverride.StartColor = rgbOverride.RGBStartColor
-					c = rgb.ModifyBrightness(profileOverride.StartColor)
-				} else {
-					c = profileColor
 				}
-				if d.HasLCD && d.Devices[k].AIO {
-					for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-						static[m] = []byte{
-							byte(c.Red),
-							byte(c.Green),
-							byte(c.Blue),
+
+				if !tw {
+					rgbOverride := d.getRgbOverride(k, 0)
+					if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {
+						profileOverride := d.GetRgbProfile("static")
+						if profileOverride == nil {
+							return
 						}
-						if i > 15 && i < 20 {
-							static[m] = []byte{0, 0, 0}
-						}
-						m++
+						profileOverride.StartColor = rgbOverride.RGBStartColor
+						c = rgb.ModifyBrightness(profileOverride.StartColor)
+					} else {
+						c = profileColor
 					}
-				} else {
-					for i := 0; i < int(d.Devices[k].LedChannels); i++ {
-						static[m] = []byte{
-							byte(c.Red),
-							byte(c.Green),
-							byte(c.Blue),
+					if d.HasLCD && d.Devices[k].AIO {
+						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+							static[m] = []byte{
+								byte(c.Red),
+								byte(c.Green),
+								byte(c.Blue),
+							}
+							if i > 15 && i < 20 {
+								static[m] = []byte{0, 0, 0}
+							}
+							m++
 						}
-						m++
+					} else {
+						for i := 0; i < int(d.Devices[k].LedChannels); i++ {
+							static[m] = []byte{
+								byte(c.Red),
+								byte(c.Green),
+								byte(c.Blue),
+							}
+							m++
+						}
 					}
 				}
 			}
@@ -4590,6 +4829,21 @@ func (d *Device) setDeviceColor() {
 							}
 						}
 					} else {
+						if device := d.Devices[k]; device.TimewarpCapable {
+							if timewarp, ok := d.DeviceProfile.Timewarp[k]; ok && timewarp.Enabled {
+								static := make(map[int][]byte, device.LedChannels)
+								c := []byte{
+									byte(timewarp.Color.Red),
+									byte(timewarp.Color.Green),
+									byte(timewarp.Color.Blue),
+								}
+								for i := 0; i < int(device.LedChannels); i++ {
+									static[i] = c
+								}
+								buff = append(buff, rgb.SetColor(static)...)
+								continue
+							}
+						}
 						buff = append(buff, d.generateRgbEffect(k, d.Devices[k].LedChannels, &startTime, d.Devices[k].RGB, 0)...)
 					}
 				}
@@ -4770,12 +5024,17 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 			r.MinTemp = profile.MinTemp
 			r.MaxTemp = profile.MaxTemp
 
+			r.RGBStartColor.Temperature = r.MinTemp
+			r.RGBEndColor.Temperature = r.MaxTemp
+
 			if d.Devices[k].MinTemp >= 0 {
 				r.MinTemp = d.Devices[k].MinTemp
+				r.RGBStartColor.Temperature = d.Devices[k].MinTemp
 			}
 
 			if d.Devices[k].MaxTemp > 0 {
 				r.MaxTemp = d.Devices[k].MaxTemp
+				r.RGBEndColor.Temperature = d.Devices[k].MaxTemp
 			}
 
 			probeTemp := d.getTemperatureProbeTemperature(d.Devices[k].ProbeId)

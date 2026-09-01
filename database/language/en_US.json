@@ -655,6 +655,18 @@
     "txtSurfaceSelection": "Surface Selection",
     "txtInvalidSurfaceSelectionOption": "Invalid Surface Selection option",
     "txtSurfaceSelectionUpdated": "Surface Selection is successfully updated",
-    "txtUnableToUpdateSurfaceSelection": "Unable to update Surface Selection"
+    "txtUnableToUpdateSurfaceSelection": "Unable to update Surface Selection",
+    "txtTimeWarp": "Timewarp",
+    "txtNoRgbTimewarp": "No RGB Timewarp found",
+    "txtDirection": "Direction",
+    "txtStatic": "Static",
+    "txtClockwise": "Clockwise",
+    "txtCounterClockwise": "Counter Clockwise",
+    "txtUnableToChangeRgbTimewarpOpenRgb": "Unable to change RGB Timewarp while OpenRGB Integration is enabled",
+    "txtUnableToChangeRgbTimewarpCluster": "Unable to change RGB Timewarp while RGB Cluster is enabled",
+    "txtUnableToChangeOpenRgbRgbTimewarp": "Unable to change OpenRGB Integration while RGB Timewarp is enabled",
+    "txtUnableToChangeClusterRgbTimewarp": "Unable to change RGB Cluster while RGB Timewarp is enabled",
+    "txtTimeWarpUpdated": "RGB Timewarp is successfully updated",
+    "txtUnableToUpdateRgbTimewarp": "Unable to update RGB Timewarp"
   }
 }

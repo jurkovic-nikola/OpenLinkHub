@@ -397,6 +397,10 @@ func verifyZipIntegrity(zipPath string) error {
 	hasDatabase := false
 
 	for _, f := range r.File {
+		if strings.Contains(f.Name, "..") {
+			return fmt.Errorf("illegal path: %s", f.Name)
+		}
+		
 		cleanName, err := validateArchiveEntry(f)
 		if err != nil {
 			return err

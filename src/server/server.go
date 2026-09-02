@@ -1223,6 +1223,17 @@ func getRgbTimewarp(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getXeneonWidget return xeneon widget
+func getXeneonWidget(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetXeneonWidget(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
 // setRgbTimewarp sets RGB timewarp for given device
 func setRgbTimewarp(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetRgbTimewarp(r)
@@ -2708,6 +2719,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/audio/outputDevice", http.MethodPost, setAudioOutputDeviceSettings)
 	handleFunc(r, "/api/devices/channel", http.MethodPost, getChannelData)
 	handleFunc(r, "/api/display/update", http.MethodPost, updateDisplayData)
+	handleFunc(r, "/api/xeneon/getWidget", http.MethodPost, getXeneonWidget)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

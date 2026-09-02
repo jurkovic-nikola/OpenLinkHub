@@ -667,6 +667,13 @@
     "txtUnableToChangeOpenRgbRgbTimewarp": "Die OpenRGB-Integration kann nicht geändert werden, solange RGB Timewarp aktiviert ist",
     "txtUnableToChangeClusterRgbTimewarp": "RGB Cluster kann nicht geändert werden, solange RGB Timewarp aktiviert ist",
     "txtTimeWarpUpdated": "RGB Timewarp wurde erfolgreich aktualisiert",
-    "txtUnableToUpdateRgbTimewarp": "RGB Timewarp konnte nicht aktualisiert werden"
+    "txtUnableToUpdateRgbTimewarp": "RGB Timewarp konnte nicht aktualisiert werden",
+    "txtInvalidWidget": "Ungültiges Xeneon-Widget",
+    "txtTimeColor": "Farbe der Uhrzeit",
+    "txtDateColor": "Farbe des Datums",
+    "txtTimeSize": "Schriftgröße der Uhrzeit (px)",
+    "txtDateSize": "Schriftgröße des Datums (px)",
+    "txtTimePosition": "Uhrzeit Links / Oben",
+    "txtDatePosition": "Datum Links / Oben"
   }
 }

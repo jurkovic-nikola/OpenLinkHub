@@ -67,6 +67,10 @@ type Widget struct {
 	FontSize     int     `json:"fontSize"`
 	SubTextColor string  `json:"subTextColor"`
 	SubFontSize  int     `json:"subFontSize"`
+	Left         int     `json:"left"`
+	Top          int     `json:"top"`
+	SubLeft      int     `json:"subLeft"`
+	SubTop       int     `json:"subTop"`
 }
 
 var (
@@ -248,6 +252,25 @@ func (d *Device) getWidget(widgetId int) *Widget {
 			return &widget
 		}
 	}
+	return nil
+}
+
+// ProcessGetWidget will return widget data
+func (d *Device) ProcessGetWidget(widgetId int) interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+
+	for _, widget := range d.DeviceProfile.WidgetAreas {
+		if widget.Widget == nil {
+			continue
+		}
+		
+		if widget.Widget.Id == widgetId {
+			return widget.Widget
+		}
+	}
+
 	return nil
 }
 

@@ -5140,4 +5140,137 @@ $(document).ready(function () {
         $brightnessSlider.on("input", updateSlider);
         updateSlider();
     }
+
+    $('.configureWidget').on('click', function () {
+        const deviceId = $("#deviceId").val();
+        const widgetId = $(this).attr("data-info").split(';');
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["widgetId"] = parseInt(widgetId);
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/xeneon/getWidget',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        let modalElement = '';
+
+                        const data = response.data;
+                        switch (data.template) {
+                            case 'xeneon-clock': {
+                                modalElement = `
+                                  <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-custom modal-500">
+                                      <div class="modal-content">
+                                
+                                        <div class="modal-header">
+                                          <h5 class="modal-title">${data.name}</h5>
+                                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="settings-list">
+                                                <div class="settings-row rgb-editor">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtTimeColor')}</span>
+                                                    <div class="system-color">
+                                                        <label for="textColor">
+                                                            <input type="color" id="textColor" value="${data.textColor}">
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="settings-row rgb-editor">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtDateColor')}</span>
+                                                    <div class="system-color">
+                                                        <label for="subTextColor">
+                                                            <input type="color" id="subTextColor" value="${data.subTextColor}">
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="settings-row rgb-editor">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtTimeSize')}</span>
+                                                    <div class="system-input text-input compact">
+                                                        <label for="fontSize">
+                                                            <input type="text" id="fontSize" autocomplete="off" value="${data.fontSize}">
+                                                        </label>
+                                                    </div> 
+                                                </div>
+                                                
+                                                <div class="settings-row rgb-editor">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtDateSize')}</span>
+                                                    <div class="system-input text-input compact">
+                                                        <label for="subFontSize">
+                                                            <input type="text" id="subFontSize" autocomplete="off" value="${data.subFontSize}">
+                                                        </label>
+                                                    </div> 
+                                                </div>
+                                                
+                                                <div class="settings-row rgb-editor">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtTimePosition')}</span>
+                                                    <div class="system-input text-input compact max-width-120">
+                                                        <label for="timePositionLeft">
+                                                            <input type="text" id="timePositionLeft" autocomplete="off" value="${data.left}">
+                                                        </label>
+                                                    </div>
+                                                    <div class="system-input text-input compact max-width-120">
+                                                        <label for="timePositionRight">
+                                                            <input type="text" id="timePositionRight" autocomplete="off" value="${data.top}">
+                                                        </label>
+                                                    </div> 
+                                                </div>
+                                                
+                                                <div class="settings-row rgb-editor">
+                                                    <span class="settings-label text-ellipsis">${i18n.t('txtDatePosition')}</span>
+                                                    <div class="system-input text-input compact max-width-120">
+                                                        <label for="datePositionLeft">
+                                                            <input type="text" id="datePositionLeft" autocomplete="off" value="${data.subLeft}">
+                                                        </label>
+                                                    </div>
+                                                    <div class="system-input text-input compact max-width-120">
+                                                        <label for="datePositionRight">
+                                                            <input type="text" id="datePositionRight" autocomplete="off" value="${data.subTop}">
+                                                        </label>
+                                                    </div> 
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                          <button class="btn btn-primary" type="button" id="btnSaveWidget">${i18n.t('txtSave')}</button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                `;
+                            }
+                            break;
+                        }
+                        console.log(data)
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+                            modal.find('#btnSaveWidget').on('click', function () {
+                                
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

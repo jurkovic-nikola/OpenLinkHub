@@ -191,6 +191,7 @@ type Payload struct {
 	MousePositionAbsolute         bool                  `json:"mousePositionAbsolute"`
 	MacroRepeat                   int                   `json:"macroRepeat"`
 	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
+	WidgetId                      int                   `json:"widgetId"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -5582,4 +5583,54 @@ func ProcessSetAllDevicesColor(r *http.Request) *Payload {
 	}
 	devices.UpdateAllDevicesStaticColor(req.Color)
 	return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
+}
+
+// ProcessGetXeneonWidget will process POST request from a client to get xeneon widget data
+func ProcessGetXeneonWidget(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.WidgetId < 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessGetWidget",
+		req.WidgetId,
+	)
+
+	if len(results) > 0 {
+		return &Payload{
+			Data:   results[0].Interface(),
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtInvalidWidget"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
 }

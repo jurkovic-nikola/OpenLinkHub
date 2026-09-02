@@ -661,6 +661,13 @@
         "txtUnableToChangeOpenRgbRgbTimewarp": "Невозможно изменить интеграцию OpenRGB, пока включён RGB Timewarp",
         "txtUnableToChangeClusterRgbTimewarp": "Невозможно изменить RGB Cluster, пока включён RGB Timewarp",
         "txtTimeWarpUpdated": "RGB Timewarp успешно обновлён",
-        "txtUnableToUpdateRgbTimewarp": "Невозможно обновить RGB Timewarp"
+        "txtUnableToUpdateRgbTimewarp": "Невозможно обновить RGB Timewarp",
+        "txtInvalidWidget": "Недопустимый виджет Xeneon",
+        "txtTimeColor": "Цвет времени",
+        "txtDateColor": "Цвет даты",
+        "txtTimeSize": "Размер шрифта времени (px)",
+        "txtDateSize": "Размер шрифта даты (px)",
+        "txtTimePosition": "Время Слева / Сверху",
+        "txtDatePosition": "Дата Слева / Сверху"
     }
 }

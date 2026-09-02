@@ -10,10 +10,14 @@
                     <div class="clock-time" id="clockTime" style="
                         color: {{ $widget.TextColor }};
                         font-size: {{ $widget.FontSize }}px;
+                        {{ if gt $widget.Left 0 }} margin-left: {{ $widget.Left }}px;{{ end }}
+                        {{ if gt $widget.Top 0 }} margin-top: {{ $widget.Top }}px;{{ end }}
                     ">20:48</div>
                     <div class="clock-date" id="clockDate" style="
                         color: {{ $widget.SubTextColor }};
                         font-size: {{ $widget.SubFontSize }}px;
+                        {{ if gt $widget.SubLeft 0 }} margin-left: {{ $widget.SubLeft }}px;{{ end }}
+                        {{ if gt $widget.SubTop 0 }} margin-top: {{ $widget.SubTop }}px;{{ end }}
                     ">Sunday, March 22</div>
                 </div>
             </div>

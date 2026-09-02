@@ -661,6 +661,13 @@
     "txtUnableToChangeOpenRgbRgbTimewarp": "Det går inte att ändra OpenRGB-integrationen medan RGB Timewarp är aktiverat",
     "txtUnableToChangeClusterRgbTimewarp": "Det går inte att ändra RGB Cluster medan RGB Timewarp är aktiverat",
     "txtTimeWarpUpdated": "RGB Timewarp har uppdaterats",
-    "txtUnableToUpdateRgbTimewarp": "Det går inte att uppdatera RGB Timewarp"
+    "txtUnableToUpdateRgbTimewarp": "Det går inte att uppdatera RGB Timewarp",
+    "txtInvalidWidget": "Ogiltig Xeneon-widget",
+    "txtTimeColor": "Tidsfärg",
+    "txtDateColor": "Datumfärg",
+    "txtTimeSize": "Teckenstorlek för tid (px)",
+    "txtDateSize": "Teckenstorlek för datum (px)",
+    "txtTimePosition": "Tid Vänster / Överst",
+    "txtDatePosition": "Datum Vänster / Överst"
   }
 }

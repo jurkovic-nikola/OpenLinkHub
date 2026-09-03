@@ -582,6 +582,19 @@ func (d *Device) shutdownLed() {
 			if hardwareLight.Alternate {
 				buf[6] = 0x00
 				buf[7] = 0x00
+
+				if !common.ValidRGB(hardwareLight.StartColor.Red) ||
+					!common.ValidRGB(hardwareLight.StartColor.Green) ||
+					!common.ValidRGB(hardwareLight.StartColor.Blue) {
+					return
+				}
+
+				if !common.ValidRGB(hardwareLight.EndColor.Red) ||
+					!common.ValidRGB(hardwareLight.EndColor.Green) ||
+					!common.ValidRGB(hardwareLight.EndColor.Blue) {
+					return
+				}
+
 				buf[8] = byte(hardwareLight.StartColor.Red)
 				buf[9] = byte(hardwareLight.StartColor.Green)
 				buf[10] = byte(hardwareLight.StartColor.Blue)
@@ -759,6 +772,27 @@ func (d *Device) SetHardwareLights(keyId int, startColor, endColor rgb.Color, al
 				return 0
 			}
 			hardwareLight.Speed = uint8(speed)
+		}
+
+		if hardwareLight.SingleColor {
+			if !common.ValidRGB(hardwareLight.StartColor.Red) ||
+				!common.ValidRGB(hardwareLight.StartColor.Green) ||
+				!common.ValidRGB(hardwareLight.StartColor.Blue) {
+				return 0
+			}
+		}
+
+		if hardwareLight.CanAlternate {
+			if !common.ValidRGB(hardwareLight.StartColor.Red) ||
+				!common.ValidRGB(hardwareLight.StartColor.Green) ||
+				!common.ValidRGB(hardwareLight.StartColor.Blue) {
+				return 0
+			}
+			if !common.ValidRGB(hardwareLight.EndColor.Red) ||
+				!common.ValidRGB(hardwareLight.EndColor.Green) ||
+				!common.ValidRGB(hardwareLight.EndColor.Blue) {
+				return 0
+			}
 		}
 
 		startColor.Hex = fmt.Sprintf("#%02x%02x%02x", uint8(startColor.Red), uint8(startColor.Green), uint8(startColor.Blue))

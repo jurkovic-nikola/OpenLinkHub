@@ -47,6 +47,8 @@ type DeviceProfile struct {
 	OriginalBrightness uint8
 	RGBProfiles        map[int]string
 	Labels             map[int]string
+	HardwareLights     map[int]HardwareLights
+	HardwareLight      int
 	RGBCluster         bool
 	OpenRGBIntegration bool
 	RgbOff             bool
@@ -69,6 +71,20 @@ type Devices struct {
 	ContainsPump bool
 }
 
+type HardwareLights struct {
+	Name         string     `json:"name"`
+	Command      uint8      `json:"command"`
+	Speed        uint8      `json:"speed"`
+	Direction    uint8      `json:"direction"`
+	Alternate    bool       `json:"alternate"`
+	StartColor   *rgb.Color `json:"startColor"`
+	EndColor     *rgb.Color `json:"endColor"`
+	SingleColor  bool       `json:"singleColor"`
+	CanAlternate bool       `json:"canAlternate"`
+	NoColor      bool       `json:"noColor"`
+	HasDirection bool       `json:"hasDirection"`
+	HasSpeed     bool       `json:"hasSpeed"`
+}
 type Device struct {
 	dev                     *hid.Device
 	Manufacturer            string                    `json:"manufacturer"`
@@ -530,7 +546,7 @@ func (d *Device) shutdownLed() {
 		lightChannels += int(device.LedChannels)
 	}
 
-	buf := make([]byte, 8)
+	buf := make([]byte, 14)
 	buf[0] = 0x00
 	d.write(cmdLedReset, buf) // Reset
 	d.write(cmdStart, buf)    // Start
@@ -542,10 +558,53 @@ func (d *Device) shutdownLed() {
 	// Write configuration
 	buf[1] = 0x00
 	buf[2] = byte(lightChannels)
-	buf[3] = 0x0b
-	buf[4] = 0x00
-	buf[5] = 0x01
-	buf[6] = 0x01
+
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if hardwareLight, ok := d.DeviceProfile.HardwareLights[d.DeviceProfile.HardwareLight]; ok {
+		buf[3] = hardwareLight.Command
+
+		if hardwareLight.HasSpeed {
+			buf[4] = hardwareLight.Speed
+		} else {
+			buf[4] = 0x00
+		}
+
+		if hardwareLight.HasDirection {
+			buf[5] = hardwareLight.Direction
+		} else {
+			buf[5] = 0x00
+		}
+
+		if hardwareLight.CanAlternate {
+			if hardwareLight.Alternate {
+				buf[6] = 0x00
+				buf[7] = 0x00
+				buf[8] = byte(hardwareLight.StartColor.Red)
+				buf[9] = byte(hardwareLight.StartColor.Green)
+				buf[10] = byte(hardwareLight.StartColor.Blue)
+				buf[11] = byte(hardwareLight.EndColor.Red)
+				buf[12] = byte(hardwareLight.EndColor.Green)
+				buf[13] = byte(hardwareLight.EndColor.Blue)
+			} else {
+				buf[6] = 0x01
+				buf[7] = 0x00
+			}
+		} else {
+			if hardwareLight.SingleColor {
+				buf[6] = 0x00
+				buf[7] = 0x00
+				buf[8] = byte(hardwareLight.StartColor.Red)
+				buf[9] = byte(hardwareLight.StartColor.Green)
+				buf[10] = byte(hardwareLight.StartColor.Blue)
+			} else {
+				buf[6] = 0x01
+				buf[7] = 0x00
+			}
+		}
+	}
 	d.write(cmdWriteLedConfig, buf)
 
 	// Flush it
@@ -662,6 +721,64 @@ func (d *Device) getDeviceProfile() {
 	}
 }
 
+// GetHardwareLights will return device hardware light settings
+func (d *Device) GetHardwareLights() interface{} {
+	if d.DeviceProfile == nil {
+		return nil
+	}
+
+	return d.DeviceProfile.HardwareLights
+}
+
+// SetHardwareLight will change hardware profile
+func (d *Device) SetHardwareLight(keyId int) uint8 {
+	if _, ok := d.DeviceProfile.HardwareLights[keyId]; ok {
+		d.DeviceProfile.HardwareLight = keyId
+		d.saveDeviceProfile()
+		return 1
+	}
+	return 0
+}
+
+// SetHardwareLights will set device hardware light settings
+func (d *Device) SetHardwareLights(keyId int, startColor, endColor rgb.Color, alternateColors bool, direction int, speed float64) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if hardwareLight, ok := d.DeviceProfile.HardwareLights[keyId]; ok {
+		if hardwareLight.HasDirection {
+			if direction < 0 || direction > 1 {
+				return 0
+			}
+			hardwareLight.Direction = uint8(direction)
+		}
+
+		if hardwareLight.HasSpeed {
+			if speed < 0 || speed > 2 {
+				return 0
+			}
+			hardwareLight.Speed = uint8(speed)
+		}
+
+		startColor.Hex = fmt.Sprintf("#%02x%02x%02x", uint8(startColor.Red), uint8(startColor.Green), uint8(startColor.Blue))
+		endColor.Hex = fmt.Sprintf("#%02x%02x%02x", uint8(endColor.Red), uint8(endColor.Green), uint8(endColor.Blue))
+
+		hardwareLight.StartColor = &startColor
+		hardwareLight.EndColor = &endColor
+
+		if hardwareLight.CanAlternate {
+			hardwareLight.Alternate = alternateColors
+		}
+
+		d.DeviceProfile.HardwareLights[keyId] = hardwareLight
+		d.saveDeviceProfile()
+		return 1
+	}
+
+	return 0
+}
+
 // saveDeviceProfile will save device profile for persistent configuration
 func (d *Device) saveDeviceProfile() {
 	var defaultBrightness = uint8(100)
@@ -695,6 +812,188 @@ func (d *Device) saveDeviceProfile() {
 			labels[device.ChannelId] = "Set Label"
 		}
 		deviceProfile.Active = true
+
+		deviceProfile.HardwareLights = map[int]HardwareLights{
+			1: {
+				Name:         "Color Pulse",
+				Command:      0x02,
+				Speed:        0x01,
+				Alternate:    false,
+				CanAlternate: true,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				EndColor: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        "#ff0000",
+				},
+				HasSpeed: true,
+			},
+			2: {
+				Name:         "Color Shift",
+				Command:      0x01,
+				Speed:        0x01,
+				CanAlternate: true,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				EndColor: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        "#ff0000",
+				},
+				HasSpeed: true,
+			},
+			3: {
+				Name:      "Color Wave",
+				Command:   0x03,
+				Speed:     0x01,
+				Direction: 0x01,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				EndColor: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        "#ff0000",
+				},
+				CanAlternate: true,
+				HasDirection: true,
+				HasSpeed:     true,
+			},
+			4: {
+				Name:    "Marquee",
+				Command: 0x07,
+				Speed:   0x01,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				SingleColor: true,
+				HasSpeed:    true,
+			},
+			5: {
+				Name:      "Rainbow",
+				Command:   0x0a,
+				Speed:     0x01,
+				Direction: 0x01,
+				NoColor:   true,
+				HasSpeed:  true,
+			},
+			6: {
+				Name:         "Rainbow Wave",
+				Command:      0x00,
+				Speed:        0x01,
+				Direction:    0x01,
+				NoColor:      true,
+				HasDirection: true,
+				HasSpeed:     true,
+			},
+			7: {
+				Name:      "Sequential",
+				Command:   0x09,
+				Speed:     0x01,
+				Direction: 0x01,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				CanAlternate: false,
+				HasDirection: true,
+				SingleColor:  true,
+				HasSpeed:     true,
+			},
+			8: {
+				Name:    "Strobing",
+				Command: 0x08,
+				Speed:   0x01,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				EndColor: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        "#ff0000",
+				},
+				CanAlternate: true,
+				HasSpeed:     true,
+			},
+			9: {
+				Name:      "Super X",
+				Command:   0x0b,
+				Speed:     0x01,
+				NoColor:   true,
+				Direction: 0x01,
+				Alternate: true,
+			},
+			10: {
+				Name:      "Visor",
+				Command:   0x06,
+				Speed:     0x01,
+				Direction: 0x01,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				EndColor: &rgb.Color{
+					Red:        255,
+					Green:      0,
+					Blue:       0,
+					Brightness: 1,
+					Hex:        "#ff0000",
+				},
+				CanAlternate: true,
+				HasSpeed:     true,
+			},
+			11: {
+				Name:    "Static",
+				Command: 0x04,
+				Speed:   0x00,
+				StartColor: &rgb.Color{
+					Red:        0,
+					Green:      255,
+					Blue:       255,
+					Brightness: 1,
+					Hex:        "#00ffff",
+				},
+				SingleColor: true,
+			},
+		}
+		deviceProfile.HardwareLight = 1
 		d.DeviceProfile = deviceProfile
 	} else {
 		if d.DeviceProfile.BrightnessSlider == nil {
@@ -704,6 +1003,196 @@ func (d *Device) saveDeviceProfile() {
 			deviceProfile.BrightnessSlider = d.DeviceProfile.BrightnessSlider
 		}
 
+		if d.DeviceProfile.HardwareLight == 0 {
+			deviceProfile.HardwareLight = 1
+		} else {
+			deviceProfile.HardwareLight = d.DeviceProfile.HardwareLight
+		}
+
+		if d.DeviceProfile.HardwareLights == nil {
+			deviceProfile.HardwareLights = map[int]HardwareLights{
+				1: {
+					Name:         "Color Pulse",
+					Command:      0x02,
+					Speed:        0x01,
+					Alternate:    false,
+					CanAlternate: true,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					EndColor: &rgb.Color{
+						Red:        255,
+						Green:      0,
+						Blue:       0,
+						Brightness: 1,
+						Hex:        "#ff0000",
+					},
+					HasSpeed: true,
+				},
+				2: {
+					Name:         "Color Shift",
+					Command:      0x01,
+					Speed:        0x01,
+					CanAlternate: true,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					EndColor: &rgb.Color{
+						Red:        255,
+						Green:      0,
+						Blue:       0,
+						Brightness: 1,
+						Hex:        "#ff0000",
+					},
+					HasSpeed: true,
+				},
+				3: {
+					Name:      "Color Wave",
+					Command:   0x03,
+					Speed:     0x01,
+					Direction: 0x01,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					EndColor: &rgb.Color{
+						Red:        255,
+						Green:      0,
+						Blue:       0,
+						Brightness: 1,
+						Hex:        "#ff0000",
+					},
+					CanAlternate: true,
+					HasDirection: true,
+					HasSpeed:     true,
+				},
+				4: {
+					Name:    "Marquee",
+					Command: 0x07,
+					Speed:   0x01,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					SingleColor: true,
+					HasSpeed:    true,
+				},
+				5: {
+					Name:      "Rainbow",
+					Command:   0x0a,
+					Speed:     0x01,
+					Direction: 0x01,
+					NoColor:   true,
+					HasSpeed:  true,
+				},
+				6: {
+					Name:         "Rainbow Wave",
+					Command:      0x00,
+					Speed:        0x01,
+					Direction:    0x01,
+					NoColor:      true,
+					HasDirection: true,
+					HasSpeed:     true,
+				},
+				7: {
+					Name:      "Sequential",
+					Command:   0x09,
+					Speed:     0x01,
+					Direction: 0x01,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					CanAlternate: false,
+					HasDirection: true,
+					SingleColor:  true,
+					HasSpeed:     true,
+				},
+				8: {
+					Name:    "Strobing",
+					Command: 0x08,
+					Speed:   0x01,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					EndColor: &rgb.Color{
+						Red:        255,
+						Green:      0,
+						Blue:       0,
+						Brightness: 1,
+						Hex:        "#ff0000",
+					},
+					CanAlternate: true,
+					HasSpeed:     true,
+				},
+				9: {
+					Name:      "Super X",
+					Command:   0x0b,
+					Speed:     0x01,
+					NoColor:   true,
+					Direction: 0x01,
+					Alternate: true,
+				},
+				10: {
+					Name:      "Visor",
+					Command:   0x06,
+					Speed:     0x01,
+					Direction: 0x01,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					EndColor: &rgb.Color{
+						Red:        255,
+						Green:      0,
+						Blue:       0,
+						Brightness: 1,
+						Hex:        "#ff0000",
+					},
+					CanAlternate: true,
+					HasSpeed:     true,
+				},
+				11: {
+					Name:    "Static",
+					Command: 0x04,
+					Speed:   0x00,
+					StartColor: &rgb.Color{
+						Red:        0,
+						Green:      255,
+						Blue:       255,
+						Brightness: 1,
+						Hex:        "#00ffff",
+					},
+					SingleColor: true,
+				},
+			}
+		} else {
+			deviceProfile.HardwareLights = d.DeviceProfile.HardwareLights
+		}
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.Brightness = d.DeviceProfile.Brightness

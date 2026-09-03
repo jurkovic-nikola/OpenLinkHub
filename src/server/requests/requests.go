@@ -5634,3 +5634,137 @@ func ProcessGetXeneonWidget(r *http.Request) *Payload {
 		}
 	}
 }
+
+// ProcessGetHardwareLights will process POST request from a client to get device hardware lights
+func ProcessGetHardwareLights(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"GetHardwareLights",
+	)
+
+	if len(results) > 0 {
+		return &Payload{
+			Data:   results[0].Interface(),
+			Code:   http.StatusOK,
+			Status: 1,
+		}
+	} else {
+		return &Payload{
+			Data:   language.GetValue("txtNonExistingDevice"),
+			Code:   http.StatusOK,
+			Status: 0,
+		}
+	}
+}
+
+// ProcessSetHardwareLights will process POST request from a client to set device hardware lights
+func ProcessSetHardwareLights(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SetHardwareLights",
+		req.KeyId,
+		req.StartColor,
+		req.EndColor,
+		req.AlternateColors,
+		req.Direction,
+		req.Speed,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateHardwareLight"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtHardwareLightUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateHardwareLight"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSetHardwareLight will process POST request from a client to set device hardware light profile
+func ProcessSetHardwareLight(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SetHardwareLight",
+		req.HardwareLight,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateHardwareLight"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtHardwareLightUpdated"), Code: http.StatusOK, Status: 1}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateHardwareLight"), Code: http.StatusOK, Status: 0}
+}

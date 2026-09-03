@@ -674,6 +674,14 @@
         "txtTimeSize": "Taille de police de l’heure (px)",
         "txtDateSize": "Taille de police de la date (px)",
         "txtTimePosition": "Heure Gauche / Haut",
-        "txtDatePosition": "Date Gauche / Haut"
+        "txtDatePosition": "Date Gauche / Haut",
+        "txtAlternateColors": "Couleurs alternées",
+        "txtLeft": "Gauche",
+        "txtRight": "Droite",
+        "txtSlow": "Lent",
+        "txtNormal": "Normal",
+        "txtFast": "Rapide",
+        "txtUnableToUpdateHardwareLight": "Impossible de mettre à jour l’éclairage matériel de l’appareil",
+        "txtHardwareLightUpdated": "L’éclairage matériel de l’appareil a été mis à jour avec succès"
     }
 }

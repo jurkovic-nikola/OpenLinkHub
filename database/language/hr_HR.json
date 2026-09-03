@@ -674,6 +674,14 @@
     "txtTimeSize": "Veličina fonta vremena (px)",
     "txtDateSize": "Veličina fonta datuma (px)",
     "txtTimePosition": "Vrijeme Lijevo / Gore",
-    "txtDatePosition": "Datum Lijevo / Gore"
+    "txtDatePosition": "Datum Lijevo / Gore",
+    "txtAlternateColors": "Naizmjenične boje",
+    "txtLeft": "Lijevo",
+    "txtRight": "Desno",
+    "txtSlow": "Sporo",
+    "txtNormal": "Normalno",
+    "txtFast": "Brzo",
+    "txtUnableToUpdateHardwareLight": "Nije moguće ažurirati hardversko osvjetljenje uređaja",
+    "txtHardwareLightUpdated": "Hardversko osvjetljenje uređaja je uspješno ažurirano"
   }
 }

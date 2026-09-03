@@ -674,6 +674,14 @@
     "txtTimeSize": "Time font size (px)",
     "txtDateSize": "Date font size (px)",
     "txtTimePosition": "Time Left / Top",
-    "txtDatePosition": "Date Left / Top"
+    "txtDatePosition": "Date Left / Top",
+    "txtAlternateColors": "Alternate Colors",
+    "txtLeft": "Left",
+    "txtRight": "Right",
+    "txtSlow": "Slow",
+    "txtNormal": "Normal",
+    "txtFast": "Fast",
+    "txtUnableToUpdateHardwareLight": "Unable to update device Hardware Light",
+    "txtHardwareLightUpdated": "Device Hardware Light is successfully updated"
   }
 }

@@ -668,6 +668,14 @@
         "txtTimeSize": "Размер шрифта времени (px)",
         "txtDateSize": "Размер шрифта даты (px)",
         "txtTimePosition": "Время Слева / Сверху",
-        "txtDatePosition": "Дата Слева / Сверху"
+        "txtDatePosition": "Дата Слева / Сверху",
+        "txtAlternateColors": "Чередование цветов",
+        "txtLeft": "Влево",
+        "txtRight": "Вправо",
+        "txtSlow": "Медленно",
+        "txtNormal": "Нормально",
+        "txtFast": "Быстро",
+        "txtUnableToUpdateHardwareLight": "Не удалось обновить аппаратную подсветку устройства",
+        "txtHardwareLightUpdated": "Аппаратная подсветка устройства успешно обновлена"
     }
 }

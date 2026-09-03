@@ -5273,4 +5273,252 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('.configureHardwareLights').on('click', function () {
+        const deviceId = $("#deviceId").val();
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/devices/getHardwareLights',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        const data = response.data;
+
+                        let modalElement = `
+                          <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-custom modal-1200">
+                              <div class="modal-content">
+                                <div class="modal-header">
+                                  <h5 class="modal-title" id="setupKeyAssignments">${i18n.t('txtHardwareLights')}</h5>
+                                  <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                  <form>
+                                    <div class="mb-3">
+                                        <table class="dataTable text-sm">
+                                            <thead>
+                                            <tr>
+                                                <th>${i18n.t('txtKey')}</th>
+                                                <th>${i18n.t('txtProfileName')}</th>
+                                                <th>${i18n.t('txtStartColor')}</th>
+                                                <th>${i18n.t('txtEndColor')}</th>
+                                                <th>${i18n.t('txtAlternateColors')}</th>
+                                                <th>${i18n.t('txtDirection')}</th>
+                                                <th>${i18n.t('txtSpeed')}</th>
+                                                <th>${i18n.t('txtSave')}</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="hardwareLightsRows"></tbody>
+                                        </table>
+                                    </div>
+                                  </form>
+                                </div>
+                                <div class="modal-footer">
+                                  <button class="system-button secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                        const modal = $(modalElement).modal('toggle');
+
+                        modal.on('hidden.bs.modal', function () {
+                            modal.data('bs.modal', null);
+                            modal.remove();
+                        })
+
+                        modal.on('shown.bs.modal', function (e) {
+
+                            const tbody = modal.find('#hardwareLightsRows');
+                            $.each(data, function(key, profile) {
+                                const startColor = profile.startColor !== null
+                                    ? profile.startColor.Hex
+                                    : '#000000';
+
+                                const endColor = profile.endColor !== null
+                                    ? profile.endColor.Hex
+                                    : '#000000';
+
+                                const noColor = profile.noColor;
+                                const singleColor = profile.singleColor;
+                                const alternateDisabled = !profile.canAlternate ? 'disabled' : '';
+                                const directionDisabled = !profile.hasDirection ? 'disabled' : '';
+                                const speedDisabled = !profile.hasSpeed ? 'disabled' : '';
+
+                                let colorHtml = '';
+                                if (noColor) {
+                                    colorHtml = `
+                                        <td class="key-assignments">N/A</td>
+                                        <td class="key-assignments">N/A</td>
+                                    `;
+                                } else {
+                                    if (singleColor) {
+                                        colorHtml = `
+                                            <td class="key-assignments">
+                                                 <div class="system-color compact">
+                                                    <input type="color" class="hardware-start-color" value="${startColor}">
+                                                </div>
+                                            </td>
+                                            <td class="key-assignments">N/A</td>
+                                        `;
+                                    } else {
+                                        colorHtml = `
+                                            <td class="key-assignments">
+                                                 <div class="system-color compact">
+                                                    <input type="color" class="hardware-start-color" value="${startColor}">
+                                                 </div>
+                                            </td>
+                                            <td class="key-assignments">
+                                                 <div class="system-color compact">
+                                                    <input type="color" class="hardware-end-color" value="${endColor}">
+                                                </div>
+                                            </td>
+                                        `;
+                                    }
+                                }
+
+                                const row = `
+                                    <tr data-key="${key}">
+                                        <td class="key-assignments">${key}</td>
+                                        <td class="key-assignments">${profile.name}</td>
+                                        ${colorHtml}
+                                        <td class="key-assignments">
+                                            <label class="system-toggle compact">
+                                                <input
+                                                    type="checkbox"
+                                                    class="hardware-alternate"
+                                                    ${profile.alternate ? 'checked' : ''}
+                                                    ${alternateDisabled}
+                                                >
+                                                <span class="toggle-track"></span>
+                                            </label>
+                                        </td>
+                                        <td class="key-assignments">
+                                            <select class="system-select compact full-width hardware-direction" ${directionDisabled}>
+                                                <option value="0" ${profile.direction === 0 ? 'selected' : ''}>${i18n.t('txtLeft')}</option>
+                                                <option value="1" ${profile.direction === 1 ? 'selected' : ''}>${i18n.t('txtRight')}</option>
+                                            </select>
+                                        </td>
+                                        <td class="key-assignments">
+                                            <select class="system-select compact full-width hardware-speed" ${speedDisabled}>
+                                                <option value="0" ${profile.speed === 0 ? 'selected' : ''}>${i18n.t('txtFast')}</option>
+                                                <option value="1" ${profile.speed === 1 ? 'selected' : ''}>${i18n.t('txtNormal')}</option>
+                                                <option value="2" ${profile.speed === 2 ? 'selected' : ''}>${i18n.t('txtSlow')}</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-primary btnSaveHardwareColors" type="button" data-key="${key}">${i18n.t('txtSave')}</button>
+                                        </td>
+                                    </tr>
+                                `;
+                                tbody.append(row);
+                            });
+
+
+                            modal.find('.btnSaveHardwareColors').on('click', function () {
+                                const key = $(this).attr('data-key');
+                                const row = $(this).closest('tr');
+
+                                const startColor = row.find('.hardware-start-color').val();
+                                const endColor = row.find('.hardware-end-color').val();
+                                const alternate = row.find('.hardware-alternate').is(':checked');
+                                const direction = parseInt(row.find('.hardware-direction').val());
+                                const speed = parseFloat(row.find('.hardware-speed').val());
+
+                                const pf = {};
+                                pf["deviceId"] = deviceId;
+                                pf["keyId"] = parseInt(key);
+
+                                if (startColor) {
+                                    const startColorRgb = hexToRgb(startColor);
+                                    if (startColorRgb !== null) {
+                                        pf["startColor"] = {
+                                            red: startColorRgb.r,
+                                            green: startColorRgb.g,
+                                            blue: startColorRgb.b
+                                        };
+                                    }
+                                }
+
+                                if (endColor) {
+                                    const endColorRgb = hexToRgb(endColor);
+                                    if (endColorRgb !== null) {
+                                        pf["endColor"] = {
+                                            red: endColorRgb.r,
+                                            green: endColorRgb.g,
+                                            blue: endColorRgb.b
+                                        };
+                                    }
+                                }
+
+                                pf["alternateColors"] = alternate;
+                                pf["direction"] = direction;
+                                pf["speed"] = speed;
+
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/devices/setHardwareLights',
+                                    type: 'POST',
+                                    data: json,
+                                    cache: false,
+                                    success: function(response) {
+                                        try {
+                                            if (response.status === 1) {
+                                                toast.success(response.message);
+                                            } else {
+                                                toast.warning(response.message);
+                                            }
+                                        } catch (err) {
+                                            toast.warning(response.message);
+                                        }
+                                    }
+                                });
+                            });
+                        })
+                    } else {
+                        toast.warning(response.data);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('.setHardwareLight').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const profile = $(this).val();
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["hardwareLight"] = parseInt(profile);
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/devices/setHardwareLight',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                console.log(response)
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
 });

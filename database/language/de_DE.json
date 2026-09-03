@@ -674,6 +674,14 @@
     "txtTimeSize": "Schriftgröße der Uhrzeit (px)",
     "txtDateSize": "Schriftgröße des Datums (px)",
     "txtTimePosition": "Uhrzeit Links / Oben",
-    "txtDatePosition": "Datum Links / Oben"
+    "txtDatePosition": "Datum Links / Oben",
+    "txtAlternateColors": "Abwechselnde Farben",
+    "txtLeft": "Links",
+    "txtRight": "Rechts",
+    "txtSlow": "Langsam",
+    "txtNormal": "Normal",
+    "txtFast": "Schnell",
+    "txtUnableToUpdateHardwareLight": "Die Hardware-Beleuchtung des Geräts konnte nicht aktualisiert werden",
+    "txtHardwareLightUpdated": "Die Hardware-Beleuchtung des Geräts wurde erfolgreich aktualisiert"
   }
 }

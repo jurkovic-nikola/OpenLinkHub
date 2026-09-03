@@ -2070,6 +2070,39 @@ func updateDisplayData(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getHardwareLights return supported device hardware lights
+func getHardwareLights(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessGetHardwareLights(r)
+	resp := &Response{
+		Code:   request.Code,
+		Status: request.Status,
+		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// setHardwareLights will set supported device hardware lights
+func setHardwareLights(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetHardwareLights(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// setHardwareLights will set supported device hardware light profile
+func setHardwareLight(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetHardwareLight(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -2720,6 +2753,9 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/devices/channel", http.MethodPost, getChannelData)
 	handleFunc(r, "/api/display/update", http.MethodPost, updateDisplayData)
 	handleFunc(r, "/api/xeneon/getWidget", http.MethodPost, getXeneonWidget)
+	handleFunc(r, "/api/devices/getHardwareLights", http.MethodPost, getHardwareLights)
+	handleFunc(r, "/api/devices/setHardwareLights", http.MethodPost, setHardwareLights)
+	handleFunc(r, "/api/devices/setHardwareLight", http.MethodPost, setHardwareLight)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)

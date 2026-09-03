@@ -95,6 +95,26 @@
                                     </label>
                                 </div>
 
+                                <!-- Hardware Lights -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ $root.Lang "txtHardwareLights" }}</span>
+                                    <label>
+                                        <button class="system-button compact configureHardwareLights" type="button">{{ $root.Lang "txtConfigure" }}</button>
+                                    </label>
+                                </div>
+
+                                <!-- Hardware Light -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtHardwareLights" }}</span>
+                                    <label for="setHardwareLight">
+                                        <select id="setHardwareLight" class="form-select system-select compact auto-width setHardwareLight" name="setHardwareLight">
+                                            {{ range $key, $value := $deviceProfile.HardwareLights }}
+                                            <option value="{{ $key }}" {{ if eq $key $deviceProfile.HardwareLight }} selected {{ end }}>{{ $value.Name }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </label>
+                                </div>
+
                                 <!-- Delete user profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
@@ -164,7 +184,6 @@
     </div>
 </div>
 <script src="/static/js/overview.js"></script>
-<script src="/static/js/draggable.js"></script>
 <script src="/static/js/sidebar.js"></script>
 {{ if .Dashboard.TemperatureBar }}
 <script src="/static/js/temperature-bar.js"></script>

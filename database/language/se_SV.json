@@ -668,6 +668,14 @@
     "txtTimeSize": "Teckenstorlek för tid (px)",
     "txtDateSize": "Teckenstorlek för datum (px)",
     "txtTimePosition": "Tid Vänster / Överst",
-    "txtDatePosition": "Datum Vänster / Överst"
+    "txtDatePosition": "Datum Vänster / Överst",
+    "txtAlternateColors": "Växlande färger",
+    "txtLeft": "Vänster",
+    "txtRight": "Höger",
+    "txtSlow": "Långsam",
+    "txtNormal": "Normal",
+    "txtFast": "Snabb",
+    "txtUnableToUpdateHardwareLight": "Det gick inte att uppdatera enhetens hårdvarubelysning",
+    "txtHardwareLightUpdated": "Enhetens hårdvarubelysning har uppdaterats"
   }
 }

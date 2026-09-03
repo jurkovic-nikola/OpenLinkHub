@@ -674,6 +674,14 @@
     "txtTimeSize": "Tamanho da fonte da hora (px)",
     "txtDateSize": "Tamanho da fonte da data (px)",
     "txtTimePosition": "Hora Esquerda / Superior",
-    "txtDatePosition": "Data Esquerda / Superior"
+    "txtDatePosition": "Data Esquerda / Superior",
+    "txtAlternateColors": "Cores alternadas",
+    "txtLeft": "Esquerda",
+    "txtRight": "Direita",
+    "txtSlow": "Lento",
+    "txtNormal": "Normal",
+    "txtFast": "Rápido",
+    "txtUnableToUpdateHardwareLight": "Não foi possível atualizar a iluminação de hardware do dispositivo",
+    "txtHardwareLightUpdated": "A iluminação de hardware do dispositivo foi atualizada com sucesso"
   }
 }

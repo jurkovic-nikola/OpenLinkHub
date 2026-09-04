@@ -169,6 +169,14 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		return nil
 	}
 
+	// Product-specific settings
+	product := "HARPOON RGB PRO"
+	maxDpi := maxDpiValue
+	if productId == 6972 {
+		product = "HARPOON RGB"
+		maxDpi = 6000
+	}
+
 	// Init new struct with HID device
 	d := &Device{
 		Usb:       true,
@@ -184,7 +192,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			2: "66 %",
 			3: "100 %",
 		},
-		Product: "HARPOON RGB PRO",
+		Product: product,
 		SleepModes: map[int]string{
 			1:  "1 minute",
 			5:  "5 minutes",
@@ -221,7 +229,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		keyAssignmentFile: "/database/key-assignments/harpoonrgbpro.json",
 		MacroTracker:      make(map[int]uint16),
 		MinDPI:            minDpiValue,
-		MaxDPI:            maxDpiValue,
+		MaxDPI:            maxDpi,
 		ZoneAmount:        1,
 		DPIAmount:         6,
 	}
@@ -239,12 +247,20 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.toggleDPI(false)      // DPI
 	d.backendListener()     // Control listener
 	d.setAutoRefresh()      // Set auto device refresh
-	d.loadKeyAssignments()  // Key Assignments
-	d.setupKeyAssignment()  // Setup key assignments
-	d.createDevice()        // Device register
+	if d.supportsKeyAssignments() {
+		d.loadKeyAssignments() // Key Assignments
+		d.setupKeyAssignment() // Setup key assignments
+	}
+	d.createDevice() // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
+}
+
+// supportsKeyAssignments reports whether the device supports
+// programmable key assignments used by this driver.
+func (d *Device) supportsKeyAssignments() bool {
+	return d.ProductId != 6972
 }
 
 // createDevice will create new device register object
@@ -460,8 +476,10 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.saveDeviceProfile()
 		d.setDeviceColor(false)
 		d.toggleDPI(false)
-		d.loadKeyAssignments()
-		d.setupKeyAssignment()
+		if d.supportsKeyAssignments() {
+			d.loadKeyAssignments()
+			d.setupKeyAssignment()
+		}
 		return 1
 	}
 	return 0
@@ -808,7 +826,7 @@ func (d *Device) SaveMouseDPI(stages map[int]uint16) uint8 {
 	for key, stage := range stages {
 		if _, ok := d.DeviceProfile.Profiles[key]; ok {
 			profile := d.DeviceProfile.Profiles[key]
-			if stage > uint16(maxDpiValue) {
+			if stage > uint16(d.MaxDPI) {
 				continue
 			}
 			if stage < uint16(minDpiValue) {
@@ -847,8 +865,17 @@ func (d *Device) updateMouseDPI() {
 		}
 		buf[1] = 0x00
 		buf[2] = 0x00
-		binary.LittleEndian.PutUint16(buf[3:5], value.Value)
-		binary.LittleEndian.PutUint16(buf[5:7], value.Value)
+
+		dpi := value.Value
+		if dpi < uint16(d.MinDPI) {
+			dpi = uint16(d.MinDPI)
+		}
+		if dpi > uint16(d.MaxDPI) {
+			dpi = uint16(d.MaxDPI)
+		}
+
+		binary.LittleEndian.PutUint16(buf[3:5], dpi)
+		binary.LittleEndian.PutUint16(buf[5:7], dpi)
 		buf[7] = byte(value.Color.Red)
 		buf[8] = byte(value.Color.Green)
 		buf[9] = byte(value.Color.Blue)
@@ -1085,7 +1112,7 @@ func (d *Device) saveDeviceProfile() {
 			},
 			4: {
 				Name:        "Stage 5",
-				Value:       9000,
+				Value:       uint16(min(9000, d.MaxDPI)),
 				PackerIndex: 5,
 				ColorIndex: map[int][]int{
 					0: {0, 1, 2},
@@ -1206,6 +1233,10 @@ func (d *Device) upgradeDpiProfiles() {
 
 // UpdateDeviceKeyAssignment will update device key assignments
 func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmanager.KeyAssignment) uint8 {
+	if !d.supportsKeyAssignments() {
+		return 0
+	}
+
 	if val, ok := d.KeyAssignment[keyIndex]; ok {
 		val.Default = keyAssignment.Default
 		val.ActionHold = keyAssignment.ActionHold
@@ -1757,6 +1788,10 @@ func (d *Device) setDeviceColor(dpi bool) {
 
 // setupKeyAssignment will setup mouse keys
 func (d *Device) setupKeyAssignment() {
+	if !d.supportsKeyAssignments() {
+		return
+	}
+
 	// Prevent modifications if key amount does not match the expected key amount
 	definedKeyAmount := len(d.KeyAssignment)
 	if definedKeyAmount < keyAmount || definedKeyAmount > keyAmount {
@@ -2045,8 +2080,8 @@ func (d *Device) toggleDPI(color bool) {
 		if value < uint16(minDpiValue) {
 			value = uint16(minDpiValue)
 		}
-		if value > uint16(maxDpiValue) {
-			value = uint16(maxDpiValue)
+		if value > uint16(d.MaxDPI) {
+			value = uint16(d.MaxDPI)
 		}
 
 		buf := make([]byte, 1)
@@ -2186,7 +2221,7 @@ func (d *Device) backendListener() {
 					continue
 				}
 
-				if data[0] == 3 {
+				if data[0] == 3 && d.supportsKeyAssignments() {
 					d.triggerKeyAssignment(data[1])
 				}
 			}

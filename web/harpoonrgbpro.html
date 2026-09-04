@@ -194,6 +194,7 @@
                         </div>
                     </div>
                 </div>
+                {{ if ne $device.ProductId 6972 }}
                 <div class="col-md-7">
                     <div class="card system-card text-center">
                         <table class="dataTable text-sm">
@@ -280,6 +281,7 @@
                         </table>
                     </div>
                 </div>
+                {{ end }}
             </div>
             {{ end }}
         </main>

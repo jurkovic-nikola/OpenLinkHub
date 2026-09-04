@@ -831,6 +831,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7126:  {1, 0, "M65 RGB ULTRA WIRELESS", m65rgbultraWU.Init, nil},       // M65 RGB ULTRA WIRELESS Gaming Mouse
 	7002:  {1, 0, "M65 RGB ELITE", m65rgbelite.Init, nil},                  // M65 RGB ELITE Gaming Mouse
 	6958:  {1, 0, "M65 PRO RGB", m65prorgb.Init, nil},                      // M65 PRO RGB Mouse
+	6972:  {1, 0, "HARPOON RGB", harpoonrgbpro.Init, nil},                  // HARPOON RGB Gaming Mouse
 	7029:  {1, 0, "HARPOON RGB PRO", harpoonrgbpro.Init, nil},              // HARPOON RGB PRO Gaming Mouse
 	7006:  {1, 0, "HARPOON", harpoonWU.Init, nil},                          // HARPOON Gaming Mouse
 	11054: {1, 0, "HARPOON V2", harpoonV2WU.Init, nil},                     // HARPOON Gaming Mouse

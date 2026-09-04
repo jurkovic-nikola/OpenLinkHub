@@ -2124,6 +2124,7 @@ func (d *Device) startQueueWorker() {
 			}
 
 			if len(dpiLeds.ColorIndex) == 0 {
+				d.deviceLock.Unlock()
 				return
 			}
 

@@ -2324,6 +2324,7 @@ func (d *Device) startQueueWorker() {
 				dpiColor = d.getSniperColor()
 			}
 			if dpiColor == nil {
+				d.deviceLock.Unlock()
 				return
 			}
 

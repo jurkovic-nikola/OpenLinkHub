@@ -2199,6 +2199,7 @@ func (d *Device) startQueueWorker() {
 		for data := range d.queue {
 			d.deviceLock.Lock()
 			buf := make([]byte, d.LEDChannels*3)
+
 			// DPI
 			dpiColor := d.DeviceProfile.DPIColor
 			dpiLeds := d.DeviceProfile.Profiles[d.DeviceProfile.Profile]
@@ -2208,6 +2209,7 @@ func (d *Device) startQueueWorker() {
 			}
 
 			if len(dpiLeds.ColorIndex) == 0 {
+				d.deviceLock.Unlock()
 				return
 			}
 

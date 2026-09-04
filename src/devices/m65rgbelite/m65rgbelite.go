@@ -2415,6 +2415,7 @@ func (d *Device) startQueueWorker() {
 			}
 
 			if dpiColor == nil {
+				d.deviceLock.Unlock()
 				return
 			}
 

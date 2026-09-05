@@ -91,10 +91,9 @@ var (
 )
 
 type ImageData struct {
-	Name           string
-	Frames         int
-	Buffer         []Frames          `json:"-"`
-	PalettedFrames []*image.Paletted `json:"-"`
+	Name   string
+	Frames int
+	Buffer []Frames `json:"-"`
 }
 
 type Frames struct {
@@ -105,7 +104,6 @@ type Frames struct {
 type AnimationFrames struct {
 	Delay  float64
 	Canvas *image.RGBA
-	RGBA   *image.RGBA
 }
 type LCD struct {
 	image     image.Image
@@ -560,13 +558,8 @@ func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 	loadImage(savePath, spec.format)
 
 	if spec.format == ImageFormatGif {
-		status := LoadAnimation(name)
-		switch status {
-		case 0:
+		if LoadAnimation(name) == 0 {
 			http.Error(w, "Failed to reload animations", http.StatusInternalServerError)
-			return
-		case 2:
-			http.Error(w, "Animation is already loaded", http.StatusConflict)
 			return
 		}
 	}
@@ -696,8 +689,19 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 	margin := int(animation.Margin)
 	mutex.Unlock()
 
-	if !ok {
-		return nil
+	if !ok || len(val) == 0 {
+		// The background is loaded lazily, so the first pass after startup or
+		// after a background change finds either no catalog entry or a nil frame
+		// slice waiting to be decoded.
+		if !ensureAnimationLoaded(background) {
+			return nil
+		}
+		mutex.Lock()
+		val, ok = animation.Images[background]
+		mutex.Unlock()
+		if !ok || len(val) == 0 {
+			return nil
+		}
 	}
 
 	z := 0
@@ -712,21 +716,41 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 	imageBuffer := make([]Frames, len(val))
 	var wg sync.WaitGroup
 	wg.Add(len(val))
-	sem := make(chan struct{}, animation.Workers)
+
+	// One scratch canvas per worker rather than per frame. A frame's scratch is
+	// only live between copying the background in and encoding the result, so
+	// at most Workers of them are ever in use; keeping one per frame pinned a
+	// full size RGBA for every frame of the animation for the process lifetime.
+	// The pool doubles as the concurrency limit.
+	workers := animation.Workers
+	if workers < 1 {
+		workers = 1
+	}
+	if workers > len(val) {
+		workers = len(val)
+	}
+	pool := make(chan *image.RGBA, workers)
+	for w := 0; w < workers; w++ {
+		pool <- image.NewRGBA(val[0].Canvas.Bounds())
+	}
 
 	for i := 0; i < len(val); i++ {
-		sem <- struct{}{}
+		canvas := <-pool
 
 		i := i
 		canvasSource := val[i].Canvas
-		canvasRGBA := val[i].RGBA
 		delay := val[i].Delay
+
+		// Frames of a gif may carry different bounds; swap in a correctly sized
+		// canvas rather than copying into a mismatched one.
+		if canvas.Rect != canvasSource.Rect {
+			canvas = image.NewRGBA(canvasSource.Bounds())
+		}
 
 		go func() {
 			defer wg.Done()
-			defer func() { <-sem }()
+			defer func() { pool <- canvas }()
 
-			canvas := canvasRGBA
 			copy(canvas.Pix, canvasSource.Pix)
 
 			total := z * 125
@@ -1078,6 +1102,66 @@ func drawColorString(x, y int, fontSite float64, text string, rgba *image.RGBA, 
 	d.DrawString(text)
 }
 
+// decodePalettedFrames re-reads an animated image from disk and returns its
+// resized frames. They are only needed to build animation canvases, so they are
+// produced on demand rather than held for the lifetime of the process: at
+// roughly 230 KB a frame, keeping them for every image on disk cost far more
+// than decoding the one image that actually gets animated, and most panels
+// never select the animation mode at all.
+func decodePalettedFrames(fileName string) []*image.Paletted {
+	// The name arrives from the animation profile, which the API writes, so it
+	// must not be joined into a path: "../.." would walk straight out of the
+	// image folder. Reject anything that is not a plain name, then resolve the
+	// file against the folder listing so the path is assembled only from entries
+	// the filesystem reported. Matching is case insensitive because images
+	// predating the lowercasing done on upload may differ in extension case.
+	if !common.AlphanumericRegex.MatchString(fileName) {
+		logger.Log(logger.Fields{"image": fileName}).Warn("Image name can only have letters and numbers")
+		return nil
+	}
+
+	entries, err := os.ReadDir(images)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": images}).Warn("Unable to read image folder")
+		return nil
+	}
+
+	imagePath := ""
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.EqualFold(filepath.Ext(name), ".gif") &&
+			strings.EqualFold(strings.TrimSuffix(name, filepath.Ext(name)), fileName) {
+			imagePath = filepath.Join(images, name)
+			break
+		}
+	}
+	if imagePath == "" {
+		logger.Log(logger.Fields{"image": fileName}).Warn("Unable to locate animation image")
+		return nil
+	}
+
+	file, err := os.Open(imagePath)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "image": imagePath}).Warn("Unable to open image")
+		return nil
+	}
+	defer func(file *os.File) {
+		if err = file.Close(); err != nil {
+			logger.Log(logger.Fields{"error": err, "image": imagePath}).Warn("Unable to close image")
+		}
+	}(file)
+
+	src, err := gif.DecodeAll(file)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "image": imagePath}).Warn("Error decoding gif animation")
+		return nil
+	}
+	return common.ResizeGifImage(src, imgWidth, imgHeight)
+}
+
 func loadImage(imagePath string, format uint8) {
 	file, err := os.Open(imagePath)
 	if err != nil {
@@ -1193,13 +1277,25 @@ func loadImage(imagePath string, format uint8) {
 		break
 	}
 
+	// Only the encoded frames are kept. The decoded ones were needed here just
+	// to produce them, and anything that wants them back can decode on demand.
 	imageList := &ImageData{
-		Name:           fileName,
-		Frames:         len(imageBuffer),
-		Buffer:         imageBuffer,
-		PalettedFrames: paletted,
+		Name:   fileName,
+		Frames: len(imageBuffer),
+		Buffer: imageBuffer,
 	}
 	paletted = nil
+
+	// Replace rather than append when the name is already known. Re-uploading
+	// an existing image otherwise leaves the previous copy in the slice with
+	// every frame still decoded, and nothing ever drops it. GetLcdImage
+	// returns the first match, so the stale copy is unreachable but retained.
+	for i := range lcd.ImageData {
+		if lcd.ImageData[i].Name == fileName {
+			lcd.ImageData[i] = *imageList
+			return
+		}
+	}
 	lcd.ImageData = append(lcd.ImageData, *imageList)
 }
 

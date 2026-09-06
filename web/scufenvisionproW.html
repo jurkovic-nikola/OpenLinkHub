@@ -77,7 +77,7 @@
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
                                     <label for="rgbProfile">
-                                        <select id="rgbProfile" class="system-select auto-width compact mouseRgbProfile" name="mouseRgbProfile">
+                                        <select id="rgbProfile" class="system-select auto-width compact controllerRgbProfile" name="controllerRgbProfile">
                                             {{ range $key, $mode := $rgbModes }}
                                             {{ if eq $mode $device.DeviceProfile.RGBProfile }}
                                             <option value="0;{{ $mode }}" selected>{{ $mode }}</option>

@@ -1931,15 +1931,15 @@ func (d *Device) setDeviceColor() {
 				switch key {
 				case 0: // Red
 					for i := zoneColorIndex; i < 9; i++ {
-						buf[i] = 0x00
+						buf[i] = 0x01
 					}
 				case 1: // Green
 					for i := zoneColorIndex; i < 9*2; i++ {
-						buf[i] = 0x00
+						buf[i] = 0x01
 					}
 				case 2: // Blue
 					for i := zoneColorIndex; i < 9*3; i++ {
-						buf[i] = 0x00
+						buf[i] = 0x01
 					}
 				}
 			}
@@ -1957,15 +1957,15 @@ func (d *Device) setDeviceColor() {
 				switch key {
 				case 0: // Red
 					for i := zoneColorIndex; i < 9; i++ {
-						buf[i] = byte(zoneColor.Color.Red)
+						buf[i] = max(byte(zoneColor.Color.Red), byte(1))
 					}
 				case 1: // Green
 					for i := zoneColorIndex; i < 9*2; i++ {
-						buf[i] = byte(zoneColor.Color.Green)
+						buf[i] = max(byte(zoneColor.Color.Green), byte(1))
 					}
 				case 2: // Blue
 					for i := zoneColorIndex; i < 9*3; i++ {
-						buf[i] = byte(zoneColor.Color.Blue)
+						buf[i] = max(byte(zoneColor.Color.Blue), byte(1))
 					}
 				}
 			}
@@ -1988,15 +1988,15 @@ func (d *Device) setDeviceColor() {
 				switch key {
 				case 0: // Red
 					for i := zoneColorIndex; i < 9; i++ {
-						buf[i] = byte(profileColor.Red)
+						buf[i] = max(byte(profileColor.Red), byte(1))
 					}
 				case 1: // Green
 					for i := zoneColorIndex; i < 9*2; i++ {
-						buf[i] = byte(profileColor.Green)
+						buf[i] = max(byte(profileColor.Green), byte(1))
 					}
 				case 2: // Blue
 					for i := zoneColorIndex; i < 9*3; i++ {
-						buf[i] = byte(profileColor.Blue)
+						buf[i] = max(byte(profileColor.Blue), byte(1))
 					}
 				}
 			}
@@ -2023,7 +2023,7 @@ func (d *Device) setDeviceColor() {
 				profile := d.GetRgbProfile(d.DeviceProfile.RGBProfile)
 				if profile == nil {
 					for i := 0; i < d.ChangeableLedChannels*3; i++ {
-						buff = append(buff, []byte{0, 0, 0}...)
+						buff = append(buff, []byte{1, 1, 1}...)
 					}
 					continue
 				}
@@ -2069,7 +2069,7 @@ func (d *Device) setDeviceColor() {
 				case "off":
 					{
 						for n := 0; n < d.ChangeableLedChannels; n++ {
-							buff = append(buff, []byte{0, 0, 0}...)
+							buff = append(buff, []byte{1, 1, 1}...)
 						}
 					}
 				case "rainbow":
@@ -2163,27 +2163,11 @@ func (d *Device) setDeviceColor() {
 					}
 				}
 
-				for _, zoneColor := range d.DeviceProfile.ZoneColors {
-					zoneColorIndexRange := zoneColor.ColorIndex
-
-					for key, zoneColorIndex := range zoneColorIndexRange {
-						switch key {
-						case 0: // Red
-							for i := zoneColorIndex; i < 9; i++ {
-								buf[i] = buff[i]
-							}
-						case 1: // Green
-							for i := zoneColorIndex; i < 9*2; i++ {
-								buf[i] = buff[i]
-							}
-						case 2: // Blue
-							for i := zoneColorIndex; i < 9*3; i++ {
-								buf[i] = buff[i]
-							}
-						}
-					}
+				for i := 0; i < d.ChangeableLedChannels; i++ {
+					buf[i] = max(buff[i*3], byte(1))
+					buf[d.ChangeableLedChannels+i] = max(buff[i*3+1], byte(1))
+					buf[(d.ChangeableLedChannels*2)+i] = max(buff[i*3+2], byte(1))
 				}
-
 				d.writeColor(buf)
 				time.Sleep(40 * time.Millisecond)
 			}

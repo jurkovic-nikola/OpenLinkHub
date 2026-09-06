@@ -5616,7 +5616,7 @@ func (d *Device) setupLCD() {
 										if image != nil {
 											imageLen := len(image)
 											for i := 0; i < imageLen; i++ {
-												if d.DeviceProfile.LCDMode != lcd.DisplayAnimation {
+												if d.DeviceProfile.LCDModes[device.ChannelId] != lcd.DisplayAnimation {
 													break
 												}
 												d.transferToLcd(image[i].Buffer, lcdDevice.Lcd)

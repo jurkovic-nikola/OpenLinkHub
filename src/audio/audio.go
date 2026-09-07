@@ -272,7 +272,7 @@ func setAudioConfig(frames, rate, channels, pollingRate, debug uint32) error {
 	}
 
 	if msg, ok := audioErrors[rc]; ok {
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	return fmt.Errorf("audio engine error (%d)", rc)

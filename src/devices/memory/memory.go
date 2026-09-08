@@ -606,7 +606,15 @@ func (d *Device) getDevices() int {
 		modules = NewMemoryModules()
 	}
 
-	for i := 0; i < maximumRegisters; i++ {
+	registerCount := maximumRegisters
+
+// Non-RGB DDR5 only has one SPD5118 sensor per physical DIMM.
+// Limit the discovery loop to the number of decoded DIMMs.
+if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon && len(modules) > 0 {
+    registerCount = len(modules)
+}
+
+for i := 0; i < registerCount; i++ {
 		if d.Debug {
 			logger.Log(logger.Fields{"address": colorAddresses[i]}).Info("Probing address")
 		}
@@ -776,7 +784,7 @@ if err != nil {
 										device.HasTemps = true
 									}
 								}
-								baseDevice += i + 1
+								baseDevice++
 							} else {
 								device.HwmonPath = fmt.Sprintf(
 									"/sys/bus/i2c/drivers/jc42/%d-%s/hwmon",

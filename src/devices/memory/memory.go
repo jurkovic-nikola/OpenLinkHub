@@ -599,7 +599,7 @@ func (d *Device) getTemperature(filePath string) (float32, error) {
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices)
 	var modules []RAMModule
-	baseDevice := 51
+	baseDevice := 50
 
 	// DDR5
 	if d.RuntimeMemoryType == 5 {
@@ -615,19 +615,37 @@ func (d *Device) getDevices() int {
 			d.setEnhancementKit(colorAddresses[i])
 		}
 
-		// Probe for register
-		_, err := smbus.ReadRegister(d.dev.File, colorAddresses[i], 0x00)
-		if err != nil {
-			if !slices.Contains(config.GetConfig().EnhancementKits, colorAddresses[i]) {
-				if !slices.Contains(config.GetConfig().MemoryRegisterOverride, colorAddresses[i]) {
-					logger.Log(logger.Fields{"register": colorAddresses[i], "err": err}).Info("No such register found. Skipping...")
-					continue
-				}
-			} else {
-				logger.Log(logger.Fields{"register": colorAddresses[i]}).Info("Found Light Enhancement Kit in configuration")
-				d.setEnhancementKit(colorAddresses[i])
-			}
-		}
+// Probe for register
+_, err := smbus.ReadRegister(d.dev.File, colorAddresses[i], 0x00)
+
+if err != nil {
+    if !slices.Contains(config.GetConfig().EnhancementKits, colorAddresses[i]) {
+        if !slices.Contains(config.GetConfig().MemoryRegisterOverride, colorAddresses[i]) {
+
+            // DDR5 non-RGB DIMMs do not have the RGB controller
+            // normally found at 0x18-0x1f. When hwmon/spd5118
+            // temperature monitoring is enabled, continue so the
+            // DIMM can still be exposed for temperature monitoring.
+            if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon {
+                logger.Log(logger.Fields{
+                    "register": colorAddresses[i],
+                    "err":      err,
+                }).Info("No RGB controller found, continuing for hwmon temperature monitoring")
+            } else {
+                logger.Log(logger.Fields{
+                    "register": colorAddresses[i],
+                    "err":      err,
+                }).Info("No such register found. Skipping...")
+                continue
+            }
+        }
+    } else {
+        logger.Log(logger.Fields{
+            "register": colorAddresses[i],
+        }).Info("Found Light Enhancement Kit in configuration")
+        d.setEnhancementKit(colorAddresses[i])
+    }
+}
 
 		if d.Debug {
 			logger.Log(logger.Fields{"memoryType": d.RuntimeMemoryType}).Info("Probing address")

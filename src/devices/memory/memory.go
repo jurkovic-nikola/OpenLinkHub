@@ -638,7 +638,7 @@ if err != nil {
                 logger.Log(logger.Fields{
                     "register": colorAddresses[i],
                     "err":      err,
-                }).Info("No RGB controller found, continuing for hwmon temperature monitoring")
+                }).Info("No RGB controller found, continuing with memory device discovery")
             } else {
                 logger.Log(logger.Fields{
                     "register": colorAddresses[i],

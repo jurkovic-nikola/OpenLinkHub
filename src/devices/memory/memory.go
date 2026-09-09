@@ -340,44 +340,58 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
-// getHwMonTemperatureFile will get hwmon
-func (d *Device) getHwMonTemperatureFile(baseId int, driver string) string {
-	basePath := filepath.Join(basePath, driver)
-
-	entries, err := os.ReadDir(basePath)
+// getHwMonTemperatureFiles returns all temperature files exposed by the
+// specified hwmon driver on this memory device's I2C bus.
+//
+// DDR5 SPD5118 devices can be registered on different I2C buses and at
+// different addresses depending on the motherboard. Do not assume a fixed
+// starting address such as 0x50.
+func (d *Device) getHwMonTemperatureFiles(driver string) []string {
+	driverPath := filepath.Join(basePath, driver)
+	entries, err := os.ReadDir(driverPath)
 	if err != nil {
-		return ""
+		return nil
 	}
 
+	busPrefix := fmt.Sprintf("%d-", d.getI2cSensor())
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	var temperatureFiles []string
 	for _, entry := range entries {
-		devicePath := filepath.Join(basePath, entry.Name())
+		if !strings.HasPrefix(entry.Name(), busPrefix) {
+			continue
+		}
+
+		devicePath := filepath.Join(driverPath, entry.Name())
 		namePath := filepath.Join(devicePath, "name")
-
 		data, err := os.ReadFile(namePath)
-		if err != nil {
-			continue
-		}
-
-		name := strings.TrimSpace(string(data))
-		if name != driver {
-			continue
-		}
-
-		if !strings.Contains(entry.Name(), strconv.Itoa(baseId)) {
+		if err != nil || strings.TrimSpace(string(data)) != driver {
 			continue
 		}
 
 		hwmonRoot := filepath.Join(devicePath, "hwmon")
-		hwmonFolders, _ := filepath.Glob(filepath.Join(hwmonRoot, "hwmon*"))
+		hwmonFolders, err := filepath.Glob(filepath.Join(hwmonRoot, "hwmon*"))
+		if err != nil {
+			continue
+		}
+		sort.Strings(hwmonFolders)
 
 		for _, hwmonFolder := range hwmonFolders {
-			temps, _ := filepath.Glob(filepath.Join(hwmonFolder, "temp*_input"))
+			temps, err := filepath.Glob(filepath.Join(hwmonFolder, "temp*_input"))
+			if err != nil {
+				continue
+			}
+			sort.Strings(temps)
 			if len(temps) > 0 {
-				return temps[0]
+				temperatureFiles = append(temperatureFiles, temps[0])
+				break
 			}
 		}
 	}
-	return ""
+
+	return temperatureFiles
 }
 
 // loadRgb will load RGB file if found, or create the default.
@@ -599,7 +613,7 @@ func (d *Device) getTemperature(filePath string) (float32, error) {
 func (d *Device) getDevices() int {
 	var devices = make(map[int]*Devices)
 	var modules []RAMModule
-	baseDevice := 50
+	var hwmonTemperatureFiles []string
 
 	// DDR5
 	if d.RuntimeMemoryType == 5 {
@@ -608,13 +622,19 @@ func (d *Device) getDevices() int {
 
 	registerCount := maximumRegisters
 
-// Non-RGB DDR5 only has one SPD5118 sensor per physical DIMM.
-// Limit the discovery loop to the number of decoded DIMMs.
-if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon && len(modules) > 0 {
-    registerCount = len(modules)
-}
+	// Non-RGB DDR5 only has one SPD5118 sensor per physical DIMM.
+	// Limit the discovery loop to the number of decoded DIMMs.
+	if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon && len(modules) > 0 {
+		registerCount = len(modules)
+	}
 
-for i := 0; i < registerCount; i++ {
+	// Discover SPD5118 sensors once, using the actual I2C bus and addresses
+	// exposed by sysfs rather than assuming a fixed address range.
+	if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon {
+		hwmonTemperatureFiles = d.getHwMonTemperatureFiles("spd5118")
+	}
+
+	for i := 0; i < registerCount; i++ {
 		if d.Debug {
 			logger.Log(logger.Fields{"address": colorAddresses[i]}).Info("Probing address")
 		}
@@ -623,37 +643,37 @@ for i := 0; i < registerCount; i++ {
 			d.setEnhancementKit(colorAddresses[i])
 		}
 
-// Probe for register
-_, err := smbus.ReadRegister(d.dev.File, colorAddresses[i], 0x00)
+		// Probe for register
+		_, err := smbus.ReadRegister(d.dev.File, colorAddresses[i], 0x00)
 
-if err != nil {
-    if !slices.Contains(config.GetConfig().EnhancementKits, colorAddresses[i]) {
-        if !slices.Contains(config.GetConfig().MemoryRegisterOverride, colorAddresses[i]) {
+		if err != nil {
+			if !slices.Contains(config.GetConfig().EnhancementKits, colorAddresses[i]) {
+				if !slices.Contains(config.GetConfig().MemoryRegisterOverride, colorAddresses[i]) {
 
-            // DDR5 non-RGB DIMMs do not have the RGB controller
-            // normally found at 0x18-0x1f. When hwmon/spd5118
-            // temperature monitoring is enabled, continue so the
-            // DIMM can still be exposed for temperature monitoring.
-            if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon {
-                logger.Log(logger.Fields{
-                    "register": colorAddresses[i],
-                    "err":      err,
-                }).Info("No RGB controller found, continuing with memory device discovery")
-            } else {
-                logger.Log(logger.Fields{
-                    "register": colorAddresses[i],
-                    "err":      err,
-                }).Info("No such register found. Skipping...")
-                continue
-            }
-        }
-    } else {
-        logger.Log(logger.Fields{
-            "register": colorAddresses[i],
-        }).Info("Found Light Enhancement Kit in configuration")
-        d.setEnhancementKit(colorAddresses[i])
-    }
-}
+					// DDR5 non-RGB DIMMs do not have the RGB controller
+					// normally found at 0x18-0x1f. When hwmon/spd5118
+					// temperature monitoring is enabled, continue so the
+					// DIMM can still be exposed for temperature monitoring.
+					if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon {
+						logger.Log(logger.Fields{
+							"register": colorAddresses[i],
+							"err":      err,
+						}).Info("No RGB controller found, continuing with memory device discovery")
+					} else {
+						logger.Log(logger.Fields{
+							"register": colorAddresses[i],
+							"err":      err,
+						}).Info("No such register found. Skipping...")
+						continue
+					}
+				}
+			} else {
+				logger.Log(logger.Fields{
+					"register": colorAddresses[i],
+				}).Info("Found Light Enhancement Kit in configuration")
+				d.setEnhancementKit(colorAddresses[i])
+			}
+		}
 
 		if d.Debug {
 			logger.Log(logger.Fields{"memoryType": d.RuntimeMemoryType}).Info("Probing address")
@@ -774,17 +794,21 @@ if err != nil {
 					if config.GetConfig().RamTempViaHwmon {
 						if !d.getEnhancementKit(colorAddresses[i]) {
 							if d.RuntimeMemoryType == 5 {
-								hwmonTemperatureFile := d.getHwMonTemperatureFile(baseDevice, "spd5118")
-								if len(hwmonTemperatureFile) > 0 {
+								if i < len(hwmonTemperatureFiles) {
+									hwmonTemperatureFile := hwmonTemperatureFiles[i]
 									device.HwmonPath = hwmonTemperatureFile
 									hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
 									if err == nil {
 										device.Temperature = hwmonTemp
 										device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
 										device.HasTemps = true
+									} else if d.Debug {
+										logger.Log(logger.Fields{
+											"file":  hwmonTemperatureFile,
+											"error": err,
+										}).Warn("Unable to read DDR5 temperature")
 									}
 								}
-								baseDevice++
 							} else {
 								device.HwmonPath = fmt.Sprintf(
 									"/sys/bus/i2c/drivers/jc42/%d-%s/hwmon",

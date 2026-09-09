@@ -2,7 +2,6 @@
 <html lang="en">
 {{ template "head" . }}
 <body>
-
 <div class="container-fluid">
     {{ $root := . }}
     {{ $devs := .Devices }}
@@ -16,14 +15,12 @@
     <div class="row">
         <!-- Sidebar -->
         {{ template "sidebar" . }}
-
         <!-- Main -->
         <main class="main-content p-4">
             <!-- Temperature bar -->
             {{ if .Dashboard.TemperatureBar }}
             {{ template "temperature-bar" . }}
             {{ end }}
-
             <!-- Memory -->
             <div class="row g-4 mb-4 align-items-start">
                 <div class="col-md-2">
@@ -48,7 +45,6 @@
                                         </select>
                                     </label>
                                 </div>
-
                                 <!-- Brightness -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
@@ -59,7 +55,6 @@
                                         <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.BrightnessSlider }} %</div>
                                     </div>
                                 </div>
-
                                 <!-- RGB Cluster -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtCluster" }}</span>
@@ -68,7 +63,6 @@
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
-
                                 <!-- OpenRGB -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtOpenRGB" }}</span>
@@ -77,7 +71,6 @@
                                         <span class="toggle-track"></span>
                                     </label>
                                 </div>
-
                                 <!-- RGB Profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
@@ -93,7 +86,6 @@
                                         </select>
                                     </label>
                                 </div>
-
                                 <!-- Delete user profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
@@ -110,7 +102,6 @@
                                         </select>
                                     </label>
                                 </div>
-
                                 <!-- Save profile -->
                                 <div class="settings-row">
                                     <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
@@ -129,7 +120,6 @@
                                     <span class="memory-title">{{ $root.Lang "txtMemoryModule" }}</span>
                                     <span class="memory-type">DDR{{ $device.MemoryType }}</span>
                                 </div>
-
                                 <!-- PCB -->
                                 <div class="memory-stick">
                                     <div class="memory-chip"></div>
@@ -149,21 +139,25 @@
                                         <div class="memory-contact"></div>
                                     </div>
                                 </div>
-
                                 <!-- Specs -->
                                 <div class="settings-list no-border">
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ $root.Lang "txtMemorySku" }}</span>
                                         <span class="settings-label">{{ $device.Sku }}</span>
                                     </div>
-
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">Label</span>
+                                        <span class="newLabel settings-label">
+                                            <input type="hidden" class="deviceData" value="{{ $device.ChannelId }}">
+                                            <span class="labelValue">{{ $device.Label }}</span>
+                                        </span>
+                                    </div>
                                     {{ if gt $device.Temperature 0.00 }}
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ $root.Lang "txtTemperature" }}</span>
                                         <span class="settings-label" id="temperature-{{ .DeviceId }}">{{ $device.TemperatureString }}</span>
                                     </div>
                                     {{ end }}
-
                                     {{ if gt $device.LedChannels 0 }}
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgb" }}</span>
@@ -177,14 +171,12 @@
                                             </select>
                                         </label>
                                     </div>
-
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbOverride" }}</span>
                                         <button class="system-button compact rgbOverride" data-info="{{ $device.ChannelId }}">
                                             Configure
                                         </button>
                                     </div>
-
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ $root.Lang "txtRgbPerLed" }}</span>
                                         <button class="system-button compact rgbPerLed"

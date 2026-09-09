@@ -340,60 +340,6 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
 }
 
-// getHwMonTemperatureFiles returns all temperature files exposed by the
-// specified hwmon driver on this memory device's I2C bus.
-//
-// DDR5 SPD5118 devices can be registered on different I2C buses and at
-// different addresses depending on the motherboard. Do not assume a fixed
-// starting address such as 0x50.
-func (d *Device) getHwMonTemperatureFiles(driver string) []string {
-	driverPath := filepath.Join(basePath, driver)
-	entries, err := os.ReadDir(driverPath)
-	if err != nil {
-		return nil
-	}
-
-	busPrefix := fmt.Sprintf("%d-", d.getI2cSensor())
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name() < entries[j].Name()
-	})
-
-	var temperatureFiles []string
-	for _, entry := range entries {
-		if !strings.HasPrefix(entry.Name(), busPrefix) {
-			continue
-		}
-
-		devicePath := filepath.Join(driverPath, entry.Name())
-		namePath := filepath.Join(devicePath, "name")
-		data, err := os.ReadFile(namePath)
-		if err != nil || strings.TrimSpace(string(data)) != driver {
-			continue
-		}
-
-		hwmonRoot := filepath.Join(devicePath, "hwmon")
-		hwmonFolders, err := filepath.Glob(filepath.Join(hwmonRoot, "hwmon*"))
-		if err != nil {
-			continue
-		}
-		sort.Strings(hwmonFolders)
-
-		for _, hwmonFolder := range hwmonFolders {
-			temps, err := filepath.Glob(filepath.Join(hwmonFolder, "temp*_input"))
-			if err != nil {
-				continue
-			}
-			sort.Strings(temps)
-			if len(temps) > 0 {
-				temperatureFiles = append(temperatureFiles, temps[0])
-				break
-			}
-		}
-	}
-
-	return temperatureFiles
-}
-
 // loadRgb will load RGB file if found, or create the default.
 func (d *Device) loadRgb() {
 	rgbDirectory := pwd + "/database/rgb/"
@@ -611,228 +557,235 @@ func (d *Device) getTemperature(filePath string) (float32, error) {
 
 // getDevices will get a list of DIMMs
 func (d *Device) getDevices() int {
-	var devices = make(map[int]*Devices)
-	var modules []RAMModule
-	var hwmonTemperatureFiles []string
+	devices := make(map[int]*Devices)
+	modulesBySlot := make(map[int]RAMModule)
+	firstDecodedSKU := ""
 
-	// DDR5
+	// DDR5 physical DIMMs are discovered from SPD5118 devices on the configured
+	// memory I2C bus. The SPD address (0x50-0x57) maps directly to slot 0-7,
+	// which also maps to Corsair's DDR5 RGB controller range (0x18-0x1f).
 	if d.RuntimeMemoryType == 5 {
-		modules = NewMemoryModules()
+		modules := NewMemoryModules(d.getI2cSensor())
+		for _, module := range modules {
+			if module.Slot < 0 || module.Slot >= maximumRegisters {
+				logger.Log(logger.Fields{
+					"bus":     module.I2CBus,
+					"address": fmt.Sprintf("0x%02x", module.I2CAddress),
+				}).Warn("SPD5118 device is outside the supported DDR5 slot range")
+				continue
+			}
+			modulesBySlot[module.Slot] = module
+			if firstDecodedSKU == "" && strings.TrimSpace(module.SKU) != "" {
+				firstDecodedSKU = strings.TrimSpace(module.SKU)
+			}
+		}
 	}
 
-	registerCount := maximumRegisters
+	for i := 0; i < maximumRegisters; i++ {
+		address := colorAddresses[i]
+		module, hasModule := modulesBySlot[i]
+		isEnhancementKit := slices.Contains(config.GetConfig().EnhancementKits, address)
+		isOverride := slices.Contains(config.GetConfig().MemoryRegisterOverride, address)
 
-	// Non-RGB DDR5 only has one SPD5118 sensor per physical DIMM.
-	// Limit the discovery loop to the number of decoded DIMMs.
-	if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon && len(modules) > 0 {
-		registerCount = len(modules)
-	}
-
-	// Discover SPD5118 sensors once, using the actual I2C bus and addresses
-	// exposed by sysfs rather than assuming a fixed address range.
-	if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon {
-		hwmonTemperatureFiles = d.getHwMonTemperatureFiles("spd5118")
-	}
-
-	for i := 0; i < registerCount; i++ {
 		if d.Debug {
-			logger.Log(logger.Fields{"address": colorAddresses[i]}).Info("Probing address")
+			logger.Log(logger.Fields{
+				"address": address,
+				"slot":    i,
+			}).Info("Probing memory slot")
 		}
 
-		if slices.Contains(config.GetConfig().EnhancementKits, colorAddresses[i]) {
-			d.setEnhancementKit(colorAddresses[i])
+		if isEnhancementKit {
+			d.setEnhancementKit(address)
 		}
 
-		// Probe for register
-		_, err := smbus.ReadRegister(d.dev.File, colorAddresses[i], 0x00)
+		// RGB controller presence is a capability of the slot, not proof that a
+		// physical DDR5 DIMM exists. Non-RGB DDR5 modules have valid SPD5118 data
+		// without responding at 0x18-0x1f.
+		_, probeErr := smbus.ReadRegister(d.dev.File, address, 0x00)
+		rgbControllerAvailable := probeErr == nil || isOverride
 
-		if err != nil {
-			if !slices.Contains(config.GetConfig().EnhancementKits, colorAddresses[i]) {
-				if !slices.Contains(config.GetConfig().MemoryRegisterOverride, colorAddresses[i]) {
-
-					// DDR5 non-RGB DIMMs do not have the RGB controller
-					// normally found at 0x18-0x1f. When hwmon/spd5118
-					// temperature monitoring is enabled, continue so the
-					// DIMM can still be exposed for temperature monitoring.
-					if d.RuntimeMemoryType == 5 && config.GetConfig().RamTempViaHwmon {
-						logger.Log(logger.Fields{
-							"register": colorAddresses[i],
-							"err":      err,
-						}).Info("No RGB controller found, continuing with memory device discovery")
-					} else {
-						logger.Log(logger.Fields{
-							"register": colorAddresses[i],
-							"err":      err,
-						}).Info("No such register found. Skipping...")
-						continue
-					}
-				}
+		if probeErr != nil && !isOverride && !isEnhancementKit {
+			if hasModule && d.RuntimeMemoryType == 5 {
+				logger.Log(logger.Fields{
+					"register": address,
+					"err":      probeErr,
+				}).Info("No RGB controller found, continuing with SPD-discovered memory device")
 			} else {
 				logger.Log(logger.Fields{
-					"register": colorAddresses[i],
-				}).Info("Found Light Enhancement Kit in configuration")
-				d.setEnhancementKit(colorAddresses[i])
+					"register": address,
+					"err":      probeErr,
+				}).Info("No such register found. Skipping...")
+				continue
 			}
 		}
 
-		if d.Debug {
-			logger.Log(logger.Fields{"memoryType": d.RuntimeMemoryType}).Info("Probing address")
+		if isEnhancementKit && probeErr != nil {
+			logger.Log(logger.Fields{
+				"register": address,
+			}).Info("Found Light Enhancement Kit in configuration")
+		}
+
+		// For DDR5, an SPD-discovered module is enough to create the device even
+		// when no RGB controller is present. For DDR4 and legacy DDR5 fallback,
+		// retain the existing register-probe/configuration behavior.
+		if d.RuntimeMemoryType == 5 && !hasModule && !isEnhancementKit && !rgbControllerAvailable {
+			continue
 		}
 
 		memorySku := ""
-		if modules == nil || len(modules) == 0 {
-			logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("No decoded memory SKU available")
-		} else {
-			// If modules are available, use decoded memory SKU from SPD data.
-			memorySku = strings.TrimSpace(modules[0].SKU)
+		if hasModule {
+			memorySku = strings.TrimSpace(module.SKU)
 			if len(memorySku) < 1 {
-				logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("Decoded memory SKU is empty")
+				logger.Log(logger.Fields{
+					"slot":     i,
+					"register": address,
+				}).Warn("Decoded memory SKU is empty")
 			}
+		} else if d.RuntimeMemoryType == 5 && isEnhancementKit {
+			// Enhancement kits do not have SPD data. Reuse the first decoded Corsair
+			// DIMM SKU only to select the matching LED metadata, then override the
+			// displayed device identity below.
+			memorySku = firstDecodedSKU
 		}
 
 		// Fallback to configured memory SKU for setups where decoded SKU is unavailable.
 		if len(memorySku) < 1 {
 			memorySku = strings.TrimSpace(config.GetConfig().MemorySku)
 			if len(memorySku) > 0 {
-				logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("Using configured memorySku fallback")
+				logger.Log(logger.Fields{"register": address}).Warn("Using configured memorySku fallback")
 			}
 		}
 
 		if len(memorySku) < 1 {
-			logger.Log(logger.Fields{"register": colorAddresses[i]}).Warn("No memory SKU available. Skipping register")
+			logger.Log(logger.Fields{"register": address}).Warn("No memory SKU available. Skipping register")
 			continue
 		}
 
 		buf := []byte(memorySku)
-		if len(buf) > 15 {
-			// https://help.corsair.com/hc/en-us/articles/8528259685901-RAM-How-to-Read-the-CORSAIR-memory-part-number
-			// https://help.corsair.com/hc/en-us/articles/360051011331-RAM-DDR4-memory-module-dimensions
-			dimmInfo := string(buf)
+		if len(buf) <= 15 {
+			continue
+		}
 
-			if d.Debug {
-				logger.Log(logger.Fields{"dimmInfo": dimmInfo}).Info("Memory DIMM Info")
+		// https://help.corsair.com/hc/en-us/articles/8528259685901-RAM-How-to-Read-the-CORSAIR-memory-part-number
+		// https://help.corsair.com/hc/en-us/articles/360051011331-RAM-DDR4-memory-module-dimensions
+		dimmInfo := string(buf)
+
+		if d.Debug {
+			logger.Log(logger.Fields{"dimmInfo": dimmInfo}).Info("Memory DIMM Info")
+		}
+
+		vendor := dimmInfo[0:2]
+		if d.Debug {
+			logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
+		}
+		if vendor != "CM" { // Corsair Memory
+			continue
+		}
+
+		line := dimmInfo[2:3]
+		if d.Debug {
+			logger.Log(logger.Fields{"dimmInfoLine": line}).Info("Memory DIMM Info - Data")
+		}
+
+		metadata := d.getDeviceMetadata(d.RuntimeMemoryType, line)
+		if metadata == nil {
+			logger.Log(logger.Fields{"dimmInfoLine": line, "RuntimeMemoryType": d.RuntimeMemoryType}).Warn("Memory info not found in metadata")
+			continue
+		}
+
+		label := "Set Label"
+		if d.DeviceProfile != nil {
+			if lb, ok := d.DeviceProfile.Labels[i]; ok && len(lb) > 0 {
+				label = lb
 			}
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+		}
 
-			vendor := dimmInfo[0:2]
-			if d.Debug {
-				logger.Log(logger.Fields{"dimmInfoVendor": vendor}).Info("Memory DIMM Info - Vendor")
+		rgbProfile := "static"
+		if d.DeviceProfile != nil {
+			if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
+				if d.GetRgbProfile(rp) != nil {
+					rgbProfile = rp
+				} else {
+					logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
+				}
 			}
+		} else {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
+		}
 
-			if vendor == "CM" { // Corsair Memory
-				line := dimmInfo[2:3]
-				if d.Debug {
-					logger.Log(logger.Fields{"dimmInfoLine": line}).Info("Memory DIMM Info - Data")
+		ledChannels := metadata.LedChannels
+		if d.RuntimeMemoryType == 5 && hasModule && !rgbControllerAvailable {
+			// A decoded RGB SKU with an inaccessible/missing RGB controller should
+			// still expose temperature and DIMM information, but must not schedule
+			// writes to a controller that did not answer the probe.
+			ledChannels = 0
+		}
+
+		device := &Devices{
+			ChannelId:         i,
+			DeviceId:          i,
+			Sku:               dimmInfo,
+			MemoryType:        d.RuntimeMemoryType,
+			LedChannels:       uint8(ledChannels),
+			ColorRegister:     metadata.Register,
+			Name:              metadata.Name,
+			Temperature:       0,
+			TemperatureString: "",
+			Label:             label,
+			RGB:               rgbProfile,
+		}
+
+		if len(d.SkuLine) < 1 {
+			d.SkuLine = metadata.Name
+		}
+
+		if d.getEnhancementKit(address) {
+			device.Size = 0
+			device.Latency = 0
+			device.Speed = 0
+			device.Temperature = 0
+			device.Name = "LIGHT ENHANCEMENT KIT"
+			device.HasTemps = false
+		}
+
+		if config.GetConfig().RamTempViaHwmon && !d.getEnhancementKit(address) {
+			if d.RuntimeMemoryType == 5 {
+				if hasModule && len(module.TemperaturePath) > 0 {
+					device.HwmonPath = module.TemperaturePath
+					hwmonTemp, err := d.getTemperature(module.TemperaturePath)
+					if err == nil {
+						device.Temperature = hwmonTemp
+						device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
+						device.HasTemps = true
+					} else if d.Debug {
+						logger.Log(logger.Fields{
+							"file":  module.TemperaturePath,
+							"error": err,
+						}).Warn("Unable to read DDR5 temperature")
+					}
 				}
-
-				metadata := d.getDeviceMetadata(d.RuntimeMemoryType, line)
-				if metadata == nil {
-					logger.Log(logger.Fields{"dimmInfoLine": line, "RuntimeMemoryType": d.RuntimeMemoryType}).Warn("Memory info not found in metadata")
-					continue
-				}
-
-				temperature := 0.0
-				temperatureString := ""
-
-				label := "Set Label"
-				if d.DeviceProfile != nil {
-					// Device label
-					if lb, ok := d.DeviceProfile.Labels[i]; ok {
-						if len(lb) > 0 {
-							label = lb
-						}
-					}
-				} else {
-					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-				}
-
-				// Get a persistent speed profile. Fallback to Normal is anything fails
-				rgbProfile := "static"
-				if d.DeviceProfile != nil {
-					// Profile is set
-					if rp, ok := d.DeviceProfile.RGBProfiles[i]; ok {
-						// Profile device channel exists
-						if d.GetRgbProfile(rp) != nil { // Speed profile exists in configuration
-							// Speed profile exists in configuration
-							rgbProfile = rp
-						} else {
-							logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply non-existing rgb profile")
-						}
-					} else {
-						logger.Log(logger.Fields{"serial": d.Serial, "profile": rp}).Warn("Tried to apply rgb profile to the non-existing channel")
-					}
-				} else {
-					logger.Log(logger.Fields{"serial": d.Serial}).Warn("DeviceProfile is not set, probably first startup")
-				}
-
-				if len(metadata.Name) > 0 {
-					device := &Devices{
-						ChannelId:         i,
-						DeviceId:          i,
-						Sku:               dimmInfo,
-						MemoryType:        d.RuntimeMemoryType,
-						LedChannels:       uint8(metadata.LedChannels),
-						ColorRegister:     metadata.Register,
-						Name:              metadata.Name,
-						Temperature:       float32(temperature),
-						TemperatureString: temperatureString,
-						Label:             label,
-						RGB:               rgbProfile,
-					}
-
-					if len(d.SkuLine) < 1 {
-						d.SkuLine = metadata.Name
-					}
-					if d.getEnhancementKit(colorAddresses[i]) {
-						device.Size = 0
-						device.Latency = 0
-						device.Speed = 0
-						device.Temperature = 0
-						device.Name = "LIGHT ENHANCEMENT KIT"
-						device.HasTemps = false
-					}
-
-					if config.GetConfig().RamTempViaHwmon {
-						if !d.getEnhancementKit(colorAddresses[i]) {
-							if d.RuntimeMemoryType == 5 {
-								if i < len(hwmonTemperatureFiles) {
-									hwmonTemperatureFile := hwmonTemperatureFiles[i]
-									device.HwmonPath = hwmonTemperatureFile
-									hwmonTemp, err := d.getTemperature(hwmonTemperatureFile)
-									if err == nil {
-										device.Temperature = hwmonTemp
-										device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
-										device.HasTemps = true
-									} else if d.Debug {
-										logger.Log(logger.Fields{
-											"file":  hwmonTemperatureFile,
-											"error": err,
-										}).Warn("Unable to read DDR5 temperature")
-									}
-								}
-							} else {
-								device.HwmonPath = fmt.Sprintf(
-									"/sys/bus/i2c/drivers/jc42/%d-%s/hwmon",
-									d.getI2cSensor(),
-									temperatureAddresses[i],
-								)
-								hwmonTemp, err := d.getTemperature(device.HwmonPath)
-								if err == nil {
-									device.Temperature = hwmonTemp
-									device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
-									device.HasTemps = true
-								}
-							}
-						}
-					}
-
-					if d.Debug {
-						logger.Log(logger.Fields{"memoryDevice": device}).Info("Memory DIMM Info - Device")
-					}
-					devices[i] = device
-					d.LEDChannels += metadata.LedChannels
+			} else {
+				device.HwmonPath = fmt.Sprintf(
+					"/sys/bus/i2c/drivers/jc42/%d-%s/hwmon",
+					d.getI2cSensor(),
+					temperatureAddresses[i],
+				)
+				hwmonTemp, err := d.getTemperature(device.HwmonPath)
+				if err == nil {
+					device.Temperature = hwmonTemp
+					device.TemperatureString = dashboard.GetDashboard().TemperatureToString(hwmonTemp)
+					device.HasTemps = true
 				}
 			}
 		}
+
+		if d.Debug {
+			logger.Log(logger.Fields{"memoryDevice": device}).Info("Memory DIMM Info - Device")
+		}
+		devices[i] = device
+		d.LEDChannels += ledChannels
 	}
 
 	d.Devices = devices

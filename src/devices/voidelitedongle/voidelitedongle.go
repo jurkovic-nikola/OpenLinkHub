@@ -102,7 +102,7 @@ func (d *Device) createDevice() {
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	switch d.Devices.ProductId {
-	case 2641:
+	case 2641, 2645:
 		{
 			dev := voideliteW.Init(
 				d.Devices.VendorId,

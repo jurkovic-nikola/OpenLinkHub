@@ -112,7 +112,7 @@ func (d *Device) createDevice() {
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	switch d.Devices.ProductId {
-	case 10761, 10768:
+	case 10759, 10761, 10768:
 		{
 			dev := voidV2W.Init(
 				d.Devices.VendorId,
@@ -124,7 +124,7 @@ func (d *Device) addDevices() {
 			)
 			object := &common.Device{
 				ProductType: common.ProductTypeVoidV2W,
-				Product:     "VOID WIRELESS V2",
+				Product:     dev.Product,
 				Serial:      dev.Serial,
 				Firmware:    dev.Firmware,
 				Image:       "icon-headphone.svg",
@@ -226,7 +226,10 @@ func (d *Device) getDevice() {
 		ProductId: 10761,
 	}
 
-	if d.ProductId == 10770 {
+	switch d.ProductId {
+	case 10757:
+		d.Devices.ProductId = 10759
+	case 10770:
 		d.Devices.ProductId = 10768
 	}
 }
@@ -391,7 +394,7 @@ func (d *Device) backendListener() {
 	go func() {
 		interfaceId := 4
 		switch d.ProductId {
-		case 10770:
+		case 10757, 10770:
 			interfaceId = 3
 		default:
 			interfaceId = 4

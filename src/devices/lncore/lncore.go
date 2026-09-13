@@ -5,6 +5,7 @@ package lncore
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
@@ -39,6 +40,7 @@ type DeviceProfile struct {
 	Brightness              uint8
 	BrightnessSlider        *uint8
 	OriginalBrightness      uint8
+	RGBCluster              bool
 	RGBProfiles             map[int]string
 	Labels                  map[int]string
 	ExternalHubDeviceType   int
@@ -233,6 +235,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d.setColorEndpoint()    // Setup lightning
 	d.saveDeviceProfile()   // Save profile
 	d.setDeviceColor(false) // Device color
+	d.setupClusterController()
 	d.createDevice()        // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
@@ -316,6 +319,9 @@ func (d *Device) GetRgbProfiles() interface{} {
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device...")
+	if d.DeviceProfile != nil && d.DeviceProfile.RGBCluster {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
@@ -343,6 +349,9 @@ func (d *Device) Stop() {
 // StopDirty will stop device in a dirty way
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Stopping device (dirty)...")
+	if d.DeviceProfile != nil && d.DeviceProfile.RGBCluster {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
 	if d.activeRgb != nil {
 		d.activeRgb.Stop()
 	}
@@ -623,6 +632,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.Brightness = d.DeviceProfile.Brightness
 		deviceProfile.OriginalBrightness = d.DeviceProfile.OriginalBrightness
 		deviceProfile.HardwareMode = d.DeviceProfile.HardwareMode
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath
 			d.DeviceProfile.Path = profilePath
@@ -661,6 +671,10 @@ func (d *Device) ResetRgb() {
 	d.ShutdownLed()
 	d.setColorEndpoint()
 	d.setDeviceColor(false)
+	if d.DeviceProfile != nil && d.DeviceProfile.RGBCluster {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		d.setupClusterController()
+	}
 }
 
 // getDevices will fetch all devices connected to a hub
@@ -881,6 +895,10 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 		return 0
 	}
 
+	if d.DeviceProfile.RGBCluster {
+		return 5
+	}
+
 	if profile == "liquid-temperature" {
 		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
 		return 2
@@ -903,6 +921,78 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	}
 
 	d.ResetRgb()
+	return 1
+}
+
+// setupClusterController will create Cluster Controller for RGB Cluster
+func (d *Device) setupClusterController() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	lightChannels := 0
+	for _, device := range d.Devices {
+		if device.LedChannels > 0 {
+			lightChannels += int(device.LedChannels)
+		}
+	}
+
+	if lightChannels < 1 {
+		return
+	}
+
+	clusterController := &common.ClusterController{
+		Product:      d.Product,
+		Serial:       d.Serial,
+		LedChannels:  uint32(lightChannels),
+		WriteColorEx: d.writeColorCluster,
+	}
+
+	cluster.Get().AddDeviceController(clusterController)
+}
+
+// ProcessSetRgbCluster will update OpenRGB integration status
+func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	d.DeviceProfile.RGBCluster = enabled
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor(true)
+
+	if enabled {
+		lightChannels := 0
+		for _, device := range d.Devices {
+			if device.LedChannels > 0 {
+				lightChannels += int(device.LedChannels)
+			}
+		}
+
+		if lightChannels < 1 {
+			return 0
+		}
+
+		clusterController := &common.ClusterController{
+			Product:      d.Product,
+			Serial:       d.Serial,
+			LedChannels:  uint32(lightChannels),
+			WriteColorEx: d.writeColorCluster,
+		}
+
+		cluster.Get().AddDeviceController(clusterController)
+	} else {
+		cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+	}
+
 	return 1
 }
 
@@ -970,6 +1060,10 @@ func (d *Device) UpdateExternalHubDeviceType(_ int, externalType int) uint8 {
 			d.getDevices()
 			d.saveDeviceProfile()
 			d.setDeviceColor(false)
+			if d.DeviceProfile.RGBCluster {
+				cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+				d.setupClusterController()
+			}
 			return 1
 		} else {
 			return 2
@@ -991,6 +1085,10 @@ func (d *Device) UpdateExternalHubDeviceAmount(_ int, externalDevices int) uint8
 			d.getDevices()
 			d.saveDeviceProfile()
 			d.setDeviceColor(false)
+			if d.DeviceProfile.RGBCluster {
+				cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+				d.setupClusterController()
+			}
 			return 1
 		}
 	}
@@ -1037,6 +1135,12 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
 		d.setDeviceColor(false)
+		if d.DeviceProfile.RGBCluster {
+			cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+			d.setupClusterController()
+		} else {
+			cluster.Get().RemoveDeviceControllerBySerial(d.Serial)
+		}
 		return 1
 	}
 	return 0
@@ -1181,6 +1285,12 @@ func (d *Device) setDeviceColor(resetColor bool) {
 
 		buffer = rgb.SetColor(reset)
 		d.writeColor(buffer, lightChannels)
+		return
+	}
+
+	// RGB Cluster
+	if d.DeviceProfile.RGBCluster {
+		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB Cluster")
 		return
 	}
 
@@ -1468,6 +1578,10 @@ func (d *Device) writeColor(data []byte, lightChannels int) {
 		return
 	}
 
+	if len(data) < lightChannels*3 {
+		return
+	}
+
 	// Packets are sent like:
 	// 50 packets of red, 50 packets on green, 50 packets of blue
 	// Repeat until the buffer is empty.
@@ -1557,6 +1671,24 @@ func (d *Device) writeColor(data []byte, lightChannels int) {
 	if err != nil {
 		return
 	}
+}
+
+// writeColorCluster will write data to the device from cluster client
+func (d *Device) writeColorCluster(data []byte, _ int) {
+	if !d.DeviceProfile.RGBCluster {
+		return
+	}
+
+	if d.Exit {
+		return
+	}
+
+	lightChannels := len(data) / 3
+	if lightChannels < 1 {
+		return
+	}
+
+	d.writeColor(data, lightChannels)
 }
 
 // setColorEndpoint will activate hub color endpoint for further usage

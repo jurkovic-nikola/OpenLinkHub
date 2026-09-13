@@ -870,6 +870,7 @@ var deviceRegisterMap = map[uint16]Product{
 	2626:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
 	2675:  {3, 0, "HEADSET DONGLE", nil, headsetdongle.Init},               // Headset dongle
 	2641:  {3, 0, "VOID ELITE WIRELESS", nil, voidelitedongle.Init},        // Headset dongle
+	2645:  {3, 0, "VOID ELITE WIRELESS", nil, voidelitedongle.Init},        // Headset dongle (rev 0x0A55)
 	2622:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},           // Headset dongle
 	2624:  {3, 65346, "HEADSET DONGLE", nil, headsetdongle.Init},           // Headset dongle
 	11015: {1, 0, "K65 PLUS WIRELESS", nil, k65plusWdongle.Init},           // K65 PLUS WIRELESS

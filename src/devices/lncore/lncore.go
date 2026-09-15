@@ -236,7 +236,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d.saveDeviceProfile()   // Save profile
 	d.setDeviceColor(false) // Device color
 	d.setupClusterController()
-	d.createDevice()        // Device register
+	d.createDevice() // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
@@ -1577,11 +1577,7 @@ func (d *Device) writeColor(data []byte, lightChannels int) {
 	if d.Exit {
 		return
 	}
-
-	if len(data) < lightChannels*3 {
-		return
-	}
-
+	
 	// Packets are sent like:
 	// 50 packets of red, 50 packets on green, 50 packets of blue
 	// Repeat until the buffer is empty.

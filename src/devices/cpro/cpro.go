@@ -2539,10 +2539,6 @@ func (d *Device) writeColor(data []byte, lightChannels int, portId byte) {
 		return
 	}
 
-	if len(data) < lightChannels*3 {
-		return
-	}
-
 	if _, err := d.transfer(cmdPortState, []byte{portId, 0x02}); err != nil {
 		return
 	}

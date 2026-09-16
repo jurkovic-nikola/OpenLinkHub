@@ -8,6 +8,7 @@ import (
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/hs80rgbW"
+	"OpenLinkHub/src/devices/ironclawW"
 	"OpenLinkHub/src/devices/virtuosoSEW"
 	"OpenLinkHub/src/devices/virtuosoW"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
@@ -32,6 +33,7 @@ type Devices struct {
 
 type Device struct {
 	dev            *hid.Device
+	slipstream     *common.Slipstream
 	listener       *hid.Device
 	Manufacturer   string `json:"manufacturer"`
 	Product        string `json:"product"`
@@ -49,7 +51,6 @@ type Device struct {
 	Exit           bool
 	timerKeepAlive *time.Ticker
 	keepAliveChan  chan struct{}
-	mutex          sync.Mutex
 	instance       *common.Device
 }
 
@@ -84,7 +85,12 @@ func Init(vendorId, productId uint16, _, path string, callback func(device *comm
 
 	// Init new struct with HID device
 	d := &Device{
-		dev:            dev,
+		dev: dev,
+		slipstream: &common.Slipstream{
+			Dev:       dev,
+			Connected: map[uint16]bool{},
+			Prefix:    []byte{0x02},
+		},
 		VendorId:       vendorId,
 		ProductId:      productId,
 		PairedDevices:  make(map[uint16]any),
@@ -269,6 +275,30 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 6988: // IRONCLAW RGB WIRELESS
+			{
+				dev := ironclawW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.slipstream,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeIronClawRgbW,
+					Product:     "IRONCLAW RGB",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
+					ProductId:   value.ProductId,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		default:
 			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 		}
@@ -324,6 +354,11 @@ func (d *Device) Stop() {
 				dev.StopInternal()
 			}
 		}
+		if dev, found := value.(*ironclawW.Device); found {
+			if dev.Connected {
+				dev.StopInternal()
+			}
+		}
 	}
 
 	d.setHardwareMode()
@@ -368,6 +403,11 @@ func (d *Device) StopDirty() uint8 {
 			}
 		}
 		if dev, found := value.(*virtuosoW.Device); found {
+			if dev.Connected {
+				dev.StopDirty()
+			}
+		}
+		if dev, found := value.(*ironclawW.Device); found {
 			if dev.Connected {
 				dev.StopDirty()
 			}
@@ -683,6 +723,13 @@ func (d *Device) setDeviceOnlineByProductId(productId uint16) {
 				device.Connect()
 			}
 		}
+		if device, found := dev.(*ironclawW.Device); found {
+			if !device.Connected {
+				time.Sleep(time.Duration(transferTimeout) * time.Millisecond)
+				device.Connect()
+				d.slipstream.Connected[productId] = device.Connected
+			}
+		}
 	}
 }
 
@@ -747,6 +794,44 @@ func (d *Device) setDeviceOnline() {
 	}
 }
 
+// getMouseStatusMask will return status bits used by paired mice. The status
+// report is a bitmask with one bit per paired device type (1 << type).
+func (d *Device) getMouseStatusMask() byte {
+	var mask byte = 0
+	for _, value := range d.Devices {
+		if _, found := d.PairedDevices[value.ProductId].(*ironclawW.Device); found {
+			mask |= 1 << value.Type
+		}
+	}
+	return mask
+}
+
+// setMouseStatus will connect or disconnect paired mice based on status bits
+func (d *Device) setMouseStatus(status byte) {
+	for _, value := range d.Devices {
+		device, found := d.PairedDevices[value.ProductId].(*ironclawW.Device)
+		if !found {
+			continue
+		}
+
+		online := status&(1<<value.Type) != 0
+		if !online && device.Connected {
+			device.SetConnected(false)
+			d.slipstream.Connected[value.ProductId] = false
+		}
+
+		if online && !device.Connected {
+			go func(device *ironclawW.Device, productId uint16) {
+				// Mouse wakes up in hardware mode and needs a full re-init
+				time.Sleep(time.Duration(connectDelay) * time.Millisecond)
+				device.Connect()
+				d.slipstream.Connected[productId] = device.Connected
+				d.SharedDevices(d.DeviceList[device.Serial])
+			}(device, value.ProductId)
+		}
+	}
+}
+
 // setDeviceOffline will set device offline
 func (d *Device) setDeviceStatus(status byte) {
 	switch status {
@@ -789,6 +874,19 @@ func (d *Device) monitorDevice() {
 			}
 		}
 	}()
+}
+
+// getMouseBySlot will return a paired mouse communicating on a given slot
+func (d *Device) getMouseBySlot(slot byte) (*ironclawW.Device, bool) {
+	for _, value := range d.Devices {
+		if value.Endpoint-0x08 != slot {
+			continue
+		}
+		if dev, found := d.PairedDevices[value.ProductId].(*ironclawW.Device); found {
+			return dev, true
+		}
+	}
+	return nil, false
 }
 
 // getListenerData will listen for keyboard events and return data on success or nil on failure.
@@ -848,6 +946,29 @@ func (d *Device) backendListener() {
 					continue
 				}
 
+				if d.Debug {
+					logger.Log(logger.Fields{"data": fmt.Sprintf("% 2x", data)}).Info("Backend debug data")
+				}
+
+				// Events from a paired mouse, reported on its own slot. Handled
+				// first, since a button mask can look like a headset mute event.
+				if data[0] == 0x03 && data[1] != 0x00 {
+					if dev, found := d.getMouseBySlot(data[1]); found {
+						switch data[2] {
+						case 0x01: // Battery: 03 02 01 0f 00 ee 02
+							if data[3] == 0x0f {
+								val := binary.LittleEndian.Uint16(data[5:7]) / 10
+								if val > 0 {
+									dev.ModifyBatteryLevel(val)
+								}
+							}
+						case 0x02: // Buttons: 03 02 02 <mask>
+							dev.TriggerKeyAssignment(binary.LittleEndian.Uint32(data[3:7]))
+						}
+						continue
+					}
+				}
+
 				// Battery
 				// 03 01 01 0f 00 ac 03
 				if (data[0] == 0x03 || data[1] == 0x01) && data[3] == 0x0f {
@@ -900,7 +1021,10 @@ func (d *Device) backendListener() {
 
 				if data[1] == 0x00 && data[3] == 0x36 {
 					value := data[5]
-					d.setDeviceStatus(value)
+					// 03 00 01 36 00 06: headset (0x02) and mouse (0x04) online
+					mouseMask := d.getMouseStatusMask()
+					d.setMouseStatus(value & mouseMask)
+					d.setDeviceStatus(value &^ mouseMask)
 				} else {
 					if data[2] == 0x01 && (data[3] == 0x8e || data[3] == 0xa6) {
 						for _, value := range d.PairedDevices {
@@ -929,8 +1053,9 @@ func (d *Device) backendListener() {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	// Shared with paired devices that talk to the dongle directly
+	d.slipstream.Mutex.Lock()
+	defer d.slipstream.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02
@@ -986,8 +1111,9 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller string) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	// Shared with paired devices that talk to the dongle directly
+	d.slipstream.Mutex.Lock()
+	defer d.slipstream.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02

@@ -42,6 +42,10 @@ type Slipstream struct {
 	Listener  *hid.Device
 	Mutex     sync.Mutex
 	Connected map[uint16]bool
+	// Prefix is prepended to every outgoing packet and stripped from every
+	// response. Headset dongles speak the same protocol as Slipstream
+	// receivers, but frame it with one extra leading byte (0x02).
+	Prefix []byte
 }
 
 type Device struct {

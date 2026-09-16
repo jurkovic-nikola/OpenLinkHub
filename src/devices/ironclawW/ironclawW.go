@@ -17,7 +17,9 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -2580,24 +2582,63 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	d.dev.Mutex.Lock()
 	defer d.dev.Mutex.Unlock()
 
+	// Receivers such as headset dongles frame packets with a prefix
+	prefix := len(d.dev.Prefix)
+	header := headerSize + prefix
+	if header+len(endpoint)+len(buffer) > bufferSizeWrite {
+		return make([]byte, bufferSize), errors.New("packet exceeds maximum buffer size")
+	}
+
 	bufferW := make([]byte, bufferSizeWrite)
-	bufferW[1] = d.Endpoint
-	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+	copy(bufferW[1:], d.dev.Prefix)
+	bufferW[1+prefix] = d.Endpoint
+	endpointHeaderPosition := bufferW[header : header+len(endpoint)]
 	copy(endpointHeaderPosition, endpoint)
 	if len(buffer) > 0 {
-		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+		copy(bufferW[header+len(endpoint):header+len(endpoint)+len(buffer)], buffer)
 	}
 
 	bufferR := make([]byte, bufferSize)
+
+	if prefix > 0 {
+		// Discard late responses left over from previous transfers
+		for {
+			n, err := d.dev.Dev.ReadWithTimeout(bufferR, time.Millisecond)
+			if err != nil || n == 0 {
+				break
+			}
+		}
+	}
 
 	if _, err := d.dev.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Dev.ReadWithTimeout(bufferR, 1000*time.Millisecond); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to read data from device")
-		return bufferR, err
+	deadline := time.Now().Add(1000 * time.Millisecond)
+	for {
+		// A negative timeout would make hidapi block indefinitely
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to read data from device")
+			return bufferR, hid.ErrTimeout
+		}
+		if _, err := d.dev.Dev.ReadWithTimeout(bufferR, remaining); err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to read data from device")
+			return bufferR, err
+		}
+
+		// A shared receiver also emits event reports (0x03) and responses for
+		// other paired devices; keep reading until our own response arrives.
+		if prefix == 0 || (bufferR[0] == 0x01 && bufferR[1] == d.Endpoint-0x08) {
+			break
+		}
+	}
+
+	if prefix > 0 {
+		// Realign the response so offsets match a Slipstream receiver
+		copy(bufferR, bufferR[prefix:])
+		clear(bufferR[bufferSize-prefix:])
 	}
 	return bufferR, nil
 }

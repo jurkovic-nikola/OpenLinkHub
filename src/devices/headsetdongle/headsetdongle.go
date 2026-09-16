@@ -83,11 +83,19 @@ func Init(vendorId, productId uint16, _, path string, callback func(device *comm
 		return nil
 	}
 
+	// Paired mice get their own handle: every handle receives a copy of each
+	// report, so headset transfers draining or reading theirs cannot consume
+	// responses meant for the mouse.
+	pairedDev, err := hid.OpenPath(path)
+	if err != nil {
+		pairedDev = dev
+	}
+
 	// Init new struct with HID device
 	d := &Device{
 		dev: dev,
 		slipstream: &common.Slipstream{
-			Dev:       dev,
+			Dev:       pairedDev,
 			Connected: map[uint16]bool{},
 			Prefix:    []byte{0x02},
 		},
@@ -121,6 +129,10 @@ func Init(vendorId, productId uint16, _, path string, callback func(device *comm
 // addDevices adda a mew device
 func (d *Device) addDevices() {
 	for _, value := range d.Devices {
+		// Already added on a previous scan
+		if _, ok := d.PairedDevices[value.ProductId]; ok {
+			continue
+		}
 
 		switch value.ProductId {
 		case 2658:
@@ -362,6 +374,12 @@ func (d *Device) Stop() {
 	}
 
 	d.setHardwareMode()
+	if d.slipstream.Dev != nil && d.slipstream.Dev != d.dev {
+		err := d.slipstream.Dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
 	if d.dev != nil {
 		err := d.dev.Close()
 		if err != nil {
@@ -794,6 +812,34 @@ func (d *Device) setDeviceOnline() {
 	}
 }
 
+// rescanDevices will re-read the paired device list when a device comes online
+// that was not known yet. A device asleep while the dongle initializes is
+// reported with product id 0 and would otherwise stay missing until restart.
+func (d *Device) rescanDevices(status byte) {
+	if d.SingleDevice {
+		return
+	}
+
+	var known byte = 0
+	for _, value := range d.Devices {
+		if _, ok := d.PairedDevices[value.ProductId]; ok {
+			known |= 1 << value.Type
+		}
+	}
+	if status&^known == 0 {
+		return
+	}
+
+	logger.Log(logger.Fields{"serial": d.Serial, "status": status}).Info("Unknown paired device online, rescanning...")
+	d.getDevices()
+	d.addDevices()
+	for _, value := range d.Devices {
+		if known&(1<<value.Type) == 0 {
+			d.setDeviceOnlineByProductId(value.ProductId)
+		}
+	}
+}
+
 // getMouseStatusMask will return status bits used by paired mice. The status
 // report is a bitmask with one bit per paired device type (1 << type).
 func (d *Device) getMouseStatusMask() byte {
@@ -1022,6 +1068,7 @@ func (d *Device) backendListener() {
 				if data[1] == 0x00 && data[3] == 0x36 {
 					value := data[5]
 					// 03 00 01 36 00 06: headset (0x02) and mouse (0x04) online
+					d.rescanDevices(value)
 					mouseMask := d.getMouseStatusMask()
 					d.setMouseStatus(value & mouseMask)
 					d.setDeviceStatus(value &^ mouseMask)
@@ -1100,7 +1147,8 @@ func (d *Device) transfer(command byte, endpoint, buffer []byte) ([]byte, error)
 		return bufferR, err
 	}
 
-	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
+	// Responses carry their slot; skip events and other paired devices
+	if err := common.ReadResponse(d.dev, bufferR, command-0x08, endpoint, time.Duration(transferTimeout)*time.Millisecond); err != nil {
 		if d.Debug {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		}
@@ -1131,7 +1179,8 @@ func (d *Device) transferToDevice(command byte, endpoint, buffer []byte, caller 
 		return bufferR, err
 	}
 
-	if _, err := d.dev.ReadWithTimeout(bufferR, time.Duration(transferTimeout)*time.Millisecond); err != nil {
+	// Responses carry their slot; skip events and other paired devices
+	if err := common.ReadResponse(d.dev, bufferR, command-0x08, endpoint, time.Duration(transferTimeout)*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial, "caller": caller}).Error("Unable to read data from device")
 		return bufferR, err
 	}

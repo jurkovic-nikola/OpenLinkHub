@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sstallion/go-hid"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -2615,24 +2614,15 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	deadline := time.Now().Add(1000 * time.Millisecond)
-	for {
-		// A negative timeout would make hidapi block indefinitely
-		remaining := time.Until(deadline)
-		if remaining <= 0 {
-			logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to read data from device")
-			return bufferR, hid.ErrTimeout
-		}
-		if _, err := d.dev.Dev.ReadWithTimeout(bufferR, remaining); err != nil {
+	if prefix > 0 {
+		// A shared receiver interleaves events and other devices' responses
+		if err := common.ReadResponse(d.dev.Dev, bufferR, d.Endpoint-0x08, endpoint, 1000*time.Millisecond); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to read data from device")
 			return bufferR, err
 		}
-
-		// A shared receiver also emits event reports (0x03) and responses for
-		// other paired devices; keep reading until our own response arrives.
-		if prefix == 0 || (bufferR[0] == 0x01 && bufferR[1] == d.Endpoint-0x08) {
-			break
-		}
+	} else if _, err := d.dev.Dev.ReadWithTimeout(bufferR, 1000*time.Millisecond); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Warn("Unable to read data from device")
+		return bufferR, err
 	}
 
 	if prefix > 0 {

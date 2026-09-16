@@ -48,6 +48,32 @@ type Slipstream struct {
 	Prefix []byte
 }
 
+// ReadResponse reads from a receiver until the response to a given command
+// arrives. Headset dongles multiplex several paired devices on one interface:
+// event reports (0x03), responses for other slots and late responses to a
+// previous command are interleaved with our own. Responses echo their slot
+// and command (01 <slot> <command> ...). Unknown report formats are accepted.
+func ReadResponse(dev *hid.Device, buffer []byte, slot byte, command []byte, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		// A negative timeout would make hidapi block indefinitely
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return hid.ErrTimeout
+		}
+		if _, err := dev.ReadWithTimeout(buffer, remaining); err != nil {
+			return err
+		}
+		if buffer[0] == 0x03 {
+			continue
+		}
+		if buffer[0] == 0x01 && (buffer[1] != slot || (len(command) > 0 && buffer[2] != command[0])) {
+			continue
+		}
+		return nil
+	}
+}
+
 type Device struct {
 	ProductType uint16
 	Product     string

@@ -1,5 +1,53 @@
+## 2026-09-15
+
+* missing device ids (ee71c4fe)
+* missing device ids (11fec9f0)
+* remove this (fbe6bb06)
+
+## 2026-09-13
+
+* Merge pull request #529 from geri1701/void-max-wireless-v2-xbox (2ec3e217)
+* Add VOID MAX WIRELESS V2 Xbox support (3e8575f8)
+* Merge pull request #514 from hubertges/feature/lighting-node-core-rgb-cluster (982f3452)
+* Merge pull request #525 from Str8Anonymous/support-void-elite-wireless-0x0a55 (6220f05f)
+
+## 2026-09-09
+
+* Add support for VOID ELITE Wireless dongle PID 0x0A55 (69873ad8)
+
+## 2026-09-07
+
+* this is slice https://github.com/jurkovic-nikola/OpenLinkHub/issues/520 (b42c6f6a)
+
+## 2026-09-06
+
+* scuf rgb processing https://github.com/jurkovic-nikola/OpenLinkHub/issues/519 (71642222)
+
+## 2026-09-04
+
+* fixups (e0dcd27f)
+* fixups (e08495af)
+
+## 2026-09-03
+
+* lt100 color update check (084f5e2c)
+* lt100 hardware lights (f8eedcf8)
+* sabre v2 button states https://github.com/jurkovic-nikola/OpenLinkHub/issues/516 (34048627)
+
+## 2026-09-02
+
+* xeneon date / time options (d951507c)
+* Merge pull request #505 from ksokolowski/k70pro-crashfix-pr (602226c7)
+
 ## 2026-09-01
 
+* Merge branch 'jurkovic-nikola:main' into k70pro-crashfix-pr (4fcca4fa)
+* fix(k70pro): address review on the KVM re-enumeration guard (567fc1ec)
+* leftovers (620dccb9)
+* timewarp (7b4bf2eb)
+* restore fixup (35e53dcc)
+* restore fixup (88a8aed7)
+* changelog (4f0a3953)
 * xeneon changes (dc45b449)
 * backup - restore changes (2af2d13a)
 * macro fixup (bee2155d)
@@ -7,6 +55,8 @@
 
 ## 2026-08-31
 
+* fix(cpro, lncore, audio): add buffer guards and fix format string (122c6b2b)
+* lighting node core rgb cluster support (004b5345)
 * nightsword dpi https://github.com/jurkovic-nikola/OpenLinkHub/issues/511 (dcce89cf)
 
 ## 2026-08-27
@@ -22,6 +72,10 @@
 
 * vanguard 96 uk layout https://github.com/jurkovic-nikola/OpenLinkHub/issues/506 (03560040)
 * k70 pro tkl multi-function knob press, ES layout https://github.com/jurkovic-nikola/OpenLinkHub/issues/507 (f557b699)
+
+## 2026-08-24
+
+* fix(k70pro): survive KVM/USB re-enumeration instead of crashing the process (ebfd8b4e)
 
 ## 2026-08-20
 

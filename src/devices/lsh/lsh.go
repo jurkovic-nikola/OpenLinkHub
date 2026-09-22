@@ -669,22 +669,24 @@ func (d *Device) Stop() {
 		})
 	}()
 
-	for _, lcdHidDevice := range d.lcdDevices {
-		if lcdHidDevice.Lcd != nil {
-			lcdReports := map[int][]byte{
-				0: {0x03, 0x1e, 0x01, 0x01},
-				1: {0x03, 0x1d, 0x00, 0x01},
-				2: {0x03, 0x0b, 0x64, 0x01},
-			}
-			for i := 0; i <= 2; i++ {
-				_, e := lcdHidDevice.Lcd.SendFeatureReport(lcdReports[i])
-				if e != nil {
-					logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
+	if d.HasLCD {
+		for _, lcdHidDevice := range d.lcdDevices {
+			if lcdHidDevice.Lcd != nil {
+				lcdReports := map[int][]byte{
+					0: {0x03, 0x1e, 0x01, 0x01},
+					1: {0x03, 0x1d, 0x00, 0x01},
+					2: {0x03, 0x0b, 0x64, 0x01},
 				}
-			}
-			err := lcdHidDevice.Lcd.Close()
-			if err != nil {
-				logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
+				for i := 0; i <= 2; i++ {
+					_, e := lcdHidDevice.Lcd.SendFeatureReport(lcdReports[i])
+					if e != nil {
+						logger.Log(logger.Fields{"error": e}).Error("Unable to send report to LCD HID device")
+					}
+				}
+				err := lcdHidDevice.Lcd.Close()
+				if err != nil {
+					logger.Log(logger.Fields{"error": err}).Error("Unable to close LCD HID device")
+				}
 			}
 		}
 	}

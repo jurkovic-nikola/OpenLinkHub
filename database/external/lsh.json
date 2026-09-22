@@ -413,5 +413,13 @@
     "temperatureProbe": true,
     "hasSpeed": true,
     "psu": true
+  },
+  {
+    "deviceId": 26,
+    "deviceModel": 8,
+    "deviceName": "LCD SCREEN MODULE",
+    "ledChannels": 32,
+    "desc": "LCD",
+    "hasSpeed": true
   }
 ]

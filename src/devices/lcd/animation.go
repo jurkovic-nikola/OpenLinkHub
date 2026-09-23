@@ -148,6 +148,10 @@ func loadAnimationCatalog() {
 // ready to be copied and annotated at render time. Returns nil when the image
 // has no decoded frames to work from.
 func buildAnimationFrames(fileName string) []AnimationFrames {
+	mutex.Lock()
+	frameDelay := animation.FrameDelay
+	mutex.Unlock()
+
 	paletted := decodePalettedFrames(fileName)
 	if paletted == nil {
 		return nil
@@ -165,8 +169,8 @@ func buildAnimationFrames(fileName string) []AnimationFrames {
 			delay = delays[i].Delay
 		}
 		if delay == 0 {
-			if animation.FrameDelay > 0 {
-				delay = float64(animation.FrameDelay)
+			if frameDelay > 0 {
+				delay = float64(frameDelay)
 			}
 		}
 
@@ -188,7 +192,11 @@ func buildAnimationFrames(fileName string) []AnimationFrames {
 func pruneAnimationCache(keep string) {
 	mutex.Lock()
 	defer mutex.Unlock()
+	pruneAnimationCacheLocked(keep)
+}
 
+// pruneAnimationCacheLocked requires mutex to be held.
+func pruneAnimationCacheLocked(keep string) {
 	if animation.Images == nil {
 		animation.Images = make(map[string][]AnimationFrames)
 		return
@@ -284,17 +292,28 @@ func GetAnimation() *Animation {
 
 // SaveAnimation will save animation profile
 func SaveAnimation(value *Animation) uint8 {
-	animation = value
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// GetAnimation returns a snapshot for the UI and settings handler. Only
+	// its profile fields may be saved back: its Images map can predate uploads
+	// or invalidation of replaced frames. Preserve the current live catalog.
+	updated := *value
+	updated.Sensors = make(map[int]Sensors, len(value.Sensors))
+	for index, sensor := range value.Sensors {
+		updated.Sensors[index] = sensor
+	}
+	updated.Images = animation.Images
 	profile := config.GetConfig().ConfigPath + "/database/lcd/animation.json"
 
-	if err := common.SaveJsonData(profile, animation); err != nil {
+	if err := common.SaveJsonData(profile, &updated); err != nil {
 		logger.Log(logger.Fields{"error": err, "location": profile}).Error("Unable to write lcd profile data")
 		return 0
 	}
 
-	// The background may have just changed, which makes the previously cached
-	// one dead weight. Drop it; the render path decodes the new one when it
-	// first needs it.
-	pruneAnimationCache(animation.Background)
+	// Publish atomically with cache pruning. Existing renderers retain their
+	// immutable profile and frame snapshots until their current render ends.
+	animation = &updated
+	pruneAnimationCacheLocked(updated.Background)
 	return 1
 }

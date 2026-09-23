@@ -687,6 +687,7 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 	sensors := animation.Sensors
 	separatorColor := animation.SeparatorColor
 	margin := int(animation.Margin)
+	workers := animation.Workers
 	mutex.Unlock()
 
 	if !ok || len(val) == 0 {
@@ -722,7 +723,6 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 	// at most Workers of them are ever in use; keeping one per frame pinned a
 	// full size RGBA for every frame of the animation for the process lifetime.
 	// The pool doubles as the concurrency limit.
-	workers := animation.Workers
 	if workers < 1 {
 		workers = 1
 	}
@@ -1113,8 +1113,8 @@ func decodePalettedFrames(fileName string) []*image.Paletted {
 	// must not be joined into a path: "../.." would walk straight out of the
 	// image folder. Reject anything that is not a plain name, then resolve the
 	// file against the folder listing so the path is assembled only from entries
-	// the filesystem reported. Matching is case insensitive because images
-	// predating the lowercasing done on upload may differ in extension case.
+	// the filesystem reported. Only the extension is case insensitive: the
+	// catalog and uploads distinguish base names such as Pulse and pulse.
 	if !common.AlphanumericRegex.MatchString(fileName) {
 		logger.Log(logger.Fields{"image": fileName}).Warn("Image name can only have letters and numbers")
 		return nil
@@ -1133,7 +1133,7 @@ func decodePalettedFrames(fileName string) []*image.Paletted {
 		}
 		name := entry.Name()
 		if strings.EqualFold(filepath.Ext(name), ".gif") &&
-			strings.EqualFold(strings.TrimSuffix(name, filepath.Ext(name)), fileName) {
+			strings.TrimSuffix(name, filepath.Ext(name)) == fileName {
 			imagePath = filepath.Join(images, name)
 			break
 		}

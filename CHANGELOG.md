@@ -1,3 +1,12 @@
+## 2026-09-22
+
+* docs update (a3793195)
+* support for 5 inch lcd module (3d3f533a)
+
+## 2026-09-17
+
+* changelog (3abdc3cb)
+
 ## 2026-09-15
 
 * missing device ids (ee71c4fe)

@@ -1066,7 +1066,7 @@ func (d *Device) getDeviceProfile() {
 
 // generateLedObject will generate LED object with given LED amount
 func (d *Device) generateLedObject(amount uint8) map[int]rgb.Color {
-	// Device doesnt exists
+	// Device does not exist
 	colors := make(map[int]rgb.Color, amount)
 	for i := 0; i < int(amount); i++ {
 		colors[i] = rgb.Color{

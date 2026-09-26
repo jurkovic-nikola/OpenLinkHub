@@ -1,5 +1,5 @@
 # OpenLinkHub interface for Linux
-An open-source Linux interface for iCUE LINK Hub and other Corsair AIOs, Hubs.
+An open-source Linux interface for iCUE LINK hubs and other Corsair AIOs and hubs.
 Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and headsets via a web dashboard.
 
 ![Build](https://github.com/jurkovic-nikola/OpenLinkHub/actions/workflows/go.yml/badge.svg)
@@ -36,7 +36,7 @@ Manage RGB lighting, fan speeds, system metrics, as well as keyboards, mice, and
 curl -fsSL https://raw.githubusercontent.com/jurkovic-nikola/OpenLinkHub/main/remote-install.sh | bash
 ```
 This script will:
-- Open a new system group called openlinkhub 
+- Create a system group named openlinkhub
 - Add your current user to openlinkhub 
 - Install OpenLinkHub in your home directory. 
 - Create a user systemd service 

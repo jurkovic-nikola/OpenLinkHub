@@ -10,7 +10,7 @@ sudo apt install i2c-tools
 ```
 
 ### Find your `smbus` controller
-Your i2c-X device will have a different number. Usually, it's the first `smbus` device from the list. If you don't see your `smbus` device, you will need to use `acpi_enforce_resources=lax` boot parameter.
+Your i2c-X device will have a different number. Usually, it's the first `smbus` device from the list. If you don't see your `smbus` device, you will need to use the `acpi_enforce_resources=lax` boot parameter.
 ```bash
 sudo i2cdetect -l
 i2c-0   i2c             Synopsys DesignWare I2C adapter         I2C adapter

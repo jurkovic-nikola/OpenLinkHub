@@ -1,6 +1,6 @@
 ## XENEON EDGE KDE
 
-- If you don't want to use terminal, open KDE Settings, search for Touchscreen and change Target display from Automatic to XENEON EDGE. Click Apply.
+- If you don't want to use the terminal, open KDE Settings, search for Touchscreen and change Target display from Automatic to XENEON EDGE. Click Apply.
 
 - From terminal:
 

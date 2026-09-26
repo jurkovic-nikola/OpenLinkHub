@@ -1,6 +1,6 @@
 ## SCUF Audio Configuration
 
-By default, SCUF controllers have sound output devices set to 16,16 value via ALSA. This provides 50% of the actual audio when audio is routed through SCUF. To fix this, your alsa-mixer needs to be updated for this device. 
+By default, SCUF controllers have audio output levels set to 16,16 via ALSA. This provides 50% of the actual audio when audio is routed through SCUF. To fix this, the ALSA mixer settings need to be updated for this device. 
 
 ### Find your device - Cable
 ```bash
@@ -51,7 +51,7 @@ $ sudo amixer -D hw:USB cset numid=8 32,32 && sudo alsactl store
 This will give you proper audio output power. 
 
 ## Volume Control
-In order to properly control volume on this value, you need to instruct the wire plumber not to use the ACP of the device. Instead, all control needs to be on the software level. 
+In order to properly control volume on this value, you need to instruct the wire plumber not to use the ACP of the device. Instead, all volume control needs to be handled in software. 
 
 ### Find your device
 ```bash

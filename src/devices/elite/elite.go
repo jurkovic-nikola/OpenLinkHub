@@ -849,7 +849,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.
@@ -1156,7 +1156,7 @@ func (d *Device) getLedData(deviceId, subDeviceId int) *map[int]rgb.Color {
 
 // generateLedObject will generate LED object with given LED amount
 func (d *Device) generateLedObject(amount uint8) map[int]rgb.Color {
-	// Device doesnt exists
+	// Device does not exist
 	colors := make(map[int]rgb.Color, amount)
 	for i := 0; i < int(amount); i++ {
 		colors[i] = rgb.Color{

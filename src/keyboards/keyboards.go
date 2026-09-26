@@ -251,9 +251,7 @@ func MigrateProfiles(profiles map[string]*Keyboard, layout *Keyboard, keyboardKe
 				base = profileLayout
 			}
 		}
-		if saved != nil &&
-			saved.Version == base.Version &&
-			saved.Layout == base.Layout {
+		if saved != nil && saved.Version == base.Version && saved.Layout == base.Layout {
 			continue
 		}
 
@@ -280,10 +278,10 @@ func MigrateProfiles(profiles map[string]*Keyboard, layout *Keyboard, keyboardKe
 			Expected: base.Version,
 		})
 	}
-
 	return upgrades
 }
 
+// mergeKeys merges 2 keyboard objects
 func mergeKeys(current, saved *Keyboard) {
 	oldByID := make(map[int]Key)
 	oldCounts := make(map[int]int)

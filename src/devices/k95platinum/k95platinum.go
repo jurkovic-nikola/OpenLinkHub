@@ -705,11 +705,7 @@ func (d *Device) saveDeviceProfile() {
 			}
 		}
 		if needsUpgrade {
-			for _, upgrade := range keyboards.MigrateProfiles(
-				d.DeviceProfile.Keyboards,
-				layout,
-				keyboardKey,
-			) {
+			for _, upgrade := range keyboards.MigrateProfiles(d.DeviceProfile.Keyboards, layout, keyboardKey) {
 				logger.Log(logger.Fields{
 					"profile":  upgrade.Name,
 					"current":  upgrade.Current,

@@ -967,7 +967,7 @@ func (d *Device) ProcessSetRgbCluster(enabled bool) uint8 {
 		d.activeRgb.Exit <- true
 		d.activeRgb = nil
 	}
-	d.setDeviceColor(true)
+	d.setDeviceColor(false)
 
 	if enabled {
 		lightChannels := 0
@@ -1577,7 +1577,7 @@ func (d *Device) writeColor(data []byte, lightChannels int) {
 	if d.Exit {
 		return
 	}
-	
+
 	// Packets are sent like:
 	// 50 packets of red, 50 packets on green, 50 packets of blue
 	// Repeat until the buffer is empty.

@@ -685,23 +685,38 @@ func (d *Device) saveDeviceProfile() {
 		if layout == nil {
 			return
 		}
-		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
-			logger.Log(
-				logger.Fields{
-					"current":  d.DeviceProfile.Keyboards["default"].Version,
-					"expected": layout.Version,
+
+		if d.DeviceProfile.Keyboards == nil {
+			d.DeviceProfile.Keyboards = make(map[string]*keyboards.Keyboard)
+		}
+		
+		needsUpgrade := len(d.DeviceProfile.Keyboards) == 0
+		for name, saved := range d.DeviceProfile.Keyboards {
+			expected := layout
+			if name != "default" && saved != nil && saved.Layout != "" {
+				profileLayout := keyboards.GetKeyboard(fmt.Sprintf("%s-%s", keyboardKey, saved.Layout))
+				if profileLayout != nil {
+					expected = profileLayout
+				}
+			}
+			if saved == nil || saved.Version != expected.Version {
+				needsUpgrade = true
+				break
+			}
+		}
+		if needsUpgrade {
+			for _, upgrade := range keyboards.MigrateProfiles(
+				d.DeviceProfile.Keyboards,
+				layout,
+				keyboardKey,
+			) {
+				logger.Log(logger.Fields{
+					"profile":  upgrade.Name,
+					"current":  upgrade.Current,
+					"expected": upgrade.Expected,
 					"serial":   d.Serial,
-				},
-			).Info("Upgrading keyboard profile version")
-			d.DeviceProfile.Keyboards["default"] = layout
-		} else {
-			logger.Log(
-				logger.Fields{
-					"current":  d.DeviceProfile.Keyboards["default"].Version,
-					"expected": layout.Version,
-					"serial":   d.Serial,
-				},
-			).Info("Keyboard profile version is OK")
+				}).Info("Upgrading keyboard profile version")
+			}
 		}
 
 		deviceProfile.Active = d.DeviceProfile.Active
@@ -1305,7 +1320,7 @@ func (d *Device) SaveDeviceProfile(profileName string, new bool) uint8 {
 		}
 
 		d.DeviceProfile.Profiles = append(d.DeviceProfile.Profiles, profileName)
-		d.DeviceProfile.Keyboards[profileName] = d.getCurrentKeyboard()
+		d.DeviceProfile.Keyboards[profileName] = keyboards.Clone(d.getCurrentKeyboard())
 		d.saveDeviceProfile()
 		return 1
 	} else {

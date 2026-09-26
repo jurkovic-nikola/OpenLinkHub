@@ -20,6 +20,12 @@ var (
 	keyboards = map[string]Keyboard{}
 )
 
+type ProfileUpgrade struct {
+	Name     string
+	Current  int
+	Expected int
+}
+
 type FlashTapKey struct {
 	Name    string
 	KeyData int
@@ -41,6 +47,7 @@ type KeyActuation struct {
 	SecondaryActuationPoint       byte
 	SecondaryActuationResetPoint  byte
 }
+
 type Keyboard struct {
 	Version             int           `json:"version"`
 	Key                 string        `json:"key"`
@@ -188,7 +195,7 @@ func Init() {
 // GetKeyboard will return Keyboard struct for a given keyboard type
 func GetKeyboard(key string) *Keyboard {
 	if keyboard, ok := keyboards[key]; ok {
-		return &keyboard
+		return Clone(&keyboard)
 	}
 	return nil
 }
@@ -202,4 +209,110 @@ func GetLayouts(key string) []string {
 		}
 	}
 	return layouts
+}
+
+// Clone create a new keyboard object
+func Clone(source *Keyboard) *Keyboard {
+	if source == nil {
+		return nil
+	}
+
+	data, err := json.Marshal(source)
+	if err != nil {
+		return nil
+	}
+
+	var cloned Keyboard
+	if err := json.Unmarshal(data, &cloned); err != nil {
+		return nil
+	}
+
+	return &cloned
+}
+
+// MigrateProfiles will migrate keyboard profile
+func MigrateProfiles(profiles map[string]*Keyboard, layout *Keyboard, keyboardKey string) []ProfileUpgrade {
+	if profiles == nil || layout == nil {
+		return nil
+	}
+
+	if _, ok := profiles["default"]; !ok {
+		profiles["default"] = nil
+	}
+
+	var upgrades []ProfileUpgrade
+
+	for name, saved := range profiles {
+		base := layout
+
+		if name != "default" && saved != nil && saved.Layout != "" && saved.Layout != layout.Layout {
+			layoutKey := fmt.Sprintf("%s-%s", keyboardKey, saved.Layout)
+			if profileLayout := GetKeyboard(layoutKey); profileLayout != nil {
+				base = profileLayout
+			}
+		}
+		if saved != nil &&
+			saved.Version == base.Version &&
+			saved.Layout == base.Layout {
+			continue
+		}
+
+		previousVersion := 0
+		if saved != nil {
+			previousVersion = saved.Version
+		}
+		merged := Clone(base)
+
+		if saved != nil {
+			merged.Color = saved.Color
+			for id, zone := range merged.Zones {
+				if previous, ok := saved.Zones[id]; ok {
+					zone.Color = previous.Color
+					merged.Zones[id] = zone
+				}
+			}
+			mergeKeys(merged, Clone(saved))
+		}
+		profiles[name] = merged
+		upgrades = append(upgrades, ProfileUpgrade{
+			Name:     name,
+			Current:  previousVersion,
+			Expected: base.Version,
+		})
+	}
+
+	return upgrades
+}
+
+func mergeKeys(current, saved *Keyboard) {
+	oldByID := make(map[int]Key)
+	oldCounts := make(map[int]int)
+	newCounts := make(map[int]int)
+
+	for _, row := range saved.Row {
+		for id, key := range row.Keys {
+			oldByID[id] = key
+			oldCounts[id]++
+		}
+	}
+	for _, row := range current.Row {
+		for id := range row.Keys {
+			newCounts[id]++
+		}
+	}
+
+	for rowID, row := range current.Row {
+		for id := range row.Keys {
+			previous, found := Key{}, false
+			if oldRow, ok := saved.Row[rowID]; ok {
+				previous, found = oldRow.Keys[id]
+			}
+			if !found && oldCounts[id] == 1 && newCounts[id] == 1 {
+				previous, found = oldByID[id]
+			}
+			if found {
+				row.Keys[id] = previous
+			}
+		}
+	}
 }

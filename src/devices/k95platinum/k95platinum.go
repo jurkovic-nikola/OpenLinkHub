@@ -685,33 +685,10 @@ func (d *Device) saveDeviceProfile() {
 		if layout == nil {
 			return
 		}
-
-		validKeyData := true
-		currentVersion := 0
-		if d.DeviceProfile.Keyboards["default"] == nil {
-			validKeyData = false
-		} else {
-			currentVersion = d.DeviceProfile.Keyboards["default"].Version
-			for _, row := range d.DeviceProfile.Keyboards["default"].Row {
-				for _, key := range row.Keys {
-					if key.OnlyColor {
-						continue
-					}
-					if len(key.KeyData) < 2 {
-						validKeyData = false
-						break
-					}
-				}
-				if !validKeyData {
-					break
-				}
-			}
-		}
-
-		if !validKeyData || currentVersion != layout.Version {
+		if d.DeviceProfile.Keyboards["default"].Version != layout.Version {
 			logger.Log(
 				logger.Fields{
-					"current":  currentVersion,
+					"current":  d.DeviceProfile.Keyboards["default"].Version,
 					"expected": layout.Version,
 					"serial":   d.Serial,
 				},
@@ -720,7 +697,7 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			logger.Log(
 				logger.Fields{
-					"current":  currentVersion,
+					"current":  d.DeviceProfile.Keyboards["default"].Version,
 					"expected": layout.Version,
 					"serial":   d.Serial,
 				},

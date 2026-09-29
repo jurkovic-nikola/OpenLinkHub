@@ -755,6 +755,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7127:  {1, 0, "K65 PRO MINI", k65pm.Init, nil},                         // K65 PRO MINI
 	7119:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                         // K65 RGB MINI
 	7087:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                         // K65 RGB MINI
+	7107:  {1, 0, "K65 RGB MINI", k65rm.Init, nil},                         // K65 RGB MINI
 	7094:  {1, 0, "K70 PPO MINI", k70pmWU.Init, nil},                       // K70 PPO MINI
 	7165:  {1, 0, "K70 CORE RGB", k70core.Init, nil},                       // K70 CORE RGB
 	7167:  {1, 0, "K70 CORE RGB", k70core.Init, nil},                       // K70 CORE RGB

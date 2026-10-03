@@ -71,7 +71,7 @@ type DPIProfile struct {
 
 type Device struct {
 	Debug                 bool
-	dev                   *hid.Device
+	dev                   *common.Slipstream
 	listener              *hid.Device
 	Manufacturer          string `json:"manufacturer"`
 	Product               string `json:"product"`
@@ -161,7 +161,7 @@ var (
 	}
 )
 
-func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
+func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endpoint byte, serial string) *Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -1090,6 +1090,7 @@ func (d *Device) loadKeyAssignments() {
 	}
 
 	if common.FileExists(keyAssignmentsFile) {
+		fmt.Println("OK")
 		file, err := os.Open(keyAssignmentsFile)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to load JSON file")
@@ -1099,14 +1100,6 @@ func (d *Device) loadKeyAssignments() {
 		if err = json.NewDecoder(file).Decode(&d.KeyAssignment); err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to decode key assignments JSON")
 			return
-		}
-
-		// Prevent left click modifications
-		if !d.KeyAssignment[1].Default {
-			logger.Log(logger.Fields{"serial": d.Serial, "value": d.KeyAssignment[1].Default, "expectedValue": 1}).Warn("Restoring left button to original value")
-			var val = d.KeyAssignment[1]
-			val.Default = true
-			d.KeyAssignment[1] = val
 		}
 
 		err = file.Close()
@@ -1705,8 +1698,8 @@ func (d *Device) writeColor(data []byte) {
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.dev.Mutex.Lock()
+	defer d.dev.Mutex.Unlock()
 
 	bufferW := make([]byte, bufferSizeWrite)
 	bufferW[1] = 0x02
@@ -1718,13 +1711,13 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 	}
 
 	reports := make([]byte, 1)
-	err := d.dev.SetNonblock(true)
+	err := d.dev.Dev.SetNonblock(true)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
 	}
 
 	for {
-		n, e := d.dev.Read(reports)
+		n, e := d.dev.Dev.Read(reports)
 		if e != nil {
 			if n < 0 {
 				//
@@ -1737,19 +1730,19 @@ func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	err = d.dev.SetNonblock(false)
+	err = d.dev.Dev.SetNonblock(false)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to SetNonblock")
 	}
 
 	bufferR := make([]byte, bufferSize)
 
-	if _, err := d.dev.Write(bufferW); err != nil {
+	if _, err := d.dev.Dev.Write(bufferW); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err := d.dev.Dev.ReadWithTimeout(bufferR, 100*time.Millisecond); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
 	}

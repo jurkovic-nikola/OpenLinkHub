@@ -1090,7 +1090,6 @@ func (d *Device) loadKeyAssignments() {
 	}
 
 	if common.FileExists(keyAssignmentsFile) {
-		fmt.Println("OK")
 		file, err := os.Open(keyAssignmentsFile)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial, "location": keyAssignmentsFile}).Warn("Unable to load JSON file")

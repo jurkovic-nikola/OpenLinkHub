@@ -34,7 +34,8 @@ type Sensors struct {
 }
 
 var (
-	animation = new(Animation)
+	animation           = new(Animation)
+	animationGeneration uint64
 )
 
 func InitAnimation() {
@@ -217,36 +218,47 @@ func pruneAnimationCacheLocked(keep string) {
 // holding more than one costs a full canvas per frame for nothing.
 func ensureAnimationLoaded(fileName string) bool {
 	mutex.Lock()
-	if animation.Images == nil {
-		animation.Images = make(map[string][]AnimationFrames)
+
+	// A renderer may have captured the previous background.
+	if fileName == "" || fileName != animation.Background {
+		mutex.Unlock()
+		return false
 	}
-	cached := len(animation.Images[fileName]) > 0
+
+	if len(animation.Images[fileName]) > 0 {
+		mutex.Unlock()
+		return true
+	}
+
+	generation := animationGeneration
 	mutex.Unlock()
 
-	var frames []AnimationFrames
-	if !cached {
-		if fileName == "" {
-			return false
-		}
-		// Built outside the lock: decoding is slow and the render path takes
-		// the same mutex.
-		if frames = buildAnimationFrames(fileName); frames == nil {
-			return false
-		}
+	// Slow decoding stays outside the settings lock.
+	frames := buildAnimationFrames(fileName)
+	if len(frames) == 0 {
+		return false
 	}
 
 	mutex.Lock()
 	defer mutex.Unlock()
-	if frames != nil {
+
+	// An upload or settings change occurred during decoding.
+	// Discard this result rather than restoring stale frames.
+	if generation != animationGeneration ||
+		fileName != animation.Background {
+		return false
+	}
+
+	if animation.Images == nil {
+		animation.Images = make(map[string][]AnimationFrames)
+	}
+
+	// Another LCD may already have published valid frames.
+	if len(animation.Images[fileName]) == 0 {
 		animation.Images[fileName] = frames
 	}
-	for name, cachedFrames := range animation.Images {
-		if name != fileName {
-			if cachedFrames != nil {
-				animation.Images[name] = nil
-			}
-		}
-	}
+
+	pruneAnimationCacheLocked(fileName)
 	return true
 }
 
@@ -265,6 +277,8 @@ func LoadAnimation(fileName string) uint8 {
 	if animation.Images == nil {
 		animation.Images = make(map[string][]AnimationFrames)
 	}
+
+	animationGeneration++
 	animation.Images[fileName] = nil
 	mutex.Unlock()
 	return 1
@@ -311,9 +325,18 @@ func SaveAnimation(value *Animation) uint8 {
 		return 0
 	}
 
-	// Publish atomically with cache pruning. Existing renderers retain their
-	// immutable profile and frame snapshots until their current render ends.
+	animationGeneration++
+	if updated.Images == nil {
+		updated.Images = make(map[string][]AnimationFrames)
+	}
+
+	// Cached delays include the previous FrameDelay fallback.
+	if updated.FrameDelay != animation.FrameDelay {
+		updated.Images[updated.Background] = nil
+	}
+
 	animation = &updated
 	pruneAnimationCacheLocked(updated.Background)
+
 	return 1
 }

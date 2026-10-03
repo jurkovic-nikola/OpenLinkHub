@@ -88,6 +88,7 @@ var (
 	}
 	sensorTextCache = make(map[uint8]string)
 	lcdPresent      = false
+	imageDataMutex  sync.RWMutex
 )
 
 type ImageData struct {
@@ -208,13 +209,19 @@ func Reconnect() {
 
 // GetLcdImages will return all lcd images
 func GetLcdImages() []ImageData {
-	return lcd.ImageData
+	imageDataMutex.RLock()
+	defer imageDataMutex.RUnlock()
+
+	return slices.Clone(lcd.ImageData)
 }
 
 // GetLcdImage will return image data based on image name
-func GetLcdImage(image string) *ImageData {
+func GetLcdImage(name string) *ImageData {
+	imageDataMutex.RLock()
+	defer imageDataMutex.RUnlock()
+
 	for _, value := range lcd.ImageData {
-		if value.Name == image {
+		if value.Name == name {
 			return &value
 		}
 	}
@@ -1290,6 +1297,8 @@ func loadImage(imagePath string, format uint8) {
 	// an existing image otherwise leaves the previous copy in the slice with
 	// every frame still decoded, and nothing ever drops it. GetLcdImage
 	// returns the first match, so the stale copy is unreachable but retained.
+	imageDataMutex.Lock()
+	defer imageDataMutex.Unlock()
 	for i := range lcd.ImageData {
 		if lcd.ImageData[i].Name == fileName {
 			lcd.ImageData[i] = *imageList

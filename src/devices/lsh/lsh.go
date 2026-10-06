@@ -296,7 +296,6 @@ var (
 	dataTypeCommandMode         = []byte{0x0d, 0x00}
 	dataTypeLedCount            = []byte{0x0c, 0x00}
 	dataTypeTimeWarp            = []byte{0x35, 0x00}
-	dataTypeDeviceModels        = []byte{0x58, 0x00}
 	psuInitHeader               = byte(0x19)
 	bufferSize                  = 512
 	headerSize                  = 3

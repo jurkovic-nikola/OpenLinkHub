@@ -16,6 +16,8 @@
     {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
     {{ $lcdRotations := .Device.LCDRotations }}
     {{ $lcdRotation := .Device.DeviceProfile.LCDRotation }}
+    {{ $lcdBrightness := .Device.DeviceProfile.LCDBrightness }}
+    {{ $lcdBrightnessLevels := .Device.LCDBrightnessLevels }}
     {{ $lcdImage := .Device.DeviceProfile.LCDImage }}
     {{ $deviceProfile := .Device.DeviceProfile }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
@@ -134,6 +136,18 @@
                                                 <select class="form-select system-select compact max-width-100 lcdRotation" name="{{ $device.Serial }}">
                                                     {{ range $key, $value := $lcdRotations }}
                                                     <option value="0;{{ $key }}"{{ if eq $key $lcdRotation }} selected {{ end }}>{{ $value }}</option>
+                                                    {{ end }}
+                                                </select>
+                                            </label>
+                                        </div>
+
+                                        <!-- LCD Brightness -->
+                                        <div class="settings-row">
+                                            <span class="settings-label text-ellipsis">{{ $root.Lang "txtLcdBrightness" }}</span>
+                                            <label>
+                                                <select class="form-select system-select compact max-width-100 lcdBrightness" name="{{ $device.Serial }}">
+                                                    {{ range $key, $value := $lcdBrightnessLevels }}
+                                                    <option value="0;{{ $key }}"{{ if eq $key $lcdBrightness }} selected {{ end }}>{{ $value }}</option>
                                                     {{ end }}
                                                 </select>
                                             </label>

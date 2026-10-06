@@ -27,15 +27,16 @@ import (
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	LCDMode     uint8
-	LCDRotation uint8
-	LCDImage    string
-	Label       string
-	RgbOff      bool
+	Active        bool
+	Path          string
+	Product       string
+	Serial        string
+	LCDMode       uint8
+	LCDRotation   uint8
+	LCDBrightness uint8
+	LCDImage      string
+	Label         string
+	RgbOff        bool
 }
 
 type TemperatureProbe struct {
@@ -47,44 +48,45 @@ type TemperatureProbe struct {
 }
 
 type Device struct {
-	Debug             bool
-	dev               *hid.Device
-	Manufacturer      string                    `json:"manufacturer"`
-	Product           string                    `json:"product"`
-	Serial            string                    `json:"serial"`
-	Firmware          string                    `json:"firmware"`
-	AIO               bool                      `json:"aio"`
-	UserProfiles      map[string]*DeviceProfile `json:"userProfiles"`
-	Devices           map[int]string            `json:"devices"`
-	DeviceProfile     *DeviceProfile
-	OriginalProfile   *DeviceProfile
-	TemperatureProbes *[]TemperatureProbe
-	ledProfile        *led.Device
-	Template          string
-	HasLCD            bool
-	VendorId          uint16
-	ProductId         uint16
-	LCDModes          map[int]string
-	LCDRotations      map[int]string
-	Brightness        map[int]string
-	GlobalBrightness  float64
-	FirmwareInternal  []int
-	Temperature       float32
-	TemperatureString string `json:"temperatureString"`
-	LEDChannels       int
-	CpuTemp           float32
-	GpuTemp           float32
-	Rgb               *rgb.RGB
-	rgbMutex          sync.RWMutex
-	LCDImage          *lcd.ImageData
-	Exit              bool
-	mutex             sync.Mutex
-	lcdRefreshChan    chan struct{}
-	lcdImageChan      chan struct{}
-	timer             *time.Ticker
-	lcdTimer          *time.Ticker
-	RGBModes          []string
-	instance          *common.Device
+	Debug               bool
+	dev                 *hid.Device
+	Manufacturer        string                    `json:"manufacturer"`
+	Product             string                    `json:"product"`
+	Serial              string                    `json:"serial"`
+	Firmware            string                    `json:"firmware"`
+	AIO                 bool                      `json:"aio"`
+	UserProfiles        map[string]*DeviceProfile `json:"userProfiles"`
+	Devices             map[int]string            `json:"devices"`
+	DeviceProfile       *DeviceProfile
+	OriginalProfile     *DeviceProfile
+	TemperatureProbes   *[]TemperatureProbe
+	ledProfile          *led.Device
+	Template            string
+	HasLCD              bool
+	VendorId            uint16
+	ProductId           uint16
+	LCDModes            map[int]string
+	LCDRotations        map[int]string
+	Brightness          map[int]string
+	LCDBrightnessLevels map[int]string
+	GlobalBrightness    float64
+	FirmwareInternal    []int
+	Temperature         float32
+	TemperatureString   string `json:"temperatureString"`
+	LEDChannels         int
+	CpuTemp             float32
+	GpuTemp             float32
+	Rgb                 *rgb.RGB
+	rgbMutex            sync.RWMutex
+	LCDImage            *lcd.ImageData
+	Exit                bool
+	mutex               sync.Mutex
+	lcdRefreshChan      chan struct{}
+	lcdImageChan        chan struct{}
+	timer               *time.Ticker
+	lcdTimer            *time.Ticker
+	RGBModes            []string
+	instance            *common.Device
 }
 
 var (
@@ -94,6 +96,7 @@ var (
 	lcdBufferSize              = 1024
 	firmwareReportId           = byte(5)
 	featureReportSize          = 32
+	cmdLcdBrightness           = []byte{0x03, 0x0b, 0x64, 0x01}
 	maxLCDBufferSizePerRequest = lcdBufferSize - lcdHeaderSize
 )
 
@@ -139,6 +142,12 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 			2: "66 %",
 			3: "100 %",
 		},
+		LCDBrightnessLevels: map[int]string{
+			1:   "Off",
+			33:  "33 %",
+			66:  "66 %",
+			100: "100 %",
+		},
 		lcdRefreshChan: make(chan struct{}),
 		lcdImageChan:   make(chan struct{}),
 		timer:          &time.Ticker{},
@@ -154,6 +163,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	d.setLcdRotation()     // LCD rotation
+	d.setLcdBrightness()   // LCD backlight brightness
 	if d.DeviceProfile.LCDMode == lcd.DisplayImage {
 		if d.loadLcdImage() != 1 {
 			logger.Log(logger.Fields{"serial": d.Serial}).Warn("Unable to load LCD image from profile")
@@ -418,6 +428,7 @@ func (d *Device) saveDeviceProfile() {
 		if d.HasLCD {
 			deviceProfile.LCDMode = 2
 			deviceProfile.LCDRotation = 0
+			deviceProfile.LCDBrightness = 64
 		}
 		deviceProfile.Active = true
 		deviceProfile.LCDImage = ""
@@ -432,6 +443,13 @@ func (d *Device) saveDeviceProfile() {
 		} else {
 			deviceProfile.Path = d.DeviceProfile.Path
 		}
+
+		if d.DeviceProfile.LCDBrightness == 0 {
+			deviceProfile.LCDBrightness = 100
+		} else {
+			deviceProfile.LCDBrightness = d.DeviceProfile.LCDBrightness
+		}
+
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
 		deviceProfile.RgbOff = d.DeviceProfile.RgbOff
@@ -600,6 +618,41 @@ func (d *Device) UpdateDeviceLcdImage(_ int, image string) uint8 {
 		return 1
 	} else {
 		return 0
+	}
+}
+
+// UpdateDeviceLcdBrightness will update the LCD backlight brightness
+func (d *Device) UpdateDeviceLcdBrightness(_ int, brightness uint8) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if d.HasLCD {
+		d.DeviceProfile.LCDBrightness = brightness
+		d.saveDeviceProfile()
+		d.setLcdBrightness()
+		return 1
+	}
+	return 0
+}
+
+// setLcdBrightness sends the LCD backlight brightness command to the device
+func (d *Device) setLcdBrightness() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	if d.HasLCD {
+		brightness := d.DeviceProfile.LCDBrightness
+		if brightness < 33 {
+			brightness = 0
+		}
+		lcdReport := append([]byte(nil), cmdLcdBrightness...)
+		lcdReport[2] = brightness
+		_, err := d.dev.SendFeatureReport(lcdReport)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "vendorId": d.VendorId, "serial": d.Serial}).Error("Unable to change LCD brightness")
+		}
 	}
 }
 

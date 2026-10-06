@@ -420,6 +420,27 @@
     "deviceName": "LCD SCREEN MODULE",
     "ledChannels": 32,
     "desc": "LCD",
-    "hasSpeed": true
+    "hasSpeed": true,
+    "v2Device": true
+  },
+  {
+    "deviceId": 26,
+    "deviceModel": 1,
+    "deviceName": "iCUE LINK GENERIC AIO PUMP",
+    "ledChannels": 20,
+    "containsPump": true,
+    "desc": "AIO",
+    "aio": true,
+    "hasSpeed": true,
+    "v2Device": true
+  },
+  {
+    "deviceId": 26,
+    "deviceModel": 0,
+    "deviceName": "iCUE LINK FANS",
+    "ledChannels": 8,
+    "desc": "Fan",
+    "hasSpeed": true,
+    "v2Device": true
   }
 ]

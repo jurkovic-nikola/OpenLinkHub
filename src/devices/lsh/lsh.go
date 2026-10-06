@@ -4152,7 +4152,7 @@ func (d *Device) getDevices() int {
 
 		if device.IsV2Device {
 			v2Dev := d.read(modeGetDeviceModels, nil, false, byte(device.ChannelId))
-			v2Device, err := parseV2DeviceModel(v2Dev)
+			v2Device, err := d.parseV2DeviceModel(v2Dev)
 			if err != nil {
 				logger.Log(logger.Fields{"serial": d.Serial, "channel": device.ChannelId, "error": err}).Warn("Unable to parse V2 device model data.")
 			} else {
@@ -4291,7 +4291,7 @@ func (d *Device) getDevices() int {
 }
 
 // parseV2DeviceModel will extract device model and LED amount from V2 devices
-func parseV2DeviceModel(data []byte) (*V2DeviceModel, error) {
+func (d *Device) parseV2DeviceModel(data []byte) (*V2DeviceModel, error) {
 	const payloadOffset = 10
 
 	if len(data) < payloadOffset {

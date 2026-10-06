@@ -1,3 +1,41 @@
+## 2026-10-06
+
+* leftovers (8b419f20)
+* leftovers (f086283f)
+* docs (869ee92e)
+* icue link v2 generic devices (fe92b101)
+* nautilus lcd brightness https://github.com/jurkovic-nikola/OpenLinkHub/issues/540 (75d2f330)
+
+## 2026-10-03
+
+* leftovers (27951358)
+* init map, invalidate cache, frame delay should clear selected cache (259d6ad5)
+* Merge pull request #492 from reinauer/memory2 (e904a459)
+* hs80 fixups https://github.com/jurkovic-nikola/OpenLinkHub/issues/539 (4aa4a369)
+
+## 2026-09-29
+
+* k65 rgb mini de version https://github.com/jurkovic-nikola/OpenLinkHub/issues/537 (d7d3eeaf)
+
+## 2026-09-22
+
+* lcd: preserve uploads across profile saves and match GIF names exactly (85379310)
+
+## 2026-07-29
+
+* lcd: decode paletted frames on demand instead of retaining them (2890d557)
+
+## 2026-09-26
+
+* k65 rgb mini upgrade (3f01739f)
+* comments (38a11849)
+* k95 platinum upgrade process (391c6013)
+* revert this... (af0f5b8b)
+* check if we actually have active lcd (caefee08)
+* typos, missing trnslations (7fa76116)
+* fixup (e3909fd3)
+* changelog (f45d30b7)
+
 ## 2026-09-22
 
 * docs update (a3793195)
@@ -134,6 +172,8 @@
 
 ## 2026-07-27
 
+* lcd: decode animation frames only for the background being rendered (ddd0ac49)
+* lcd: replace rather than append when reloading an image (9db29e8d)
 * missing id (c26bb62a)
 * support for sabre v2 pro mg (7e138d86)
 

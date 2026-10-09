@@ -307,6 +307,7 @@ var (
 	temperaturePullingInterval  = 3000
 	lcdRefreshInterval          = 1000
 	deviceRefreshInterval       = 1000
+	devicesRetryInterval        = 30 * time.Second
 	lcdLedChannels              = 24
 	lcdHeaderSize               = 8
 	lcdBufferSize               = 1024
@@ -451,7 +452,9 @@ func Init(vendorId, productId uint16, serial, path string) *common.Device {
 	d.getDeviceFirmware()    // Firmware
 	d.setSoftwareMode()      // Activate software mode
 	d.getLedDeviceTypes()    // Device led types
-	d.getDevices()           // Get devices connected to a hub
+	if d.getDevices() == 0 { // Get devices connected to a hub
+		d.retryGetDevices() // Hub reports nothing, keep running degraded and re-probe
+	}
 	d.getLedDevices()        // Get connected LED devices
 	d.setColorEndpoint()     // Set device color endpoint
 	d.setDeviceProtection()  // Protect device
@@ -3701,7 +3704,7 @@ func (d *Device) getDeviceData() {
 	sensorData := response[7:]
 	valid := response[7]
 	if valid == 0x01 {
-		for i := 0; i < int(amount); i++ {
+		for i := 0; i < int(amount) && (i+1)*3 <= len(sensorData); i++ {
 			currentSensor := sensorData[i*3 : (i+1)*3]
 			status := currentSensor[0]
 			if status == 0x00 {
@@ -3739,7 +3742,7 @@ func (d *Device) getDeviceData() {
 			logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response), "type": "temperature"}).Info("getDeviceData()")
 		}
 		if valid == 0x00 || valid == 0x01 {
-			for i, s := 0, 0; i < int(amount); i, s = i+1, s+3 {
+			for i, s := 0, 0; i < int(amount) && s+3 <= len(sensorData); i, s = i+1, s+3 {
 				currentSensor := sensorData[s : s+3]
 				status := currentSensor[0]
 				if status == 0x00 {
@@ -3944,6 +3947,44 @@ func (d *Device) maxChannelId() byte {
 	return byte(maxChannelId)
 }
 
+// parseDevicesResponse validates a getDevices response and returns the channel amount and channel data
+func parseDevicesResponse(response []byte) (int, []byte, error) {
+	if len(response) < 7 {
+		return 0, nil, fmt.Errorf("response too short: %d bytes", len(response))
+	}
+	if !bytes.Equal(response[4:6], dataTypeGetDevices) {
+		return 0, nil, fmt.Errorf("unexpected data type % 02x, expected % 02x", response[4:6], dataTypeGetDevices)
+	}
+	return int(response[6]), response[7:], nil
+}
+
+// retryGetDevices will re-probe the hub until it reports devices, then initialize them
+func (d *Device) retryGetDevices() {
+	logger.Log(logger.Fields{"serial": d.Serial, "interval": devicesRetryInterval.String()}).Warn("No devices reported by hub, running degraded and retrying")
+	go func() {
+		ticker := time.NewTicker(devicesRetryInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			if d.Exit {
+				return
+			}
+			d.getLedDeviceTypes()
+			amount := d.getDevices()
+			if amount == 0 {
+				continue
+			}
+			logger.Log(logger.Fields{"serial": d.Serial, "devices": amount}).Info("Hub reports devices again, initializing them")
+			d.getLedDevices()
+			d.setDeviceProtection()
+			d.setDefaults()
+			d.getTemperatureProbe()
+			d.pumpInnerLedPosition()
+			d.setDeviceColor()
+			return
+		}
+	}()
+}
+
 // getDevices will fetch all devices connected to a hub
 func (d *Device) getDevices() int {
 	lcdAvailable := false
@@ -3960,15 +4001,27 @@ func (d *Device) getDevices() int {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", response)}).Info("getDevices()")
 	}
 
-	channels := response[6]
-	data := response[7:]
+	channels, data, err := parseDevicesResponse(response)
+	if err != nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "error": err, "length": len(response), "data": fmt.Sprintf("% 02x", response)}).Warn("getDevices() - invalid response, hub reports no devices")
+		d.Devices = make(map[int]*Devices)
+		return 0
+	}
 	position := 0
 	duoPort := 1
-	for i := 1; i <= int(channels); i++ {
+	for i := 1; i <= channels; i++ {
+		if position+8 > len(data) {
+			logger.Log(logger.Fields{"serial": d.Serial, "channel": i, "channels": channels, "length": len(data)}).Warn("getDevices() - response truncated")
+			break
+		}
 		deviceIdLen := data[position+7]
 		if deviceIdLen == 0 {
 			position += 8
 			continue
+		}
+		if position+8+int(deviceIdLen) > len(data) {
+			logger.Log(logger.Fields{"serial": d.Serial, "channel": i, "deviceIdLen": deviceIdLen, "length": len(data)}).Warn("getDevices() - device id exceeds response")
+			break
 		}
 		deviceTypeModel := data[position : position+8]
 		if deviceTypeModel[2] == 6 || deviceTypeModel[2] == 14 {
@@ -5243,6 +5296,9 @@ func (d *Device) getLedDevices() {
 	}
 
 	for i := 1; i <= int(channels); i++ {
+		if i*4+4 > len(data) {
+			break
+		}
 		var numLEDs uint16 = 0
 		connected := binary.LittleEndian.Uint16(data[i*4:i*4+2]) == 2
 		if connected {
@@ -5283,8 +5339,8 @@ func (d *Device) getLedDeviceTypes() {
 		leds = append(leds, buffer[6:8]...)
 		data := buffer[8:]
 
-		packetLen := (buffer[6] * 2) - 1
-		for i := 0; i < int(packetLen); i++ {
+		packetLen := (int(buffer[6]) * 2) - 1
+		for i := 0; i < packetLen && i < len(data); i++ {
 			leds = append(leds, data[i])
 		}
 	}

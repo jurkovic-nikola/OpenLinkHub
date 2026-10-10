@@ -68,6 +68,11 @@ type DeviceProfile struct {
 
 type Device struct {
 	dev           *hid.Device
+	// Per device, not package globals: with two PSUs, globals made both refresh
+	// goroutines share one ticker (each refreshed at about half rate) and one mutex.
+	mutex           sync.Mutex
+	timer           *time.Ticker
+	autoRefreshChan chan bool
 	Manufacturer  string                    `json:"manufacturer"`
 	Product       string                    `json:"product"`
 	Serial        string                    `json:"serial"`
@@ -104,10 +109,10 @@ var (
 	dataGetWatts          = byte(0x96)
 	dataPowerOut          = byte(0xee)
 	dataInputVoltage      = byte(0x88)
-	mutex                 sync.Mutex
-	timer                 = &time.Ticker{}
-	autoRefreshChan       = make(chan bool)
 	deviceRefreshInterval = 1000
+	// A PSU that never answers a request would otherwise block transfer() (and Init)
+	// forever: hid Read has no timeout.
+	readTimeout           = 1000 * time.Millisecond
 	bufferSize            = 64
 	readBufferSize        = 64
 	bufferSizeWrite       = bufferSize + 1
@@ -173,8 +178,7 @@ func (d *Device) createDevice() {
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	timer.Stop()
-	autoRefreshChan <- true
+	d.stopAutoRefresh()
 	d.setFanToDefault()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -187,8 +191,7 @@ func (d *Device) Stop() {
 // StopDirty will stop device in a dirty way
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
-	timer.Stop()
-	autoRefreshChan <- true
+	d.stopAutoRefresh()
 	return 1
 }
 
@@ -716,25 +719,35 @@ func (d *Device) init() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	autoRefreshChan = make(chan bool)
-	go func() {
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
+	d.autoRefreshChan = make(chan bool)
+	go func(timer *time.Ticker, stop chan bool) {
 		for {
 			select {
 			case <-timer.C:
 				d.getDeviceData()
-			case <-autoRefreshChan:
+			case <-stop:
 				timer.Stop()
 				return
 			}
 		}
-	}()
+	}(d.timer, d.autoRefreshChan)
+}
+
+// stopAutoRefresh stops this device's refresh loop, if it was started
+func (d *Device) stopAutoRefresh() {
+	if d.timer == nil {
+		return
+	}
+	d.timer.Stop()
+	d.autoRefreshChan <- true
+	d.timer = nil
 }
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(buffer []byte) ([]byte, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	bufferR := make([]byte, readBufferSize)
 
@@ -743,7 +756,7 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Read(bufferR); err != nil {
+	if _, err := d.dev.ReadWithTimeout(bufferR, readTimeout); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
 		return bufferR, err
 	}

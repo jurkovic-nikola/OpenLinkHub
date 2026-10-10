@@ -607,6 +607,16 @@ func Init() {
 			if len(key) == 0 {
 				// Devices with no serial, make serial based of productId
 				key = strconv.Itoa(int(info.ProductID))
+
+				// A second identical device with no serial (e.g. two HX1500i PSUs) would
+				// overwrite the first one here. Suffix it with its USB port so both are kept.
+				if _, exists := deviceList[key]; exists {
+					suffix := p
+					if len(suffix) == 0 {
+						suffix = base
+					}
+					key = key + "-" + suffix
+				}
 			}
 
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {

@@ -68,6 +68,7 @@ type DeviceProfile struct {
 
 type Device struct {
 	dev           *hid.Device
+	deviceKey     string                    // devices.go registration key; "<productId>-<usb port>" for a duplicate
 	Manufacturer  string                    `json:"manufacturer"`
 	Product       string                    `json:"product"`
 	Serial        string                    `json:"serial"`
@@ -114,7 +115,7 @@ var (
 	temperatureChannels   = 2
 )
 
-func Init(vendorId, productId uint16, _, path string) *common.Device {
+func Init(vendorId, productId uint16, key, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -139,7 +140,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			9:  "90 %",
 			10: "100 %",
 		},
-		IsPSU: true,
+		IsPSU:     true,
+		deviceKey: key,
 	}
 
 	// Bootstrap
@@ -254,7 +256,15 @@ func (d *Device) getProductData() {
 
 	d.Product = product
 
-	hash := md5.Sum([]byte(product))
+	// The serial is derived from the product name, so two identical PSUs would share it
+	// (and their profile). A second one is registered with a "<productId>-<usb port>" key;
+	// mix that port into its serial. A single PSU keeps its existing serial and profile.
+	seed := product
+	if i := strings.Index(d.deviceKey, "-"); i >= 0 {
+		seed = product + d.deviceKey[i:]
+	}
+
+	hash := md5.Sum([]byte(seed))
 	serial := hex.EncodeToString(hash[:])
 	d.Serial = serial
 }

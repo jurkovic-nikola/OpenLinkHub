@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -68,6 +70,12 @@ type DeviceProfile struct {
 
 type Device struct {
 	dev           *hid.Device
+	deviceKey     string                    // devices.go registration key; "<productId>-<usb port>" for a duplicate
+	// Per device, not package globals: with two PSUs, globals made both refresh
+	// goroutines share one ticker (each refreshed at about half rate) and one mutex.
+	mutex           sync.Mutex
+	timer           *time.Ticker
+	autoRefreshChan chan bool
 	Manufacturer  string                    `json:"manufacturer"`
 	Product       string                    `json:"product"`
 	Serial        string                    `json:"serial"`
@@ -104,17 +112,17 @@ var (
 	dataGetWatts          = byte(0x96)
 	dataPowerOut          = byte(0xee)
 	dataInputVoltage      = byte(0x88)
-	mutex                 sync.Mutex
-	timer                 = &time.Ticker{}
-	autoRefreshChan       = make(chan bool)
 	deviceRefreshInterval = 1000
+	// A PSU that never answers a request would otherwise block transfer() (and Init)
+	// forever: hid Read has no timeout.
+	readTimeout           = 1000 * time.Millisecond
 	bufferSize            = 64
 	readBufferSize        = 64
 	bufferSizeWrite       = bufferSize + 1
 	temperatureChannels   = 2
 )
 
-func Init(vendorId, productId uint16, _, path string) *common.Device {
+func Init(vendorId, productId uint16, key, path string) *common.Device {
 	// Set global working directory
 	pwd = config.GetConfig().ConfigPath
 
@@ -139,7 +147,8 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			9:  "90 %",
 			10: "100 %",
 		},
-		IsPSU: true,
+		IsPSU:     true,
+		deviceKey: key,
 	}
 
 	// Bootstrap
@@ -173,8 +182,7 @@ func (d *Device) createDevice() {
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
-	timer.Stop()
-	autoRefreshChan <- true
+	d.stopAutoRefresh()
 	d.setFanToDefault()
 	if d.dev != nil {
 		err := d.dev.Close()
@@ -187,8 +195,7 @@ func (d *Device) Stop() {
 // StopDirty will stop device in a dirty way
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
-	timer.Stop()
-	autoRefreshChan <- true
+	d.stopAutoRefresh()
 	return 1
 }
 
@@ -254,7 +261,15 @@ func (d *Device) getProductData() {
 
 	d.Product = product
 
-	hash := md5.Sum([]byte(product))
+	// The serial is derived from the product name, so two identical PSUs would share it
+	// (and their profile). A second one is registered with a "<productId>-<usb port>" key;
+	// mix that port into its serial. A single PSU keeps its existing serial and profile.
+	seed := product
+	if i := strings.Index(d.deviceKey, "-"); i >= 0 {
+		seed = product + d.deviceKey[i:]
+	}
+
+	hash := md5.Sum([]byte(seed))
 	serial := hex.EncodeToString(hash[:])
 	d.Serial = serial
 }
@@ -587,6 +602,30 @@ func (d *Device) getDeviceData() {
 		}
 		m++
 	}
+
+	d.updateDeviceMetrics()
+}
+
+// updateDeviceMetrics publishes every channel's latest readings to the metrics endpoint
+func (d *Device) updateDeviceMetrics() {
+	for _, device := range d.Devices {
+		metrics.PopulatePsu(&metrics.PsuChannel{
+			Product:     d.Product,
+			Serial:      d.Serial,
+			ChannelId:   strconv.Itoa(device.ChannelId),
+			Name:        device.Name,
+			Watts:       float64(device.Watts),
+			Volts:       float64(device.Volts),
+			Amps:        float64(device.Amps),
+			Temperature: float64(device.Temperature),
+			Rpm:         device.Rpm,
+			HasWatts:    device.HasWatts,
+			HasVolts:    device.HasVolts,
+			HasAmps:     device.HasAmps,
+			HasTemps:    device.HasTemps,
+			HasSpeed:    device.HasSpeed,
+		})
+	}
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -716,25 +755,35 @@ func (d *Device) init() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
-	timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
-	autoRefreshChan = make(chan bool)
-	go func() {
+	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
+	d.autoRefreshChan = make(chan bool)
+	go func(timer *time.Ticker, stop chan bool) {
 		for {
 			select {
 			case <-timer.C:
 				d.getDeviceData()
-			case <-autoRefreshChan:
+			case <-stop:
 				timer.Stop()
 				return
 			}
 		}
-	}()
+	}(d.timer, d.autoRefreshChan)
+}
+
+// stopAutoRefresh stops this device's refresh loop, if it was started
+func (d *Device) stopAutoRefresh() {
+	if d.timer == nil {
+		return
+	}
+	d.timer.Stop()
+	d.autoRefreshChan <- true
+	d.timer = nil
 }
 
 // transfer will send data to a device and retrieve device output
 func (d *Device) transfer(buffer []byte) ([]byte, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
 	bufferR := make([]byte, readBufferSize)
 
@@ -743,16 +792,35 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	if _, err := d.dev.Read(bufferR); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
-	}
+	// Read until the response to THIS request arrives, or readTimeout passes. A read that
+	// was interrupted (EINTR: the Go runtime signals threads) or timed out leaves its
+	// response pending; it then arrives ahead of the next one. Treating that as a failed
+	// transfer left every later read one response behind ("response does not match the
+	// request" on every transfer), so stale responses are skipped instead.
+	deadline := time.Now().Add(readTimeout)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			err := errors.New("no matching response before the read timeout")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return make([]byte, 64), err
+		}
 
-	if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
-		return bufferR, nil
-	} else {
-		err := errors.New("response does not match the request")
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Invalid response. Probably another software is monitoring this device")
-		return make([]byte, 64), err
+		n, err := d.dev.ReadWithTimeout(bufferR, remaining)
+		if err != nil {
+			if strings.Contains(err.Error(), "Interrupted system call") {
+				continue
+			}
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return make([]byte, 64), err
+		}
+		if n == 0 {
+			continue
+		}
+
+		if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
+			return bufferR, nil
+		}
+		// A late response to an earlier request: discard it and keep reading.
 	}
 }

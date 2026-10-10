@@ -792,16 +792,35 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	if _, err := d.dev.ReadWithTimeout(bufferR, readTimeout); err != nil {
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-		return bufferR, err
-	}
+	// Read until the response to THIS request arrives, or readTimeout passes. A read that
+	// was interrupted (EINTR: the Go runtime signals threads) or timed out leaves its
+	// response pending; it then arrives ahead of the next one. Treating that as a failed
+	// transfer left every later read one response behind ("response does not match the
+	// request" on every transfer), so stale responses are skipped instead.
+	deadline := time.Now().Add(readTimeout)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			err := errors.New("no matching response before the read timeout")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return make([]byte, 64), err
+		}
 
-	if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
-		return bufferR, nil
-	} else {
-		err := errors.New("response does not match the request")
-		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Invalid response. Probably another software is monitoring this device")
-		return make([]byte, 64), err
+		n, err := d.dev.ReadWithTimeout(bufferR, remaining)
+		if err != nil {
+			if strings.Contains(err.Error(), "Interrupted system call") {
+				continue
+			}
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			return make([]byte, 64), err
+		}
+		if n == 0 {
+			continue
+		}
+
+		if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
+			return bufferR, nil
+		}
+		// A late response to an earlier request: discard it and keep reading.
 	}
 }

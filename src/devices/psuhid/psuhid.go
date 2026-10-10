@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/metrics"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -596,6 +598,30 @@ func (d *Device) getDeviceData() {
 			d.Devices[m].HasVolts = true
 		}
 		m++
+	}
+
+	d.updateDeviceMetrics()
+}
+
+// updateDeviceMetrics publishes every channel's latest readings to the metrics endpoint
+func (d *Device) updateDeviceMetrics() {
+	for _, device := range d.Devices {
+		metrics.PopulatePsu(&metrics.PsuChannel{
+			Product:     d.Product,
+			Serial:      d.Serial,
+			ChannelId:   strconv.Itoa(device.ChannelId),
+			Name:        device.Name,
+			Watts:       float64(device.Watts),
+			Volts:       float64(device.Volts),
+			Amps:        float64(device.Amps),
+			Temperature: float64(device.Temperature),
+			Rpm:         device.Rpm,
+			HasWatts:    device.HasWatts,
+			HasVolts:    device.HasVolts,
+			HasAmps:     device.HasAmps,
+			HasTemps:    device.HasTemps,
+			HasSpeed:    device.HasSpeed,
+		})
 	}
 }
 

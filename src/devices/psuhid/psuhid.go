@@ -69,27 +69,25 @@ type DeviceProfile struct {
 }
 
 type Device struct {
-	dev           *hid.Device
-	deviceKey     string                    // devices.go registration key; "<productId>-<usb port>" for a duplicate
-	// Per device, not package globals: with two PSUs, globals made both refresh
-	// goroutines share one ticker (each refreshed at about half rate) and one mutex.
+	dev             *hid.Device
+	deviceKey       string
 	mutex           sync.Mutex
 	timer           *time.Ticker
 	autoRefreshChan chan bool
-	Manufacturer  string                    `json:"manufacturer"`
-	Product       string                    `json:"product"`
-	Serial        string                    `json:"serial"`
-	Firmware      string                    `json:"firmware"`
-	Devices       map[int]*Devices          `json:"devices"`
-	UserProfiles  map[string]*DeviceProfile `json:"userProfiles"`
-	DeviceProfile *DeviceProfile
-	Template      string
-	CpuTemp       float32
-	GpuTemp       float32
-	FanModes      map[int]string
-	InputVoltage  float32
-	instance      *common.Device
-	IsPSU         bool
+	Manufacturer    string                    `json:"manufacturer"`
+	Product         string                    `json:"product"`
+	Serial          string                    `json:"serial"`
+	Firmware        string                    `json:"firmware"`
+	Devices         map[int]*Devices          `json:"devices"`
+	UserProfiles    map[string]*DeviceProfile `json:"userProfiles"`
+	DeviceProfile   *DeviceProfile
+	Template        string
+	CpuTemp         float32
+	GpuTemp         float32
+	FanModes        map[int]string
+	InputVoltage    float32
+	instance        *common.Device
+	IsPSU           bool
 }
 
 var (
@@ -113,8 +111,6 @@ var (
 	dataPowerOut          = byte(0xee)
 	dataInputVoltage      = byte(0x88)
 	deviceRefreshInterval = 1000
-	// A PSU that never answers a request would otherwise block transfer() (and Init)
-	// forever: hid Read has no timeout.
 	readTimeout           = 1000 * time.Millisecond
 	bufferSize            = 64
 	readBufferSize        = 64
@@ -261,9 +257,6 @@ func (d *Device) getProductData() {
 
 	d.Product = product
 
-	// The serial is derived from the product name, so two identical PSUs would share it
-	// (and their profile). A second one is registered with a "<productId>-<usb port>" key;
-	// mix that port into its serial. A single PSU keeps its existing serial and profile.
 	seed := product
 	if i := strings.Index(d.deviceKey, "-"); i >= 0 {
 		seed = product + d.deviceKey[i:]
@@ -609,7 +602,7 @@ func (d *Device) getDeviceData() {
 // updateDeviceMetrics publishes every channel's latest readings to the metrics endpoint
 func (d *Device) updateDeviceMetrics() {
 	for _, device := range d.Devices {
-		metrics.PopulatePsu(&metrics.PsuChannel{
+		header := &metrics.Header{
 			Product:     d.Product,
 			Serial:      d.Serial,
 			ChannelId:   strconv.Itoa(device.ChannelId),
@@ -624,7 +617,10 @@ func (d *Device) updateDeviceMetrics() {
 			HasAmps:     device.HasAmps,
 			HasTemps:    device.HasTemps,
 			HasSpeed:    device.HasSpeed,
-		})
+			IsPSU:       true,
+			MainPSU:     device.MainPSU,
+		}
+		metrics.Populate(header)
 	}
 }
 
@@ -792,11 +788,6 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 		return bufferR, err
 	}
 
-	// Read until the response to THIS request arrives, or readTimeout passes. A read that
-	// was interrupted (EINTR: the Go runtime signals threads) or timed out leaves its
-	// response pending; it then arrives ahead of the next one. Treating that as a failed
-	// transfer left every later read one response behind ("response does not match the
-	// request" on every transfer), so stale responses are skipped instead.
 	deadline := time.Now().Add(readTimeout)
 	for {
 		remaining := time.Until(deadline)
@@ -821,6 +812,5 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 		if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
 			return bufferR, nil
 		}
-		// A late response to an earlier request: discard it and keep reading.
 	}
 }

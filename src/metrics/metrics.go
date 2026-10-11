@@ -30,6 +30,16 @@ type Header struct {
 	HwmonDevice      string
 	Temperature      float64
 	Rpm              int16
+	HasWatts         bool
+	HasVolts         bool
+	HasAmps          bool
+	HasTemps         bool
+	HasSpeed         bool
+	Watts            float64
+	Volts            float64
+	Amps             float64
+	IsPSU            bool
+	MainPSU          bool
 }
 
 type DeviceMetric struct {
@@ -48,33 +58,12 @@ type DefaultTemp struct {
 	Temperature float64
 }
 
-// PsuChannel is one telemetry channel of a PSU (the PSU itself, its fan, a temperature
-// sensor, total power out or a rail). Only the Has* readings are exported.
-type PsuChannel struct {
-	Product     string
-	Serial      string
-	ChannelId   string
-	Name        string
-	Watts       float64
-	Volts       float64
-	Amps        float64
-	Temperature float64
-	Rpm         int16
-	HasWatts    bool
-	HasVolts    bool
-	HasAmps     bool
-	HasTemps    bool
-	HasSpeed    bool
-}
-
 var (
-	mu sync.RWMutex
-
+	mu             sync.RWMutex
 	productMetrics = make(map[string]Header)      // key: serial
 	deviceMetrics  = make(map[string]Header)      // key: serial:channel
 	storageMetrics = make(map[string]StorageTemp) // key: hwmonDevice
 	defaultMetrics = make(map[string]DefaultTemp) // key: model
-	psuMetrics     = make(map[string]PsuChannel)  // key: serial:channel
 )
 
 // Init initializes internal maps (optional in Go, but for symmetry)
@@ -83,7 +72,6 @@ func Init() {
 	deviceMetrics = make(map[string]Header)
 	storageMetrics = make(map[string]StorageTemp)
 	defaultMetrics = make(map[string]DefaultTemp)
-	psuMetrics = make(map[string]PsuChannel)
 }
 
 // PopulateDefault adds default temperature metrics (e.g., CPU, GPU)
@@ -124,24 +112,6 @@ func Populate(header *Header) {
 	productMetrics[header.Serial] = *header
 	deviceMetrics[key] = *header
 	mu.Unlock()
-}
-
-// PopulatePsu fills in one PSU telemetry channel
-func PopulatePsu(channel *PsuChannel) {
-	mu.Lock()
-	psuMetrics[channel.Serial+":"+channel.ChannelId] = *channel
-	mu.Unlock()
-}
-
-// GetPsuMetrics return PSU metrics
-func GetPsuMetrics() map[string]PsuChannel {
-	mu.RLock()
-	defer mu.RUnlock()
-	cp := make(map[string]PsuChannel, len(psuMetrics))
-	for k, v := range psuMetrics {
-		cp[k] = v
-	}
-	return cp
 }
 
 // GetProductMetrics return product info
@@ -209,6 +179,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	b.WriteString("# HELP openlinkhub_temperature Current temperature of devices.\n")
 	b.WriteString("# TYPE openlinkhub_temperature gauge\n")
 	for _, d := range GetDeviceMetrics() {
+		if d.IsPSU {
+			continue
+		}
 		if d.Temperature > 0 {
 			b.WriteString(fmt.Sprintf(`openlinkhub_temperature{serial="%s",channelId="%s",name="%s",description="%s",profile="%s",label="%s",rgb="%s",aio="%s",pump="%s",probe="%s",led="%s"} %.2f`+"\n",
 				d.Serial, d.ChannelId, d.Name, d.Description, d.Profile, d.Label, d.RGB, d.AIO, d.ContainsPump, d.TemperatureProbe, d.LedChannels, d.Temperature))
@@ -219,6 +192,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	b.WriteString("# HELP openlinkhub_speed Current speed (RPM) of devices.\n")
 	b.WriteString("# TYPE openlinkhub_speed gauge\n")
 	for _, d := range GetDeviceMetrics() {
+		if d.IsPSU {
+			continue
+		}
 		if d.Rpm > 0 {
 			b.WriteString(fmt.Sprintf(`openlinkhub_speed{serial="%s",channelId="%s",name="%s",description="%s",profile="%s",label="%s",rgb="%s",aio="%s",pump="%s",probe="%s",led="%s"} %d`+"\n",
 				d.Serial, d.ChannelId, d.Name, d.Description, d.Profile, d.Label, d.RGB, d.AIO, d.ContainsPump, d.TemperatureProbe, d.LedChannels, d.Rpm))
@@ -242,45 +218,61 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// PSU telemetry
-	psu := GetPsuMetrics()
-	psuLabels := func(p PsuChannel) string {
-		return fmt.Sprintf(`serial="%s",product="%s",channelId="%s",name="%s"`, p.Serial, p.Product, p.ChannelId, p.Name)
+	var power, voltage, current, temperature, speed strings.Builder
+
+	for _, p := range GetDeviceMetrics() {
+		hasVoltage := p.HasVolts && p.Volts > 0
+		hasCurrent := p.HasAmps && p.Amps > 0
+		hasTemperature := p.HasTemps && p.Temperature > 0
+
+		if !p.HasWatts && !hasVoltage && !hasCurrent && !hasTemperature && !p.HasSpeed {
+			continue
+		}
+
+		labels := fmt.Sprintf(
+			`serial="%s",product="%s",channelId="%s",name="%s"`,
+			p.Serial, p.Product, p.ChannelId, p.Name,
+		)
+
+		if p.HasWatts {
+			if p.MainPSU {
+				continue
+			}
+			power.WriteString(fmt.Sprintf("openlinkhub_psu_power_watts{%s} %.2f\n", labels, p.Watts))
+		}
+		if hasVoltage {
+			voltage.WriteString(fmt.Sprintf("openlinkhub_psu_voltage_volts{%s} %.2f\n", labels, p.Volts))
+		}
+		if hasCurrent {
+			current.WriteString(fmt.Sprintf("openlinkhub_psu_current_amps{%s} %.2f\n", labels, p.Amps))
+		}
+		if hasTemperature {
+			temperature.WriteString(fmt.Sprintf("openlinkhub_psu_temperature_celsius{%s} %.2f\n", labels, p.Temperature))
+		}
+		if p.HasSpeed {
+			speed.WriteString(fmt.Sprintf("openlinkhub_psu_fan_rpm{%s} %d\n", labels, p.Rpm))
+		}
 	}
+
 	b.WriteString("# HELP openlinkhub_psu_power_watts PSU power (input, total output or per rail).\n")
 	b.WriteString("# TYPE openlinkhub_psu_power_watts gauge\n")
-	for _, p := range psu {
-		if p.HasWatts {
-			b.WriteString(fmt.Sprintf("openlinkhub_psu_power_watts{%s} %.2f\n", psuLabels(p), p.Watts))
-		}
-	}
+	b.WriteString(power.String())
+
 	b.WriteString("# HELP openlinkhub_psu_voltage_volts PSU rail voltage.\n")
 	b.WriteString("# TYPE openlinkhub_psu_voltage_volts gauge\n")
-	for _, p := range psu {
-		if p.HasVolts && p.Volts > 0 {
-			b.WriteString(fmt.Sprintf("openlinkhub_psu_voltage_volts{%s} %.2f\n", psuLabels(p), p.Volts))
-		}
-	}
+	b.WriteString(voltage.String())
+
 	b.WriteString("# HELP openlinkhub_psu_current_amps PSU rail current.\n")
 	b.WriteString("# TYPE openlinkhub_psu_current_amps gauge\n")
-	for _, p := range psu {
-		if p.HasAmps && p.Volts > 0 {
-			b.WriteString(fmt.Sprintf("openlinkhub_psu_current_amps{%s} %.2f\n", psuLabels(p), p.Amps))
-		}
-	}
+	b.WriteString(current.String())
+
 	b.WriteString("# HELP openlinkhub_psu_temperature_celsius PSU temperature sensor.\n")
 	b.WriteString("# TYPE openlinkhub_psu_temperature_celsius gauge\n")
-	for _, p := range psu {
-		if p.HasTemps && p.Temperature > 0 {
-			b.WriteString(fmt.Sprintf("openlinkhub_psu_temperature_celsius{%s} %.2f\n", psuLabels(p), p.Temperature))
-		}
-	}
+	b.WriteString(temperature.String())
+
 	b.WriteString("# HELP openlinkhub_psu_fan_rpm PSU fan speed (0 while the fan is stopped).\n")
 	b.WriteString("# TYPE openlinkhub_psu_fan_rpm gauge\n")
-	for _, p := range psu {
-		if p.HasSpeed {
-			b.WriteString(fmt.Sprintf("openlinkhub_psu_fan_rpm{%s} %d\n", psuLabels(p), p.Rpm))
-		}
-	}
+	b.WriteString(speed.String())
 
 	// Send it
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")

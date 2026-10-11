@@ -254,6 +254,7 @@ func (d *Device) getProductData() {
 	product = strings.ReplaceAll(product, "\x00", "")
 	product = strings.Replace(product, "CORSAIR ", "", -1)
 	product = strings.Replace(product, " PSU", "", -1)
+	product = strings.Replace(product, "Power Supply", "", -1)
 
 	d.Product = product
 

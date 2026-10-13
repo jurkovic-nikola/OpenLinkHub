@@ -47,6 +47,8 @@ var (
 	boardSerial = ""
 	motherboard Motherboards
 	mutex       sync.Mutex
+	modeMin     = 0
+	modeMax     = 5
 )
 
 func Init() {
@@ -122,7 +124,7 @@ func SetMotherboardHeaderMode(header, mode int) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	if mode < 1 || mode > 2 {
+	if mode < modeMin || mode > modeMax {
 		logger.Log(logger.Fields{"mode": mode, "header": header}).Warn("Invalid PWM header mode")
 		return 0
 	}
@@ -176,12 +178,12 @@ func GetMotherboardHeaderMode(header int) int {
 		return 0
 	}
 
-	if n < 0 {
-		return 0
+	if n < modeMin {
+		return modeMin
 	}
 
-	if n > 2 {
-		return 2
+	if n > modeMax {
+		return modeMax
 	}
 
 	return n

@@ -1407,7 +1407,8 @@ func (d *Device) getDeviceData() {
 		}
 		currentSensor := sensorData[s : s+2]
 		status := channels[6:][i]
-		if status == 0x07 {
+		// 0x07: connected and spinning; 0x02: connected but not spinning (zero-RPM / no tach signal)
+        	if status == 0x07 || status == 0x02 {
 			if _, ok := d.Devices[m]; ok {
 				rpm := int16(binary.LittleEndian.Uint16(currentSensor))
 				if rpm > 0 {
@@ -2578,7 +2579,8 @@ func (d *Device) getDevices() int {
 		if d.Debug {
 			logger.Log(logger.Fields{"serial": d.Serial, "port": i, "status": status}).Info("getDevices() - Port Status")
 		}
-		if status == 0x07 {
+		 // 0x07: connected and spinning; 0x02: connected but not spinning (zero-RPM / no tach signal)
+        	if status == 0x07 || status == 0x02 {
 			// Get a persistent speed profile. Fallback to Normal is anything fails
 			speedProfile := "Normal"
 			label := "Set Label"

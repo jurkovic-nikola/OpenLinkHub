@@ -613,6 +613,9 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 
 	// Left arc
 	leftArc := doubleRrc.Arcs[0]
+	if int(leftArc.Sensor) >= len(values) {
+		return nil
+	}
 	leftColStart := generateColor(leftArc.StartColor)
 	leftColEnd := generateColor(leftArc.EndColor)
 	leftCenterX := doubleRrc.Margin + outerRadius
@@ -636,6 +639,10 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 		v := dashboard.GetDashboard().TemperatureToString(leftValue)
 		x, y := calculateStringXY(100, v)
 		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
+	} else if isSpeedTemperature(leftArc.Sensor) {
+		v := fmt.Sprintf("%.0f RPM", leftValue)
+		x, y := calculateStringXY(100, v)
+		drawColorString(x, y-80, 100, v, arcImage, leftArc.TextColor)
 	} else {
 		v := fmt.Sprintf("%.1f %s", leftValue, "%")
 		x, y := calculateStringXY(100, v)
@@ -648,6 +655,9 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 
 	// Right Arc
 	rightArc := doubleRrc.Arcs[1]
+	if int(rightArc.Sensor) >= len(values) {
+		return nil
+	}
 	rightColStart := generateColor(rightArc.EndColor) // Reversed
 	rightColEnd := generateColor(rightArc.StartColor) // Reversed
 	rightCenterX := float64(imgWidth) - doubleRrc.Margin - outerRadius
@@ -669,6 +679,10 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 	// Text
 	if isSensorTemperature(rightArc.Sensor) {
 		v := dashboard.GetDashboard().TemperatureToString(rightValue)
+		x, y = calculateStringXY(100, v)
+		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
+	} else if isSpeedTemperature(rightArc.Sensor) {
+		v := fmt.Sprintf("%.0f RPM", rightValue)
 		x, y = calculateStringXY(100, v)
 		drawColorString(x, y+80, 100, v, arcImage, rightArc.TextColor)
 	} else {
@@ -881,6 +895,16 @@ func GenerateArcScreenImage(arcType, sensor, value int) []byte {
 
 		// Unit
 		unit := fmt.Sprintf("[ %s ]", v[1])
+		x, y = calculateStringXY(40, unit)
+		drawColorString(x, y+120, 40, unit, img, arc.TextColor)
+	} else if isSpeedTemperature(uint8(sensor)) {
+		// Value
+		v := strconv.Itoa(value)
+		x, y := calculateStringXY(220, strconv.Itoa(value))
+		drawColorString(x, y, 220, v, img, arc.TextColor)
+
+		// Unit
+		unit := fmt.Sprintf("[ %s ]", "RPM")
 		x, y = calculateStringXY(40, unit)
 		drawColorString(x, y+120, 40, unit, img, arc.TextColor)
 	} else {

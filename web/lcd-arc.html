@@ -13,10 +13,12 @@
                     <label>
                         <select id="sensorType_{{ $arc.Id }}" class="form-select system-select auto-width sensorType compact" name="userProfile">
                             {{ range $k, $v := $lcdSensors }}
-                            {{ if eq $k $arc.Sensor }}
-                            <option value="{{ $k }}" selected>{{ $v }}</option>
-                            {{ else }}
-                            <option value="{{ $k }}">{{ $v }}</option>
+                            {{ if lt $k 20 }}
+                                {{ if eq $k $arc.Sensor }}
+                                <option value="{{ $k }}" selected>{{ $v }}</option>
+                                {{ else }}
+                                <option value="{{ $k }}">{{ $v }}</option>
+                                {{ end }}
                             {{ end }}
                             {{ end }}
                         </select>

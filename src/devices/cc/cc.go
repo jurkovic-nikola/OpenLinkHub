@@ -1563,8 +1563,8 @@ func (d *Device) getDevices() int {
 		if d.Debug {
 			logger.Log(logger.Fields{"serial": d.Serial, "status": status, "device": d.Product, "channel": i}).Info("getDevices() - Speed")
 		}
-		        // 0x07: connected and spinning; 0x02: connected but not spinning (zero-RPM / no tach signal)
-        	if status == 0x07 || status == 0x02 {
+		// 0x07: connected and spinning; 0x02: connected but not spinning (zero-RPM / no tach signal)
+		if status == 0x07 || status == 0x02 {
 			// Get a persistent speed profile. Fallback to Normal is anything fails
 			speedProfile := "Normal"
 			label := "Set Label"
@@ -3766,6 +3766,12 @@ func (d *Device) setupLCD(reload bool) {
 						case 4: // GPU utilization
 							val = systeminfo.GetGPUUtilization()
 							sensor = 4
+							break
+						case 5: // Pump speed
+							val = int(d.getPumpSpeed())
+							sensor = 5
+							arcType = 5
+							break
 						}
 						image := lcd.GenerateArcScreenImage(arcType, sensor, val)
 						if image == nil {
@@ -3781,6 +3787,7 @@ func (d *Device) setupLCD(reload bool) {
 							d.getLiquidTemperature(),
 							float32(systeminfo.GetCpuUtilization()),
 							float32(systeminfo.GetGPUUtilization()),
+							float32(d.getPumpSpeed()),
 						}
 						image := lcd.GenerateDoubleArcScreenImage(values)
 						if image != nil {

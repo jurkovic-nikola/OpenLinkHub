@@ -226,6 +226,39 @@ func getDevices(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getDevices returns response on /devices
+func getDeviceProfiles(w http.ResponseWriter, r *http.Request) {
+	deviceId, valid := getVar("/api/device/profiles/", r)
+	if !valid {
+		resp := &Response{
+			Code: http.StatusOK,
+			Data: nil,
+		}
+		resp.Send(w)
+	} else {
+		results := devices.CallDeviceMethod(
+			deviceId,
+			"GetDeviceProfiles",
+		)
+
+		if len(results) > 0 {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 1,
+				Data:   results[0].Interface(),
+			}
+			resp.Send(w)
+		} else {
+			resp := &Response{
+				Code:   http.StatusOK,
+				Status: 0,
+				Data:   nil,
+			}
+			resp.Send(w)
+		}
+	}
+}
+
 // getDeviceLed returns response on /led
 func getDeviceLed(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/api/led/", r)
@@ -2617,6 +2650,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/storageTemp", http.MethodGet, getStorageTemperature)
 	handleFunc(r, "/api/batteryStats", http.MethodGet, getBatteryStats)
 	handleFunc(r, "/api/devices/", http.MethodGet, getDevices)
+	handleFunc(r, "/api/device/profiles/", http.MethodGet, getDeviceProfiles)
 	handleFunc(r, "/api/color/", http.MethodGet, getColor)
 	handleFunc(r, "/api/color/zone/", http.MethodGet, getZoneColor)
 	handleFunc(r, "/api/color/profile/", http.MethodGet, getColorData)

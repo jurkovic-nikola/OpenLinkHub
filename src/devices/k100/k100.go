@@ -243,6 +243,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			16: "Zoom Out",
 			17: "Screen Brightness +",
 			18: "Screen Brightness -",
+			21: "Change Profile",
 		},
 		DebounceTimes: map[int]string{
 			1: "1ms",
@@ -830,6 +831,16 @@ func (d *Device) loadDeviceProfiles() {
 	}
 	d.UserProfiles = profileList
 	d.getDeviceProfile()
+}
+
+// GetDeviceProfiles will return list of available profiles
+func (d *Device) GetDeviceProfiles() interface{} {
+	profiles := make([]string, 0, len(d.UserProfiles))
+
+	for name := range d.UserProfiles {
+		profiles = append(profiles, name)
+	}
+	return profiles
 }
 
 // getDeviceProfile will load persistent device configuration
@@ -2507,6 +2518,8 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 		case 18:
 			inputmanager.InputControlKeyboard(inputmanager.KeyScreenBrightnessDown, false)
 			break
+		case 21:
+			d.ChangeDeviceProfile(key.DeviceId)
 		}
 	}
 }

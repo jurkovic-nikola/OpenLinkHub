@@ -1991,7 +1991,7 @@ func ProcessChangeKeyAssignment(r *http.Request) *Payload {
 		Default:        req.Enabled,
 		ActionType:     req.KeyAssignmentType,
 		ActionCommand:  req.KeyAssignmentValue,
-		DeviceId:       req.KeyAssignmentValueString, // Sniper
+		DeviceId:       req.KeyAssignmentValueString, // Sniper, Profiles
 		ActionHold:     req.PressAndHold,
 		IsMacro:        req.KeyAssignmentType == 10,
 		ModifierKey:    req.KeyAssignmentModifier,

@@ -21,15 +21,17 @@ import (
 
 // Opcodes
 const (
-	OPCODE_REQUEST_CONTROLLER_COUNT = 0
-	OPCODE_REQUEST_CONTROLLER_DATA  = 1
-	OPCODE_REQUEST_PROTOCOL_VERSION = 40
-	OPCODE_SET_CLIENT_NAME          = 50
-	OPCODE_DEVICE_LIST_UPDATED      = 100
-	OPCODE_REQUEST_PROFILE_LIST     = 150
-	OPCODE_REQUEST_PLUGIN_LIST      = 200
-	OPCODE_RGBCONTROLLER_UPDATELEDS = 1050
-	OPCODE_UPDATE_MODE              = 1101
+	OPCODE_REQUEST_CONTROLLER_COUNT      = 0
+	OPCODE_REQUEST_CONTROLLER_DATA       = 1
+	OPCODE_REQUEST_PROTOCOL_VERSION      = 40
+	OPCODE_SET_CLIENT_NAME               = 50
+	OPCODE_DEVICE_LIST_UPDATED           = 100
+	OPCODE_REQUEST_PROFILE_LIST          = 150
+	OPCODE_REQUEST_PLUGIN_LIST           = 200
+	OPCODE_RGBCONTROLLER_UPDATELEDS      = 1050
+	OPCODE_RGBCONTROLLER_UPDATEZONELEDS  = 1051
+	OPCODE_RGBCONTROLLER_UPDATESINGLELED = 1052
+	OPCODE_UPDATE_MODE                   = 1101
 )
 
 const (
@@ -348,50 +350,11 @@ func handleConn(conn net.Conn) {
 			if debug {
 				logger.Log(logger.Fields{"deviceId": deviceID, "len": len(payload)}).Info("Sent controller data for device")
 			}
-		case OPCODE_RGBCONTROLLER_UPDATELEDS:
-			if debug {
-				logger.Log(logger.Fields{"deviceId": deviceID, "payloadLen": len(payload)}).Info("Received OPCODE_RGBCONTROLLER_UPDATELEDS for device")
+		case OPCODE_RGBCONTROLLER_UPDATELEDS, OPCODE_RGBCONTROLLER_UPDATEZONELEDS, OPCODE_RGBCONTROLLER_UPDATESINGLELED:
+			ctrl, colors := applyLEDUpdate(deviceID, packetType, payload)
+			if ctrl != nil && ctrl.WriteColorEx != nil {
+				ctrl.WriteColorEx(colors, ctrl.ChannelId)
 			}
-			if len(payload) < 6 {
-				if debug {
-					logger.Log(logger.Fields{}).Warn("payload too small for updateleds")
-				}
-				continue
-			}
-
-			// First 4 bytes: total payload size (optional to check)
-			_ = binary.LittleEndian.Uint32(payload[0:4])
-			ledCount := binary.LittleEndian.Uint16(payload[4:6])
-
-			expectedSize := 4 + 2 + int(ledCount)*4
-			if expectedSize != len(payload) {
-				if debug {
-					logger.Log(logger.Fields{"expected": expectedSize, "got": len(payload)}).Warn("payload size mismatch")
-				}
-				continue
-			}
-
-			// Now parse LED colors
-			ledsData := payload[6:]
-			var buffer []byte
-			for i := 0; i < int(ledCount); i++ {
-				base := i * 4
-				r := ledsData[base]
-				g := ledsData[base+1]
-				b := ledsData[base+2]
-				buffer = append(buffer, r, g, b)
-			}
-			// Send it
-			mutex.Lock()
-			if int(deviceID) >= len(controllers) {
-				// Slipstream devices going to sleep mode, or just powered off
-				mutex.Unlock()
-				return
-			}
-
-			ctrl := controllers[int(deviceID)]
-			mutex.Unlock()
-			ctrl.WriteColorEx(buffer, ctrl.ChannelId)
 		case OPCODE_UPDATE_MODE:
 			// Mode change request. Payload commonly contains mode index (uint32) as first bytes.
 			mutex.Lock()
@@ -683,8 +646,11 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 		}
 
 		if ctrl.Zones[z].ZoneType == common.ZoneTypeMatrix {
-			matrix, ok := common.MatrixMaps[ctrl.Zones[z].NumLEDs]
-			if !ok || len(matrix) == 0 || len(matrix[0]) == 0 {
+			matrix := ctrl.Zones[z].Matrix
+			if matrix == nil {
+				matrix = common.MatrixMaps[ctrl.Zones[z].NumLEDs]
+			}
+			if len(matrix) == 0 || len(matrix[0]) == 0 {
 				err = binary.Write(zonesPacked, binary.LittleEndian, uint16(0)) // matrix size = 0
 				if err != nil {
 					if debug {
@@ -811,8 +777,14 @@ func buildDeviceDataPayload(deviceID uint32) []byte {
 	ledIndex := uint32(0)
 	for z := 0; z < zoneCount; z++ {
 		for l := uint32(0); l < ctrl.Zones[z].NumLEDs; l++ {
-			writeString(ledsPacked, fmt.Sprintf("%s LED %d", ctrl.Zones[z].Name, l))
-			err = binary.Write(ledsPacked, binary.LittleEndian, ledIndex)
+			name := fmt.Sprintf("%s LED %d", ctrl.Zones[z].Name, l)
+			value := ledIndex
+			if int(ledIndex) < len(ctrl.LEDs) {
+				name = ctrl.LEDs[ledIndex].Name
+				value = ctrl.LEDs[ledIndex].Value
+			}
+			writeString(ledsPacked, name)
+			err = binary.Write(ledsPacked, binary.LittleEndian, value)
 			if err != nil {
 				if debug {
 					logger.Log(logger.Fields{"error": err}).Error("ledsPacked::ledIndex write error")
@@ -876,4 +848,69 @@ func totalLED(ctrl *common.OpenRGBController) uint32 {
 		total += z.NumLEDs
 	}
 	return total
+}
+
+// applyLEDUpdate parses RGB packets for given device
+func applyLEDUpdate(deviceID, packetType uint32, payload []byte) (*common.OpenRGBController, []byte) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	if uint64(deviceID) >= uint64(len(controllers)) {
+		return nil, nil
+	}
+
+	ctrl := controllers[deviceID]
+	total := int(totalLED(ctrl))
+	start, count, offset := 0, 0, 0
+
+	switch packetType {
+	case OPCODE_RGBCONTROLLER_UPDATESINGLELED:
+		if len(payload) != 8 {
+			return nil, nil
+		}
+		index := binary.LittleEndian.Uint32(payload[:4])
+		if uint64(index) >= uint64(total) {
+			return nil, nil
+		}
+		start, count, offset = int(index), 1, 4
+	case OPCODE_RGBCONTROLLER_UPDATELEDS, OPCODE_RGBCONTROLLER_UPDATEZONELEDS:
+		offset = 6
+		if packetType == OPCODE_RGBCONTROLLER_UPDATEZONELEDS {
+			offset = 10
+		}
+
+		if len(payload) < offset || binary.LittleEndian.Uint32(payload[:4]) != uint32(len(payload)) {
+			return nil, nil
+		}
+
+		count = int(binary.LittleEndian.Uint16(payload[offset-2 : offset]))
+		limit := total
+
+		if packetType == OPCODE_RGBCONTROLLER_UPDATEZONELEDS {
+			zone := binary.LittleEndian.Uint32(payload[4:8])
+			if uint64(zone) >= uint64(len(ctrl.Zones)) {
+				return nil, nil
+			}
+			for i := uint32(0); i < zone; i++ {
+				start += int(ctrl.Zones[i].NumLEDs)
+			}
+			limit = int(ctrl.Zones[zone].NumLEDs)
+		}
+		if (ctrl.DeviceType == common.DeviceTypeKeyboard && count != limit) || count > limit || len(payload) != offset+count*4 {
+			return nil, nil
+		}
+	default:
+		return nil, nil
+	}
+
+	if len(ctrl.Colors) != total*3 {
+		colors := make([]byte, total*3)
+		copy(colors, ctrl.Colors)
+		ctrl.Colors = colors
+	}
+
+	for i := 0; i < count; i++ {
+		copy(ctrl.Colors[(start+i)*3:(start+i+1)*3], payload[offset+i*4:offset+i*4+3])
+	}
+
+	return ctrl, append([]byte(nil), ctrl.Colors...)
 }

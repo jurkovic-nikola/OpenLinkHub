@@ -271,12 +271,18 @@ type OpenRGBSegment struct {
 	LedCount uint32
 }
 
+type OpenRGGLed struct {
+	Name  string
+	Value uint32
+}
+
 type OpenRGBZone struct {
 	Name     string
 	NumLEDs  uint32
 	MinLeds  uint32
 	ZoneType uint32
 	Segments []OpenRGBSegment
+	Matrix   [][]uint32
 }
 
 type OpenRGBController struct {
@@ -287,6 +293,7 @@ type OpenRGBController struct {
 	Serial       string
 	Location     string
 	Zones        []OpenRGBZone
+	LEDs         []OpenRGGLed
 	Colors       []byte
 	ActiveMode   int32
 	WriteColorEx func([]byte, int)

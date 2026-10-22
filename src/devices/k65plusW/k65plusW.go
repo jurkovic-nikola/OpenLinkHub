@@ -55,6 +55,7 @@ type DeviceProfile struct {
 	DisableWinKey        bool
 	Performance          bool
 	RGBCluster           bool
+	OpenRGBIntegration   bool
 	RgbOff               bool
 }
 
@@ -763,6 +764,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.DisableWinKey = d.DeviceProfile.DisableWinKey
 		deviceProfile.Performance = d.DeviceProfile.Performance
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 
 		if len(d.DeviceProfile.Path) < 1 {
 			deviceProfile.Path = profilePath

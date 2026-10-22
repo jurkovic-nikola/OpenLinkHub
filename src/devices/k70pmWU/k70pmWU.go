@@ -2860,7 +2860,7 @@ func (d *Device) openRGBKeyName(key keyboards.Key, address int, ansi bool) strin
 	if len(fields) == 0 {
 		return fmt.Sprintf("LED %d", address)
 	}
-	
+
 	return "Key: " + fields[0]
 }
 

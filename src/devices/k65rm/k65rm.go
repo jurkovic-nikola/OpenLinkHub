@@ -2787,23 +2787,37 @@ func (d *Device) buildOpenRGBKeyboard(keyboard *keyboards.Keyboard) ([]common.Op
 // openRGBKeyName handles mismatch in key names
 func (d *Device) openRGBKeyName(key keyboards.Key, address int, ansi bool) string {
 	special := map[int]string{
-		41: "Escape", 42: "Backspace", 43: "Tab", 57: "Caps Lock",
-		106: "Left Shift", 110: "Right Shift", 105: "Left Control",
-		108: "Left Windows", 107: "Left Alt", 111: "Right Alt",
-		122: "Right Fn", 101: "Menu", 109: "Right Control", 44: "Space",
+		41:  "Escape",
+		42:  "Backspace",
+		43:  "Tab",
+		57:  "Caps Lock",
+		106: "Left Shift",
+		110: "Right Shift",
+		105: "Left Control",
+		108: "Left Windows",
+		107: "Left Alt",
+		111: "Right Alt",
+		122: "Right Fn",
+		101: "Menu",
+		109: "Right Control",
+		44:  "Space",
 	}
+
 	if address == 0 || address == 1 {
 		return ""
 	}
+
 	if address == 40 {
 		if ansi {
 			return "Key: Enter"
 		}
 		return "Key: Enter (ISO)"
 	}
+
 	if name, ok := special[address]; ok {
 		return "Key: " + name
 	}
+
 	switch key.KeyName {
 	case "Sz \\ ?":
 		return "Key: ß"
@@ -2812,10 +2826,12 @@ func (d *Device) openRGBKeyName(key keyboards.Key, address int, ansi bool) strin
 	case "< >":
 		return "Key: < >"
 	}
+
 	fields := strings.Fields(key.KeyName)
 	if len(fields) == 0 {
 		return fmt.Sprintf("LED %d", address)
 	}
+
 	return "Key: " + fields[0]
 }
 

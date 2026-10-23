@@ -42,19 +42,3 @@ systemctl start OpenLinkHub
 No OpenRGB, clique na aba Cliente e conecte à porta 6743.
 
 ![Cliente OpenRGB](https://github.com/jurkovic-nikola/OpenLinkHub/blob/main/static/img/openrgb-client.png?raw=true)
-
-## Dispositivos suportados
-| Dispositivo            |
-|------------------------|
-| iCUE LINK System Hub   |
-| iCUE COMMANDER Core    |
-| iCUE COMMANDER Core XT |
-| iCUE COMMANDER DUO     |
-| ELITE AIOs             |
-| PLATINUM AIOs          |
-| HYDRO AIOs             |
-| Memória                |
-| MM700                  |
-| MM800                  |
-
-À medida que novas versões são lançadas, mais dispositivos serão adicionados à integração.

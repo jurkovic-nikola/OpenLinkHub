@@ -1,5 +1,87 @@
+## 2026-10-24
+
+* k70 rgb rapidfire openrgb support (cdc402b5)
+* k65 rgb openrgb support (f05d9374)
+* k68 rgb openrgb support (12df63d5)
+* k65 rgb rapidfire openrgb support (624881e5)
+* k95 openrgb support (39158245)
+* k57 rgb wireless openrgb support (wired) (1d02f721)
+* k95 platinum openrgb support (e346d3df)
+* missing profile save (cf0bd11d)
+* strafe rgb mk2openrgb support (3402a3eb)
+* k60 rgb pro low profile openrgb support (49687fd2)
+* k60 rgb pro openrgb support (585922ac)
+* k55 openrgb support (b6e781fa)
+* k55 rgb pro xt openrgb support (d727e5fb)
+* k55 core openrgb support (2abc24cd)
+* k55 rgb pro openrgb support (8328ff53)
+* k55 core tkl openrgb support (828d86b8)
+* k95 platinum xt openrgb support (2623dadc)
+* k100 openrgb support (38c386d9)
+* k70 rgb lux openrgb support (22ddd3f7)
+* k70 rgb mk2 openrgb support (88e3b281)
+* k70 core openrgb support (cc66525b)
+* k70 max openrgb support (faa0a35f)
+* k70 pro tkl openrgb support (wired) (60343d64)
+* k70 core tkl wireless openrgb support (wired) (830c42d8)
+* k70 core tkl openrgb support (386e4d8c)
+* k70 rgb tkl cs openrgb support (354dfad7)
+* k70 pro openrgb support (2e8e2ae1)
+* k100 air openrgb support (wired) (eecd7831)
+* vanguard 96 wireless openrgb support (wired) (cf2839cf)
+* vanguard 99 air openrgb support (wired) (6e327438)
+* vanguard 99 air fixups (827caa78)
+* vanguard 96 pro openrgb support (9c67e9be)
+* vanguard 96 openrgb support (f5ad78c2)
+* makr 75 openrgb support (a3631c9c)
+* clipper pro mini 60 openrgb support (1fcb4dcc)
+* k65 pro mini openrgb support (d3fdb5fb)
+
+## 2026-10-23
+
+* 5000t case detection (94042951)
+* this is not needed anymore (25fe0611)
+
+## 2026-10-22
+
+* k65 plus openrgb support (wired) (e3cae8cb)
+* k70 pro mini openrgb support (wired) (44c9c1f5)
+* initial openrgb keyboard support (k65 rgb mini) (3a42ec1e)
+
+## 2026-10-18
+
+* k100 profile switch (c8c1d2a9)
+* lcd crash https://github.com/jurkovic-nikola/OpenLinkHub/issues/555 (5fe1d715)
+* Merge pull request #554 from UmutBuu/fix/fan-status-0x02 (9d8e2677)
+
+## 2026-10-17
+
+* fix(cc,ccxt): accept 0x02 as connected fan status (zero-RPM) (c3dd2b02)
+* Update cc.go (85742b7b)
+
+## 2026-10-13
+
+* allow 0 for mobo header mode https://github.com/jurkovic-nikola/OpenLinkHub/issues/549 (1d3b8495)
+
+## 2026-10-11
+
+* remove Power Supply from device name (HX1000i, HX1200i Power Supply, ...) (9b4169b0)
+* cleanup (2a7a1658)
+* Merge pull request #545 from xerktech/fix-duplicate-psu (d7bf769f)
+
+## 2026-10-10
+
+* psuhid: skip stale responses instead of failing every later transfer (74799624)
+* psuhid: time out unanswered reads and keep refresh state per device (43dce969)
+
+## 2026-10-09
+
+* Export PSU telemetry on the Prometheus endpoint (ff90a090)
+* Keep identical serial-less devices apart (two HX1500i PSUs) (52c86a5d)
+
 ## 2026-10-06
 
+* changelog (2d772995)
 * leftovers (8b419f20)
 * leftovers (f086283f)
 * docs (869ee92e)

@@ -2233,7 +2233,7 @@ func (d *Device) isCaseConnected() {
 	if d.Debug {
 		logger.Log(logger.Fields{"serial": d.Serial, "data": fmt.Sprintf("% 2x", lc)}).Info("DEBUG: isCaseConnected()")
 	}
-	
+
 	for i := 0; i < 1; i++ {
 		connected := binary.LittleEndian.Uint16(ld[i*4:i*4+2]) == 2
 		numLEDs := binary.LittleEndian.Uint16(ld[i*4+2 : i*4+2+2])

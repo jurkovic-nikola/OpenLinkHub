@@ -2447,6 +2447,9 @@ func (d *Device) writeColor(data []byte) {
 		data[392] = 0
 	}
 
+	// Control dial
+	copy(data[417:429], d.getControlDialColor())
+
 	buffer := make([]byte, len(dataTypeSetColor)+len(data)+headerWriteSize)
 	binary.LittleEndian.PutUint16(buffer[0:2], uint16(len(data)))
 	copy(buffer[headerWriteSize:headerWriteSize+len(dataTypeSetColor)], dataTypeSetColor)

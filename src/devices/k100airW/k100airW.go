@@ -50,6 +50,7 @@ type DeviceProfile struct {
 	SleepMode            int
 	AutoBrightness       int
 	RGBCluster           bool
+	OpenRGBIntegration   bool
 	DisableAltTab        bool
 	DisableAltF4         bool
 	DisableShiftTab      bool
@@ -866,6 +867,7 @@ func (d *Device) saveDeviceProfile() {
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
 		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		deviceProfile.DisableAltTab = d.DeviceProfile.DisableAltTab
 		deviceProfile.DisableAltF4 = d.DeviceProfile.DisableAltF4
 		deviceProfile.DisableShiftTab = d.DeviceProfile.DisableShiftTab

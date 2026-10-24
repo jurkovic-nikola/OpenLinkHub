@@ -44,6 +44,8 @@ type DeviceProfile struct {
 	Profile              string
 	PollingRate          int
 	Profiles             []string
+	RGBCluster           bool
+	OpenRGBIntegration   bool
 	ControlDial          int
 	BrightnessLevel      uint16
 	SleepMode            int
@@ -766,6 +768,8 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.LCDMode = d.DeviceProfile.LCDMode
 		deviceProfile.LCDRotation = d.DeviceProfile.LCDRotation
+		deviceProfile.RGBCluster = d.DeviceProfile.RGBCluster
+		deviceProfile.OpenRGBIntegration = d.DeviceProfile.OpenRGBIntegration
 		deviceProfile.DisableAltTab = d.DeviceProfile.DisableAltTab
 		deviceProfile.DisableAltF4 = d.DeviceProfile.DisableAltF4
 		deviceProfile.DisableShiftTab = d.DeviceProfile.DisableShiftTab

@@ -15,7 +15,7 @@
     {{ $keyboard := index $device.DeviceProfile.Keyboards $profile }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
     <input type="hidden" id="selectedDevices" name="selectedDevices" value="">
-    
+
     <div class="row">
         <!-- Sidebar -->
         {{ template "sidebar" . }}
@@ -112,6 +112,15 @@
                                     </label>
                                 </div>
 
+                                <!-- OpenRGB -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtOpenRGB" }}</span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox" class="toggleOpenRGB" {{ if $deviceProfile.OpenRGBIntegration }} checked {{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
                                 <!-- FlashTap -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtFlashTap" }}</span>
@@ -119,7 +128,7 @@
                                         <button class="system-button compact keyboardFlashTap" id="keyboardFlashTap" type="button">{{ $root.Lang "txtConfigure" }}</button>
                                     </label>
                                 </div>
-                                
+
                                 <!-- Control Dial -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtControlDial" }}</span>

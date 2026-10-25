@@ -74,6 +74,15 @@ type Device struct {
 	mutex           sync.Mutex
 	timer           *time.Ticker
 	autoRefreshChan chan bool
+	refreshMutex    sync.Mutex    // timer/autoRefreshChan: Stop, StopDirty and claimPort can race
+	refreshDone     chan struct{} // closed when the refresh loop has returned
+	refreshStopped  bool          // stopped for good: a retired Device must not start its loop later
+	vendorId        uint16
+	productId       uint16
+	usbPath         string                    // USB port; a re-enumerated PSU comes back on the same one
+	lost            bool                      // the HID handle died (PSU dropped off USB); guarded by mutex
+	closed          bool                      // dev was closed; hidapi frees it, so close it once. Guarded by mutex
+	fanMutex        sync.Mutex                // fan mode changes: the API, and the restore after a reopen
 	Manufacturer    string                    `json:"manufacturer"`
 	Product         string                    `json:"product"`
 	Serial          string                    `json:"serial"`
@@ -92,6 +101,8 @@ type Device struct {
 
 var (
 	pwd                   = ""
+	hidMutex              sync.Mutex             // psuhid's enumerate/open: hidapi shares a global error string
+	byPort                = map[string]*Device{} // the live Device on each USB port; guarded by hidMutex
 	cmdInit               = byte(0xfe)
 	cmdRead               = byte(0x03)
 	cmdWrite              = byte(0x02)
@@ -123,7 +134,9 @@ func Init(vendorId, productId uint16, key, path string) *common.Device {
 	pwd = config.GetConfig().ConfigPath
 
 	// Open device, return if failure
+	hidMutex.Lock()
 	dev, err := hid.OpenPath(path)
+	hidMutex.Unlock()
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
 		return nil
@@ -145,7 +158,10 @@ func Init(vendorId, productId uint16, key, path string) *common.Device {
 		},
 		IsPSU:     true,
 		deviceKey: key,
+		vendorId:  vendorId,
+		productId: productId,
 	}
+	d.usbPath, _ = common.GetShortUSBDevPath(filepath.Base(path))
 
 	// Bootstrap
 	d.getManufacturer()    // Manufacturer
@@ -155,6 +171,7 @@ func Init(vendorId, productId uint16, key, path string) *common.Device {
 	d.getDevices()         // Get devices
 	d.saveDeviceProfile()  // Save device profile
 	d.updateFanMode()      // Fan speed
+	d.claimPort()          // Retire a replaced Device still polling this port
 	d.setAutoRefresh()     // Auto refresh
 	d.createDevice()       // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
@@ -180,12 +197,21 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	d.stopAutoRefresh()
 	d.setFanToDefault()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if err := d.closeDev(); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 	}
+	d.lost = true // nothing may use the closed handle again
+}
+
+// closeDev closes the HID handle once, whoever gets there first. Caller holds mutex.
+func (d *Device) closeDev() error {
+	if d.dev == nil || d.closed {
+		return nil
+	}
+	d.closed = true
+	return d.dev.Close()
 }
 
 // StopDirty will stop device in a dirty way
@@ -278,6 +304,8 @@ func (d *Device) UpdatePsuFan(mode int) uint8 {
 		return 0
 	}
 
+	d.fanMutex.Lock()
+	defer d.fanMutex.Unlock()
 	d.DeviceProfile.FanMode = mode
 	d.saveDeviceProfile()
 	d.updateFanMode()
@@ -445,7 +473,32 @@ func (d *Device) getDevices() int {
 }
 
 // getDeviceData will fetch device data, from temperatures, fan speed, etc...
+// claimPort makes d the live Device on its USB port. Hotplug re-adds a PSU as a new Device
+// but its unplug never reaches the old one (StopDirty looks it up by USB serial, which a PSU
+// lacks), so the old one would reopen the port too and poll the PSU alongside the new one.
+func (d *Device) claimPort() {
+	if d.usbPath == "" {
+		return
+	}
+	hidMutex.Lock()
+	old := byPort[d.usbPath]
+	byPort[d.usbPath] = d
+	hidMutex.Unlock()
+	if old == nil || old == d {
+		return
+	}
+	old.stopAutoRefresh() // outside hidMutex: its refresh may be waiting on it in reopen
+	old.mutex.Lock()
+	_ = old.closeDev()
+	old.lost = true
+	old.mutex.Unlock()
+}
+
 func (d *Device) getDeviceData() {
+	if d.isLost() && !d.reopen() {
+		metrics.Remove(d.Serial) // Gone: no series rather than 0 W
+		return
+	}
 	m := 0
 
 	// Main PSU
@@ -597,7 +650,61 @@ func (d *Device) getDeviceData() {
 		m++
 	}
 
+	if d.isLost() {
+		metrics.Remove(d.Serial) // Died mid-refresh: these readings are zeroed buffers
+		return
+	}
 	d.updateDeviceMetrics()
+}
+
+// isLost reports whether the HID handle died and the PSU must be reopened
+func (d *Device) isLost() bool {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.lost
+}
+
+// reopen opens the PSU again once it is back on its USB port. A PSU that drops off USB comes
+// back on a new hidraw node; without this its old handle read 0 until a restart, and the
+// hotplug monitor can't help where no uevents arrive (e.g. a container).
+func (d *Device) reopen() bool {
+	if d.usbPath == "" {
+		return false // no port: an identical PSU still present would be taken for this one
+	}
+	hidMutex.Lock()
+	if byPort[d.usbPath] != d { // retired: another Device owns this port now
+		hidMutex.Unlock()
+		return false
+	}
+	var paths []string
+	_ = hid.Enumerate(d.vendorId, d.productId, func(info *hid.DeviceInfo) error {
+		usbPath, _ := common.GetShortUSBDevPath(filepath.Base(info.Path))
+		if usbPath == d.usbPath {
+			paths = append(paths, info.Path)
+		}
+		return nil
+	})
+	var dev *hid.Device
+	var err error
+	if len(paths) == 1 {
+		dev, err = hid.OpenPath(paths[0])
+	}
+	hidMutex.Unlock()
+	if dev == nil || err != nil {
+		return false
+	}
+
+	d.mutex.Lock()
+	_ = d.closeDev()
+	d.dev = dev
+	d.closed = false
+	d.lost = false
+	d.mutex.Unlock()
+	logger.Log(logger.Fields{"serial": d.Serial, "path": paths[0]}).Info("PSU reconnected, HID device reopened")
+	d.fanMutex.Lock()
+	d.updateFanMode() // The PSU came back in its default fan mode
+	d.fanMutex.Unlock()
+	return true
 }
 
 // updateDeviceMetrics publishes every channel's latest readings to the metrics endpoint
@@ -752,9 +859,16 @@ func (d *Device) init() {
 
 // setAutoRefresh will refresh device data
 func (d *Device) setAutoRefresh() {
+	d.refreshMutex.Lock()
+	defer d.refreshMutex.Unlock()
+	if d.refreshStopped {
+		return
+	}
 	d.timer = time.NewTicker(time.Duration(deviceRefreshInterval) * time.Millisecond)
 	d.autoRefreshChan = make(chan bool)
-	go func(timer *time.Ticker, stop chan bool) {
+	d.refreshDone = make(chan struct{})
+	go func(timer *time.Ticker, stop chan bool, done chan struct{}) {
+		defer close(done)
 		for {
 			select {
 			case <-timer.C:
@@ -764,17 +878,23 @@ func (d *Device) setAutoRefresh() {
 				return
 			}
 		}
-	}(d.timer, d.autoRefreshChan)
+	}(d.timer, d.autoRefreshChan, d.refreshDone)
 }
 
 // stopAutoRefresh stops this device's refresh loop, if it was started
 func (d *Device) stopAutoRefresh() {
-	if d.timer == nil {
-		return
+	d.refreshMutex.Lock()
+	timer, stop, done := d.timer, d.autoRefreshChan, d.refreshDone
+	d.timer, d.autoRefreshChan = nil, nil
+	d.refreshStopped = true
+	d.refreshMutex.Unlock()
+	if timer != nil {
+		timer.Stop()
+		close(stop) // not a send: a second caller would block forever once the loop has gone
 	}
-	d.timer.Stop()
-	d.autoRefreshChan <- true
-	d.timer = nil
+	if done != nil {
+		<-done // every caller returns only once the loop is no longer using the handle
+	}
 }
 
 // transfer will send data to a device and retrieve device output
@@ -783,9 +903,13 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 	defer d.mutex.Unlock()
 
 	bufferR := make([]byte, readBufferSize)
+	if d.lost {
+		return bufferR, errors.New("HID device lost")
+	}
 
 	if _, err := d.dev.Write(buffer); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		d.lost = true
 		return bufferR, err
 	}
 
@@ -804,6 +928,7 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 				continue
 			}
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			d.lost = !errors.Is(err, hid.ErrTimeout) // a timeout is an unanswered request, not a dead handle
 			return make([]byte, 64), err
 		}
 		if n == 0 {

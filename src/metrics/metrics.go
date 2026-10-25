@@ -114,6 +114,18 @@ func Populate(header *Header) {
 	mu.Unlock()
 }
 
+// Remove drops a device and its channels, e.g. a PSU while it is disconnected
+func Remove(serial string) {
+	mu.Lock()
+	delete(productMetrics, serial)
+	for k, v := range deviceMetrics {
+		if v.Serial == serial {
+			delete(deviceMetrics, k)
+		}
+	}
+	mu.Unlock()
+}
+
 // GetProductMetrics return product info
 func GetProductMetrics() map[string]Header {
 	mu.RLock()

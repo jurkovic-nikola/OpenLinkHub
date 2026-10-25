@@ -246,6 +246,33 @@ func (d *Device) MarshalJSON() ([]byte, error) {
 	return json.Marshal((*plain)(d))
 }
 
+// TemplateSnapshot returns a copy of the device for the UI page, taken under dataMutex: the
+// template reads it while the refresh goroutine and fan changes replace its fields. Published
+// channel maps are never written again, so they are shared.
+func (d *Device) TemplateSnapshot() interface{} {
+	d.dataMutex.RLock()
+	defer d.dataMutex.RUnlock()
+	c := &Device{
+		Manufacturer: d.Manufacturer,
+		Product:      d.Product,
+		Serial:       d.Serial,
+		Firmware:     d.Firmware,
+		Devices:      d.Devices,
+		UserProfiles: d.UserProfiles,
+		Template:     d.Template,
+		CpuTemp:      d.CpuTemp,
+		GpuTemp:      d.GpuTemp,
+		FanModes:     d.FanModes,
+		InputVoltage: d.InputVoltage,
+		IsPSU:        d.IsPSU,
+	}
+	if d.DeviceProfile != nil {
+		profile := *d.DeviceProfile
+		c.DeviceProfile = &profile
+	}
+	return c
+}
+
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")

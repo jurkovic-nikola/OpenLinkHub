@@ -2174,6 +2174,10 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	web.Title = dashboard.GetDashboard().PageTitle
 	web.Devices = devices.GetDevices()
 	web.Device = device
+	// A device refreshed concurrently hands the page a consistent copy instead of itself
+	if snapshot, ok := device.(interface{ TemplateSnapshot() interface{} }); ok {
+		web.Device = snapshot.TemplateSnapshot()
+	}
 	web.Lcd = lcd.GetLcdDevices()
 	web.LCDImages = lcd.GetLcdImages()
 	web.Temperatures = temperatures.GetTemperatureProfiles()

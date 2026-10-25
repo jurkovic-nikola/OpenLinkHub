@@ -726,6 +726,9 @@ func TestStopDirtyClosesLostHandleOnce(t *testing.T) {
 		t.Fatal("handle not marked lost")
 	}
 	d.StopDirty()
+	if psu.closes != 1 {
+		t.Fatalf("StopDirty closed the dead handle %d times, want 1", psu.closes)
+	}
 	d.StopDirty()
 	d.Stop()
 	if psu.closes != 1 {
@@ -783,5 +786,81 @@ func TestReopenFanRestoreWithoutHidMutex(t *testing.T) {
 	}
 	if fresh.writes == 0 || fresh.heldDuringWrite {
 		t.Fatalf("fan restore: %d writes, hidMutex held: %v", fresh.writes, fresh.heldDuringWrite)
+	}
+}
+
+// failingAfterPSU fails every write after the first n, like a PSU unplugged mid-command
+type failingAfterPSU struct {
+	replugPSU
+	n int
+}
+
+func (f *failingAfterPSU) Write(p []byte) (int, error) {
+	if f.writes >= f.n {
+		f.writes++
+		return 0, errors.New("No such device")
+	}
+	return f.replugPSU.Write(p)
+}
+
+// Every fan-mode write's failure reaches UpdatePsuFan: the default-mode write, and the speed
+// write after a successful manual-mode write.
+func TestFanChangeReportsEveryFailedWrite(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		mode int
+		n    int // writes that succeed
+	}{
+		{"default mode", 0, 0},
+		{"manual mode", 7, 0},
+		{"speed after manual mode", 7, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			psu := &replugPSU{}
+			d := initFakePSU(t, psu, "/devices/usb7/7-10")
+			d.dev = &failingAfterPSU{n: tc.n}
+			if r := d.UpdatePsuFan(tc.mode); r != 0 {
+				t.Fatalf("UpdatePsuFan = %d with a failed write, want 0", r)
+			}
+		})
+	}
+}
+
+// After Stop, a late API call doesn't write to the closed handle.
+func TestNoWriteAfterStop(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.Stop()
+	writes := psu.writes
+	d.UpdatePsuFan(5)
+	if psu.writes != writes {
+		t.Fatal("wrote to a stopped PSU")
+	}
+}
+
+// The UI page renders a snapshot taken under the lock while refreshes and fan changes run;
+// run with -race.
+func TestTemplateSnapshotDuringRefresh(t *testing.T) {
+	psu := &lockedPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 20; i++ {
+			d.getDeviceData()
+			d.UpdatePsuFan(4 + i%7)
+		}
+	}()
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			c := d.TemplateSnapshot().(*Device)
+			_ = c.DeviceProfile.FanMode
+			for _, dev := range c.Devices {
+				_, _, _ = dev.Name, dev.Watts, dev.TemperatureString
+			}
+		}
 	}
 }

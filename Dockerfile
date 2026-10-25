@@ -1,4 +1,4 @@
-FROM golang:1.25.0-bookworm AS build
+FROM golang:1.26.0-bookworm AS build
 ARG GIT_TAG
 ENV DEBIAN_FRONTEND=noninteractive
 # libpipewire-0.3.pc advertises -fno-strict-overflow, which is not on cgo's

@@ -169,7 +169,10 @@ type Product struct {
 }
 
 var (
-	mutex               sync.Mutex
+	mutex sync.Mutex // serialises device method calls; also guards usbDevPaths
+	// Guards the devices map. Always taken last (never take mutex while holding it), and
+	// never held across a device call, so readers don't wait out device I/O.
+	devicesMu           sync.RWMutex
 	cls                 *cluster.Device
 	expectedPermissions = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
 	vendorId            = uint16(6940)  // Corsair
@@ -239,14 +242,34 @@ var (
 	plainKeyPorts = make(map[string]string) // product ID -> USB port holding the plain key
 )
 
+// deviceSnapshot returns a copy of the devices map to range over: hotplug adds and removes
+// devices concurrently, and a map iterated during a write crashes the process.
+func deviceSnapshot() map[string]*common.Device {
+	devicesMu.RLock()
+	defer devicesMu.RUnlock()
+	cp := make(map[string]*common.Device, len(devices))
+	for k, v := range devices {
+		cp[k] = v
+	}
+	return cp
+}
+
+// lookupDevice returns the device registered under deviceId
+func lookupDevice(deviceId string) (*common.Device, bool) {
+	devicesMu.RLock()
+	defer devicesMu.RUnlock()
+	device, ok := devices[deviceId]
+	return device, ok
+}
+
 // Stop will stop all active devices
 func Stop() {
 	// Stop all cluster operations
 	cls.Stop()
 
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		CallDeviceMethod(device.Serial, "Stop")
-		delete(devices, device.Serial)
+		deleteDevice(device.Serial)
 	}
 	err := hid.Exit()
 	if err != nil {
@@ -256,9 +279,9 @@ func Stop() {
 
 // StopDirty will stop the device without closing the file handles. Used when device is unplugged
 func StopDirty(deviceId string, productId uint16) {
-	device, ok := devices[deviceId]
+	device, ok := lookupDevice(deviceId)
 	if !ok {
-		device, ok = devices[strconv.Itoa(int(productId))]
+		device, ok = lookupDevice(strconv.Itoa(int(productId)))
 		if !ok {
 			return
 		}
@@ -307,8 +330,8 @@ func GetSupportedDevices() interface{} {
 
 // GetRgbProfiles will return a list of all RGB profiles for every device
 func GetRgbProfiles() map[string]interface{} {
-	profiles := make(map[string]interface{}, len(devices))
-	for _, device := range devices {
+	profiles := make(map[string]interface{})
+	for _, device := range deviceSnapshot() {
 		res := CallDeviceMethod(device.Serial, "GetRgbProfiles")
 		if res != nil {
 			val := res[0]
@@ -342,7 +365,7 @@ func ControlDeviceRgb(mode bool) {
 // UpdateGlobalRgbProfile will update device RGB profile
 func UpdateGlobalRgbProfile(profile string) uint8 {
 	channelId := -1
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, profile)
 	}
 	return 1
@@ -356,7 +379,7 @@ func UpdateAllDevicesStaticColor(color rgb.Color) uint8 {
 		EndColor:   color,
 		Brightness: 1.0,
 	}
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		CallDeviceMethod(device.Serial, "UpdateRgbProfileData", "static", profile)
 		CallDeviceMethod(device.Serial, "UpdateRgbProfile", channelId, "static")
 	}
@@ -365,7 +388,7 @@ func UpdateAllDevicesStaticColor(color rgb.Color) uint8 {
 
 // ResetSpeedProfiles will reset the speed profile on each available device
 func ResetSpeedProfiles(profile string) {
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		if device.ProductType == common.ProductTypeLinkHub ||
 			device.ProductType == common.ProductTypeCC ||
 			device.ProductType == common.ProductTypeCCXT ||
@@ -382,7 +405,7 @@ func ResetSpeedProfiles(profile string) {
 // GetDevicesLedData will return led data for all devices
 func GetDevicesLedData() interface{} {
 	var leds []interface{}
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		res := CallDeviceMethod(device.Serial, "GetDeviceLedData")
 		if res != nil && len(res) > 0 {
 			val := res[0]
@@ -395,7 +418,7 @@ func GetDevicesLedData() interface{} {
 // GetTemperatureProbes will return a list of temperature probes
 func GetTemperatureProbes() interface{} {
 	var probes []interface{}
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		if device.ProductType == common.ProductTypeLinkHub ||
 			device.ProductType == common.ProductTypeCC ||
 			device.ProductType == common.ProductTypeCCXT ||
@@ -421,15 +444,15 @@ func UpdateDeviceMetrics() {
 	metrics.PopulateDefault()
 	metrics.PopulateStorage()
 
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		CallDeviceMethod(device.Serial, "UpdateDeviceMetrics")
 	}
 }
 
 // deleteDevice will remove device from device list
 func deleteDevice(serial string) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	devicesMu.Lock()
+	defer devicesMu.Unlock()
 	delete(devices, serial)
 }
 
@@ -439,10 +462,10 @@ func addDevice(device *common.Device) {
 		return
 	}
 
-	mutex.Lock()
+	devicesMu.Lock()
 	replaced, ok := devices[device.Serial]
 	devices[device.Serial] = device
-	mutex.Unlock()
+	devicesMu.Unlock()
 
 	// A PSU whose unplug was missed can come back under the same serial (serial-less PSUs
 	// derive it from their key). Its old instance is unreachable once replaced, so stop it the
@@ -495,6 +518,8 @@ func stopStale(stale []*common.Device) {
 // Caller holds mutex.
 func forgetStale(path string, dev usbDevice) *common.Device {
 	delete(usbDevPaths, path)
+	devicesMu.Lock()
+	defer devicesMu.Unlock()
 	device, ok := devices[dev.serial]
 	if len(dev.serial) == 0 || !ok {
 		return nil
@@ -514,8 +539,8 @@ func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) [
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	device, ok := devices[deviceId]
-	if !ok {
+	device, ok := lookupDevice(deviceId)
+	if !ok || device.Instance == nil {
 		logger.Log(logger.Fields{"deviceId": deviceId}).Warn("Device not found")
 		return nil
 	}
@@ -540,9 +565,7 @@ func GetProducts() map[string]Device {
 
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
-	mutex.Lock()
-	defer mutex.Unlock()
-	if device, ok := devices[deviceId]; ok {
+	if device, ok := lookupDevice(deviceId); ok {
 		return device.Instance
 	}
 	return nil
@@ -551,23 +574,14 @@ func GetDevice(deviceId string) interface{} {
 // GetDevices will return all available devices. It returns a copy: pages range over it while
 // hotplug adds and removes devices, and a map iterated during a write crashes the process.
 func GetDevices() map[string]*common.Device {
-	mutex.Lock()
-	defer mutex.Unlock()
-	cp := make(map[string]*common.Device, len(devices))
-	for k, v := range devices {
-		cp[k] = v
-	}
-	return cp
+	return deviceSnapshot()
 }
 
 // GetMouse will return all available mouse devices
 func GetMouse() map[string]string {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	val := make(map[string]string)
 
-	for key, device := range devices {
+	for key, device := range deviceSnapshot() {
 		if device.DeviceType == common.DeviceTypeMouse {
 			val[key] = device.Product
 		}
@@ -578,7 +592,7 @@ func GetMouse() map[string]string {
 // GetDevicesEx will return all available devices with partial data
 func GetDevicesEx() map[string]*common.Device {
 	out := make(map[string]*common.Device)
-	for _, device := range devices {
+	for _, device := range deviceSnapshot() {
 		out[device.Serial] = &common.Device{
 			ProductType: 0,
 			Product:     device.Product,
@@ -1010,12 +1024,16 @@ func Init() {
 		if mobo == nil || len(motherboards.GetMotherboardPath()) == 0 {
 			logger.Log(logger.Fields{}).Warn("Unable to get motherboard")
 		} else {
-			devices[motherboards.GetMotherboardSerial()] = motherboard.Init()
+			board := motherboard.Init()
+			devicesMu.Lock()
+			devices[motherboards.GetMotherboardSerial()] = board
+			devicesMu.Unlock()
 		}
 	}
 
 	// Create dummy cluster object before any other object
 	cls = cluster.Init()
+	devicesMu.Lock()
 	devices["cluster"] = &common.Device{
 		ProductType: common.ProductTypeCluster,
 		Product:     "Cluster",
@@ -1023,6 +1041,7 @@ func Init() {
 		Hidden:      true,
 		Instance:    cls,
 	}
+	devicesMu.Unlock()
 
 	// Legacy devices
 	res := usb.Init(legacyDevices)

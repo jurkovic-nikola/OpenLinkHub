@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestTakeSerialByDevPath(t *testing.T) {
@@ -367,12 +368,8 @@ func TestGetDevicesWhileHotplugging(t *testing.T) {
 	go func() {
 		defer close(done)
 		for i := 0; i < 2000; i++ {
-			mutex.Lock()
-			devices["qa-hotplug"] = &common.Device{Serial: "qa-hotplug"}
-			mutex.Unlock()
-			mutex.Lock()
-			delete(devices, "qa-hotplug")
-			mutex.Unlock()
+			addDevice(&common.Device{Serial: "qa-hotplug"})
+			deleteDevice("qa-hotplug")
 		}
 	}()
 	for {
@@ -383,6 +380,31 @@ func TestGetDevicesWhileHotplugging(t *testing.T) {
 			for range GetDevices() {
 			}
 			_ = GetDevice("qa-hotplug")
+			_ = GetDevicesEx()
+			_ = GetMouse()
+			for range deviceSnapshot() {
+			}
 		}
+	}
+}
+
+// Readers of the device map don't wait for a device call in flight, which holds mutex across
+// device I/O (a PSU fan write can take seconds).
+func TestDeviceReadsDontWaitForDeviceCalls(t *testing.T) {
+	mutex.Lock() // as CallDeviceMethod does while a slow device method runs
+	defer mutex.Unlock()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = GetDevices()
+		_ = GetDevice("cluster")
+		_ = GetDevicesEx()
+		_ = GetMouse()
+		deleteDevice("qa-slow")
+	}()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a device map read waited for a device call")
 	}
 }

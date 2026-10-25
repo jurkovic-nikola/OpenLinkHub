@@ -117,9 +117,9 @@ func (f *fakePSUs) unplug(t *testing.T, hidraw string) {
 	if !ok {
 		t.Fatalf("no registered device on port %s", port)
 	}
-	mutex.Lock()
+	devicesMu.Lock()
 	delete(devices, serial)
-	mutex.Unlock()
+	devicesMu.Unlock()
 }
 
 func (f *fakePSUs) key(hidraw string) string {
@@ -133,9 +133,9 @@ func wantKey(t *testing.T, f *fakePSUs, hidraw, want string) {
 	if got := f.key(hidraw); got != want {
 		t.Fatalf("%s initialized with key %q, want %q", hidraw, got, want)
 	}
-	mutex.Lock()
+	devicesMu.Lock()
 	_, ok := devices["serial-"+want]
-	mutex.Unlock()
+	devicesMu.Unlock()
 	if !ok {
 		t.Fatalf("%s (key %q) is not listed", hidraw, want)
 	}
@@ -144,7 +144,9 @@ func wantKey(t *testing.T, f *fakePSUs, hidraw, want string) {
 // restart forgets every device and pinned port, as if the service was restarted
 func restart() {
 	mutex.Lock()
+	devicesMu.Lock()
 	devices, deviceList, usbDevPaths = map[string]*common.Device{}, map[string]Device{}, map[string]usbDevice{}
+	devicesMu.Unlock()
 	mutex.Unlock()
 	plainKeyMutex.Lock()
 	plainKeyPorts = map[string]string{}
@@ -275,9 +277,9 @@ func TestUnplugPortlessPsu(t *testing.T) {
 	wantKey(t, f, "hidraw0", "7199")
 
 	f.unplug(t, "hidraw0")
-	mutex.Lock()
+	devicesMu.Lock()
 	left := len(devices)
-	mutex.Unlock()
+	devicesMu.Unlock()
 	if left != 0 {
 		t.Fatalf("%d devices listed after unplug, want 0", left)
 	}
@@ -346,9 +348,9 @@ func TestReplugStopsReplacedInstance(t *testing.T) {
 	if instances[1].stopped != 0 {
 		t.Fatalf("new instance stopped %d times, want 0", instances[1].stopped)
 	}
-	mutex.Lock()
+	devicesMu.Lock()
 	got := devices["serial-7199"].Instance
-	mutex.Unlock()
+	devicesMu.Unlock()
 	if got != instances[1] {
 		t.Fatal("serial-7199 is not the new instance")
 	}
@@ -442,9 +444,9 @@ func countStops(t *testing.T) map[string]*stopCounter {
 
 func wantListed(t *testing.T, serial string, want bool) {
 	t.Helper()
-	mutex.Lock()
+	devicesMu.Lock()
 	_, ok := devices[serial]
-	mutex.Unlock()
+	devicesMu.Unlock()
 	if ok != want {
 		t.Fatalf("%s listed = %v, want %v", serial, ok, want)
 	}
@@ -502,9 +504,9 @@ func TestUnplugTakesEveryGonePortlessPsu(t *testing.T) {
 	f.mu.Unlock()
 	f.unplug(t, "hidraw0")
 	initWG.Wait()
-	mutex.Lock()
+	devicesMu.Lock()
 	left := len(devices)
-	mutex.Unlock()
+	devicesMu.Unlock()
 	if left != 0 {
 		t.Fatalf("%d devices listed after both PSUs are unplugged, want 0", left)
 	}

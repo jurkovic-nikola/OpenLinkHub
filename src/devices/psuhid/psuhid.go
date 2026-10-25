@@ -112,7 +112,10 @@ type Device struct {
 	lost      bool // the HID handle failed (device unplugged); guarded by mutex
 	// Held while the fan profile is changed and sent: by the API (UpdatePsuFan) and by the
 	// refresh goroutine restoring it after a reopen.
-	fanMutex      sync.Mutex
+	fanMutex sync.Mutex
+	// Guards the Devices map and the profile pointers against the device API, which encodes
+	// this struct (MarshalJSON) while the refresh goroutine and UpdatePsuFan replace them.
+	dataMutex     sync.RWMutex
 	refreshFailed bool                      // one of the current refresh's transfers failed; refresh goroutine only
 	failedRuns    int                       // refreshes in a row with a failed transfer; refresh goroutine only
 	Manufacturer  string                    `json:"manufacturer"`
@@ -232,6 +235,14 @@ func (d *Device) createDevice() {
 		Instance:    d,
 		GetDevice:   d,
 	}
+}
+
+// MarshalJSON encodes the device for the API under dataMutex, so a refresh can't change it mid-encode
+func (d *Device) MarshalJSON() ([]byte, error) {
+	d.dataMutex.RLock()
+	defer d.dataMutex.RUnlock()
+	type plain Device // without this method
+	return json.Marshal((*plain)(d))
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -355,25 +366,29 @@ func (d *Device) UpdatePsuFan(mode int) uint8 {
 
 	d.fanMutex.Lock()
 	defer d.fanMutex.Unlock()
+	d.dataMutex.Lock()
 	d.DeviceProfile.FanMode = mode
+	d.dataMutex.Unlock()
 	d.saveDeviceProfile()
-	d.updateFanMode()
+	if err := d.updateFanMode(); err != nil {
+		return 0 // Saved, but the PSU didn't take it (e.g. unplugged); a reopen re-applies it
+	}
 	return 1
 }
 
 // updateFanMode will update fan operation mode
-func (d *Device) updateFanMode() {
+func (d *Device) updateFanMode() error {
 	var buf []byte
 
 	if d.DeviceProfile == nil {
-		return
+		return nil
 	}
 	if d.DeviceProfile.FanMode == 0 {
 		buf = d.createPacket(cmdWrite, cmdSetFanMode, dataFanModeDefault)
 		_, err := d.transfer(buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to set fam value")
-			return
+			return err
 		}
 	} else {
 		fanSpeed := d.DeviceProfile.FanMode * 10
@@ -389,16 +404,16 @@ func (d *Device) updateFanMode() {
 		_, err := d.transfer(buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to set fam value")
-			return
+			return err
 		}
 		buf = d.createPacket(cmdWrite, dataSetFanSpeed, byte(fanSpeed))
 		_, err = d.transfer(buf)
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to set fam value")
-			return
+			return err
 		}
 	}
-
+	return nil
 }
 
 // getDevices will generate list of devices
@@ -530,10 +545,12 @@ func (d *Device) getDeviceData() {
 	}
 	d.refreshFailed = false
 
-	// Snapshot the readings: a failed transfer decodes as 0, which must not reach the API either
-	previous := make(map[int]Devices, len(d.Devices))
+	// Read into a copy, published only if the whole refresh succeeds: a failed transfer
+	// decodes as 0, which must not reach the API or the metrics.
+	devs := make(map[int]*Devices, len(d.Devices))
 	for k, v := range d.Devices {
-		previous[k] = *v
+		c := *v
+		devs[k] = &c
 	}
 
 	m := 0
@@ -546,8 +563,8 @@ func (d *Device) getDeviceData() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 	}
 	rpm := common.FromLinear11(output)
-	if _, ok := d.Devices[m]; ok {
-		d.Devices[m].Rpm = int16(rpm)
+	if _, ok := devs[m]; ok {
+		devs[m].Rpm = int16(rpm)
 	}
 
 	// Temps
@@ -559,15 +576,15 @@ func (d *Device) getDeviceData() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 		}
 		temp := common.FromLinear11(output)
-		if _, ok := d.Devices[m]; ok {
+		if _, ok := devs[m]; ok {
 			if temp > 1 {
 				switch i {
 				case 0:
-					d.Devices[m].VrmTemperature = temp
-					d.Devices[m].VrmTemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
+					devs[m].VrmTemperature = temp
+					devs[m].VrmTemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
 				case 1:
-					d.Devices[m].PsuTemperature = temp
-					d.Devices[m].PsuTemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
+					devs[m].PsuTemperature = temp
+					devs[m].PsuTemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
 				}
 			}
 		}
@@ -588,14 +605,14 @@ func (d *Device) getDeviceData() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 	}
 	powerOutWatts := common.FromLinear11(output)
-	if _, ok := d.Devices[m]; ok {
-		d.Devices[m].Watts = powerOutWatts
-		d.Devices[m].HasWatts = true
+	if _, ok := devs[m]; ok {
+		devs[m].Watts = powerOutWatts
+		devs[m].HasWatts = true
 	}
 
 	m++
-	if _, ok := d.Devices[m]; ok {
-		d.Devices[m].Rpm = int16(rpm)
+	if _, ok := devs[m]; ok {
+		devs[m].Rpm = int16(rpm)
 	}
 	m++
 
@@ -608,10 +625,10 @@ func (d *Device) getDeviceData() {
 			logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 		}
 		temp := common.FromLinear11(output)
-		if _, ok := d.Devices[m]; ok {
+		if _, ok := devs[m]; ok {
 			if temp > 1 {
-				d.Devices[m].Temperature = temp
-				d.Devices[m].TemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
+				devs[m].Temperature = temp
+				devs[m].TemperatureString = dashboard.GetDashboard().TemperatureToString(temp)
 			}
 		}
 		m++
@@ -632,9 +649,9 @@ func (d *Device) getDeviceData() {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
 	}
 	powerOutWatts = common.FromLinear11(output)
-	if _, ok := d.Devices[m]; ok {
-		d.Devices[m].Watts = powerOutWatts
-		d.Devices[m].HasWatts = true
+	if _, ok := devs[m]; ok {
+		devs[m].Watts = powerOutWatts
+		devs[m].HasWatts = true
 	}
 	m++
 
@@ -676,26 +693,21 @@ func (d *Device) getDeviceData() {
 		railWatts := common.FromLinear11(output)
 
 		// Update object
-		if _, ok := d.Devices[m]; ok {
-			d.Devices[m].Watts = float32(math.Floor(float64(railWatts*100)) / 100)
-			d.Devices[m].Volts = float32(math.Floor(float64(railVolts*100)) / 100)
-			d.Devices[m].Amps = float32(math.Floor(float64(railAmps*100)) / 100)
-			d.Devices[m].HasWatts = true
-			d.Devices[m].HasAmps = true
-			d.Devices[m].HasVolts = true
+		if _, ok := devs[m]; ok {
+			devs[m].Watts = float32(math.Floor(float64(railWatts*100)) / 100)
+			devs[m].Volts = float32(math.Floor(float64(railVolts*100)) / 100)
+			devs[m].Amps = float32(math.Floor(float64(railAmps*100)) / 100)
+			devs[m].HasWatts = true
+			devs[m].HasAmps = true
+			devs[m].HasVolts = true
 		}
 		m++
 	}
 
 	if d.refreshFailed {
-		// Every reading after the failed transfer is a zeroed buffer, not data: restore the
+		// Every reading after the failed transfer is a zeroed buffer, not data: keep the
 		// previous values, and stop publishing the PSU's series once its handle is gone or it
 		// has failed too often, so absent()-style alerts fire instead of showing 0 W.
-		for k, v := range previous {
-			if dev, ok := d.Devices[k]; ok {
-				*dev = v
-			}
-		}
 		d.failedRuns++
 		if d.isLost() || d.failedRuns >= maxFailedRefreshes {
 			metrics.Remove(d.Serial)
@@ -703,6 +715,9 @@ func (d *Device) getDeviceData() {
 		return
 	}
 	d.failedRuns = 0
+	d.dataMutex.Lock()
+	d.Devices = devs
+	d.dataMutex.Unlock()
 	d.updateDeviceMetrics()
 }
 
@@ -834,7 +849,9 @@ func (d *Device) saveDeviceProfile() {
 
 	if d.DeviceProfile == nil {
 		deviceProfile.Active = true
+		d.dataMutex.Lock()
 		d.DeviceProfile = deviceProfile
+		d.dataMutex.Unlock()
 	} else {
 		deviceProfile.Active = d.DeviceProfile.Active
 		deviceProfile.FanMode = d.DeviceProfile.FanMode
@@ -922,11 +939,13 @@ func (d *Device) loadDeviceProfiles() {
 			logger.Log(logger.Fields{"location": profileLocation, "serial": d.Serial}).Info("Loaded custom user profile")
 		}
 	}
+	d.dataMutex.Lock()
 	d.UserProfiles = profileList
 	d.getDeviceProfile()
+	d.dataMutex.Unlock()
 }
 
-// getDeviceProfile will load persistent device configuration
+// getDeviceProfile will load persistent device configuration. Caller holds dataMutex.
 func (d *Device) getDeviceProfile() {
 	if len(d.UserProfiles) == 0 {
 		logger.Log(logger.Fields{"serial": d.Serial}).Warn("No profile found for device. Probably initial start")

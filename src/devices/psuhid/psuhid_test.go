@@ -5,6 +5,7 @@ import (
 	"OpenLinkHub/src/metrics"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -647,5 +648,63 @@ func TestStopDirtyDropsSeriesAndClosesHandle(t *testing.T) {
 	d.UpdatePsuFan(5)
 	if psu.writes != writes {
 		t.Fatal("wrote to a removed PSU")
+	}
+}
+
+// The device API JSON-encodes the PSU while its refresh and fan changes run; run with -race.
+func TestEncodeDuringRefresh(t *testing.T) {
+	psu := &lockedPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 20; i++ {
+			d.getDeviceData()
+			d.UpdatePsuFan(4 + i%7)
+		}
+	}()
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			if _, err := json.Marshal(d); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+}
+
+// lockedPSU is a fakePSU safe to use from the refresh and API goroutines at once
+type lockedPSU struct {
+	mu sync.Mutex
+	fakePSU
+}
+
+func (l *lockedPSU) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.fakePSU.Write(p)
+}
+
+func (l *lockedPSU) ReadWithTimeout(p []byte, timeout time.Duration) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if len(l.replies) == 0 {
+		return 0, hid.ErrTimeout
+	}
+	return l.fakePSU.ReadWithTimeout(p, timeout)
+}
+
+// A fan change the PSU never received (dead handle) is reported as failed, not as changed.
+func TestFanChangeOnDeadPsuFails(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	if r := d.UpdatePsuFan(5); r != 1 {
+		t.Fatalf("UpdatePsuFan on a working PSU = %d, want 1", r)
+	}
+	psu.gone = true
+	if r := d.UpdatePsuFan(6); r != 0 {
+		t.Fatalf("UpdatePsuFan on an unplugged PSU = %d, want 0", r)
 	}
 }

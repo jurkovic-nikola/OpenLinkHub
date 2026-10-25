@@ -134,12 +134,14 @@ import (
 	"OpenLinkHub/src/smbus"
 	"OpenLinkHub/src/usb"
 	"OpenLinkHub/src/version"
+	"encoding/json"
 	"github.com/sstallion/go-hid"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -175,9 +177,66 @@ var (
 	interfaceId         = 0
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
+	usbDevPaths         = make(map[string]usbDevice) // USB sysfs device path -> registered device
 	legacyDevices       = []uint16{3080, 3081, 3082, 3090, 3091, 3093, 7168}
 	initWG              sync.WaitGroup
 	Dispatch            dispatcher.DeviceDispatcher = CallDeviceMethod
+)
+
+// Tests replace these to drive Init and InitManual with fake devices
+var (
+	hidEnumerate          = hid.Enumerate             // HID enumeration
+	usbDevPathOf          = common.GetShortUSBDevPath // sysfs lookup of a device USB port
+	plainKeyPortsLocation = func() string {           // file saving the ports of plainKeyPorts
+		return config.GetConfig().ConfigPath + "/database/serialless.json"
+	}
+	hidrawClassPath = "/sys/class/hidraw" // sysfs class of HID nodes
+
+	// hidNodeHolds tells whether a HID node is present and owned by a Corsair device of given product
+	hidNodeHolds = func(path string, productId uint16) bool {
+		if _, err := os.Stat(path); err != nil {
+			return false
+		}
+		uevent, err := os.ReadFile(filepath.Join(hidrawClassPath, filepath.Base(path), "device", "uevent"))
+		if err != nil {
+			return true // Owner unknown, assume the device is still there
+		}
+		vid, pid, ok := ueventHIDID(string(uevent))
+		return !ok || (vid == vendorId && pid == productId)
+	}
+)
+
+// ueventHIDID will return the vendor and product ID from the HID_ID line of a HID device uevent,
+// e.g. HID_ID=0003:00001B1C:00001C1F
+func ueventHIDID(uevent string) (uint16, uint16, bool) {
+	for _, line := range strings.Split(uevent, "\n") {
+		id, ok := strings.CutPrefix(line, "HID_ID=")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(strings.TrimSpace(id), ":")
+		if len(parts) != 3 {
+			return 0, 0, false
+		}
+		vid, err := strconv.ParseUint(parts[1], 16, 16)
+		if err != nil {
+			return 0, 0, false
+		}
+		pid, err := strconv.ParseUint(parts[2], 16, 16)
+		if err != nil {
+			return 0, 0, false
+		}
+		return uint16(vid), uint16(pid), true
+	}
+	return 0, 0, false
+}
+
+// plainKeyPorts remembers, per product ID, the USB port whose device holds the plain product ID
+// key once identical serial-less devices (e.g. two HX1500i PSUs) were seen. Without it, whichever
+// PSU is found first takes the plain key and its profile, so PSUs swap profiles across restarts.
+var (
+	plainKeyMutex sync.Mutex
+	plainKeyPorts = make(map[string]string) // product ID -> USB port holding the plain key
 )
 
 // Stop will stop all active devices
@@ -381,10 +440,73 @@ func addDevice(device *common.Device) {
 	}
 
 	mutex.Lock()
+	replaced, ok := devices[device.Serial]
 	devices[device.Serial] = device
 	mutex.Unlock()
 
+	// A PSU whose unplug was missed can come back under the same serial (serial-less PSUs
+	// derive it from their key). Its old instance is unreachable once replaced, so stop it the
+	// way an unplug would; its node is gone, so not with a full Stop. Only PSUs: other devices
+	// stay listed after an unplug already stopped them, and their StopDirty panics if repeated.
+	// Stopped in the background, so a refresh hung on the old node does not hold up this one.
+	if ok && replaced.ProductType == common.ProductTypePSUHid && replaced.Instance != nil && replaced.Instance != device.Instance {
+		if stopInBackground(replaced.Instance) {
+			logger.Log(logger.Fields{"serial": device.Serial}).Warn("Replacing a PSU registered under the same serial")
+		}
+	}
+
 	CallDeviceMethod(device.Serial, "SetDispatcher", Dispatch)
+}
+
+// stopInBackground will stop the instance of a device that was unplugged unnoticed, the way an
+// unplug would; its node is gone, so not with a full Stop. It is stopped in the background, so a
+// refresh hung on the old node holds up nothing. It returns false when the instance has no StopDirty.
+func stopInBackground(instance interface{}) bool {
+	method := reflect.ValueOf(instance).MethodByName("StopDirty")
+	if !method.IsValid() {
+		return false
+	}
+	initWG.Add(1)
+	go func() {
+		defer initWG.Done()
+		method.Call(nil)
+	}()
+	return true
+}
+
+// stopStale will stop and forget devices whose unplug was missed. Their entries were already
+// dropped from usbDevPaths and devices, so no later removal or device can reach them.
+func stopStale(stale []*common.Device) {
+	for _, device := range stale {
+		logger.Log(logger.Fields{"serial": device.Serial}).Warn("Removing a device unplugged unnoticed")
+		if config.GetConfig().EnableOpenRGBTargetServer {
+			openrgb.RemoveDeviceControllerBySerial(device.Serial)
+		}
+		if c := cluster.Get(); c != nil {
+			c.RemoveDeviceControllerBySerial(device.Serial)
+		}
+		if device.Instance != nil {
+			stopInBackground(device.Instance)
+		}
+	}
+}
+
+// forgetStale will drop the entry on path and the device registered for it, returning the device.
+// Caller holds mutex.
+func forgetStale(path string, dev usbDevice) *common.Device {
+	delete(usbDevPaths, path)
+	device, ok := devices[dev.serial]
+	if len(dev.serial) == 0 || !ok {
+		return nil
+	}
+	delete(devices, dev.serial)
+	return device
+}
+
+// stalePortless tells whether a port-less entry of given product is a registered device whose
+// HID node is gone or taken by another product, so it was unplugged. Caller holds mutex.
+func stalePortless(path string, dev usbDevice, productId uint16) bool {
+	return dev.portless && dev.productId == productId && len(dev.serial) > 0 && !hidNodeHolds(path, productId)
 }
 
 // CallDeviceMethod will call device method based on method name and arguments
@@ -459,8 +581,190 @@ func GetDevicesEx() map[string]*common.Device {
 	return out
 }
 
-// InitManual will initialize device manually when plugged in
-func InitManual(productId uint16, key string) {
+// usbDevice is a registered device behind a USB device path
+type usbDevice struct {
+	serial    string // Serial the device registered under
+	key       string // Key the device was initialized with
+	productId uint16 // Product ID of the device
+	portless  bool   // USB port is unknown; registered under its HID path instead
+}
+
+// reserveUSBDevPath will remember the key a device behind a USB device path is initialized with.
+// It is recorded before the device initializes, so an identical device plugged in meanwhile
+// does not take the same key. A device whose USB port can't be resolved (empty devPath) is
+// recorded under its HID path, so it still holds its key.
+func reserveUSBDevPath(devPath, hidPath, key string, productId uint16) {
+	var stale []*common.Device
+	defer func() { stopStale(stale) }()
+	mutex.Lock()
+	defer mutex.Unlock()
+	// A port-less device on this HID node, or holding this key, was unplugged unnoticed: keyHolder
+	// only lets a device take a port-less device's key once that device is gone. Left behind, its
+	// entry shares this device's serial and a later removal of a twin would take this device.
+	// One holding this key is replaced under the same serial, and addDevice stops it.
+	// A twin whose HID node is gone was unplugged unnoticed too (e.g. it came back on a known
+	// port, under another key). Its entry would never be taken again, but could take a twin's
+	// removal; so it is dropped and its device stopped, along with one on this HID node.
+	for path, dev := range usbDevPaths {
+		switch {
+		case dev.portless && dev.key == key:
+			delete(usbDevPaths, path)
+		case dev.portless && path == hidPath, stalePortless(path, dev, productId):
+			if device := forgetStale(path, dev); device != nil {
+				stale = append(stale, device)
+			}
+		}
+	}
+	if len(devPath) == 0 {
+		usbDevPaths[hidPath] = usbDevice{key: key, productId: productId, portless: true}
+		return
+	}
+	usbDevPaths[devPath] = usbDevice{key: key, productId: productId}
+}
+
+// trackUSBDevPath will remember which registered device sits behind a USB device path.
+// Some devices (e.g. PSUs) register under a key that is not their USB serial, so the hotplug
+// monitor cannot find them on removal without this. The USB path of a device that failed to
+// initialize, or was unplugged while initializing, is forgotten.
+func trackUSBDevPath(devPath string, dev *common.Device) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	reserved, ok := usbDevPaths[devPath]
+	if !ok {
+		return
+	}
+	if dev == nil {
+		delete(usbDevPaths, devPath)
+		return
+	}
+	reserved.serial = dev.Serial
+	usbDevPaths[devPath] = reserved
+}
+
+// TakeSerialByDevPath will return and forget the device serial registered for a USB device path.
+// A removed device of given product whose USB port was never known is matched by its HID node
+// being gone or taken by another device. When several match, all were unplugged and they can't
+// be told apart: one is returned, and the others are stopped and forgotten here.
+func TakeSerialByDevPath(devPath string, productId uint16) (string, bool) {
+	var stale []*common.Device
+	defer func() { stopStale(stale) }()
+	mutex.Lock()
+	defer mutex.Unlock()
+	dev, ok := usbDevPaths[devPath]
+	if ok {
+		delete(usbDevPaths, devPath)
+		return dev.serial, len(dev.serial) > 0
+	}
+	serial := ""
+	for hidPath, d := range usbDevPaths {
+		if !stalePortless(hidPath, d, productId) {
+			continue
+		}
+		if len(serial) == 0 {
+			serial = d.serial
+			delete(usbDevPaths, hidPath)
+		} else if device := forgetStale(hidPath, d); device != nil {
+			stale = append(stale, device)
+		}
+	}
+	return serial, len(serial) > 0
+}
+
+// keyHolder will return the USB device path of the plugged device initialized with given key.
+// The path is empty when the holder's USB port is unknown. Such a holder whose HID node is gone,
+// taken by another product, or is hidPath of the device asking, was unplugged unnoticed and no
+// longer holds the key.
+func keyHolder(key, hidPath string) (string, bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	for devPath, dev := range usbDevPaths {
+		if dev.key == key {
+			if dev.portless {
+				if devPath == hidPath || !hidNodeHolds(devPath, dev.productId) {
+					continue
+				}
+				return "", true
+			}
+			return devPath, true
+		}
+	}
+	return "", false
+}
+
+// loadPlainKeyPorts will load which USB port holds the plain key of each serial-less product.
+// An unreadable file is ignored, so the ports are pinned again.
+func loadPlainKeyPorts() {
+	location := plainKeyPortsLocation()
+	if !common.FileExists(location) {
+		return
+	}
+	data, err := os.ReadFile(location)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to read PSU ports")
+		return
+	}
+	var ports map[string]string
+	if err = json.Unmarshal(data, &ports); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to decode PSU ports")
+		return
+	}
+	plainKeyMutex.Lock()
+	defer plainKeyMutex.Unlock()
+	plainKeyPorts = make(map[string]string)
+	for key, port := range ports {
+		if len(port) > 0 {
+			plainKeyPorts[key] = port
+		}
+	}
+}
+
+// savePlainKeyPorts will save which USB port holds the plain key of each serial-less product
+func savePlainKeyPorts() {
+	location := plainKeyPortsLocation()
+	if err := common.SaveJsonData(location, plainKeyPorts); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": location}).Error("Unable to save PSU ports")
+	}
+}
+
+// serialLessKey will return the key for a device with no serial: its product ID. When an identical
+// device already holds that key (e.g. two HX1500i PSUs), it is suffixed with the device USB port,
+// or with its HID path when the port is unknown, so both devices are kept apart. holder returns
+// the USB device path of the device holding a key.
+// The USB port of the device holding the plain key is then remembered, and from then on only a
+// device on that port gets the plain key, whatever order the devices are found or plugged in.
+// A single device is never pinned, so it keeps its key on any port.
+func serialLessKey(productId uint16, devPath, hidPath string, holder func(string) (string, bool)) string {
+	key := strconv.Itoa(int(productId))
+	port := filepath.Base(devPath)
+	if len(devPath) == 0 {
+		port = filepath.Base(hidPath)
+	}
+
+	plainKeyMutex.Lock()
+	defer plainKeyMutex.Unlock()
+	holderPath, held := holder(key)
+	// A stale entry for this same port (its removal was missed) is not another device
+	held = held && (len(devPath) == 0 || holderPath != devPath)
+	if owner, pinned := plainKeyPorts[key]; pinned {
+		// A device on an unknown port can't be the pinned one, so it never takes the plain key
+		if len(devPath) > 0 && port == owner && !held {
+			return key
+		}
+		return key + "-" + port
+	}
+	if !held {
+		return key
+	}
+	if len(holderPath) > 0 {
+		plainKeyPorts[key] = filepath.Base(holderPath)
+		savePlainKeyPorts()
+	}
+	return key + "-" + port
+}
+
+// InitManual will initialize device manually when plugged in. devPath is the USB sysfs device
+// path of the plugged device; it picks the right interface when the device has no serial.
+func InitManual(productId uint16, key, devPath string) {
 	var device = Device{
 		ProductId: 0,
 		Path:      "",
@@ -493,9 +797,21 @@ func InitManual(productId uint16, key string) {
 				return nil
 			}
 
-			devPath := info.Path
+			// Without a serial, identical devices (e.g. two PSUs) are told apart by their USB port
+			if len(key) == 0 && len(devPath) > 0 {
+				p, err := usbDevPathOf(filepath.Base(info.Path))
+				if err != nil {
+					logger.Log(logger.Fields{"error": err, "path": info.Path, "devPath": devPath}).Warn("Unable to resolve USB port of device, skipping")
+					return nil
+				}
+				if p != devPath {
+					return nil
+				}
+			}
+
+			hidPath := info.Path
 			if config.GetConfig().CheckDevicePermission {
-				dev, err := os.Stat(devPath)
+				dev, err := os.Stat(hidPath)
 				if err != nil {
 					logger.Log(logger.Fields{"error": err}).Error("Unable to get device stat info")
 					return nil
@@ -510,7 +826,9 @@ func InitManual(productId uint16, key string) {
 			if len(key) == 0 {
 				key = info.SerialNbr
 				if len(key) == 0 {
-					key = strconv.Itoa(int(info.ProductID))
+					key = serialLessKey(info.ProductID, devPath, info.Path, func(k string) (string, bool) {
+						return keyHolder(k, info.Path)
+					})
 				}
 			}
 
@@ -527,13 +845,13 @@ func InitManual(productId uint16, key string) {
 	})
 
 	// Enumerate all Corsair devices
-	err := hid.Enumerate(vendorId, productId, enum)
+	err := hidEnumerate(vendorId, productId, enum)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
 
 	// Enumerate all Scuf devices
-	err = hid.Enumerate(scufVendorId, productId, enum)
+	err = hidEnumerate(scufVendorId, productId, enum)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": scufVendorId}).Fatal("Unable to enumerate devices")
 	}
@@ -547,18 +865,14 @@ func InitManual(productId uint16, key string) {
 	}
 }
 
-// Init will initialize all compatible Corsair devices in your system
-func Init() {
-	logger.Log(logger.Fields{
-		"buildVersion": version.GetBuildInfo().BuildVersion,
-		"build":        version.GetBuildInfo().Revision,
-	}).Info("Application build")
+// initHIDDevices will list HID devices, keying identical serial-less devices by their saved ports
+func initHIDDevices() {
+	loadPlainKeyPorts()
+	listHIDDevices()
+}
 
-	// Initialize general HID interface
-	if err := hid.Init(); err != nil {
-		logger.Log(logger.Fields{"error": err}).Fatal("Unable to initialize HID interface")
-	}
-
+// listHIDDevices will add all compatible HID devices to the device list
+func listHIDDevices() {
 	enum := hid.EnumFunc(func(info *hid.DeviceInfo) error {
 		logger.Log(
 			logger.Fields{
@@ -601,22 +915,15 @@ func Init() {
 				}
 			}
 			base := filepath.Base(info.Path)
-			p, _ := common.GetShortUSBDevPath(base)
+			p, _ := usbDevPathOf(base)
 
 			key := info.SerialNbr
 			if len(key) == 0 {
 				// Devices with no serial, make serial based of productId
-				key = strconv.Itoa(int(info.ProductID))
-
-				// A second identical device with no serial (e.g. two HX1500i PSUs) would
-				// overwrite the first one here. Suffix it with its USB port so both are kept.
-				if _, exists := deviceList[key]; exists {
-					suffix := p
-					if len(suffix) == 0 {
-						suffix = base
-					}
-					key = key + "-" + suffix
-				}
+				key = serialLessKey(info.ProductID, p, info.Path, func(k string) (string, bool) {
+					d, ok := deviceList[k]
+					return d.DevPath, ok
+				})
 			}
 
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
@@ -634,16 +941,44 @@ func Init() {
 	})
 
 	// Enumerate all Corsair devices
-	err := hid.Enumerate(vendorId, hid.ProductIDAny, enum)
+	err := hidEnumerate(vendorId, hid.ProductIDAny, enum)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId}).Fatal("Unable to enumerate devices")
 	}
 
 	// Enumerate all Scuf devices
-	err = hid.Enumerate(scufVendorId, hid.ProductIDAny, enum)
+	err = hidEnumerate(scufVendorId, hid.ProductIDAny, enum)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": scufVendorId}).Fatal("Unable to enumerate devices")
 	}
+}
+
+// initializeDeviceList will initialize all listed devices not excluded via config.json
+func initializeDeviceList() {
+	for key, product := range deviceList {
+		productId := product.ProductId
+		productPath := product.Path
+		if slices.Contains(config.GetConfig().Exclude, productId) {
+			logger.Log(logger.Fields{"productId": productId}).Warn("Product excluded via config.json")
+			continue
+		}
+		initializeDevice(productId, key, productPath)
+	}
+}
+
+// Init will initialize all compatible Corsair devices in your system
+func Init() {
+	logger.Log(logger.Fields{
+		"buildVersion": version.GetBuildInfo().BuildVersion,
+		"build":        version.GetBuildInfo().Revision,
+	}).Info("Application build")
+
+	// Initialize general HID interface
+	if err := hid.Init(); err != nil {
+		logger.Log(logger.Fields{"error": err}).Fatal("Unable to initialize HID interface")
+	}
+
+	initHIDDevices()
 
 	// Memory
 	if config.GetConfig().Memory {
@@ -692,15 +1027,7 @@ func Init() {
 	}
 
 	// USB-HID
-	for key, product := range deviceList {
-		productId := product.ProductId
-		productPath := product.Path
-		if slices.Contains(config.GetConfig().Exclude, productId) {
-			logger.Log(logger.Fields{"productId": productId}).Warn("Product excluded via config.json")
-			continue
-		}
-		initializeDevice(productId, key, productPath)
-	}
+	initializeDeviceList()
 
 	if config.GetConfig().EnableOpenRGBTargetServer {
 		initWG.Wait()
@@ -902,12 +1229,22 @@ var deviceRegisterMap = map[uint16]Product{
 func initializeDevice(productId uint16, key, productPath string) {
 	callback, ok := deviceRegisterMap[productId]
 	if ok {
+		devPath, err := usbDevPathOf(filepath.Base(productPath))
+		if err != nil {
+			devPath = ""
+		}
+		reserveUSBDevPath(devPath, productPath, key, productId)
+		if len(devPath) == 0 {
+			devPath = productPath // registered under its HID path
+		}
+
 		if callback.DeviceRegister != nil {
 			initWG.Add(1)
 			go func(vid, pid uint16, serial, path string, cb deviceRegister) {
 				defer initWG.Done()
 				dev := cb(vid, pid, serial, path)
 				addDevice(dev)
+				trackUSBDevPath(devPath, dev)
 			}(vendorId, productId, key, productPath, callback.DeviceRegister)
 		}
 
@@ -917,6 +1254,7 @@ func initializeDevice(productId uint16, key, productPath string) {
 				defer initWG.Done()
 				dev := cb(vid, pid, serial, path, addDevice)
 				addDevice(dev)
+				trackUSBDevPath(devPath, dev)
 			}(vendorId, productId, key, productPath, callback.DeviceRegisterEx)
 		}
 	}

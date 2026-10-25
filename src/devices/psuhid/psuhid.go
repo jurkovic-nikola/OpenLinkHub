@@ -68,10 +68,24 @@ type DeviceProfile struct {
 	RgbOff  bool
 }
 
+// hidDevice is the part of *hid.Device a PSU uses; tests replace it with a fake PSU
+type hidDevice interface {
+	GetMfrStr() (string, error)
+	Write(p []byte) (int, error)
+	ReadWithTimeout(p []byte, timeout time.Duration) (int, error)
+	Close() error
+}
+
+// openPath opens the HID device of a PSU; tests point it at a fake PSU
+var openPath = func(path string) (hidDevice, error) { return hid.OpenPath(path) }
+
 type Device struct {
-	dev             *hid.Device
-	deviceKey       string
-	mutex           sync.Mutex
+	dev hidDevice
+	// Per device: a PSU that stops answering must not hold up the others
+	mutex sync.Mutex
+	key   string // devices.go key; "<productId>-<usb port>" for an identical second PSU
+	// Per device, not package globals: with two PSUs, a stop sent on a shared channel
+	// could reach the wrong refresh loop or block forever once the listener had gone.
 	timer           *time.Ticker
 	autoRefreshChan chan bool
 	Manufacturer    string                    `json:"manufacturer"`
@@ -92,6 +106,7 @@ type Device struct {
 
 var (
 	pwd                   = ""
+	pwdOnce               sync.Once
 	cmdInit               = byte(0xfe)
 	cmdRead               = byte(0x03)
 	cmdWrite              = byte(0x02)
@@ -110,8 +125,9 @@ var (
 	dataGetWatts          = byte(0x96)
 	dataPowerOut          = byte(0xee)
 	dataInputVoltage      = byte(0x88)
+	transferTimeout       = time.Second
+	maxStaleReports       = 64
 	deviceRefreshInterval = 1000
-	readTimeout           = 1000 * time.Millisecond
 	bufferSize            = 64
 	readBufferSize        = 64
 	bufferSizeWrite       = bufferSize + 1
@@ -120,10 +136,10 @@ var (
 
 func Init(vendorId, productId uint16, key, path string) *common.Device {
 	// Set global working directory
-	pwd = config.GetConfig().ConfigPath
+	pwdOnce.Do(func() { pwd = config.GetConfig().ConfigPath }) // PSUs initialize concurrently
 
 	// Open device, return if failure
-	dev, err := hid.OpenPath(path)
+	dev, err := openPath(path)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err, "vendorId": vendorId, "productId": productId, "path": path}).Error("Unable to open HID device")
 		return nil
@@ -143,13 +159,18 @@ func Init(vendorId, productId uint16, key, path string) *common.Device {
 			9:  "90 %",
 			10: "100 %",
 		},
-		IsPSU:     true,
-		deviceKey: key,
+		IsPSU: true,
+		key:   key,
 	}
 
 	// Bootstrap
-	d.getManufacturer()    // Manufacturer
-	d.getProductData()     // Product data
+	d.getManufacturer() // Manufacturer
+	if err = d.getProductData(); err != nil {
+		// Unplugged or unresponsive: registering it would leave a device hotplug can't remove
+		logger.Log(logger.Fields{"error": err, "productId": productId, "path": path}).Error("Unable to read PSU product data")
+		_ = dev.Close()
+		return nil
+	}
 	d.loadDeviceProfiles() // Load all device profiles
 	d.getInputVoltage()    // Input voltage
 	d.getDevices()         // Get devices
@@ -192,7 +213,7 @@ func (d *Device) Stop() {
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
 	d.stopAutoRefresh()
-	return 1
+	return 2 // USB only, remove it from the device list
 }
 
 // GetDeviceTemplate will return device template name
@@ -243,11 +264,11 @@ func (d *Device) getManufacturer() {
 }
 
 // getProductData will get product data
-func (d *Device) getProductData() {
+func (d *Device) getProductData() error {
 	packet := d.createPacket(cmdInit, cmdRead, 0)
 	output, err := d.transfer(packet)
 	if err != nil {
-		logger.Log(logger.Fields{"error": err}).Error("Unable to init to PSU device")
+		return err
 	}
 
 	product := string(output[2:])
@@ -257,15 +278,20 @@ func (d *Device) getProductData() {
 	product = strings.Replace(product, "Power Supply", "", -1)
 
 	d.Product = product
+	d.Serial = serialFromKey(product, d.key)
+	return nil
+}
 
+// serialFromKey will derive the PSU serial from its product name, since PSUs have no USB serial.
+// Two identical PSUs would share it (and their profile), so the USB port suffix of a second
+// PSU's key is mixed in. A single PSU keeps its existing serial and profile.
+func serialFromKey(product, key string) string {
 	seed := product
-	if i := strings.Index(d.deviceKey, "-"); i >= 0 {
-		seed = product + d.deviceKey[i:]
+	if i := strings.Index(key, "-"); i >= 0 {
+		seed = product + key[i:]
 	}
-
 	hash := md5.Sum([]byte(seed))
-	serial := hex.EncodeToString(hash[:])
-	d.Serial = serial
+	return hex.EncodeToString(hash[:])
 }
 
 // UpdatePsuFan will update PSU fan speed
@@ -784,32 +810,38 @@ func (d *Device) transfer(buffer []byte) ([]byte, error) {
 
 	bufferR := make([]byte, readBufferSize)
 
+	// Drop replies still queued from a read that timed out or from another program, so a
+	// stale reply to the same command is not taken as this one's. Capped in case another
+	// program keeps the PSU busy.
+	for i := 0; i < maxStaleReports; i++ {
+		if _, err := d.dev.ReadWithTimeout(bufferR, 0); err != nil {
+			break
+		}
+	}
+
 	if _, err := d.dev.Write(buffer); err != nil {
 		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
 		return bufferR, err
 	}
 
-	deadline := time.Now().Add(readTimeout)
+	// A reply to an earlier request can still arrive after the drain; skip it and keep
+	// waiting for this request's reply.
+	deadline := time.Now().Add(transferTimeout)
 	for {
 		remaining := time.Until(deadline)
 		if remaining <= 0 {
-			err := errors.New("no matching response before the read timeout")
-			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+			err := errors.New("response does not match the request")
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Invalid response. Probably another software is monitoring this device")
 			return make([]byte, 64), err
 		}
-
-		n, err := d.dev.ReadWithTimeout(bufferR, remaining)
-		if err != nil {
+		if _, err := d.dev.ReadWithTimeout(bufferR, remaining); err != nil {
+			// The Go runtime signals threads, so a read can be interrupted (EINTR); retry it
 			if strings.Contains(err.Error(), "Interrupted system call") {
 				continue
 			}
 			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
-			return make([]byte, 64), err
+			return bufferR, err
 		}
-		if n == 0 {
-			continue
-		}
-
 		if buffer[1] == bufferR[0] && buffer[2] == bufferR[1] {
 			return bufferR, nil
 		}

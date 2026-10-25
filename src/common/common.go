@@ -28,6 +28,9 @@ import (
 	"time"
 )
 
+// sysRoot is the sysfs mount point; tests point it at a fake tree
+var sysRoot = "/sys"
+
 type Display struct {
 	Index  int
 	Name   string
@@ -451,7 +454,7 @@ func GetDeviceUSBPath(devicePath string) (string, error) {
 
 // GetShortUSBDevPath will get USB device PCI path
 func GetShortUSBDevPath(device string) (string, error) {
-	start := fmt.Sprintf("/sys/class/hidraw/%s/device", device)
+	start := fmt.Sprintf("%s/class/hidraw/%s/device", sysRoot, device)
 
 	path, err := filepath.EvalSymlinks(start)
 	if err != nil {
@@ -469,7 +472,7 @@ func GetShortUSBDevPath(device string) (string, error) {
 		}
 		path = parent
 	}
-	devPath := strings.TrimPrefix(path, "/sys")
+	devPath := strings.TrimPrefix(path, sysRoot)
 	return devPath, nil
 }
 

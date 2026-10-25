@@ -259,6 +259,9 @@ $ docker run --network host --privileged openlinkhub
 ## RGB
 - RGB configuration is located at `database/rgb/your-device-serial.json` file
 - RGB can be configured via the RGB Editor in the Dashboard
+## Identical PSUs
+- PSUs have no USB serial. With two identical PSUs, each one's profile follows the USB port it is plugged into.
+- The port that keeps the original profile is stored in `database/serialless.json`. Delete that file to reset it.
 ## API
 - OpenLinkHub ships with a built-in HTTP server for device overview and control.
 - Documentation is available at [API Page](api/README.md)

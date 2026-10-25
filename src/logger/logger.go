@@ -25,7 +25,7 @@ type Entry struct {
 }
 
 var (
-	logger   *log.Logger
+	logger   = log.New(os.Stderr, "", 0) // replaced by Init; covers logging before Init and in tests
 	logLevel common.LogLevel
 )
 

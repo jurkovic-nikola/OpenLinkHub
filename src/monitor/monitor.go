@@ -24,7 +24,6 @@ import (
 const (
 	NetlinkKernelObjectUEvent = 15
 	bufferSize                = 2048
-	sysRoot                   = "/sys"
 	vendorId                  = uint16(6940)  // Corsair
 	scufVendorId              = uint16(11925) // Scuf
 )
@@ -56,6 +55,16 @@ type USBInfo struct {
 }
 
 var sleep bool
+
+// sysRoot, pause and the device calls below are variables so tests can fake sysfs, skip the
+// settle delays and observe what a uevent does to the devices without real hardware.
+var (
+	sysRoot             = "/sys"
+	pause               = time.Sleep
+	initManual          = devices.InitManual
+	takeSerialByDevPath = devices.TakeSerialByDevPath
+	stopDirty           = devices.StopDirty
+)
 
 func Init() {
 	go func() {
@@ -165,80 +174,112 @@ func Init() {
 				continue
 			}
 
-			msg := common.ParseUEvent(buf[:n])
-			if msg["SUBSYSTEM"] != "usb" || msg["DEVTYPE"] != "usb_device" {
-				continue
-			}
-
-			action := msg["ACTION"]
-			devPath := msg["DEVPATH"]
-
-			if devPath == "" {
-				continue
-			}
-
-			switch action {
-			case "add":
-				{
-					if sleep {
-						break
-					}
-					basePath := sysRoot + devPath
-					vendor := common.ReadFile(basePath + "/idVendor")
-					vid := common.PidVidToUint16(vendor)
-					if vid == vendorId || vid == scufVendorId {
-						product := common.ReadFile(basePath + "/idProduct")
-						pid := common.PidVidToUint16(product)
-
-						if slices.Contains(exclude, pid) {
-							continue
-						}
-						serial := common.ReadFile(basePath + "/serial")
-						cache[devPath] = USBInfo{
-							VendorID:  vid,
-							ProductID: pid,
-							Serial:    serial,
-						}
-
-						time.Sleep(7000 * time.Millisecond)
-						if slices.Contains(longSleep, pid) {
-							time.Sleep(2000 * time.Millisecond)
-						}
-						logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
-						devices.InitManual(pid, serial)
-						switchHeadsetAudioSink(pid)
-					}
-				}
-				break
-			case "remove":
-				{
-					if !sleep {
-						time.Sleep(100 * time.Millisecond)
-						info, ok := cache[devPath]
-						if !ok {
-							logger.Log(logger.Fields{"path": devPath}).Info("Trying to remove non-existing device")
-							continue
-						}
-
-						if info.VendorID == vendorId || info.VendorID == scufVendorId {
-							serial := info.Serial
-							if len(serial) < 1 {
-								serial = strconv.Itoa(int(info.ProductID))
-							}
-							logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": serial}).Info("Dirty USB removal...")
-
-							devices.StopDirty(serial, info.ProductID)
-							delete(cache, devPath)
-							openrgb.NotifyControllerChange(serial)
-							fallbackHeadsetAudioSink(info.ProductID)
-						}
-					}
-				}
-				break
-			}
-			time.Sleep(40 * time.Millisecond)
+			handleUEvent(common.ParseUEvent(buf[:n]), cache)
 		}
 	}()
+}
+
+// handleUEvent will add or remove the Corsair or Scuf USB device a kernel uevent reports.
+// cache maps USB device paths to the devices known to be plugged there.
+func handleUEvent(msg map[string]string, cache map[string]USBInfo) {
+	if msg["SUBSYSTEM"] != "usb" || msg["DEVTYPE"] != "usb_device" {
+		return
+	}
+
+	action := msg["ACTION"]
+	devPath := msg["DEVPATH"]
+
+	if devPath == "" {
+		return
+	}
+
+	switch action {
+	case "add":
+		{
+			if sleep {
+				break
+			}
+			basePath := sysRoot + devPath
+			vendor := common.ReadFile(basePath + "/idVendor")
+			vid := common.PidVidToUint16(vendor)
+			if vid == vendorId || vid == scufVendorId {
+				product := common.ReadFile(basePath + "/idProduct")
+				pid := common.PidVidToUint16(product)
+
+				if slices.Contains(exclude, pid) {
+					return
+				}
+				serial := common.ReadFile(basePath + "/serial")
+				cache[devPath] = USBInfo{
+					VendorID:  vid,
+					ProductID: pid,
+					Serial:    serial,
+				}
+
+				pause(7000 * time.Millisecond)
+				if slices.Contains(longSleep, pid) {
+					pause(2000 * time.Millisecond)
+				}
+				logger.Log(logger.Fields{"vendorId": vid, "productId": pid, "serial": serial}).Info("Init USB device...")
+				initManual(pid, serial, devPath)
+				switchHeadsetAudioSink(pid)
+			}
+		}
+		break
+	case "remove":
+		{
+			if !sleep {
+				pause(100 * time.Millisecond)
+				info, cached := cache[devPath]
+				registered, taken := "", false
+				if !cached {
+					info, registered, taken = portlessUSBInfo(msg, devPath)
+				}
+				if !cached && !taken {
+					logger.Log(logger.Fields{"path": devPath}).Info("Trying to remove non-existing device")
+					return
+				}
+
+				if info.VendorID == vendorId || info.VendorID == scufVendorId {
+					serial := info.Serial
+					if len(serial) < 1 {
+						serial = strconv.Itoa(int(info.ProductID))
+					}
+
+					// Prefer the key the device registered under; it can differ from the USB serial
+					if !taken {
+						registered, taken = takeSerialByDevPath(devPath, info.ProductID)
+					}
+					if taken {
+						serial = registered
+					}
+					logger.Log(logger.Fields{"vendorId": info.VendorID, "productId": info.ProductID, "serial": serial}).Info("Dirty USB removal...")
+
+					stopDirty(serial, info.ProductID)
+					delete(cache, devPath)
+					openrgb.NotifyControllerChange(serial)
+					fallbackHeadsetAudioSink(info.ProductID)
+				}
+			}
+		}
+		break
+	}
+	pause(40 * time.Millisecond)
+}
+
+// portlessUSBInfo will return the USB info and registered serial of a removed device that
+// registered without a known USB port. The cache built at startup has no entry under its USB path.
+func portlessUSBInfo(msg map[string]string, devPath string) (USBInfo, string, bool) {
+	ids := strings.Split(msg["PRODUCT"], "/") // vendor/product/bcdDevice in hex
+	if msg["DEVTYPE"] != "usb_device" || len(ids) < 2 {
+		return USBInfo{}, "", false
+	}
+	vid, pid := common.PidVidToUint16(ids[0]), common.PidVidToUint16(ids[1])
+	if (vid != vendorId && vid != scufVendorId) || slices.Contains(exclude, pid) {
+		return USBInfo{}, "", false
+	}
+	serial, ok := takeSerialByDevPath(devPath, pid)
+	return USBInfo{VendorID: vid, ProductID: pid}, serial, ok
 }
 
 // switchHeadsetAudioSink routes the virtual audio sink to the wired headset when it is plugged in.

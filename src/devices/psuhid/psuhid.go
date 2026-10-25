@@ -70,7 +70,6 @@ type DeviceProfile struct {
 
 type Device struct {
 	dev             *hid.Device
-	deviceKey       string
 	mutex           sync.Mutex
 	timer           *time.Ticker
 	autoRefreshChan chan bool
@@ -88,6 +87,7 @@ type Device struct {
 	InputVoltage    float32
 	instance        *common.Device
 	IsPSU           bool
+	DevicePath      string
 }
 
 var (
@@ -143,8 +143,8 @@ func Init(vendorId, productId uint16, key, path string) *common.Device {
 			9:  "90 %",
 			10: "100 %",
 		},
-		IsPSU:     true,
-		deviceKey: key,
+		IsPSU:      true,
+		DevicePath: key,
 	}
 
 	// Bootstrap
@@ -165,13 +165,15 @@ func Init(vendorId, productId uint16, key, path string) *common.Device {
 // createDevice will create new device register object
 func (d *Device) createDevice() {
 	d.instance = &common.Device{
-		ProductType: common.ProductTypePSUHid,
-		Product:     d.Product,
-		Serial:      d.Serial,
-		Firmware:    d.Firmware,
-		Image:       "icon-psu.svg",
-		Instance:    d,
-		GetDevice:   d,
+		ProductType:  common.ProductTypePSUHid,
+		Product:      d.Product,
+		Serial:       d.Serial,
+		Firmware:     d.Firmware,
+		Image:        "icon-psu.svg",
+		Instance:     d,
+		GetDevice:    d,
+		DevicePath:   d.DevicePath,
+		DeviceLookup: d.DevicePath,
 	}
 }
 
@@ -192,7 +194,7 @@ func (d *Device) Stop() {
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
 	d.stopAutoRefresh()
-	return 1
+	return 2
 }
 
 // GetDeviceTemplate will return device template name
@@ -258,12 +260,7 @@ func (d *Device) getProductData() {
 
 	d.Product = product
 
-	seed := product
-	if i := strings.Index(d.deviceKey, "-"); i >= 0 {
-		seed = product + d.deviceKey[i:]
-	}
-
-	hash := md5.Sum([]byte(seed))
+	hash := md5.Sum([]byte(d.DevicePath))
 	serial := hex.EncodeToString(hash[:])
 	d.Serial = serial
 }

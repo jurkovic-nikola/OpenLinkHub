@@ -172,6 +172,7 @@ var (
 	expectedPermissions = []os.FileMode{os.FileMode(0600), os.FileMode(0660)}
 	vendorId            = uint16(6940)  // Corsair
 	scufVendorId        = uint16(11925) // Scuf
+	Psu                 = []uint16{7198, 7203, 7199, 7173, 7174, 7175, 7176, 7181, 7180, 7207}
 	interfaceId         = 0
 	devices             = make(map[string]*common.Device)
 	deviceList          = make(map[string]Device)
@@ -216,6 +217,24 @@ func StopDirty(deviceId string, productId uint16) {
 		uintResult := val.Uint()
 		if uint8(uintResult) == 2 { // USB only devices, remove them from the device list
 			deleteDevice(device.Serial)
+		}
+	}
+}
+
+// StopDirtyDevPath will stop the device by devPath without closing the file handles.
+func StopDirtyDevPath(devPath string) {
+	for _, v := range devices {
+		if v.DevicePath == devPath {
+			res := CallDeviceMethod(v.Serial, "StopDirty")
+			if res != nil {
+				val := res[0]
+				uintResult := val.Uint()
+				if uint8(uintResult) == 2 {
+					deleteDevice(v.Serial)
+					deleteDeviceLookup(v.DeviceLookup)
+					metrics.RemoveDevice(v.Serial)
+				}
+			}
 		}
 	}
 }
@@ -374,6 +393,13 @@ func deleteDevice(serial string) {
 	delete(devices, serial)
 }
 
+// deleteDeviceLookup will remove device deviceList lookup table
+func deleteDeviceLookup(deviceLookup string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	delete(deviceList, deviceLookup)
+}
+
 // addDevice will add device to device list
 func addDevice(device *common.Device) {
 	if device == nil {
@@ -507,6 +533,9 @@ func InitManual(productId uint16, key string) {
 				}
 			}
 
+			base := filepath.Base(info.Path)
+			p, _ := common.GetShortUSBDevPath(base)
+
 			if len(key) == 0 {
 				key = info.SerialNbr
 				if len(key) == 0 {
@@ -517,10 +546,18 @@ func InitManual(productId uint16, key string) {
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
 				key = info.Path
 			}
+
+			if slices.Contains(Psu, info.ProductID) {
+				// We can have multiple PSU devices, and none of them have serial number.
+				// Default to actual device path
+				key = p
+			}
+
 			device = Device{
 				ProductId: info.ProductID,
 				Path:      info.Path,
 				Serial:    key,
+				DevPath:   p,
 			}
 		}
 		return nil
@@ -607,20 +644,16 @@ func Init() {
 			if len(key) == 0 {
 				// Devices with no serial, make serial based of productId
 				key = strconv.Itoa(int(info.ProductID))
-
-				// A second identical device with no serial (e.g. two HX1500i PSUs) would
-				// overwrite the first one here. Suffix it with its USB port so both are kept.
-				if _, exists := deviceList[key]; exists {
-					suffix := p
-					if len(suffix) == 0 {
-						suffix = base
-					}
-					key = key + "-" + suffix
-				}
 			}
 
 			if interfaceId == 1 || interfaceId == 3 || interfaceId == 4 {
 				key = info.Path
+			}
+
+			if slices.Contains(Psu, info.ProductID) {
+				// We can have multiple PSU devices, and none of them have serial number.
+				// Default to actual device path
+				key = p
 			}
 
 			deviceList[key] = Device{

@@ -45,16 +45,18 @@ type Slipstream struct {
 }
 
 type Device struct {
-	ProductType uint16
-	Product     string
-	Serial      string
-	Firmware    string
-	Image       string
-	GetDevice   interface{}
-	Instance    interface{} `json:"-"`
-	Hidden      bool
-	DeviceType  uint32
-	ProductId   uint16
+	ProductType  uint16
+	Product      string
+	Serial       string
+	Firmware     string
+	Image        string
+	GetDevice    interface{}
+	Instance     interface{} `json:"-"`
+	Hidden       bool
+	DeviceType   uint32
+	ProductId    uint16
+	DevicePath   string
+	DeviceLookup string
 }
 
 type KeyboardPerformance struct {

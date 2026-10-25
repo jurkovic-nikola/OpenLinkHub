@@ -114,6 +114,20 @@ func Populate(header *Header) {
 	mu.Unlock()
 }
 
+// RemoveDevice will remove all metrics for a device
+func RemoveDevice(serial string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	delete(productMetrics, serial)
+
+	for key, device := range deviceMetrics {
+		if device.Serial == serial {
+			delete(deviceMetrics, key)
+		}
+	}
+}
+
 // GetProductMetrics return product info
 func GetProductMetrics() map[string]Header {
 	mu.RLock()

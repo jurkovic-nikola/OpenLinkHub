@@ -59,6 +59,7 @@ func TestSerialFromKeyKeepsIdenticalPsusApart(t *testing.T) {
 type fakePSU struct {
 	replies [][]byte
 	closed  bool
+	name    string // product string the PSU reports; "CORSAIR HX1500i PSU" when empty
 }
 
 func (f *fakePSU) GetMfrStr() (string, error) { return "CORSAIR", nil }
@@ -68,7 +69,11 @@ func (f *fakePSU) Write(p []byte) (int, error) {
 	reply := make([]byte, readBufferSize)
 	reply[0], reply[1] = p[1], p[2]
 	if p[1] == cmdInit && p[2] == cmdRead {
-		copy(reply[2:], "CORSAIR HX1500i PSU")
+		name := f.name
+		if name == "" {
+			name = "CORSAIR HX1500i PSU"
+		}
+		copy(reply[2:], name)
 	}
 	f.replies = append(f.replies, reply)
 	return len(p), nil
@@ -485,5 +490,17 @@ func TestHungRefreshFailsFast(t *testing.T) {
 	d.getDeviceData()
 	if n := len(hung.replies); n != 1 {
 		t.Fatalf("hung refresh sent %d requests, want 1", n)
+	}
+}
+
+// An HXi reporting "CORSAIR HX1500i Power Supply" is shown as "HX1500i" but keeps the serial
+// 0.9.2 gave it (md5 of "HX1500i Power Supply"), so its saved profile still loads.
+func TestPowerSupplyTrimKeepsSerial(t *testing.T) {
+	d := initFakePSU(t, &replugPSU{fakePSU: fakePSU{name: "CORSAIR HX1500i Power Supply"}}, "")
+	if d.Product != "HX1500i" {
+		t.Fatalf("product = %q, want %q", d.Product, "HX1500i")
+	}
+	if want := "26aaedb20ebc87a53bef2b5cca293bf9"; d.Serial != want {
+		t.Fatalf("serial = %q, want %q (0.9.2's)", d.Serial, want)
 	}
 }

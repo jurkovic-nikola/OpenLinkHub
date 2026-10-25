@@ -310,10 +310,12 @@ func (d *Device) getProductData() error {
 	product = strings.ReplaceAll(product, "\x00", "")
 	product = strings.Replace(product, "CORSAIR ", "", -1)
 	product = strings.Replace(product, " PSU", "", -1)
-	product = strings.Replace(product, "Power Supply", "", -1)
 
-	d.Product = product
+	// The serial (and so the profile file) is derived from the name as 0.9.2 had it, before the
+	// "Power Supply" trim; deriving it from the trimmed name gave every HXi a new serial and
+	// orphaned its saved profile.
 	d.Serial = serialFromKey(product, d.key)
+	d.Product = strings.TrimSpace(strings.Replace(product, "Power Supply", "", -1))
 	return nil
 }
 

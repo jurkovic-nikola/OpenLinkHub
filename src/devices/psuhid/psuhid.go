@@ -110,6 +110,7 @@ type Device struct {
 	productId uint16
 	usbPath   string
 	lost      bool // the HID handle failed (device unplugged); guarded by mutex
+	closed    bool // dev was closed; hidapi frees it on close, so it must be closed once. Guarded by mutex
 	// Held while the fan profile is changed and sent: by the API (UpdatePsuFan) and by the
 	// refresh goroutine restoring it after a reopen.
 	fanMutex sync.Mutex
@@ -250,12 +251,21 @@ func (d *Device) Stop() {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device...")
 	d.stopAutoRefresh()
 	d.setFanToDefault()
-	if d.dev != nil {
-		err := d.dev.Close()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
-		}
+	d.mutex.Lock()
+	if err := d.closeHandle(); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
 	}
+	d.lost = true
+	d.mutex.Unlock()
+}
+
+// closeHandle closes the HID handle once, lost or not. Caller holds mutex.
+func (d *Device) closeHandle() error {
+	if d.dev == nil || d.closed {
+		return nil
+	}
+	d.closed = true
+	return d.dev.Close()
 }
 
 // StopDirty will stop device in a dirty way
@@ -266,9 +276,7 @@ func (d *Device) StopDirty() uint8 {
 
 	// Close the handle, and mark it lost so a late API call can't write to the closed device
 	d.mutex.Lock()
-	if d.dev != nil && !d.lost {
-		_ = d.dev.Close()
-	}
+	_ = d.closeHandle() // a lost handle too: it is dead, but still open
 	d.lost = true
 	d.mutex.Unlock()
 	return 2 // USB only, remove it from the device list
@@ -763,10 +771,9 @@ func (d *Device) reopen() bool {
 	}
 
 	d.mutex.Lock()
-	if d.dev != nil {
-		_ = d.dev.Close()
-	}
+	_ = d.closeHandle()
 	d.dev = dev
+	d.closed = false
 	d.lost = false
 	d.mutex.Unlock()
 

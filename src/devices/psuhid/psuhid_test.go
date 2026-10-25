@@ -60,11 +60,16 @@ func TestSerialFromKeyKeepsIdenticalPsusApart(t *testing.T) {
 type fakePSU struct {
 	replies [][]byte
 	closed  bool
+	closes  int
 	name    string // product string the PSU reports; "CORSAIR HX1500i PSU" when empty
 }
 
 func (f *fakePSU) GetMfrStr() (string, error) { return "CORSAIR", nil }
-func (f *fakePSU) Close() error               { f.closed = true; return nil }
+func (f *fakePSU) Close() error {
+	f.closes++
+	f.closed = true
+	return nil
+}
 
 func (f *fakePSU) Write(p []byte) (int, error) {
 	reply := make([]byte, readBufferSize)
@@ -706,5 +711,77 @@ func TestFanChangeOnDeadPsuFails(t *testing.T) {
 	psu.gone = true
 	if r := d.UpdatePsuFan(6); r != 0 {
 		t.Fatalf("UpdatePsuFan on an unplugged PSU = %d, want 0", r)
+	}
+}
+
+// The usual unplug order: the refresh finds the handle dead before hotplug's StopDirty runs.
+// StopDirty still closes it, and only once however often it and Stop are called.
+func TestStopDirtyClosesLostHandleOnce(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	psu.gone = true
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return nil, nil }
+	d.getDeviceData()
+	if !d.isLost() {
+		t.Fatal("handle not marked lost")
+	}
+	d.StopDirty()
+	d.StopDirty()
+	d.Stop()
+	if psu.closes != 1 {
+		t.Fatalf("dead handle closed %d times, want 1", psu.closes)
+	}
+}
+
+// reopen closes the dead handle once, and the fresh one is closed by a later StopDirty.
+func TestReopenThenStopDirtyClosesEachHandleOnce(t *testing.T) {
+	old := &replugPSU{}
+	d := initFakePSU(t, old, "/devices/usb7/7-10")
+	old.gone = true
+	d.getDeviceData()
+	fresh := &replugPSU{}
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw5"}, nil }
+	openPath = func(string) (hidDevice, error) { return fresh, nil }
+	if !d.reopen() {
+		t.Fatal("not reopened")
+	}
+	d.StopDirty()
+	d.StopDirty()
+	if old.closes != 1 || fresh.closes != 1 {
+		t.Fatalf("closes: old %d, fresh %d, want 1 each", old.closes, fresh.closes)
+	}
+}
+
+// hidMutexProbePSU records whether hidMutex was free while it was written to
+type hidMutexProbePSU struct {
+	replugPSU
+	heldDuringWrite bool
+}
+
+func (h *hidMutexProbePSU) Write(p []byte) (int, error) {
+	if hidMutex.TryLock() {
+		hidMutex.Unlock()
+	} else {
+		h.heldDuringWrite = true
+	}
+	return h.replugPSU.Write(p)
+}
+
+// The fan restore after a reopen runs without hidMutex, so a slow PSU can't block other PSUs'
+// Init or reopen.
+func TestReopenFanRestoreWithoutHidMutex(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.DeviceProfile.FanMode = 7
+	psu.gone = true
+	d.getDeviceData()
+	fresh := &hidMutexProbePSU{}
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw5"}, nil }
+	openPath = func(string) (hidDevice, error) { return fresh, nil }
+	if !d.reopen() {
+		t.Fatal("not reopened")
+	}
+	if fresh.writes == 0 || fresh.heldDuringWrite {
+		t.Fatalf("fan restore: %d writes, hidMutex held: %v", fresh.writes, fresh.heldDuringWrite)
 	}
 }

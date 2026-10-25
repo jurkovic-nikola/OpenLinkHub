@@ -359,3 +359,30 @@ func TestHidNodeHolds(t *testing.T) {
 		}
 	}
 }
+
+// Pages range over GetDevices while hotplug adds and removes devices. Ranging over the live map
+// during a write is a fatal runtime error, so GetDevices must hand out a copy.
+func TestGetDevicesWhileHotplugging(t *testing.T) {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 2000; i++ {
+			mutex.Lock()
+			devices["qa-hotplug"] = &common.Device{Serial: "qa-hotplug"}
+			mutex.Unlock()
+			mutex.Lock()
+			delete(devices, "qa-hotplug")
+			mutex.Unlock()
+		}
+	}()
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			for range GetDevices() {
+			}
+			_ = GetDevice("qa-hotplug")
+		}
+	}
+}

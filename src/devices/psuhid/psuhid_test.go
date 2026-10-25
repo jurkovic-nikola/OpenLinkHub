@@ -864,3 +864,43 @@ func TestTemplateSnapshotDuringRefresh(t *testing.T) {
 		}
 	}
 }
+
+// The UI page's copy carries everything web/psuhid.html shows: channels, fan modes, the profile.
+func TestTemplateSnapshotFields(t *testing.T) {
+	d := initFakePSU(t, &replugPSU{}, "/devices/usb7/7-10")
+	d.DeviceProfile.FanMode = 7
+	c := d.TemplateSnapshot().(*Device)
+	if len(c.Devices) == 0 || len(c.Devices) != len(d.Devices) {
+		t.Fatalf("snapshot has %d channels, device %d", len(c.Devices), len(d.Devices))
+	}
+	if len(c.FanModes) != len(d.FanModes) || c.DeviceProfile == nil || c.DeviceProfile.FanMode != 7 {
+		t.Fatalf("snapshot fan modes %v, profile %+v", c.FanModes, c.DeviceProfile)
+	}
+	if c.Product != d.Product || c.Serial != d.Serial || c.InputVoltage != d.InputVoltage {
+		t.Fatalf("snapshot %q/%q/%v, device %q/%q/%v", c.Product, c.Serial, c.InputVoltage, d.Product, d.Serial, d.InputVoltage)
+	}
+}
+
+// silentManualPSU never answers the manual fan mode command (its read times out, which does not
+// mark the handle lost) but answers everything else.
+type silentManualPSU struct{ replugPSU }
+
+func (s *silentManualPSU) Write(p []byte) (int, error) {
+	if p[1] == cmdWrite && p[2] == cmdSetFanMode && p[3] == dataFanModeManual {
+		return len(p), nil
+	}
+	return s.replugPSU.Write(p)
+}
+
+// A manual fan mode the PSU didn't acknowledge is reported as failed even though the speed
+// write that follows would be answered.
+func TestUnansweredManualModeReported(t *testing.T) {
+	d := initFakePSU(t, &replugPSU{}, "/devices/usb7/7-10")
+	oldTimeout := transferTimeout
+	transferTimeout = 10 * time.Millisecond
+	t.Cleanup(func() { transferTimeout = oldTimeout })
+	d.dev = &silentManualPSU{}
+	if r := d.UpdatePsuFan(7); r != 0 {
+		t.Fatalf("UpdatePsuFan = %d with the manual mode unanswered, want 0", r)
+	}
+}

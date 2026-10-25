@@ -520,7 +520,7 @@ func CallDeviceMethod(deviceId string, methodName string, args ...interface{}) [
 		return nil
 	}
 
-	method := reflect.ValueOf(GetDevice(device.Serial)).MethodByName(methodName)
+	method := reflect.ValueOf(device.Instance).MethodByName(methodName)
 	if !method.IsValid() {
 		return nil
 	}
@@ -540,15 +540,24 @@ func GetProducts() map[string]Device {
 
 // GetDevice will return a device by device serial
 func GetDevice(deviceId string) interface{} {
+	mutex.Lock()
+	defer mutex.Unlock()
 	if device, ok := devices[deviceId]; ok {
 		return device.Instance
 	}
 	return nil
 }
 
-// GetDevices will return all available devices
+// GetDevices will return all available devices. It returns a copy: pages range over it while
+// hotplug adds and removes devices, and a map iterated during a write crashes the process.
 func GetDevices() map[string]*common.Device {
-	return devices
+	mutex.Lock()
+	defer mutex.Unlock()
+	cp := make(map[string]*common.Device, len(devices))
+	for k, v := range devices {
+		cp[k] = v
+	}
+	return cp
 }
 
 // GetMouse will return all available mouse devices

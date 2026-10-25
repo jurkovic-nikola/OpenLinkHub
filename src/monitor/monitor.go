@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -45,6 +46,20 @@ var pipewireNodeNames = map[uint16]string{
 	2660: "Wireless Gaming Receiver",
 }
 
+// logind is the service that sends PrepareForSleep; any other sender must be ignored
+const (
+	logindName            = "org.freedesktop.login1"
+	logindPath            = dbus.ObjectPath("/org/freedesktop/login1")
+	prepareForSleepMember = "org.freedesktop.login1.Manager.PrepareForSleep"
+)
+
+// The bus daemon reports a change of logind's owner with NameOwnerChanged; peers cannot send as it
+const (
+	busName                = "org.freedesktop.DBus"
+	busPath                = dbus.ObjectPath("/org/freedesktop/DBus")
+	nameOwnerChangedMember = "org.freedesktop.DBus.NameOwnerChanged"
+)
+
 // longSleep list of devices that require 5+ seconds to finish booting up
 var longSleep = []uint16{7165, 7033}
 
@@ -54,7 +69,8 @@ type USBInfo struct {
 	Serial    string
 }
 
-var sleep bool
+// sleep is set by the D-Bus PrepareForSleep goroutine and read by the netlink uevent goroutine.
+var sleep atomic.Bool
 
 // sysRoot, pause and the device calls below are variables so tests can fake sysfs, skip the
 // settle delays and observe what a uevent does to the devices without real hardware.
@@ -64,12 +80,18 @@ var (
 	initManual          = devices.InitManual
 	takeSerialByDevPath = devices.TakeSerialByDevPath
 	stopDirty           = devices.StopDirty
+	stopDevices         = devices.Stop
+	stopInputs          = inputmanager.Stop
+	exit                = os.Exit
+	warn                = func(fields logger.Fields, msg string) { logger.Log(fields).Warn(msg) }
 )
 
 func Init() {
 	go func() {
-		// Connect to the session bus
-		conn, err := dbus.ConnectSystemBus()
+		// Connect to the system bus. The default signal handler stops keeping signals in order
+		// once ch is full, and the cached logind owner relies on NameOwnerChanged arriving before
+		// the new owner's PrepareForSleep
+		conn, err := dbus.ConnectSystemBus(dbus.WithSignalHandler(dbus.NewSequentialSignalHandler()))
 		if err != nil {
 			logger.Log(logger.Fields{"error": err}).Error("Failed to connect to system bus")
 			return
@@ -81,48 +103,11 @@ func Init() {
 			}
 		}(conn)
 
-		// Listen for the PrepareForSleep signal
-		_ = conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
-		ch := make(chan *dbus.Signal, 10)
-		conn.Signal(ch)
-
-		match := "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
-		err = conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, match).Store()
-		if err != nil {
-			logger.Log(logger.Fields{"error": err}).Error("Failed to add D-Bus match")
-		}
-		for signal := range ch {
-			if len(signal.Body) > 0 {
-				if isSleeping, ok := signal.Body[0].(bool); ok {
-					sleep = isSleeping
-					if isSleeping {
-						logger.Log(logger.Fields{}).Info("Suspend detected. Sending Stop() to all devices")
-
-						// Cleanup
-						if config.GetConfig().EnableOpenRGBTargetServer {
-							openrgb.Close()
-							openrgb.ClearDeviceControllers()
-						}
-
-						// Stop
-						devices.Stop()
-						inputmanager.Stop()
-					} else {
-						time.Sleep(time.Duration(config.GetConfig().ResumeDelay) * time.Millisecond)
-						logger.Log(logger.Fields{}).Info("Resume detected. Process is shutting down...")
-
-						// Due to the issues encountered when sleeping and resuming, this is the best way to handle
-						// the resume, as systemd will pick up non-zero exit codes and restart on failure.
-						// If you're reading this and thinking a resume should work, good luck.
-						// Enough time was spent on tweaking this and trying to do something that makes no sense;
-						// just terminate the process and let systemd do the magic.
-						os.Exit(1)
-					}
-				} else {
-					sleep = false
-				}
-			}
-		}
+		listenForSleep(conn.Signal, func(rule string) error {
+			return conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule).Store()
+		}, func() (string, dbus.Sequence, error) {
+			return lookupLogind(conn.BusObject())
+		})
 	}()
 
 	go func() {
@@ -179,6 +164,148 @@ func Init() {
 	}()
 }
 
+// listenForSleep will register for signals through subscribe, add the sleep match rules through
+// addMatch and handle PrepareForSleep until the signal channel closes. owner looks up logind's
+// unique bus name, as watchSleepSignals describes. The bus calls are passed in so tests can run
+// it without a bus.
+func listenForSleep(subscribe func(chan<- *dbus.Signal), addMatch func(rule string) error, owner func() (string, dbus.Sequence, error)) {
+	// Listen for the PrepareForSleep signal
+	ch := make(chan *dbus.Signal, 10)
+	subscribe(ch)
+
+	watchSleepSignals(ch, owner, addSleepMatches(addMatch))
+}
+
+// lookupLogind will ask bus for logind's unique bus name, and return it with the sequence of
+// the reply that carried it.
+func lookupLogind(bus dbus.BusObject) (string, dbus.Sequence, error) {
+	var owner string
+	call := bus.Call("org.freedesktop.DBus.GetNameOwner", 0, logindName)
+	err := call.Store(&owner)
+	return owner, call.ResponseSequence, err
+}
+
+// addSleepMatches will ask the bus, through addMatch, for logind's PrepareForSleep and for
+// changes of logind's owner. It returns whether logind's owner can be cached: only when owner
+// changes are delivered, otherwise a restarted or replaced logind would never be recognised.
+func addSleepMatches(addMatch func(rule string) error) bool {
+	match := "type='signal',sender='" + logindName + "',path='" + string(logindPath) + "',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'"
+	if err := addMatch(match); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to add D-Bus match")
+	}
+
+	// Follow logind's owner so it is looked up once, not once per PrepareForSleep
+	match = "type='signal',sender='" + busName + "',path='" + string(busPath) + "',interface='" + busName + "',member='NameOwnerChanged',arg0='" + logindName + "'"
+	if err := addMatch(match); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Failed to add D-Bus match. logind is looked up per PrepareForSleep")
+		return false
+	}
+	return true
+}
+
+// watchSleepSignals will handle each PrepareForSleep on ch that logind sent. owner looks up
+// logind's current unique bus name and the sequence of the reply that carried it. When
+// cacheOwner is set, the name is cached until a NameOwnerChanged for logind arrives on ch.
+// Otherwise it is trusted only for signals received before that reply: the bus routed them
+// before answering, so each is judged by logind's owner at some point after it was sent, as a
+// lookup per signal would. A queued flood then costs one lookup, not one per spoof.
+func watchSleepSignals(ch <-chan *dbus.Signal, owner func() (string, dbus.Sequence, error), cacheOwner bool) {
+	// conn.Signal delivers every signal on the connection, whatever the match rule says,
+	// and any peer can name itself as the sender's interface. Only trust logind's unique
+	// name, so a restarted logind is still recognised once its owner is looked up again.
+	// Caching it keeps a flood of spoofs from costing a bus round trip each.
+	// Spoofs are logged once, and each logind outage once, so a flood cannot fill the log.
+	warnedSpoof, warnedLookup := false, false
+	name, known := "", false
+	var answered dbus.Sequence
+	for signal := range ch {
+		if logindOwnerChanged(signal) {
+			known = false
+			continue
+		}
+		if signal.Name != prepareForSleepMember {
+			continue
+		}
+		if known && !cacheOwner && signal.Sequence >= answered {
+			known = false
+		}
+		if !known {
+			var err error
+			name, answered, err = owner()
+			if err != nil {
+				if !warnedLookup {
+					warnedLookup = true
+					warn(logger.Fields{"error": err, "sender": signal.Sender}, "Unable to resolve logind on D-Bus. Ignoring PrepareForSleep")
+				}
+				continue
+			}
+			warnedLookup = false
+			known = true
+		}
+		if !fromLogind(signal, name) {
+			if !warnedSpoof {
+				warnedSpoof = true
+				warn(logger.Fields{"sender": signal.Sender, "path": signal.Path}, "Ignoring PrepareForSleep not sent by logind. Further ones are ignored silently")
+			}
+			continue
+		}
+		handleSleepSignal(signal)
+	}
+}
+
+// logindOwnerChanged will return true when signal is the bus daemon reporting that logind's
+// unique bus name changed.
+func logindOwnerChanged(signal *dbus.Signal) bool {
+	if signal.Sender != busName || signal.Path != busPath || signal.Name != nameOwnerChangedMember || len(signal.Body) == 0 {
+		return false
+	}
+	name, ok := signal.Body[0].(string)
+	return ok && name == logindName
+}
+
+// fromLogind will return true when signal is PrepareForSleep sent by logind, whose unique bus
+// name is owner.
+func fromLogind(signal *dbus.Signal, owner string) bool {
+	return owner != "" && signal.Sender == owner && signal.Path == logindPath && signal.Name == prepareForSleepMember
+}
+
+// handleSleepSignal will stop all devices when a PrepareForSleep signal reports a suspend,
+// and exit the process when it reports a resume.
+func handleSleepSignal(signal *dbus.Signal) {
+	if len(signal.Body) == 0 {
+		return
+	}
+	isSleeping, ok := signal.Body[0].(bool)
+	if !ok {
+		sleep.Store(false)
+		return
+	}
+	sleep.Store(isSleeping)
+	if isSleeping {
+		logger.Log(logger.Fields{}).Info("Suspend detected. Sending Stop() to all devices")
+
+		// Cleanup
+		if config.GetConfig().EnableOpenRGBTargetServer {
+			openrgb.Close()
+			openrgb.ClearDeviceControllers()
+		}
+
+		// Stop
+		stopDevices()
+		stopInputs()
+	} else {
+		pause(time.Duration(config.GetConfig().ResumeDelay) * time.Millisecond)
+		logger.Log(logger.Fields{}).Info("Resume detected. Process is shutting down...")
+
+		// Due to the issues encountered when sleeping and resuming, this is the best way to handle
+		// the resume, as systemd will pick up non-zero exit codes and restart on failure.
+		// If you're reading this and thinking a resume should work, good luck.
+		// Enough time was spent on tweaking this and trying to do something that makes no sense;
+		// just terminate the process and let systemd do the magic.
+		exit(1)
+	}
+}
+
 // handleUEvent will add or remove the Corsair or Scuf USB device a kernel uevent reports.
 // cache maps USB device paths to the devices known to be plugged there.
 func handleUEvent(msg map[string]string, cache map[string]USBInfo) {
@@ -196,7 +323,7 @@ func handleUEvent(msg map[string]string, cache map[string]USBInfo) {
 	switch action {
 	case "add":
 		{
-			if sleep {
+			if sleep.Load() {
 				break
 			}
 			basePath := sysRoot + devPath
@@ -228,7 +355,7 @@ func handleUEvent(msg map[string]string, cache map[string]USBInfo) {
 		break
 	case "remove":
 		{
-			if !sleep {
+			if !sleep.Load() {
 				pause(100 * time.Millisecond)
 				info, cached := cache[devPath]
 				registered, taken := "", false

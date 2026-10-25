@@ -254,9 +254,10 @@ func (d *Device) getProductData() {
 	product = strings.ReplaceAll(product, "\x00", "")
 	product = strings.Replace(product, "CORSAIR ", "", -1)
 	product = strings.Replace(product, " PSU", "", -1)
-	product = strings.Replace(product, "Power Supply", "", -1)
 
-	d.Product = product
+	// The serial is derived from the name before the "Power Supply" trim, so an
+	// existing PSU keeps its serial and saved profile
+	d.Product = strings.TrimSpace(strings.Replace(product, "Power Supply", "", -1))
 
 	seed := product
 	if i := strings.Index(d.deviceKey, "-"); i >= 0 {

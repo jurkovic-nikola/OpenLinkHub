@@ -194,6 +194,12 @@ func (d *Device) Stop() {
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
 	d.stopAutoRefresh()
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			logger.Log(logger.Fields{"error": err}).Error("Unable to close HID device")
+		}
+	}
 	return 2
 }
 

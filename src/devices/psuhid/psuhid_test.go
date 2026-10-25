@@ -2,6 +2,7 @@ package psuhid
 
 import (
 	"OpenLinkHub/src/common"
+	"OpenLinkHub/src/metrics"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -284,5 +285,205 @@ func TestTransferSkipsStaleReply(t *testing.T) {
 	dev.Instance.(*Device).StopDirty()
 	if dev.Product != "HX1500i" {
 		t.Fatalf("product = %q, want HX1500i", dev.Product)
+	}
+}
+
+// replugPSU is a fakePSU that can be unplugged: once gone, every write and read fails like a
+// dead hidraw node.
+type replugPSU struct {
+	fakePSU
+	gone   bool
+	writes int
+}
+
+func (r *replugPSU) Write(p []byte) (int, error) {
+	r.writes++
+	if r.gone {
+		return 0, errors.New("No such device")
+	}
+	return r.fakePSU.Write(p)
+}
+
+func (r *replugPSU) ReadWithTimeout(p []byte, timeout time.Duration) (int, error) {
+	if r.gone {
+		return 0, errors.New("No such device")
+	}
+	return r.fakePSU.ReadWithTimeout(p, timeout)
+}
+
+// psuSeries counts the metrics series published for one PSU
+func psuSeries(serial string) int {
+	n := 0
+	for _, h := range metrics.GetDeviceMetrics() {
+		if h.Serial == serial {
+			n++
+		}
+	}
+	return n
+}
+
+// initFakePSU initializes one PSU on a fake device at the given USB port and stops its
+// refresh loop, so the test drives getDeviceData itself.
+func initFakePSU(t *testing.T, dev hidDevice, port string) *Device {
+	t.Helper()
+	useFakePSUs(t)
+	oldOpen, oldPort, oldEnum := openPath, usbPortOf, enumeratePaths
+	t.Cleanup(func() { openPath, usbPortOf, enumeratePaths = oldOpen, oldPort, oldEnum })
+	openPath = func(string) (hidDevice, error) { return dev, nil }
+	usbPortOf = func(string) string { return port }
+
+	c := Init(0x1b1c, 7199, "7199", "/dev/hidraw0")
+	if c == nil {
+		t.Fatal("Init returned nil")
+	}
+	d := c.Instance.(*Device)
+	d.StopDirty()
+	t.Cleanup(func() { metrics.Remove(d.Serial) })
+	return d
+}
+
+// A PSU that drops off USB and re-enumerates on a new hidraw node, on the same port, is
+// reopened by the next refresh. While it is gone its series are dropped, not published as 0.
+func TestRefreshReopensReplugedPsu(t *testing.T) {
+	old := &replugPSU{}
+	d := initFakePSU(t, old, "/devices/usb7/7-10")
+	d.getDeviceData()
+	if psuSeries(d.Serial) == 0 {
+		t.Fatal("no series published for a working PSU")
+	}
+
+	old.gone = true
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return nil, nil }
+	d.getDeviceData()
+	if !d.isLost() {
+		t.Fatal("PSU not marked lost after its handle failed")
+	}
+	if n := psuSeries(d.Serial); n != 0 {
+		t.Fatalf("%d series still published for an unplugged PSU", n)
+	}
+	d.getDeviceData() // still gone: no reopen, nothing published
+	if psuSeries(d.Serial) != 0 || !d.isLost() {
+		t.Fatal("unplugged PSU came back without being re-enumerated")
+	}
+
+	fresh := &replugPSU{}
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw5"}, nil }
+	var opened string
+	openPath = func(path string) (hidDevice, error) { opened = path; return fresh, nil }
+	d.getDeviceData()
+	if d.isLost() || opened != "/dev/hidraw5" {
+		t.Fatalf("PSU not reopened (lost=%v, opened %q)", d.isLost(), opened)
+	}
+	if !old.closed {
+		t.Fatal("dead handle not closed")
+	}
+	if psuSeries(d.Serial) == 0 {
+		t.Fatal("no series published after the PSU was reopened")
+	}
+}
+
+// A PSU on another USB port is never taken for the lost one.
+func TestReopenOnlyMatchesSamePort(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	psu.gone = true
+	d.getDeviceData()
+
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw6"}, nil }
+	usbPortOf = func(string) string { return "/devices/usb7/7-11" }
+	openPath = func(string) (hidDevice, error) { t.Fatal("opened the other PSU"); return nil, nil }
+	if d.reopen() {
+		t.Fatal("reopened a PSU on another port")
+	}
+}
+
+// With no port recorded at init, a PSU is only reopened when exactly one candidate exists.
+func TestReopenWithoutPortNeedsOneCandidate(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "")
+	psu.gone = true
+	d.getDeviceData()
+
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw5", "/dev/hidraw6"}, nil }
+	openPath = func(string) (hidDevice, error) { t.Fatal("opened an ambiguous PSU"); return nil, nil }
+	if d.reopen() {
+		t.Fatal("reopened with two candidates and no recorded port")
+	}
+}
+
+// A PSU that stops answering (still on USB: reads time out) keeps its last readings for a
+// few refreshes, is not marked lost, and has its series dropped after maxFailedRefreshes.
+func TestHungPsuSeriesDroppedAfterFailedRefreshes(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.getDeviceData()
+	want := psuSeries(d.Serial)
+	before := *d.Devices[0]
+
+	oldTimeout := transferTimeout
+	transferTimeout = 10 * time.Millisecond
+	t.Cleanup(func() { transferTimeout = oldTimeout })
+	hung := &hungPSU{}
+	d.dev = hung
+
+	for i := 1; i < maxFailedRefreshes; i++ {
+		d.getDeviceData()
+		if got := psuSeries(d.Serial); got != want {
+			t.Fatalf("refresh %d: %d series, want the last %d kept", i, got, want)
+		}
+	}
+	if *d.Devices[0] != before {
+		t.Fatal("a failed refresh left zeroed readings in the device state")
+	}
+	d.getDeviceData()
+	if n := psuSeries(d.Serial); n != 0 {
+		t.Fatalf("%d series still published after %d failed refreshes", n, maxFailedRefreshes)
+	}
+	if d.isLost() {
+		t.Fatal("a PSU that only timed out was marked lost")
+	}
+}
+
+// A failed refresh must not short-circuit a later fan write from the API.
+func TestFailedRefreshDoesNotDropFanWrite(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.refreshFailed = true
+	if _, err := d.transfer(d.createPacket(cmdWrite, cmdSetFanMode, dataFanModeManual)); err != nil {
+		t.Fatalf("fan write after a failed refresh: %v", err)
+	}
+}
+
+// A lost handle is not written to again until the PSU is reopened.
+func TestLostPsuIsNotWrittenTo(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	psu.gone = true
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return nil, nil }
+	d.getDeviceData()
+	writes := psu.writes
+	d.getDeviceData()
+	if _, err := d.transfer(d.createPacket(cmdRead, dataFanSpeed, 0)); err == nil {
+		t.Fatal("transfer on a lost handle succeeded")
+	}
+	if psu.writes != writes {
+		t.Fatalf("%d writes to a lost handle", psu.writes-writes)
+	}
+}
+
+// After the first timed-out transfer, the rest of the refresh fails at once instead of each
+// request waiting out its own timeout.
+func TestHungRefreshFailsFast(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	oldTimeout := transferTimeout
+	transferTimeout = 10 * time.Millisecond
+	t.Cleanup(func() { transferTimeout = oldTimeout })
+	hung := &hungPSU{}
+	d.dev = hung
+
+	d.getDeviceData()
+	if n := len(hung.replies); n != 1 {
+		t.Fatalf("hung refresh sent %d requests, want 1", n)
 	}
 }

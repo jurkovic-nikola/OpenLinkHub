@@ -299,6 +299,7 @@ type replugPSU struct {
 	fakePSU
 	gone   bool
 	writes int
+	sent   [][3]byte // mode, command and data byte of every request written
 }
 
 func (r *replugPSU) Write(p []byte) (int, error) {
@@ -306,6 +307,7 @@ func (r *replugPSU) Write(p []byte) (int, error) {
 	if r.gone {
 		return 0, errors.New("No such device")
 	}
+	r.sent = append(r.sent, [3]byte{p[1], p[2], p[3]})
 	return r.fakePSU.Write(p)
 }
 
@@ -342,7 +344,7 @@ func initFakePSU(t *testing.T, dev hidDevice, port string) *Device {
 		t.Fatal("Init returned nil")
 	}
 	d := c.Instance.(*Device)
-	d.StopDirty()
+	d.stopAutoRefresh()
 	t.Cleanup(func() { metrics.Remove(d.Serial) })
 	return d
 }
@@ -502,5 +504,148 @@ func TestPowerSupplyTrimKeepsSerial(t *testing.T) {
 	}
 	if want := "26aaedb20ebc87a53bef2b5cca293bf9"; d.Serial != want {
 		t.Fatalf("serial = %q, want %q (0.9.2's)", d.Serial, want)
+	}
+}
+
+// A reopened PSU gets its manual fan mode back: manual mode, then the profile's speed.
+func TestReopenRestoresManualFanMode(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.DeviceProfile.FanMode = 7
+	psu.gone = true
+	d.getDeviceData()
+
+	fresh := &replugPSU{}
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw5"}, nil }
+	openPath = func(string) (hidDevice, error) { return fresh, nil }
+	if !d.reopen() {
+		t.Fatal("PSU not reopened")
+	}
+	manual := [3]byte{cmdWrite, cmdSetFanMode, dataFanModeManual}
+	speed := [3]byte{cmdWrite, dataSetFanSpeed, 70}
+	if len(fresh.sent) < 2 || fresh.sent[0] != manual || fresh.sent[1] != speed {
+		t.Fatalf("reopened PSU got %x, want manual mode then 70%%", fresh.sent)
+	}
+}
+
+// A fan change from the API while the refresh goroutine reopens the PSU; run with -race.
+func TestFanChangeDuringReopen(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	psu.gone = true
+	d.getDeviceData()
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return []string{"/dev/hidraw5"}, nil }
+	var openMu sync.Mutex
+	openPath = func(string) (hidDevice, error) {
+		openMu.Lock()
+		defer openMu.Unlock()
+		return &replugPSU{}, nil
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 20; i++ {
+			d.UpdatePsuFan(4 + i%7)
+		}
+	}()
+	for i := 0; i < 20; i++ {
+		d.reopen()
+	}
+	wg.Wait()
+}
+
+// A failed refresh restores the readings it overwrote, so the API never shows the zeroed decodes.
+func TestFailedRefreshRestoresReadings(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.Devices[0].Watts, d.Devices[0].Rpm, d.Devices[0].Temperature = 240, 900, 41
+	before := *d.Devices[0]
+
+	oldTimeout := transferTimeout
+	transferTimeout = 10 * time.Millisecond
+	t.Cleanup(func() { transferTimeout = oldTimeout })
+	d.dev = &hungPSU{}
+	d.getDeviceData()
+	if *d.Devices[0] != before {
+		t.Fatalf("failed refresh left %+v, want %+v", *d.Devices[0], before)
+	}
+}
+
+// Only failed refreshes IN A ROW drop the series: a good refresh resets the count.
+func TestGoodRefreshResetsFailedRuns(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	oldTimeout := transferTimeout
+	transferTimeout = 10 * time.Millisecond
+	t.Cleanup(func() { transferTimeout = oldTimeout })
+	hung := &hungPSU{}
+
+	for round := 0; round < 3; round++ {
+		d.dev = psu
+		d.getDeviceData()
+		d.dev = hung
+		for i := 1; i < maxFailedRefreshes; i++ {
+			d.getDeviceData()
+		}
+		if psuSeries(d.Serial) == 0 {
+			t.Fatalf("round %d: series dropped although no %d refreshes failed in a row", round, maxFailedRefreshes)
+		}
+	}
+}
+
+// A handle that dies during an API fan write (not a refresh) still drops the PSU's series.
+func TestLossDuringFanWriteDropsSeries(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.getDeviceData()
+	psu.gone = true
+	enumeratePaths = func(uint16, uint16) ([]string, error) { return nil, nil }
+	d.UpdatePsuFan(5)
+	d.getDeviceData()
+	if n := psuSeries(d.Serial); n != 0 {
+		t.Fatalf("%d series still published after the handle died in a fan write", n)
+	}
+}
+
+// hidapi enumerate/open run under hidMutex during a reopen.
+func TestReopenHoldsHidMutex(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	psu.gone = true
+	d.getDeviceData()
+	held := 0
+	check := func() {
+		if hidMutex.TryLock() {
+			hidMutex.Unlock()
+		} else {
+			held++
+		}
+	}
+	enumeratePaths = func(uint16, uint16) ([]string, error) { check(); return []string{"/dev/hidraw5"}, nil }
+	openPath = func(string) (hidDevice, error) { check(); return &replugPSU{}, nil }
+	if !d.reopen() || held != 2 {
+		t.Fatalf("hidMutex held for %d of 2 hidapi calls", held)
+	}
+}
+
+// StopDirty (hotplug removal) drops the PSU's series and closes its handle; a late API call
+// then does not write to the closed device.
+func TestStopDirtyDropsSeriesAndClosesHandle(t *testing.T) {
+	psu := &replugPSU{}
+	d := initFakePSU(t, psu, "/devices/usb7/7-10")
+	d.getDeviceData()
+	d.StopDirty()
+	if n := psuSeries(d.Serial); n != 0 {
+		t.Fatalf("%d series still published after StopDirty", n)
+	}
+	if !psu.closed {
+		t.Fatal("handle not closed")
+	}
+	writes := psu.writes
+	d.UpdatePsuFan(5)
+	if psu.writes != writes {
+		t.Fatal("wrote to a removed PSU")
 	}
 }

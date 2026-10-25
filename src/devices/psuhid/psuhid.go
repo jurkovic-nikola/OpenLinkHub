@@ -106,10 +106,13 @@ type Device struct {
 	autoRefreshChan chan bool
 	// Kept to find the PSU again after it drops off USB and re-enumerates: it comes back
 	// on a new hidraw node, but on the same USB port.
-	vendorId      uint16
-	productId     uint16
-	usbPath       string
-	lost          bool                      // the HID handle failed (device unplugged); guarded by mutex
+	vendorId  uint16
+	productId uint16
+	usbPath   string
+	lost      bool // the HID handle failed (device unplugged); guarded by mutex
+	// Held while the fan profile is changed and sent: by the API (UpdatePsuFan) and by the
+	// refresh goroutine restoring it after a reopen.
+	fanMutex      sync.Mutex
 	refreshFailed bool                      // one of the current refresh's transfers failed; refresh goroutine only
 	failedRuns    int                       // refreshes in a row with a failed transfer; refresh goroutine only
 	Manufacturer  string                    `json:"manufacturer"`
@@ -248,6 +251,15 @@ func (d *Device) Stop() {
 func (d *Device) StopDirty() uint8 {
 	logger.Log(logger.Fields{"serial": d.Serial}).Info("Stopping device (dirty)...")
 	d.stopAutoRefresh()
+	metrics.Remove(d.Serial) // Unplugged: its last readings must not stay exported
+
+	// Close the handle, and mark it lost so a late API call can't write to the closed device
+	d.mutex.Lock()
+	if d.dev != nil && !d.lost {
+		_ = d.dev.Close()
+	}
+	d.lost = true
+	d.mutex.Unlock()
 	return 2 // USB only, remove it from the device list
 }
 
@@ -341,6 +353,8 @@ func (d *Device) UpdatePsuFan(mode int) uint8 {
 		return 0
 	}
 
+	d.fanMutex.Lock()
+	defer d.fanMutex.Unlock()
 	d.DeviceProfile.FanMode = mode
 	d.saveDeviceProfile()
 	d.updateFanMode()
@@ -510,6 +524,8 @@ func (d *Device) getDevices() int {
 // getDeviceData will fetch device data, from temperatures, fan speed, etc...
 func (d *Device) getDeviceData() {
 	if d.isLost() && !d.reopen() {
+		// Also covers a handle that died during an API fan write rather than a refresh
+		metrics.Remove(d.Serial)
 		return
 	}
 	d.refreshFailed = false
@@ -721,30 +737,13 @@ func (d *Device) isLost() bool {
 }
 
 // reopen looks for this PSU on its USB port and, once it is back, swaps in a fresh HID
-// handle. Without it, a PSU that re-enumerated (USB disconnect/reconnect) kept reading
-// from its dead hidraw node until the process restarted. This does not depend on the
-// hotplug monitor, which gets no uevents in a container without the host's network.
+// handle and restores a manual fan mode. Without it, a PSU that re-enumerated (USB
+// disconnect/reconnect) kept reading from its dead hidraw node until the process restarted.
+// This does not depend on the hotplug monitor, which gets no uevents in a container without
+// the host's network.
 func (d *Device) reopen() bool {
-	hidMutex.Lock()
-	defer hidMutex.Unlock()
-
-	all, err := enumeratePaths(d.vendorId, d.productId)
-	if err != nil {
-		return false
-	}
-	var paths []string
-	for _, path := range all {
-		if d.usbPath == "" || usbPortOf(path) == d.usbPath {
-			paths = append(paths, path)
-		}
-	}
-	// No port recorded at init: only reopen when the match is unambiguous.
-	if len(paths) != 1 {
-		return false
-	}
-
-	dev, err := openPath(paths[0])
-	if err != nil {
+	path, dev := d.findReplugged()
+	if dev == nil {
 		return false
 	}
 
@@ -756,9 +755,38 @@ func (d *Device) reopen() bool {
 	d.lost = false
 	d.mutex.Unlock()
 
-	logger.Log(logger.Fields{"serial": d.Serial, "path": paths[0]}).Info("PSU reconnected, HID device reopened")
-	d.updateFanMode() // Restore a manual fan mode on the re-enumerated device
+	logger.Log(logger.Fields{"serial": d.Serial, "path": path}).Info("PSU reconnected, HID device reopened")
+	d.fanMutex.Lock()
+	d.updateFanMode()
+	d.fanMutex.Unlock()
 	return true
+}
+
+// findReplugged opens this PSU's HID device again if it is back on its USB port. With no port
+// recorded at init, it only opens an unambiguous match.
+func (d *Device) findReplugged() (string, hidDevice) {
+	hidMutex.Lock()
+	defer hidMutex.Unlock()
+
+	all, err := enumeratePaths(d.vendorId, d.productId)
+	if err != nil {
+		return "", nil
+	}
+	var paths []string
+	for _, path := range all {
+		if d.usbPath == "" || usbPortOf(path) == d.usbPath {
+			paths = append(paths, path)
+		}
+	}
+	if len(paths) != 1 {
+		return "", nil
+	}
+
+	dev, err := openPath(paths[0])
+	if err != nil {
+		return "", nil
+	}
+	return paths[0], dev
 }
 
 // markLost flags the HID handle as dead after a write or read error. Caller holds mutex.

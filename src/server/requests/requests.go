@@ -603,7 +603,7 @@ func ProcessOperatingMode(r *http.Request) *Payload {
 		}
 	}
 
-	if req.OperatingMode < 1 || req.OperatingMode > 2 {
+	if req.OperatingMode < 0 || req.OperatingMode > 5 {
 		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
 	}
 

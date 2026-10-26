@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 
+	"OpenLinkHub/src/stats"
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
 	"github.com/sstallion/go-hid"
@@ -58,12 +59,13 @@ const (
 )
 
 const (
-	ImageFormatJpg  = 0
-	ImageFormatBmp  = 1
-	ImageFormatWebp = 2
-	ImageFormatGif  = 3
-	SensorDate      = 20
-	SensorTime      = 21
+	ImageFormatJpg         = 0
+	ImageFormatBmp         = 1
+	ImageFormatWebp        = 2
+	ImageFormatGif         = 3
+	SensorTemperatureProbe = 6
+	SensorDate             = 20
+	SensorTime             = 21
 )
 
 var (
@@ -83,6 +85,7 @@ var (
 		3:  "CPU Load",
 		4:  "GPU Load",
 		5:  "Pump RPM",
+		6:  "Temperature Probe",
 		20: "Date",
 		21: "Time",
 	}
@@ -376,6 +379,8 @@ func sensorMaximumValue(sensor uint8) int {
 		return 100
 	case 5:
 		return 5000
+	case 6:
+		return 60
 	default:
 		return 100
 	}
@@ -383,7 +388,7 @@ func sensorMaximumValue(sensor uint8) int {
 
 // isSensorTemperature will check if given sensor is temperature one
 func isSensorTemperature(sensor uint8) bool {
-	if sensor == 0 || sensor == 1 || sensor == 2 {
+	if sensor == 0 || sensor == 1 || sensor == 2 || sensor == 6 {
 		return true
 	}
 	return false
@@ -620,7 +625,13 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 	leftColEnd := generateColor(leftArc.EndColor)
 	leftCenterX := doubleRrc.Margin + outerRadius
 	leftMax := sensorMaximumValue(leftArc.Sensor)
-	leftValue := values[leftArc.Sensor]
+
+	var leftValue float32 = 0.0
+	if leftArc.Sensor == 6 && len(leftArc.DeviceId) > 0 {
+		leftValue = stats.GetDeviceTemperature(leftArc.DeviceId, leftArc.ChannelId)
+	} else {
+		leftValue = values[leftArc.Sensor]
+	}
 	if leftValue > float32(leftMax) {
 		leftValue = float32(leftMax)
 	}
@@ -662,7 +673,13 @@ func GenerateDoubleArcScreenImage(values []float32) []byte {
 	rightColEnd := generateColor(rightArc.StartColor) // Reversed
 	rightCenterX := float64(imgWidth) - doubleRrc.Margin - outerRadius
 	rightMax := sensorMaximumValue(rightArc.Sensor)
-	rightValue := values[rightArc.Sensor]
+
+	var rightValue float32 = 0.0
+	if rightArc.Sensor == 6 && len(rightArc.DeviceId) > 0 {
+		rightValue = stats.GetDeviceTemperature(rightArc.DeviceId, rightArc.ChannelId)
+	} else {
+		rightValue = values[rightArc.Sensor]
+	}
 	if rightValue > float32(rightMax) {
 		rightValue = float32(rightMax)
 	}
@@ -793,9 +810,12 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 
 					default:
 						var sensorValue float32
-
-						if int(sensor.Sensor) < len(values) {
-							sensorValue = values[sensor.Sensor]
+						if sensor.Sensor == SensorTemperatureProbe {
+							sensorValue = stats.GetDeviceTemperature(sensor.DeviceId, sensor.ChannelId)
+						} else {
+							if int(sensor.Sensor) < len(values) {
+								sensorValue = values[sensor.Sensor]
+							}
 						}
 
 						sensorMax := sensorMaximumValue(sensor.Sensor)
@@ -855,6 +875,10 @@ func GenerateArcScreenImage(arcType, sensor, value int) []byte {
 	// Prevent over 60
 	if arcType == 2 && value > 60 {
 		value = 60
+	}
+
+	if sensor == 6 {
+		value = int(stats.GetDeviceTemperature(arc.DeviceId, arc.ChannelId))
 	}
 
 	bg := generateColor(arc.Background)

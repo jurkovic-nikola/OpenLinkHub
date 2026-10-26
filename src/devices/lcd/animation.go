@@ -31,6 +31,8 @@ type Sensors struct {
 	Sensor    uint8     `json:"sensor"`
 	TextColor rgb.Color `json:"textColor"`
 	Enabled   bool      `json:"enabled"`
+	ChannelId int       `json:"channelId"`
+	DeviceId  string    `json:"deviceId"`
 }
 
 var (

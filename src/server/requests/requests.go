@@ -1104,6 +1104,8 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		mode.StartColor = req.StartColor
 		mode.EndColor = req.EndColor
 		mode.TextColor = req.TextColor
+		mode.DeviceId = req.DeviceId
+		mode.ChannelId = req.ChannelId
 
 		// Send it
 		status = lcd.SaveArc(mode)
@@ -1139,6 +1141,8 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 				StartColor: arc.StartColor,
 				EndColor:   arc.EndColor,
 				TextColor:  arc.TextColor,
+				ChannelId:  arc.ChannelId,
+				DeviceId:   arc.DeviceId,
 			}
 		}
 
@@ -1186,6 +1190,8 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 				Sensor:    sensorId,
 				TextColor: sensor.TextColor,
 				Enabled:   sensor.Enabled,
+				DeviceId:  sensor.DeviceId,
+				ChannelId: sensor.ChannelId,
 			}
 		}
 

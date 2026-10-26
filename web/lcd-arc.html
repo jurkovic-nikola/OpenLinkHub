@@ -11,7 +11,7 @@
                 <div class="settings-row">
                     <span class="settings-label text-ellipsis">{{ .Lang "txtSensor" }}</span>
                     <label>
-                        <select id="sensorType_{{ $arc.Id }}" class="form-select system-select auto-width sensorType compact" name="userProfile">
+                        <select id="sensorType_{{ $arc.Id }}" class="form-select system-select auto-width sensorType compact" name="userProfile" data-probe-target="temperature-probe-data-arc">
                             {{ range $k, $v := $lcdSensors }}
                             {{ if lt $k 20 }}
                                 {{ if eq $k $arc.Sensor }}
@@ -24,6 +24,21 @@
                         </select>
                     </label>
                 </div>
+
+                {{ if .TemperatureProbes }}
+                <div class="settings-row" id="temperature-probe-data-arc" {{ if ne $arc.Sensor 6 }}style="display: none;"{{ end }}>
+                    <label for="temperatureProbes_{{ $arc.Id }}" class="full-width">
+                        <select class="system-select full-width tempProfile" id="temperatureProbes_{{ $arc.Id }}">
+                            <option value="0;0">Select probe</option>
+                            {{ range .TemperatureProbes }}
+                            {{ range . }}
+                            <option value="{{ .Serial }};{{ .ChannelId }}" {{ if and (eq $arc.Sensor 6) (eq .Serial $arc.DeviceId) (eq .ChannelId $arc.ChannelId) }}selected{{ end }}>{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </label>
+                </div>
+                {{ end }}
 
                 <div class="settings-row">
                     <span class="settings-label text-ellipsis">{{ .Lang "txtMargin" }}</span>

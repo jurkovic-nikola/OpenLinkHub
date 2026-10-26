@@ -3772,6 +3772,11 @@ func (d *Device) setupLCD(reload bool) {
 							sensor = 5
 							arcType = 5
 							break
+						case 6: // Temperature Probe
+							val = 0
+							sensor = 6
+							arcType = 6
+							break
 						}
 						image := lcd.GenerateArcScreenImage(arcType, sensor, val)
 						if image == nil {
@@ -3788,6 +3793,7 @@ func (d *Device) setupLCD(reload bool) {
 							float32(systeminfo.GetCpuUtilization()),
 							float32(systeminfo.GetGPUUtilization()),
 							float32(d.getPumpSpeed()),
+							0, // Temperature probe placeholder
 						}
 						image := lcd.GenerateDoubleArcScreenImage(values)
 						if image != nil {

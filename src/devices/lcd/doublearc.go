@@ -27,6 +27,8 @@ type Arcs struct {
 	StartColor rgb.Color `json:"startColor"`
 	EndColor   rgb.Color `json:"endColor"`
 	TextColor  rgb.Color `json:"textColor"`
+	ChannelId  int       `json:"channelId"`
+	DeviceId   string    `json:"deviceId"`
 }
 
 var (

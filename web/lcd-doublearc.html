@@ -2,6 +2,7 @@
 {{ $doubleArc := index .LCDProfiles 101 }}
 {{ $lcdSensors := .LCDSensors }}
 {{ $root := . }}
+{{ $temperatureProbes := .TemperatureProbes }}
 <div class="col-md-2">
     <div class="card system-card text-center">
         <div class="card-header">
@@ -67,7 +68,7 @@
                 <div class="settings-row">
                     <span class="settings-label text-ellipsis">{{ $root.Lang "txtSensor" }}</span>
                     <label>
-                        <select id="sensorType_{{ $key }}" class="form-select system-select auto-width sensorType compact">
+                        <select id="sensorType_{{ $key }}" class="form-select system-select auto-width sensorType compact" data-probe-target="temperature-probe-data-double-arc_{{ $key }}">
                             {{ range $k, $v := $lcdSensors }}
                             {{ if lt $k 20 }}
                                 {{ if eq $k $value.Sensor }}
@@ -80,6 +81,21 @@
                         </select>
                     </label>
                 </div>
+
+                {{ if $temperatureProbes }}
+                <div class="settings-row" id="temperature-probe-data-double-arc_{{ $key }}" {{ if ne $value.Sensor 6 }}style="display: none;"{{ end }}>
+                    <label for="temperatureProbes_{{ $key }}" class="full-width">
+                        <select class="system-select full-width tempProfile" id="temperatureProbes_{{ $key }}">
+                            <option value="0;0">Select probe</option>
+                            {{ range $temperatureProbes }}
+                            {{ range . }}
+                            <option value="{{ .Serial }};{{ .ChannelId }}" {{ if and (eq $value.Sensor 6) (eq .Serial $value.DeviceId) (eq .ChannelId $value.ChannelId) }}selected{{ end }}>{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </label>
+                </div>
+                {{ end }}
 
                 <div class="settings-row">
                     <span class="settings-label text-ellipsis">{{ $root.Lang "txtStartColor" }}</span>

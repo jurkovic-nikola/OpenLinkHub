@@ -12,6 +12,13 @@ OpenLinkHub focuses on **Corsair hardware support for Linux**. Features for cont
 - Avoid excessive comments. Document non-obvious decisions, not every line of code.
 - Do not bundle unrelated refactoring, formatting, or cleanups with a bug fix.
 - Reuse existing functionality instead of duplicating it.
+- Each device implementation lives in its own driver. 
+
+## New Device Implementations
+
+Each device has its own dedicated driver. Do not reuse or merge drivers across different devices, even if their protocols appear similar. Shared utilities are fine, but device-specific logic must remain independent.
+
+If your implementation requires a universal driver framework, you've probably overthought it.
 
 ## AI-assisted contributions
 AI-assisted code is welcome, but **you are responsible for understanding, reviewing, and testing every change you submit**. Do not submit large AI-generated patches without checking whether a simpler solution exists.

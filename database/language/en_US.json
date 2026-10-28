@@ -682,6 +682,23 @@
     "txtNormal": "Normal",
     "txtFast": "Fast",
     "txtUnableToUpdateHardwareLight": "Unable to update device Hardware Light",
-    "txtHardwareLightUpdated": "Device Hardware Light is successfully updated"
+    "txtHardwareLightUpdated": "Device Hardware Light is successfully updated",
+    "txtLogout": "Sign out",
+    "txtSignInToManageDevices": "Sign in to manage your devices",
+    "txtSignIn": "Sign in",
+    "txtDashboardAuth": "Dashboard Auth",
+    "txtUsername": "Username",
+    "txtPassword": "Password",
+    "txtOrigin": "Origin",
+    "txtSessionLifetime": "Session Lifetime (minutes)",
+    "txtDashboardAuthUpdated": "Dashboard Auth is successfully updated",
+    "txtUnableToUpdateDashboardAuth": "Unable to update Dashboard Auth",
+    "txtAuthUsernameTooShort": "Username must contain at least 3 characters.",
+    "txtAuthUsernameInvalid": "Username may contain only letters A–Z and numbers 0–9.",
+    "txtAuthPasswordLength": "Password must contain at least 12 characters and must not exceed 72 bytes.",
+    "txtAuthPasswordInvalid": "Password must not contain control characters.",
+    "txtAuthPasswordPolicy": "Password must contain at least one letter, one number and one special character.",
+    "txtAuthOriginInvalid": "Auth Origin must be a valid HTTPS origin, such as https://localhost:27003, without a path, trailing slash, credentials, query or fragment.",
+    "txtAuthSessionLifetimeInvalid": "Session lifetime must be between 15 and 240 minutes."
   }
 }

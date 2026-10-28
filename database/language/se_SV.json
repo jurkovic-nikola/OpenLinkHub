@@ -682,6 +682,23 @@
     "txtNormal": "Normal",
     "txtFast": "Snabb",
     "txtUnableToUpdateHardwareLight": "Det gick inte att uppdatera enhetens hårdvarubelysning",
-    "txtHardwareLightUpdated": "Enhetens hårdvarubelysning har uppdaterats"
+    "txtHardwareLightUpdated": "Enhetens hårdvarubelysning har uppdaterats",
+    "txtLogout": "Logga ut",
+    "txtSignInToManageDevices": "Logga in för att hantera dina enheter",
+    "txtSignIn": "Logga in",
+    "txtDashboardAuth": "Autentisering för instrumentpanelen",
+    "txtUsername": "Användarnamn",
+    "txtPassword": "Lösenord",
+    "txtOrigin": "Ursprung",
+    "txtSessionLifetime": "Sessionslängd (minuter)",
+    "txtDashboardAuthUpdated": "Autentiseringen för instrumentpanelen har uppdaterats",
+    "txtUnableToUpdateDashboardAuth": "Det gick inte att uppdatera autentiseringen för instrumentpanelen",
+    "txtAuthUsernameTooShort": "Användarnamnet måste innehålla minst 3 tecken.",
+    "txtAuthUsernameInvalid": "Användarnamnet får endast innehålla bokstäverna A till Z och siffrorna 0 till 9.",
+    "txtAuthPasswordLength": "Lösenordet måste innehålla minst 12 tecken och får inte överstiga 72 byte.",
+    "txtAuthPasswordInvalid": "Lösenordet får inte innehålla kontrolltecken.",
+    "txtAuthPasswordPolicy": "Lösenordet måste innehålla minst en bokstav, en siffra och ett specialtecken.",
+    "txtAuthOriginInvalid": "Autentiseringens ursprung måste vara ett giltigt HTTPS-ursprung, till exempel https://localhost:27003, utan sökväg, avslutande snedstreck, inloggningsuppgifter, frågeparametrar eller fragment.",
+    "txtAuthSessionLifetimeInvalid": "Sessionslängden måste vara mellan 15 och 240 minuter."
   }
 }

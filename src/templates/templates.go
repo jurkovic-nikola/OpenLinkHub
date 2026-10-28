@@ -93,6 +93,11 @@ func (w Web) RenderTemplate(name string, data any) template.HTML {
 	return template.HTML(buf.String())
 }
 
+// AuthEnabled will return if Auth system is enabled
+func (w Web) AuthEnabled() bool {
+	return dashboard.GetDashboard().AuthEnabled
+}
+
 // Init will parse all templates
 func Init() {
 	var templateList []string

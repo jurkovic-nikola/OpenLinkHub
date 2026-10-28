@@ -438,6 +438,41 @@ $(document).ready(function () {
                 }
             });
         });
+
+        $('#btnSaveAuthSettings').on('click', function () {
+            const v_enabled = $('#checkbox-auth-enabled').is(':checked');
+            const v_auth_username = $("#auth_username").val();
+            const v_auth_password = $("#auth_password").val();
+            const v_auth_origin = $("#auth_origin").val();
+            const v_auth_lifetime = $("#auth_lifetime").val();
+
+            const pf = {};
+            pf["authEnabled"] = v_enabled;
+            pf["authUsername"] = v_auth_username;
+            pf["authPassword"] = v_auth_password;
+            pf["authOrigin"] = v_auth_origin;
+            pf["sessionLifetime"] = parseInt(v_auth_lifetime);
+
+            const json = JSON.stringify(pf, null, 2);
+
+            $.ajax({
+                url: '/api/auth/update',
+                type: 'POST',
+                data: json,
+                cache: false,
+                success: function(response) {
+                    try {
+                        if (response.status === 1) {
+                            location.reload();
+                        } else {
+                            toast.warning(response.message);
+                        }
+                    } catch (err) {
+                        toast.warning(response.message);
+                    }
+                }
+            });
+        });
     }
     loadDashboardSettings();
 });

@@ -19,6 +19,8 @@ import (
 	"io"
 	"math"
 	"math/big"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1054,4 +1056,90 @@ func MaxHIDInputReport(rd []byte) int {
 
 func ValidRGB(v float64) bool {
 	return v >= 0 && v <= 255 && math.Trunc(v) == v
+}
+
+// ValidAuthOrigin will validate authentication origin
+func ValidAuthOrigin(value string) bool {
+	if value == "" || strings.ContainsAny(value, " \t\r\n\\?#") {
+		return false
+	}
+
+	origin, err := url.Parse(value)
+	if err != nil {
+		return false
+	}
+
+	if origin.Scheme != "https" ||
+		origin.Host == "" ||
+		origin.User != nil ||
+		origin.Opaque != "" ||
+		origin.Path != "" ||
+		origin.RawPath != "" ||
+		origin.RawQuery != "" ||
+		origin.ForceQuery ||
+		origin.Fragment != "" {
+		return false
+	}
+
+	host := origin.Hostname()
+	if host == "" {
+		return false
+	}
+
+	port := origin.Port()
+	if port != "" {
+		for _, character := range port {
+			if character < '0' || character > '9' {
+				return false
+			}
+		}
+
+		portNumber, err := strconv.Atoi(port)
+		if err != nil || portNumber < 1 || portNumber > 65535 {
+			return false
+		}
+	} else if strings.HasSuffix(origin.Host, ":") {
+		return false
+	}
+
+	if strings.HasPrefix(origin.Host, "[") {
+		return net.ParseIP(host) != nil && strings.Contains(host, ":")
+	}
+
+	if strings.Contains(host, ":") {
+		return false
+	}
+
+	if net.ParseIP(host) != nil {
+		return true
+	}
+
+	if len(host) > 253 {
+		return false
+	}
+
+	// Reject invalid IPv4 addresses instead of treating them as hostnames.
+	if strings.Contains(host, ".") && strings.Trim(host, "0123456789.") == "" {
+		return false
+	}
+
+	for _, label := range strings.Split(host, ".") {
+		if len(label) == 0 ||
+			len(label) > 63 ||
+			label[0] == '-' ||
+			label[len(label)-1] == '-' {
+			return false
+		}
+
+		for _, character := range label {
+			if !((character >= 'a' && character <= 'z') ||
+				(character >= 'A' && character <= 'Z') ||
+				(character >= '0' && character <= '9') ||
+				character == '-') {
+				return false
+			}
+		}
+	}
+
+	return true
 }

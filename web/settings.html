@@ -325,6 +325,62 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Dashboard Auth -->
+                        <div class="card system-card text-center">
+                            <div class="card-header">
+                                {{ .Lang "txtDashboardAuth" }}
+                            </div>
+                            <div class="card-body text-left">
+                                <div class="settings-list">
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtEnabled" }}</span>
+                                        <label class="system-toggle compact">
+                                            <input type="checkbox" id="checkbox-auth-enabled" {{ if $dash.AuthEnabled }}checked{{end}}>
+                                            <span class="toggle-track"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtUsername" }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="auth_username">
+                                                <input type="text" id="auth_username" class="auth_username" placeholder="Username" autocomplete="off" value="{{ $dash.AuthUsername }}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtPassword" }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="auth_password">
+                                                <input type="password" id="auth_password" class="auth_password" placeholder="Password" autocomplete="off" value="">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtOrigin" }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="auth_origin">
+                                                <input type="text" id="auth_origin" class="auth_origin" placeholder="Origin" autocomplete="off" value="{{ $dash.AuthOrigin }}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtSessionLifetime" }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="auth_lifetime">
+                                                <input type="text" id="auth_lifetime" class="auth_lifetime" placeholder="Session Lifetime" autocomplete="off" value="{{ $dash.SessionLifetime }}">
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis warning">{{ .Lang "txtServiceRestartRequired" }}</span>
+                                        <label class="system-toggle compact">
+                                            <button class="system-button" id="btnSaveAuthSettings">{{ .Lang "txtSave" }}</button>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-6">

@@ -682,6 +682,23 @@
         "txtNormal": "Normal",
         "txtFast": "Rapide",
         "txtUnableToUpdateHardwareLight": "Impossible de mettre à jour l’éclairage matériel de l’appareil",
-        "txtHardwareLightUpdated": "L’éclairage matériel de l’appareil a été mis à jour avec succès"
+        "txtHardwareLightUpdated": "L’éclairage matériel de l’appareil a été mis à jour avec succès",
+        "txtLogout": "Se déconnecter",
+        "txtSignInToManageDevices": "Connectez-vous pour gérer vos appareils",
+        "txtSignIn": "Se connecter",
+        "txtDashboardAuth": "Authentification du tableau de bord",
+        "txtUsername": "Nom d'utilisateur",
+        "txtPassword": "Mot de passe",
+        "txtOrigin": "Origine",
+        "txtSessionLifetime": "Durée de la session (minutes)",
+        "txtDashboardAuthUpdated": "L'authentification du tableau de bord a été mise à jour avec succès",
+        "txtUnableToUpdateDashboardAuth": "Impossible de mettre à jour l'authentification du tableau de bord",
+        "txtAuthUsernameTooShort": "Le nom d'utilisateur doit contenir au moins 3 caractères.",
+        "txtAuthUsernameInvalid": "Le nom d'utilisateur ne peut contenir que des lettres de A à Z et des chiffres de 0 à 9.",
+        "txtAuthPasswordLength": "Le mot de passe doit contenir au moins 12 caractères et ne doit pas dépasser 72 octets.",
+        "txtAuthPasswordInvalid": "Le mot de passe ne doit pas contenir de caractères de contrôle.",
+        "txtAuthPasswordPolicy": "Le mot de passe doit contenir au moins une lettre, un chiffre et un caractère spécial.",
+        "txtAuthOriginInvalid": "L'origine d'authentification doit être une origine HTTPS valide, telle que https://localhost:27003, sans chemin, barre oblique finale, identifiants, paramètres de requête ni fragment.",
+        "txtAuthSessionLifetimeInvalid": "La durée de la session doit être comprise entre 15 et 240 minutes."
     }
 }

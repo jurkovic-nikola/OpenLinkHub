@@ -682,6 +682,23 @@
     "txtNormal": "Normal",
     "txtFast": "Rápido",
     "txtUnableToUpdateHardwareLight": "Não foi possível atualizar a iluminação de hardware do dispositivo",
-    "txtHardwareLightUpdated": "A iluminação de hardware do dispositivo foi atualizada com sucesso"
+    "txtHardwareLightUpdated": "A iluminação de hardware do dispositivo foi atualizada com sucesso",
+    "txtLogout": "Sair",
+    "txtSignInToManageDevices": "Entre para gerenciar seus dispositivos",
+    "txtSignIn": "Entrar",
+    "txtDashboardAuth": "Autenticação do painel",
+    "txtUsername": "Nome de usuário",
+    "txtPassword": "Senha",
+    "txtOrigin": "Origem",
+    "txtSessionLifetime": "Duração da sessão (minutos)",
+    "txtDashboardAuthUpdated": "A autenticação do painel foi atualizada com sucesso",
+    "txtUnableToUpdateDashboardAuth": "Não foi possível atualizar a autenticação do painel",
+    "txtAuthUsernameTooShort": "O nome de usuário deve conter pelo menos 3 caracteres.",
+    "txtAuthUsernameInvalid": "O nome de usuário pode conter apenas letras de A a Z e números de 0 a 9.",
+    "txtAuthPasswordLength": "A senha deve conter pelo menos 12 caracteres e não pode exceder 72 bytes.",
+    "txtAuthPasswordInvalid": "A senha não pode conter caracteres de controle.",
+    "txtAuthPasswordPolicy": "A senha deve conter pelo menos uma letra, um número e um caractere especial.",
+    "txtAuthOriginInvalid": "A origem da autenticação deve ser uma origem HTTPS válida, como https://localhost:27003, sem caminho, barra final, credenciais, parâmetros de consulta ou fragmento.",
+    "txtAuthSessionLifetimeInvalid": "A duração da sessão deve estar entre 15 e 240 minutos."
   }
 }

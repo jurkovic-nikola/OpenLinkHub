@@ -682,6 +682,23 @@
     "txtNormal": "Normal",
     "txtFast": "Schnell",
     "txtUnableToUpdateHardwareLight": "Die Hardware-Beleuchtung des Geräts konnte nicht aktualisiert werden",
-    "txtHardwareLightUpdated": "Die Hardware-Beleuchtung des Geräts wurde erfolgreich aktualisiert"
+    "txtHardwareLightUpdated": "Die Hardware-Beleuchtung des Geräts wurde erfolgreich aktualisiert",
+    "txtLogout": "Abmelden",
+    "txtSignInToManageDevices": "Melden Sie sich an, um Ihre Geräte zu verwalten",
+    "txtSignIn": "Anmelden",
+    "txtDashboardAuth": "Dashboard-Authentifizierung",
+    "txtUsername": "Benutzername",
+    "txtPassword": "Passwort",
+    "txtOrigin": "Ursprung",
+    "txtSessionLifetime": "Sitzungsdauer (Minuten)",
+    "txtDashboardAuthUpdated": "Die Dashboard-Authentifizierung wurde erfolgreich aktualisiert",
+    "txtUnableToUpdateDashboardAuth": "Die Dashboard-Authentifizierung konnte nicht aktualisiert werden",
+    "txtAuthUsernameTooShort": "Der Benutzername muss mindestens 3 Zeichen enthalten.",
+    "txtAuthUsernameInvalid": "Der Benutzername darf nur Buchstaben von A bis Z und Zahlen von 0 bis 9 enthalten.",
+    "txtAuthPasswordLength": "Das Passwort muss mindestens 12 Zeichen enthalten und darf 72 Byte nicht überschreiten.",
+    "txtAuthPasswordInvalid": "Das Passwort darf keine Steuerzeichen enthalten.",
+    "txtAuthPasswordPolicy": "Das Passwort muss mindestens einen Buchstaben, eine Zahl und ein Sonderzeichen enthalten.",
+    "txtAuthOriginInvalid": "Der Authentifizierungsursprung muss ein gültiger HTTPS-Ursprung sein, z. B. https://localhost:27003, ohne Pfad, abschließenden Schrägstrich, Anmeldedaten, Abfrageparameter oder Fragment.",
+    "txtAuthSessionLifetimeInvalid": "Die Sitzungsdauer muss zwischen 15 und 240 Minuten liegen."
   }
 }

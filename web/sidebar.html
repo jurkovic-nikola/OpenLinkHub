@@ -63,6 +63,17 @@
                 <img src="/static/img/icons/icon-github.svg" class="sidebar-icon" alt="">
                 GitHub
             </a>
+
+            {{ if .AuthEnabled }}
+            <a href="#" id="logoutButton" class="nav-link" data-label="{{ .Lang "txtLogout" }}">
+                <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 5H5v14h4"/>
+                    <path d="M9 12h12m-4-4 4 4-4 4"/>
+                </svg>
+                <span class="sidebar-text">{{ .Lang "txtLogout" }}</span>
+            </a>
+            {{ end }}
+
         </nav>
         <div class="divider"></div>
         <div class="sidebar-meta">

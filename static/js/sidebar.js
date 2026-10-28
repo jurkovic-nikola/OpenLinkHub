@@ -79,4 +79,33 @@ $(document).ready(function () {
             }
         });
     });
+
+    let logoutPending = false;
+
+    $("#logoutButton").on("click", async function (event) {
+        event.preventDefault();
+
+        if (logoutPending) {
+            return;
+        }
+
+        logoutPending = true;
+
+        try {
+            const response = await fetch("/auth/logout", {
+                method: "POST",
+                credentials: "same-origin"
+            });
+            
+            if (response.status === 204 || response.status === 401) {
+                window.location.replace("/login");
+                return;
+            }
+            toastr.error("Unable to sign out. Please try again.");
+        } catch {
+            toastr.error("Unable to sign out. Please try again.");
+        } finally {
+            logoutPending = false;
+        }
+    });
 });

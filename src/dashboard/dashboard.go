@@ -36,6 +36,11 @@ type Dashboard struct {
 	Themes               []string       `json:"themes"`
 	KeyboardLayout       int            `json:"keyboardLayout"`
 	KeyboardLayouts      map[int]string `json:"keyboardLayouts"`
+	AuthEnabled          bool           `json:"authEnabled"`
+	AuthUsername         string         `json:"authUsername"`
+	AuthOrigin           string         `json:"authOrigin"`
+	SessionLifetime      int            `json:"sessionLifetime"`
+	AuthPassword         string         `json:"authPassword"`
 }
 
 var (
@@ -55,6 +60,11 @@ var (
 		"theme":                "default",
 		"keyboardLayout":       0,
 		"keyboardLayouts":      map[int]string{0: "QWERTY", 1: "AZERTY"},
+		"authEnabled":          false,
+		"authUsername":         "",
+		"authOrigin":           "https://127.0.0.1:27003",
+		"sessionLifetime":      60,
+		"authPassword":         "",
 	}
 )
 
@@ -108,6 +118,11 @@ func upgradeFile() {
 			Theme:                "default",
 			KeyboardLayout:       0,
 			KeyboardLayouts:      map[int]string{0: "QWERTY", 1: "AZERTY"},
+			AuthEnabled:          false,
+			AuthUsername:         "",
+			AuthOrigin:           "https://127.0.0.1:27003",
+			SessionLifetime:      60,
+			AuthPassword:         "",
 		}
 		if SaveDashboardSettings(dash, false) == 1 {
 			logger.Log(logger.Fields{"file": location}).Info("Dashboard file is created.")

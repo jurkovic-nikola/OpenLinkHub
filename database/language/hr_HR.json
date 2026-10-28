@@ -682,6 +682,23 @@
     "txtNormal": "Normalno",
     "txtFast": "Brzo",
     "txtUnableToUpdateHardwareLight": "Nije moguće ažurirati hardversko osvjetljenje uređaja",
-    "txtHardwareLightUpdated": "Hardversko osvjetljenje uređaja je uspješno ažurirano"
+    "txtHardwareLightUpdated": "Hardversko osvjetljenje uređaja je uspješno ažurirano",
+    "txtLogout": "Odjava",
+    "txtSignInToManageDevices": "Prijavite se za upravljanje svojim uređajima",
+    "txtSignIn": "Prijava",
+    "txtDashboardAuth": "Autentifikacija nadzorne ploče",
+    "txtUsername": "Korisničko ime",
+    "txtPassword": "Lozinka",
+    "txtOrigin": "Izvor",
+    "txtSessionLifetime": "Trajanje sesije (minute)",
+    "txtDashboardAuthUpdated": "Autentifikacija nadzorne ploče uspješno je ažurirana",
+    "txtUnableToUpdateDashboardAuth": "Nije moguće ažurirati autentifikaciju nadzorne ploče",
+    "txtAuthUsernameTooShort": "Korisničko ime mora sadržavati najmanje 3 znaka.",
+    "txtAuthUsernameInvalid": "Korisničko ime smije sadržavati samo slova od A do Z i brojeve od 0 do 9.",
+    "txtAuthPasswordLength": "Lozinka mora sadržavati najmanje 12 znakova i ne smije prelaziti 72 bajta.",
+    "txtAuthPasswordInvalid": "Lozinka ne smije sadržavati kontrolne znakove.",
+    "txtAuthPasswordPolicy": "Lozinka mora sadržavati najmanje jedno slovo, jedan broj i jedan poseban znak.",
+    "txtAuthOriginInvalid": "Izvor autentifikacije mora biti valjani HTTPS izvor, poput https://localhost:27003, bez putanje, završne kose crte, korisničkih podataka za prijavu, parametara upita ili fragmenta.",
+    "txtAuthSessionLifetimeInvalid": "Trajanje sesije mora biti između 15 i 240 minuta."
   }
 }

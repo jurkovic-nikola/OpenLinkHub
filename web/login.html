@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" . }}
+<body>
+<style>
+    .login-page {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .login-page .login-card {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+        flex: 0 1 400px;
+    }
+
+    .login-card .card-body {
+        padding: 32px;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    .login-heading {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .login-heading i {
+        display: inline-block;
+        font-size: 30px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+    }
+
+    .login-heading h1 {
+        font-size: 24px;
+        color: var(--text-main);
+        margin-bottom: 8px;
+    }
+
+    .login-heading p {
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    .login-field {
+        margin-top: 0;
+        margin-bottom: 18px;
+    }
+
+    .login-submit {
+        width: 100%;
+        justify-content: center;
+        margin-top: 6px;
+    }
+
+    .login-submit:disabled {
+        opacity: .6;
+        cursor: wait;
+    }
+
+    .login-error {
+        color: var(--bad);
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+</style>
+
+<main class="login-page">
+    <div class="card system-card login-card">
+        <div class="card-body">
+            <div class="login-heading">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                <h1>{{ .Title }}</h1>
+                <p>{{ .Lang "txtSignInToManageDevices" }}</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="system-input text-input login-field">
+                    <label for="username" class="input-label">Username</label>
+                    <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            autocomplete="username"
+                            autocapitalize="none"
+                            spellcheck="false"
+                            required
+                            autofocus>
+                </div>
+
+                <div class="system-input text-input login-field">
+                    <label for="password" class="input-label">Password</label>
+                    <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            autocomplete="current-password"
+                            required>
+                </div>
+
+                <div id="loginError" class="login-error" role="alert" hidden></div>
+
+                <button type="submit" id="loginSubmit" class="system-button login-submit">
+                    {{ .Lang "txtSignIn" }}
+                </button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="/static/js/login.js"></script>
+</body>
+</html>

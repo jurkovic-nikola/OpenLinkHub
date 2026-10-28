@@ -23,8 +23,11 @@ import (
 	"OpenLinkHub/src/temperatures"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"reflect"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Payload contains data from a client about device speed change
@@ -5773,4 +5776,124 @@ func ProcessSetHardwareLight(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToUpdateHardwareLight"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessAuthSettings will process POST request from a client to set auth settings
+func ProcessAuthSettings(r *http.Request) *Payload {
+	req := &dashboard.Dashboard{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.AuthUsername) < 3 {
+		return &Payload{
+			Message: language.GetValue("txtAuthUsernameTooShort"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	for _, character := range req.AuthUsername {
+		if !((character >= 'a' && character <= 'z') ||
+			(character >= 'A' && character <= 'Z') ||
+			(character >= '0' && character <= '9')) {
+			return &Payload{
+				Message: language.GetValue("txtAuthUsernameInvalid"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+	}
+
+	var hash []byte
+	if req.AuthEnabled {
+		if !utf8.ValidString(req.AuthPassword) ||
+			utf8.RuneCountInString(req.AuthPassword) < 12 ||
+			len(req.AuthPassword) > 72 {
+			return &Payload{
+				Message: language.GetValue("txtAuthPasswordLength"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		hasLetter := false
+		hasNumber := false
+		hasSpecial := false
+
+		for _, character := range req.AuthPassword {
+			if unicode.IsControl(character) {
+				return &Payload{
+					Message: language.GetValue("txtAuthPasswordInvalid"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			if unicode.IsLetter(character) {
+				hasLetter = true
+			}
+			if unicode.IsDigit(character) {
+				hasNumber = true
+			}
+			if unicode.IsPunct(character) || unicode.IsSymbol(character) {
+				hasSpecial = true
+			}
+		}
+
+		if !hasLetter || !hasNumber || !hasSpecial {
+			return &Payload{
+				Message: language.GetValue("txtAuthPasswordPolicy"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+
+		hash, err = bcrypt.GenerateFromPassword([]byte(req.AuthPassword), 12)
+		if err != nil {
+			return &Payload{
+				Message: language.GetValue("txtUnableToUpdateDashboardAuth"),
+				Code:    http.StatusOK,
+				Status:  0,
+			}
+		}
+	}
+
+	if req.SessionLifetime < 15 || req.SessionLifetime > 240 {
+		return &Payload{
+			Message: language.GetValue("txtAuthSessionLifetimeInvalid"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if !common.ValidAuthOrigin(req.AuthOrigin) {
+		return &Payload{
+			Message: language.GetValue("txtAuthOriginInvalid"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	dash := dashboard.GetDashboard()
+	dash.AuthEnabled = req.AuthEnabled
+	dash.AuthUsername = req.AuthUsername
+	dash.AuthOrigin = req.AuthOrigin
+	dash.AuthPassword = string(hash)
+	dash.SessionLifetime = req.SessionLifetime
+
+	status := dashboard.SaveDashboardSettings(dash, true)
+	switch status {
+	case 0:
+		return &Payload{Message: language.GetValue("txtUnableToUpdateDashboardAuth"), Code: http.StatusOK, Status: 0}
+	case 1:
+		return &Payload{Message: language.GetValue("txtDashboardAuthUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateDashboardAuth"), Code: http.StatusOK, Status: 0}
 }

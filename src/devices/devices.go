@@ -20,6 +20,7 @@ import (
 	"OpenLinkHub/src/devices/darkcorergbsesongle"
 	"OpenLinkHub/src/devices/darkstarWU"
 	"OpenLinkHub/src/devices/elite"
+	"OpenLinkHub/src/devices/galleon100sd"
 	"OpenLinkHub/src/devices/glaivergb"
 	"OpenLinkHub/src/devices/glaivergbpro"
 	"OpenLinkHub/src/devices/harpoonV2WU"
@@ -843,6 +844,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7109:  {1, 0, "K100", k100.Init, nil},                                  // K100
 	7037:  {1, 0, "K100", k100.Init, nil},                                  // K100
 	11012: {1, 0, "MAKR 75", makr75WU.Init, nil},                           // MAKR 75
+	11020: {1, 0, "GALLEON 100 SD", galleon100sd.Init, nil},                // GALLEON 100 SD
 	11022: {2, 0, "VANGUARD 96 PRO", vanguard96pro.Init, nil},              // VANGUARD 96 PRO
 	11021: {2, 0, "VANGUARD 96", vanguard96.Init, nil},                     // VANGUARD 96
 	11023: {2, 0, "VANGUARD 96 WIRELESS", vanguard96WU.Init, nil},          // VANGUARD 96 WIRELESS

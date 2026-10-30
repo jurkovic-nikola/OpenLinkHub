@@ -56,6 +56,7 @@ const (
 	DisplayArc            uint8 = 100
 	DisplayDoubleArc      uint8 = 101
 	DisplayAnimation      uint8 = 102
+	DisplayDots           uint8 = 103
 )
 
 const (
@@ -186,6 +187,7 @@ func Init() {
 
 	// Single Arc
 	InitArc()
+	InitDots()
 
 	// Double arc
 	InitDoubleArc()
@@ -425,6 +427,76 @@ func interpolateColor(c1, c2 color.RGBA, t float64) color.RGBA {
 	}
 }
 
+// drawDotsField will draw dot field based on profile and fraction
+func drawDotsField(profile *Dots, fraction float64, textBounds ...image.Rectangle) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	draw.Draw(img, img.Bounds(), &image.Uniform{C: generateColor(profile.Background)}, image.Point{}, draw.Src)
+	if math.IsNaN(fraction) || math.IsInf(fraction, 0) {
+		fraction = 0
+	}
+	fraction = math.Max(0, math.Min(1, fraction))
+	radius := float64(imgWidth)/2 - profile.Margin
+	cx, cy := float64(imgWidth)/2, float64(imgHeight)/2
+	level := cy + radius - 2*radius*fraction
+	start, end := generateColor(profile.StartColor), generateColor(profile.EndColor)
+	const dotRadius = 14.0
+	const spacing = 36.0
+	rowSpacing := spacing * math.Sqrt(3) / 2
+	rows := int(math.Ceil((radius + dotRadius) / rowSpacing))
+	columns := int(math.Ceil((radius + dotRadius) / spacing))
+	for row := -rows; row <= rows; row++ {
+		y := cy + float64(row)*rowSpacing
+		offset := float64((row%2+2)%2) * spacing / 2
+		for column := -columns; column <= columns; column++ {
+			x := cx + float64(column)*spacing + offset
+			if math.Hypot(x-cx, y-cy)-dotRadius >= radius || y < level || fraction == 0 {
+				continue
+			}
+			// Keep the value and unit clear at every fill level.
+			overlaps := false
+			for _, bounds := range textBounds {
+				nearestX := math.Max(float64(bounds.Min.X), math.Min(x, float64(bounds.Max.X)))
+				nearestY := math.Max(float64(bounds.Min.Y), math.Min(y, float64(bounds.Max.Y)))
+				if math.Hypot(x-nearestX, y-nearestY) < dotRadius+4 {
+					overlaps = true
+					break
+				}
+			}
+			if overlaps {
+				continue
+			}
+
+			t := (cy + radius - y) / (2 * radius)
+			c := color.RGBA{R: uint8(float64(start.R)*(1-t) + float64(end.R)*t), G: uint8(float64(start.G)*(1-t) + float64(end.G)*t), B: uint8(float64(start.B)*(1-t) + float64(end.B)*t), A: 255}
+			for py := int(y - dotRadius); py <= int(y+dotRadius); py++ {
+				for px := int(x - dotRadius); px <= int(x+dotRadius); px++ {
+					coverage := math.Max(0, math.Min(1, dotRadius-math.Hypot(float64(px)+0.5-x, float64(py)+0.5-y)))
+					circleCoverage := math.Max(0, math.Min(1, radius-math.Hypot(float64(px)+0.5-cx, float64(py)+0.5-cy)))
+					coverage = math.Min(coverage, circleCoverage)
+					if coverage == 0 {
+						continue
+					}
+					bg := img.RGBAAt(px, py)
+					img.SetRGBA(px, py, color.RGBA{R: uint8(float64(bg.R)*(1-coverage) + float64(c.R)*coverage), G: uint8(float64(bg.G)*(1-coverage) + float64(c.G)*coverage), B: uint8(float64(bg.B)*(1-coverage) + float64(c.B)*coverage), A: 255})
+				}
+			}
+		}
+	}
+	return img
+}
+
+func dotsTextBounds(img *image.RGBA) image.Rectangle {
+	bounds := image.Rectangle{}
+	for y := 0; y < imgHeight; y++ {
+		for x := 0; x < imgWidth; x++ {
+			if img.RGBAAt(x, y).A != 0 {
+				bounds = bounds.Union(image.Rect(x, y, x+1, y+1))
+			}
+		}
+	}
+	return bounds
+}
+
 // PerformImageUpload will handle image upload
 func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 	const maxUploadSize = 5 * 1024 * 1024 // 5MB
@@ -590,6 +662,7 @@ func PerformImageUpload(w http.ResponseWriter, r *http.Request) {
 func GetCustomLcdProfiles() map[uint8]interface{} {
 	profiles := make(map[uint8]interface{})
 	profiles[DisplayArc] = GetArc()
+	profiles[DisplayDots] = GetDots()
 	profiles[DisplayDoubleArc] = GetDoubleArc()
 	profiles[DisplayAnimation] = GetAnimation()
 	return profiles
@@ -860,6 +933,52 @@ func GenerateAnimationScreenImage(values []float32) []Frames {
 
 	wg.Wait()
 	return imageBuffer
+}
+
+// GenerateDotsScreenImage handles generation of dots screen image
+func GenerateDotsScreenImage(values []float32) []byte {
+	profile := GetDots()
+	if int(profile.Sensor) >= len(values) {
+		return nil
+	}
+	value := values[profile.Sensor]
+	if profile.Sensor == 6 {
+		value = stats.GetDeviceTemperature(profile.DeviceId, profile.ChannelId)
+	}
+	if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+		value = 0
+	}
+	text, unit := strconv.Itoa(int(value)), "%"
+	valueFontSize := 280.0
+	if isSensorTemperature(profile.Sensor) {
+		temperature := dashboard.GetDashboard().Temperature(value)
+		text, unit = temperature[0], temperature[1]
+		valueFontSize = 250
+	} else if isSpeedTemperature(profile.Sensor) {
+		unit = "RPM"
+		valueFontSize = 220
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
+	valueLayer := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	x, y := calculateStringXY(valueFontSize, text)
+	drawColorString(x, y, valueFontSize, text, valueLayer, profile.TextColor)
+
+	unitLayer := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	unit = fmt.Sprintf("[ %s ]", unit)
+	x, y = calculateStringXY(40, unit)
+	drawColorString(x, y+120, 40, unit, unitLayer, profile.TextColor)
+
+	img := drawDotsField(profile, float64(value)/float64(sensorMaximumValue(profile.Sensor)), dotsTextBounds(valueLayer), dotsTextBounds(unitLayer))
+	draw.Draw(img, img.Bounds(), valueLayer, image.Point{}, draw.Over)
+	draw.Draw(img, img.Bounds(), unitLayer, image.Point{}, draw.Over)
+
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, img, nil); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
+		return nil
+	}
+	return b.Bytes()
 }
 
 // GenerateArcScreenImage handles generation or arc screen image

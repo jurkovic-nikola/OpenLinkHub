@@ -164,6 +164,7 @@ func Init(vendorId, productId uint16, serial, _ string) *common.Device {
 			100: "Arc",
 			101: "Double Arc",
 			102: "Animation",
+			103: "Dots",
 		},
 		LCDRotations: map[int]string{
 			0: "default",
@@ -1538,6 +1539,22 @@ func (d *Device) setupLCD(reload bool) {
 							break // Fail
 						}
 						d.transfer(image, transferTypeLcd)
+					}
+				case lcd.DisplayDots:
+					{
+						values := []float32{
+							temperatures.GetCpuTemperature(),
+							temperatures.GetGpuTemperature(),
+							d.getLiquidTemperature(),
+							float32(systeminfo.GetCpuUtilization()),
+							float32(systeminfo.GetGPUUtilization()),
+							0,
+							0, // Temperature probe placeholder
+						}
+						image := lcd.GenerateDotsScreenImage(values)
+						if image != nil {
+							d.transfer(image, transferTypeLcd)
+						}
 					}
 				case lcd.DisplayDoubleArc:
 					{

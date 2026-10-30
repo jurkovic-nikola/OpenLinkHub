@@ -175,6 +175,67 @@ $(document).ready(function () {
         });
     });
 
+    $('.saveDotsProfile').on('click', function(){
+        const profileId = $(this).attr('data-info');
+        const sensorTypeVal = $("#sensorType_" + profileId).val();
+        const temperatureProbeVal = $("#temperatureProbes_" + profileId).val() || "0;0";
+        const marginVal = $("#margin_" + profileId).val();
+        const backgroundColorVal = $("#backgroundColor_" + profileId).val();
+        const startColorVal = $("#startColor_" + profileId).val();
+        const endColorVal = $("#endColor_" + profileId).val();
+        const textColorVal = $("#textColor_" + profileId).val();
+
+        let backgroundColorRgb = {}
+        let startColorRgb = {}
+        let endColorRgb = {}
+        let textColorRgb = {}
+
+        const backgroundColor = hexToRgb(backgroundColorVal);
+        backgroundColorRgb = {red:backgroundColor.r, green:backgroundColor.g, blue:backgroundColor.b, hex:backgroundColor.hex}
+
+        const startColor = hexToRgb(startColorVal);
+        startColorRgb = {red:startColor.r, green:startColor.g, blue:startColor.b, hex:startColor.hex}
+
+        const endColor = hexToRgb(endColorVal);
+        endColorRgb = {red:endColor.r, green:endColor.g, blue:endColor.b, hex:endColor.hex}
+
+        const textColor = hexToRgb(textColorVal);
+        textColorRgb = {red:textColor.r, green:textColor.g, blue:textColor.b, hex:textColor.hex}
+
+        const probeData = temperatureProbeVal.split(';')
+
+        const pf = {};
+        pf["profileId"] = parseInt(profileId);
+        pf["margin"] = parseFloat(marginVal);
+        pf["sensor"] = parseInt(sensorTypeVal);
+        pf["deviceId"] = probeData[0];
+        pf["channelId"] = parseInt(probeData[1]);
+        pf["backgroundColor"] = backgroundColorRgb;
+        pf["startColor"] = startColorRgb;
+        pf["endColor"] = endColorRgb;
+        pf["textColor"] = textColorRgb;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/lcd/modes',
+            type: 'PUT',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.lcdWorkersInfo').on('click', function () {
         const modalDefault = `
             <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">

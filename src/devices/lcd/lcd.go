@@ -57,6 +57,7 @@ const (
 	DisplayDoubleArc      uint8 = 101
 	DisplayAnimation      uint8 = 102
 	DisplayDots           uint8 = 103
+	DisplayFill           uint8 = 104
 )
 
 const (
@@ -187,7 +188,12 @@ func Init() {
 
 	// Single Arc
 	InitArc()
+
+	// Dots
 	InitDots()
+
+	// Fill
+	InitFill()
 
 	// Double arc
 	InitDoubleArc()
@@ -427,6 +433,41 @@ func interpolateColor(c1, c2 color.RGBA, t float64) color.RGBA {
 	}
 }
 
+// drawFillField will draw fill based on profile and fraction
+func drawFillField(profile *Fill, fraction float64) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	background := generateColor(profile.Background)
+	draw.Draw(img, img.Bounds(), image.NewUniform(background), image.Point{}, draw.Src)
+	if math.IsNaN(fraction) || math.IsInf(fraction, 0) {
+		fraction = 0
+	}
+	fraction = math.Max(0, math.Min(1, fraction))
+	radius := float64(imgWidth)/2 - profile.Margin
+	cx, cy := float64(imgWidth)/2, float64(imgHeight)/2
+	level := cy + radius - 2*radius*fraction
+	start, end := generateColor(profile.StartColor), generateColor(profile.EndColor)
+	for y := 0; y < imgHeight; y++ {
+		fade := math.Max(0, math.Min(1, (float64(y)+0.5-level)/32))
+		if fraction == 0 {
+			fade = 0
+		} else if fraction == 1 {
+			fade = 1
+		}
+		fade = fade * fade * (3 - 2*fade)
+		t := math.Max(0, math.Min(1, (cy+radius-float64(y))/(2*radius)))
+		for x := 0; x < imgWidth; x++ {
+			coverage := math.Max(0, math.Min(1, radius-math.Hypot(float64(x)+0.5-cx, float64(y)+0.5-cy))) * fade
+			img.SetRGBA(x, y, color.RGBA{
+				R: uint8(float64(background.R)*(1-coverage) + (float64(start.R)*(1-t)+float64(end.R)*t)*coverage),
+				G: uint8(float64(background.G)*(1-coverage) + (float64(start.G)*(1-t)+float64(end.G)*t)*coverage),
+				B: uint8(float64(background.B)*(1-coverage) + (float64(start.B)*(1-t)+float64(end.B)*t)*coverage),
+				A: 255,
+			})
+		}
+	}
+	return img
+}
+
 // drawDotsField will draw dot field based on profile and fraction
 func drawDotsField(profile *Dots, fraction float64, textBounds ...image.Rectangle) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
@@ -663,6 +704,7 @@ func GetCustomLcdProfiles() map[uint8]interface{} {
 	profiles := make(map[uint8]interface{})
 	profiles[DisplayArc] = GetArc()
 	profiles[DisplayDots] = GetDots()
+	profiles[DisplayFill] = GetFill()
 	profiles[DisplayDoubleArc] = GetDoubleArc()
 	profiles[DisplayAnimation] = GetAnimation()
 	return profiles
@@ -970,6 +1012,57 @@ func GenerateDotsScreenImage(values []float32) []byte {
 	drawColorString(x, y+120, 40, unit, unitLayer, profile.TextColor)
 
 	img := drawDotsField(profile, float64(value)/float64(sensorMaximumValue(profile.Sensor)), dotsTextBounds(valueLayer), dotsTextBounds(unitLayer))
+	draw.Draw(img, img.Bounds(), valueLayer, image.Point{}, draw.Over)
+	draw.Draw(img, img.Bounds(), unitLayer, image.Point{}, draw.Over)
+
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, img, nil); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to encode LCD image")
+		return nil
+	}
+	return b.Bytes()
+}
+
+// GenerateFillScreenImage handles generation of fill screen image
+func GenerateFillScreenImage(values []float32) []byte {
+	profile := GetFill()
+	if int(profile.Sensor) >= len(values) {
+		return nil
+	}
+
+	value := values[profile.Sensor]
+
+	if profile.Sensor == 6 {
+		value = stats.GetDeviceTemperature(profile.DeviceId, profile.ChannelId)
+	}
+
+	if math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {
+		value = 0
+	}
+
+	text, unit := strconv.Itoa(int(value)), "%"
+	valueFontSize := 280.0
+	if isSensorTemperature(profile.Sensor) {
+		temperature := dashboard.GetDashboard().Temperature(value)
+		text, unit = temperature[0], temperature[1]
+		valueFontSize = 250
+	} else if isSpeedTemperature(profile.Sensor) {
+		unit = "RPM"
+		valueFontSize = 220
+	}
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	valueLayer := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	x, y := calculateStringXY(valueFontSize, text)
+	drawColorString(x, y, valueFontSize, text, valueLayer, profile.TextColor)
+
+	unitLayer := image.NewRGBA(image.Rect(0, 0, imgWidth, imgHeight))
+	unit = fmt.Sprintf("[ %s ]", unit)
+	x, y = calculateStringXY(40, unit)
+	drawColorString(x, y+190, 40, unit, unitLayer, profile.TextColor)
+
+	img := drawFillField(profile, float64(value)/float64(sensorMaximumValue(profile.Sensor)))
 	draw.Draw(img, img.Bounds(), valueLayer, image.Point{}, draw.Over)
 	draw.Draw(img, img.Bounds(), unitLayer, image.Point{}, draw.Over)
 

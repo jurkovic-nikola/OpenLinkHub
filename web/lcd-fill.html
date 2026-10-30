@@ -1,0 +1,97 @@
+{{ define "lcd-fill" }}
+{{ $fill := index .LCDProfiles 104 }}
+{{ $lcdSensors := .LCDSensors }}
+<div class="col-md-2">
+    <div class="card system-card text-center">
+        <div class="card-header">
+            {{ $fill.Name }}
+        </div>
+        <div class="card-body">
+            <div class="settings-list">
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtSensor" }}</span>
+                    <label>
+                        <select id="sensorType_{{ $fill.Id }}" class="form-select system-select auto-width sensorType compact" name="userProfile" data-probe-target="temperature-probe-data-fill">
+                            {{ range $k, $v := $lcdSensors }}
+                            {{ if le $k 6 }}
+                                {{ if eq $k $fill.Sensor }}
+                                <option value="{{ $k }}" selected>{{ $v }}</option>
+                                {{ else }}
+                                <option value="{{ $k }}">{{ $v }}</option>
+                                {{ end }}
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </label>
+                </div>
+
+                {{ if .TemperatureProbes }}
+                <div class="settings-row" id="temperature-probe-data-fill" {{ if ne $fill.Sensor 6 }}style="display: none;"{{ end }}>
+                    <label for="temperatureProbes_{{ $fill.Id }}" class="full-width">
+                        <select class="system-select full-width tempProfile" id="temperatureProbes_{{ $fill.Id }}">
+                            <option value="0;0">Select probe</option>
+                            {{ range .TemperatureProbes }}
+                            {{ range . }}
+                            <option value="{{ .Serial }};{{ .ChannelId }}" {{ if and (eq $fill.Sensor 6) (eq .Serial $fill.DeviceId) (eq .ChannelId $fill.ChannelId) }}selected{{ end }}>{{ .Product }} - {{ .Name }} ({{ .Label }})</option>
+                            {{ end }}
+                            {{ end }}
+                        </select>
+                    </label>
+                </div>
+                {{ end }}
+
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtMargin" }}</span>
+                    <div class="system-input text-input max-width-100 compact">
+                        <label>
+                            <input type="text" id="margin_{{ $fill.Id }}" value="{{ $fill.Margin }}">
+                        </label>
+                    </div>
+                </div>
+
+
+
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtBackground" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="backgroundColor_{{ $fill.Id }}" value="{{ $fill.Background.Hex }}">
+                        </label>
+                    </div>
+                </div>
+
+
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtStartColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="startColor_{{ $fill.Id }}" value="{{ $fill.StartColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtEndColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="endColor_{{ $fill.Id }}" value="{{ $fill.EndColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <span class="settings-label text-ellipsis">{{ .Lang "txtTextColor" }}</span>
+                    <div class="system-color compact">
+                        <label>
+                            <input type="color" id="textColor_{{ $fill.Id }}" value="{{ $fill.TextColor.Hex }}">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer card-footer-left">
+            <button class="system-button saveFillProfile left"  data-info="{{ $fill.Id }}">{{ .Lang "txtSaveProfile" }}</button>
+        </div>
+    </div>
+</div>
+{{ end }}

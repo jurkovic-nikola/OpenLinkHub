@@ -1117,9 +1117,12 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		if req.Sensor > 6 {
 			return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
 		}
+
 		if req.Margin < 10 || req.Margin > 50 {
 			return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
 		}
+
+		// Profile
 		mode := lcd.GetDots()
 		mode.Sensor = req.Sensor
 		mode.Margin = req.Margin
@@ -1129,7 +1132,33 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		mode.TextColor = req.TextColor
 		mode.DeviceId = req.DeviceId
 		mode.ChannelId = req.ChannelId
+
+		// Send it
 		status = lcd.SaveDots(mode)
+		break
+	case lcd.DisplayFill:
+		if req.Sensor > 6 {
+			return &Payload{Message: language.GetValue("txtNonExistingSensorId"), Code: http.StatusOK, Status: 0}
+		}
+
+		if req.Margin < 10 || req.Margin > 50 {
+			return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
+		}
+
+		// Profile
+		mode := lcd.GetFill()
+		mode.Sensor = req.Sensor
+		mode.Margin = req.Margin
+		mode.Background = req.BackgroundColor
+		mode.StartColor = req.StartColor
+		mode.EndColor = req.EndColor
+		mode.TextColor = req.TextColor
+		mode.DeviceId = req.DeviceId
+		mode.ChannelId = req.ChannelId
+
+		// Send it
+		status = lcd.SaveFill(mode)
+		break
 	case lcd.DisplayDoubleArc:
 		thickness := req.Thickness
 		if thickness < 10 || thickness > 50 {

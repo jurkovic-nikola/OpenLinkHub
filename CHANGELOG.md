@@ -1,5 +1,40 @@
+## 2026-10-30
+
+* fill colors (30cb5128)
+* lcd fill (0c31a744)
+* lcd dots (7c844950)
+
+## 2026-10-29
+
+* galleon 100 sd (3022f830)
+
+## 2026-10-28
+
+* basic dashboard auth and tls (a9f46cbb)
+
+## 2026-10-27
+
+* keyboard profile change / switch (cf73bedb)
+
+## 2026-10-26
+
+* ignore this folder (b2670865)
+* docs update (79198e40)
+* docs update (52549f4f)
+* temperature probes for any lcd https://github.com/jurkovic-nikola/OpenLinkHub/issues/564 (dd8e8e58)
+* mobo operating modes (575fec6b)
+
+## 2026-10-25
+
+* devcontainer version bump (f3168ed9)
+* missing readme (88f9254e)
+* go 1.26 (12896c49)
+* close dead handle (d811c2a3)
+* psu changes (86e64997)
+
 ## 2026-10-24
 
+* changelog (949561e1)
 * k70 rgb rapidfire openrgb support (cdc402b5)
 * k65 rgb openrgb support (f05d9374)
 * k68 rgb openrgb support (12df63d5)

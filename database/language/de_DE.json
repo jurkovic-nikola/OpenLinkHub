@@ -725,6 +725,7 @@
     "txtXeneonWidgetSaved": "Widget-Konfiguration gespeichert. Aktualisieren Sie das Xeneon-Display, um die Änderungen zu übernehmen.",
     "txtXeneonWidgetSaveFailed": "Die Widget-Konfiguration konnte nicht gespeichert werden. Überprüfen Sie die Werte und versuchen Sie es erneut.",
     "txtXeneonAllDevices": "Alle Geräte",
-    "txtXeneonSelectSensor": "Sensor auswählen"
+    "txtXeneonSelectSensor": "Sensor auswählen",
+    "txtOpenKiosk": "Kioskmodus öffnen"
   }
 }

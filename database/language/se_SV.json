@@ -725,6 +725,7 @@
     "txtXeneonWidgetSaved": "Widgetkonfigurationen har sparats. Uppdatera Xeneon-skärmen för att tillämpa ändringarna.",
     "txtXeneonWidgetSaveFailed": "Det gick inte att spara widgetkonfigurationen. Kontrollera värdena och försök igen.",
     "txtXeneonAllDevices": "Alla enheter",
-    "txtXeneonSelectSensor": "Välj sensor"
+    "txtXeneonSelectSensor": "Välj sensor",
+    "txtOpenKiosk": "Öppna kioskläge"
   }
 }

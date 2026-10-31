@@ -725,6 +725,7 @@
         "txtXeneonWidgetSaved": "Настройки виджета сохранены. Обновите экран Xeneon, чтобы применить изменения.",
         "txtXeneonWidgetSaveFailed": "Не удалось сохранить настройки виджета. Проверьте значения и повторите попытку.",
         "txtXeneonAllDevices": "Все устройства",
-        "txtXeneonSelectSensor": "Выбрать датчик"
+        "txtXeneonSelectSensor": "Выбрать датчик",
+        "txtOpenKiosk": "Открыть режим киоска"
     }
 }

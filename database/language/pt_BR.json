@@ -725,6 +725,7 @@
     "txtXeneonWidgetSaved": "Configuração do widget salva. Atualize a tela Xeneon para aplicar as alterações.",
     "txtXeneonWidgetSaveFailed": "Não foi possível salvar a configuração do widget. Verifique os valores e tente novamente.",
     "txtXeneonAllDevices": "Todos os dispositivos",
-    "txtXeneonSelectSensor": "Selecionar sensor"
+    "txtXeneonSelectSensor": "Selecionar sensor",
+    "txtOpenKiosk": "Abrir modo quiosque"
   }
 }

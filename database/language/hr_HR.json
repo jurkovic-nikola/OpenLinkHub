@@ -725,6 +725,7 @@
     "txtXeneonWidgetSaved": "Konfiguracija widgeta je spremljena. Osvježite Xeneon zaslon kako biste primijenili promjene.",
     "txtXeneonWidgetSaveFailed": "Nije moguće spremiti konfiguraciju widgeta. Provjerite vrijednosti i pokušajte ponovno.",
     "txtXeneonAllDevices": "Svi uređaji",
-    "txtXeneonSelectSensor": "Odaberite senzor"
+    "txtXeneonSelectSensor": "Odaberite senzor",
+    "txtOpenKiosk": "Otvori kiosk način rada"
   }
 }

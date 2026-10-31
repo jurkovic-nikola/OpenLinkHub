@@ -44,12 +44,14 @@ $(document).ready(function () {
 
     // System weather
     if ($('#xeneon-weather').length) {
-        const WEATHER_REFRESH_MS = 10 * 60 * 1000;
+        const weatherWidget = $('#xeneon-weather');
+        const WEATHER_REFRESH_MS = (Number(weatherWidget.attr('data-refresh-interval')) || 10) * 60 * 1000;
+        const weatherUnit = weatherWidget.attr('data-unit') === '°F' ? '°F' : '°C';
         const FALLBACK_LOCATION = {
-            name: 'New York',
-            country: 'United States',
-            latitude: 40.7128,
-            longitude: -74.0060,
+            name: weatherWidget.attr('data-city') || 'New York',
+            country: weatherWidget.attr('data-country') || '',
+            latitude: Number(weatherWidget.attr('data-latitude')),
+            longitude: Number(weatherWidget.attr('data-longitude')),
             source: 'Fallback city'
         };
 
@@ -100,7 +102,7 @@ $(document).ready(function () {
         function resolveLocation() {
             const dfd = $.Deferred();
 
-            if (!navigator.geolocation) {
+            if (weatherWidget.attr('data-auto-weather') !== 'true' || !navigator.geolocation) {
                 dfd.resolve(FALLBACK_LOCATION);
                 return dfd.promise();
             }
@@ -153,7 +155,7 @@ $(document).ready(function () {
                 hourly: 'temperature_2m',
                 forecast_hours: 8,
                 timezone: 'auto',
-                temperature_unit: 'celsius',
+                temperature_unit: weatherUnit === '°F' ? 'fahrenheit' : 'celsius',
                 wind_speed_unit: 'kmh'
             });
         }
@@ -164,7 +166,7 @@ $(document).ready(function () {
             const [conditionLabel, icon] = weatherCodeToLabel(current.weather_code, current.is_day === 1);
 
             $('#weatherLocation').text(location.name + ', ' + location.country);
-            $('#weatherCondition').text(conditionLabel + ' · Feels like ' + Math.round(current.apparent_temperature || current.temperature_2m || 0) + '°C');
+            $('#weatherCondition').text(conditionLabel + ' · Feels like ' + Math.round(current.apparent_temperature || current.temperature_2m || 0) + weatherUnit);
             $('#weatherTemp').text(Math.round(current.temperature_2m || 0));
             $('#weatherHumidity').text(Math.round(current.relative_humidity_2m || 0) + '%');
             $('#weatherWind').text(Math.round(current.wind_speed_10m || 0) + ' km/h');
@@ -325,17 +327,19 @@ $(document).ready(function () {
             const $list = $('#xeneon-battery-status .metrics-list');
             $list.empty();
 
-            $.each(json.data.battery, function (deviceId, device) {
+            $.each(json.data.battery || {}, function (deviceId, device) {
+                const filter = $('#xeneon-battery-status').attr('data-battery-device') || '';
+                if (filter && filter !== deviceId) return;
                 const name = device.Device || deviceId;
                 const level = Math.max(0, Math.min(100, Number(device.Level) || 0));
                 const html = `
-                  <div class="metric-row" data-device-id="${deviceId}">
+                  <div class="metric-row" >
                     <span class="name"></span>
                     <span class="metric-value">${level}%</span>
                     <div class="metric-bar" style="--fill:${level}%"><span></span></div>
                   </div>
                 `;
-                const $row = $(html);
+                const $row = $(html).attr('data-device-id', deviceId);
                 $row.find('.name').text(name);
                 $list.append($row);
             });
@@ -360,6 +364,11 @@ $(document).ready(function () {
     // Calendar
     if ($('#xeneon-calendar').length) {
         let viewDate = new Date();
+        viewDate.setDate(1);
+        const sundayFirst = Number($('#xeneon-calendar').attr('data-week-start')) === 1;
+        const weekdays = sundayFirst ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        $('#xeneon-calendar .calendar-weekdays').empty();
+        weekdays.forEach(function (day) { $('<span>', {text: day}).appendTo('#xeneon-calendar .calendar-weekdays'); });
 
         function pad(n) {
             return String(n).padStart(2, '0');
@@ -398,7 +407,7 @@ $(document).ready(function () {
             const lastDay = new Date(year, month + 1, 0);
 
             // Monday-first calendar offset
-            const startOffset = (firstDay.getDay() + 6) % 7;
+            const startOffset = (firstDay.getDay() + (sundayFirst ? 0 : 6)) % 7;
 
             const prevMonthLastDay = new Date(year, month, 0).getDate();
 
@@ -480,7 +489,8 @@ $(document).ready(function () {
         }, options || {});
 
         const safeMax = Math.max(parseFloat(maxValue) || 100, 1);
-        const numericValue = parseFloat(value) || 0;
+        let numericValue = parseFloat(value) || 0;
+        if ($widget.attr('data-temperature-unit') === '°F') numericValue = numericValue * 9 / 5 + 32;
         const percent = clamp((numericValue / safeMax) * 100, 0, 100);
         const dashOffset = GAUGE_LENGTH * (1 - percent / 100);
         const formattedValue = numericValue.toFixed(settings.decimals).replace(/\.0+$/, '');
@@ -530,6 +540,40 @@ $(document).ready(function () {
     };
 
     // CPU Temp
+    const deviceWidgets = $('#xeneon-device-temp, #xeneon-device-rpm');
+    if (deviceWidgets.length) {
+        function refreshDeviceSensors() {
+            $.ajax({
+                url: '/api/xeneon/stats',
+                type: 'GET',
+                cache: false,
+                success: function (response) {
+                    deviceWidgets.each(function () {
+                        const widget = $(this);
+                        const device = response.status === 1 && response.data ? response.data[widget.attr('data-device-id')] : null;
+                        const sensor = device && device.Devices ? device.Devices[widget.attr('data-channel-id')] : null;
+                        const temperature = this.id === 'xeneon-device-temp';
+                        const value = sensor ? (temperature && sensor.TemperatureString ? Number(sensor.Temperature) : !temperature && sensor.Speed ? parseFloat(sensor.Speed) : NaN) : NaN;
+                        widget.find('.ring-progress').css('visibility', Number.isFinite(value) ? 'visible' : 'hidden');
+                        if (Number.isFinite(value)) {
+                            updateRing(widget, value, widget.data('max'));
+                        } else {
+                            updateRing(widget, 0, widget.data('max'));
+                            widget.find('.chart-temp').text('--');
+                            widget.find('.ring-progress').css('stroke-dashoffset', widget.find('.ring-progress').css('stroke-dasharray').split(' ')[0]);
+                        }
+                    });
+                },
+                error: function () {
+                    deviceWidgets.find('.chart-temp').text('--');
+                    deviceWidgets.find('.ring-progress').css('visibility', 'hidden');
+                },
+                complete: function () { setTimeout(refreshDeviceSensors, 1000); }
+            });
+        }
+        refreshDeviceSensors();
+    }
+
     if ($('#xeneon-cpu-temp').length) {
         const $widget = $("#xeneon-cpu-temp");
         setInterval(function () {
@@ -538,9 +582,8 @@ $(document).ready(function () {
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
-                    if (response.status === 1 && response.data) {
+                    if (response.status === 1 && response.data != null) {
                         updateRing($widget, response.data, $widget.data('max'));
-                        setThermalValue($widget, response.data, $widget.data('max'));
                     }
                 },
                 error: function () {
@@ -559,9 +602,8 @@ $(document).ready(function () {
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
-                    if (response.status === 1 && response.data) {
+                    if (response.status === 1 && response.data != null) {
                         updateRing($widget, response.data, $widget.data('max'));
-                        setThermalValue($widget, response.data, $widget.data('max'));
                     }
                 },
                 error: function () {
@@ -580,9 +622,8 @@ $(document).ready(function () {
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
-                    if (response.status === 1 && response.data) {
+                    if (response.status === 1 && response.data != null) {
                         updateRing($widget, response.data, $widget.data('max'));
-                        setThermalValue($widget, response.data, $widget.data('max'));
                     }
                 },
                 error: function () {
@@ -601,9 +642,8 @@ $(document).ready(function () {
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
-                    if (response.status === 1 && response.data) {
+                    if (response.status === 1 && response.data != null) {
                         updateRing($widget, response.data, $widget.data('max'));
-                        setThermalValue($widget, response.data, $widget.data('max'));
                     }
                 },
                 error: function () {

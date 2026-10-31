@@ -11,6 +11,7 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/devices/xeneonedge"
 	"OpenLinkHub/src/display"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/keyboards"
@@ -195,6 +196,7 @@ type Payload struct {
 	MacroRepeat                   int                   `json:"macroRepeat"`
 	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
 	WidgetId                      int                   `json:"widgetId"`
+	Widget                        xeneonedge.Widget     `json:"widget"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -5675,7 +5677,7 @@ func ProcessGetXeneonWidget(r *http.Request) *Payload {
 		req.WidgetId,
 	)
 
-	if len(results) > 0 {
+	if len(results) > 0 && !results[0].IsNil() {
 		return &Payload{
 			Data:   results[0].Interface(),
 			Code:   http.StatusOK,
@@ -5688,6 +5690,65 @@ func ProcessGetXeneonWidget(r *http.Request) *Payload {
 			Status: 0,
 		}
 	}
+}
+
+// ProcessSetXeneonWidgetArea will process POST request from a client to assign a widget
+func ProcessSetXeneonWidgetArea(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) || devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSetWidgetArea",
+		req.AreaId,
+		req.WidgetId,
+	)
+	if len(results) > 0 && results[0].Uint() == 1 {
+		return &Payload{Message: language.GetValue("txtXeneonWidgetSaved"), Code: http.StatusOK, Status: 1}
+	}
+
+	return &Payload{Message: language.GetValue("txtInvalidWidget"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSaveXeneonWidget will process POST request from a client to save xeneon widget data
+func ProcessSaveXeneonWidget(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if !common.AlphanumericRegex.MatchString(req.DeviceId) || devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ProcessSaveWidget",
+		req.Widget,
+	)
+	if len(results) > 0 && results[0].Uint() == 1 {
+		return &Payload{Message: language.GetValue("txtXeneonWidgetSaved"), Code: http.StatusOK, Status: 1}
+	}
+
+	return &Payload{Message: language.GetValue("txtXeneonWidgetSaveFailed"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessGetHardwareLights will process POST request from a client to get device hardware lights

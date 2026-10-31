@@ -108,15 +108,15 @@
                                     <div class="card p-3 xeneon-edge-panel d-flex justify-content-center align-items-center" style="min-height: 120px;">
                                         <div class="d-flex flex-column align-items-center gap-2">
                                             <div class="d-flex gap-2 align-items-center">
-                                                <select class="form-select system-select auto-width widget-area-select" data-area="{{ $area }}">
-                                                    <option value="0">None</option>
-
-                                                    {{ range $key, $widget := $deviceProfile.WidgetAreas }}
-                                                    {{ if $widget.Widget }}
-                                                    {{ if eq $key $area }}
-                                                    <option value="{{ $key }}" selected>{{ $widget.Widget.Name }}</option>
-                                                    {{ else }}
-                                                    <option value="{{ $key }}">{{ $widget.Widget.Name }}</option>
+                                                {{ $current := index $deviceProfile.WidgetAreas $area }}
+                                                {{ $column := 2 }}
+                                                {{ if le $area 2 }}{{ $column = 1 }}{{ else if ge $area 9 }}{{ $column = 3 }}{{ end }}
+                                                <select class="form-select system-select auto-width widget-area-select" data-area="{{ $area }}" data-value="{{ $current.WidgetId }}">
+                                                    <option value="0" {{ if eq $current.WidgetId 0 }}selected{{ end }}>None</option>
+                                                    {{ range $widget := $deviceProfile.Widgets }}
+                                                    {{ range $allowed := $widget.Columns }}
+                                                    {{ if eq $allowed $column }}
+                                                    <option value="{{ $widget.Id }}" {{ if eq $current.WidgetId $widget.Id }}selected{{ end }}>{{ $widget.Name }}</option>
                                                     {{ end }}
                                                     {{ end }}
                                                     {{ end }}

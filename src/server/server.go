@@ -625,6 +625,16 @@ func getMouseButtons(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getDeviceStats returns device temperature and speed readings
+func getDeviceStats(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   stats.GetAIOStats(),
+	}
+	resp.Send(w)
+}
+
 // getSystrayData will return systray data
 func getSystrayData(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
@@ -1269,6 +1279,28 @@ func getXeneonWidget(w http.ResponseWriter, r *http.Request) {
 		Code:   request.Code,
 		Status: request.Status,
 		Data:   request.Data,
+	}
+	resp.Send(w)
+}
+
+// setXeneonWidgetArea sets a widget area
+func setXeneonWidgetArea(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetXeneonWidgetArea(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// saveXeneonWidget saves xeneon widget configuration
+func saveXeneonWidget(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSaveXeneonWidget(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
 	}
 	resp.Send(w)
 }
@@ -2710,6 +2742,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/keyboard/getPerformance/", http.MethodGet, getKeyboardPerformance)
 	handleFunc(r, "/api/keyboard/getFlashTap/", http.MethodGet, getKeyboardFlashTap)
 	handleFunc(r, "/api/systray", http.MethodGet, getSystrayData)
+	handleFunc(r, "/api/xeneon/stats", http.MethodGet, getDeviceStats)
 	handleFunc(r, "/api/keyboard/dial/getColors/", http.MethodGet, getControlDialColors)
 	handleFunc(r, "/api/getSupportedDevices", http.MethodGet, getSupportedDevices)
 	handleFunc(r, "/api/backup", http.MethodGet, backup.PerformBackup)
@@ -2826,6 +2859,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/devices/channel", http.MethodPost, getChannelData)
 	handleFunc(r, "/api/display/update", http.MethodPost, updateDisplayData)
 	handleFunc(r, "/api/xeneon/getWidget", http.MethodPost, getXeneonWidget)
+	handleFunc(r, "/api/xeneon/saveWidget", http.MethodPost, saveXeneonWidget)
+	handleFunc(r, "/api/xeneon/setWidgetArea", http.MethodPost, setXeneonWidgetArea)
 	handleFunc(r, "/api/devices/getHardwareLights", http.MethodPost, getHardwareLights)
 	handleFunc(r, "/api/devices/setHardwareLights", http.MethodPost, setHardwareLights)
 	handleFunc(r, "/api/devices/setHardwareLight", http.MethodPost, setHardwareLight)
@@ -2866,7 +2901,7 @@ func setRoutes() http.Handler {
 		handleFunc(r, "/lcd", http.MethodGet, uiLcdOverview)
 		handleFunc(r, "/settings", http.MethodGet, uiSettings)
 		handleFunc(r, "/login", http.MethodGet, uiLogin)
-		//handleFunc(r, "/xeneon", http.MethodGet, uiXeneon)
+		handleFunc(r, "/xeneon", http.MethodGet, uiXeneon)
 	}
 	return r
 }

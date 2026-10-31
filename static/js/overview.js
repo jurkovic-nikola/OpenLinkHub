@@ -5167,13 +5167,44 @@ $(document).ready(function () {
         updateSlider();
     }
 
+    $('.widget-area-select').on('change', function () {
+        const select = $(this);
+        const previous = select.attr('data-value');
+        const pf = {};
+        pf["deviceId"] = $("#deviceId").val();
+        pf["areaId"] = parseInt(select.attr('data-area'), 10);
+        pf["widgetId"] = parseInt(select.val(), 10);
+        const json = JSON.stringify(pf, null, 2);
+        $('.widget-area-select').prop('disabled', true);
+        $.ajax({
+            url: '/api/xeneon/setWidgetArea',
+            type: 'POST',
+            contentType: 'application/json',
+            data: json,
+            cache: false,
+            success: function (response) {
+                if (response.status === 1) {
+                    location.reload();
+                } else {
+                    select.val(previous);
+                    toast.warning(response.message);
+                }
+            },
+            error: function () {
+                select.val(previous);
+                toast.warning(i18n.t('txtXeneonWidgetSaveFailed'));
+            },
+            complete: function () { $('.widget-area-select').prop('disabled', false); }
+        });
+    });
+
     $('.configureWidget').on('click', function () {
         const deviceId = $("#deviceId").val();
-        const widgetId = $(this).attr("data-info").split(';');
+        const widgetId = $(this).attr("data-info");
 
         const pf = {};
         pf["deviceId"] = deviceId;
-        pf["widgetId"] = parseInt(widgetId);
+        pf["widgetId"] = parseInt(widgetId, 10);
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({
@@ -5187,6 +5218,8 @@ $(document).ready(function () {
                         let modalElement = '';
 
                         const data = response.data;
+                        if (!data) { toast.warning(i18n.t("txtInvalidWidget")); return; }
+                        let fields = [];
                         switch (data.template) {
                             case 'xeneon-clock': {
                                 modalElement = `
@@ -5195,7 +5228,7 @@ $(document).ready(function () {
                                       <div class="modal-content">
                                 
                                         <div class="modal-header">
-                                          <h5 class="modal-title">${data.name}</h5>
+                                          <h5 class="modal-title"></h5>
                                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
@@ -5204,7 +5237,7 @@ $(document).ready(function () {
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtTimeColor')}</span>
                                                     <div class="system-color">
                                                         <label for="textColor">
-                                                            <input type="color" id="textColor" value="${data.textColor}">
+                                                            <input type="color" id="textColor" value="">
                                                         </label>
                                                     </div>
                                                 </div>
@@ -5213,7 +5246,7 @@ $(document).ready(function () {
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtDateColor')}</span>
                                                     <div class="system-color">
                                                         <label for="subTextColor">
-                                                            <input type="color" id="subTextColor" value="${data.subTextColor}">
+                                                            <input type="color" id="subTextColor" value="">
                                                         </label>
                                                     </div>
                                                 </div>
@@ -5222,7 +5255,7 @@ $(document).ready(function () {
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtTimeSize')}</span>
                                                     <div class="system-input text-input compact">
                                                         <label for="fontSize">
-                                                            <input type="text" id="fontSize" autocomplete="off" value="${data.fontSize}">
+                                                            <input type="text" id="fontSize" autocomplete="off" value="">
                                                         </label>
                                                     </div> 
                                                 </div>
@@ -5231,7 +5264,7 @@ $(document).ready(function () {
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtDateSize')}</span>
                                                     <div class="system-input text-input compact">
                                                         <label for="subFontSize">
-                                                            <input type="text" id="subFontSize" autocomplete="off" value="${data.subFontSize}">
+                                                            <input type="text" id="subFontSize" autocomplete="off" value="">
                                                         </label>
                                                     </div> 
                                                 </div>
@@ -5240,12 +5273,12 @@ $(document).ready(function () {
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtTimePosition')}</span>
                                                     <div class="system-input text-input compact max-width-120">
                                                         <label for="timePositionLeft">
-                                                            <input type="text" id="timePositionLeft" autocomplete="off" value="${data.left}">
+                                                            <input type="text" id="timePositionLeft" autocomplete="off" value="">
                                                         </label>
                                                     </div>
                                                     <div class="system-input text-input compact max-width-120">
                                                         <label for="timePositionRight">
-                                                            <input type="text" id="timePositionRight" autocomplete="off" value="${data.top}">
+                                                            <input type="text" id="timePositionRight" autocomplete="off" value="">
                                                         </label>
                                                     </div> 
                                                 </div>
@@ -5254,12 +5287,12 @@ $(document).ready(function () {
                                                     <span class="settings-label text-ellipsis">${i18n.t('txtDatePosition')}</span>
                                                     <div class="system-input text-input compact max-width-120">
                                                         <label for="datePositionLeft">
-                                                            <input type="text" id="datePositionLeft" autocomplete="off" value="${data.subLeft}">
+                                                            <input type="text" id="datePositionLeft" autocomplete="off" value="">
                                                         </label>
                                                     </div>
                                                     <div class="system-input text-input compact max-width-120">
                                                         <label for="datePositionRight">
-                                                            <input type="text" id="datePositionRight" autocomplete="off" value="${data.subTop}">
+                                                            <input type="text" id="datePositionRight" autocomplete="off" value="">
                                                         </label>
                                                     </div> 
                                                 </div>
@@ -5276,8 +5309,187 @@ $(document).ready(function () {
                                 `;
                             }
                             break;
+                            case 'xeneon-weather': {
+                                fields = [
+                                    ['autoWeather', 'txtXeneonAutoLocation', 'checkbox', false],
+                                    ['city', 'txtXeneonCity', 'text', 'New York'],
+                                    ['country', 'txtXeneonCountry', 'text', 'United States'],
+                                    ['latitude', 'txtXeneonLatitude', 'number', 40.7128, -90, 90, 'any'],
+                                    ['longitude', 'txtXeneonLongitude', 'number', -74.0060, -180, 180, 'any'],
+                                    ['unit', 'txtXeneonUnit', 'select', '°C', [['°C', '°C'], ['°F', '°F']]],
+                                    ['refreshInterval', 'txtXeneonRefresh', 'number', 10, 5, 120],
+                                    ['hideForecast', 'txtXeneonHideForecast', 'checkbox', false],
+                                    ['textColor', 'txtTextColor', 'color', '#e6e6e6'],
+                                    ['subTextColor', 'txtXeneonSecondaryColor', 'color', '#a1a1a1'],
+                                    ['fontSize', 'txtXeneonValueSize', 'number', 100, 8, 200],
+                                    ['subFontSize', 'txtXeneonLabelSize', 'number', 30, 8, 100]
+                                ];
+                            }
+                            break;
+                            case 'xeneon-media-player': {
+                                fields = [
+                                    ['textColor', 'txtTextColor', 'color', '#e6e6e6'],
+                                    ['subTextColor', 'txtXeneonSecondaryColor', 'color', '#a1a1a1'],
+                                    ['dataColor', 'txtXeneonAccentColor', 'color', '#38bdf8'],
+                                    ['fontSize', 'txtXeneonTitleSize', 'number', 20, 8, 200],
+                                    ['subFontSize', 'txtXeneonLabelSize', 'number', 20, 8, 100],
+                                    ['hideArtwork', 'txtXeneonHideArtwork', 'checkbox', false],
+                                    ['hideControls', 'txtXeneonHideControls', 'checkbox', false]
+                                ];
+                            }
+                            break;
+                            case 'xeneon-battery-status': {
+                                fields = [
+                                    ['batteryDevice', 'txtXeneonBatteryDevice', 'select', '', [['', i18n.t('txtXeneonAllDevices')]]],
+                                    ['textColor', 'txtTextColor', 'color', '#a1a1a1'],
+                                    ['subTextColor', 'txtXeneonSecondaryColor', 'color', '#e6e6e6'],
+                                    ['dataColor', 'txtXeneonAccentColor', 'color', '#198754'],
+                                    ['fontSize', 'txtXeneonTitleSize', 'number', 25, 8, 200],
+                                    ['subFontSize', 'txtXeneonValueSize', 'number', 25, 8, 100]
+                                ];
+                            }
+                            break;
+                            case 'xeneon-calendar': {
+                                fields = [
+                                    ['weekStart', 'txtXeneonWeekStart', 'select', 0, [[0, i18n.t('txtXeneonMonday')], [1, i18n.t('txtXeneonSunday')]]],
+                                    ['textColor', 'txtTextColor', 'color', '#e6e6e6'],
+                                    ['subTextColor', 'txtXeneonSecondaryColor', 'color', '#a1a1a1'],
+                                    ['dataColor', 'txtXeneonAccentColor', 'color', '#38bdf8'],
+                                    ['fontSize', 'txtXeneonTitleSize', 'number', 18, 8, 200],
+                                    ['subFontSize', 'txtXeneonDaySize', 'number', 13, 8, 100]
+                                ];
+                            }
+                            break;
+                            case 'xeneon-device-temp':
+                            case 'xeneon-device-rpm': {
+                                const temperature = data.template === 'xeneon-device-temp';
+                                fields = [
+                                    ['sensor', 'txtSensor', 'select', '', [['', i18n.t('txtXeneonSelectSensor')]]],
+                                    ['headerText', 'txtXeneonHeader', 'text', data.name],
+                                    ['max', 'txtXeneonMaximum', 'number', temperature ? 100 : 3000, 1, temperature ? 1000 : 50000],
+                                    ['unit', 'txtXeneonUnit', 'select', temperature ? '°C' : 'RPM', temperature ? [['°C', '°C'], ['°F', '°F']] : [['RPM', 'RPM']]],
+                                    ['dataColor', 'txtXeneonAccentColor', 'color', '#ffc107'],
+                                    ['textColor', 'txtTextColor', 'color', '#a1a1a1'],
+                                    ['subTextColor', 'txtXeneonSecondaryColor', 'color', '#a1a1a1'],
+                                    ['fontSize', 'txtXeneonValueSize', 'number', 80, 8, 200],
+                                    ['subFontSize', 'txtXeneonLabelSize', 'number', 15, 8, 100]
+                                ];
+                            }
+                            break;
+                            case 'xeneon-cpu-temp':
+                            case 'xeneon-cpu-load':
+                            case 'xeneon-gpu-temp':
+                            case 'xeneon-gpu-load': {
+                                const temperature = data.template.endsWith('-temp');
+                                fields = [
+                                    ['headerText', 'txtXeneonHeader', 'text', data.name],
+                                    ['max', 'txtXeneonMaximum', 'number', 100, 1, temperature ? 1000 : 100],
+                                    ['unit', 'txtXeneonUnit', 'select', temperature ? '°C' : '%', temperature ? [['°C', '°C'], ['°F', '°F']] : [['%', '%']]],
+                                    ['dataColor', 'txtXeneonAccentColor', 'color', temperature ? '#ffc107' : '#38bdf8'],
+                                    ['textColor', 'txtTextColor', 'color', '#a1a1a1'],
+                                    ['subTextColor', 'txtXeneonSecondaryColor', 'color', '#a1a1a1'],
+                                    ['fontSize', 'txtXeneonValueSize', 'number', 80, 8, 200],
+                                    ['subFontSize', 'txtXeneonLabelSize', 'number', 15, 8, 100]
+                                ];
+                            }
+                            break;
+                            default:
+                                toast.warning(i18n.t('txtInvalidWidget'));
+                                return;
                         }
-                        const modal = $(modalElement).modal('toggle');
+                        if (fields.length > 0) {
+                            modalElement = `
+                              <div class="modal fade" id="systemModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-custom modal-500">
+                                  <div class="modal-content">
+                                    <div class="modal-header">
+                                      <h5 class="modal-title"></h5>
+                                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body"><div class="settings-list"></div></div>
+                                    <div class="modal-footer">
+                                      <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                                      <button class="btn btn-primary" type="button" id="btnSaveWidget">${i18n.t('txtSave')}</button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>`;
+                        }
+                        const modal = $(modalElement);
+                        modal.find('.modal-title').text(data.name);
+
+                        fields.forEach(function (field) {
+                            const [name, label, type, fallback, min, max, step] = field;
+                            let value = data[name];
+                            if (value == null || ((type === 'color' || type === 'select') && value === '') || (type === 'number' && value === 0 && min > 0)) {
+                                value = fallback;
+                            }
+                            const row = $('<div>', {class: 'settings-row rgb-editor'});
+                            $('<span>', {class: 'settings-label text-ellipsis', text: i18n.t(label)}).appendTo(row);
+                            const input = $('<' + (type === 'select' ? 'select' : 'input') + '>', {id: name});
+                            if (type === 'select') {
+                                input.addClass('system-select auto-width max-width-300 compact');
+                                min.forEach(function (option) { $('<option>', {value: option[0], text: option[1]}).appendTo(input); });
+                                $('<label>').append(input.val(value)).appendTo(row);
+                            } else if (type === 'checkbox') {
+                                input.attr('type', 'checkbox').prop('checked', !!value);
+                                $('<label>', {class: 'system-toggle compact'}).append(input).append('<span class="toggle-track"></span>').appendTo(row);
+                            } else {
+                                input.attr({type: type, autocomplete: 'off'}).val(value);
+                                if (type === 'number') input.attr({min: min, max: max, step: step || 1, required: true});
+                                if (type === 'text') input.attr('maxlength', name === 'headerText' ? 80 : name === 'batteryDevice' ? 128 : 100);
+                                $('<div>', {class: type === 'color' ? 'system-color' : 'system-input text-input compact'})
+                                    .append($('<label>').append(input)).appendTo(row);
+                            }
+                            modal.find('.settings-list').append(row);
+                        });
+
+                        if (data.template === 'xeneon-device-temp' || data.template === 'xeneon-device-rpm') {
+                            const select = modal.find('#sensor');
+                            const selected = data.deviceId ? JSON.stringify([data.deviceId, data.channelId]) : '';
+
+                            if (selected) {
+                                $('<option>', {value: selected, text: data.deviceId + ' / ' + data.channelId}).appendTo(select);
+                                select.val(selected);
+                            }
+
+                            $.getJSON('/api/xeneon/stats', function (response) {
+                                if (response.status !== 1 || !response.data) return;
+                                $.each(response.data, function (serial, device) {
+                                    $.each(device.Devices || {}, function (channel, sensor) {
+                                        const reading = data.template === 'xeneon-device-temp' ? sensor.TemperatureString : sensor.Speed;
+                                        if (!reading) return;
+                                        const value = JSON.stringify([serial, Number(channel)]);
+                                        const label = sensor.Device + ' / ' + serial + ' / ' + channel + (sensor.Label ? ' (' + sensor.Label + ')' : '') + ' — ' + reading;
+                                        const option = select.find('option').filter(function () { return this.value === value; });
+                                        if (option.length) option.text(label);
+                                        else $('<option>', {value: value, text: label}).appendTo(select);
+                                    });
+                                });
+                            });
+                        }
+
+                        if (data.template === 'xeneon-battery-status') {
+                            const select = modal.find('#batteryDevice');
+                            if (data.batteryDevice) {
+                                $('<option>', {value: data.batteryDevice, text: data.batteryDevice}).appendTo(select);
+                                select.val(data.batteryDevice);
+                            }
+
+                            $.getJSON('/api/systray', function (response) {
+                                if (response.status !== 1 || !response.data) return;
+                                $.each(response.data.battery || {}, function (id, device) {
+                                    const option = select.find('option').filter(function () { return this.value === id; });
+                                    if (option.length) option.text(device.Device || id);
+                                    else $('<option>', {value: id, text: device.Device || id}).appendTo(select);
+                                });
+                            });
+                        }
+                        const clockFields = {textColor: 'textColor', subTextColor: 'subTextColor', fontSize: 'fontSize', subFontSize: 'subFontSize', timePositionLeft: 'left', timePositionRight: 'top', datePositionLeft: 'subLeft', datePositionRight: 'subTop'};
+                        if (data.template === 'xeneon-clock') {
+                            Object.entries(clockFields).forEach(function ([id, name]) { modal.find('#' + id).val(data[name]); });
+                        }
+                        modal.modal('toggle');
 
                         modal.on('hidden.bs.modal', function () {
                             modal.data('bs.modal', null);
@@ -5286,7 +5498,50 @@ $(document).ready(function () {
 
                         modal.on('shown.bs.modal', function (e) {
                             modal.find('#btnSaveWidget').on('click', function () {
-                                
+                                const widget = {id: data.id};
+                                let valid = true;
+                                fields.forEach(function (field) {
+                                    const input = modal.find('#' + field[0]);
+                                    if (!input[0].checkValidity()) { input[0].reportValidity(); valid = false; }
+                                    widget[field[0]] = field[2] === 'checkbox' ? input.is(':checked') : field[2] === 'number' || field[0] === 'weekStart' ? Number(input.val()) : input.val();
+                                });
+                                if (data.template === 'xeneon-clock') {
+                                    Object.entries(clockFields).forEach(function ([id, name]) {
+                                        widget[name] = name.endsWith('Color') ? modal.find('#' + id).val() : Number(modal.find('#' + id).val());
+                                    });
+                                }
+                                if (data.template === 'xeneon-device-temp' || data.template === 'xeneon-device-rpm') {
+                                    const sensor = widget.sensor ? JSON.parse(widget.sensor) : ['', 0];
+                                    widget.deviceId = sensor[0];
+                                    widget.channelId = sensor[1];
+                                    delete widget.sensor;
+                                }
+                                if (!valid) return;
+                                const button = $(this).prop('disabled', true);
+
+                                const pf = {};
+                                pf["deviceId"] = deviceId;
+                                pf["widget"] = widget;
+                                const json = JSON.stringify(pf, null, 2);
+                                $.ajax({
+                                    url: '/api/xeneon/saveWidget',
+                                    type: 'POST',
+                                    data: json,
+                                    contentType: 'application/json',
+                                    cache: false,
+                                    success: function (response) {
+                                        if (response.status === 1) {
+                                            toast.success(response.message);
+                                            modal.modal('hide');
+                                        } else {
+                                            toast.warning(response.message);
+                                        }
+                                    },
+                                    error: function () {
+                                        toast.warning(i18n.t('txtXeneonWidgetSaveFailed'));
+                                    },
+                                    complete: function () { button.prop('disabled', false); }
+                                });
                             });
                         })
                     } else {

@@ -125,6 +125,7 @@ import (
 	"OpenLinkHub/src/devices/voidV2dongle"
 	"OpenLinkHub/src/devices/voidelitedongle"
 	"OpenLinkHub/src/devices/xc7"
+	"OpenLinkHub/src/devices/xeneonedge"
 	"OpenLinkHub/src/dispatcher"
 	"OpenLinkHub/src/inputmanager"
 	"OpenLinkHub/src/logger"
@@ -930,7 +931,7 @@ var deviceRegisterMap = map[uint16]Product{
 	14853: {4, 0, "SCUF ENVISION PRO V2", scufenvisionproV2WU.Init, nil},   // SCUF Envision Pro Controller V2
 	17230: {4, 0, "SCUF PC Controller Dongle", nil, scufdongle.Init},       // SCUF Gaming SCUF PC Controller Dongle
 	14856: {4, 0, "SCUF PC Controller Dongle V2", nil, scufdongleV2.Init},  // SCUF Envision Pro Wireless USB Receiver V2
-	//7437:  {0, 0, "XENEON EDGE", xeneonedge.Init, nil},                     // XENEON EDGE
+	7437:  {0, 0, "XENEON EDGE", xeneonedge.Init, nil},                     // XENEON EDGE
 }
 
 // initializeDevice will initialize a device

@@ -621,3 +621,79 @@ code {
 .calendar-day.is-weekend:not(.is-today) {
     color: rgba(125, 211, 252, 0.9);
 }
+#xeneon-weather .weather-temp {
+    color: var(--widget-text, var(--text-main));
+    font-size: var(--widget-font-size, 100px);
+}
+
+#xeneon-weather .weather-location {
+    color: var(--widget-subtext, var(--text-muted));
+    font-size: var(--widget-subfont-size, 30px);
+}
+
+#xeneon-weather .weather-condition,
+#xeneon-weather .weather-stat .label {
+    color: var(--widget-subtext, var(--text-muted));
+}
+
+#xeneon-media-player .track-title {
+    color: var(--widget-text, var(--text-main));
+    font-size: var(--widget-font-size, 20px);
+}
+
+#xeneon-media-player .track-artist,
+#xeneon-media-player .progress-times {
+    color: var(--widget-subtext, var(--text-muted));
+    font-size: var(--widget-subfont-size, 20px);
+}
+
+#xeneon-media-player .progress-line span {
+    background: var(--widget-accent, #38bdf8);
+}
+
+#xeneon-battery-status .metric-row .name {
+    color: var(--widget-text, var(--text-muted));
+    font-size: var(--widget-font-size, 25px);
+}
+
+#xeneon-battery-status .metric-value {
+    color: var(--widget-subtext, var(--text-main));
+    font-size: var(--widget-subfont-size, 25px);
+}
+
+#xeneon-battery-status .metric-bar span {
+    background: var(--widget-accent, #198754);
+}
+
+#xeneon-calendar .calendar-month {
+    color: var(--widget-text, var(--text-main));
+    font-size: var(--widget-font-size, 18px);
+}
+
+#xeneon-calendar .calendar-day {
+    color: var(--widget-subtext, var(--text-muted));
+    font-size: var(--widget-subfont-size, 13px);
+}
+
+#xeneon-calendar .calendar-day.is-muted {
+    opacity: 0.35;
+}
+
+#xeneon-calendar .calendar-day.is-weekend:not(.is-today) {
+    color: var(--widget-accent, #7dd3fc);
+}
+
+#xeneon-calendar .calendar-day.is-today {
+    color: #fff;
+    background: var(--widget-accent, #38bdf8);
+}
+
+.thermal-widget .chart-temp,
+.thermal-widget .chart-load {
+    font-size: var(--widget-font-size, 80px);
+}
+
+.thermal-widget .big-label {
+    color: var(--widget-subtext, var(--text-muted));
+    font-size: var(--widget-subfont-size, 15px);
+}

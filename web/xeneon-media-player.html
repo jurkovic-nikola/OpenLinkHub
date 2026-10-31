@@ -2,11 +2,11 @@
 {{ $root := .Root }}
 {{ $widgetArea := .WidgetArea }}
 {{ $widget := $widgetArea.Widget }}
-<div class="edge-panel compact" id="xeneon-media-player">
+<div class="edge-panel compact" id="xeneon-media-player" style="{{ if $widget.TextColor }}--widget-text: {{ $widget.TextColor }};{{ end }}{{ if $widget.SubTextColor }}--widget-subtext: {{ $widget.SubTextColor }};{{ end }}{{ if $widget.DataColor }}--widget-accent: {{ $widget.DataColor }};{{ end }}{{ if gt $widget.FontSize 0 }}--widget-font-size: {{ $widget.FontSize }}px;{{ end }}{{ if gt $widget.SubFontSize 0 }}--widget-subfont-size: {{ $widget.SubFontSize }}px;{{ end }}">
     <div class="card system-card">
         <div class="card-body">
             <div class="now-playing">
-                <div class="album-art"></div>
+                <div class="album-art" {{ if $widget.HideArtwork }}style="display: none;"{{ end }}></div>
                 <div class="album-left text-ellipsis">
                     <div class="track-title text-ellipsis" id="trackTitle">N/A</div>
                     <div class="track-artist" id="tractArtist">N/A</div>
@@ -15,7 +15,7 @@
                 </div>
             </div>
 
-            <div class="settings-list top-10">
+            <div class="settings-list top-10" {{ if $widget.HideControls }}style="display: none;"{{ end }}>
                 <div class="settings-row">
                     <button class="system-button center media-button" data-info="1">PREVIOUS</button>
                     <button class="system-button center media-button" data-info="2">STOP</button>

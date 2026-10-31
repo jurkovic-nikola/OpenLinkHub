@@ -2,7 +2,7 @@
 {{ $root := .Root }}
 {{ $widgetArea := .WidgetArea }}
 {{ $widget := $widgetArea.Widget }}
-<div class="card system-card thermal-widget" id="xeneon-gpu-load" data-value="0" data-max="{{ $widget.Max }}" data-color="{{ $widget.DataColor }}">
+<div class="card system-card thermal-widget" id="xeneon-gpu-load" style="{{ if $widget.TextColor }}--widget-text: {{ $widget.TextColor }};{{ end }}{{ if $widget.SubTextColor }}--widget-subtext: {{ $widget.SubTextColor }};{{ end }}{{ if $widget.DataColor }}--widget-accent: {{ $widget.DataColor }};{{ end }}{{ if gt $widget.FontSize 0 }}--widget-font-size: {{ $widget.FontSize }}px;{{ end }}{{ if gt $widget.SubFontSize 0 }}--widget-subfont-size: {{ $widget.SubFontSize }}px;{{ end }}" data-value="0" data-max="{{ $widget.Max }}" data-color="{{ $widget.DataColor }}">
     <div class="card-body">
         <div class="thermal-meta">
             <div class="big-label">{{ $widget.HeaderText }}</div>

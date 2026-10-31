@@ -66,6 +66,7 @@ func UpdateDeviceStats(serial, name, temp, speed, label string, channelId int, t
 
 	if data, ok := stats[serial]; ok {
 		data.Devices[channelId] = Device{
+			Label:             label,
 			Device:            name,
 			TemperatureString: temp,
 			Temperature:       temperature,
@@ -76,6 +77,7 @@ func UpdateDeviceStats(serial, name, temp, speed, label string, channelId int, t
 		stats[serial] = DeviceList{
 			Devices: map[int]Device{
 				channelId: {
+					Label:             label,
 					Device:            name,
 					TemperatureString: temp,
 					Temperature:       temperature,

@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sstallion/go-hid"
+	"math"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -49,28 +51,36 @@ type Device struct {
 }
 
 type Widget struct {
-	Id           int     `json:"id"`
-	Name         string  `json:"name"`
-	Template     string  `json:"template"`
-	Columns      []int   `json:"columns"`
-	City         string  `json:"city"`
-	Country      string  `json:"country"`
-	Latitude     float64 `json:"latitude"`
-	Longitude    float64 `json:"longitude"`
-	Source       string  `json:"source"`
-	AutoWeather  bool    `json:"autoWeather"`
-	DataColor    string  `json:"dataColor"`
-	Max          int     `json:"max"`
-	HeaderText   string  `json:"headerText"`
-	Unit         string  `json:"unit"`
-	TextColor    string  `json:"textColor"`
-	FontSize     int     `json:"fontSize"`
-	SubTextColor string  `json:"subTextColor"`
-	SubFontSize  int     `json:"subFontSize"`
-	Left         int     `json:"left"`
-	Top          int     `json:"top"`
-	SubLeft      int     `json:"subLeft"`
-	SubTop       int     `json:"subTop"`
+	Id              int     `json:"id"`
+	Name            string  `json:"name"`
+	Template        string  `json:"template"`
+	Columns         []int   `json:"columns"`
+	City            string  `json:"city"`
+	Country         string  `json:"country"`
+	Latitude        float64 `json:"latitude"`
+	Longitude       float64 `json:"longitude"`
+	Source          string  `json:"source"`
+	AutoWeather     bool    `json:"autoWeather"`
+	DataColor       string  `json:"dataColor"`
+	Max             int     `json:"max"`
+	HeaderText      string  `json:"headerText"`
+	Unit            string  `json:"unit"`
+	TextColor       string  `json:"textColor"`
+	FontSize        int     `json:"fontSize"`
+	SubTextColor    string  `json:"subTextColor"`
+	SubFontSize     int     `json:"subFontSize"`
+	Left            int     `json:"left"`
+	Top             int     `json:"top"`
+	SubLeft         int     `json:"subLeft"`
+	SubTop          int     `json:"subTop"`
+	HideForecast    bool    `json:"hideForecast"`
+	RefreshInterval int     `json:"refreshInterval"`
+	HideArtwork     bool    `json:"hideArtwork"`
+	HideControls    bool    `json:"hideControls"`
+	BatteryDevice   string  `json:"batteryDevice"`
+	DeviceId        string  `json:"deviceId"`
+	ChannelId       int     `json:"channelId"`
+	WeekStart       int     `json:"weekStart"`
 }
 
 var (
@@ -257,21 +267,238 @@ func (d *Device) getWidget(widgetId int) *Widget {
 
 // ProcessGetWidget will return widget data
 func (d *Device) ProcessGetWidget(widgetId int) interface{} {
-	if d.DeviceProfile == nil {
+	if d.DeviceProfile == nil || d.getWidget(widgetId) == nil {
 		return nil
 	}
 
-	for _, widget := range d.DeviceProfile.WidgetAreas {
-		if widget.Widget == nil {
-			continue
-		}
-		
-		if widget.Widget.Id == widgetId {
-			return widget.Widget
+	for _, area := range d.DeviceProfile.WidgetAreas {
+		if area.Widget != nil && area.Widget.Id == widgetId {
+			widget := *area.Widget
+			return &widget
 		}
 	}
 
-	return nil
+	for _, widget := range d.DeviceProfile.Widgets {
+		if widget.Id == widgetId {
+			return &widget
+		}
+	}
+
+	return d.getWidget(widgetId)
+}
+
+// ProcessSaveWidget will save widget configuration
+func (d *Device) ProcessSaveWidget(value Widget) uint8 {
+	current, ok := d.ProcessGetWidget(value.Id).(*Widget)
+	if !ok || current == nil {
+		return 0
+	}
+
+	widget := *current
+	colorPattern := regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+	if !colorPattern.MatchString(value.TextColor) || !colorPattern.MatchString(value.SubTextColor) ||
+		value.FontSize < 8 || value.FontSize > 200 || value.SubFontSize < 8 || value.SubFontSize > 100 {
+		return 0
+	}
+
+	widget.TextColor = value.TextColor
+	widget.SubTextColor = value.SubTextColor
+	widget.FontSize = value.FontSize
+	widget.SubFontSize = value.SubFontSize
+
+	switch current.Template {
+	case "xeneon-clock":
+		{
+			if value.Left < 0 || value.Left > 1000 || value.Top < 0 || value.Top > 500 ||
+				value.SubLeft < 0 || value.SubLeft > 1000 || value.SubTop < 0 || value.SubTop > 500 {
+				return 0
+			}
+
+			widget.Left, widget.Top = value.Left, value.Top
+			widget.SubLeft, widget.SubTop = value.SubLeft, value.SubTop
+		}
+		break
+	case "xeneon-weather":
+		{
+			if len(strings.TrimSpace(value.City)) == 0 || len(value.City) > 100 || len(value.Country) > 100 ||
+				math.IsNaN(value.Latitude) || math.IsInf(value.Latitude, 0) || value.Latitude < -90 || value.Latitude > 90 ||
+				math.IsNaN(value.Longitude) || math.IsInf(value.Longitude, 0) || value.Longitude < -180 || value.Longitude > 180 ||
+				value.RefreshInterval < 5 || value.RefreshInterval > 120 || (value.Unit != "°C" && value.Unit != "°F") {
+				return 0
+			}
+
+			widget.City, widget.Country = strings.TrimSpace(value.City), strings.TrimSpace(value.Country)
+			widget.Latitude, widget.Longitude = value.Latitude, value.Longitude
+			widget.AutoWeather, widget.HideForecast = value.AutoWeather, value.HideForecast
+			widget.RefreshInterval, widget.Unit = value.RefreshInterval, value.Unit
+		}
+		break
+	case "xeneon-media-player":
+		{
+			if !colorPattern.MatchString(value.DataColor) {
+				return 0
+			}
+
+			widget.DataColor = value.DataColor
+			widget.HideArtwork, widget.HideControls = value.HideArtwork, value.HideControls
+		}
+		break
+	case "xeneon-battery-status":
+		{
+			if !colorPattern.MatchString(value.DataColor) || len(value.BatteryDevice) > 128 {
+				return 0
+			}
+
+			widget.DataColor, widget.BatteryDevice = value.DataColor, value.BatteryDevice
+		}
+		break
+	case "xeneon-calendar":
+		{
+			if !colorPattern.MatchString(value.DataColor) || value.WeekStart < 0 || value.WeekStart > 1 {
+				return 0
+			}
+
+			widget.DataColor, widget.WeekStart = value.DataColor, value.WeekStart
+		}
+		break
+	case "xeneon-device-temp", "xeneon-device-rpm":
+		{
+			if !colorPattern.MatchString(value.DataColor) || value.Max < 1 || value.Max > 50000 ||
+				len(strings.TrimSpace(value.HeaderText)) == 0 || len(value.HeaderText) > 80 ||
+				len(value.DeviceId) > 128 || value.ChannelId < 0 {
+				return 0
+			}
+
+			if current.Template == "xeneon-device-temp" {
+				if (value.Unit != "°C" && value.Unit != "°F") || value.Max > 1000 {
+					return 0
+				}
+			} else if value.Unit != "RPM" {
+				return 0
+			}
+
+			widget.DeviceId, widget.ChannelId = value.DeviceId, value.ChannelId
+			widget.DataColor, widget.Max = value.DataColor, value.Max
+			widget.HeaderText, widget.Unit = strings.TrimSpace(value.HeaderText), value.Unit
+		}
+		break
+	case "xeneon-cpu-temp", "xeneon-gpu-temp", "xeneon-cpu-load", "xeneon-gpu-load":
+		{
+			if !colorPattern.MatchString(value.DataColor) || value.Max < 1 || value.Max > 1000 ||
+				len(strings.TrimSpace(value.HeaderText)) == 0 || len(value.HeaderText) > 80 {
+				return 0
+			}
+
+			if strings.HasSuffix(current.Template, "-temp") {
+				if value.Unit != "°C" && value.Unit != "°F" {
+					return 0
+				}
+			} else if value.Unit != "%" || value.Max > 100 {
+				return 0
+			}
+
+			widget.DataColor, widget.Max = value.DataColor, value.Max
+			widget.HeaderText, widget.Unit = strings.TrimSpace(value.HeaderText), value.Unit
+		}
+		break
+	default:
+		return 0
+	}
+
+	profile := *d.DeviceProfile
+	profile.Widgets = append([]Widget(nil), profile.Widgets...)
+
+	found := false
+	for i := range profile.Widgets {
+		if profile.Widgets[i].Id == widget.Id {
+			profile.Widgets[i] = widget
+			found = true
+		}
+	}
+	if !found {
+		profile.Widgets = append(profile.Widgets, widget)
+	}
+
+	profile.WidgetAreas = make(map[int]WidgetArea, len(d.DeviceProfile.WidgetAreas))
+	for key, area := range d.DeviceProfile.WidgetAreas {
+		if area.WidgetId == widget.Id {
+			cp := widget
+			area.Widget = &cp
+		}
+		profile.WidgetAreas[key] = area
+	}
+
+	if err := common.SaveJsonData(profile.Path, &profile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profile.Path}).Error("Unable to save widget configuration")
+		return 0
+	}
+
+	d.loadDeviceProfiles()
+	return 1
+}
+
+// ProcessSetWidgetArea will assign a widget to an area
+func (d *Device) ProcessSetWidgetArea(areaId, widgetId int) uint8 {
+	if d.DeviceProfile == nil || areaId < 1 || areaId > 11 || widgetId < 0 {
+		return 0
+	}
+
+	column := 2
+	if areaId <= 2 {
+		column = 1
+	} else if areaId >= 9 {
+		column = 3
+	}
+
+	area := WidgetArea{}
+	if widgetId != 0 {
+		definition := d.getWidget(widgetId)
+		if definition == nil {
+			return 0
+		}
+		
+		allowed := false
+		for _, value := range definition.Columns {
+			if value == column {
+				allowed = true
+			}
+		}
+		if !allowed {
+			return 0
+		}
+
+		widget, ok := d.ProcessGetWidget(widgetId).(*Widget)
+		if !ok || widget == nil {
+			return 0
+		}
+
+		cp := *widget
+		area = WidgetArea{WidgetId: widgetId, Widget: &cp}
+	}
+
+	profile := *d.DeviceProfile
+	profile.WidgetAreas = make(map[int]WidgetArea, len(d.DeviceProfile.WidgetAreas))
+	for key, value := range d.DeviceProfile.WidgetAreas {
+		profile.WidgetAreas[key] = value
+	}
+
+	previous := profile.WidgetAreas[areaId]
+	if widgetId != 0 {
+		for key, value := range profile.WidgetAreas {
+			if key != areaId && value.WidgetId == widgetId {
+				profile.WidgetAreas[key] = previous
+			}
+		}
+	}
+
+	profile.WidgetAreas[areaId] = area
+	if err := common.SaveJsonData(profile.Path, &profile); err != nil {
+		logger.Log(logger.Fields{"error": err, "location": profile.Path}).Error("Unable to save widget area")
+		return 0
+	}
+
+	d.loadDeviceProfiles()
+	return 1
 }
 
 // saveDeviceProfile will save device profile for persistent configuration
@@ -430,6 +657,19 @@ func (d *Device) loadDeviceProfiles() {
 		}
 
 		if pf.Serial == d.Serial {
+			for _, widget := range d.Widgets {
+				found := false
+				for _, saved := range pf.Widgets {
+					if saved.Id == widget.Id {
+						found = true
+						break
+					}
+				}
+				if !found {
+					pf.Widgets = append(pf.Widgets, widget)
+				}
+			}
+
 			if fileName == d.Serial {
 				profileList["default"] = pf
 			} else {

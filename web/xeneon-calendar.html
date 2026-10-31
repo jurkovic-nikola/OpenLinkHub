@@ -2,7 +2,7 @@
 {{ $root := .Root }}
 {{ $widgetArea := .WidgetArea }}
 {{ $widget := $widgetArea.Widget }}
-<div class="edge-panel compact" id="xeneon-calendar">
+<div class="edge-panel compact" id="xeneon-calendar" style="{{ if $widget.TextColor }}--widget-text: {{ $widget.TextColor }};{{ end }}{{ if $widget.SubTextColor }}--widget-subtext: {{ $widget.SubTextColor }};{{ end }}{{ if $widget.DataColor }}--widget-accent: {{ $widget.DataColor }};{{ end }}{{ if gt $widget.FontSize 0 }}--widget-font-size: {{ $widget.FontSize }}px;{{ end }}{{ if gt $widget.SubFontSize 0 }}--widget-subfont-size: {{ $widget.SubFontSize }}px;{{ end }}" data-week-start="{{ $widget.WeekStart }}">
     <div class="card system-card">
         <div class="card-body">
             <div class="calendar-box">

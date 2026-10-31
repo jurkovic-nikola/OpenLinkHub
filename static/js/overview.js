@@ -1857,6 +1857,117 @@ $(document).ready(function () {
         });
     });
 
+    $('#contrastSlider').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const contrast = $(this).val();
+        const contrastValue = parseInt(contrast);
+
+        if (contrastValue < 0 || contrastValue > 100) {
+            toast.warning(i18n.t('txtInvalidContrastValue'));
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["contrast"] = contrastValue;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/contrast/gradual',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('#backlightSlider').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const backlight = $(this).val();
+        const backlightValue = parseInt(backlight);
+
+        if (backlightValue < 0 || backlightValue > 100) {
+            toast.warning(i18n.t('txtInvalidBacklightValue'));
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["backlight"] = backlightValue;
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/backlight/gradual',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
+    $('#colorToneRedSlider, #colorToneGreenSlider, #colorToneBlueSlider').on('change', function () {
+        const deviceId = $("#deviceId").val();
+        const colorTone = Number($(this).val());
+
+        const colorToneTypes = {
+            colorToneRedSlider: 0,
+            colorToneGreenSlider: 1,
+            colorToneBlueSlider: 2
+        };
+
+        if (!Number.isInteger(colorTone) || colorTone < 0 || colorTone > 255) {
+            toast.warning(i18n.t('txtInvalidColorToneValue'));
+            return false;
+        }
+
+        const pf = {};
+        pf["deviceId"] = deviceId;
+        pf["colorTone"] = colorTone;
+        pf["colorToneType"] = colorToneTypes[this.id];
+
+        const json = JSON.stringify(pf, null, 2);
+
+        $.ajax({
+            url: '/api/colortone',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        toast.success(response.message);
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.saveUserProfile').on('click', function () {
         const modalElement = `
             <div class="modal fade text-start" id="systemModal" tabindex="-1" aria-hidden="true">
@@ -5151,20 +5262,105 @@ $(document).ready(function () {
 
     const $brightnessSlider = $("#brightnessSlider");
     const $brightnessSliderValue = $("#brightnessSliderValue");
-    function updateSlider() {
-        const min = Number($brightnessSlider.attr("min"));
-        const max = Number($brightnessSlider.attr("max"));
-        const value = Number($brightnessSlider.val());
+
+    const $contrastSlider = $("#contrastSlider");
+    const $contrastSliderValue = $("#contrastSliderValue");
+
+    const $backlightSlider = $("#backlightSlider");
+    const $backlightSliderValue = $("#backlightSliderValue");
+
+    const $colorToneRedSlider = $("#colorToneRedSlider");
+    const $colorToneRedSliderValue = $("#colorToneRedSliderValue");
+
+    const $colorToneGreenSlider = $("#colorToneGreenSlider");
+    const $colorToneGreenSliderValue = $("#colorToneGreenSliderValue");
+
+    const $colorToneBlueSlider = $("#colorToneBlueSlider");
+    const $colorToneBlueSliderValue = $("#colorToneBlueSliderValue");
+    
+    function updateSlider(obj, val) {
+        const min = Number(obj.attr("min"));
+        const max = Number(obj.attr("max"));
+        const value = Number(obj.val());
 
         const percent = ((value - min) / (max - min)) * 100;
 
-        $brightnessSlider.css("--slider-progress", percent + "%");
-        $brightnessSliderValue.text(value + " %");
+        obj.css("--slider-progress", percent + "%");
+        val.text(value + " %");
+    }
+
+    function updateSliderColor(obj, val, type) {
+        const min = Number(obj.attr("min"));
+        const max = Number(obj.attr("max"));
+        const value = Number(obj.val());
+
+        const percent = ((value - min) / (max - min)) * 100;
+
+        obj.css("--slider-progress", percent + "%");
+
+        let color;
+
+        switch (type) {
+            case 'red':
+                color = "rgb(" + value + ", 0, 0)";
+                break;
+            case 'green':
+                color = "rgb(0, " + value + ", 0)";
+                break;
+            case 'blue':
+                color = "rgb(0, 0, " + value + ")";
+                break;
+        }
+
+        if (color) {
+            obj.css("--green", color);
+            obj.css("--good", color);
+            obj.css("background", "transparent");
+        }
+
+        val.text(value);
     }
 
     if ($brightnessSlider.length) {
-        $brightnessSlider.on("input", updateSlider);
-        updateSlider();
+        $brightnessSlider.on("input", function () {
+            updateSlider($brightnessSlider, $brightnessSliderValue);
+        });
+        updateSlider($brightnessSlider, $brightnessSliderValue);
+    }
+
+    if ($contrastSlider.length) {
+        $contrastSlider.on("input", function () {
+            updateSlider($contrastSlider, $contrastSliderValue);
+        });
+        updateSlider($contrastSlider, $contrastSliderValue);
+    }
+
+    if ($backlightSlider.length) {
+        $backlightSlider.on("input", function () {
+            updateSlider($backlightSlider, $backlightSliderValue);
+        });
+        updateSlider($backlightSlider, $backlightSliderValue);
+    }
+
+    if ($colorToneRedSlider.length) {
+        $colorToneRedSlider.on("input", function () {
+            updateSliderColor($colorToneRedSlider, $colorToneRedSliderValue, 'red');
+        });
+        updateSliderColor($colorToneRedSlider, $colorToneRedSliderValue, 'red');
+    }
+
+    if ($colorToneGreenSlider.length) {
+        $colorToneGreenSlider.on("input", function () {
+            updateSliderColor($colorToneGreenSlider, $colorToneGreenSliderValue, 'green');
+        });
+        updateSliderColor($colorToneGreenSlider, $colorToneGreenSliderValue, 'green');
+    }
+
+    if ($colorToneBlueSlider.length) {
+        $colorToneBlueSlider.on("input", function () {
+            updateSliderColor($colorToneBlueSlider, $colorToneBlueSliderValue, 'blue');
+        });
+        updateSliderColor($colorToneBlueSlider, $colorToneBlueSliderValue, 'blue');
     }
 
     $('.widget-area-select').on('change', function () {

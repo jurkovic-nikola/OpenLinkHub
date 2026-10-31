@@ -9,23 +9,29 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
 	"encoding/json"
-	"fmt"
 	"github.com/sstallion/go-hid"
 	"math"
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // DeviceProfile struct contains all device profile
 type DeviceProfile struct {
-	Active      bool
-	Path        string
-	Product     string
-	Serial      string
-	WidgetAreas map[int]WidgetArea
-	RgbOff      bool
-	Widgets     []Widget `json:"widgets"`
+	Active         bool
+	Path           string
+	Product        string
+	Serial         string
+	WidgetAreas    map[int]WidgetArea
+	RgbOff         bool
+	Widgets        []Widget `json:"widgets"`
+	Brightness     int
+	Backlight      int
+	Contrast       int
+	ColorToneRed   int
+	ColorToneGreen int
+	ColorToneBlue  int
 }
 
 type WidgetArea struct {
@@ -44,10 +50,12 @@ type Device struct {
 	Widgets         []Widget                  `json:"widgets"`
 	DeviceProfile   *DeviceProfile
 	OriginalProfile *DeviceProfile
+	mutex           sync.Mutex
 	Template        string
 	VendorId        uint16
 	ProductId       uint16
 	instance        *common.Device
+	Exit            bool
 }
 
 type Widget struct {
@@ -84,7 +92,26 @@ type Widget struct {
 }
 
 var (
-	pwd = ""
+	pwd             = ""
+	bufferSize      = 64
+	bufferSizeWrite = bufferSize + 1
+	headerSize      = 7
+	cmdBacklight    = []byte{0x02, 0x00}
+	cmdContrast     = []byte{0x02, 0x01}
+	cmdBrightness   = []byte{0x02, 0x02}
+	cmdColorTones   = map[int][]byte{
+		0: {0x03, 0x01},
+		1: {0x03, 0x02},
+		2: {0x03, 0x03},
+	}
+	dataTypeRed        = byte(150)
+	dataTypeGreen      = byte(126)
+	dataTypeBlue       = byte(140)
+	dataTypeColorTones = map[int]byte{
+		0: dataTypeRed,
+		1: dataTypeGreen,
+		2: dataTypeBlue,
+	}
 )
 
 func Init(vendorId, productId uint16, _, path string) *common.Device {
@@ -107,13 +134,17 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		Product:   "XENEON EDGE",
 	}
 
-	d.getDebugMode()       // Debug mode
-	d.getManufacturer()    // Manufacturer
-	d.getSerial()          // Serial
-	d.loadWidgets()        // Widgets
-	d.loadDeviceProfiles() // Load all device profiles
-	d.saveDeviceProfile()  // Save profile
-	d.createDevice()       // Device register
+	d.getDebugMode()        // Debug mode
+	d.getManufacturer()     // Manufacturer
+	d.getSerial()           // Serial
+	d.loadWidgets()         // Widgets
+	d.loadDeviceProfiles()  // Load all device profiles
+	d.saveDeviceProfile()   // Save profile
+	d.setDeviceBrightness() // Brightness
+	d.setDeviceContrast()   // Contrast
+	d.setDeviceBacklight()  // Backlight
+	d.setDeviceColortone()  // Color tone
+	d.createDevice()        // Device register
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 	return d.instance
 }
@@ -132,6 +163,9 @@ func (d *Device) createDevice() {
 
 // Stop will stop all device operations and switch a device back to hardware mode
 func (d *Device) Stop() {
+	d.Exit = true
+	d.setScreenToDefault()
+
 	if d.dev != nil {
 		err := d.dev.Close()
 		if err != nil {
@@ -143,8 +177,15 @@ func (d *Device) Stop() {
 
 // StopDirty will stop device in a dirty way
 func (d *Device) StopDirty() uint8 {
+	if d.dev != nil {
+		err := d.dev.Close()
+		if err != nil {
+			return 2
+		}
+	}
+
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
-	return 1
+	return 2
 }
 
 // getManufacturer will return device manufacturer
@@ -184,7 +225,6 @@ func (d *Device) loadWidgets() {
 
 	reader := json.NewDecoder(file)
 	if err := reader.Decode(&d); err != nil {
-		fmt.Println(err)
 		logger.Log(logger.Fields{"error": err, "location": location}).Warn("Unable to decode widgets file")
 		return
 	}
@@ -207,6 +247,10 @@ func (d *Device) ChangeDeviceProfile(profileName string) uint8 {
 		newProfile.Active = true
 		d.DeviceProfile = newProfile
 		d.saveDeviceProfile()
+		d.setDeviceBacklight()
+		d.setDeviceContrast()
+		d.setDeviceBrightness()
+		d.setDeviceColortone()
 		return 1
 	}
 	return 0
@@ -249,6 +293,78 @@ func (d *Device) SaveUserProfile(profileName string) uint8 {
 		return 1
 	}
 	return 0
+}
+
+// ChangeDeviceBrightnessValue will change device brightness via slider
+func (d *Device) ChangeDeviceBrightnessValue(value uint8) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.Brightness = int(value)
+	d.saveDeviceProfile()
+	d.setDeviceBrightness()
+	return 1
+}
+
+// ChangeDeviceContrastValue will change device contrast via slider
+func (d *Device) ChangeDeviceContrastValue(value uint8) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if value < 0 || value > 100 {
+		return 0
+	}
+
+	d.DeviceProfile.Contrast = int(value)
+	d.saveDeviceProfile()
+	d.setDeviceContrast()
+	return 1
+}
+
+// ChangeDeviceBacklightValue will change device backlight via slider
+func (d *Device) ChangeDeviceBacklightValue(value uint8) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	d.DeviceProfile.Backlight = int(value)
+	d.saveDeviceProfile()
+	d.setDeviceBacklight()
+	return 1
+}
+
+// ChangeDeviceColorToneValue will change device color tone via slider
+func (d *Device) ChangeDeviceColorToneValue(value, valueType int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+
+	if value < 0 || value > 255 {
+		return 0
+	}
+
+	switch valueType {
+	case 0:
+		d.DeviceProfile.ColorToneRed = value
+		break
+	case 1:
+		d.DeviceProfile.ColorToneGreen = value
+		break
+	case 2:
+		d.DeviceProfile.ColorToneBlue = value
+		break
+	default:
+		return 0
+	}
+	d.saveDeviceProfile()
+	d.setDeviceColortone()
+	return 1
 }
 
 // getManufacturer will return device manufacturer
@@ -456,7 +572,7 @@ func (d *Device) ProcessSetWidgetArea(areaId, widgetId int) uint8 {
 		if definition == nil {
 			return 0
 		}
-		
+
 		allowed := false
 		for _, value := range definition.Columns {
 			if value == column {
@@ -559,6 +675,12 @@ func (d *Device) saveDeviceProfile() {
 			},
 		}
 		deviceProfile.Widgets = d.Widgets
+		deviceProfile.Brightness = 50
+		deviceProfile.Backlight = 100
+		deviceProfile.Contrast = 50
+		deviceProfile.ColorToneRed = 150
+		deviceProfile.ColorToneGreen = 126
+		deviceProfile.ColorToneBlue = 140
 	} else {
 		deviceProfile.Active = d.DeviceProfile.Active
 		if len(d.DeviceProfile.Path) < 1 {
@@ -569,6 +691,12 @@ func (d *Device) saveDeviceProfile() {
 		}
 		deviceProfile.WidgetAreas = d.DeviceProfile.WidgetAreas
 		deviceProfile.Widgets = d.DeviceProfile.Widgets
+		deviceProfile.Brightness = d.DeviceProfile.Brightness
+		deviceProfile.Backlight = d.DeviceProfile.Backlight
+		deviceProfile.Contrast = d.DeviceProfile.Contrast
+		deviceProfile.ColorToneRed = d.DeviceProfile.ColorToneRed
+		deviceProfile.ColorToneGreen = d.DeviceProfile.ColorToneGreen
+		deviceProfile.ColorToneBlue = d.DeviceProfile.ColorToneBlue
 	}
 
 	// Convert to JSON
@@ -694,4 +822,132 @@ func (d *Device) getDeviceProfile() {
 			}
 		}
 	}
+}
+
+// setDeviceBrightness will set device brightness
+func (d *Device) setDeviceBrightness() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.Brightness)
+
+	if d.Exit {
+		buf[0] = byte(50)
+	}
+
+	_, err := d.transfer(cmdBrightness, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set device brightness")
+	}
+}
+
+// setDeviceContrast will set device contrast
+func (d *Device) setDeviceContrast() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.Contrast)
+
+	if d.Exit {
+		buf[0] = byte(100)
+	}
+
+	_, err := d.transfer(cmdContrast, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set device contrast")
+	}
+}
+
+// setDeviceBacklight will set device backlight
+func (d *Device) setDeviceBacklight() {
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	buf := make([]byte, 1)
+	buf[0] = byte(d.DeviceProfile.Backlight)
+
+	if d.Exit {
+		buf[0] = byte(50)
+	}
+
+	_, err := d.transfer(cmdBacklight, buf)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set device backlight")
+	}
+}
+
+// setDeviceColortone will set device color tone
+func (d *Device) setDeviceColortone() {
+	colorTones := 3
+	if d.DeviceProfile == nil {
+		return
+	}
+
+	buf := make([]byte, 1)
+
+	for i := 0; i < colorTones; i++ {
+		switch i {
+		case 0:
+			buf[0] = byte(d.DeviceProfile.ColorToneRed)
+			break
+		case 1:
+			buf[0] = byte(d.DeviceProfile.ColorToneGreen)
+			break
+		case 2:
+			buf[0] = byte(d.DeviceProfile.ColorToneBlue)
+			break
+		}
+
+		if d.Exit {
+			buf[0] = dataTypeColorTones[i]
+		}
+
+		_, err := d.transfer(cmdColorTones[i], buf)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to set device backlight")
+		}
+	}
+}
+
+// setScreenToDefault will set device to default upon exit
+func (d *Device) setScreenToDefault() {
+	d.setDeviceBrightness()
+	d.setDeviceContrast()
+	d.setDeviceBacklight()
+	d.setDeviceColortone()
+}
+
+// transfer will send data to a device and retrieve device output
+func (d *Device) transfer(endpoint, buffer []byte) ([]byte, error) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	bufferW := make([]byte, bufferSizeWrite)
+	bufferW[1] = 0x01
+	bufferW[2] = 0x0f
+
+	endpointHeaderPosition := bufferW[headerSize : headerSize+len(endpoint)]
+	copy(endpointHeaderPosition, endpoint)
+	if len(buffer) > 0 {
+		copy(bufferW[headerSize+len(endpoint):headerSize+len(endpoint)+len(buffer)], buffer)
+	}
+
+	bufferR := make([]byte, bufferSize)
+
+	if _, err := d.dev.Write(bufferW); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to write to a device")
+		return bufferR, err
+	}
+
+	if _, err := d.dev.Read(bufferR); err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to read data from device")
+		return bufferR, err
+	}
+
+	return bufferR, nil
 }

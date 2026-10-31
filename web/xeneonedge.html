@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 {{ template "head" . }}
 <body>
 
@@ -10,6 +10,7 @@
     {{ $device := .Device }}
     {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $txtConfigure := .Lang "txtConfigure" }}
+    {{ $txtWidgets := .Lang "txtWidgets" }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
 
     <div class="row">
@@ -48,6 +49,72 @@
                                     </label>
                                 </div>
 
+                                <!-- Brightness -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBrightness" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="brightnessSlider">
+                                            <input type="range" id="brightnessSlider" name="brightnessSlider" min="0" max="100" value="{{ $deviceProfile.Brightness }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="brightnessSliderValue">{{ $deviceProfile.Brightness }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- Contrast -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtContrast" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="contrastSlider">
+                                            <input type="range" id="contrastSlider" name="contrastSlider" min="0" max="100" value="{{ $deviceProfile.Contrast }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="contrastSliderValue">{{ $deviceProfile.Contrast }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- Contrast -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtBacklight" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="backlightSlider">
+                                            <input type="range" id="backlightSlider" name="backlightSlider" min="0" max="100" value="{{ $deviceProfile.Backlight }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="backlightSliderValue">{{ $deviceProfile.Backlight }} %</div>
+                                    </div>
+                                </div>
+
+                                <!-- Color tone (red) -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtColorRed" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="colorToneRedSlider">
+                                            <input type="range" id="colorToneRedSlider" name="colorToneRedSlider" min="0" max="255" value="{{ $deviceProfile.ColorToneRed }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="colorToneRedSliderValue">{{ $deviceProfile.ColorToneRed }}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Color tone (green) -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtColorGreen" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="colorToneGreenSlider">
+                                            <input type="range" id="colorToneGreenSlider" name="colorToneGreenSlider" min="0" max="255" value="{{ $deviceProfile.ColorToneGreen }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="colorToneGreenSliderValue">{{ $deviceProfile.ColorToneGreen }}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Color tone (green) -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtColorBlue" }}</span>
+                                    <div class="system-slider no-padding-top">
+                                        <label for="colorToneBlueSlider">
+                                            <input type="range" id="colorToneBlueSlider" name="colorToneBlueSlider" min="0" max="255" value="{{ $deviceProfile.ColorToneBlue }}" step="1">
+                                        </label>
+                                        <div class="slider-value" id="colorToneBlueSliderValue">{{ $deviceProfile.ColorToneBlue }}</div>
+                                    </div>
+                                </div>
+
                                 <!-- Delete user profile -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>
@@ -77,8 +144,16 @@
                                     <button class="system-button center saveUserProfile">{{ .Lang "txtSaveUserProfile" }}</button>
                                     <button class="system-button danger center deleteUserProfile">{{ .Lang "txtDeleteProfile" }}</button>
                                 </div>
-                            </div><br />
-
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card system-card text-center">
+                        <div class="card-header">
+                            {{ $txtWidgets }}
+                        </div>
+                        <div class="card-body">
                             <div class="settings-list">
                                 <!-- Widgets -->
                                 {{ range $key, $widget := $deviceProfile.Widgets }}
@@ -98,8 +173,7 @@
                 (.Slice (.Slice 4 0) (.Slice 2 5) (.Slice 2 6) (.Slice 4 10))
                 (.Slice (.Slice 4 2) (.Slice 2 7) (.Slice 2 8) (.Slice 4 11))
                 }}
-
-                <div class="col-md-10">
+                <div class="col-md-8">
                     <div class="card system-card text-center">
                         <div class="card-body">
 

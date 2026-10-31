@@ -122,6 +122,8 @@ type Payload struct {
 	RgbOn                         string                `json:"rgbOn"`
 	LcdControl                    bool                  `json:"lcdControl"`
 	Brightness                    uint8                 `json:"brightness"`
+	Contrast                      uint8                 `json:"contrast"`
+	Backlight                     uint8                 `json:"backlight"`
 	Position                      int                   `json:"position"`
 	Positions                     []string              `json:"positions"`
 	DeviceIdString                string                `json:"deviceIdString"`
@@ -197,6 +199,8 @@ type Payload struct {
 	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
 	WidgetId                      int                   `json:"widgetId"`
 	Widget                        xeneonedge.Widget     `json:"widget"`
+	ColorTone                     int                   `json:"colorTone"`
+	ColorToneType                 int                   `json:"colorToneType"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -2685,6 +2689,149 @@ func ProcessBrightnessChangeGradual(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeBrightness"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessContrastChangeGradual will process POST request from a client for device contrast change via defined number from 0-100
+func ProcessContrastChangeGradual(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Contrast < 0 || req.Contrast > 100 {
+		return &Payload{Message: language.GetValue("txtInvalidContrastValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceContrastValue",
+		req.Contrast,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtContrastChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateContrast"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateContrast"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessBacklightChangeGradual will process POST request from a client for device backlight change via defined number from 0-100
+func ProcessBacklightChangeGradual(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.Backlight < 0 || req.Backlight > 100 {
+		return &Payload{Message: language.GetValue("txtInvalidBacklightValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceBacklightValue",
+		req.Backlight,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtBacklightChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateBacklight"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateBacklight"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessColortoneChange will process POST request from a client for device color zone change via defined number from 0-100
+func ProcessColortoneChange(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.ColorTone < 0 || req.ColorTone > 255 {
+		return &Payload{Message: language.GetValue("txtInvalidColorToneValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if req.ColorToneType < 0 || req.ColorToneType > 2 {
+		return &Payload{Message: language.GetValue("txtInvalidColorToneValue"), Code: http.StatusOK, Status: 0}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ChangeDeviceColorToneValue",
+		req.ColorTone,
+		req.ColorToneType,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtColortoneChanged"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToUpdateColortone"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToUpdateColortone"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessPositionChange will process POST request from a client for device position change

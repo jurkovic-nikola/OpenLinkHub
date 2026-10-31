@@ -726,6 +726,21 @@
         "txtXeneonWidgetSaveFailed": "Impossible d'enregistrer la configuration du widget. Vérifiez les valeurs et réessayez.",
         "txtXeneonAllDevices": "Tous les appareils",
         "txtXeneonSelectSensor": "Sélectionner un capteur",
-        "txtOpenKiosk": "Ouvrir le mode kiosque"
+        "txtOpenKiosk": "Ouvrir le mode kiosque",
+        "txtContrast": "Contraste",
+        "txtBacklight": "Rétroéclairage",
+        "txtInvalidContrastValue": "Valeur de contraste non valide",
+        "txtInvalidBacklightValue": "Valeur de rétroéclairage non valide",
+        "txtContrastChanged": "Le contraste de l’appareil a été mis à jour avec succès",
+        "txtUnableToUpdateContrast": "Impossible de mettre à jour le contraste de l’appareil",
+        "txtBacklightChanged": "Le rétroéclairage de l’appareil a été mis à jour avec succès",
+        "txtUnableToUpdateBacklight": "Impossible de mettre à jour le rétroéclairage de l’appareil",
+        "txtWidgets": "Widgets",
+        "txtColorRed": "Rouge",
+        "txtColorGreen": "Vert",
+        "txtColorBlue": "Bleu",
+        "txtInvalidColorToneValue": "Valeur de tonalité de couleur non valide",
+        "txtColortoneChanged": "La tonalité de couleur de l’appareil a été mise à jour avec succès",
+        "txtUnableToUpdateColortone": "Impossible de mettre à jour la tonalité de couleur de l’appareil"
     }
 }

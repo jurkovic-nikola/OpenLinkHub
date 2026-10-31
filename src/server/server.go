@@ -1162,6 +1162,39 @@ func changeBrightnessGradual(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// changeContrastGradual handles user contrast change via defined number from 0-100
+func changeContrastGradual(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessContrastChangeGradual(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeBacklightGradual handles user backlight change via defined number from 0-100
+func changeBacklightGradual(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessBacklightChangeGradual(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// changeColorTone handles user color tone change via defined number from 0-100
+func changeColorTone(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessColortoneChange(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changePosition handles device position change
 func changePosition(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessPositionChange(r)
@@ -2792,6 +2825,11 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/lcd/image", http.MethodPost, setDeviceLcdImage)
 	handleFunc(r, "/api/brightness", http.MethodPost, changeBrightness)
 	handleFunc(r, "/api/brightness/gradual", http.MethodPost, changeBrightnessGradual)
+	handleFunc(r, "/api/contrast/gradual", http.MethodPost, changeContrastGradual)
+	handleFunc(r, "/api/backlight/gradual", http.MethodPost, changeBacklightGradual)
+
+	handleFunc(r, "/api/colortone", http.MethodPost, changeColorTone)
+
 	handleFunc(r, "/api/position/update", http.MethodPost, changePosition)
 	handleFunc(r, "/api/dashboard/update", http.MethodPost, setDashboardSettings)
 	handleFunc(r, "/api/dashboard/sidebar", http.MethodPost, setDashboardSidebar)

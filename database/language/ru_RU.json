@@ -726,6 +726,21 @@
         "txtXeneonWidgetSaveFailed": "Не удалось сохранить настройки виджета. Проверьте значения и повторите попытку.",
         "txtXeneonAllDevices": "Все устройства",
         "txtXeneonSelectSensor": "Выбрать датчик",
-        "txtOpenKiosk": "Открыть режим киоска"
+        "txtOpenKiosk": "Открыть режим киоска",
+        "txtContrast": "Контрастность",
+        "txtBacklight": "Подсветка",
+        "txtInvalidContrastValue": "Недопустимое значение контрастности",
+        "txtInvalidBacklightValue": "Недопустимое значение подсветки",
+        "txtContrastChanged": "Контрастность устройства успешно обновлена",
+        "txtUnableToUpdateContrast": "Не удалось обновить контрастность устройства",
+        "txtBacklightChanged": "Подсветка устройства успешно обновлена",
+        "txtUnableToUpdateBacklight": "Не удалось обновить подсветку устройства",
+        "txtWidgets": "Виджеты",
+        "txtColorRed": "Красный",
+        "txtColorGreen": "Зелёный",
+        "txtColorBlue": "Синий",
+        "txtInvalidColorToneValue": "Недопустимое значение цветового тона",
+        "txtColortoneChanged": "Цветовой тон устройства успешно обновлён",
+        "txtUnableToUpdateColortone": "Не удалось обновить цветовой тон устройства"
     }
 }

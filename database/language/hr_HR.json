@@ -726,6 +726,21 @@
     "txtXeneonWidgetSaveFailed": "Nije moguće spremiti konfiguraciju widgeta. Provjerite vrijednosti i pokušajte ponovno.",
     "txtXeneonAllDevices": "Svi uređaji",
     "txtXeneonSelectSensor": "Odaberite senzor",
-    "txtOpenKiosk": "Otvori kiosk način rada"
+    "txtOpenKiosk": "Otvori kiosk način rada",
+    "txtContrast": "Kontrast",
+    "txtBacklight": "Pozadinsko osvjetljenje",
+    "txtInvalidContrastValue": "Nevažeća vrijednost kontrasta",
+    "txtInvalidBacklightValue": "Nevažeća vrijednost pozadinskog osvjetljenja",
+    "txtContrastChanged": "Kontrast uređaja je uspješno ažuriran",
+    "txtUnableToUpdateContrast": "Nije moguće ažurirati kontrast uređaja",
+    "txtBacklightChanged": "Pozadinsko osvjetljenje uređaja je uspješno ažurirano",
+    "txtUnableToUpdateBacklight": "Nije moguće ažurirati pozadinsko osvjetljenje uređaja",
+    "txtWidgets": "Widgeti",
+    "txtColorRed": "Crvena",
+    "txtColorGreen": "Zelena",
+    "txtColorBlue": "Plava",
+    "txtInvalidColorToneValue": "Nevažeća vrijednost tona boje",
+    "txtColortoneChanged": "Ton boje uređaja uspješno je ažuriran",
+    "txtUnableToUpdateColortone": "Nije moguće ažurirati ton boje uređaja"
   }
 }

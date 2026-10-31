@@ -726,6 +726,21 @@
     "txtXeneonWidgetSaveFailed": "Unable to save widget configuration. Check the values and try again.",
     "txtXeneonAllDevices": "All devices",
     "txtXeneonSelectSensor": "Select sensor",
-    "txtOpenKiosk": "Open kiosk"
+    "txtOpenKiosk": "Open kiosk",
+    "txtContrast": "Contrast",
+    "txtBacklight": "Backlight",
+    "txtInvalidContrastValue": "Invalid contrast value",
+    "txtInvalidBacklightValue": "Invalid backlight value",
+    "txtContrastChanged": "Device contrast is successfully updated",
+    "txtUnableToUpdateContrast": "Unable to update device contrast",
+    "txtBacklightChanged": "Device backlight is successfully updated",
+    "txtUnableToUpdateBacklight": "Unable to update device backlight",
+    "txtWidgets": "Widgets",
+    "txtColorRed": "Red",
+    "txtColorGreen": "Green",
+    "txtColorBlue": "Blue",
+    "txtInvalidColorToneValue": "Invalid color tone value",
+    "txtColortoneChanged": "Device color tone is successfully updated",
+    "txtUnableToUpdateColortone": "Unable to update device color tone"
   }
 }

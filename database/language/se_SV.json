@@ -726,6 +726,21 @@
     "txtXeneonWidgetSaveFailed": "Det gick inte att spara widgetkonfigurationen. Kontrollera värdena och försök igen.",
     "txtXeneonAllDevices": "Alla enheter",
     "txtXeneonSelectSensor": "Välj sensor",
-    "txtOpenKiosk": "Öppna kioskläge"
+    "txtOpenKiosk": "Öppna kioskläge",
+    "txtContrast": "Kontrast",
+    "txtBacklight": "Bakgrundsbelysning",
+    "txtInvalidContrastValue": "Ogiltigt kontrastvärde",
+    "txtInvalidBacklightValue": "Ogiltigt värde för bakgrundsbelysning",
+    "txtContrastChanged": "Enhetens kontrast har uppdaterats",
+    "txtUnableToUpdateContrast": "Det gick inte att uppdatera enhetens kontrast",
+    "txtBacklightChanged": "Enhetens bakgrundsbelysning har uppdaterats",
+    "txtUnableToUpdateBacklight": "Det gick inte att uppdatera enhetens bakgrundsbelysning",
+    "txtWidgets": "Widgetar",
+    "txtColorRed": "Röd",
+    "txtColorGreen": "Grön",
+    "txtColorBlue": "Blå",
+    "txtInvalidColorToneValue": "Ogiltigt färgtonsvärde",
+    "txtColortoneChanged": "Enhetens färgton har uppdaterats",
+    "txtUnableToUpdateColortone": "Det gick inte att uppdatera enhetens färgton"
   }
 }

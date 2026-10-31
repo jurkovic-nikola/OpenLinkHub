@@ -726,6 +726,21 @@
     "txtXeneonWidgetSaveFailed": "Não foi possível salvar a configuração do widget. Verifique os valores e tente novamente.",
     "txtXeneonAllDevices": "Todos os dispositivos",
     "txtXeneonSelectSensor": "Selecionar sensor",
-    "txtOpenKiosk": "Abrir modo quiosque"
+    "txtOpenKiosk": "Abrir modo quiosque",
+    "txtContrast": "Contraste",
+    "txtBacklight": "Luz de fundo",
+    "txtInvalidContrastValue": "Valor de contraste inválido",
+    "txtInvalidBacklightValue": "Valor de luz de fundo inválido",
+    "txtContrastChanged": "O contraste do dispositivo foi atualizado com sucesso",
+    "txtUnableToUpdateContrast": "Não foi possível atualizar o contraste do dispositivo",
+    "txtBacklightChanged": "A luz de fundo do dispositivo foi atualizada com sucesso",
+    "txtUnableToUpdateBacklight": "Não foi possível atualizar a luz de fundo do dispositivo",
+    "txtWidgets": "Widgets",
+    "txtColorRed": "Vermelho",
+    "txtColorGreen": "Verde",
+    "txtColorBlue": "Azul",
+    "txtInvalidColorToneValue": "Valor de tonalidade de cor inválido",
+    "txtColortoneChanged": "A tonalidade de cor do dispositivo foi atualizada com sucesso",
+    "txtUnableToUpdateColortone": "Não foi possível atualizar a tonalidade de cor do dispositivo"
   }
 }

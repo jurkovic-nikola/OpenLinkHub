@@ -726,6 +726,21 @@
     "txtXeneonWidgetSaveFailed": "Die Widget-Konfiguration konnte nicht gespeichert werden. Überprüfen Sie die Werte und versuchen Sie es erneut.",
     "txtXeneonAllDevices": "Alle Geräte",
     "txtXeneonSelectSensor": "Sensor auswählen",
-    "txtOpenKiosk": "Kioskmodus öffnen"
+    "txtOpenKiosk": "Kioskmodus öffnen",
+    "txtContrast": "Kontrast",
+    "txtBacklight": "Hintergrundbeleuchtung",
+    "txtInvalidContrastValue": "Ungültiger Kontrastwert",
+    "txtInvalidBacklightValue": "Ungültiger Wert für die Hintergrundbeleuchtung",
+    "txtContrastChanged": "Der Kontrast des Geräts wurde erfolgreich aktualisiert",
+    "txtUnableToUpdateContrast": "Der Kontrast des Geräts konnte nicht aktualisiert werden",
+    "txtBacklightChanged": "Die Hintergrundbeleuchtung des Geräts wurde erfolgreich aktualisiert",
+    "txtUnableToUpdateBacklight": "Die Hintergrundbeleuchtung des Geräts konnte nicht aktualisiert werden",
+    "txtWidgets": "Widgets",
+    "txtColorRed": "Rot",
+    "txtColorGreen": "Grün",
+    "txtColorBlue": "Blau",
+    "txtInvalidColorToneValue": "Ungültiger Farbtonwert",
+    "txtColortoneChanged": "Der Farbton des Geräts wurde erfolgreich aktualisiert",
+    "txtUnableToUpdateColortone": "Der Farbton des Geräts konnte nicht aktualisiert werden"
   }
 }

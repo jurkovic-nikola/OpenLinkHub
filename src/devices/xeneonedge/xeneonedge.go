@@ -99,6 +99,7 @@ var (
 	cmdBacklight    = []byte{0x02, 0x00}
 	cmdContrast     = []byte{0x02, 0x01}
 	cmdBrightness   = []byte{0x02, 0x02}
+	colorTones      = 3
 	cmdColorTones   = map[int][]byte{
 		0: {0x03, 0x01},
 		1: {0x03, 0x02},
@@ -336,6 +337,32 @@ func (d *Device) ChangeDeviceBacklightValue(value uint8) uint8 {
 	d.DeviceProfile.Backlight = int(value)
 	d.saveDeviceProfile()
 	d.setDeviceBacklight()
+	return 1
+}
+
+// ResetDeviceSettings will reset device settings
+func (d *Device) ResetDeviceSettings() uint8 {
+	for i := 0; i < colorTones; i++ {
+		switch i {
+		case 0:
+			d.DeviceProfile.ColorToneRed = int(dataTypeRed)
+			break
+		case 1:
+			d.DeviceProfile.ColorToneGreen = int(dataTypeGreen)
+			break
+		case 2:
+			d.DeviceProfile.ColorToneBlue = int(dataTypeBlue)
+			break
+		}
+	}
+
+	d.DeviceProfile.Contrast = 50
+	d.DeviceProfile.Brightness = 50
+	d.DeviceProfile.Backlight = 100
+
+	d.saveDeviceProfile()
+	d.setScreenToDefault()
+
 	return 1
 }
 
@@ -883,7 +910,6 @@ func (d *Device) setDeviceBacklight() {
 
 // setDeviceColortone will set device color tone
 func (d *Device) setDeviceColortone() {
-	colorTones := 3
 	if d.DeviceProfile == nil {
 		return
 	}

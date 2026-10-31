@@ -2783,7 +2783,7 @@ func ProcessBacklightChangeGradual(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToUpdateBacklight"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessColortoneChange will process POST request from a client for device color zone change via defined number from 0-100
+// ProcessColortoneChange will process POST request from a client for device color zone change via defined number from 0-255
 func ProcessColortoneChange(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -2832,6 +2832,47 @@ func ProcessColortoneChange(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToUpdateColortone"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessDeviceSettingsReset will process POST request from a client for device settings reset
+func ProcessDeviceSettingsReset(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if len(req.DeviceId) == 0 {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.DeviceId) {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"ResetDeviceSettings",
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 1:
+			return &Payload{Message: language.GetValue("txtSettingsReset"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtUnableToResetSettings"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToResetSettings"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessPositionChange will process POST request from a client for device position change

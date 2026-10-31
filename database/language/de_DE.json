@@ -741,6 +741,10 @@
     "txtColorBlue": "Blau",
     "txtInvalidColorToneValue": "Ungültiger Farbtonwert",
     "txtColortoneChanged": "Der Farbton des Geräts wurde erfolgreich aktualisiert",
-    "txtUnableToUpdateColortone": "Der Farbton des Geräts konnte nicht aktualisiert werden"
+    "txtUnableToUpdateColortone": "Der Farbton des Geräts konnte nicht aktualisiert werden",
+    "txtSettingsReset": "Die Geräteeinstellungen wurden erfolgreich wiederhergestellt",
+    "txtUnableToResetSettings": "Die Geräteeinstellungen konnten nicht wiederhergestellt werden",
+    "txtResetSettings": "Einstellungen zurücksetzen",
+    "txtReset": "Zurücksetzen"
   }
 }

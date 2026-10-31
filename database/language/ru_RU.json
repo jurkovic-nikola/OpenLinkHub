@@ -741,6 +741,10 @@
         "txtColorBlue": "Синий",
         "txtInvalidColorToneValue": "Недопустимое значение цветового тона",
         "txtColortoneChanged": "Цветовой тон устройства успешно обновлён",
-        "txtUnableToUpdateColortone": "Не удалось обновить цветовой тон устройства"
+        "txtUnableToUpdateColortone": "Не удалось обновить цветовой тон устройства",
+        "txtSettingsReset": "Настройки устройства успешно восстановлены",
+        "txtUnableToResetSettings": "Не удалось восстановить настройки устройства",
+        "txtResetSettings": "Сбросить настройки",
+        "txtReset": "Сбросить"
     }
 }

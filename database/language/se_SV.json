@@ -741,6 +741,10 @@
     "txtColorBlue": "Blå",
     "txtInvalidColorToneValue": "Ogiltigt färgtonsvärde",
     "txtColortoneChanged": "Enhetens färgton har uppdaterats",
-    "txtUnableToUpdateColortone": "Det gick inte att uppdatera enhetens färgton"
+    "txtUnableToUpdateColortone": "Det gick inte att uppdatera enhetens färgton",
+    "txtSettingsReset": "Enhetens inställningar har återställts",
+    "txtUnableToResetSettings": "Det gick inte att återställa enhetens inställningar",
+    "txtResetSettings": "Återställ inställningar",
+    "txtReset": "Återställ"
   }
 }

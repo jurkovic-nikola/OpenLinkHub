@@ -741,6 +741,10 @@
     "txtColorBlue": "Plava",
     "txtInvalidColorToneValue": "Nevažeća vrijednost tona boje",
     "txtColortoneChanged": "Ton boje uređaja uspješno je ažuriran",
-    "txtUnableToUpdateColortone": "Nije moguće ažurirati ton boje uređaja"
+    "txtUnableToUpdateColortone": "Nije moguće ažurirati ton boje uređaja",
+    "txtSettingsReset": "Postavke uređaja uspješno su vraćene",
+    "txtUnableToResetSettings": "Nije moguće vratiti postavke uređaja",
+    "txtResetSettings": "Vrati postavke na zadane vrijednosti",
+    "txtReset": "Resetiraj"
   }
 }

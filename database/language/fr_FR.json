@@ -741,6 +741,10 @@
         "txtColorBlue": "Bleu",
         "txtInvalidColorToneValue": "Valeur de tonalité de couleur non valide",
         "txtColortoneChanged": "La tonalité de couleur de l’appareil a été mise à jour avec succès",
-        "txtUnableToUpdateColortone": "Impossible de mettre à jour la tonalité de couleur de l’appareil"
+        "txtUnableToUpdateColortone": "Impossible de mettre à jour la tonalité de couleur de l’appareil",
+        "txtSettingsReset": "Les paramètres de l’appareil ont été restaurés avec succès",
+        "txtUnableToResetSettings": "Impossible de restaurer les paramètres de l’appareil",
+        "txtResetSettings": "Réinitialiser les paramètres",
+        "txtReset": "Réinitialiser"
     }
 }

@@ -741,6 +741,10 @@
     "txtColorBlue": "Blue",
     "txtInvalidColorToneValue": "Invalid color tone value",
     "txtColortoneChanged": "Device color tone is successfully updated",
-    "txtUnableToUpdateColortone": "Unable to update device color tone"
+    "txtUnableToUpdateColortone": "Unable to update device color tone",
+    "txtSettingsReset": "Device settings are successfully restored",
+    "txtUnableToResetSettings": "Unable to restored device settings",
+    "txtResetSettings": "Reset Settings",
+    "txtReset": "Reset"
   }
 }

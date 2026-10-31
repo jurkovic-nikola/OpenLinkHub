@@ -1195,6 +1195,17 @@ func changeColorTone(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// resetDeviceSettings handles user device settings reset
+func resetDeviceSettings(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeviceSettingsReset(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // changePosition handles device position change
 func changePosition(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessPositionChange(r)
@@ -2827,9 +2838,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/brightness/gradual", http.MethodPost, changeBrightnessGradual)
 	handleFunc(r, "/api/contrast/gradual", http.MethodPost, changeContrastGradual)
 	handleFunc(r, "/api/backlight/gradual", http.MethodPost, changeBacklightGradual)
-
 	handleFunc(r, "/api/colortone", http.MethodPost, changeColorTone)
-
+	handleFunc(r, "/api/resetSettings", http.MethodPost, resetDeviceSettings)
 	handleFunc(r, "/api/position/update", http.MethodPost, changePosition)
 	handleFunc(r, "/api/dashboard/update", http.MethodPost, setDashboardSettings)
 	handleFunc(r, "/api/dashboard/sidebar", http.MethodPost, setDashboardSidebar)

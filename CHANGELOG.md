@@ -1,3 +1,12 @@
+## 2026-10-31
+
+* xeneon settings reset (dcb63d47)
+* xeneon brightness, contrast, backlight, color tone (efdcaf07)
+* udev permissions (7b837504)
+* kiosk mode button (aca4acc4)
+* xeneon edge (0fb6eab0)
+* changelog (62b14e4b)
+
 ## 2026-10-30
 
 * fill colors (30cb5128)

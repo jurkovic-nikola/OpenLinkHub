@@ -494,7 +494,7 @@ func (d *Device) getDevices() {
 		}
 	} else {
 		switch d.ProductId {
-		case 2622, 2624:
+		case 2622, 2624, 2628:
 			buff, _ = d.transferToDevice(cmdEndpoint, cmdProductId, nil, "")
 			if d.Debug {
 				logger.Log(logger.Fields{"serial": d.Serial, "length": len(buff), "data": fmt.Sprintf("% 2x", buff)}).Info("DEBUG")

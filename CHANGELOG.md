@@ -1,5 +1,12 @@
 ## 2026-10-31
 
+* media player translation (0fa37bf1)
+* media player fixup (227e9ec6)
+* change api links (63016243)
+* reload page upon settings reset (e37703ea)
+* widgets: cooling overview, memory stats, profiles switch, storage stats, temperature history (f497090e)
+* readme update (19907ea5)
+* changelog (efd2bf97)
 * xeneon settings reset (dcb63d47)
 * xeneon brightness, contrast, backlight, color tone (efdcaf07)
 * udev permissions (7b837504)

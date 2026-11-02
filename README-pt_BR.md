@@ -172,7 +172,8 @@ xdg-open http://127.0.0.1:27003
   "defaultNvidiaGPU": 0,
   "enableGamepad": true,
   "enableMotherboard": false,
-  "motherboardBiosOnExit": false
+  "motherboardBiosOnExit": false,
+  "appMonitor": false
 }
 ```
 - listenPort: Porta do servidor HTTP.
@@ -208,6 +209,7 @@ xdg-open http://127.0.0.1:27003
 - enableGamepad: Ativar ou desativar o gamepad virtual usado para controladores SCUF.
 - enableMotherboard: Habilita o controle dos conectores PWM da placa-mãe.
 - motherboardBiosOnExit: Alterna os conectores PWM para o modo BIOS quando o programa é encerrado.
+- appMonitor: Ativar ou desativar a integração de aplicativos.
 
 ### 7. Interface de Aplicativo Web Progressiva (PWA)
 A interface web suporta instalação como aplicativo web progressivo (PWA). Com um navegador suportado, isso permite que a interface apareça como um aplicativo independente.

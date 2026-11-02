@@ -1,11 +1,13 @@
 ## Motherboard PWM Configuration
 
 ## Supported devices
-| Motherboard             | Chip      | Driver (out-of-tree)                  |
-|-------------------------|-----------|---------------------------------------|
-| X870E AORUS ELITE WIFI7 | `it8696`  | https://github.com/frankcrawford/it87 |
-| X570 AORUS MASTER       | `it8688`  | https://github.com/frankcrawford/it87 |
-| MAG X670E TOMAHAWK WIFI | `nct6687` | https://github.com/Fred78290/nct6687d |
+| Motherboard                     | Chip      | Driver (out-of-tree)                                 |
+|---------------------------------|-----------|------------------------------------------------------|
+| X870E AORUS ELITE WIFI7         | `it8696`  | https://github.com/frankcrawford/it87                |
+| X570 AORUS MASTER               | `it8688`  | https://github.com/frankcrawford/it87                |
+| MAG X670E TOMAHAWK WIFI         | `nct6687` | https://github.com/Fred78290/nct6687d                |
+| ROG STRIX B550-F GAMING WIFI II | `nct6798` |                                                      |
+| X670E Steel Legend              | `nct6686` | https://github.com/branchmispredictor/asrock-nct6683 |
 
 Before you begin:
 1. Do you need headers to be SW-controlled instead of BIOS ?

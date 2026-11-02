@@ -748,6 +748,14 @@ $(document).ready(function () {
                                     url = '/api/macro/';
                                 }
                                 break;
+                                case 21: {
+                                    url = '/api/device/profiles/' + deviceId;
+                                }
+                                break;
+                                case 23: {
+                                    url = '/api/application/manualProfiles';
+                                }
+                                break;
                             }
 
                             $.ajax({
@@ -760,7 +768,13 @@ $(document).ready(function () {
                                         if (mouseDevice) {
                                             $(keyAssignmentValue).append($('<option>', { value: index, text: value, selected: parseInt(index) === parseInt(data.deviceId) }));
                                         } else {
-                                            $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                            if (data.actionType === 21) {
+                                                $(keyAssignmentValue).append($('<option>', { value: value, text: value, selected: value === data.deviceId }));
+                                            } else if (data.actionType === 23) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.applicationName, selected: value.applicationName === data.deviceId }));
+                                            } else {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
+                                            }
                                         }
                                     });
                                 }
@@ -861,6 +875,32 @@ $(document).ready(function () {
                                             $(keyAssignmentValue).empty();
                                             $.each(result.data, function( index, value ) {
                                                 $(keyAssignmentValue).append($('<option>', { value: index, text: value.name }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
+                                case 21: { // Change Profile
+                                    $.ajax({
+                                        url:'/api/device/profiles/' + deviceId,
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: value, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
+                                case 23: { // Global Profile
+                                    $.ajax({
+                                        url:'/api/application/manualProfiles',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.applicationName }));
                                             });
                                         }
                                     });
@@ -971,7 +1011,9 @@ $(document).ready(function () {
                                 if (
                                     parseInt(keyAssignmentType) === 8 ||
                                     parseInt(keyAssignmentType) === 2 ||
-                                    parseInt(keyAssignmentType) === 4
+                                    parseInt(keyAssignmentType) === 4 ||
+                                    parseInt(keyAssignmentType) === 21 ||
+                                    parseInt(keyAssignmentType) === 23
                                 ) {
                                     pf["keyAssignmentValueString"] = keyAssignmentValue;
                                 } else {
@@ -1446,6 +1488,10 @@ $(document).ready(function () {
                                     url = '/api/device/profiles/' + deviceId;
                                 }
                                 break;
+                                case 23: {
+                                    url = '/api/application/manualProfiles';
+                                }
+                                break;
                             }
 
                             $.ajax({
@@ -1460,6 +1506,8 @@ $(document).ready(function () {
                                         } else {
                                             if (data.actionType === 21) {
                                                 $(keyAssignmentValue).append($('<option>', { value: value, text: value, selected: value === data.deviceId }));
+                                            } else if (data.actionType === 23) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.applicationName, selected: value.applicationName === data.deviceId }));
                                             } else {
                                                 $(keyAssignmentValue).append($('<option>', { value: index, text: displayName, selected: parseInt(index) === parseInt(data.actionCommand) }));
                                             }
@@ -1576,6 +1624,20 @@ $(document).ready(function () {
                                             $(keyAssignmentValue).empty();
                                             $.each(result.data, function( index, value ) {
                                                 $(keyAssignmentValue).append($('<option>', { value: value, text: value }));
+                                            });
+                                        }
+                                    });
+                                }
+                                break;
+
+                                case 23: { // Global Profile
+                                    $.ajax({
+                                        url:'/api/application/manualProfiles',
+                                        type:'get',
+                                        success:function(result){
+                                            $(keyAssignmentValue).empty();
+                                            $.each(result.data, function( index, value ) {
+                                                $(keyAssignmentValue).append($('<option>', { value: index, text: value.applicationName }));
                                             });
                                         }
                                     });
@@ -1714,7 +1776,8 @@ $(document).ready(function () {
                                     parseInt(keyAssignmentType) === 8 ||
                                     parseInt(keyAssignmentType) === 2 ||
                                     parseInt(keyAssignmentType) === 4 ||
-                                    parseInt(keyAssignmentType) === 21
+                                    parseInt(keyAssignmentType) === 21 ||
+                                    parseInt(keyAssignmentType) === 23
                                 ) {
                                     pf["keyAssignmentValueString"] = keyAssignmentValue;
                                 } else {

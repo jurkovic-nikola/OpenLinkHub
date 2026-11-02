@@ -1,0 +1,8 @@
+{
+    "id": "crysis3",
+    "name": "Crysis 3",
+    "executables": [
+        "Crysis3.exe"
+    ],
+    "steamAppId": 1282690
+}

@@ -1,0 +1,9 @@
+{
+    "id": "valheim",
+    "name": "Valheim",
+    "executables": [
+        "valheim.x86_64",
+        "valheim.exe"
+    ],
+    "steamAppId": 892970
+}

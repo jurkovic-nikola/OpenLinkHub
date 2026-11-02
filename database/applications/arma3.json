@@ -1,0 +1,8 @@
+{
+    "id": "arma3",
+    "name": "Arma 3",
+    "executables": [
+        "arma3_x64.exe"
+    ],
+    "steamAppId": 107410
+}

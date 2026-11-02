@@ -1,0 +1,8 @@
+{
+    "id": "sniperghostwarriorcontracts",
+    "name": "Sniper Ghost Warrior Contracts",
+    "executables": [
+        "SGWContracts.exe"
+    ],
+    "steamAppId": 973580
+}

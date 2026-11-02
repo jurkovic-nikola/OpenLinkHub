@@ -1,0 +1,9 @@
+{
+    "id": "shadowofthetombraider",
+    "name": "Shadow of the Tomb Raider",
+    "executables": [
+        "SOTTR.exe",
+        "ShadowOfTheTombRaider"
+    ],
+    "steamAppId": 750920
+}

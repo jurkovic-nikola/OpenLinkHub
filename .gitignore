@@ -23,6 +23,7 @@ database/led/*.json
 database/lcd/*.json
 database/scheduler.json
 database/audio.json
+database/apps/*.json
 org.openlinkhub.OpenLinkHub.json
 .flatpak-builder/
 flatpak/

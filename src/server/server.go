@@ -5,6 +5,8 @@ package server
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/applications"
+	"OpenLinkHub/src/appmonitor"
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/auth"
 	"OpenLinkHub/src/backup"
@@ -1425,6 +1427,36 @@ func setLedData(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getApplicationProfiles will return list of application profiles
+func getApplicationProfiles(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   appmonitor.GetApplicationProfiles(),
+	}
+	resp.Send(w)
+}
+
+// getManualApplicationProfiles will return list of application profiles with manual flag
+func getManualApplicationProfiles(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   appmonitor.GetManualApplicationProfiles(),
+	}
+	resp.Send(w)
+}
+
+// getApplications will return list of applications
+func getApplications(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   applications.GetAllApplications(),
+	}
+	resp.Send(w)
+}
+
 // setOpenRgbIntegration saves OpenRGB integration state
 func setOpenRgbIntegration(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSetOpenRgbIntegration(r)
@@ -2261,6 +2293,39 @@ func updateAuthSettings(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// saveApplicationProfile will save application profile
+func saveApplicationProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSaveApplicationProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// newApplicationProfile will create new application profile
+func newApplicationProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessNewApplicationProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// deleteApplicationProfile handles application profile deletion
+func deleteApplicationProfile(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteApplicationProfile(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // uiDeviceOverview handles device overview
 func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/device/", r)
@@ -2707,6 +2772,40 @@ func uiXeneon(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// uiAppsOverview handles overview of applications
+func uiAppsOverview(w http.ResponseWriter, _ *http.Request) {
+	web := templates.Web{}
+	web.Title = dashboard.GetDashboard().PageTitle
+	web.Devices = devices.GetDevices()
+	web.TemperatureProbes = devices.GetTemperatureProbes()
+	web.InputActions = inputmanager.GetInputActions()
+	web.BuildInfo = version.GetBuildInfo()
+	web.SystemInfo = systeminfo.GetInfo()
+	web.Dashboard = dashboard.GetDashboard()
+	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
+	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
+	web.ApplicationProfiles = appmonitor.GetApplicationProfiles()
+	web.Applications = applications.GetAllApplications()
+	web.AppMonitor = config.GetConfig().AppMonitor
+	web.Page = "apps"
+
+	t := templates.GetTemplate()
+
+	for header := range headers {
+		w.Header().Set(headers[header].Key, headers[header].Value)
+	}
+
+	err := t.ExecuteTemplate(w, "apps.html", web)
+	if err != nil {
+		fmt.Println(err)
+		resp := &Response{
+			Code:    http.StatusInternalServerError,
+			Message: language.GetValue("txtUnableToServeWebContent"),
+		}
+		resp.Send(w)
+	}
+}
+
 // uiLogin handles user login
 func uiLogin(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
@@ -2831,6 +2930,9 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/devices/mouse", http.MethodGet, getMouseDevice)
 	handleFunc(r, "/api/media/playback", http.MethodGet, getMediaPlayback)
 	handleFunc(r, "/api/media/", http.MethodGet, mediaPlaybackControl)
+	handleFunc(r, "/api/application/profiles", http.MethodGet, getApplicationProfiles)
+	handleFunc(r, "/api/application/manualProfiles", http.MethodGet, getManualApplicationProfiles)
+	handleFunc(r, "/api/application/applications", http.MethodGet, getApplications)
 
 	// POST
 	handleFunc(r, "/api/temperatures/new", http.MethodPost, newTemperatureProfile)
@@ -2947,6 +3049,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/devices/setHardwareLights", http.MethodPost, setHardwareLights)
 	handleFunc(r, "/api/devices/setHardwareLight", http.MethodPost, setHardwareLight)
 	handleFunc(r, "/api/auth/update", http.MethodPost, updateAuthSettings)
+	handleFunc(r, "/api/application/profiles/save", http.MethodPost, saveApplicationProfile)
+	handleFunc(r, "/api/application/profiles/new", http.MethodPost, newApplicationProfile)
 
 	// PUT
 	handleFunc(r, "/api/temperatures/update", http.MethodPut, updateTemperatureProfile)
@@ -2964,6 +3068,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/profile", http.MethodDelete, deleteMacroProfile)
 	handleFunc(r, "/api/userProfile/delete", http.MethodDelete, deleteUserProfile)
 	handleFunc(r, "/api/dashboard/devices/delete", http.MethodDelete, removeDashboardDevice)
+	handleFunc(r, "/api/application/profiles/delete", http.MethodDelete, deleteApplicationProfile)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {
@@ -2984,6 +3089,7 @@ func setRoutes() http.Handler {
 		handleFunc(r, "/settings", http.MethodGet, uiSettings)
 		handleFunc(r, "/login", http.MethodGet, uiLogin)
 		handleFunc(r, "/xeneon", http.MethodGet, uiXeneon)
+		handleFunc(r, "/apps", http.MethodGet, uiAppsOverview)
 	}
 	return r
 }

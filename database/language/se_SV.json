@@ -782,6 +782,25 @@
     "txtMediaNext": "Nästa",
     "txtMediaVolumeDown": "Vol -",
     "txtMediaVolumeUp": "Vol +",
-    "txtMediaMute": "Ljud av"
+    "txtMediaMute": "Ljud av",
+    "txtApplications": "Applikationer",
+    "txtDeviceApps": "Enhet / Aktiv / Passiv profil",
+    "txtAppsLoadFailed": "Det gick inte att läsa in applikationsprofiler",
+    "txtAppsProfilesUnavailable": "Det gick inte att läsa in enhetsprofiler. Välj enheten igen för att försöka på nytt.",
+    "txtAppsUnavailableSuffix": " (inte tillgänglig)",
+    "txtAppsDuplicateDevice": "Välj varje enhet endast en gång",
+    "txtAppsSaved": "Applikationsprofilen har sparats",
+    "txtAppsSaveFailed": "Det gick inte att spara applikationsprofilen",
+    "txtNewApplication": "Ny applikation",
+    "txtSelectApplication": "Välj applikation",
+    "txtCancel": "Avbryt",
+    "txtAppsAlreadyExists": "Den här applikationsprofilen finns redan",
+    "txtAppsDeleted": "Applikationsprofilen har tagits bort",
+    "txtAppsDeleteFailed": "Det gick inte att ta bort applikationsprofilen",
+    "txtAppsMonitorDisabled": "Applikationsövervakning är inaktiverad. Aktivera AppMonitor i config.json och starta om OpenLinkHub för att aktivera automatisk profilväxling.",
+    "txtAddDevice": "Lägg till enhet",
+    "txtSearchApplications": "Sök applikationer",
+    "txtManualActivation": "Manuell aktivering",
+    "txtManualActivationInfo": "Manuell aktivering är avsedd för konfigurering av tangenttilldelningar för tangentbord och mus. När den är aktiverad växlas profilen inte automatiskt."
   }
 }

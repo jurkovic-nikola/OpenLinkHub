@@ -1,0 +1,9 @@
+{
+    "id": "sniperelite4",
+    "name": "Sniper Elite 4",
+    "executables": [
+        "SniperElite4_DX11.exe",
+        "SniperElite4_DX12.exe"
+    ],
+    "steamAppId": 312660
+}

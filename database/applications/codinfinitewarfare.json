@@ -1,0 +1,8 @@
+{
+    "id": "codinfinitewarfare",
+    "name": "Call of Duty: Infinite Warfare",
+    "executables": [
+        "iw7_ship.exe"
+    ],
+    "steamAppId": 292730
+}

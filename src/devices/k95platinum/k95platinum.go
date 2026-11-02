@@ -218,6 +218,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			10: "Macro",
 			21: "Change Profile",
 			22: "Profile Switch",
+			23: "Global Profile",
 		},
 		MacroTracker: make(map[int]macro.Tracker),
 		LedData:      make(map[int]rgb.Color),

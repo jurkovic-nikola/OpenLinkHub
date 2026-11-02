@@ -1,0 +1,8 @@
+{
+    "id": "baldursgate3",
+    "name": "Baldur's Gate 3",
+    "executables": [
+        "bg3"
+    ],
+    "steamAppId": 1086940
+}

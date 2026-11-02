@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+{{ template "head" . }}
+<body>
+
+<div class="container-fluid">
+    {{ $devs := .Devices }}
+    {{ $root := . }}
+
+    <div class="row">
+        <!-- Sidebar -->
+        {{ template "sidebar" . }}
+
+        <!-- Main -->
+        <main class="main-content p-4">
+            <!-- Temperature bar -->
+            {{ if .Dashboard.TemperatureBar }}
+            {{ template "temperature-bar" . }}
+            {{ end }}
+
+            {{ if not .AppMonitor }}
+            <div class="warning-box">
+                <i class="bi bi-info-circle"></i>
+                <span>{{ .Lang "txtAppsMonitorDisabled" }}</span>
+            </div><br />
+            {{ end }}
+            
+            <div class="mb-4">
+                <button type="button" class="system-button" id="newApplication">
+                    {{ $root.Lang "txtNewApplication" }}
+                </button>
+            </div>
+
+            <div class="row g-4 mb-4 align-items-start">
+                <!-- New application -->
+                <div class="col-md-3 d-none" id="newApplicationBox">
+                    <div class="card system-card text-center application-card application-new">
+                        <div class="card-header">
+                            {{ $root.Lang "txtNewApplication" }}
+                        </div>
+
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <div class="w-100">
+                                        <div class="system-input text-input compact w-100 mb-2">
+                                            <input type="text"
+                                                   id="applicationSearch"
+                                                   placeholder="{{ $root.Lang "txtSearchApplications" }}"
+                                            aria-label="{{ $root.Lang "txtSearchApplications" }}"
+                                            autocomplete="off">
+                                        </div>
+
+                                        <select id="newApplicationId" class="system-select compact w-100">
+                                            <option value="">{{ $root.Lang "txtSelectApplication" }}</option>
+                                            {{ range .Applications }}
+                                            <option value="{{ .Id }}">{{ .Name }}</option>
+                                            {{ end }}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">
+                                        {{ $root.Lang "txtEnable" }}
+                                    </span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox"
+                                               class="application-enabled"
+                                               id="enabled-new-application"
+                                               checked>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">
+                                        {{ $root.Lang "txtManualActivation" }}
+                                        <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy manualActivationToggle"></i>
+                                    </span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox"
+                                               class="application-manual"
+                                               id="manual-new-application">
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <span class="settings-label text-ellipsis">
+                                    {{ $root.Lang "txtDeviceApps" }}
+                                </span>
+                                <div class="settings-row application-row">
+                                    <select class="system-select compact w-100 device">
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                        {{ range $devs }}
+                                        {{ if .Hidden }}
+                                        {{ continue }}
+                                        {{ end }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                    </select>
+                                    <select class="system-select compact w-100 application-active" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                    <select class="system-select compact w-100 application-passive" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                </div>
+
+                                <span class="settings-label text-ellipsis">
+                                    {{ $root.Lang "txtDeviceApps" }}
+                                </span>
+                                <div class="settings-row application-row">
+                                    <select class="system-select compact w-100 device">
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                        {{ range $devs }}
+                                        {{ if .Hidden }}
+                                        {{ continue }}
+                                        {{ end }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                    </select>
+                                    <select class="system-select compact w-100 application-active" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                    <select class="system-select compact w-100 application-passive" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                </div>
+
+                                <span class="settings-label text-ellipsis">
+                                    {{ $root.Lang "txtDeviceApps" }}
+                                </span>
+                                <div class="settings-row application-row">
+                                    <select class="system-select compact w-100 device">
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                        {{ range $devs }}
+                                        {{ if .Hidden }}
+                                        {{ continue }}
+                                        {{ end }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                    </select>
+                                    <select class="system-select compact w-100 application-active" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                    <select class="system-select compact w-100 application-passive" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer card-footer-left">
+                            <button type="button"
+                                    class="system-button saveApplicationProfile left"
+                                    data-info=""
+                                    disabled>
+                                {{ $root.Lang "txtSaveProfile" }}
+                            </button>
+                            <button type="button"
+                                    class="system-button secondary"
+                                    id="cancelNewApplication">
+                                {{ $root.Lang "txtCancel" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing applications -->
+                {{ range $key, $value := .ApplicationProfiles }}
+                <div class="col-md-3">
+                    <div class="card system-card text-center application-card"
+                         data-info="{{ $value.ApplicationId }}">
+
+                        <div class="card-header">{{ $value.ApplicationName }}</div>
+
+                        <div class="card-body">
+                            <div class="settings-list">
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">
+                                        {{ $root.Lang "txtEnable" }}
+                                    </span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox"
+                                               class="application-enabled"
+                                               id="enabled-{{ $value.ApplicationId }}"
+                                               {{ if $value.Enabled }}checked{{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">
+                                        {{ $root.Lang "txtManualActivation" }}
+                                        <i style="cursor: pointer;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy manualActivationToggle"></i>
+                                    </span>
+                                    <label class="system-toggle compact">
+                                        <input type="checkbox"
+                                               class="application-manual"
+                                               id="manual-{{ $value.ApplicationId }}"
+                                               {{ if $value.Manual }}checked{{ end }}>
+                                        <span class="toggle-track"></span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row"></div>
+
+                                <span class="settings-label text-ellipsis">
+                                    {{ $root.Lang "txtDeviceApps" }}
+                                </span>
+                                <div class="settings-row application-row">
+                                    <select class="system-select compact w-100 device">
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                        {{ range $devs }}
+                                        {{ if .Hidden }}
+                                        {{ continue }}
+                                        {{ end }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                    </select>
+                                    <select class="system-select compact w-100 application-active" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                    <select class="system-select compact w-100 application-passive" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                </div>
+
+                                <span class="settings-label text-ellipsis">
+                                    {{ $root.Lang "txtDeviceApps" }}
+                                </span>
+                                <div class="settings-row application-row">
+                                    <select class="system-select compact w-100 device">
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                        {{ range $devs }}
+                                        {{ if .Hidden }}
+                                        {{ continue }}
+                                        {{ end }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                    </select>
+                                    <select class="system-select compact w-100 application-active" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                    <select class="system-select compact w-100 application-passive" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                </div>
+
+                                <span class="settings-label text-ellipsis">
+                                    {{ $root.Lang "txtDeviceApps" }}
+                                </span>
+                                <div class="settings-row application-row">
+                                    <select class="system-select compact w-100 device">
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                        {{ range $devs }}
+                                        {{ if .Hidden }}
+                                        {{ continue }}
+                                        {{ end }}
+                                        <option value="{{ .Serial }}">{{ .Product }}</option>
+                                        {{ end }}
+                                    </select>
+                                    <select class="system-select compact w-100 application-active" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                    <select class="system-select compact w-100 application-passive" disabled>
+                                        <option value="">{{ $root.Lang "txtNone" }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-footer card-footer-left">
+                            <button type="button"
+                                    class="system-button saveApplicationProfile left"
+                                    data-info="{{ $value.ApplicationId }}"
+                                    disabled>
+                                {{ $root.Lang "txtSaveProfile" }}
+                            </button>
+
+                            <button type="button" class="system-button addApplicationDevice left">
+                                {{ $root.Lang "txtAddDevice" }}
+                            </button>
+
+                            <button type="button"
+                                    class="system-button danger deleteApplicationProfile ms-auto"
+                                    data-info="{{ $value.ApplicationId }}">
+                                {{ $root.Lang "txtDelete" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="/static/js/apps.js"></script>
+<script src="/static/js/sidebar.js"></script>
+{{ if .Dashboard.TemperatureBar }}
+<script src="/static/js/temperature-bar.js"></script>
+{{ end }}
+</body>
+</html>

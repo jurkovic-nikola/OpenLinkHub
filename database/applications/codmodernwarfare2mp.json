@@ -1,0 +1,8 @@
+{
+    "id": "codmodernwarfare2mp",
+    "name": "Call of Duty: Modern Warfare 2 (2009) - Multiplayer",
+    "executables": [
+        "iw4mp.exe"
+    ],
+    "steamAppId": 10190
+}

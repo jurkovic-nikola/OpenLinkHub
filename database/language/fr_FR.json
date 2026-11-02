@@ -782,6 +782,25 @@
         "txtMediaNext": "Suivant",
         "txtMediaVolumeDown": "Vol -",
         "txtMediaVolumeUp": "Vol +",
-        "txtMediaMute": "Muet"
+        "txtMediaMute": "Muet",
+        "txtApplications": "Applications",
+        "txtDeviceApps": "Périphérique / Profil actif / Passif",
+        "txtAppsLoadFailed": "Impossible de charger les profils d'application",
+        "txtAppsProfilesUnavailable": "Impossible de charger les profils du périphérique. Sélectionnez à nouveau le périphérique pour réessayer.",
+        "txtAppsUnavailableSuffix": " (indisponible)",
+        "txtAppsDuplicateDevice": "Sélectionnez chaque périphérique une seule fois",
+        "txtAppsSaved": "Le profil d'application a été enregistré avec succès",
+        "txtAppsSaveFailed": "Impossible d'enregistrer le profil d'application",
+        "txtNewApplication": "Nouvelle application",
+        "txtSelectApplication": "Sélectionner une application",
+        "txtCancel": "Annuler",
+        "txtAppsAlreadyExists": "Ce profil d'application existe déjà",
+        "txtAppsDeleted": "Le profil d'application a été supprimé avec succès",
+        "txtAppsDeleteFailed": "Impossible de supprimer le profil d'application",
+        "txtAppsMonitorDisabled": "La surveillance des applications est désactivée. Activez AppMonitor dans config.json et redémarrez OpenLinkHub pour activer le changement automatique de profil.",
+        "txtAddDevice": "Ajouter un périphérique",
+        "txtSearchApplications": "Rechercher des applications",
+        "txtManualActivation": "Activation manuelle",
+        "txtManualActivationInfo": "L'activation manuelle est destinée à la configuration des affectations de touches du clavier et de la souris. Lorsqu'elle est activée, le profil ne sera pas changé automatiquement."
     }
 }

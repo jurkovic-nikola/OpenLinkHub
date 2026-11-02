@@ -1,0 +1,8 @@
+{
+    "id": "hitman2",
+    "name": "HITMAN 2",
+    "executables": [
+        "HITMAN2.exe"
+    ],
+    "steamAppId": 863550
+}

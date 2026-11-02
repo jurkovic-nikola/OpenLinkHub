@@ -1,0 +1,8 @@
+{
+    "id": "warframe",
+    "name": "Warframe",
+    "executables": [
+        "Warframe.x64.exe"
+    ],
+    "steamAppId": 230410
+}

@@ -5,6 +5,7 @@ package devices
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/appmonitor"
 	"OpenLinkHub/src/cluster"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -744,6 +745,7 @@ func Init() {
 	}
 
 	inputmanager.SetDispatcher(Dispatch)
+	appmonitor.SetDispatcher(Dispatch)
 }
 
 // deviceRegisterMap hold map of supported devices and their initialization call

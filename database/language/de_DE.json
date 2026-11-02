@@ -782,6 +782,25 @@
     "txtMediaNext": "Weiter",
     "txtMediaVolumeDown": "Lautst. -",
     "txtMediaVolumeUp": "Lautst. +",
-    "txtMediaMute": "Stumm"
+    "txtMediaMute": "Stumm",
+    "txtApplications": "Anwendungen",
+    "txtDeviceApps": "Gerät / Aktives / Passives Profil",
+    "txtAppsLoadFailed": "Anwendungsprofile konnten nicht geladen werden",
+    "txtAppsProfilesUnavailable": "Geräteprofile konnten nicht geladen werden. Wählen Sie das Gerät erneut aus, um es noch einmal zu versuchen.",
+    "txtAppsUnavailableSuffix": " (nicht verfügbar)",
+    "txtAppsDuplicateDevice": "Wählen Sie jedes Gerät nur einmal aus",
+    "txtAppsSaved": "Das Anwendungsprofil wurde erfolgreich gespeichert",
+    "txtAppsSaveFailed": "Das Anwendungsprofil konnte nicht gespeichert werden",
+    "txtNewApplication": "Neue Anwendung",
+    "txtSelectApplication": "Anwendung auswählen",
+    "txtCancel": "Abbrechen",
+    "txtAppsAlreadyExists": "Dieses Anwendungsprofil existiert bereits",
+    "txtAppsDeleted": "Das Anwendungsprofil wurde erfolgreich gelöscht",
+    "txtAppsDeleteFailed": "Das Anwendungsprofil konnte nicht gelöscht werden",
+    "txtAppsMonitorDisabled": "Die Anwendungsüberwachung ist deaktiviert. Aktivieren Sie AppMonitor in config.json und starten Sie OpenLinkHub neu, um die automatische Profilumschaltung zu aktivieren.",
+    "txtAddDevice": "Gerät hinzufügen",
+    "txtSearchApplications": "Anwendungen suchen",
+    "txtManualActivation": "Manuelle Aktivierung",
+    "txtManualActivationInfo": "Die manuelle Aktivierung ist für die Einrichtung von Tastenzuweisungen für Tastatur und Maus vorgesehen. Wenn sie aktiviert ist, wird das Profil nicht automatisch gewechselt."
   }
 }

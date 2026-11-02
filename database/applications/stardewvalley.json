@@ -1,0 +1,9 @@
+{
+    "id": "stardewvalley",
+    "name": "Stardew Valley",
+    "executables": [
+        "StardewValley",
+        "Stardew Valley.exe"
+    ],
+    "steamAppId": 413150
+}

@@ -782,6 +782,25 @@
     "txtMediaNext": "Próximo",
     "txtMediaVolumeDown": "Vol -",
     "txtMediaVolumeUp": "Vol +",
-    "txtMediaMute": "Silenciar"
+    "txtMediaMute": "Silenciar",
+    "txtApplications": "Aplicativos",
+    "txtDeviceApps": "Dispositivo / Perfil ativo / Passivo",
+    "txtAppsLoadFailed": "Não foi possível carregar os perfis de aplicativos",
+    "txtAppsProfilesUnavailable": "Não foi possível carregar os perfis do dispositivo. Selecione o dispositivo novamente para tentar outra vez.",
+    "txtAppsUnavailableSuffix": " (indisponível)",
+    "txtAppsDuplicateDevice": "Selecione cada dispositivo apenas uma vez",
+    "txtAppsSaved": "O perfil do aplicativo foi salvo com sucesso",
+    "txtAppsSaveFailed": "Não foi possível salvar o perfil do aplicativo",
+    "txtNewApplication": "Novo aplicativo",
+    "txtSelectApplication": "Selecionar aplicativo",
+    "txtCancel": "Cancelar",
+    "txtAppsAlreadyExists": "Este perfil de aplicativo já existe",
+    "txtAppsDeleted": "O perfil do aplicativo foi excluído com sucesso",
+    "txtAppsDeleteFailed": "Não foi possível excluir o perfil do aplicativo",
+    "txtAppsMonitorDisabled": "O monitoramento de aplicativos está desativado. Ative AppMonitor no config.json e reinicie o OpenLinkHub para habilitar a troca automática de perfis.",
+    "txtAddDevice": "Adicionar dispositivo",
+    "txtSearchApplications": "Pesquisar aplicativos",
+    "txtManualActivation": "Ativação manual",
+    "txtManualActivationInfo": "A ativação manual destina-se à configuração das atribuições de teclas do teclado e do mouse. Quando ativada, o perfil não será alterado automaticamente."
   }
 }

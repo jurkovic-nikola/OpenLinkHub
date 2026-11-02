@@ -1,0 +1,8 @@
+{
+    "id": "universesandbox",
+    "name": "Universe Sandbox",
+    "executables": [
+        "Universe Sandbox x64.exe"
+    ],
+    "steamAppId": 230290
+}

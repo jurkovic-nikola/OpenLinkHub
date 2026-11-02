@@ -64,6 +64,13 @@ func ClearDeviceControllers() {
 func AddDeviceController(controller *common.OpenRGBController) {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	for _, val := range controllers {
+		if val.Serial == controller.Serial {
+			return
+		}
+	}
+	
 	controllers = append(controllers, controller)
 }
 

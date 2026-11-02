@@ -1,0 +1,8 @@
+{
+    "id": "oblivionremastered",
+    "name": "The Elder Scrolls IV: Oblivion Remastered",
+    "executables": [
+        "OblivionRemastered-Win64-Shipping.exe"
+    ],
+    "steamAppId": 2623190
+}

@@ -5,6 +5,8 @@ package controller
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/applications"
+	"OpenLinkHub/src/appmonitor"
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dashboard"
@@ -45,6 +47,8 @@ func Start() {
 	temperatures.Init() // Temperatures
 	keyboards.Init()    // Keyboards
 	inputmanager.Init() // Input Manager
+	applications.Init() // Applications
+	appmonitor.Init()   // App Monitor
 	stats.Init()        // Statistics
 	macro.Init()        // Macro
 	motherboards.Init() // Motherboards
@@ -57,6 +61,7 @@ func Start() {
 
 // Stop will stop device control
 func Stop() {
+	appmonitor.Stop()   // App Monitor
 	devices.Stop()      // Devices
 	inputmanager.Stop() // Cleanup virtual devices
 	audio.StopAudio()   // Virtual Audio

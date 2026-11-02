@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/appmonitor"
 	"github.com/sstallion/go-hid"
 )
 
@@ -243,6 +244,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			9:  "Mouse",
 			10: "Macro",
 			11: "Profile Switch",
+			23: "Global Profile",
 		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/scimitar.json",
@@ -1397,6 +1399,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 		val.ActionCommand = keyAssignment.ActionCommand
 		val.IsMacro = keyAssignment.IsMacro
 		val.OnRelease = keyAssignment.OnRelease
+		val.DeviceId = keyAssignment.DeviceId
 		d.KeyAssignment[keyIndex] = val
 		d.saveKeyAssignments()
 		d.setupKeyAssignment()
@@ -2882,6 +2885,9 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 				break
 			case 11:
 				d.rotateDeviceProfile()
+				break
+			case 23:
+				appmonitor.ManualApplicationProfileChange(val.DeviceId)
 				break
 			}
 		}

@@ -125,6 +125,12 @@ func Get() *Device {
 // AddDeviceController will add a new Cluster Controller
 func (d *Device) AddDeviceController(controller *common.ClusterController) {
 	d.mutex.Lock()
+	for _, val := range d.Controllers {
+		if val.Serial == controller.Serial {
+			d.mutex.Unlock()
+			return
+		}
+	}
 	d.Controllers = append(d.Controllers, controller)
 	d.mutex.Unlock()
 

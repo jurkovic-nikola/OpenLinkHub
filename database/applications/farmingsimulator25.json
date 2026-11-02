@@ -1,0 +1,8 @@
+{
+    "id": "farmingsimulator25",
+    "name": "Farming Simulator 25",
+    "executables": [
+        "FarmingSimulator2025Game.exe"
+    ],
+    "steamAppId": 2300320
+}

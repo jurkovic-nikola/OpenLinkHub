@@ -5,6 +5,8 @@ package requests
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/applications"
+	"OpenLinkHub/src/appmonitor"
 	"OpenLinkHub/src/audio"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
@@ -6191,4 +6193,270 @@ func ProcessAuthSettings(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtDashboardAuthUpdated"), Code: http.StatusOK, Status: 1}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToUpdateDashboardAuth"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSaveApplicationProfile will process POST request to save application profile settings
+func ProcessSaveApplicationProfile(r *http.Request) *Payload {
+	req := &appmonitor.ApplicationProfile{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.ApplicationId) {
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	application := applications.GetApplicationById(req.ApplicationId)
+	if application == nil {
+		return &Payload{
+			Message: language.GetValue("txtAppsSaveFailed"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	req.ApplicationName = application.Name
+
+	for _, assignments := range []map[string]string{
+		req.ActiveProfiles,
+		req.PassiveProfiles,
+	} {
+		for serial, profileName := range assignments {
+			if !common.AlphanumericDashRegex.MatchString(serial) {
+				return &Payload{
+					Message: language.GetValue("txtNonExistingDevice"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			if !common.AlphanumericRegex.MatchString(profileName) {
+				return &Payload{
+					Message: language.GetValue("txtProfileOnlyLettersNumbers"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			device := devices.GetDevice(serial)
+			if device == nil {
+				return &Payload{
+					Message: language.GetValue("txtNonExistingDevice"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			value := reflect.ValueOf(device)
+			if value.Kind() == reflect.Ptr && !value.IsNil() {
+				value = value.Elem()
+			}
+
+			valid := false
+			if value.Kind() == reflect.Struct {
+				profiles := value.FieldByName("UserProfiles")
+				if profiles.IsValid() &&
+					profiles.Kind() == reflect.Map &&
+					profiles.Type().Key() == reflect.TypeOf("") {
+					valid = profiles.MapIndex(reflect.ValueOf(profileName)).IsValid()
+				}
+			}
+
+			if !valid {
+				logger.Log(logger.Fields{
+					"deviceId": serial,
+					"profile":  profileName,
+				}).Warn("Application profile references an unknown device profile")
+
+				return &Payload{
+					Message: language.GetValue("txtUnableToChangeUserProfile"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+		}
+	}
+
+	status := appmonitor.UpdateApplicationProfile(*req)
+	switch status {
+	case 1:
+		return &Payload{
+			Message: language.GetValue("txtAppsSaved"),
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	default:
+		return &Payload{
+			Message: language.GetValue("txtAppsSaveFailed"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+}
+
+// ProcessNewApplicationProfile will process POST request to create an application profile
+func ProcessNewApplicationProfile(r *http.Request) *Payload {
+	req := &appmonitor.ApplicationProfile{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.ApplicationId) {
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	application := applications.GetApplicationById(req.ApplicationId)
+	if application == nil {
+		return &Payload{
+			Message: language.GetValue("txtAppsSaveFailed"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	req.ApplicationName = application.Name
+
+	for _, assignments := range []map[string]string{
+		req.ActiveProfiles,
+		req.PassiveProfiles,
+	} {
+		for serial, profileName := range assignments {
+			if !common.AlphanumericDashRegex.MatchString(serial) {
+				return &Payload{
+					Message: language.GetValue("txtNonExistingDevice"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			if !common.AlphanumericRegex.MatchString(profileName) {
+				return &Payload{
+					Message: language.GetValue("txtProfileOnlyLettersNumbers"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			device := devices.GetDevice(serial)
+			if device == nil {
+				return &Payload{
+					Message: language.GetValue("txtNonExistingDevice"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+
+			value := reflect.ValueOf(device)
+			if value.Kind() == reflect.Ptr && !value.IsNil() {
+				value = value.Elem()
+			}
+
+			valid := false
+			if value.Kind() == reflect.Struct {
+				profiles := value.FieldByName("UserProfiles")
+				if profiles.IsValid() &&
+					profiles.Kind() == reflect.Map &&
+					profiles.Type().Key() == reflect.TypeOf("") {
+					valid = profiles.MapIndex(reflect.ValueOf(profileName)).IsValid()
+				}
+			}
+
+			if !valid {
+				logger.Log(logger.Fields{
+					"deviceId": serial,
+					"profile":  profileName,
+				}).Warn("Application profile references an unknown device profile")
+
+				return &Payload{
+					Message: language.GetValue("txtUnableToChangeUserProfile"),
+					Code:    http.StatusOK,
+					Status:  0,
+				}
+			}
+		}
+	}
+
+	if req.ActiveProfiles == nil {
+		req.ActiveProfiles = make(map[string]string)
+	}
+	if req.PassiveProfiles == nil {
+		req.PassiveProfiles = make(map[string]string)
+	}
+
+	status := appmonitor.AddApplicationProfile(*req)
+	switch status {
+	case 1:
+		return &Payload{
+			Message: language.GetValue("txtAppsSaved"),
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	case 2:
+		return &Payload{
+			Message: language.GetValue("txtAppsAlreadyExists"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	default:
+		return &Payload{
+			Message: language.GetValue("txtAppsSaveFailed"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+}
+
+// ProcessDeleteApplicationProfile will process POST request to delete an application profile
+func ProcessDeleteApplicationProfile(r *http.Request) *Payload {
+	req := &appmonitor.ApplicationProfile{}
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		logger.Log(logger.Fields{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if !common.AlphanumericDashRegex.MatchString(req.ApplicationId) {
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	status := appmonitor.DeleteApplicationProfile(req.ApplicationId)
+	switch status {
+	case 1:
+		return &Payload{
+			Message: language.GetValue("txtAppsDeleted"),
+			Code:    http.StatusOK,
+			Status:  1,
+		}
+	default:
+		return &Payload{
+			Message: language.GetValue("txtAppsDeleteFailed"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
 }

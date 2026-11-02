@@ -1,0 +1,8 @@
+{
+    "id": "counterstrike2",
+    "name": "Counter-Strike 2",
+    "executables": [
+        "cs2"
+    ],
+    "steamAppId": 730
+}

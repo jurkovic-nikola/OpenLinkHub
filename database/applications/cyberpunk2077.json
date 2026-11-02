@@ -1,0 +1,8 @@
+{
+    "id": "cyberpunk2077",
+    "name": "Cyberpunk 2077",
+    "executables": [
+        "Cyberpunk2077.exe"
+    ],
+    "steamAppId": 1091500
+}

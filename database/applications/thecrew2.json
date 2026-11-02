@@ -1,0 +1,8 @@
+{
+    "id": "thecrew2",
+    "name": "The Crew 2",
+    "executables": [
+        "TheCrew2.exe"
+    ],
+    "steamAppId": 646910
+}

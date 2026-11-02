@@ -1,0 +1,8 @@
+{
+    "id": "microsoftflightsimulator2020",
+    "name": "Microsoft Flight Simulator (2020)",
+    "executables": [
+        "FlightSimulator.exe"
+    ],
+    "steamAppId": 1250410
+}

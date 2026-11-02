@@ -1,0 +1,8 @@
+{
+    "id": "rust",
+    "name": "Rust",
+    "executables": [
+        "rust.exe"
+    ],
+    "steamAppId": 252490
+}

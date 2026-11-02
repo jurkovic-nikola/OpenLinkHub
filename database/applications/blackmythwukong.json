@@ -1,0 +1,8 @@
+{
+    "id": "blackmythwukong",
+    "name": "Black Myth: Wukong",
+    "executables": [
+        "b1.exe"
+    ],
+    "steamAppId": 2358720
+}

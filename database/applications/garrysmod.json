@@ -1,0 +1,8 @@
+{
+    "id": "garrysmod",
+    "name": "Garry's Mod",
+    "executables": [
+        "gmod.exe"
+    ],
+    "steamAppId": 4000
+}

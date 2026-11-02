@@ -1,0 +1,8 @@
+{
+    "id": "lethalcompany",
+    "name": "Lethal Company",
+    "executables": [
+        "Lethal Company.exe"
+    ],
+    "steamAppId": 1966720
+}

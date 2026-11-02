@@ -1,0 +1,8 @@
+{
+    "id": "deadbydaylight",
+    "name": "Dead by Daylight",
+    "executables": [
+        "DeadByDaylight.exe"
+    ],
+    "steamAppId": 381210
+}

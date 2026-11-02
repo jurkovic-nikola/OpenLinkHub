@@ -1,0 +1,9 @@
+{
+    "id": "sniperelite5",
+    "name": "Sniper Elite 5",
+    "executables": [
+        "Sniper5_dx12.exe",
+        "Sniper5_vulkan.exe"
+    ],
+    "steamAppId": 1029690
+}

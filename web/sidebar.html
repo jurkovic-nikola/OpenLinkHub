@@ -7,6 +7,7 @@
     <button class="system-button secondary mb-3" id="sidebarToggle">☰</button>
     <div>
         {{ $menu := .Slice
+        ( .Dict "page" "apps" "url" "/apps" "icon" "icon-applications.svg" "alt" "Applications" "lang" "txtApplications" )
         ( .Dict "page" "lcd" "url" "/lcd" "icon" "icon-lcd.svg" "alt" "LCD" "lang" "txtLcd" )
         ( .Dict "page" "macros" "url" "/macros" "icon" "icon-macro.svg" "alt" "Macros" "lang" "txtMacros" )
         ( .Dict "page" "rgbCluster" "url" "/rgbCluster" "icon" "icon-cluster.svg" "alt" "RGB Cluster" "lang" "txtRgbCluster" )

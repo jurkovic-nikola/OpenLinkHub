@@ -782,6 +782,25 @@
     "txtMediaNext": "Next",
     "txtMediaVolumeDown": "Vol -",
     "txtMediaVolumeUp": "Vol +",
-    "txtMediaMute": "Mute"
+    "txtMediaMute": "Mute",
+    "txtApplications": "Applications",
+    "txtDeviceApps": "Device / Active / Passive profile",
+    "txtAppsLoadFailed": "Unable to load application profiles",
+    "txtAppsProfilesUnavailable": "Unable to load device profiles. Reselect the device to retry.",
+    "txtAppsUnavailableSuffix": " (unavailable)",
+    "txtAppsDuplicateDevice": "Select each device only once",
+    "txtAppsSaved": "Application profile is successfully saved",
+    "txtAppsSaveFailed": "Unable to save application profile",
+    "txtNewApplication": "New Application",
+    "txtSelectApplication": "Select application",
+    "txtCancel": "Cancel",
+    "txtAppsAlreadyExists": "This application profile already exists",
+    "txtAppsDeleted": "Application profile is successfully deleted",
+    "txtAppsDeleteFailed": "Unable to delete application profile",
+    "txtAppsMonitorDisabled": "Application monitoring is disabled. Enable AppMonitor in config.json and restart OpenLinkHub to activate automatic profile switching.",
+    "txtAddDevice": "Add Device",
+    "txtSearchApplications": "Search applications",
+    "txtManualActivation": "Manual Activation",
+    "txtManualActivationInfo": "Manual Activation is intended for Keyboard and Mouse Key Assignments setup. When enabled, the profile will not be switched automatically."
   }
 }

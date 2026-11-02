@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/appmonitor"
 	"github.com/sstallion/go-hid"
 )
 
@@ -254,6 +255,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 			18: "Screen Brightness -",
 			21: "Change Profile",
 			22: "Profile Switch",
+			23: "Global Profile",
 		},
 		DebounceTimes: map[int]string{
 			1: "1ms",
@@ -3076,6 +3078,9 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 			break
 		case 22:
 			d.rotateDeviceProfile()
+			break
+		case 23:
+			appmonitor.ManualApplicationProfileChange(key.DeviceId)
 			break
 		}
 	}

@@ -1,0 +1,9 @@
+{
+    "id": "terraria",
+    "name": "Terraria",
+    "executables": [
+        "Terraria",
+        "Terraria.exe"
+    ],
+    "steamAppId": 105600
+}

@@ -1,0 +1,8 @@
+{
+    "id": "medalofhonormp",
+    "name": "Medal of Honor (2010) - Multiplayer",
+    "executables": [
+        "mohmpgame.exe"
+    ],
+    "steamAppId": 47830
+}

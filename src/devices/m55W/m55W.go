@@ -5,6 +5,7 @@ package m55W
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/appmonitor"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/inputmanager"
@@ -176,6 +177,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endp
 			9:  "Mouse",
 			10: "Macro",
 			11: "Profile Switch",
+			23: "Global Profile",
 		},
 		InputActions:      inputmanager.GetInputActions(),
 		keyAssignmentFile: "/database/key-assignments/m55.json",
@@ -846,6 +848,7 @@ func (d *Device) UpdateDeviceKeyAssignment(keyIndex int, keyAssignment inputmana
 		val.ActionCommand = keyAssignment.ActionCommand
 		val.IsMacro = keyAssignment.IsMacro
 		val.OnRelease = keyAssignment.OnRelease
+		val.DeviceId = keyAssignment.DeviceId
 		d.KeyAssignment[keyIndex] = val
 		d.saveKeyAssignments()
 		d.setupKeyAssignment()
@@ -1420,6 +1423,9 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 				break
 			case 11:
 				d.rotateDeviceProfile()
+				break
+			case 23:
+				appmonitor.ManualApplicationProfileChange(val.DeviceId)
 				break
 			}
 		}

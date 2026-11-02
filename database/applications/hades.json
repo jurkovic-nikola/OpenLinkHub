@@ -1,0 +1,8 @@
+{
+    "id": "hades",
+    "name": "Hades",
+    "executables": [
+        "Hades.exe"
+    ],
+    "steamAppId": 1145360
+}

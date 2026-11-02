@@ -1,0 +1,9 @@
+{
+    "id": "hollowknight",
+    "name": "Hollow Knight",
+    "executables": [
+        "hollow_knight.x86_64",
+        "hollow_knight.exe"
+    ],
+    "steamAppId": 367520
+}

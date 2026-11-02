@@ -1,0 +1,8 @@
+{
+    "id": "medalofhonor",
+    "name": "Medal of Honor (2010) - Single Player",
+    "executables": [
+        "moh.exe"
+    ],
+    "steamAppId": 47790
+}

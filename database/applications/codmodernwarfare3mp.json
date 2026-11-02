@@ -1,0 +1,8 @@
+{
+    "id": "codmodernwarfare3mp",
+    "name": "Call of Duty: Modern Warfare 3 (2011) - Multiplayer",
+    "executables": [
+        "iw5mp.exe"
+    ],
+    "steamAppId": 42690
+}

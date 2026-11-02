@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"OpenLinkHub/src/appmonitor"
 	"github.com/sstallion/go-hid"
 )
 
@@ -2130,6 +2131,9 @@ func (d *Device) triggerKeyAssignment(value []byte) {
 			break
 		case 22:
 			d.rotateDeviceProfile()
+			break
+		case 23:
+			appmonitor.ManualApplicationProfileChange(key.DeviceId)
 			break
 		}
 	}

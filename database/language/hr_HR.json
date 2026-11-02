@@ -782,6 +782,25 @@
     "txtMediaNext": "Sljedeće",
     "txtMediaVolumeDown": "Glas. -",
     "txtMediaVolumeUp": "Glas. +",
-    "txtMediaMute": "Utišaj"
+    "txtMediaMute": "Utišaj",
+    "txtApplications": "Aplikacije",
+    "txtDeviceApps": "Uređaj / Aktivni / Pasivni profil",
+    "txtAppsLoadFailed": "Nije moguće učitati profile aplikacija",
+    "txtAppsProfilesUnavailable": "Nije moguće učitati profile uređaja. Ponovno odaberite uređaj i pokušajte ponovno.",
+    "txtAppsUnavailableSuffix": " (nedostupno)",
+    "txtAppsDuplicateDevice": "Odaberite svaki uređaj samo jednom",
+    "txtAppsSaved": "Profil aplikacije uspješno je spremljen",
+    "txtAppsSaveFailed": "Nije moguće spremiti profil aplikacije",
+    "txtNewApplication": "Nova aplikacija",
+    "txtSelectApplication": "Odaberite aplikaciju",
+    "txtCancel": "Odustani",
+    "txtAppsAlreadyExists": "Ovaj profil aplikacije već postoji",
+    "txtAppsDeleted": "Profil aplikacije uspješno je obrisan",
+    "txtAppsDeleteFailed": "Nije moguće obrisati profil aplikacije",
+    "txtAppsMonitorDisabled": "Praćenje aplikacija je onemogućeno. Omogućite AppMonitor u config.json i ponovno pokrenite OpenLinkHub kako biste aktivirali automatsko prebacivanje profila.",
+    "txtAddDevice": "Dodaj uređaj",
+    "txtSearchApplications": "Pretraži aplikacije",
+    "txtManualActivation": "Ručna aktivacija",
+    "txtManualActivationInfo": "Ručna aktivacija namijenjena je konfiguraciji dodjele tipki tipkovnice i miša. Kada je omogućena, profil se neće automatski mijenjati."
   }
 }

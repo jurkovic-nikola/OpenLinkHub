@@ -1,0 +1,8 @@
+{
+    "id": "pcbuildingsimulator",
+    "name": "PC Building Simulator",
+    "executables": [
+        "PCBS.exe"
+    ],
+    "steamAppId": 621060
+}

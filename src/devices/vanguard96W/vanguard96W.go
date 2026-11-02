@@ -5,6 +5,7 @@ package vanguard96W
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/appmonitor"
 	"OpenLinkHub/src/common"
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/dispatcher"
@@ -211,6 +212,7 @@ func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endp
 			10: "Macro",
 			21: "Change Profile",
 			22: "Profile Switch",
+			23: "Global Profile",
 		},
 		RGBModes: map[string]string{
 			"watercolor":    "Watercolor",
@@ -3090,6 +3092,9 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 			break
 		case 22:
 			d.rotateDeviceProfile()
+			break
+		case 23:
+			appmonitor.ManualApplicationProfileChange(key.DeviceId)
 			break
 		}
 	}

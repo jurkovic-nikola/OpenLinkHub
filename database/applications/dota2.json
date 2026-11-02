@@ -1,0 +1,8 @@
+{
+    "id": "dota2",
+    "name": "Dota 2",
+    "executables": [
+        "dota2"
+    ],
+    "steamAppId": 570
+}

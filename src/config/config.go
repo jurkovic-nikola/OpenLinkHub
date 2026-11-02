@@ -46,6 +46,7 @@ type Configuration struct {
 	EnableMotherboard         bool     `json:"enableMotherboard"`
 	MotherboardBiosOnExit     bool     `json:"motherboardBiosOnExit"`
 	MemoryRegisterOverride    []byte   `json:"memoryRegisterOverride"`
+	AppMonitor                bool     `json:"appMonitor"`
 }
 
 var (
@@ -72,6 +73,7 @@ var (
 		"enableMotherboard":         false,
 		"motherboardBiosOnExit":     false,
 		"memoryRegisterOverride":    make([]byte, 0),
+		"appMonitor":                false,
 	}
 	systemService = true
 )
@@ -167,6 +169,7 @@ func upgradeFile(cfg string) {
 			EnableMotherboard:         false,
 			MotherboardBiosOnExit:     false,
 			MemoryRegisterOverride:    make([]byte, 0),
+			AppMonitor:                false,
 		}
 		saveConfigSettings(value)
 	} else {

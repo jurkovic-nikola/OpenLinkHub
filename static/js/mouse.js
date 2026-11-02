@@ -17,29 +17,36 @@ document.addEventListener("DOMContentLoaded", function () {
         } : null;
     }
 
-    $('.keyAssignmentType').each(function () {
-        if (parseInt($(this).val()) !== 23) {
-            return;
+    $.ajax({
+        url: '/api/devices/' + $("#deviceId").val(),
+        type: 'get',
+        success: function (result) {
+            const keyAssignments = result.device.KeyAssignment;
+
+            $('.keyAssignmentType').each(function () {
+                if (parseInt($(this).val()) !== 23) {
+                    return;
+                }
+
+                const keyIndex = $(this).attr('id').split('_')[1];
+                const keyAssignmentValue = $('#keyAssignmentValue_' + keyIndex);
+                const assignment = keyAssignments[keyIndex];
+
+                if (assignment) {
+                    loadGlobalProfiles(keyAssignmentValue, assignment.deviceId);
+                }
+            });
         }
-
-        const keyIndex = $(this).attr('id').split('_')[1];
-        const keyAssignmentValue = $('#keyAssignmentValue_' + keyIndex);
-
-        // Preserve the currently selected option before replacing its contents
-        const selectedValue = keyAssignmentValue.val();
-
-        loadGlobalProfiles(keyAssignmentValue, selectedValue);
     });
-    
+
     function loadGlobalProfiles(keyAssignmentValue, selectedValue = null) {
         $.ajax({
             url: '/api/application/manualProfiles',
             type: 'get',
             success: function (result) {
-                $(keyAssignmentValue).empty();
-
+                keyAssignmentValue.empty();
                 $.each(result.data, function (index, value) {
-                    $(keyAssignmentValue).append($('<option>', {
+                    keyAssignmentValue.append($('<option>', {
                         value: index,
                         text: value.applicationName,
                         selected: index === selectedValue

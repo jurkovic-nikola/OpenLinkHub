@@ -114,6 +114,7 @@ import (
 	"OpenLinkHub/src/devices/slipstream"
 	"OpenLinkHub/src/devices/slipstreamV2"
 	"OpenLinkHub/src/devices/st100"
+	"OpenLinkHub/src/devices/strafergb"
 	"OpenLinkHub/src/devices/strafergbmk2"
 	"OpenLinkHub/src/devices/vanguard96"
 	"OpenLinkHub/src/devices/vanguard96WU"
@@ -835,6 +836,7 @@ var deviceRegisterMap = map[uint16]Product{
 	6935:  {1, 0, "K65 RGB", k65rgb.Init, nil},                             // K65 RGB
 	6969:  {1, 0, "K65 RGB RAPIDFIRE", k65rgbRF.Init, nil},                 // K65 RGB RAPIDFIRE
 	6984:  {1, 0, "STRAFE RGB MK2", strafergbmk2.Init, nil},                // STRAFE RGB MK2
+	6944:  {1, 0, "STRAFE RGB", strafergb.Init, nil},                       // STRAFE RGB
 	11024: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB
 	11025: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB
 	11043: {1, 0, "K65 PLUS WIRELESS", k65plusWU.Init, nil},                // K65 PLUS WIRELESS USB

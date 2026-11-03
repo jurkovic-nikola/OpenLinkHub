@@ -1092,6 +1092,7 @@ func (d *Device) setDeviceStatus(status byte, productId uint16) {
 						time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 						connect.Call(nil)
 						d.slipstream.Connected[v.ProductId] = true
+						d.SharedDevices(d.DeviceList[v.Serial])
 					}()
 				}
 			}

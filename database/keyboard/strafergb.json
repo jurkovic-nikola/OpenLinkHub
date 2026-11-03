@@ -1631,7 +1631,7 @@
           "packetIndex": [29],
           "keyData": [122,62],
           "default": true,
-          "keySpace": "keyboard-key wide",
+          "keySpace": "keyboard-key",
           "keyHash": ["4611686018427387904"],
           "color": {
             "red": 0,
@@ -1657,7 +1657,7 @@
           }
         },
         "99": {
-          "keyName": "Alt",
+          "keyName": "Alt Gr",
           "width": 90,
           "height": 70,
           "left": 15,
@@ -1666,6 +1666,7 @@
           "keyData": [126,67],
           "default": true,
           "keyHash": ["147573952589676412928"],
+          "keySpace": "keyboard-key wide",
           "color": {
             "red": 0,
             "green": 255,

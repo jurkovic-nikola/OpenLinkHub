@@ -2075,8 +2075,8 @@ func (d *Device) buildOpenRGBKeyboard(keyboard *keyboards.Keyboard) ([]common.Op
 	const na = -1
 
 	positions := [7][24]int{
-		{125, 137, 8, na, na, na, na, 47, 59, na, na, na, na, na, na, na, na, na, na, na, 20, na, na, na},
-		{0, na, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 6, na, na, 18, 30, 42, na, 32, 44, 56, 68},
+		{125, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, na, 137, 8},
+		{0, na, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 6, na, na, 18, 30, 42, na, na, na, na, na},
 		{1, 13, 25, 37, 49, 61, 73, 85, 97, 109, 121, 133, 7, na, 31, na, 54, 66, 78, na, 80, 92, 104, 116},
 		{2, na, 14, 26, 38, 50, 62, 74, 86, 98, 110, 122, 134, 90, na, na, 43, 55, 67, na, 9, 21, 33, 128},
 		{3, na, 15, 27, 39, 51, 63, 75, 87, 99, 111, 123, 135, 114, 126, na, na, na, na, na, 57, 69, 81, na},
@@ -2098,10 +2098,10 @@ func (d *Device) buildOpenRGBKeyboard(keyboard *keyboards.Keyboard) ([]common.Op
 		}
 	}
 
-	_, ansi := byAddress[102]
+	ansi := keyboard.Layout == "US"
 	if ansi {
 		positions[3][14] = 102
-		positions[4][13], positions[4][14] = 126, na
+		positions[4][13] = na
 	}
 
 	matrix := make([][]uint32, len(positions))
@@ -2140,224 +2140,76 @@ func (d *Device) buildOpenRGBKeyboard(keyboard *keyboards.Keyboard) ([]common.Op
 	return leds, matrix, offsets, colors
 }
 
-// openRGBKeyName handles mismatch in key names
+// openRGBKeyName returns the OpenRGB name for a STRAFE RGB packet index.
 func (d *Device) openRGBKeyName(key keyboards.Key, address int, ansi bool) string {
-	addresses := map[int]int{
-		0:   41,
-		1:   53,
-		2:   43,
-		3:   57,
-		4:   106,
-		5:   105,
-		6:   69,
-		7:   46,
-		8:   114,
-		9:   95,
-		12:  58,
-		13:  30,
-		14:  20,
-		15:  4,
-		16:  100,
-		17:  108,
-		18:  70,
-		20:  102,
-		21:  96,
-		24:  59,
-		25:  31,
-		26:  26,
-		27:  22,
-		28:  29,
-		29:  107,
-		30:  71,
-		31:  42,
-		32:  123,
-		33:  97,
-		36:  60,
-		37:  32,
-		38:  8,
-		39:  7,
-		40:  27,
-		42:  72,
-		43:  76,
-		44:  126,
-		47:  137,
-		48:  61,
-		49:  33,
-		50:  21,
-		51:  9,
-		52:  6,
-		53:  44,
-		54:  73,
-		55:  77,
-		56:  124,
-		57:  92,
-		59:  138,
-		60:  62,
-		61:  34,
-		62:  23,
-		63:  10,
-		64:  25,
-		66:  74,
-		67:  78,
-		68:  125,
-		69:  93,
-		72:  63,
-		73:  35,
-		74:  28,
-		75:  11,
-		76:  5,
-		78:  75,
-		79:  110,
-		80:  83,
-		81:  94,
-		84:  64,
-		85:  36,
-		86:  24,
-		87:  13,
-		88:  17,
-		89:  111,
-		90:  48,
-		91:  109,
-		92:  84,
-		93:  89,
-		96:  65,
-		97:  37,
-		98:  12,
-		99:  14,
-		100: 16,
-		101: 112,
-		102: 49,
-		103: 82,
-		104: 85,
-		105: 90,
-		108: 66,
-		109: 38,
-		110: 18,
-		111: 15,
-		112: 54,
-		113: 101,
-		114: 50,
-		115: 80,
-		116: 86,
-		117: 91,
-		120: 67,
-		121: 39,
-		122: 19,
-		123: 51,
-		124: 55,
-		125: 128,
-		126: 40,
-		127: 81,
-		128: 87,
-		129: 98,
-		132: 68,
-		133: 45,
-		134: 47,
-		135: 52,
-		136: 56,
-		137: 113,
-		139: 79,
-		140: 88,
-		141: 99,
-	}
-	if mapped, ok := addresses[address]; ok {
-		address = mapped
-	} else {
-		return fmt.Sprintf("LED %d", address)
+	if address == 125 {
+		return "Logo"
 	}
 
-	if address >= 58 && address <= 69 {
-		return fmt.Sprintf("Key: F%d", address-57)
-	}
-
-	if address >= 89 && address <= 97 {
-		return fmt.Sprintf("Key: Number Pad %d", address-88)
-	}
-
-	special := map[int]string{
-		70:  "Print Screen",
-		76:  "Delete",
-		83:  "Num Lock",
-		84:  "Number Pad /",
-		85:  "Number Pad *",
-		86:  "Number Pad -",
-		87:  "Number Pad +",
-		88:  "Number Pad Enter",
-		98:  "Number Pad 0",
-		99:  "Number Pad .",
-		80:  "Left Arrow",
-		81:  "Down Arrow",
-		82:  "Up Arrow",
-		79:  "Right Arrow",
-		123: "Media Stop",
-		128: "Profile",
-		113: "Brightness",
-		114: "Windows Lock",
-		126: "Media Previous",
-		124: "Media Play/Pause",
-		125: "Media Next",
-		102: "Media Mute",
-		71:  "Scroll Lock",
-		72:  "Pause/Break",
-		73:  "Insert",
-		74:  "Home",
-		75:  "Page Up",
-		77:  "End",
-		78:  "Page Down",
-		131: "G1",
-		132: "G2",
-		133: "G3",
-		134: "G4",
-		41:  "Escape",
-		42:  "Backspace",
-		43:  "Tab",
-		57:  "Caps Lock",
-		106: "Left Shift",
-		110: "Right Shift",
-		105: "Left Control",
-		108: "Left Windows",
-		107: "Left Alt",
-		111: "Right Alt",
-		112: "Right Windows",
-		122: "Right Fn",
-		101: "Menu",
-		109: "Right Control",
-		44:  "Space",
-	}
-
-	if address == 137 || address == 138 || address == 140 || address == 141 {
-		return ""
-	}
-
-	if address == 40 {
+	if address == 126 {
 		if ansi {
 			return "Key: Enter"
 		}
 		return "Key: Enter (ISO)"
 	}
 
+	special := map[int]string{
+		0:   "Escape",
+		2:   "Tab",
+		3:   "Caps Lock",
+		4:   "Left Shift",
+		5:   "Left Control",
+		8:   "Windows Lock",
+		9:   "Number Pad 7",
+		16:  "\\ (ISO)",
+		17:  "Left Windows",
+		18:  "Print Screen",
+		21:  "Number Pad 8",
+		29:  "Left Alt",
+		30:  "Scroll Lock",
+		31:  "Backspace",
+		33:  "Number Pad 9",
+		42:  "Pause/Break",
+		43:  "Delete",
+		53:  "Space",
+		54:  "Insert",
+		55:  "End",
+		57:  "Number Pad 4",
+		66:  "Home",
+		67:  "Page Down",
+		69:  "Number Pad 5",
+		78:  "Page Up",
+		79:  "Right Shift",
+		80:  "Num Lock",
+		81:  "Number Pad 6",
+		89:  "Right Alt",
+		91:  "Right Control",
+		92:  "Number Pad /",
+		93:  "Number Pad 1",
+		101: "Right Windows",
+		103: "Up Arrow",
+		104: "Number Pad *",
+		105: "Number Pad 2",
+		113: "Menu",
+		115: "Left Arrow",
+		116: "Number Pad -",
+		117: "Number Pad 3",
+		127: "Down Arrow",
+		128: "Number Pad +",
+		129: "Number Pad 0",
+		137: "Brightness",
+		139: "Right Arrow",
+		140: "Number Pad Enter",
+		141: "Number Pad .",
+	}
 	if name, ok := special[address]; ok {
 		return "Key: " + name
-	}
-
-	if address == 100 && strings.HasPrefix(key.KeyName, "\\") {
-		return "Key: \\ (ISO)"
-	}
-
-	switch key.KeyName {
-	case "Sz \\ ?", "Sz":
-		return "Key: ß"
-	case "'`":
-		return "Key: `"
-	case "< >", "<>|", "<":
-		return "Key: < >"
 	}
 
 	fields := strings.Fields(key.KeyName)
 	if len(fields) == 0 {
 		return fmt.Sprintf("LED %d", address)
 	}
-
 	return "Key: " + fields[0]
 }
 

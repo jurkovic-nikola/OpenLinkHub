@@ -801,6 +801,18 @@
     "txtAddDevice": "Gerät hinzufügen",
     "txtSearchApplications": "Anwendungen suchen",
     "txtManualActivation": "Manuelle Aktivierung",
-    "txtManualActivationInfo": "Die manuelle Aktivierung ist für die Einrichtung von Tastenzuweisungen für Tastatur und Maus vorgesehen. Wenn sie aktiviert ist, wird das Profil nicht automatisch gewechselt."
+    "txtManualActivationInfo": "Die manuelle Aktivierung ist für die Einrichtung von Tastenzuweisungen für Tastatur und Maus vorgesehen. Wenn sie aktiviert ist, wird das Profil nicht automatisch gewechselt.",
+    "txtNexusUniqueName": "Geben Sie einen anderen Layoutnamen ein, um eine Kopie zu speichern.",
+    "txtNexusTrack": "Aktuelle Wiedergabe",
+    "txtNexusDeleteLayout": "Layout löschen",
+    "txtNexusConstructor": "Konstruktor",
+    "txtNexusEditor": "Bildschirmeditor",
+    "txtNexusButton": "Schaltfläche",
+    "txtNexusClock": "Uhr",
+    "txtNexusWidth": "Relative Breite",
+    "txtNexusAction": "Berührungsaktion",
+    "txtNexusMedia": "Mediensteuerung",
+    "txtNexusAdd": "Kachel hinzufügen",
+    "txtNexusSave": "Speichern und aktivieren"
   }
 }

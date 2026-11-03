@@ -801,6 +801,18 @@
     "txtAddDevice": "Adicionar dispositivo",
     "txtSearchApplications": "Pesquisar aplicativos",
     "txtManualActivation": "Ativação manual",
-    "txtManualActivationInfo": "A ativação manual destina-se à configuração das atribuições de teclas do teclado e do mouse. Quando ativada, o perfil não será alterado automaticamente."
+    "txtManualActivationInfo": "A ativação manual destina-se à configuração das atribuições de teclas do teclado e do mouse. Quando ativada, o perfil não será alterado automaticamente.",
+    "txtNexusUniqueName": "Digite um nome de layout diferente para salvar uma cópia.",
+    "txtNexusTrack": "Reproduzindo agora",
+    "txtNexusDeleteLayout": "Excluir layout",
+    "txtNexusConstructor": "Construtor",
+    "txtNexusEditor": "Editor de tela",
+    "txtNexusButton": "Botão",
+    "txtNexusClock": "Relógio",
+    "txtNexusWidth": "Largura relativa",
+    "txtNexusAction": "Ação de toque",
+    "txtNexusMedia": "Controle de mídia",
+    "txtNexusAdd": "Adicionar bloco",
+    "txtNexusSave": "Salvar e ativar"
   }
 }

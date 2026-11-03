@@ -801,6 +801,18 @@
     "txtAddDevice": "Lägg till enhet",
     "txtSearchApplications": "Sök applikationer",
     "txtManualActivation": "Manuell aktivering",
-    "txtManualActivationInfo": "Manuell aktivering är avsedd för konfigurering av tangenttilldelningar för tangentbord och mus. När den är aktiverad växlas profilen inte automatiskt."
+    "txtManualActivationInfo": "Manuell aktivering är avsedd för konfigurering av tangenttilldelningar för tangentbord och mus. När den är aktiverad växlas profilen inte automatiskt.",
+    "txtNexusUniqueName": "Ange ett annat layoutnamn för att spara en kopia.",
+    "txtNexusTrack": "Spelas nu",
+    "txtNexusDeleteLayout": "Ta bort layout",
+    "txtNexusConstructor": "Konstruktor",
+    "txtNexusEditor": "Skärmredigerare",
+    "txtNexusButton": "Knapp",
+    "txtNexusClock": "Klocka",
+    "txtNexusWidth": "Relativ bredd",
+    "txtNexusAction": "Pekåtgärd",
+    "txtNexusMedia": "Mediekontroll",
+    "txtNexusAdd": "Lägg till ruta",
+    "txtNexusSave": "Spara och aktivera"
   }
 }

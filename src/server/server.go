@@ -1075,6 +1075,28 @@ func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// deleteNexusScreen handles saving of NEXUS screens
+func saveNexusScreen(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSaveNexusScreen(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
+// deleteNexusScreen handles deletion of NEXUS screens
+func deleteNexusScreen(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessDeleteNexusScreen(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setDeviceLcdProfile handles device LCD changes
 func setDeviceLcdProfile(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessLcdProfileChange(r)
@@ -2968,6 +2990,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/lcd/device", http.MethodPost, changeDeviceLcd)
 	handleFunc(r, "/api/lcd/rotation", http.MethodPost, setDeviceLcdRotation)
 	handleFunc(r, "/api/lcd/brightness", http.MethodPost, setDeviceLcdBrightness)
+	handleFunc(r, "/api/nexus/screen", http.MethodPost, saveNexusScreen)
 	handleFunc(r, "/api/lcd/profile", http.MethodPost, setDeviceLcdProfile)
 	handleFunc(r, "/api/lcd/image", http.MethodPost, setDeviceLcdImage)
 	handleFunc(r, "/api/brightness", http.MethodPost, changeBrightness)
@@ -3069,6 +3092,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/userProfile/delete", http.MethodDelete, deleteUserProfile)
 	handleFunc(r, "/api/dashboard/devices/delete", http.MethodDelete, removeDashboardDevice)
 	handleFunc(r, "/api/application/profiles/delete", http.MethodDelete, deleteApplicationProfile)
+	handleFunc(r, "/api/nexus/screen/delete", http.MethodDelete, deleteNexusScreen)
 
 	// Prometheus metrics
 	if config.GetConfig().Metrics {

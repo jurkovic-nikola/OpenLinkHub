@@ -801,6 +801,18 @@
     "txtAddDevice": "Dodaj uređaj",
     "txtSearchApplications": "Pretraži aplikacije",
     "txtManualActivation": "Ručna aktivacija",
-    "txtManualActivationInfo": "Ručna aktivacija namijenjena je konfiguraciji dodjele tipki tipkovnice i miša. Kada je omogućena, profil se neće automatski mijenjati."
+    "txtManualActivationInfo": "Ručna aktivacija namijenjena je konfiguraciji dodjele tipki tipkovnice i miša. Kada je omogućena, profil se neće automatski mijenjati.",
+    "txtNexusUniqueName": "Unesite drugačiji naziv rasporeda kako biste spremili kopiju.",
+    "txtNexusTrack": "Trenutno se reproducira",
+    "txtNexusDeleteLayout": "Izbriši raspored",
+    "txtNexusConstructor": "Konstruktor",
+    "txtNexusEditor": "Uređivač zaslona",
+    "txtNexusButton": "Gumb",
+    "txtNexusClock": "Sat",
+    "txtNexusWidth": "Relativna širina",
+    "txtNexusAction": "Radnja na dodir",
+    "txtNexusMedia": "Upravljanje medijima",
+    "txtNexusAdd": "Dodaj pločicu",
+    "txtNexusSave": "Spremi i aktiviraj"
   }
 }

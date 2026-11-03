@@ -801,6 +801,18 @@
     "txtAddDevice": "Add Device",
     "txtSearchApplications": "Search applications",
     "txtManualActivation": "Manual Activation",
-    "txtManualActivationInfo": "Manual Activation is intended for Keyboard and Mouse Key Assignments setup. When enabled, the profile will not be switched automatically."
+    "txtManualActivationInfo": "Manual Activation is intended for Keyboard and Mouse Key Assignments setup. When enabled, the profile will not be switched automatically.",
+    "txtNexusUniqueName": "Enter a different layout name to save a copy.",
+    "txtNexusTrack": "Now playing",
+    "txtNexusDeleteLayout": "Delete layout",
+    "txtNexusConstructor": "Constructor",
+    "txtNexusEditor": "Screen editor",
+    "txtNexusButton": "Button",
+    "txtNexusClock": "Clock",
+    "txtNexusWidth": "Relative width",
+    "txtNexusAction": "Touch action",
+    "txtNexusMedia": "Media control",
+    "txtNexusAdd": "Add tile",
+    "txtNexusSave": "Save and activate"
   }
 }

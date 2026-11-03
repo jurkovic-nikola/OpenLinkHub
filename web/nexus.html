@@ -14,6 +14,7 @@
     {{ $lcdMode := .Device.DeviceProfile.LCDMode }}
     {{ $deviceProfile := .Device.DeviceProfile }}
     {{ $stats := .Stats }}
+    {{ $catalog := $device.ScreenCatalog }}
     <input type="hidden" id="deviceId" name="deviceId" value="{{ $device.Serial }}">
     <div class="row">
         <!-- Sidebar -->
@@ -27,7 +28,7 @@
             {{ end }}
 
             <!-- NEXUS -->
-            <div class="row g-4 mb-4 align-items-stretch">
+            <div class="row g-4 mb-4 align-items-start">
                 <div class="col-md-2">
                     <div class="card system-card text-center">
                         <div class="card-header">
@@ -43,24 +44,27 @@
 
                                 <!-- RGB Profile -->
                                 <div class="settings-row">
-                                    <span class="settings-label text-ellipsis">{{ .Lang "txtRgb" }}</span>
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtLcdMode" }}</span>
                                     <label for="lcdProfile">
-                                        <select id="lcdProfile" class="form-select system-select compact auto-width lcdProfile" name="{{ $device.Serial }}">
+                                        <select id="lcdProfile" class="form-select system-select compact auto-width" name="{{ $device.Serial }}">
                                             {{ range $key, $value := $lcdProfiles }}
                                             {{ if eq $key "default" }}
                                             {{ continue }}
                                             {{ end }}
 
                                             {{ if eq $key $lcdMode }}
-                                            <option value="{{ $key }}" selected>{{ $value.Name }}</option>
+                                            <option value="{{ $key }}" selected>{{ if eq $key "media-control" }}{{ (index $catalog $key).Name }}{{ else }}{{ $value.Name }}{{ end }}</option>
                                             {{ else }}
-                                            <option value="{{ $key }}">{{ $value.Name }}</option>
+                                            <option value="{{ $key }}">{{ if eq $key "media-control" }}{{ (index $catalog $key).Name }}{{ else }}{{ $value.Name }}{{ end }}</option>
                                             {{ end }}
                                             {{ end }}
 
+                                            {{ range $id, $screen := $catalog }}
+                                            {{ if ne $id "media-control" }}<option value="{{ $id }}" {{ if eq $id $lcdMode }}selected{{ end }}>{{ $screen.Name }}</option>{{ end }}
+                                            {{ end }}
                                             {{ range $key, $value := $stats }}
                                             {{ range $channel, $data := $value.Devices }}
-                                            <option value="{{ $key }};{{ $channel }}">{{ $data.Device }}</option>
+                                            <option value="{{ $key }};{{ $channel }}" {{ if eq (printf "%s;%d" $key $channel) $lcdMode }}selected{{ end }}>{{ $data.Device }}</option>
                                             {{ end }}
                                             {{ end }}
                                         </select>
@@ -70,11 +74,249 @@
                         </div>
                     </div>
                 </div>
+                <div class="col-lg-7">
+                    <div class="card system-card">
+                        <div class="card-header">
+                            {{ .Lang "txtNexusEditor" }}
+                        </div>
+                        <div class="card-body">
+                            <script type="application/json" id="screenCatalog">
+                                {{ $catalog }}
+                            </script>
+                            <div class="settings-list">
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtLayout" }}
+                                    </span>
+                                    <select class="system-select compact" id="screenSource">
+                                        {{ range $id, $screen := $catalog }}
+                                        <option value="{{ $id }}">
+                                            {{ $screen.Name }}
+                                        </option>
+                                        {{ end }}
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtName" }}
+                                    </span>
+                                    <span class="system-input text-input compact">
+                                        <input type="text" id="screenName" maxlength="48">
+                                    </span>
+                                </label>
+                            </div>
+                            <div id="tilePreview" class="my-3" style="display:flex;gap:10px;width:100%;max-width:640px;aspect-ratio:640/48;background:#151515">
+                            </div>
+                            <div class="mb-3 d-flex flex-wrap" style="gap:14px">
+                                <button type="button" class="system-button" id="tileAdd">
+                                    {{ .Lang "txtNexusAdd" }}
+                                </button>
+                                <button type="button" class="system-button" id="tileLeft">
+                                    {{ .Lang "txtLeft" }}
+                                </button>
+                                <button type="button" class="system-button" id="tileRight">
+                                    {{ .Lang "txtRight" }}
+                                </button>
+                                <button type="button" class="system-button" id="tileRemove">
+                                    {{ .Lang "txtDelete" }}
+                                </button>
+                            </div>
+                            <div class="settings-list">
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtType" }}
+                                    </span>
+                                    <select class="system-select compact" id="tileType">
+                                        <option value="button">
+                                            {{ .Lang "txtNexusButton" }}
+                                        </option>
+                                        <option value="sensor">
+                                            {{ .Lang "txtSensor" }}
+                                        </option>
+                                        <option value="track">{{ .Lang "txtNexusTrack" }}</option>
+                                        <option value="battery">{{ .Lang "txtBatteryLevel" }}</option>
+                                        <option value="clock">
+                                            {{ .Lang "txtNexusClock" }}
+                                        </option>
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtText" }}
+                                    </span>
+                                    <span class="system-input text-input compact">
+                                        <input type="text" id="tileLabel" maxlength="32">
+                                    </span>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtNexusWidth" }}
+                                    </span>
+                                    <select class="system-select compact" id="tileWidth">
+                                        <option>
+                                            1
+                                        </option>
+                                        <option>
+                                            2
+                                        </option>
+                                        <option>
+                                            3
+                                        </option>
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtSensor" }}
+                                    </span>
+                                    <select class="system-select compact" id="tileSource">
+                                        <option value="cpu" data-reading="{{ .Dashboard.TemperatureToString $device.CpuTemp }}">
+                                            {{ .Lang "txtCpuTemperature" }}
+                                        </option>
+                                        <option value="gpu" data-reading="{{ .Dashboard.TemperatureToString $device.GpuTemp }}">
+                                            {{ .Lang "txtGpuTemperature" }}
+                                        </option>
+                                        {{ range $serial, $group := $stats }}
+                                        {{ range $channel, $data := $group.Devices }}
+                                        {{ if $data.TemperatureString }}
+                                        <option data-reading="{{ $data.TemperatureString }}" value="{{ $serial }};{{ $channel }};temp">
+                                            {{ $data.Device }}
+                                            ·
+                                            {{ $root.Lang "txtTemperature" }}
+                                            (
+                                            {{ $serial }}
+                                            /
+                                            {{ $channel }}
+                                            )
+                                        </option>
+                                        {{ end }}
+                                        {{ if $data.Speed }}
+                                        <option data-reading="{{ $data.Speed }}" value="{{ $serial }};{{ $channel }};rpm">
+                                            {{ $data.Device }}
+                                            · RPM (
+                                            {{ $serial }}
+                                            /
+                                            {{ $channel }}
+                                            )
+                                        </option>
+                                        {{ end }}
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">{{ .Lang "txtDevice" }}</span>
+                                    <select class="system-select compact" id="tileBattery">
+                                        {{ range $serial, $battery := $device.BatterySources }}<option value="{{ $serial }}" data-reading="{{ $battery.Level }}%">{{ $battery.Device }} ({{ $serial }})</option>{{ end }}
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtNexusAction" }}
+                                    </span>
+                                    <select class="system-select compact" id="tileAction">
+                                        <option value="">
+                                            {{ .Lang "txtNone" }}
+                                        </option>
+                                        <option value="media">
+                                            {{ .Lang "txtNexusMedia" }}
+                                        </option>
+                                        <option value="screen">
+                                            {{ .Lang "txtLayout" }}
+                                        </option>
+                                        <option value="macro">{{ .Lang "txtMacros" }}</option>
+                                        <option value="profile">
+                                            {{ .Lang "txtProfile" }}
+                                        </option>
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">{{ .Lang "txtMacros" }}</span>
+                                    <select class="system-select compact" id="targetMacro">
+                                        {{ range $id, $name := $device.TouchMacros }}<option value="{{ $id }}">{{ $name }}</option>{{ end }}
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtNexusMedia" }}
+                                    </span>
+                                    <select class="system-select compact" id="targetMedia">
+                                        <option value="1">
+                                            {{ .Lang "txtMediaVolumeUp" }}
+                                        </option>
+                                        <option value="2">
+                                            {{ .Lang "txtMediaVolumeDown" }}
+                                        </option>
+                                        <option value="3">
+                                            {{ .Lang "txtMediaMute" }}
+                                        </option>
+                                        <option value="4">
+                                            {{ .Lang "txtMediaStop" }}
+                                        </option>
+                                        <option value="5">
+                                            {{ .Lang "txtMediaPrevious" }}
+                                        </option>
+                                        <option value="6">
+                                            {{ .Lang "txtMediaPlay" }}
+                                        </option>
+                                        <option value="7">
+                                            {{ .Lang "txtMediaNext" }}
+                                        </option>
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtLayout" }}
+                                    </span>
+                                    <select class="system-select compact" id="targetScreen">
+                                        {{ range $id, $p := $lcdProfiles }}
+                                        {{ if ne $id "default" }}
+                                        <option value="{{ $id }}">
+                                            {{ $p.Name }}
+                                        </option>
+                                        {{ end }}
+                                        {{ end }}
+                                        {{ range $id, $p := $catalog }}
+                                        {{ if ne $id "media-control" }}
+                                        <option value="{{ $id }}">
+                                            {{ $p.Name }}
+                                        </option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </label>
+                                <label class="settings-row">
+                                    <span class="settings-label">
+                                        {{ .Lang "txtProfile" }}
+                                    </span>
+                                    <select class="system-select compact" id="targetProfile">
+                                        {{ range $id, $p := $device.ManualProfiles }}
+                                        {{ if $p.Enabled }}
+                                        <option value="{{ $id }}">
+                                            {{ $p.ApplicationName }}
+                                        </option>
+                                        {{ end }}
+                                        {{ end }}
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex flex-wrap" style="gap:14px">
+                            <button type="button" class="system-button" id="screenSave">
+                                {{ .Lang "txtNexusSave" }}
+                            </button>
+                            <button type="button" class="system-button" id="screenCopy">
+                                {{ .Lang "txtSaveAs" }}
+                            </button>
+                            <button type="button" class="system-button danger" id="screenDelete" style="display:none">{{ .Lang "txtNexusDeleteLayout" }}</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 </div>
 <script src="/static/js/overview.js"></script>
+<script src="/static/js/nexus.js"></script>
 <script src="/static/js/sidebar.js"></script>
 {{ if .Dashboard.TemperatureBar }}
 <script src="/static/js/temperature-bar.js"></script>

@@ -801,6 +801,18 @@
         "txtAddDevice": "Ajouter un périphérique",
         "txtSearchApplications": "Rechercher des applications",
         "txtManualActivation": "Activation manuelle",
-        "txtManualActivationInfo": "L'activation manuelle est destinée à la configuration des affectations de touches du clavier et de la souris. Lorsqu'elle est activée, le profil ne sera pas changé automatiquement."
+        "txtManualActivationInfo": "L'activation manuelle est destinée à la configuration des affectations de touches du clavier et de la souris. Lorsqu'elle est activée, le profil ne sera pas changé automatiquement.",
+        "txtNexusUniqueName": "Saisissez un nom de disposition différent pour enregistrer une copie.",
+        "txtNexusTrack": "Lecture en cours",
+        "txtNexusDeleteLayout": "Supprimer la disposition",
+        "txtNexusConstructor": "Constructeur",
+        "txtNexusEditor": "Éditeur d'écran",
+        "txtNexusButton": "Bouton",
+        "txtNexusClock": "Horloge",
+        "txtNexusWidth": "Largeur relative",
+        "txtNexusAction": "Action tactile",
+        "txtNexusMedia": "Contrôle multimédia",
+        "txtNexusAdd": "Ajouter une tuile",
+        "txtNexusSave": "Enregistrer et activer"
     }
 }

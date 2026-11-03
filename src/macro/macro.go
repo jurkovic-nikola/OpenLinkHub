@@ -10,6 +10,7 @@ import (
 	"OpenLinkHub/src/logger"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"sync"
@@ -91,7 +92,10 @@ func Init() {
 
 // GetProfile will return macro profile based on macro ID
 func GetProfile(macroId int) *Macro {
+	mutex.Lock()
+	defer mutex.Unlock()
 	if val, ok := macros[macroId]; ok {
+		val.Actions = maps.Clone(val.Actions)
 		return &val
 	}
 	return nil
@@ -99,7 +103,14 @@ func GetProfile(macroId int) *Macro {
 
 // GetProfiles will return all macro profiles
 func GetProfiles() map[int]Macro {
-	return macros
+	mutex.Lock()
+	defer mutex.Unlock()
+	profiles := maps.Clone(macros)
+	for id, profile := range profiles {
+		profile.Actions = maps.Clone(profile.Actions)
+		profiles[id] = profile
+	}
+	return profiles
 }
 
 // DeleteMacroValue will delete macro value

@@ -13,6 +13,7 @@ import (
 	"OpenLinkHub/src/dashboard"
 	"OpenLinkHub/src/devices"
 	"OpenLinkHub/src/devices/lcd"
+	"OpenLinkHub/src/devices/nexus"
 	"OpenLinkHub/src/devices/xeneonedge"
 	"OpenLinkHub/src/display"
 	"OpenLinkHub/src/inputmanager"
@@ -203,6 +204,8 @@ type Payload struct {
 	Widget                        xeneonedge.Widget     `json:"widget"`
 	ColorTone                     int                   `json:"colorTone"`
 	ColorToneType                 int                   `json:"colorToneType"`
+	Screen                        nexus.Screen          `json:"screen"`
+	Id                            string                `json:"id"`
 	Status                        int
 	Code                          int
 	Message                       string
@@ -811,6 +814,57 @@ func ProcessLcdChange(r *http.Request) *Payload {
 		}
 	}
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdMode"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessSaveNexusScreen saves a custom layout and selects it on the device.
+func ProcessSaveNexusScreen(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"SaveDeviceScreen",
+		req.Id,
+		req.Screen,
+	)
+
+	if len(results) > 0 && results[0].Uint() == 1 {
+		return &Payload{Message: language.GetValue("txtLcdProfileUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeLcdProfile"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessDeleteNexusScreen deletes a custom layout and selects it on the device.
+func ProcessDeleteNexusScreen(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"DeleteDeviceScreen",
+		req.Id,
+	)
+
+	if len(results) > 0 && results[0].Uint() == 1 {
+		return &Payload{Message: language.GetValue("txtLcdProfileUpdated"), Code: http.StatusOK, Status: 1}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeLcdProfile"), Code: http.StatusOK, Status: 0}
 }
 
 // ProcessLcdProfileChange will process POST request from a client for LCD mode change

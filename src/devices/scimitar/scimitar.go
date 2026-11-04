@@ -242,6 +242,7 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 		MaxDPI:            maxDpiValue,
 		ZoneAmount:        4,
 		DPIAmount:         6,
+		macroLoops:        make(map[uint32]chan struct{}),
 	}
 
 	d.getDebugMode()           // Debug mode
@@ -2531,7 +2532,7 @@ func (d *Device) triggerKeyAssignment(value uint32) {
 					logger.Log(logger.Fields{"serial": d.Serial}).Error("Invalid macro profile")
 					return
 				}
-				
+
 				if macroProfile.Repeat < 0 {
 					d.macroLoopMutex.Lock()
 

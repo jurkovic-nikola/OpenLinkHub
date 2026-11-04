@@ -59,7 +59,7 @@ type Device struct {
 	VendorId       uint16
 	Devices        map[int]*Devices `json:"devices"`
 	PairedDevices  map[uint16]any
-	SharedDevices  func(device *common.Device)
+	SharedDevices  func(device *common.Device) `json:"-"`
 	DeviceList     map[string]*common.Device
 	DeviceProfile  *DeviceProfile
 	SingleDevice   bool

@@ -460,8 +460,8 @@ func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getTemperatureGraph returns response with list of supported temperature sensors
-func getTemperatureSensors(w http.ResponseWriter, r *http.Request) {
+// getTemperatureSensors returns response with list of supported temperature sensors
+func getTemperatureSensors(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
 		Status: 1,

@@ -460,6 +460,16 @@ func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// getTemperatureGraph returns response with list of supported temperature sensors
+func getTemperatureSensors(w http.ResponseWriter, r *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   temperatures.GetSupportedTemperatureSensors(),
+	}
+	resp.Send(w)
+}
+
 // getColor returns response on /color
 func getColor(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
@@ -2925,6 +2935,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/color/override/", http.MethodGet, getCommanderDuoOverride)
 	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
 	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
+	handleFunc(r, "/api/temperatures/sensors/", http.MethodGet, getTemperatureSensors)
 	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
 	handleFunc(r, "/api/input/keyboard", http.MethodGet, getInputKeys)
 	handleFunc(r, "/api/input/mouse", http.MethodGet, getMouseButtons)

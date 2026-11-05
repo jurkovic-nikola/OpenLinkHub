@@ -777,7 +777,7 @@ var deviceRegisterMap = map[uint16]Product{
 	3096:  {0, 0, "H100i RGB PLATINUM", elite.Init, nil},                   // H100i RGB PLATINUM
 	3097:  {0, 0, "H100i RGB PLATINUM SE", elite.Init, nil},                // H100i RGB PLATINUM SE
 	3098:  {0, 0, "LIGHTING NODE CORE", lncore.Init, nil},                  // Lighting Node CORE
-	3083:  {0, 0, "LIGHTING NODE PRO", lnpro.Init, nil},                    // Lighting Node Pro
+	3083:  {0, 65472, "LIGHTING NODE PRO", lnpro.Init, nil},                // Lighting Node Pro
 	7428:  {0, 0, "LIGHTING NODE PRO SPEC-OMEGA", lnpro.Init, nil},         // Lighting Node Pro bundled with SPEC-OMEGA RGB
 	3088:  {0, 0, "COMMANDER PRO", cpro.Init, nil},                         // Commander Pro
 	7424:  {0, 0, "COMMANDER PRO 1000D", cpro.Init, nil},                   // Obsidian 1000D Hub (Commander Pro)

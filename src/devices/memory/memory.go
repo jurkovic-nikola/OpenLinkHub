@@ -791,7 +791,12 @@ func (d *Device) getDevices() int {
 
 // getI2cSensor will return i2c device number
 func (d *Device) getI2cSensor() int {
-	parts := strings.Split(d.Path, "-")
+	path := d.Path
+	// Resolve udev symlinks such as /dev/i2c-dimm to the real i2c-N node
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		path = resolved
+	}
+	parts := strings.Split(path, "-")
 	n, err := strconv.Atoi(parts[len(parts)-1])
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get i2c device number")

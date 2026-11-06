@@ -5052,6 +5052,34 @@ $(document).ready(function () {
         });
     });
 
+    $('.customLedCount').change(function(){
+        const container = $(this).closest(".externalHubDevice");
+        const deviceId = $("#deviceId").val();
+        const pf = {};
+
+        pf["portId"] = parseInt(container.find(".portId").val());
+        pf["deviceId"] = deviceId;
+        pf["customLedCount"] = parseInt($(this).val());
+        const json = JSON.stringify(pf, null, 2);
+        $.ajax({
+            url: '/api/hub/customLedCount',
+            type: 'POST',
+            data: json,
+            cache: false,
+            success: function(response) {
+                try {
+                    if (response.status === 1) {
+                        location.reload();
+                    } else {
+                        toast.warning(response.message);
+                    }
+                } catch (err) {
+                    toast.warning(response.message);
+                }
+            }
+        });
+    });
+
     $('.hardwareLights').on('change', function () {
         const deviceId = $("#deviceId").val();
         const pf = {};

@@ -86,6 +86,7 @@ type Payload struct {
 	KeyId                         int                   `json:"keyId"`
 	AreaId                        int                   `json:"areaId"`
 	DeviceAmount                  int                   `json:"deviceAmount"`
+	CustomLedCount                int                   `json:"customLedCount"`
 	PortId                        int                   `json:"portId"`
 	UserProfileName               string                `json:"userProfileName"`
 	LcdSerial                     string                `json:"lcdSerial"`
@@ -3601,6 +3602,49 @@ func ProcessExternalHubDeviceAmount(r *http.Request) *Payload {
 		"UpdateExternalHubDeviceAmount",
 		req.PortId,
 		req.DeviceAmount,
+	)
+
+	if len(results) > 0 {
+		switch results[0].Uint() {
+		case 0:
+			return &Payload{Message: language.GetValue("txtUnableToChangeDeviceAmount"), Code: http.StatusOK, Status: 0}
+		case 1:
+			return &Payload{Message: language.GetValue("txtExternalLedAmountUpdated"), Code: http.StatusOK, Status: 1}
+		case 2:
+			return &Payload{Message: language.GetValue("txtTooMuchLedChannels"), Code: http.StatusOK, Status: 0}
+		}
+	}
+	return &Payload{Message: language.GetValue("txtUnableToChangeDeviceAmount"), Code: http.StatusOK, Status: 0}
+}
+
+// ProcessExternalHubCustomLedCount will process POST request from a client for custom LED count change
+func ProcessExternalHubCustomLedCount(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Log(map[string]interface{}{"error": err}).Error("Unable to decode JSON")
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.CustomLedCount < 0 || req.CustomLedCount > 204 {
+		return &Payload{Message: language.GetValue("txtTooMuchLedChannels"), Code: http.StatusOK, Status: 0}
+	}
+	if req.PortId < 0 || req.PortId > 1 {
+		return &Payload{Message: language.GetValue("txtNonExistingLedPort"), Code: http.StatusOK, Status: 0}
+	}
+	if devices.GetDevice(req.DeviceId) == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingDevice"), Code: http.StatusOK, Status: 0}
+	}
+
+	results := devices.CallDeviceMethod(
+		req.DeviceId,
+		"UpdateExternalHubCustomLedCount",
+		req.PortId,
+		req.CustomLedCount,
 	)
 
 	if len(results) > 0 {

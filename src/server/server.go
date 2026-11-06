@@ -1599,6 +1599,17 @@ func setExternalHubDeviceAmount(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+// setExternalHubCustomLedCount will set LED count of a custom device connected to an external-LED hub
+func setExternalHubCustomLedCount(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessExternalHubCustomLedCount(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // getDashboardSettings will get dashboard settings
 func getDashboardSettings(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
@@ -2996,6 +3007,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/hub/linkAdapter", http.MethodPost, setDeviceLinkAdapter)
 	handleFunc(r, "/api/hub/type", http.MethodPost, setExternalHubDeviceType)
 	handleFunc(r, "/api/hub/amount", http.MethodPost, setExternalHubDeviceAmount)
+	handleFunc(r, "/api/hub/customLedCount", http.MethodPost, setExternalHubCustomLedCount)
 	handleFunc(r, "/api/label", http.MethodPost, setDeviceLabel)
 	handleFunc(r, "/api/lcd", http.MethodPost, setDeviceLcd)
 	handleFunc(r, "/api/lcd/device", http.MethodPost, changeDeviceLcd)

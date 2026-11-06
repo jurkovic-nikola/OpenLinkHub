@@ -37,6 +37,7 @@ type ExternalHubData struct {
 	PortId                  byte
 	ExternalHubDeviceType   int
 	ExternalHubDeviceAmount int
+	CustomLedCount          int `json:",omitempty"`
 }
 
 type DeviceProfile struct {
@@ -117,6 +118,7 @@ var (
 	readBufferSize          = 17
 	maxBufferSizePerRequest = 50
 	maximumLedAmount        = 204
+	customLedDeviceIndex    = 999
 	deviceUpdateDelay       = 5
 	rgbProfileUpgrade       = []string{"gradient", "pastelrainbow", "pastelspiralrainbow"}
 	rgbModes                = []string{
@@ -349,6 +351,11 @@ func (d *Device) StopDirty() uint8 {
 
 // loadExternalDevices will load external device definitions
 func (d *Device) loadExternalDevices() {
+	// Custom device type, LED count is set per port via CustomLedCount
+	defer func() {
+		d.ExternalLedDevice = append(d.ExternalLedDevice, ExternalLedDevice{Index: customLedDeviceIndex, Name: "Custom (set LED count)"})
+	}()
+
 	externalDevicesFile := pwd + "/database/external/lnpro.json"
 	if common.FileExists(externalDevicesFile) {
 		file, err := os.Open(externalDevicesFile)
@@ -716,7 +723,7 @@ func (d *Device) getDevices() int {
 			externalHub := d.DeviceProfile.ExternalHubs[i]
 			externalDeviceType := d.getExternalLedDevice(externalHub.ExternalHubDeviceType)
 			if externalDeviceType != nil {
-				LedChannels = uint8(externalDeviceType.Total)
+				LedChannels = uint8(d.getHubLedCount(externalHub, externalDeviceType))
 				for z := 0; z < externalHub.ExternalHubDeviceAmount; z++ {
 					rgbProfile := "static"
 					label := "Set Label"
@@ -757,6 +764,14 @@ func (d *Device) getDevices() int {
 
 	d.Devices = devices
 	return len(devices)
+}
+
+// getHubLedCount will return LED count per device on an external hub, honoring custom LED count
+func (d *Device) getHubLedCount(externalHub *ExternalHubData, externalDeviceType *ExternalLedDevice) int {
+	if externalDeviceType.Index == customLedDeviceIndex {
+		return externalHub.CustomLedCount
+	}
+	return externalDeviceType.Total
 }
 
 // getExternalLedDevice will return ExternalLedDevice based on given device index
@@ -1159,7 +1174,7 @@ func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint
 			for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
 				externalHub := d.DeviceProfile.ExternalHubs[i]
 				if deviceType := d.getExternalLedDevice(externalHub.ExternalHubDeviceType); deviceType != nil {
-					lightChannels += deviceType.Total * externalHub.ExternalHubDeviceAmount
+					lightChannels += d.getHubLedCount(externalHub, deviceType) * externalHub.ExternalHubDeviceAmount
 				}
 			}
 			if lightChannels > maximumLedAmount {
@@ -1179,6 +1194,40 @@ func (d *Device) UpdateExternalHubDeviceAmount(portId, externalDevices int) uint
 		}
 	}
 	return 0
+}
+
+// UpdateExternalHubCustomLedCount will update LED count of a custom device connected to an external-LED hub
+func (d *Device) UpdateExternalHubCustomLedCount(portId, customLedCount int) uint8 {
+	if d.DeviceProfile == nil {
+		return 0
+	}
+	if _, ok := d.DeviceProfile.ExternalHubs[portId]; !ok {
+		return 0
+	}
+
+	currentCount := d.DeviceProfile.ExternalHubs[portId].CustomLedCount
+	d.DeviceProfile.ExternalHubs[portId].CustomLedCount = customLedCount
+
+	// Validate the maximum number of LED channels
+	lightChannels := 0
+	for i := 0; i < len(d.DeviceProfile.ExternalHubs); i++ {
+		externalHub := d.DeviceProfile.ExternalHubs[i]
+		if deviceType := d.getExternalLedDevice(externalHub.ExternalHubDeviceType); deviceType != nil {
+			lightChannels += d.getHubLedCount(externalHub, deviceType) * externalHub.ExternalHubDeviceAmount
+		}
+	}
+	if lightChannels > maximumLedAmount {
+		d.DeviceProfile.ExternalHubs[portId].CustomLedCount = currentCount
+		logger.Log(logger.Fields{"serial": d.Serial, "portId": portId}).Info("You have exceeded maximum amount of supported LED channels.")
+		return 2
+	}
+
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.ResetRgb()
+	return 1
 }
 
 // isRgbStatic will return true or false if all devices are set to static RGB mode

@@ -82,6 +82,18 @@
                                         </label>
                                     </div>
 
+                                    <!-- Hardware Lights -->
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtHardwareLights" }}</span>
+                                        <label for="hardwareLights">
+                                            <select id="hardwareLights" class="form-select system-select compact auto-width hardwareLights" name="hardwareLights">
+                                                {{ range $key, $value := $device.HardwareModes }}
+                                                <option value="{{ $key }}" {{ if eq $key $deviceProfile.HardwareMode }} selected {{ end }}>{{ $value }}</option>
+                                                {{ end }}
+                                            </select>
+                                        </label>
+                                    </div>
+
                                     <!-- Delete user profile -->
                                     <div class="settings-row">
                                         <span class="settings-label text-ellipsis">{{ .Lang "txtDeleteProfile" }}</span>

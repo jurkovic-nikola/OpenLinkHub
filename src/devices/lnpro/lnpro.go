@@ -1302,6 +1302,11 @@ func (d *Device) setDeviceColor(resetColor bool) {
 		d.activeRgb.RGBEndColor = rgb.GenerateRandomColor(1)
 
 		rand.New(rand.NewSource(time.Now().UnixNano()))
+
+		// Temperature smoothing state per channel. r is rebuilt every frame,
+		// so without this the color jumps with every temperature reading.
+		previousColor := make(map[int]*rgb.Color)
+		previousTemp := make(map[int]float64)
 		for {
 			select {
 			case <-d.activeRgb.Exit:
@@ -1387,14 +1392,18 @@ func (d *Device) setDeviceColor(resetColor bool) {
 						{
 							r.MinTemp = profile.MinTemp
 							r.MaxTemp = profile.MaxTemp
+							r.PreviousColor, r.PreviousTemp = previousColor[k], previousTemp[k]
 							r.Temperature(float64(d.CpuTemp))
+							previousColor[k], previousTemp[k] = r.PreviousColor, r.PreviousTemp
 							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
 						}
 					case "gpu-temperature":
 						{
 							r.MinTemp = profile.MinTemp
 							r.MaxTemp = profile.MaxTemp
+							r.PreviousColor, r.PreviousTemp = previousColor[k], previousTemp[k]
 							r.Temperature(float64(d.GpuTemp))
+							previousColor[k], previousTemp[k] = r.PreviousColor, r.PreviousTemp
 							buff[d.Devices[k].PortId] = append(buff[d.Devices[k].PortId], r.Output...)
 						}
 					case "colorpulse":

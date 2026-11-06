@@ -821,7 +821,12 @@ func GetNVIDIAGpuTemperature(gpuIndex int) float32 {
 	// Convert temperature to an integer
 	temp, err := strconv.Atoi(tempStr)
 	if err != nil {
-		return 0
+		// Since 620.70.06 nvidia-smi prints a decimal value (e.g. 43.90) instead of an integer.
+		value, err := strconv.ParseFloat(tempStr, 32)
+		if err != nil {
+			return 0
+		}
+		return float32(value)
 	}
 
 	return float32(temp)

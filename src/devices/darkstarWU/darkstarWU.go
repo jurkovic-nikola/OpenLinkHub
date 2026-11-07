@@ -2950,6 +2950,7 @@ func (d *Device) setKeepAlive() {
 					return
 				}
 				d.keepAlive()
+				d.getBatterLevel()
 			case <-d.keepAliveChan:
 				d.timerKeepAlive.Stop()
 				return

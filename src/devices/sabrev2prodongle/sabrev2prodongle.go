@@ -172,6 +172,29 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 11045: // SABRE V2 PRO CF
+			{
+				dev := sabrev2proW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.dev,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeSabreV2Pro,
+					Product:     "SABRE V2 PRO MG",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		default:
 			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 		}
@@ -306,7 +329,10 @@ func (d *Device) getDevices() {
 
 	if d.ProductId == 11060 {
 		mouseProductId = 11049
+	} else if d.ProductId == 11061 {
+		mouseProductId = 11045
 	}
+
 	devices[0] = &Devices{
 		Type:      1,
 		Endpoint:  0x08,

@@ -229,6 +229,11 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	return d
 }
 
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
+}
+
 // ModifyBatteryLevel will modify battery level
 func (d *Device) ModifyBatteryLevel(batteryLevel uint16) {
 	if batteryLevel > 0 {
@@ -252,6 +257,7 @@ func (d *Device) Connect() {
 		d.toggleDPI()          // DPI
 		d.loadKeyAssignments() // Key Assignments
 		d.setupKeyAssignment() // Setup key assignments
+		d.updateStats()        // Stats
 	}
 }
 
@@ -404,6 +410,9 @@ func (d *Device) getDebugMode() {
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
+	if d.Exit {
+		return
+	}
 	buf := make([]byte, 15)
 	buf[14] = 0x49
 	batteryLevel, err := d.transfer(cmdRead, buf)

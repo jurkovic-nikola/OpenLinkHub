@@ -4,7 +4,9 @@ package stats
 // Author: Nikola Jurkovic
 // License: GPL-3.0 or later
 
-import "sync"
+import (
+	"sync"
+)
 
 type Device struct {
 	Device            string
@@ -15,9 +17,12 @@ type Device struct {
 }
 
 type BatteryStats struct {
-	Device     string
-	Level      uint16
-	DeviceType uint8
+	Device        string
+	Level         uint16
+	DeviceType    uint8
+	Charging      uint8
+	ChargingLabel string
+	Connected     bool
 }
 
 type DeviceList struct {
@@ -56,6 +61,42 @@ func UpdateBatteryStats(serial, device string, level uint16, deviceType uint8) {
 			Level:      level,
 			DeviceType: deviceType,
 		}
+	}
+}
+
+// UpdateBatteryChargeStatus will update battery charge stats
+func UpdateBatteryChargeStatus(serial string, chargeStatus uint8) {
+	batteryStatsMutex.Lock()
+	defer batteryStatsMutex.Unlock()
+
+	if data, ok := batteryStats[serial]; ok {
+		data.Charging = chargeStatus
+		switch chargeStatus {
+		case 0:
+			data.ChargingLabel = "Not Charging"
+			break
+		case 1:
+			data.ChargingLabel = "Charging"
+			break
+		case 2:
+			data.ChargingLabel = "Not Charging"
+			break
+		case 3:
+			data.ChargingLabel = "Full"
+			break
+		}
+		batteryStats[serial] = data
+	}
+}
+
+// UpdateDeviceConnectionStatus will update device connection status
+func UpdateDeviceConnectionStatus(serial string, connected bool) {
+	batteryStatsMutex.Lock()
+	defer batteryStatsMutex.Unlock()
+
+	if data, ok := batteryStats[serial]; ok {
+		data.Connected = connected
+		batteryStats[serial] = data
 	}
 }
 

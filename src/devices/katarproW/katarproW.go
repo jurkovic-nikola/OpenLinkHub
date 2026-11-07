@@ -131,6 +131,7 @@ var (
 	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
 	cmdWrite                  = []byte{0x06, 0x01}
 	cmdBatteryLevel           = []byte{0x02, 0x0f}
+	cmdBatteryCharge          = []byte{0x02, 0x10}
 	bufferSize                = 64
 	bufferSizeWrite           = bufferSize + 1
 	headerSize                = 2
@@ -224,6 +225,11 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
+}
+
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
 }
 
 // createDevice will create new device register object
@@ -346,6 +352,9 @@ func (d *Device) setDongleSoftwareMode() {
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
+	if d.Exit {
+		return
+	}
 	batteryLevel, err := d.transfer(cmdMouse, cmdBatteryLevel, nil, "getBatterLevel")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")

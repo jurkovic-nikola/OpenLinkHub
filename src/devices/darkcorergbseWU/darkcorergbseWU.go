@@ -235,9 +235,15 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.loadKeyAssignments()  // Key Assignments
 	d.setupKeyAssignment()  // Setup key assignments
 	d.createDevice()        // Device register
+	d.updateStats()         // Stats
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
+}
+
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
 }
 
 // createDevice will create new device register object

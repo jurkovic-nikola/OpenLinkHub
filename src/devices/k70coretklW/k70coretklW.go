@@ -132,6 +132,7 @@ var (
 	cmdWriteColor        = []byte{0x06, 0x01}
 	cmdSleep             = []byte{0x01, 0x0e, 0x00}
 	cmdBatteryLevel      = []byte{0x02, 0x0f}
+	cmdBatteryCharge     = []byte{0x02, 0x10}
 	cmdPerformance       = map[int][]byte{
 		0: {0x01, 0x4a, 0x00},
 		1: {0x01, 0xe1, 0x00},
@@ -252,6 +253,17 @@ func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endp
 	d.loadDeviceProfiles() // Load all device profiles
 	d.saveDeviceProfile()  // Save profile
 	return d
+}
+
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
+	batteryCharge, err := d.transfer(cmdBatteryCharge, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get battery charge status")
+		return
+	}
+	stats.UpdateBatteryChargeStatus(d.Serial, batteryCharge[3])
 }
 
 // SetDispatcher will set device dispatcher
@@ -430,6 +442,7 @@ func (d *Device) Connect() {
 		d.setBrightnessLevel() // Brightness
 		d.setSleepTimer()      // Sleep
 		d.setupPerformance()   // Performance
+		d.updateStats()        // Stats
 	}
 }
 
@@ -613,6 +626,9 @@ func (d *Device) setHardwareMode() {
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
+	if d.Exit {
+		return
+	}
 	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")

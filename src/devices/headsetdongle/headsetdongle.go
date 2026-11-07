@@ -12,6 +12,7 @@ import (
 	"OpenLinkHub/src/devices/virtuosoW"
 	"OpenLinkHub/src/devices/virtuosorgbXTW"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"fmt"
 	"github.com/sstallion/go-hid"
@@ -692,21 +693,25 @@ func (d *Device) setDevicesOffline() {
 		if device, found := pairedDevice.(*virtuosorgbXTW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
+				stats.UpdateDeviceConnectionStatus(device.Serial, false)
 			}
 		}
 		if device, found := pairedDevice.(*virtuosoSEW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
+				stats.UpdateDeviceConnectionStatus(device.Serial, false)
 			}
 		}
 		if device, found := pairedDevice.(*hs80rgbW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
+				stats.UpdateDeviceConnectionStatus(device.Serial, false)
 			}
 		}
 		if device, found := pairedDevice.(*virtuosoW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
+				stats.UpdateDeviceConnectionStatus(device.Serial, false)
 			}
 		}
 	}
@@ -805,6 +810,26 @@ func (d *Device) getListenerData() []byte {
 	return data
 }
 
+// setDeviceChargeStatus will set device charge status
+func (d *Device) setDeviceChargeStatus(status byte) {
+	for _, value := range d.PairedDevices {
+		serial := ""
+		if dev, found := value.(*virtuosorgbXTW.Device); found {
+			serial = dev.Serial
+		}
+		if dev, found := value.(*virtuosoSEW.Device); found {
+			serial = dev.Serial
+		}
+		if dev, found := value.(*hs80rgbW.Device); found {
+			serial = dev.Serial
+		}
+		if dev, found := value.(*virtuosoW.Device); found {
+			serial = dev.Serial
+		}
+		stats.UpdateBatteryChargeStatus(serial, status)
+	}
+}
+
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
@@ -849,6 +874,11 @@ func (d *Device) backendListener() {
 				}
 
 				// Battery
+				if data[0] == 0x03 && data[3] == 0x10 {
+					chargeStatus := data[5]
+					d.setDeviceChargeStatus(chargeStatus)
+				}
+
 				// 03 01 01 0f 00 ac 03
 				if (data[0] == 0x03 || data[1] == 0x01) && data[3] == 0x0f {
 					val := binary.LittleEndian.Uint16(data[5:7]) / 10

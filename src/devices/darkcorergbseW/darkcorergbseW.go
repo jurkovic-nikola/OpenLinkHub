@@ -217,6 +217,11 @@ func Init(vendorId, productId uint16, dev *hid.Device, serial string) *Device {
 	return d
 }
 
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
+}
+
 // SetConnected will change connected status
 func (d *Device) SetConnected(value bool) {
 	if d.Connected {
@@ -242,6 +247,7 @@ func (d *Device) Connect() {
 		d.setDeviceColor()      // Device color
 		d.toggleDPI(false)      // Set current DPI
 		d.setupKeyAssignment()  // Setup key assignments
+		d.updateStats()         // Stats
 	}
 }
 

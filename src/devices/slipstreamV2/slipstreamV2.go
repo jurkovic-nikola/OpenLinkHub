@@ -12,6 +12,7 @@ import (
 	"OpenLinkHub/src/devices/vanguard96W"
 	"OpenLinkHub/src/devices/vanguard99airW"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/stats"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
@@ -656,12 +657,14 @@ func (d *Device) setDeviceStatus(status byte, productId uint16) {
 					reflectArgs[0] = reflect.ValueOf(false)
 					setConnected.Call(reflectArgs)
 					d.slipstream.Connected[v.ProductId] = false
+					stats.UpdateDeviceConnectionStatus(v.Serial, false)
 				case 0x02:
 					go func() {
 						time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 						connect.Call(nil)
 						d.slipstream.Connected[v.ProductId] = true
 						d.SharedDevices(d.DeviceList[v.Serial])
+						stats.UpdateBatteryChargeStatus(v.Serial, 0)
 					}()
 				}
 			}
@@ -686,11 +689,14 @@ func (d *Device) setDeviceStatus(status byte, productId uint16) {
 						reflectArgs[0] = reflect.ValueOf(false)
 						setConnected.Call(reflectArgs)
 						d.slipstream.Connected[val.ProductId] = false
+						stats.UpdateDeviceConnectionStatus(val.Serial, false)
 					case 0x02:
 						go func() {
 							time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 							connect.Call(nil)
 							d.slipstream.Connected[v.ProductId] = true
+							d.SharedDevices(d.DeviceList[v.Serial])
+							stats.UpdateBatteryChargeStatus(v.Serial, 0)
 						}()
 					case 0x04:
 						if val.DeviceType == common.DeviceTypeMouse {
@@ -698,12 +704,15 @@ func (d *Device) setDeviceStatus(status byte, productId uint16) {
 								time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 								connect.Call(nil)
 								d.slipstream.Connected[val.ProductId] = true
+								d.SharedDevices(d.DeviceList[v.Serial])
+								stats.UpdateBatteryChargeStatus(val.Serial, 0)
 							}()
 						} else {
 							reflectArgs := make([]reflect.Value, 1)
 							reflectArgs[0] = reflect.ValueOf(false)
 							setConnected.Call(reflectArgs)
 							d.slipstream.Connected[val.ProductId] = false
+							stats.UpdateDeviceConnectionStatus(val.Serial, false)
 						}
 					case 0x08:
 						if val.DeviceType == common.DeviceTypeKeyboard {
@@ -711,18 +720,23 @@ func (d *Device) setDeviceStatus(status byte, productId uint16) {
 								time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 								connect.Call(nil)
 								d.slipstream.Connected[val.ProductId] = true
+								d.SharedDevices(d.DeviceList[v.Serial])
+								stats.UpdateBatteryChargeStatus(val.Serial, 0)
 							}()
 						} else {
 							reflectArgs := make([]reflect.Value, 1)
 							reflectArgs[0] = reflect.ValueOf(false)
 							setConnected.Call(reflectArgs)
 							d.slipstream.Connected[val.ProductId] = false
+							stats.UpdateDeviceConnectionStatus(val.Serial, false)
 						}
 					case 0x0c:
 						go func() {
 							time.Sleep(time.Duration(connectDelay) * time.Millisecond)
 							connect.Call(nil)
 							d.slipstream.Connected[val.ProductId] = true
+							d.SharedDevices(d.DeviceList[v.Serial])
+							stats.UpdateBatteryChargeStatus(val.Serial, 0)
 						}()
 					}
 				}
@@ -950,6 +964,17 @@ func (d *Device) TriggerMousedKeyAssignment(data []byte) {
 	}
 }
 
+// setDeviceChargeStatus will set device charge status
+func (d *Device) setDeviceChargeStatus(mode, status byte) {
+	if mode == 1 {
+		for _, val := range d.DeviceList {
+			if _, ok := d.PairedDevices[val.ProductId]; ok {
+				stats.UpdateBatteryChargeStatus(val.Serial, status)
+			}
+		}
+	}
+}
+
 // backendListener will listen for events from the device
 func (d *Device) backendListener() {
 	go func() {
@@ -991,6 +1016,12 @@ func (d *Device) backendListener() {
 				if len(data) == 0 || data == nil {
 					time.Sleep(5 * time.Millisecond)
 					continue
+				}
+
+				if data[4] == 0x10 {
+					chargeStatus := data[6]
+					chargeMode := data[0]
+					d.setDeviceChargeStatus(chargeMode, chargeStatus)
 				}
 
 				if d.Debug {

@@ -141,6 +141,7 @@ var (
 	cmdPerformance          = []byte{0x01, 0x4a, 0x00}
 	cmdWritePerformance     = []byte{0x01}
 	cmdBatteryLevel         = []byte{0x02, 0x0f}
+	cmdBatteryCharge        = []byte{0x02, 0x10}
 	cmdConnectionMode       = []byte{0x01, 0x3a}
 	deviceKeepAlive         = 20000
 	deviceRefreshInterval   = 1000
@@ -261,9 +262,15 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.startQueueWorker()       // Queue
 	d.setupOpenRGBController() // OpenRGB Controller
 	d.createDevice()           // Device register
+	d.updateStats()            // Stats
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
+}
+
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
 }
 
 // createDevice will create new device register object
@@ -593,6 +600,9 @@ func (d *Device) setHardwareMode() {
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
+	if d.Exit {
+		return
+	}
 	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")

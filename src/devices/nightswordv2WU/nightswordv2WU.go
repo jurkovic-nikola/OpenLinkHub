@@ -152,6 +152,7 @@ var (
 	cmdWrite                  = []byte{0x06, 0x01}
 	cmdCloseEndpoint          = []byte{0x05, 0x01, 0x01}
 	cmdBatteryLevel           = []byte{0x02, 0x0f}
+	cmdBatteryCharge          = []byte{0x02, 0x10}
 	cmdSurfaceSelection       = []byte{0x01, 0x3c, 0x00}
 	cmdMotionSync             = []byte{0x01, 0x13, 0x01}
 	cmdRippleControl          = []byte{0x01, 0x14, 0x01}
@@ -295,9 +296,21 @@ func Init(vendorId, productId uint16, _, path string) *common.Device {
 	d.setupClusterController() // RGB Cluster
 	d.createDevice()           // Device register
 	d.startQueueWorker()       // Queue
+	d.updateStats()            // Stats
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d.instance
+}
+
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
+	batteryCharge, err := d.transfer(cmdBatteryCharge, nil)
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get battery charge status")
+		return
+	}
+	stats.UpdateBatteryChargeStatus(d.Serial, batteryCharge[5])
 }
 
 // createDevice will create new device register object
@@ -374,6 +387,7 @@ func (d *Device) StopDirty() uint8 {
 		})
 	}()
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device stopped")
+	d.Connected = false
 	return 1
 }
 
@@ -1080,6 +1094,9 @@ func (d *Device) setDeviceLogin() {
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
+	if d.Exit {
+		return
+	}
 	batteryLevel, err := d.transfer(cmdBatteryLevel, nil)
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")

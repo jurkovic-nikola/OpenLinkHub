@@ -161,6 +161,7 @@ var (
 	cmdActivateFrontTilt      = []byte{0x01, 0xbb, 0x00}
 	cmdActivateBackTilt       = []byte{0x01, 0xbc, 0x00}
 	cmdBatteryLevel           = []byte{0x02, 0x0f}
+	cmdBatteryCharge          = []byte{0x02, 0x10}
 	cmdOpenSleepWriteEndpoint = []byte{0x01, 0x0d, 0x00, 0x01}
 	cmdSleep                  = map[int][]byte{0: {0x01, 0x37, 0x00}, 1: {0x01, 0x0e, 0x00}}
 	cmdHeartbeat              = []byte{0x12}
@@ -282,6 +283,17 @@ func Init(vendorId, slipstreamId, productId uint16, dev *common.Slipstream, endp
 	return d
 }
 
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
+	batteryCharge, err := d.transfer(cmdBatteryCharge, nil, "updateStats")
+	if err != nil {
+		logger.Log(logger.Fields{"error": err, "serial": d.Serial}).Error("Unable to get battery charge status")
+		return
+	}
+	stats.UpdateBatteryChargeStatus(d.Serial, batteryCharge[3])
+}
+
 // GetRgbProfiles will return RGB profiles for a target device
 func (d *Device) GetRgbProfiles() interface{} {
 	tmp := *d.Rgb
@@ -391,6 +403,7 @@ func (d *Device) Connect() {
 		d.setSleepTimer()          // Sleep
 		d.setupOpenRGBController() // OpenRGB Controller
 		d.setupClusterController() // RGB Cluster
+		d.updateStats()            // Stats
 	}
 }
 
@@ -1212,6 +1225,9 @@ func (d *Device) SetSleepMode() {
 
 // getBatterLevel will return initial battery level
 func (d *Device) getBatterLevel() {
+	if d.Exit {
+		return
+	}
 	batteryLevel, err := d.transfer(cmdBatteryLevel, nil, "getBatterLevel")
 	if err != nil {
 		logger.Log(logger.Fields{"error": err}).Error("Unable to get battery level")

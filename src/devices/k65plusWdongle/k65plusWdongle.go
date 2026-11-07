@@ -64,6 +64,7 @@ var (
 	cmdRead          = []byte{0x08, 0x00}
 	cmdWrite         = []byte{0x09, 0x00}
 	cmdBatteryLevel  = []byte{0x02, 0x0f}
+	cmdBatteryCharge = []byte{0x02, 0x10}
 	cmdCommand       = byte(0x08)
 	transferTimeout  = 100
 	connectDelay     = 5000

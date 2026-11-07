@@ -161,18 +161,6 @@ var (
 		{80, 89, 0xff},
 		{90, 100, 0x00},
 	}
-
-	// dataTypeColorRed    = byte(0x1c) - L
-	// dataTypeColorRed    = byte(0x1d) - R
-	// dataTypeColorRed    = byte(0x1e) - Mic
-
-	// dataTypeColorGreen  = byte(0x16) - L
-	// dataTypeColorGreen  = byte(0x18) - R
-
-	// dataTypeColorBlue   = byte(0x17) - L
-	// dataTypeColorBlue   = byte(0x19) - R
-
-	// dataTypeColorGreen  = byte(0x1b) - Indicator
 )
 
 func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint byte, serial string) *Device {
@@ -213,6 +201,11 @@ func Init(vendorId, slipstreamId, productId uint16, dev *hid.Device, endpoint by
 	logger.Log(logger.Fields{"serial": d.Serial, "product": d.Product}).Info("Device successfully initialized")
 
 	return d
+}
+
+// updateStats will update device stats
+func (d *Device) updateStats() {
+	stats.UpdateDeviceConnectionStatus(d.Serial, d.Connected)
 }
 
 // Stop will stop all device operations and switch a device back to hardware mode
@@ -305,6 +298,7 @@ func (d *Device) Connect() {
 		d.setDeviceBrightness() // Brightness
 		d.configureHeadset()    // Headset config
 		d.setEqualizer()        // Equalizer
+		d.updateStats()         // Stats
 	}
 }
 

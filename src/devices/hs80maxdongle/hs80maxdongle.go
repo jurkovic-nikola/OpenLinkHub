@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/hs80maxW"
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/stats"
 	"encoding/binary"
 	"fmt"
 	"github.com/sstallion/go-hid"
@@ -323,6 +324,7 @@ func (d *Device) setDevicesOffline() {
 		if device, found := pairedDevice.(*hs80maxW.Device); found {
 			if device.Connected {
 				device.SetConnected(false)
+				stats.UpdateDeviceConnectionStatus(device.Serial, false)
 			}
 		}
 	}
@@ -444,6 +446,11 @@ func (d *Device) backendListener() {
 				}
 
 				// Battery
+				if data[0] == 0x03 && data[3] == 0x10 {
+					chargeStatus := data[5]
+					stats.UpdateBatteryChargeStatus(d.Devices.Serial, chargeStatus)
+				}
+
 				if data[0] == 0x03 && data[1] == 0x01 && data[3] == 0x0f {
 					val := binary.LittleEndian.Uint16(data[5:7]) / 10
 					if val > 0 {

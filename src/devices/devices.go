@@ -893,6 +893,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7034:  {1, 0, "SABRE PRO CS", sabreprocs.Init, nil},                    // SABRE PRO CS
 	11048: {1, 0, "SABRE V2 PRO", sabrev2proWU.Init, nil},                  // SABRE V2 PRO
 	11049: {1, 0, "SABRE V2 PRO MG", sabrev2proWU.Init, nil},               // SABRE V2 PRO MG
+	11045: {1, 0, "SABRE V2 PRO CF", sabrev2proWU.Init, nil},               // SABRE V2 PRO CF
 	11036: {1, 0, "NIGHTSWORD V2", nightswordv2WU.Init, nil},               // NIGHTSWORD v2 WIRELESS SD
 	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},           // DARKSTAR RGB WIRELESS Gaming Mouse
 	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil},   // VIRTUOSO RGB WIRELESS XT
@@ -908,6 +909,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7013:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // CORSAIR HARPOON RGB WIRELESS Dongle
 	11050: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // Sabre v2 Pro Ultralight Wireless Dongle
 	11060: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // SABRE v2 PRO WIRELESS MG receiver
+	11061: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // SABRE v2 PRO WIRELESS CF receiver
 	7041:  {1, 0, "DARK CORE RGB PRO Gaming Dongle", nil, slipstream.Init}, // DARK CORE RGB PRO Gaming Dongle
 	10754: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS
 	10755: {4, 0, "VIRTUOSO MAX WIRELESS", nil, virtuosomaxdongle.Init},    // VIRTUOSO MAX WIRELESS XBOX

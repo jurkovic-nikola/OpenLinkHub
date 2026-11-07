@@ -2,6 +2,7 @@ package rgb
 
 import (
 	"math"
+	"math/rand"
 	"time"
 )
 
@@ -11,7 +12,13 @@ func (r *ActiveRGB) Nebula(startTime *time.Time) {
 	elapsed := time.Since(*startTime).Milliseconds()
 	progress := math.Mod(float64(elapsed)/(r.RgbModeSpeed*5000), 1.0)
 
-	colors := generateInterstellarColors(r.LightChannels, progress, r.RGBBrightness, float64(elapsed))
+	if progress >= 1.0 {
+		*startTime = time.Now()
+		elapsed = 0
+		progress = 0
+	}
+
+	colors := generateInterstellarColors(r.LightChannels, progress, r.RGBBrightness)
 
 	for j, c := range colors {
 		if len(r.Buffer) > 0 {
@@ -41,7 +48,7 @@ func (r *ActiveRGB) Nebula(startTime *time.Time) {
 }
 
 // generateInterstellarColors maps LEDs with nebula + twinkle effect
-func generateInterstellarColors(lightChannels int, progress, brightness, elapsed float64) []struct{ R, G, B float64 } {
+func generateInterstellarColors(lightChannels int, progress, brightness float64) []struct{ R, G, B float64 } {
 	colors := make([]struct{ R, G, B float64 }, lightChannels)
 
 	// Nebula effect scrolls slowly with progress
@@ -55,63 +62,15 @@ func generateInterstellarColors(lightChannels int, progress, brightness, elapsed
 		colors[i] = struct{ R, G, B float64 }{float64(r), float64(g), float64(b)}
 	}
 
-	// Time-based twinkles fade smoothly without storing per-LED state.
-	const (
-		sparkWindow   = 2000.0 // Milliseconds between spark opportunities
-		sparkDuration = 600.0  // Milliseconds per twinkle
-		sparkChance   = 0.12   // Probability per LED per window
-	)
-
-	window := int64(math.Floor(elapsed / sparkWindow))
+	// Occasional twinkle overlay
 	for i := 0; i < lightChannels; i++ {
-		// Check the current and previous windows so twinkles can cross window boundaries without being cut short.
-		for w := window - 1; w <= window; w++ {
-			if w < 0 {
-				continue
-			}
-
-			seed := uint64(w)*0x9e3779b97f4a7c15 + uint64(i+1)
-			if nebulaRandom(seed) >= sparkChance {
-				continue
-			}
-
-			start := float64(w)*sparkWindow + nebulaRandom(seed+1)*sparkWindow
-			age := elapsed - start
-			if age < 0 || age >= sparkDuration {
-				continue
-			}
-
-			// Quick fade-in followed by a longer, smooth decay.
-			const vectorIn = 120.0
-			var intensity float64
-			if age < vectorIn {
-				intensity = age / vectorIn
-			} else {
-				decay := (age - vectorIn) / (sparkDuration - vectorIn)
-				intensity = (math.Exp(-4*decay) - math.Exp(-4)) / (1 - math.Exp(-4))
-			}
-
-			// Keep sparks within the nebula's cyan-to-magenta palette.
-			hue := 180.0 + nebulaRandom(seed+2)*120.0
-			r, g, b := hsvToRGB(hue, 0.8, brightness)
-			colors[i].R = colors[i].R*(1-intensity) + float64(r)*intensity
-			colors[i].G = colors[i].G*(1-intensity) + float64(g)*intensity
-			colors[i].B = colors[i].B*(1-intensity) + float64(b)*intensity
+		if rand.Float64() < 0.001 { // very rare spark
+			r, g, b := hsvToRGB(rand.Float64()*360, 0.8, 1.0*brightness)
+			colors[i] = struct{ R, G, B float64 }{float64(r), float64(g), float64(b)}
 		}
 	}
 
 	return colors
-}
-
-// nebulaRandom returns a reproducible value in [0, 1) for a given seed.
-func nebulaRandom(seed uint64) float64 {
-	seed ^= seed >> 30
-	seed *= 0xbf58476d1ce4e5b9 // SplitMix64 mixing algorithm
-	seed ^= seed >> 27
-	seed *= 0x94d049bb133111eb // SplitMix64 mixing algorithm
-	seed ^= seed >> 31
-
-	return float64(seed>>11) / (1 << 53)
 }
 
 // interstellarPalette creates a flowing space-like gradient

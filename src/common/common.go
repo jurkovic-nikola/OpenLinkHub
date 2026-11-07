@@ -311,7 +311,7 @@ type ClusterController struct {
 	Serial       string
 	LedChannels  uint32
 	ChannelId    int
-	WriteColorEx func([]byte, int)
+	WriteColorEx func([]byte, int) `json:"-"`
 }
 
 type LogLevel int

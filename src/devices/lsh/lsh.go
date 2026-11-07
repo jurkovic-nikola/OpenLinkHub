@@ -256,6 +256,23 @@ type Device struct {
 	queue                  chan []byte
 	instance               *common.Device
 	Psu                    bool
+	rgbStates              map[int]*rgb.EffectState
+	rgbStatesMu            sync.Mutex
+}
+
+// getRgbState returns persistent effect state for a channel, creating it if needed
+func (d *Device) getRgbState(key int) *rgb.EffectState {
+	d.rgbStatesMu.Lock()
+	defer d.rgbStatesMu.Unlock()
+	if d.rgbStates == nil {
+		d.rgbStates = make(map[int]*rgb.EffectState)
+	}
+	s, ok := d.rgbStates[key]
+	if !ok {
+		s = &rgb.EffectState{}
+		d.rgbStates[key] = s
+	}
+	return s
 }
 
 var (
@@ -4983,6 +5000,7 @@ func (d *Device) generateRgbEffect(k int, channels uint8, startTime *time.Time, 
 		index = subDeviceId
 		r.ChannelId = 48 + index
 	}
+	r.State = d.getRgbState(r.ChannelId)
 
 	rgbOverride := d.getRgbOverride(k, index)
 	if rgbOverride != nil && rgbOverride.Enabled && d.Devices[k].LedChannels > 0 {

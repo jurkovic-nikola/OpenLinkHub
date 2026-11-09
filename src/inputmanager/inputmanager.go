@@ -255,6 +255,7 @@ const (
 	KeyControllerDpadRight  uint16 = 144
 	KeyControllerX          uint16 = 145
 	KeyControllerY          uint16 = 146
+	KeyNumLock              uint16 = 147
 )
 
 var (
@@ -404,6 +405,7 @@ var (
 	keyScreenBrightnessUp   uint16 = 0xE1
 	keyPrtSc                uint16 = 0x63
 	keyPause                uint16 = 0x77
+	keyNumLock              uint16 = 0x45
 	evRel                   uint16 = 0x02
 	relWheel                uint16 = 0x08
 	relHWheel               uint16 = 0x06
@@ -618,6 +620,7 @@ func buildInputActions() {
 	inputActions[KeyScreenBrightnessUp] = InputAction{Name: "Screen Brightness (+)", CommandCode: keyScreenBrightnessUp}
 	inputActions[KeyPrtSc] = InputAction{Name: "PrtSc", CommandCode: keyPrtSc}
 	inputActions[KeyPause] = InputAction{Name: "Pause", CommandCode: keyPause}
+	inputActions[KeyNumLock] = InputAction{Name: "Num Lock", CommandCode: keyNumLock}
 
 	// Mouse
 	inputActions[BtnLeft] = InputAction{Name: "(Mouse) Left Click", CommandCode: btnLeft, Mouse: true}

@@ -814,6 +814,10 @@
     "txtNexusMedia": "Mediensteuerung",
     "txtNexusAdd": "Kachel hinzufügen",
     "txtNexusSave": "Speichern und aktivieren",
-    "txtTemperatureProfileSaveError": "Das neue Temperaturprofil konnte nicht gespeichert werden"
+    "txtTemperatureProfileSaveError": "Das neue Temperaturprofil konnte nicht gespeichert werden",
+    "txtInvalidTextDelay": "Ungültiger Wert für die Textverzögerung. Der Bereich ist 10-1000 ms.",
+    "txtInvalidTextDelayVariance": "Ungültiger Wert für die Textverzögerungsvarianz. Der Bereich ist 0-500 ms.",
+    "txtInvalidDelayVariance": "Ungültiger Wert für die Verzögerungsvarianz. Der Bereich ist 0-500 ms.",
+    "txtTextDelayUpdated": "Textverzögerung erfolgreich aktualisiert"
   }
 }

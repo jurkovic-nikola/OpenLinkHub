@@ -814,6 +814,10 @@
     "txtNexusMedia": "Controle de mídia",
     "txtNexusAdd": "Adicionar bloco",
     "txtNexusSave": "Salvar e ativar",
-    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura"
+    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura",
+    "txtInvalidTextDelay": "Valor de atraso de texto inválido. A faixa é 10-1000 ms.",
+    "txtInvalidTextDelayVariance": "Valor de variância do atraso de texto inválido. A faixa é 0-500 ms.",
+    "txtInvalidDelayVariance": "Valor de variância do atraso inválido. A faixa é 0-500 ms.",
+    "txtTextDelayUpdated": "Atraso de texto atualizado com sucesso"
   }
 }

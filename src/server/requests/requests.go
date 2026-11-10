@@ -6581,18 +6581,37 @@ func ProcessSetTextDelay(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+		return &Payload{
+			Message: language.GetValue("txtUnableToValidateRequest"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
 	}
 	if req.TextDelayMs < 10 || req.TextDelayMs > 1000 {
-		return &Payload{Message: "Text delay must be 10-1000 ms", Code: http.StatusOK, Status: 0}
+		return &Payload{
+			Message: language.GetValue("txtInvalidTextDelay"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
 	}
 	if req.TextDelayVarianceMs < 0 || req.TextDelayVarianceMs > 500 {
-		return &Payload{Message: "Text delay variance must be 0-500 ms", Code: http.StatusOK, Status: 0}
+		return &Payload{
+			Message: language.GetValue("txtInvalidTextDelayVariance"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
 	}
 	if req.DelayVarianceMs < 0 || req.DelayVarianceMs > 500 {
-		return &Payload{Message: "Delay variance must be 0-500 ms", Code: http.StatusOK, Status: 0}
+		return &Payload{
+			Message: language.GetValue("txtInvalidDelayVariance"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
 	}
 	config.SetTextDelay(req.TextDelayMs, req.TextDelayVarianceMs, req.DelayVarianceMs)
-	return &Payload{Message: "Text delay updated", Code: http.StatusOK, Status: 1}
+	return &Payload{
+		Message: language.GetValue("txtTextDelayUpdated"),
+		Code:    http.StatusOK,
+		Status:  1,
+	}
 }
-

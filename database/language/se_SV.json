@@ -814,6 +814,10 @@
     "txtNexusMedia": "Mediekontroll",
     "txtNexusAdd": "Lägg till ruta",
     "txtNexusSave": "Spara och aktivera",
-    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen"
+    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen",
+    "txtInvalidTextDelay": "Ogiltigt värde för textfördröjning. Intervallet är 10-1000 ms.",
+    "txtInvalidTextDelayVariance": "Ogiltigt värde för textfördröjningsvariation. Intervallet är 0-500 ms.",
+    "txtInvalidDelayVariance": "Ogiltigt värde för fördröjningsvariation. Intervallet är 0-500 ms.",
+    "txtTextDelayUpdated": "Textfördröjning uppdaterad"
   }
 }

@@ -34,6 +34,7 @@ type Configuration struct {
 	TemperatureOffset         int      `json:"temperatureOffset"`
 	TextDelayMs               int      `json:"textDelayMs"`
 	TextDelayVarianceMs       int      `json:"textDelayVarianceMs"`
+	DelayVarianceMs           int      `json:"delayVarianceMs"`
 	AMDGpuIndex               int      `json:"amdGpuIndex"`
 	AMDSmiPath                string   `json:"amdsmiPath"`
 	CheckDevicePermission     bool     `json:"checkDevicePermission"`
@@ -63,6 +64,7 @@ var (
 		"temperatureOffset":         0,
 		"textDelayMs":               40,
 		"textDelayVarianceMs":       0,
+		"delayVarianceMs":           0,
 		"amdGpuIndex":               0,
 		"amdsmiPath":                "",
 		"checkDevicePermission":     false,
@@ -133,10 +135,12 @@ func UpdateSupportedDevices(productIds map[uint16]bool) uint8 {
 	return 1
 }
 
-// SetTextDelay updates the text typing delay + jitter, then persists them.
-func SetTextDelay(delayMs, varianceMs int) uint8 {
+// SetTextDelay updates the text typing delay + jitter, and the delay-action
+// jitter, then persists them.
+func SetTextDelay(delayMs, varianceMs, delayVarianceMs int) uint8 {
 	configuration.TextDelayMs = delayMs
 	configuration.TextDelayVarianceMs = varianceMs
+	configuration.DelayVarianceMs = delayVarianceMs
 	saveConfigSettings(configuration)
 	return 1
 }

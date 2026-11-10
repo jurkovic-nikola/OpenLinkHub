@@ -2482,7 +2482,7 @@ func (d *Device) triggerKeyAssignment(value byte) {
 							inputmanager.InputControlMouse(v.ActionCommand)
 						case 5:
 							if v.ActionDelay > 0 {
-								time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+								time.Sleep(time.Duration(inputmanager.DelayMilliseconds(v.ActionDelay)) * time.Millisecond)
 							}
 						case 6:
 							if v.ActionRepeat > 0 {
@@ -2636,7 +2636,7 @@ func (d *Device) triggerTiltAssignment(value uint32) {
 						inputmanager.InputControlMouse(v.ActionCommand)
 					case 5:
 						if v.ActionDelay > 0 {
-							time.Sleep(time.Duration(v.ActionDelay) * time.Millisecond)
+							time.Sleep(time.Duration(inputmanager.DelayMilliseconds(v.ActionDelay)) * time.Millisecond)
 						}
 					case 6:
 						if v.ActionRepeat > 0 {

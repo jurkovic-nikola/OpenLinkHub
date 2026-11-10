@@ -203,6 +203,7 @@ type Payload struct {
 	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
 	TextDelayMs                   int                   `json:"textDelayMs"`
 	TextDelayVarianceMs           int                   `json:"textDelayVarianceMs"`
+	DelayVarianceMs               int                   `json:"delayVarianceMs"`
 	WidgetId                      int                   `json:"widgetId"`
 	Widget                        xeneonedge.Widget     `json:"widget"`
 	ColorTone                     int                   `json:"colorTone"`
@@ -6573,6 +6574,8 @@ func ProcessDeleteApplicationProfile(r *http.Request) *Payload {
 			Status:  0,
 		}
 	}
+}
+
 // ProcessSetTextDelay updates the global text typing delay + jitter.
 func ProcessSetTextDelay(r *http.Request) *Payload {
 	req := &Payload{}
@@ -6586,7 +6589,10 @@ func ProcessSetTextDelay(r *http.Request) *Payload {
 	if req.TextDelayVarianceMs < 0 || req.TextDelayVarianceMs > 500 {
 		return &Payload{Message: "Text delay variance must be 0-500 ms", Code: http.StatusOK, Status: 0}
 	}
-	config.SetTextDelay(req.TextDelayMs, req.TextDelayVarianceMs)
+	if req.DelayVarianceMs < 0 || req.DelayVarianceMs > 500 {
+		return &Payload{Message: "Delay variance must be 0-500 ms", Code: http.StatusOK, Status: 0}
+	}
+	config.SetTextDelay(req.TextDelayMs, req.TextDelayVarianceMs, req.DelayVarianceMs)
 	return &Payload{Message: "Text delay updated", Code: http.StatusOK, Status: 1}
 }
 

@@ -1322,6 +1322,16 @@ func setDeviceColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
+func setTextDelay(w http.ResponseWriter, r *http.Request) {
+	request := requests.ProcessSetTextDelay(r)
+	resp := &Response{
+		Code:    request.Code,
+		Status:  request.Status,
+		Message: request.Message,
+	}
+	resp.Send(w)
+}
+
 // setGlobalDeviceColor handles global color changes
 func setGlobalDeviceColor(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGlobalChangeColor(r)
@@ -3102,6 +3112,7 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/macro/value", http.MethodDelete, deleteMacroValue)
 	handleFunc(r, "/api/temperatures/delete", http.MethodDelete, deleteTemperatureProfile)
 	handleFunc(r, "/api/macro/profile", http.MethodDelete, deleteMacroProfile)
+	handleFunc(r, "/api/settings/textDelay", http.MethodPost, setTextDelay)
 	handleFunc(r, "/api/userProfile/delete", http.MethodDelete, deleteUserProfile)
 	handleFunc(r, "/api/dashboard/devices/delete", http.MethodDelete, removeDashboardDevice)
 	handleFunc(r, "/api/application/profiles/delete", http.MethodDelete, deleteApplicationProfile)

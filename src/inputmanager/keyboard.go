@@ -5,7 +5,9 @@ package inputmanager
 // License: GPL-3.0 or later
 
 import (
+	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/logger"
+	"math/rand"
 	"os"
 	"syscall"
 	"time"
@@ -332,6 +334,12 @@ func InputControlKeyboardText(text string) {
 			}
 		}
 
-		time.Sleep(40 * time.Millisecond) // normal typing rhythm
+		// Configurable typing rhythm (textDelayMs) with optional random jitter
+		// (textDelayVarianceMs).
+		delayMs := config.GetConfig().TextDelayMs
+		if variance := config.GetConfig().TextDelayVarianceMs; variance > 0 {
+			delayMs += rand.Intn(variance + 1)
+		}
+		time.Sleep(time.Duration(delayMs) * time.Millisecond)
 	}
 }

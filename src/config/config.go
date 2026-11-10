@@ -32,6 +32,8 @@ type Configuration struct {
 	LogLevel                  string   `json:"logLevel"`
 	EnhancementKits           []byte   `json:"enhancementKits"`
 	TemperatureOffset         int      `json:"temperatureOffset"`
+	TextDelayMs               int      `json:"textDelayMs"`
+	TextDelayVarianceMs       int      `json:"textDelayVarianceMs"`
 	AMDGpuIndex               int      `json:"amdGpuIndex"`
 	AMDSmiPath                string   `json:"amdsmiPath"`
 	CheckDevicePermission     bool     `json:"checkDevicePermission"`
@@ -59,6 +61,8 @@ var (
 		"logFile":                   "",
 		"enhancementKits":           make([]byte, 0),
 		"temperatureOffset":         0,
+		"textDelayMs":               40,
+		"textDelayVarianceMs":       0,
 		"amdGpuIndex":               0,
 		"amdsmiPath":                "",
 		"checkDevicePermission":     false,
@@ -125,6 +129,14 @@ func UpdateSupportedDevices(productIds map[uint16]bool) uint8 {
 			}
 		}
 	}
+	saveConfigSettings(configuration)
+	return 1
+}
+
+// SetTextDelay updates the text typing delay + jitter, then persists them.
+func SetTextDelay(delayMs, varianceMs int) uint8 {
+	configuration.TextDelayMs = delayMs
+	configuration.TextDelayVarianceMs = varianceMs
 	saveConfigSettings(configuration)
 	return 1
 }

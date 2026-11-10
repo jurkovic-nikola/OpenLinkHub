@@ -201,6 +201,8 @@ type Payload struct {
 	MousePositionAbsolute         bool                  `json:"mousePositionAbsolute"`
 	MacroRepeat                   int                   `json:"macroRepeat"`
 	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
+	TextDelayMs                   int                   `json:"textDelayMs"`
+	TextDelayVarianceMs           int                   `json:"textDelayVarianceMs"`
 	WidgetId                      int                   `json:"widgetId"`
 	Widget                        xeneonedge.Widget     `json:"widget"`
 	ColorTone                     int                   `json:"colorTone"`
@@ -6571,4 +6573,20 @@ func ProcessDeleteApplicationProfile(r *http.Request) *Payload {
 			Status:  0,
 		}
 	}
+// ProcessSetTextDelay updates the global text typing delay + jitter.
+func ProcessSetTextDelay(r *http.Request) *Payload {
+	req := &Payload{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return &Payload{Message: language.GetValue("txtUnableToValidateRequest"), Code: http.StatusOK, Status: 0}
+	}
+	if req.TextDelayMs < 10 || req.TextDelayMs > 1000 {
+		return &Payload{Message: "Text delay must be 10-1000 ms", Code: http.StatusOK, Status: 0}
+	}
+	if req.TextDelayVarianceMs < 0 || req.TextDelayVarianceMs > 500 {
+		return &Payload{Message: "Text delay variance must be 0-500 ms", Code: http.StatusOK, Status: 0}
+	}
+	config.SetTextDelay(req.TextDelayMs, req.TextDelayVarianceMs)
+	return &Payload{Message: "Text delay updated", Code: http.StatusOK, Status: 1}
 }
+

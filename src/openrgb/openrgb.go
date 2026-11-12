@@ -109,11 +109,15 @@ func RemoveDeviceControllerBySerial(serial string) {
 		mutex.Lock()
 		defer mutex.Unlock()
 
-		for i, c := range controllers {
-			if c.Serial == serial {
-				controllers = append(controllers[:i], controllers[i+1:]...)
+		// Range keeps the original length. Deleting in place and continuing
+		// panics once the same serial is present more than once.
+		kept := make([]*common.OpenRGBController, 0, len(controllers))
+		for _, c := range controllers {
+			if c.Serial != serial {
+				kept = append(kept, c)
 			}
 		}
+		controllers = kept
 
 		if conn != nil {
 			sendHeader(conn, 0, OPCODE_DEVICE_LIST_UPDATED, 0)

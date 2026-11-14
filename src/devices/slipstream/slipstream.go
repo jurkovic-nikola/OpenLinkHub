@@ -807,7 +807,8 @@ func (d *Device) getDevices() {
 			deviceIdLen := data[position+7]
 			deviceId := data[position+8 : position+8+int(deviceIdLen)]
 			endpoint := base + deviceType
-			if channels == 1 {
+			// Receiver 0x1bdc keeps type-specific endpoints with one paired device.
+			if channels == 1 && d.ProductId != 0x1bdc {
 				endpoint = base + 1
 			}
 			device := &Devices{

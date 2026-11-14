@@ -1,3 +1,59 @@
+## 2026-11-07
+
+* revert this for now (6fc84cba)
+* battery changes (7a07d52f)
+* cluster should be available via api (7c3a5204)
+* battery changes (eaa4e9dc)
+* sabre v2 pro cf https://github.com/jurkovic-nikola/OpenLinkHub/issues/579 (76e6b3f2)
+
+## 2026-11-06
+
+* Merge pull request #578 from Marukooh/nvidia-float-temperature (1efa8b62)
+* nvidia: accept decimal GPU temperature from nvidia-smi (e91e51bb)
+* fixup (6e5a4e7f)
+* Merge pull request #575 from D3LZ-D3LZ-D3LZ/pr/lnpro-temperature-smoothing (97c02138)
+* Merge pull request #574 from D3LZ-D3LZ-D3LZ/pr/lnpro-hardware-off (f3979a93)
+* Merge pull request #573 from D3LZ-D3LZ-D3LZ/pr/lnpro-custom-led-count (f2ecd11a)
+* lnpro: keep temperature smoothing state across frames (8ee64e8f)
+* lnpro: add Off hardware lights mode (021576f2)
+* lnpro: custom external device with configurable LED count (57424fee)
+
+## 2026-11-05
+
+* fixup (1a8765bd)
+* return list of compatible sensors in api (4641cfbc)
+* Merge pull request #572 from D3LZ-D3LZ-D3LZ/pr/memory-i2c-symlink (46d8c227)
+* Merge pull request #571 from D3LZ-D3LZ-D3LZ/pr/lnpro-usage-page (2c483881)
+* memory: resolve i2c device symlinks (52ca5885)
+* lnpro: match Lighting Node Pro by HID usage page (dd39c9b1)
+
+## 2026-11-04
+
+* init map (67144e43)
+* macro loop https://github.com/jurkovic-nikola/OpenLinkHub/issues/570 (8c24893a)
+* dont error out on dongles via api (3123f52d)
+
+## 2026-11-03
+
+* nexus constructor (1b88268c)
+* little bugger (8cf266d2)
+* strafe key changes (8ca8a815)
+* docs update (2a98f023)
+* strafe rgb https://github.com/jurkovic-nikola/OpenLinkHub/issues/556 (a07a7c3b)
+
+## 2026-11-02
+
+* readme update (1585563a)
+* Merge pull request #565 from PareAttila/main (480f18ce)
+* js fixup (d6ae7154)
+* readme update (3dade3eb)
+* application integration, global profiles (e0b74336)
+
+## 2026-11-01
+
+*    headsetdongle: add PID 2628 (0x0A44) to paired device discovery (e091e16c)
+* changelog (a08204cf)
+
 ## 2026-10-31
 
 * media player translation (0fa37bf1)

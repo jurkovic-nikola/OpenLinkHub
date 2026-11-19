@@ -470,6 +470,33 @@ func getTemperatureSensors(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
+// getTemperatureSources returns the sensors a new temperature profile can follow, and the profile mode
+func getTemperatureSources(w http.ResponseWriter, _ *http.Request) {
+	info := systeminfo.GetInfo()
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data: map[string]interface{}{
+			"graphProfiles": config.GetConfig().GraphProfiles,
+			"probes":        devices.GetTemperatureProbes(),
+			"hwmon":         temperatures.GetExternalHwMonSensors(),
+			"storage":       info.Storage,
+			"gpus":          info.GPU,
+		},
+	}
+	resp.Send(w)
+}
+
+// getRgbScheduler returns RGB scheduler settings
+func getRgbScheduler(w http.ResponseWriter, _ *http.Request) {
+	resp := &Response{
+		Code:   http.StatusOK,
+		Status: 1,
+		Data:   scheduler.GetScheduler(),
+	}
+	resp.Send(w)
+}
+
 // getColor returns response on /color
 func getColor(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
@@ -2947,6 +2974,8 @@ func setRoutes() http.Handler {
 	handleFunc(r, "/api/temperatures/", http.MethodGet, getTemperature)
 	handleFunc(r, "/api/temperatures/graph/", http.MethodGet, getTemperatureGraph)
 	handleFunc(r, "/api/temperatures/sensors/", http.MethodGet, getTemperatureSensors)
+	handleFunc(r, "/api/temperatureSources", http.MethodGet, getTemperatureSources)
+	handleFunc(r, "/api/scheduler", http.MethodGet, getRgbScheduler)
 	handleFunc(r, "/api/input/media", http.MethodGet, getMediaKeys)
 	handleFunc(r, "/api/input/keyboard", http.MethodGet, getInputKeys)
 	handleFunc(r, "/api/input/mouse", http.MethodGet, getMouseButtons)

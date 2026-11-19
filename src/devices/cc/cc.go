@@ -98,7 +98,6 @@ var (
 		"liquid-temperature",
 		"marquee",
 		"nebula",
-		"led",
 		"off",
 		"rain",
 		"rainbow",

@@ -2463,34 +2463,12 @@ func uiDeviceOverview(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// uiIndex handles index page
-func uiIndex(w http.ResponseWriter, _ *http.Request) {
-	deviceList := devices.GetDevices()
-	web := templates.Web{}
-	web.Title = dashboard.GetDashboard().PageTitle
-	web.Devices = deviceList
-	web.BuildInfo = version.GetBuildInfo()
-	web.SystemInfo = systeminfo.GetInfo()
-	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
-	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
-	web.Dashboard = dashboard.GetDashboard()
-	web.BatteryStats = stats.GetBatteryStats()
-	web.Page = "index"
-
-	t := templates.GetTemplate()
+// uiDashboard serves the dashboard page
+func uiDashboard(w http.ResponseWriter, r *http.Request) {
 	for header := range headers {
 		w.Header().Set(headers[header].Key, headers[header].Value)
 	}
-
-	err := t.ExecuteTemplate(w, "index.html", web)
-	if err != nil {
-		fmt.Println(err)
-		resp := &Response{
-			Code:    http.StatusInternalServerError,
-			Message: language.GetValue("txtUnableToServeWebContent"),
-		}
-		resp.Send(w)
-	}
+	http.ServeFile(w, r, "./static/dashboard/index.html")
 }
 
 // uiTemperatureOverview handles overview of temperature profiles
@@ -3152,7 +3130,7 @@ func setRoutes() http.Handler {
 	}
 
 	if config.GetConfig().Frontend {
-		handleFunc(r, "/", http.MethodGet, uiIndex)
+		handleFunc(r, "/", http.MethodGet, uiDashboard)
 		handleFunc(r, "/device/", http.MethodGet, uiDeviceOverview)
 		handleFunc(r, "/temperature", http.MethodGet, uiTemperatureOverview)
 		handleFunc(r, "/temperatureGraphs", http.MethodGet, uiTemperatureGraphOverview)

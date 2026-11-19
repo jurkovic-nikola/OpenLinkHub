@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooling</title>
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%2338bdf8'/%3E%3Cpath d='M12 12c0-4 2-6 5-6-1 3-2 5-5 6zm0 0c4 0 6 2 6 5-3-1-5-2-6-5zm0 0c0 4-2 6-5 6 1-3 2-5 5-6zm0 0c-4 0-6-2-6-5 3 1 5 2 6 5z' fill='%230b1220'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/dashboard/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12c0-4 2-6 5-6-1 3-2 5-5 6zm0 0c4 0 6 2 6 5-3-1-5-2-6-5zm0 0c0 4-2 6-5 6 1-3 2-5 5-6zm0 0c-4 0-6-2-6-5 3 1 5 2 6 5z"/></svg>
+    <div class="brand-text">
+      <h1>Cooling</h1>
+      <p class="sub" id="deviceLine">Connecting…</p>
+    </div>
+    <select id="devicePick" hidden aria-label="Device"></select>
+  </div>
+  <nav class="jump" aria-label="Sections">
+    <a href="#sec-fans" class="cooling-only">Fans</a><a href="#sec-curves" class="cooling-only">Curves</a><a href="#sec-light" class="cooling-only">Lighting</a><a href="#sec-devices">Devices</a><a href="#sec-settings">Settings</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="live" id="live"><span class="dot"></span><span id="liveText">connecting</span></span>
+  </div>
+</header>
+
+<main>
+  <div class="alert" id="alert" role="alert" hidden></div>
+  <section class="tiles" id="tiles" aria-label="Live readings"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Temperatures</h2>
+      <div class="legend" id="historyLegend"></div>
+      <span class="muted small">last 10 min</span>
+    </div>
+    <div class="chart-wrap"><svg id="historyChart" class="history"></svg></div>
+  </section>
+
+  <section class="panel cooling-only" id="sec-fans" hidden>
+    <div class="panel-head">
+      <h2>Pump &amp; fans</h2>
+      <div class="bulk">
+        <select id="bulkTarget" aria-label="Apply to"></select>
+        <select id="bulkProfile" aria-label="Speed profile"></select>
+        <button class="btn" id="bulkApply">Apply</button>
+      </div>
+    </div>
+    <div class="channels" id="channels"></div>
+    <p class="note" id="channelsNote"></p>
+  </section>
+
+  <section class="panel cooling-only" id="sec-curves" hidden>
+    <div class="panel-head">
+      <h2>Fan curves</h2>
+      <div class="seg" role="tablist" aria-label="Curve">
+        <button role="tab" data-curve="1" class="seg-btn on">Fans</button>
+        <button role="tab" data-curve="0" class="seg-btn">Pump</button>
+      </div>
+    </div>
+    <div class="curves">
+      <aside class="profile-list">
+        <ul id="profileList"></ul>
+        <details class="new-profile" id="newProfileBox">
+          <summary class="btn ghost">＋ New profile</summary>
+          <form id="newProfile" autocomplete="off">
+            <label class="field"><span>Name</span>
+              <input id="newName" placeholder="e.g. Silent" maxlength="32" pattern="[A-Za-z0-9]{3,}" title="Letters and numbers only, at least 3" required></label>
+            <label class="field"><span>Follows</span>
+              <select id="newSensor"></select></label>
+            <label class="field" id="newStorageWrap" hidden><span>Drive</span><select id="newStorage"></select></label>
+            <label class="field" id="newProbeWrap" hidden><span>Probe</span><select id="newProbe"></select></label>
+            <label class="field" id="newGpuWrap" hidden><span>GPU</span><select id="newGpu"></select></label>
+            <label class="field" id="newExecWrap" hidden><span>Executable path</span>
+              <input id="newExec" placeholder="/usr/local/bin/my-temp" pattern="[A-Za-z0-9_\-/]+"></label>
+            <label class="field" id="newHwmonWrap" hidden><span>hwmon device / input</span>
+              <span class="pair"><input id="newHwmon" placeholder="hwmon3"><input id="newHwmonInput" placeholder="temp1_input"></span></label>
+            <label class="check"><input type="checkbox" id="newStatic"> Fixed speed <span class="muted">(one speed at any temperature)</span></label>
+            <label class="check"><input type="checkbox" id="newZero"> Zero RPM <span class="muted">(fans may stop below 20%)</span></label>
+            <div class="row-end"><button class="btn primary" type="submit">Create</button></div>
+          </form>
+        </details>
+      </aside>
+      <div class="editor">
+        <div class="editor-head">
+          <div>
+            <h3 id="editorTitle">—</h3>
+            <p class="muted small" id="editorMeta"></p>
+          </div>
+          <div class="editor-actions">
+            <button class="btn" id="curveDuplicate" hidden>Duplicate to edit</button>
+            <button class="btn ghost" id="curveRevert" disabled>Revert</button>
+            <button class="btn primary" id="curveSave" disabled>Save</button>
+            <button class="btn danger ghost" id="curveDelete" hidden>Delete</button>
+          </div>
+        </div>
+        <div id="fixedBox" class="fixed-box" hidden>
+          <label class="field"><span id="fixedLabel">Speed</span>
+            <input type="range" id="fixedSpeed" min="20" max="100" step="1"></label>
+          <output id="fixedVal" class="fixed-val"></output>
+        </div>
+        <svg id="curve" class="curve" viewBox="0 0 640 320"></svg>
+        <div id="bandTable" class="band-table" hidden></div>
+        <p class="hint" id="curveHint"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel cooling-only" id="sec-light" hidden>
+    <div class="panel-head">
+      <h2>Lighting</h2>
+      <label class="switch" title="Turns every LED on every OpenLinkHub device off">
+        <input type="checkbox" id="rgbOffAll"><span class="track"></span><span>All LEDs off</span>
+      </label>
+    </div>
+    <div class="light-top">
+      <div class="field">
+        <label for="rgbAll">Set effect</label>
+        <div class="ch-row"><select id="rgbTarget" aria-label="Apply to"></select><select id="rgbAll"></select><button class="btn" id="rgbAllApply">Apply</button></div>
+      </div>
+      <div class="field">
+        <label for="brightness">Brightness <span id="brightnessVal" class="muted"></span></label>
+        <input type="range" id="brightness" min="0" max="100" step="1">
+      </div>
+      <div class="field">
+        <label for="oneColour">One colour on every LED, every device</label>
+        <div class="ch-row"><input type="color" id="oneColour" value="#38bdf8"><button class="btn" id="oneColourApply">Apply</button></div>
+      </div>
+    </div>
+    <div class="led-row" id="ledRow"></div>
+
+    <div class="subpanel">
+      <div class="subpanel-head">
+        <h3>Effect settings</h3>
+        <select id="fxProfile" aria-label="Effect"></select>
+        <span class="muted small" id="fxUsed"></span>
+      </div>
+      <div class="fx" id="fxBody"></div>
+      <div class="row-end"><button class="btn ghost" id="fxRevert">Revert</button><button class="btn primary" id="fxSave">Save effect</button></div>
+    </div>
+  </section>
+
+  <section class="panel cooling-only" id="sec-device" hidden>
+    <div class="panel-head"><h2>Hub</h2></div>
+    <div class="device-grid">
+      <div class="card">
+        <h3>Saved setups</h3>
+        <p class="muted small">A setup stores every channel's speed profile, effect and name. Switching restores them.</p>
+        <ul class="setups" id="setups"></ul>
+        <form id="saveSetup" class="ch-row" autocomplete="off">
+          <input id="setupName" placeholder="Save current as…" pattern="[A-Za-z0-9]{3,}" title="Letters and numbers only, at least 3" required>
+          <button class="btn" type="submit">Save</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Integrations</h3>
+        <label class="switch"><input type="checkbox" id="openrgb"><span class="track"></span><span>Hand LEDs to OpenRGB</span></label>
+        <p class="muted small">Needs <code>enableOpenRGBTargetServer</code> in config.json. While on, this page can't change lighting.</p>
+        <label class="switch"><input type="checkbox" id="cluster"><span class="track"></span><span>Join RGB cluster</span></label>
+        <p class="muted small">Joins this hub's LEDs with other devices' into one strip. While on, Lighting controls the whole cluster.</p>
+        <div id="argbBox" hidden>
+          <h3>Custom LED ports</h3>
+          <div id="argbPorts"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Details</h3>
+        <dl class="facts" id="facts"></dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="sec-devices">
+    <div class="panel-head"><h2>Devices</h2></div>
+    <div class="device-list" id="deviceList"></div>
+    <nav class="tools" aria-label="More tools">
+      <a class="btn ghost" href="/macros">Macros</a>
+      <a class="btn ghost" href="/lcd">LCD</a>
+      <a class="btn ghost" href="/apps">Applications</a>
+    </nav>
+  </section>
+
+  <section class="panel" id="sec-settings">
+    <div class="panel-head"><h2>Settings</h2></div>
+    <div class="device-grid">
+      <div class="card">
+        <h3>Schedule</h3>
+        <p class="muted small">Turn every LED off and back on at set times (all OpenLinkHub devices).</p>
+        <label class="switch"><input type="checkbox" id="schedOn"><span class="track"></span><span>Use schedule</span></label>
+        <div class="ch-row sched">
+          <label class="field"><span>Off at</span><input type="time" id="schedOff"></label>
+          <label class="field"><span>On at</span><input type="time" id="schedOnAt"></label>
+        </div>
+        <div class="row-end"><button class="btn" id="schedSave">Save schedule</button></div>
+      </div>
+      <div class="card">
+        <h3>Backup</h3>
+        <p class="muted small">Everything OpenLinkHub stores: config.json, profiles, curves and effects.</p>
+        <div class="ch-row">
+          <a class="btn" href="/api/backup" download>Download backup</a>
+          <label class="btn ghost file-btn">Restore…<input type="file" id="restoreFile" accept=".zip"></label>
+        </div>
+        <dl class="facts" id="serverFacts"></dl>
+      </div>
+      <div class="card">
+        <h3>Display</h3>
+        <label class="switch"><input type="checkbox" id="fahrenheit"><span class="track"></span><span>Show °F</span></label>
+        <p class="muted small">Saved in OpenLinkHub's settings. Effect temperature points are still entered in °C, as OpenLinkHub stores them.</p>
+      </div>
+      <div class="card">
+        <h3>Devices OpenLinkHub controls</h3>
+        <p class="muted small">Turning a device off adds it to <code>exclude</code> in config.json. Takes effect after OpenLinkHub restarts.</p>
+        <ul class="setups" id="supported"></ul>
+        <details class="all-supported">
+          <summary class="muted small">All supported Corsair devices</summary>
+          <input id="supportedFilter" placeholder="Filter…" aria-label="Filter devices">
+          <ul class="setups scroll" id="supportedAll"></ul>
+        </details>
+      </div>
+      <div class="card">
+        <h3>Sign-in</h3>
+        <p class="muted small">Puts this page and the API behind a password and switches OpenLinkHub to HTTPS. Takes effect after a restart; this page then asks you to sign in.</p>
+        <form id="authForm" class="auth" autocomplete="off">
+          <label class="switch"><input type="checkbox" id="authEnabled"><span class="track"></span><span>Require sign-in</span></label>
+          <label class="field"><span>Username</span><input id="authUser" minlength="3" pattern="[A-Za-z0-9]{3,}" autocomplete="username"></label>
+          <label class="field"><span>New password (12+ characters with a letter, digit and symbol)</span><input id="authPass" type="password" autocomplete="new-password"></label>
+          <label class="field"><span>HTTPS address you'll open it at</span><input id="authOrigin" placeholder="https://127.0.0.1:27003"></label>
+          <label class="field"><span>Stay signed in (minutes)</span><input id="authLife" type="number" min="15" max="240" step="5"></label>
+          <div class="row-end"><button class="btn" type="submit">Save sign-in settings</button></div>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="/static/dashboard/app.js"></script>
+</body>
+</html>

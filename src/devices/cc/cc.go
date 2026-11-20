@@ -2931,6 +2931,61 @@ func (d *Device) UpdateRgbProfile(channelId int, profile string) uint8 {
 	return 1
 }
 
+// UpdateRgbProfileBulk will update RGB profile on selected channels
+func (d *Device) UpdateRgbProfileBulk(channelIds []int, profile string) uint8 {
+	if d.DeviceProfile == nil || len(channelIds) == 0 {
+		return 0
+	}
+
+	if d.DeviceProfile.OpenRGBIntegration {
+		return 4
+	}
+
+	if d.DeviceProfile.RGBCluster {
+		return 5
+	}
+
+	if d.GetRgbProfile(profile) == nil {
+		logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Non-existing RGB profile")
+		return 0
+	}
+
+	hasPump := false
+	for _, device := range d.Devices {
+		if device.ContainsPump {
+			hasPump = true
+			break
+		}
+	}
+
+	if profile == "liquid-temperature" {
+		if !hasPump {
+			logger.Log(logger.Fields{"serial": d.Serial, "profile": profile}).Warn("Unable to apply liquid-temperature profile without a pump of AIO")
+			return 2
+		}
+	}
+
+	for _, channelId := range channelIds {
+		if _, ok := d.RgbDevices[channelId]; !ok {
+			return 0
+		}
+	}
+
+	d.DeviceProfile.MultiRGB = profile
+	for _, channelId := range channelIds {
+		d.DeviceProfile.RGBProfiles[channelId] = profile // Set profile
+		d.RgbDevices[channelId].RGB = profile
+	}
+
+	d.saveDeviceProfile() // Save profile
+	if d.activeRgb != nil {
+		d.activeRgb.Exit <- true
+		d.activeRgb = nil
+	}
+	d.setDeviceColor()
+	return 1
+}
+
 // ProcessGetRgbOverride will get rgb override data
 func (d *Device) ProcessGetRgbOverride(channelId, subDeviceId int) interface{} {
 	return d.getRgbOverride(channelId, subDeviceId)

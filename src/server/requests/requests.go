@@ -4974,7 +4974,7 @@ func ProcessSetRgbOverride(r *http.Request) *Payload {
 		return &Payload{Message: language.GetValue("txtNonExistingChannelId"), Code: http.StatusOK, Status: 0}
 	}
 
-	if req.Speed < 0 || req.Speed > 2 {
+	if req.Speed < 0 || req.Speed > 10 {
 		return &Payload{Message: language.GetValue("txtInvalidSpeedValue"), Code: http.StatusOK, Status: 0}
 	}
 

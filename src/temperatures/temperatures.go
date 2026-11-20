@@ -76,6 +76,7 @@ type TemperatureProfileData struct {
 	GPUIndex           uint8                `json:"gpuIndex"`
 	SensorString       string               `json:"sensorString"`
 	Hidden             bool
+	Internal           bool
 }
 
 type StorageTemperatures struct {
@@ -150,7 +151,7 @@ var (
 			{Id: 7, Min: 80, Max: 90, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 8, Min: 90, Max: 200, Mode: 0, Fans: 100, Pump: 100},
 		},
-		Hidden: false,
+		Internal: true,
 	}
 
 	profileNormal = TemperatureProfileData{
@@ -165,7 +166,7 @@ var (
 			{Id: 7, Min: 80, Max: 90, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 8, Min: 90, Max: 200, Mode: 0, Fans: 100, Pump: 100},
 		},
-		Hidden: false,
+		Internal: true,
 	}
 
 	profilePerformance = TemperatureProfileData{
@@ -180,7 +181,7 @@ var (
 			{Id: 7, Min: 80, Max: 90, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 8, Min: 90, Max: 200, Mode: 0, Fans: 100, Pump: 100},
 		},
-		Hidden: false,
+		Internal: true,
 	}
 
 	// Static
@@ -189,7 +190,6 @@ var (
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 200, Mode: 0, Fans: 70, Pump: 70},
 		},
-		Hidden: false,
 	}
 
 	// Linear Liquid
@@ -198,7 +198,6 @@ var (
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 60, Mode: 0, Fans: 0, Pump: 0},
 		},
-		Hidden: false,
 	}
 
 	// AIO Liquid Temperature
@@ -218,7 +217,6 @@ var (
 			{Id: 11, Min: 48, Max: 50, Mode: 0, Fans: 90, Pump: 90},
 			{Id: 12, Min: 50, Max: 60, Mode: 0, Fans: 100, Pump: 100}, // Critical
 		},
-		Hidden: false,
 	}
 
 	// Storage temperature profile
@@ -235,7 +233,6 @@ var (
 			{Id: 8, Min: 60, Max: 65, Mode: 0, Fans: 90, Pump: 70},
 			{Id: 9, Min: 65, Max: 70, Mode: 0, Fans: 100, Pump: 70},
 		},
-		Hidden: false,
 	}
 
 	// Static
@@ -244,7 +241,8 @@ var (
 		Profiles: []TemperatureProfile{
 			{Id: 1, Min: 0, Max: 65, Mode: 0, Fans: 100, Pump: 100},
 		},
-		Hidden: true,
+		Hidden:   true,
+		Internal: true,
 	}
 
 	// Temperature probes
@@ -261,7 +259,6 @@ var (
 			{Id: 8, Min: 50, Max: 55, Mode: 0, Fans: 80, Pump: 80},
 			{Id: 9, Min: 55, Max: 60, Mode: 0, Fans: 100, Pump: 100},
 		},
-		Hidden: false,
 	}
 
 	// Temperature probes
@@ -278,7 +275,6 @@ var (
 			{Id: 8, Min: 75, Max: 85, Mode: 0, Fans: 80, Pump: 0},
 			{Id: 8, Min: 85, Max: 100, Mode: 0, Fans: 100, Pump: 0},
 		},
-		Hidden:  false,
 		ZeroRpm: true,
 	}
 )
@@ -675,6 +671,9 @@ func GetTemperatureProfiles() map[string]TemperatureProfileData {
 
 	profileList := map[string]TemperatureProfileData{}
 	for key, value := range temperatures.Profiles {
+		if value.Internal {
+			continue
+		}
 		value.SensorString = sensorList[value.Sensor]
 		profileList[key] = value
 	}

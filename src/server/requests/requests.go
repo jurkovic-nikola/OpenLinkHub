@@ -290,6 +290,15 @@ func ProcessUpdateTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
+	pf := temperatures.GetTemperatureProfile(profile)
+	if pf == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	if pf.Internal {
+		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
+	}
+
 	if update := temperatures.UpdateTemperatureProfile(profile, data); update > 0 {
 		return &Payload{
 			Message: language.GetValue("txtSpeedProfileUpdated"),
@@ -339,6 +348,10 @@ func ProcessUpdateTemperatureProfileGraph(r *http.Request) *Payload {
 
 	pf := temperatures.GetTemperatureProfile(profile)
 	if pf == nil {
+		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
+	}
+
+	if pf.Internal {
 		return &Payload{Message: language.GetValue("txtNonExistingSpeedProfile"), Code: http.StatusOK, Status: 0}
 	}
 
@@ -524,7 +537,7 @@ func ProcessNewTemperatureProfile(r *http.Request) *Payload {
 		}
 	} else {
 		return &Payload{
-			Message: language.GetValue("txtSpeedProfileExists"),
+			Message: language.GetValue("txtTemperatureProfileSaveError"),
 			Code:    http.StatusOK,
 			Status:  0,
 		}

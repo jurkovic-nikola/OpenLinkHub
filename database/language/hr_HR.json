@@ -813,6 +813,7 @@
     "txtNexusAction": "Radnja na dodir",
     "txtNexusMedia": "Upravljanje medijima",
     "txtNexusAdd": "Dodaj pločicu",
-    "txtNexusSave": "Spremi i aktiviraj"
+    "txtNexusSave": "Spremi i aktiviraj",
+    "txtTemperatureProfileSaveError": "Nije moguće spremiti novi temperaturni profil"
   }
 }

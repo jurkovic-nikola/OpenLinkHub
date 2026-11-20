@@ -813,6 +813,7 @@
     "txtNexusAction": "Touch action",
     "txtNexusMedia": "Media control",
     "txtNexusAdd": "Add tile",
-    "txtNexusSave": "Save and activate"
+    "txtNexusSave": "Save and activate",
+    "txtTemperatureProfileSaveError": "Unable to save new temperature profile"
   }
 }

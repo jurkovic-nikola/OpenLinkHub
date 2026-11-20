@@ -813,6 +813,7 @@
     "txtNexusAction": "Ação de toque",
     "txtNexusMedia": "Controle de mídia",
     "txtNexusAdd": "Adicionar bloco",
-    "txtNexusSave": "Salvar e ativar"
+    "txtNexusSave": "Salvar e ativar",
+    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura"
   }
 }

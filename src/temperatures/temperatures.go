@@ -458,7 +458,7 @@ func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 			return false
 		}
 
-		if newTemperatureProfile.Sensor == 4 && newTemperatureProfile.ChannelId < 1 {
+		if newTemperatureProfile.Sensor == 4 && newTemperatureProfile.ChannelId < 0 {
 			return false
 		}
 

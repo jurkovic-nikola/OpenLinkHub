@@ -813,6 +813,7 @@
     "txtNexusAction": "Pekåtgärd",
     "txtNexusMedia": "Mediekontroll",
     "txtNexusAdd": "Lägg till ruta",
-    "txtNexusSave": "Spara och aktivera"
+    "txtNexusSave": "Spara och aktivera",
+    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen"
   }
 }

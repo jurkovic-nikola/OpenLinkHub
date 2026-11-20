@@ -813,6 +813,7 @@
         "txtNexusAction": "Действие при касании",
         "txtNexusMedia": "Управление мультимедиа",
         "txtNexusAdd": "Добавить плитку",
-        "txtNexusSave": "Сохранить и активировать"
+        "txtNexusSave": "Сохранить и активировать",
+        "txtTemperatureProfileSaveError": "Не удалось сохранить новый температурный профиль"
     }
 }

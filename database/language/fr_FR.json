@@ -813,6 +813,7 @@
         "txtNexusAction": "Action tactile",
         "txtNexusMedia": "Contrôle multimédia",
         "txtNexusAdd": "Ajouter une tuile",
-        "txtNexusSave": "Enregistrer et activer"
+        "txtNexusSave": "Enregistrer et activer",
+        "txtTemperatureProfileSaveError": "Impossible d'enregistrer le nouveau profil de température"
     }
 }

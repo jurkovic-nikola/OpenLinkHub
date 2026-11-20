@@ -813,6 +813,7 @@
     "txtNexusAction": "Berührungsaktion",
     "txtNexusMedia": "Mediensteuerung",
     "txtNexusAdd": "Kachel hinzufügen",
-    "txtNexusSave": "Speichern und aktivieren"
+    "txtNexusSave": "Speichern und aktivieren",
+    "txtTemperatureProfileSaveError": "Das neue Temperaturprofil konnte nicht gespeichert werden"
   }
 }

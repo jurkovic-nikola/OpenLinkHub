@@ -2534,34 +2534,6 @@ func uiTemperatureGraphOverview(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-// uiSchedulerOverview handles overview of scheduler settings
-func uiSchedulerOverview(w http.ResponseWriter, _ *http.Request) {
-	web := templates.Web{}
-	web.Title = dashboard.GetDashboard().PageTitle
-	web.Devices = devices.GetDevices()
-	web.Scheduler = scheduler.GetScheduler()
-	web.BuildInfo = version.GetBuildInfo()
-	web.SystemInfo = systeminfo.GetInfo()
-	web.Dashboard = dashboard.GetDashboard()
-	web.CpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetCpuTemperature())
-	web.GpuTemp = dashboard.GetDashboard().TemperatureToString(temperatures.GetGpuTemperature())
-	web.Page = "scheduler"
-	t := templates.GetTemplate()
-
-	for header := range headers {
-		w.Header().Set(headers[header].Key, headers[header].Value)
-	}
-
-	err := t.ExecuteTemplate(w, "scheduler.html", web)
-	if err != nil {
-		resp := &Response{
-			Code:    http.StatusInternalServerError,
-			Message: language.GetValue("txtUnableToServeWebContent"),
-		}
-		resp.Send(w)
-	}
-}
-
 // uiRgbEditor handles overview of RGB profiles
 func uiRgbEditor(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
@@ -3128,7 +3100,6 @@ func setRoutes() http.Handler {
 		handleFunc(r, "/temperature", http.MethodGet, uiTemperatureOverview)
 		handleFunc(r, "/temperatureGraphs", http.MethodGet, uiTemperatureGraphOverview)
 		handleFunc(r, "/color", http.MethodGet, uiColorOverview)
-		handleFunc(r, "/scheduler", http.MethodGet, uiSchedulerOverview)
 		handleFunc(r, "/rgb", http.MethodGet, uiRgbEditor)
 		handleFunc(r, "/rgbCluster", http.MethodGet, uiRgbCluster)
 		handleFunc(r, "/macros", http.MethodGet, uiMacrosOverview)

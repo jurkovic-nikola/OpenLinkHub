@@ -192,6 +192,8 @@ const (
 	ProductTypeNightswordV2WU       = 250
 	ProductTypeHarpoonV2W           = 251
 	ProductTypeHarpoonV2WU          = 252
+	ProductTypeSabreV3ProW          = 253
+	ProductTypeSabreV3ProWU         = 254
 	ProductTypeVirtuosoXTW          = 300
 	ProductTypeVirtuosoXTWU         = 301
 	ProductTypeVirtuosoMAXW         = 302

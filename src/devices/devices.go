@@ -101,6 +101,7 @@ import (
 	"OpenLinkHub/src/devices/sabrergbproWU"
 	"OpenLinkHub/src/devices/sabrev2proWU"
 	"OpenLinkHub/src/devices/sabrev2prodongle"
+	"OpenLinkHub/src/devices/sabrev3proWU"
 	"OpenLinkHub/src/devices/scimitar"
 	"OpenLinkHub/src/devices/scimitarSEWU"
 	"OpenLinkHub/src/devices/scimitarWU"
@@ -895,6 +896,7 @@ var deviceRegisterMap = map[uint16]Product{
 	11049: {1, 0, "SABRE V2 PRO MG", sabrev2proWU.Init, nil},               // SABRE V2 PRO MG
 	11045: {1, 0, "SABRE V2 PRO CF", sabrev2proWU.Init, nil},               // SABRE V2 PRO CF
 	11036: {1, 0, "NIGHTSWORD V2", nightswordv2WU.Init, nil},               // NIGHTSWORD v2 WIRELESS SD
+	11075: {1, 0, "SABRE V3 PRO", sabrev3proWU.Init, nil},                  // CORSAIR SABRE v3 PRO
 	7090:  {1, 0, "DARKSTAR RGB WIRELESS", darkstarWU.Init, nil},           // DARKSTAR RGB WIRELESS Gaming Mouse
 	2658:  {3, 0, "VIRTUOSO RGB WIRELESS XT", virtuosorgbXTWU.Init, nil},   // VIRTUOSO RGB WIRELESS XT
 	2627:  {3, 0, "VIRTUOSO", virtuosoWU.Init, nil},                        // VIRTUOSO USB Gaming Headset
@@ -906,6 +908,7 @@ var deviceRegisterMap = map[uint16]Product{
 	7078:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11008: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // SLIPSTREAM WIRELESS USB Receiver
 	11035: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstreamV2.Init},           // SLIPSTREAM WIRELESS V2 USB Receiver
+	11074: {1, 0, "SLIPSTREAM WIRELESS", nil, slipstreamV2.Init},           // CORSAIR SABRE v3 PRO WIRELESS USB Receiver
 	7013:  {1, 0, "SLIPSTREAM WIRELESS", nil, slipstream.Init},             // CORSAIR HARPOON RGB WIRELESS Dongle
 	11050: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // Sabre v2 Pro Ultralight Wireless Dongle
 	11060: {1, 0, "SABRE V2 PRO DONGLE", nil, sabrev2prodongle.Init},       // SABRE v2 PRO WIRELESS MG receiver

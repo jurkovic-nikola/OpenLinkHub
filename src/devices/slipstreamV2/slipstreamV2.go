@@ -9,6 +9,7 @@ import (
 	"OpenLinkHub/src/config"
 	"OpenLinkHub/src/devices/m65rgbultraW"
 	"OpenLinkHub/src/devices/nightswordv2W"
+	"OpenLinkHub/src/devices/sabrev3proW"
 	"OpenLinkHub/src/devices/vanguard96W"
 	"OpenLinkHub/src/devices/vanguard99airW"
 	"OpenLinkHub/src/logger"
@@ -23,6 +24,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -248,6 +250,30 @@ func (d *Device) addDevices() {
 				d.SharedDevices(object)
 				d.AddPairedDevice(value.ProductId, dev, object)
 			}
+		case 11075: // SABRE V3 PRO
+			{
+				dev := sabrev3proW.Init(
+					value.VendorId,
+					d.ProductId,
+					value.ProductId,
+					d.slipstream,
+					value.Endpoint,
+					value.Serial,
+				)
+
+				object := &common.Device{
+					ProductType: common.ProductTypeSabreV3ProW,
+					Product:     "SABRE V3 PRO",
+					Serial:      dev.Serial,
+					Firmware:    dev.Firmware,
+					Image:       "icon-mouse.svg",
+					Instance:    dev,
+					DeviceType:  common.DeviceTypeMouse,
+					ProductId:   value.ProductId,
+				}
+				d.SharedDevices(object)
+				d.AddPairedDevice(value.ProductId, dev, object)
+			}
 		default:
 			logger.Log(logger.Fields{"productId": value.ProductId}).Warn("Unsupported device detected")
 		}
@@ -374,6 +400,13 @@ func (d *Device) getDevices() {
 				Serial:    string(deviceId),
 				VendorId:  vendorId,
 				ProductId: productId,
+			}
+
+			// SABRE V3 PRO override
+			switch d.ProductId {
+			case 11074:
+				device.Serial = strconv.Itoa(int(productId))
+				break
 			}
 			logger.Log(logger.Fields{"serial": d.Serial, "device": device}).Info("Processing device")
 

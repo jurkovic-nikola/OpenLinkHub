@@ -1,3 +1,34 @@
+## 2026-11-21
+
+* fixups (c7d0a593)
+* Merge pull request #595 from ThatsR4d/feat/temperature-sources-api (5638a7e7)
+
+## 2026-11-20
+
+* api: add GET /api/temperatureSources (45b1df86)
+* Merge pull request #592 from ThatsR4d/fix/scheduler-route (ac77c59a)
+* Merge pull request #591 from ThatsR4d/fix/cc-led-mode (43598e01)
+* Merge pull request #590 from ThatsR4d/fix/cc-rgb-bulk (83947544)
+* Merge pull request #589 from ThatsR4d/fix/rgb-override-speed (f664c927)
+* allow channel 0 in profiles https://github.com/jurkovic-nikola/OpenLinkHub/issues/588 (372feafb)
+* block internal profiles https://github.com/jurkovic-nikola/OpenLinkHub/issues/587 (a7ccf334)
+
+## 2026-11-18
+
+* server: remove the /scheduler route (2c26d837)
+* cc: drop the "led" RGB mode (c2ee3113)
+* cc: add UpdateRgbProfileBulk (37b6721e)
+* rgb override: accept speeds up to 10 (51447794)
+
+## 2026-11-14
+
+* changelog (4b59c5a2)
+
+## 2026-11-09
+
+* Merge pull request #580 from Worrieddinosaur/feat/numlock-key (3048db0b)
+* inputmanager: add Num Lock key (09976d41)
+
 ## 2026-11-07
 
 * revert this for now (6fc84cba)

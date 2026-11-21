@@ -18,7 +18,7 @@ func (r *ActiveRGB) Nebula(startTime *time.Time) {
 		progress = 0
 	}
 
-	colors := generateInterstellarColors(r.LightChannels, progress, r.RGBBrightness)
+	colors := r.generateInterstellarColors(progress)
 
 	for j, c := range colors {
 		if len(r.Buffer) > 0 {
@@ -47,26 +47,55 @@ func (r *ActiveRGB) Nebula(startTime *time.Time) {
 	}
 }
 
-// generateInterstellarColors maps LEDs with nebula + twinkle effect
-func generateInterstellarColors(lightChannels int, progress, brightness float64) []struct{ R, G, B float64 } {
-	colors := make([]struct{ R, G, B float64 }, lightChannels)
+const (
+	twinkleChance = 0.002 // per LED per frame; lower now that sparks last longer\
+	twinkleAttack = 0.10  // intensity gained per frame while fading in (~20 frames)
+	twinkleDecay  = 0.95  // per frame; closer to 1.0 = longer fade
+)
 
-	// Nebula effect scrolls slowly with progress
-	for i := 0; i < lightChannels; i++ {
-		pos := float64(i)/float64(lightChannels) + progress
+// generateInterstellarColors maps LEDs with nebula + fading twinkle effect
+func (r *ActiveRGB) generateInterstellarColors(progress float64) []struct{ R, G, B float64 } {
+	n := r.LightChannels
+	brightness := r.RGBBrightness
+	colors := make([]struct{ R, G, B float64 }, n)
+
+	st := r.effectState()
+	if len(st.Twinkle) != n {
+		st.Twinkle = make([]float64, n)
+		st.TwinkleHue = make([]float64, n)
+		st.TwinkleRising = make([]bool, n)
+	}
+
+	for i := 0; i < n; i++ {
+		pos := float64(i)/float64(n) + progress
 		t := (math.Sin(pos*math.Pi*2) + 1) * 0.5
 
 		h, s, v := interstellarPalette(t)
-		r, g, b := hsvToRGB(h, s, v*brightness*0.6)
+		cr, cg, cb := hsvToRGB(h, s, v*brightness*0.6)
+		colors[i] = struct{ R, G, B float64 }{float64(cr), float64(cg), float64(cb)}
 
-		colors[i] = struct{ R, G, B float64 }{float64(r), float64(g), float64(b)}
-	}
+		// Twinkle: fade in, then fade out
+		if st.TwinkleRising[i] {
+			st.Twinkle[i] += twinkleAttack
+			if st.Twinkle[i] >= 1.0 {
+				st.Twinkle[i] = 1.0
+				st.TwinkleRising[i] = false
+			}
+		} else {
+			st.Twinkle[i] *= twinkleDecay
+			// Only start a new spark on an idle LED
+			if st.Twinkle[i] < 0.02 && rand.Float64() < twinkleChance {
+				st.Twinkle[i] = 0
+				st.TwinkleRising[i] = true
+				st.TwinkleHue[i] = rand.Float64() * 360
+			}
+		}
 
-	// Occasional twinkle overlay
-	for i := 0; i < lightChannels; i++ {
-		if rand.Float64() < 0.001 { // very rare spark
-			r, g, b := hsvToRGB(rand.Float64()*360, 0.8, 1.0*brightness)
-			colors[i] = struct{ R, G, B float64 }{float64(r), float64(g), float64(b)}
+		if a := st.Twinkle[i]; a > 0.02 {
+			sr, sg, sb := hsvToRGB(st.TwinkleHue[i], 0.8, brightness)
+			colors[i].R = colors[i].R*(1-a) + float64(sr)*a
+			colors[i].G = colors[i].G*(1-a) + float64(sg)*a
+			colors[i].B = colors[i].B*(1-a) + float64(sb)*a
 		}
 	}
 

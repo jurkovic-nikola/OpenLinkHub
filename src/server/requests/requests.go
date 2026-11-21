@@ -242,7 +242,8 @@ func ProcessDeleteTemperatureProfile(r *http.Request) *Payload {
 		}
 	}
 
-	if pf := temperatures.GetTemperatureProfile(profile); pf == nil {
+	pf := temperatures.GetTemperatureProfile(profile)
+	if pf == nil || pf.Internal {
 		return &Payload{
 			Message: language.GetValue("txtNonExistingSpeedProfile"),
 			Code:    http.StatusOK,

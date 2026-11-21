@@ -671,9 +671,6 @@ func GetTemperatureProfiles() map[string]TemperatureProfileData {
 
 	profileList := map[string]TemperatureProfileData{}
 	for key, value := range temperatures.Profiles {
-		if value.Internal {
-			continue
-		}
 		value.SensorString = sensorList[value.Sensor]
 		profileList[key] = value
 	}

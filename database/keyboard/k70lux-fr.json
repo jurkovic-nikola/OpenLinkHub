@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "uppercaseClass": "key-uppercase",
   "fontSize": 14,
   "key": "k70lux-default",
@@ -1418,30 +1418,6 @@
             "blue": 0
           }
         },
-        "83": {
-          "keyName": "\\ |",
-          "width": 107,
-          "height": 70,
-          "left": 15,
-          "top": 15,
-          "packetIndex": [
-            102
-          ],
-          "keyData": [
-            152,
-            80
-          ],
-          "default": true,
-          "keyHash": [
-            "1208925819614629174706176"
-          ],
-          "keySpace": "keyboard-key wide",
-          "color": {
-            "red": 255,
-            "green": 0,
-            "blue": 0
-          }
-        },
         "84": {
           "keyName": "Del",
           "width": 65,
@@ -1457,6 +1433,8 @@
           ],
           "default": true,
           "keyEmpty": [
+            "keyboard-key-empty",
+            "keyboard-key-empty",
             "keyboard-key-empty"
           ],
           "keyHash": [
@@ -1918,7 +1896,7 @@
         "105": {
           "keyName": "Enter",
           "width": 164,
-          "height": 70,
+          "height": 155,
           "left": 15,
           "top": 15,
           "packetIndex": [
@@ -1932,12 +1910,13 @@
           "keyHash": [
             "4835703278458516698824704"
           ],
-          "keySpace": "keyboard-key wide3",
+          "keySpace": "keyboard-key wide",
           "color": {
             "red": 255,
             "green": 0,
             "blue": 0
-          }
+          },
+          "css": "enter-custom"
         },
         "106": {
           "keyName": "4",
@@ -2034,7 +2013,7 @@
             48
           ],
           "default": true,
-          "keySpace": "keyboard-key wide3",
+          "keySpace": "keyboard-key wide",
           "keyHash": [
             "281474976710656"
           ],

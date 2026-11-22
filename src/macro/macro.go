@@ -17,11 +17,32 @@ import (
 )
 
 type Macro struct {
-	Id          int             `json:"id"`
-	Name        string          `json:"name"`
-	Repeat      int             `json:"repeat"`
-	RepeatDelay int             `json:"repeatDelay"`
-	Actions     map[int]Actions `json:"actions"`
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Repeat      int    `json:"repeat"`
+	RepeatDelay int    `json:"repeatDelay"`
+	// TextDelayMs is the typing rhythm for this macro's text actions. Zero means
+	// DefaultTextDelayMs, so existing macro files need no migration.
+	TextDelayMs int `json:"textDelayMs,omitempty"`
+	// TextDelayVarianceMs adds an optional random 0..N ms to each character.
+	TextDelayVarianceMs int             `json:"textDelayVarianceMs,omitempty"`
+	Actions             map[int]Actions `json:"actions"`
+}
+
+// DefaultTextDelayMs is used when a macro does not set a typing rhythm.
+const DefaultTextDelayMs = 40
+
+// TypingDelay returns the effective per-character delay and jitter for a macro.
+func (m *Macro) TypingDelay() (int, int) {
+	delay := m.TextDelayMs
+	if delay <= 0 {
+		delay = DefaultTextDelayMs
+	}
+	variance := m.TextDelayVarianceMs
+	if variance < 0 {
+		variance = 0
+	}
+	return delay, variance
 }
 
 type Actions struct {
@@ -184,13 +205,15 @@ func UpdateMacroValue(macroId, macroIndex int, macroAction *Actions) uint8 {
 }
 
 // UpdateMacroSettings will update macro value
-func UpdateMacroSettings(macroId, macroRepeat, macroDelay int) uint8 {
+func UpdateMacroSettings(macroId, macroRepeat, macroDelay, textDelay, textVariance int) uint8 {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if val, ok := macros[macroId]; ok {
 		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
 		val.Repeat = macroRepeat
 		val.RepeatDelay = macroDelay
+		val.TextDelayMs = textDelay
+		val.TextDelayVarianceMs = textVariance
 		macros[macroId] = val
 		SaveProfile(profile, val)
 		return 1

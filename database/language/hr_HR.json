@@ -814,6 +814,10 @@
     "txtNexusMedia": "Upravljanje medijima",
     "txtNexusAdd": "Dodaj pločicu",
     "txtNexusSave": "Spremi i aktiviraj",
-    "txtTemperatureProfileSaveError": "Nije moguće spremiti novi temperaturni profil"
+    "txtTemperatureProfileSaveError": "Nije moguće spremiti novi temperaturni profil",
+    "txtTextDelay": "Kašnjenje tipkanja",
+    "txtTextDelayVariance": "Odstupanje tipkanja",
+    "txtInvalidTextDelay": "Kašnjenje tipkanja mora biti između 10 i 1000 ms",
+    "txtInvalidTextDelayVariance": "Odstupanje tipkanja mora biti između 0 i 500 ms"
   }
 }

@@ -230,6 +230,34 @@
                                     </div>
                                 </div>
 
+                                <!-- Typing delay -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtTextDelay" }}</span>
+                                    <div class="system-input text-input compact">
+                                        <label for="macroSettingsTextDelay">
+                                            <input
+                                                    type="text"
+                                                    id="macroSettingsTextDelay"
+                                                    placeholder="{{ .Lang "txtDelayInMilliseconds" }}"
+                                            autocomplete="off">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Typing jitter -->
+                                <div class="settings-row">
+                                    <span class="settings-label text-ellipsis">{{ .Lang "txtTextDelayVariance" }}</span>
+                                    <div class="system-input text-input compact">
+                                        <label for="macroSettingsTextDelayVariance">
+                                            <input
+                                                    type="text"
+                                                    id="macroSettingsTextDelayVariance"
+                                                    placeholder="0"
+                                            autocomplete="off">
+                                        </label>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                         <div class="modal-footer">

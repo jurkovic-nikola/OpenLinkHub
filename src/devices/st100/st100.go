@@ -1271,7 +1271,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	if d.DeviceProfile.RGBProfile == "stand" {
 		var buf = make([]byte, colorPacketLength)
 		for _, rows := range d.DeviceProfile.Stand.Row {

@@ -814,6 +814,10 @@
     "txtNexusMedia": "Media control",
     "txtNexusAdd": "Add tile",
     "txtNexusSave": "Save and activate",
-    "txtTemperatureProfileSaveError": "Unable to save new temperature profile"
+    "txtTemperatureProfileSaveError": "Unable to save new temperature profile",
+    "txtTextDelay": "Typing delay",
+    "txtTextDelayVariance": "Typing jitter",
+    "txtInvalidTextDelay": "Typing delay must be between 10 and 1000 ms",
+    "txtInvalidTextDelayVariance": "Typing jitter must be between 0 and 500 ms"
   }
 }

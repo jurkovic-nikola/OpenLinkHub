@@ -814,6 +814,10 @@
     "txtNexusMedia": "Mediekontroll",
     "txtNexusAdd": "Lägg till ruta",
     "txtNexusSave": "Spara och aktivera",
-    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen"
+    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen",
+    "txtTextDelay": "Skrivfördröjning",
+    "txtTextDelayVariance": "Skrivvariation",
+    "txtInvalidTextDelay": "Skrivfördröjningen måste vara mellan 10 och 1000 ms",
+    "txtInvalidTextDelayVariance": "Skrivvariationen måste vara mellan 0 och 500 ms"
   }
 }

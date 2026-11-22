@@ -1308,7 +1308,7 @@ func (d *Device) setDeviceColor(resetColor bool) {
 	if d.DeviceProfile.RgbOff {
 		return
 	}
-	
+
 	// Are all devices under static mode?
 	// In static mode, we only need to send color once;
 	// there is no need for continuous packet sending.

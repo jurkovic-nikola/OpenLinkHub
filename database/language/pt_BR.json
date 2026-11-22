@@ -814,6 +814,10 @@
     "txtNexusMedia": "Controle de mídia",
     "txtNexusAdd": "Adicionar bloco",
     "txtNexusSave": "Salvar e ativar",
-    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura"
+    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura",
+    "txtTextDelay": "Atraso de digitação",
+    "txtTextDelayVariance": "Variação de digitação",
+    "txtInvalidTextDelay": "O atraso de digitação deve ficar entre 10 e 1000 ms",
+    "txtInvalidTextDelayVariance": "A variação de digitação deve ficar entre 0 e 500 ms"
   }
 }

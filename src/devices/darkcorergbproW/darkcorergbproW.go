@@ -2585,13 +2585,13 @@ func (d *Device) TriggerKeyAssignment(value uint32) {
 						case 6:
 							if v.ActionRepeat > 0 {
 								for z := 0; z < int(v.ActionRepeat); z++ {
-									inputmanager.InputControlKeyboardText(v.ActionText)
+									inputmanager.InputControlKeyboardTextWithDelay(v.ActionText, macroProfile.TextDelayMs, macroProfile.TextDelayVarianceMs)
 									if v.ActionRepeatDelay > 0 && v.ActionRepeat > 1 {
 										time.Sleep(time.Duration(v.ActionRepeatDelay) * time.Millisecond)
 									}
 								}
 							} else {
-								inputmanager.InputControlKeyboardText(v.ActionText)
+								inputmanager.InputControlKeyboardTextWithDelay(v.ActionText, macroProfile.TextDelayMs, macroProfile.TextDelayVarianceMs)
 							}
 						case 20:
 							if v.ActionRepeat > 0 && !v.ActionHold {

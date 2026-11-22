@@ -1231,7 +1231,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	if d.DeviceProfile.RGBProfile == "mousepad" {
 		for _, rows := range d.DeviceProfile.Mousepad.Row {
 			for _, keys := range rows.Zones {

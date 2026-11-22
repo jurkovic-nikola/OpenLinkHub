@@ -6,6 +6,7 @@ package inputmanager
 
 import (
 	"OpenLinkHub/src/logger"
+	"math/rand"
 	"os"
 	"syscall"
 	"time"
@@ -256,8 +257,17 @@ func InputControlScrollHorizontalReset() {
 	}
 }
 
-// InputControlKeyboardText will send given text string to keyboard
+// InputControlKeyboardText will send given text string to keyboard using the
+// default typing rhythm.
 func InputControlKeyboardText(text string) {
+	InputControlKeyboardTextWithDelay(text, 0, 0)
+}
+
+// InputControlKeyboardTextWithDelay types text with a per-character delay and
+// optional random jitter. A delay of zero uses the package default (40 ms); the
+// caller passes the macro's values so concurrent macros do not share typing
+// settings.
+func InputControlKeyboardTextWithDelay(text string, delayMs, varianceMs int) {
 	if virtualKeyboardFile == nil {
 		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
 		return
@@ -332,6 +342,21 @@ func InputControlKeyboardText(text string) {
 			}
 		}
 
-		time.Sleep(40 * time.Millisecond) // normal typing rhythm
+		// Typing rhythm for this macro, with optional per-character jitter.
+		delay := delayMs
+		if delay <= 0 {
+			delay = 40
+		}
+		variance := varianceMs
+		if variance < 0 {
+			variance = 0
+		}
+		if variance > 500 {
+			variance = 500
+		}
+		if variance > 0 {
+			delay += rand.Intn(variance + 1)
+		}
+		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
 }

@@ -814,6 +814,10 @@
         "txtNexusMedia": "Управление мультимедиа",
         "txtNexusAdd": "Добавить плитку",
         "txtNexusSave": "Сохранить и активировать",
-        "txtTemperatureProfileSaveError": "Не удалось сохранить новый температурный профиль"
+        "txtTemperatureProfileSaveError": "Не удалось сохранить новый температурный профиль",
+        "txtTextDelay": "Задержка ввода",
+        "txtTextDelayVariance": "Разброс ввода",
+        "txtInvalidTextDelay": "Задержка ввода должна быть от 10 до 1000 мс",
+        "txtInvalidTextDelayVariance": "Разброс ввода должен быть от 0 до 500 мс"
     }
 }

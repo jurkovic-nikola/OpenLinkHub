@@ -1133,7 +1133,7 @@ func (d *Device) runTouchMacro(target string) {
 							return
 						}
 					case 6:
-						inputmanager.InputControlKeyboardText(action.ActionText)
+						inputmanager.InputControlKeyboardTextWithDelay(action.ActionText, profile.TextDelayMs, profile.TextDelayVarianceMs)
 					case 9:
 						inputmanager.InputControlMouse(action.ActionCommand)
 					case 20:

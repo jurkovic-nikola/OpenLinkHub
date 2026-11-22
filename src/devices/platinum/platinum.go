@@ -918,7 +918,7 @@ func (d *Device) setDeviceColor() {
 		logger.Log(logger.Fields{}).Info("Exiting setDeviceColor() due to RGB being set to Off")
 		return
 	}
-	
+
 	go func(lightChannels int) {
 		startTime := time.Now()
 		d.activeRgb = rgb.Exit()

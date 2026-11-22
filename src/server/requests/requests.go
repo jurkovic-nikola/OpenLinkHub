@@ -201,6 +201,8 @@ type Payload struct {
 	MousePositionAbsolute         bool                  `json:"mousePositionAbsolute"`
 	MacroRepeat                   int                   `json:"macroRepeat"`
 	MacroRepeatDelay              int                   `json:"macroRepeatDelay"`
+	MacroTextDelay                int                   `json:"macroTextDelay"`
+	MacroTextDelayVariance        int                   `json:"macroTextDelayVariance"`
 	WidgetId                      int                   `json:"widgetId"`
 	Widget                        xeneonedge.Widget     `json:"widget"`
 	ColorTone                     int                   `json:"colorTone"`
@@ -4269,7 +4271,23 @@ func ProcessUpdateMacroSettings(r *http.Request) *Payload {
 		}
 	}
 
-	res := macro.UpdateMacroSettings(req.MacroId, req.MacroRepeat, req.MacroRepeatDelay)
+	if req.MacroTextDelay != 0 && (req.MacroTextDelay < 10 || req.MacroTextDelay > 1000) {
+		return &Payload{
+			Message: language.GetValue("txtInvalidTextDelay"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if req.MacroTextDelayVariance < 0 || req.MacroTextDelayVariance > 500 {
+		return &Payload{
+			Message: language.GetValue("txtInvalidTextDelayVariance"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	res := macro.UpdateMacroSettings(req.MacroId, req.MacroRepeat, req.MacroRepeatDelay, req.MacroTextDelay, req.MacroTextDelayVariance)
 	switch res {
 	case 0:
 		return &Payload{

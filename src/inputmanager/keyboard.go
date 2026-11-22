@@ -347,8 +347,13 @@ func InputControlKeyboardText(text string) {
 // DelayMilliseconds returns a delay in milliseconds with optional global jitter
 // (delayVarianceMs), used by the macro "Delay" action.
 func DelayMilliseconds(ms uint16) uint16 {
-	if variance := config.GetConfig().DelayVarianceMs; variance > 0 {
-		ms += uint16(rand.Intn(variance + 1))
+	variance := config.GetConfig().DelayVarianceMs
+	if variance <= 0 {
+		return ms
 	}
-	return ms
+	value := int(ms) + rand.Intn(variance+1)
+	if value > 65535 {
+		value = 65535
+	}
+	return uint16(value)
 }

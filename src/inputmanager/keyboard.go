@@ -6,6 +6,8 @@ package inputmanager
 
 import (
 	"OpenLinkHub/src/logger"
+	"OpenLinkHub/src/macro"
+	"math/rand"
 	"os"
 	"syscall"
 	"time"
@@ -257,13 +259,13 @@ func InputControlScrollHorizontalReset() {
 }
 
 // InputControlKeyboardText will send given text string to keyboard
-func InputControlKeyboardText(text string) {
+func InputControlKeyboardText(action macro.Actions) {
 	if virtualKeyboardFile == nil {
 		logger.Log(logger.Fields{}).Error("Virtual keyboard is not present")
 		return
 	}
 
-	for _, char := range text {
+	for _, char := range action.ActionText {
 		useShift := false
 		baseChar := char
 
@@ -332,6 +334,15 @@ func InputControlKeyboardText(text string) {
 			}
 		}
 
-		time.Sleep(40 * time.Millisecond) // normal typing rhythm
+		delayMs := action.TextDelayMs
+		if delayMs < 10 || delayMs > 1000 {
+			delayMs = 40
+		}
+		
+		jitterMs := action.TextDelayJitterMs
+		if jitterMs > 0 && jitterMs < 500 {
+			delayMs += rand.Intn(jitterMs + 1)
+		}
+		time.Sleep(time.Duration(delayMs) * time.Millisecond)
 	}
 }

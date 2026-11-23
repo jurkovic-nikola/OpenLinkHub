@@ -814,6 +814,13 @@
     "txtNexusMedia": "Controle de mídia",
     "txtNexusAdd": "Adicionar bloco",
     "txtNexusSave": "Salvar e ativar",
-    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura"
+    "txtTemperatureProfileSaveError": "Não foi possível salvar o novo perfil de temperatura",
+    "txtTypingDelay": "Atraso de digitação",
+    "txtTypingJitter": "Variação do atraso de digitação",
+    "txtJitterInMilliseconds": "Variação (em milissegundos)",
+    "txtInvalidTypingDelay": "Valor de atraso inválido. O valor deve estar entre 10 e 1000.",
+    "txtInvalidJitterDelay": "Valor de variação inválido. O valor deve estar entre 1 e 500. Use 0 para desativar a variação.",
+    "txtTypingDelayInfo": "O atraso de digitação é um valor em milissegundos que define o intervalo entre cada caractere da sequência de texto. Esse valor é usado apenas para macros do tipo Texto.",
+    "txtTypingJitterInfo": "A variação do atraso de digitação é um valor em milissegundos que define uma variação aleatória adicionada ao atraso de digitação existente. Esse valor é usado apenas para macros do tipo Texto."
   }
 }

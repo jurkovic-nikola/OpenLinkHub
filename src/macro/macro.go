@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -35,6 +36,8 @@ type Actions struct {
 	MousePositionX        int    `json:"mousePositionX"`
 	MousePositionY        int    `json:"mousePositionY"`
 	MousePositionAbsolute bool   `json:"mousePositionAbsolute"`
+	TextDelayMs           int    `json:"textDelayMs"`
+	TextDelayJitterMs     int    `json:"textDelayJitterMs"`
 }
 
 type Tracker struct {
@@ -86,6 +89,14 @@ func Init() {
 			logger.Log(logger.Fields{"error": err, "location": profileLocation}).Error("Unable to decode macro profile")
 			continue
 		}
+
+		// Failsafe
+		for key, action := range profile.Actions {
+			if action.TextDelayMs < 10 {
+				action.TextDelayMs = 40
+			}
+			profile.Actions[key] = action
+		}
 		macros[profile.Id] = profile
 	}
 }
@@ -122,6 +133,19 @@ func DeleteMacroValue(macroId, macroIndex int) uint8 {
 		profile := fmt.Sprintf("%s/database/macros/%s.json", config.GetConfig().ConfigPath, strings.ToLower(val.Name))
 		if _, ok := val.Actions[macroIndex]; ok {
 			delete(val.Actions, macroIndex)
+
+			keys := make([]int, 0, len(val.Actions))
+			for key := range val.Actions {
+				keys = append(keys, key)
+			}
+			sort.Ints(keys)
+
+			actions := make(map[int]Actions, len(val.Actions))
+			for index, key := range keys {
+				actions[index] = val.Actions[key]
+			}
+
+			val.Actions = actions
 			macros[macroId] = val
 			SaveProfile(profile, val)
 			return 1
@@ -168,12 +192,23 @@ func UpdateMacroValue(macroId, macroIndex int, macroAction *Actions) uint8 {
 					return 2
 				}
 			}
+
+			if macroAction.TextDelayMs < 10 || macroAction.TextDelayMs > 1000 {
+				macroAction.TextDelayMs = 40
+			}
+
+			if macroAction.TextDelayJitterMs < 0 || macroAction.TextDelayJitterMs > 1000 {
+				macroAction.TextDelayJitterMs = 0
+			}
+
 			action.ActionHold = macroAction.ActionHold
 			action.ActionRepeat = macroAction.ActionRepeat
 			action.ActionRepeatDelay = macroAction.ActionRepeatDelay
 			action.MousePositionX = macroAction.MousePositionX
 			action.MousePositionY = macroAction.MousePositionY
 			action.MousePositionAbsolute = macroAction.MousePositionAbsolute
+			action.TextDelayMs = macroAction.TextDelayMs
+			action.TextDelayJitterMs = macroAction.TextDelayJitterMs
 			val.Actions[macroIndex] = action
 			macros[macroId] = val
 			SaveProfile(profile, val)
@@ -266,6 +301,8 @@ func NewMacroProfileValue(macroId int, macroAction *Actions) uint8 {
 				MousePositionX:        macroAction.MousePositionX,
 				MousePositionY:        macroAction.MousePositionY,
 				MousePositionAbsolute: macroAction.MousePositionAbsolute,
+				TextDelayMs:           macroAction.TextDelayMs,
+				TextDelayJitterMs:     macroAction.TextDelayJitterMs,
 			}
 			macros[macroId] = val
 			SaveProfile(profile, macros[macroId])

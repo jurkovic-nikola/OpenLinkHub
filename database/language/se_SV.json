@@ -814,6 +814,13 @@
     "txtNexusMedia": "Mediekontroll",
     "txtNexusAdd": "Lägg till ruta",
     "txtNexusSave": "Spara och aktivera",
-    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen"
+    "txtTemperatureProfileSaveError": "Det gick inte att spara den nya temperaturprofilen",
+    "txtTypingDelay": "Skrivfördröjning",
+    "txtTypingJitter": "Variation i skrivfördröjning",
+    "txtJitterInMilliseconds": "Variation (i millisekunder)",
+    "txtInvalidTypingDelay": "Ogiltigt fördröjningsvärde. Värdet måste vara mellan 10 och 1000.",
+    "txtInvalidJitterDelay": "Ogiltigt variationsvärde. Värdet måste vara mellan 1 och 500. Använd 0 för att inaktivera variationen.",
+    "txtTypingDelayInfo": "Skrivfördröjning är ett värde i millisekunder som anger fördröjningen mellan varje tecken i textsträngen. Detta värde används endast för makron av typen Text.",
+    "txtTypingJitterInfo": "Variation i skrivfördröjning är ett värde i millisekunder som anger en slumpmässig variation som läggs till den befintliga skrivfördröjningen. Detta värde används endast för makron av typen Text."
   }
 }

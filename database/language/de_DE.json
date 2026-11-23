@@ -814,6 +814,13 @@
     "txtNexusMedia": "Mediensteuerung",
     "txtNexusAdd": "Kachel hinzufügen",
     "txtNexusSave": "Speichern und aktivieren",
-    "txtTemperatureProfileSaveError": "Das neue Temperaturprofil konnte nicht gespeichert werden"
+    "txtTemperatureProfileSaveError": "Das neue Temperaturprofil konnte nicht gespeichert werden",
+    "txtTypingDelay": "Eingabeverzögerung",
+    "txtTypingJitter": "Zufällige Eingabeverzögerung",
+    "txtJitterInMilliseconds": "Abweichung (in Millisekunden)",
+    "txtInvalidTypingDelay": "Ungültiger Verzögerungswert. Der Wert muss zwischen 10 und 1000 liegen.",
+    "txtInvalidJitterDelay": "Ungültiger Abweichungswert. Der Wert muss zwischen 1 und 500 liegen. Verwenden Sie 0, um die Abweichung zu deaktivieren.",
+    "txtTypingDelayInfo": "Die Eingabeverzögerung ist ein Wert in Millisekunden, der die Verzögerung zwischen den einzelnen Zeichen einer Textzeichenfolge festlegt. Dieser Wert wird nur für Makros vom Typ Text verwendet.",
+    "txtTypingJitterInfo": "Die zufällige Eingabeverzögerung ist ein Wert in Millisekunden, der eine zufällige Abweichung zur bestehenden Eingabeverzögerung hinzufügt. Dieser Wert wird nur für Makros vom Typ Text verwendet."
   }
 }

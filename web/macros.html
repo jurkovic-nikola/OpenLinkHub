@@ -139,11 +139,40 @@
                                 </div>
 
                                 <!-- Text -->
-                                <div class="settings-row macroTextId">
-                                    <div class="system-input text-area">
-                                        <label for="macroText" class="input-label">
-                                            <textarea class="monospace" id="macroText"></textarea>
-                                        </label>
+                                <div class="macroTextId">
+                                    <div class="settings-row">
+                                        <div class="system-input text-area">
+                                            <label for="macroText" class="input-label">
+                                                <textarea class="monospace" id="macroText"></textarea>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtTypingDelay" }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="macroTypingDelay">
+                                                <input
+                                                    type="text"
+                                                    id="macroTypingDelay"
+                                                    placeholder="{{ .Lang "txtDelayInMilliseconds" }}"
+                                                    autocomplete="off"
+                                                    value="40">
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-row">
+                                        <span class="settings-label text-ellipsis">{{ .Lang "txtTypingJitter" }}</span>
+                                        <div class="system-input text-input compact">
+                                            <label for="macroTypingJitter">
+                                                <input
+                                                    type="text"
+                                                    id="macroTypingJitter"
+                                                    placeholder="{{ .Lang "txtJitterInMilliseconds" }}"
+                                                    autocomplete="off">
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -253,6 +282,7 @@
                         </div>
                     </div>
 
+                    {{ if gt (len .Macros) 0 }}
                     <div class="card system-card text-center top-10">
                         <div class="card-header">
                             {{ $root.Lang "txtMacros" }}
@@ -268,6 +298,7 @@
                             </div>
                         </div>
                     </div>
+                    {{ end }}
                 </div>
                 <div class="col-md-10">
                     <div class="card system-card text-center">
@@ -289,6 +320,14 @@
                                     <th>
                                         {{ .Lang "txtActionRepeatDelay" }}
                                         <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionRepeatDelayInfoToggle"></i>
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtTypingDelay" }}
+                                        <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionTypingDelayInfoToggle"></i>
+                                    </th>
+                                    <th>
+                                        {{ .Lang "txtTypingJitter" }}
+                                        <i style="cursor: pointer;padding-top: 3px;padding-left: 3px;" class="bi bi-info-circle-fill svg-icon svg-icon-sm svg-icon-heavy actionTypingJitterInfoToggle"></i>
                                     </th>
                                     <th>
                                         {{ .Lang "txtMousePositionX" }}

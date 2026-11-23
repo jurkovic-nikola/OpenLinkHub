@@ -150,6 +150,8 @@ type Payload struct {
 	MacroValue                    uint16                `json:"macroValue"`
 	MacroDelay                    uint16                `json:"macroDelay"`
 	MacroText                     string                `json:"macroText"`
+	MacroTextDelayMs              int                   `json:"textDelayMs"`
+	MacroTextDelayJitterMs        int                   `json:"textDelayJitterMs"`
 	LedProfile                    led.Device            `json:"ledProfile"`
 	Points                        []temperatures.Point  `json:"points"`
 	UpdateType                    uint8                 `json:"updateType"`
@@ -4201,6 +4203,8 @@ func ProcessUpdateMacroValue(r *http.Request) *Payload {
 		MousePositionX:        req.MousePositionX,
 		MousePositionY:        req.MousePositionY,
 		MousePositionAbsolute: req.MousePositionAbsolute,
+		TextDelayMs:           req.MacroTextDelayMs,
+		TextDelayJitterMs:     req.MacroTextDelayJitterMs,
 	}
 
 	res := macro.UpdateMacroValue(req.MacroId, req.MacroIndex, macroAction)
@@ -4394,6 +4398,8 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 	macroValue := req.MacroValue
 	macroDelay := req.MacroDelay
 	macroText := req.MacroText
+	textDelayMs := req.MacroTextDelayMs
+	textDelayJitterMs := req.MacroTextDelayJitterMs
 
 	if macroId < 0 {
 		return &Payload{
@@ -4443,6 +4449,22 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 		}
 	}
 
+	if macroType == 6 && (textDelayMs < 10 || textDelayMs > 1000) {
+		return &Payload{
+			Message: language.GetValue("txtInvalidTypingDelay"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
+	if macroType == 6 && (textDelayJitterMs < 0 || textDelayJitterMs > 500) {
+		return &Payload{
+			Message: language.GetValue("txtInvalidJitterDelay"),
+			Code:    http.StatusOK,
+			Status:  0,
+		}
+	}
+
 	if macroType == 20 {
 		mousePositionX = req.MousePositionX
 		mousePositionY = req.MousePositionY
@@ -4474,6 +4496,8 @@ func ProcessNewMacroProfileValue(r *http.Request) *Payload {
 		MousePositionX:        mousePositionX,
 		MousePositionY:        mousePositionY,
 		MousePositionAbsolute: mousePositionAbsolute,
+		TextDelayMs:           textDelayMs,
+		TextDelayJitterMs:     textDelayJitterMs,
 	}
 
 	res := macro.NewMacroProfileValue(macroId, macroAction)

@@ -1133,7 +1133,7 @@ func (d *Device) runTouchMacro(target string) {
 							return
 						}
 					case 6:
-						inputmanager.InputControlKeyboardText(action.ActionText)
+						inputmanager.InputControlKeyboardText(action)
 					case 9:
 						inputmanager.InputControlMouse(action.ActionCommand)
 					case 20:

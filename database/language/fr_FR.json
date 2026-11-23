@@ -814,6 +814,13 @@
         "txtNexusMedia": "Contrôle multimédia",
         "txtNexusAdd": "Ajouter une tuile",
         "txtNexusSave": "Enregistrer et activer",
-        "txtTemperatureProfileSaveError": "Impossible d'enregistrer le nouveau profil de température"
+        "txtTemperatureProfileSaveError": "Impossible d'enregistrer le nouveau profil de température",
+        "txtTypingDelay": "Délai de saisie",
+        "txtTypingJitter": "Variation du délai de saisie",
+        "txtJitterInMilliseconds": "Variation (en millisecondes)",
+        "txtInvalidTypingDelay": "Valeur de délai non valide. La valeur doit être comprise entre 10 et 1000.",
+        "txtInvalidJitterDelay": "Valeur de variation non valide. La valeur doit être comprise entre 1 et 500. Utilisez 0 pour désactiver la variation.",
+        "txtTypingDelayInfo": "Le délai de saisie est une valeur en millisecondes qui définit le délai entre chaque caractère de la chaîne de texte. Cette valeur est utilisée uniquement pour les macros de type Texte.",
+        "txtTypingJitterInfo": "La variation du délai de saisie est une valeur en millisecondes qui définit une variation aléatoire ajoutée au délai de saisie existant. Cette valeur est utilisée uniquement pour les macros de type Texte."
     }
 }

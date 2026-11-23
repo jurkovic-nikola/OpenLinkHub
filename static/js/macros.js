@@ -218,7 +218,8 @@ $(document).ready(function () {
             cache: false,
             success: function(response) {
                 if (response.status === 1) {
-                    dt.row($btn.closest('tr')).remove().draw();
+                    //dt.row($btn.closest('tr')).remove().draw();
+                    loadMacroValues($("#profile").val());
                     toast.success(i18n.t('txtMacroValueDeleted'));
                 } else {
                     toast.warning(response.message);
@@ -241,6 +242,9 @@ $(document).ready(function () {
         const mousePositionX = $row.find('.mousePositionX').val();
         const mousePositionY = $row.find('.mousePositionY').val();
 
+        const macroTypingDelay = $row.find('.actionTypingDelay').val();
+        const macroTypingJitter = $row.find('.actionJitterDelay').val();
+
         if (macro.length !== 2) {
             toast.warning(i18n.t('txtInvalidMacroProfile'));
             return false;
@@ -255,6 +259,8 @@ $(document).ready(function () {
             mousePositionX: parseInt(mousePositionX),
             mousePositionY: parseInt(mousePositionY),
             mousePositionAbsolute: mousePositionAbsolute,
+            textDelayMs: parseInt(macroTypingDelay),
+            textDelayJitterMs: parseInt(macroTypingJitter),
         };
 
         $.ajax({
@@ -328,6 +334,8 @@ $(document).ready(function () {
                                 'N/A',
                                 'N/A',
                                 'N/A',
+                                'N/A',
+                                'N/A',
                                 '' +
                                 `<input class="system-button danger deleteMacroValue" id="deleteMacroValue" data-id="${pf};${i}" type="button" value="DELETE" style="width: 100%;">`
                             ]).draw();
@@ -347,6 +355,16 @@ $(document).ready(function () {
                                 `<div class="system-input text-input">
                                     <label for="profileName">
                                         <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="The amount of delay in milliseconds between the Repeat action.">
+                                    </label>
+                                </div>`,
+                                `<div class="system-input text-input">
+                                    <label for="profileName">
+                                        <input type="text" class="actionTypingDelay" value="${item.textDelayMs}" placeholder="40">
+                                    </label>
+                                </div>`,
+                                `<div class="system-input text-input">
+                                    <label for="profileName">
+                                        <input type="text" class="actionJitterDelay" value="${item.textDelayJitterMs}" placeholder="0">
                                     </label>
                                 </div>`,
                                 'N/A',
@@ -375,6 +393,8 @@ $(document).ready(function () {
                                             <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="${i18n.t('txtRepeatDelay')}">
                                         </label>
                                     </div>`,
+                                '',
+                                '',
                                 `<div class="system-input text-input">
                                         <label for="profileName">
                                             <input type="text" class="mousePositionX" value="${item.mousePositionX}" placeholder="${i18n.t('txtMousePositionX')}">
@@ -414,6 +434,8 @@ $(document).ready(function () {
                                             <input type="text" class="actionRepeatDelayValue" value="${item.actionRepeatDelay}" placeholder="${i18n.t('txtRepeatDelay')}">
                                         </label>
                                     </div>`,
+                                    '',
+                                    '',
                                     '',
                                     '',
                                     '',
@@ -511,6 +533,56 @@ $(document).ready(function () {
         })
     });
 
+    $('.actionTypingDelayInfoToggle').on('click', function () {
+        const modalPressAndHold = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtTypingDelay')}</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>${i18n.t('txtTypingDelayInfo')}</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+        infoPressAndHold.on('hidden.bs.modal', function () {
+            infoPressAndHold.data('bs.modal', null);
+        })
+    });
+
+    $('.actionTypingJitterInfoToggle').on('click', function () {
+        const modalPressAndHold = `
+            <div class="modal fade text-start" id="infoToggle" tabindex="-1" aria-labelledby="infoToggleLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="infoToggleLabel">${i18n.t('txtTypingJitter')}</h5>
+                            <button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <span>${i18n.t('txtTypingJitterInfo')}</span>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">${i18n.t('txtClose')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const infoPressAndHold = $(modalPressAndHold).modal('toggle');
+        infoPressAndHold.on('hidden.bs.modal', function () {
+            infoPressAndHold.data('bs.modal', null);
+        })
+    });
+
     $('.macroList').on('click', function () {
         const profile = $(this).attr('id');
         $('.macroList').removeClass('selected');
@@ -554,6 +626,8 @@ $(document).ready(function () {
         let mousePositionAbsolute = false;
         let mousePositionX = 0;
         let mousePositionY = 0;
+        let macroTypingDelay = 40;
+        let macroTypingJitter = 0;
 
         if (parseInt(macroType) === 0) {
             toast.warning(i18n.t('txtSelectMacroType'));
@@ -577,6 +651,22 @@ $(document).ready(function () {
             mousePositionAbsolute = $('#mousePositionAbsolute').is(':checked');
         }
 
+        if (parseInt(macroType) === 6) {
+            // Text
+            macroTypingDelay = parseInt($('#macroTypingDelay').val());
+            macroTypingJitter = parseInt($('#macroTypingJitter').val());
+
+            if (macroTypingDelay < 10 || macroTypingDelay > 1000) {
+                toast.warning(i18n.t('txtInvalidTypingDelay'));
+                return false;
+            }
+
+            if (macroTypingJitter > 500) {
+                toast.warning(i18n.t('txtInvalidJitterDelay'));
+                return false;
+            }
+        }
+
         const pf = {};
         pf["macroId"] = parseInt(macroId);
         pf["macroType"] = parseInt(macroType);
@@ -586,6 +676,12 @@ $(document).ready(function () {
         pf["mousePositionX"] = mousePositionX;
         pf["mousePositionY"] = mousePositionY;
         pf["mousePositionAbsolute"] = mousePositionAbsolute;
+
+        if (parseInt(macroType) === 6) {
+            pf["textDelayMs"] = macroTypingDelay;
+            pf["textDelayJitterMs"] = macroTypingJitter;
+        }
+
         const json = JSON.stringify(pf, null, 2);
 
         $.ajax({

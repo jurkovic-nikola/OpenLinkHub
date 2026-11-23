@@ -814,6 +814,13 @@
     "txtNexusMedia": "Media control",
     "txtNexusAdd": "Add tile",
     "txtNexusSave": "Save and activate",
-    "txtTemperatureProfileSaveError": "Unable to save new temperature profile"
+    "txtTemperatureProfileSaveError": "Unable to save new temperature profile",
+    "txtTypingDelay": "Typing Delay",
+    "txtTypingJitter": "Typing Jitter",
+    "txtJitterInMilliseconds": "Jitter (in milliseconds)",
+    "txtInvalidTypingDelay": "Invalid delay value. Value is in range from 10 to 1000",
+    "txtInvalidJitterDelay": "Invalid jitter value. Value is in range from 1 to 500. 0 for no jitter.",
+    "txtTypingDelayInfo": "Typing Delay is a value in milliseconds for how long each character is delayed in the text string. This value is used only for the Text macro type and accepts a range from 10-1000.",
+    "txtTypingJitterInfo": "Typing Jitter is a value in milliseconds for a random amount of jitter added to an existing Typing Delay. This value is used only for the Text macro type and accepts a range from 1-500."
   }
 }

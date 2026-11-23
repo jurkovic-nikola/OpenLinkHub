@@ -3338,9 +3338,7 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 						case 6:
 							if v.ActionRepeat > 0 {
 								for z := 0; z < int(v.ActionRepeat); z++ {
-									inputmanager.InputControlKeyboardText(
-										v.ActionText,
-									)
+									inputmanager.InputControlKeyboardText(v)
 
 									if v.ActionRepeatDelay > 0 &&
 										v.ActionRepeat > 1 {
@@ -3351,7 +3349,7 @@ func (d *Device) triggerKeyAssignment(value []byte, functionKey bool, modifierKe
 									}
 								}
 							} else {
-								inputmanager.InputControlKeyboardText(v.ActionText)
+								inputmanager.InputControlKeyboardText(v)
 							}
 							break
 						case 20:

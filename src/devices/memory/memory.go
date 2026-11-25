@@ -1646,7 +1646,7 @@ func (d *Device) setupOpenRGBController() {
 			Vendor:       "Corsair", // Static value
 			Description:  "OpenLinkHub Backend Device",
 			FwVersion:    "0",
-			Serial:       "",
+			Serial:       d.Path + "-DIMM-" + strconv.Itoa(d.Devices[k].ChannelId),
 			Location:     d.Path,
 			Zones:        nil,
 			Colors:       make([]byte, d.Devices[k].LedChannels*3),

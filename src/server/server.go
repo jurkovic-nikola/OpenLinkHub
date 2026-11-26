@@ -222,7 +222,7 @@ func getBatteryStats(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getDeviceMetrics will return a list device metrics in prometheus format
+// getDeviceMetrics will return a list of device metrics in prometheus format
 func getDeviceMetrics(w http.ResponseWriter, r *http.Request) {
 	devices.UpdateDeviceMetrics()
 	metrics.Handler(w, r)
@@ -266,7 +266,7 @@ func getDevices(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getDevices returns response on /devices
+// getDeviceProfiles returns response on /devices
 func getDeviceProfiles(w http.ResponseWriter, r *http.Request) {
 	deviceId, valid := getVar("/api/device/profiles/", r)
 	if !valid {
@@ -404,7 +404,7 @@ func getKeyName(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getTemperatures returns response on /temperatures
+// getTemperature returns response on /temperatures
 func getTemperature(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
 	profile, valid := getVar("/api/temperatures/", r)
@@ -432,7 +432,7 @@ func getTemperature(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getTemperatureGraph returns response on for temperature graph
+// getTemperatureGraph returns response for temperature graph
 func getTemperatureGraph(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
 	profile, valid := getVar("/api/temperatures/graph/", r)
@@ -584,7 +584,7 @@ func getColorData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getPositionData returns device positions data
+// getPositionData returns device position data
 func getPositionData(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{}
 	deviceId, valid := getVar("/api/position/", r)
@@ -656,7 +656,7 @@ func getMediaKeys(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getMediaKeys will return a map of non-media keys
+// getInputKeys will return a map of non-media keys
 func getInputKeys(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
@@ -666,7 +666,7 @@ func getInputKeys(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getControllerKeys will return a map of non-media keys
+// getControllerKeys will return a map of controller keys
 func getControllerKeys(w http.ResponseWriter, _ *http.Request) {
 	resp := &Response{
 		Code:   http.StatusOK,
@@ -952,7 +952,7 @@ func getMediaPlayback(w http.ResponseWriter, _ *http.Request) {
 	resp.Send(w)
 }
 
-// getMediaPlayback will return active media playback
+// getMediaPlayback handles playback controls
 func mediaPlaybackControl(w http.ResponseWriter, r *http.Request) {
 	resp := &Response{Code: http.StatusOK, Status: 0}
 	mediaPlaybackAction, valid := getVar("/api/media/", r)
@@ -970,7 +970,7 @@ func mediaPlaybackControl(w http.ResponseWriter, r *http.Request) {
 			inputmanager.InputControlKeyboard(inputmanager.MediaStop, false)
 			break
 		case "play":
-			inputmanager.InputControlKeyboard(inputmanager.MediaPrev, false)
+			inputmanager.InputControlKeyboard(inputmanager.MediaPlayPause, false)
 			break
 		case "next":
 			inputmanager.InputControlKeyboard(inputmanager.MediaNext, false)
@@ -1102,7 +1102,7 @@ func setDeviceLcd(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// deleteNexusScreen handles saving of NEXUS screens
+// saveNexusScreen handles saving of NEXUS screens
 func saveNexusScreen(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessSaveNexusScreen(r)
 	resp := &Response{
@@ -1366,7 +1366,7 @@ func setLinkAdapterBulkColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getRgbOverride return RGB override for given device
+// getRgbOverride returns RGB override for given device
 func getRgbOverride(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGetRgbOverride(r)
 	resp := &Response{
@@ -1388,7 +1388,7 @@ func setRgbOverride(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getTimewarp return RGB timewarp for given device
+// getRgbTimewarp returns RGB timewarp for given device
 func getRgbTimewarp(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGetRgbTimewarp(r)
 	resp := &Response{
@@ -1399,7 +1399,7 @@ func getRgbTimewarp(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getXeneonWidget return xeneon widget
+// getXeneonWidget returns xeneon widget
 func getXeneonWidget(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGetXeneonWidget(r)
 	resp := &Response{
@@ -1867,7 +1867,7 @@ func changeRippleControl(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// changeMotionSync handles device ripple control mode
+// changeMotionSync handles device motion sync control mode
 func changeMotionSync(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeMotionSync(r)
 	resp := &Response{
@@ -1911,7 +1911,7 @@ func changeKeyAssignment(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// changeKeyActuation handles device key assignment update
+// changeKeyActuation handles device key actuation update
 func changeKeyActuation(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessChangeKeyActuation(r)
 	resp := &Response{
@@ -1966,7 +1966,7 @@ func changeSidetoneValue(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// changeHeadsetWheelOption handles headset wheel option value
+// changeWheelOption handles headset wheel option value
 func changeWheelOption(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessUpdateWheelOption(r)
 	resp := &Response{
@@ -2276,7 +2276,7 @@ func deleteDeviceGradientColor(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// setCommanderDuoOverride handles deletion of gradient color
+// setCommanderDuoOverride handles setting commander duo override
 func setCommanderDuoOverride(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessCommanderDuoOverride(r)
 	resp := &Response{
@@ -2309,7 +2309,7 @@ func updateDisplayData(w http.ResponseWriter, r *http.Request) {
 	resp.Send(w)
 }
 
-// getHardwareLights return supported device hardware lights
+// getHardwareLights returns supported device hardware lights
 func getHardwareLights(w http.ResponseWriter, r *http.Request) {
 	request := requests.ProcessGetHardwareLights(r)
 	resp := &Response{
@@ -2610,7 +2610,7 @@ func uiRgbCluster(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-// uiColorOverview handles overview or RGB profiles
+// uiColorOverview handles overview of RGB profiles
 func uiColorOverview(w http.ResponseWriter, _ *http.Request) {
 	web := templates.Web{}
 	web.Title = dashboard.GetDashboard().PageTitle
@@ -2900,6 +2900,7 @@ func getDeviceID(uri string, r *http.Request) (string, bool) {
 	return value, true
 }
 
+// handleFunc registers a route with HTTP method validation
 func handleFunc(mux *http.ServeMux, path, method string, handler func(w http.ResponseWriter, r *http.Request)) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == method {

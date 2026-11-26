@@ -769,6 +769,7 @@ var deviceRegisterMap = map[uint16]Product{
 	3127:  {0, 0, "iCUE H150i ELITE RGB", elite.Init, nil},                 // iCUE H150i ELITE RGB
 	3136:  {0, 0, "iCUE H100i ELITE RGB White", elite.Init, nil},           // iCUE H100i ELITE RGB White
 	3137:  {0, 0, "iCUE H150i ELITE RGB White", elite.Init, nil},           // iCUE H150i ELITE RGB White
+	3120:  {0, 0, "iCUE H60i RGB PRO XT", elite.Init, nil},                 // iCUE H60i RGB PRO XT
 	3104:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},                // iCUE H100i RGB PRO XT
 	3117:  {0, 0, "iCUE H100i RGB PRO XT", elite.Init, nil},                // iCUE H100i RGB PRO XT
 	3105:  {0, 0, "iCUE H115i RGB PRO XT", elite.Init, nil},                // iCUE H115i RGB PRO XT

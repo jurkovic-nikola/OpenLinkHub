@@ -53,6 +53,14 @@ type LastCycle struct {
 	LastCycle     int
 }
 
+// EffectState holds per-LED effect state that must survive between frames
+type EffectState struct {
+	Twinkle       []float64
+	TwinkleHue    []float64
+	TwinkleRising []bool
+	StormFlash    []float64
+}
+
 type ActiveRGB struct {
 	LightChannels          int
 	Smoothness             int
@@ -83,6 +91,14 @@ type ActiveRGB struct {
 	TempAlpha              float64
 	ChannelId              int
 	LastCycle              map[int]*LastCycle
+	State                  *EffectState
+}
+
+func (r *ActiveRGB) effectState() *EffectState {
+	if r.State == nil {
+		r.State = &EffectState{}
+	}
+	return r.State
 }
 
 var (

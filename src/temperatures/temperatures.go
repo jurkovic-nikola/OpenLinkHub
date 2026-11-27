@@ -534,6 +534,7 @@ func AddTemperatureProfile(newTemperatureProfile *NewTemperatureProfile) bool {
 		pf.ZeroRpm = newTemperatureProfile.ZeroRpm
 		pf.Linear = newTemperatureProfile.Linear
 		pf.GPUIndex = newTemperatureProfile.GpuIndex
+		pf.Internal = false
 
 		if pf.Points == nil {
 			pump := make([]Point, 0)

@@ -1,5 +1,9 @@
 package certificate
 
+// Package: certificate
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"crypto/rand"
 	"crypto/rsa"

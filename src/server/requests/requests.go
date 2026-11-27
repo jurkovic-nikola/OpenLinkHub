@@ -859,7 +859,7 @@ func ProcessSaveNexusScreen(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdProfile"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessDeleteNexusScreen deletes a custom layout and selects it on the device.
+// ProcessDeleteNexusScreen deletes a custom layout from the device.
 func ProcessDeleteNexusScreen(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -884,7 +884,7 @@ func ProcessDeleteNexusScreen(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeLcdProfile"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessLcdProfileChange will process POST request from a client for LCD mode change
+// ProcessLcdProfileChange processes a POST request for an LCD profile change
 func ProcessLcdProfileChange(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -1171,7 +1171,7 @@ func ProcessLcdProfileUpdate(r *http.Request) *Payload {
 		}
 
 		margin := req.Margin
-		if margin < 10 || thickness > 50 {
+		if margin < 10 || margin > 50 {
 			return &Payload{Message: language.GetValue("txtInvalidMarginValue"), Code: http.StatusOK, Status: 0}
 		}
 
@@ -2718,7 +2718,7 @@ func ProcessBrightnessChange(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeBrightness"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessBrightnessChangeGradual will process POST request from a client for device brightness change via defined number from 0-100
+// ProcessBrightnessChangeGradual will process POST request from a client for device brightness change using a value from 0-100
 func ProcessBrightnessChangeGradual(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -2764,7 +2764,7 @@ func ProcessBrightnessChangeGradual(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToChangeBrightness"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessContrastChangeGradual will process POST request from a client for device contrast change via defined number from 0-100
+// ProcessContrastChangeGradual will process POST request from a client for device contrast change using a value from 0-100
 func ProcessContrastChangeGradual(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -3754,7 +3754,7 @@ func ProcessAudioSettingsChange(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToUpdateVirtualAudio"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessAudioOutputDeviceChange will process POST request from a client for virtual audio settings change
+// ProcessAudioOutputDeviceChange processes a POST request to change the virtual audio output device
 func ProcessAudioOutputDeviceChange(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -4002,7 +4002,7 @@ func ProcessMouseZoneColorsSave(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToSaveMouseColors"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessMouseDpiColorsSave will process a POST request from a client for mouse dpi colors save
+// ProcessMouseDpiColorsSave will process a POST request from a client for mouse DPI colors save
 func ProcessMouseDpiColorsSave(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -5900,7 +5900,7 @@ func ProcessUpdateDeviceEqualizer(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtUnableToUpdateEqualizer"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessUpdateDisplayData will process update of macro profile value
+// ProcessUpdateDisplayData processes an update to display data
 func ProcessUpdateDisplayData(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -5968,7 +5968,7 @@ func ProcessSetAllDevicesColor(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtDeviceRgbProfileChanged"), Code: http.StatusOK, Status: 1}
 }
 
-// ProcessGetXeneonWidget will process POST request from a client to get xeneon widget data
+// ProcessGetXeneonWidget will process POST request from a client to get XENEON widget data
 func ProcessGetXeneonWidget(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -6048,7 +6048,7 @@ func ProcessSetXeneonWidgetArea(r *http.Request) *Payload {
 	return &Payload{Message: language.GetValue("txtInvalidWidget"), Code: http.StatusOK, Status: 0}
 }
 
-// ProcessSaveXeneonWidget will process POST request from a client to save xeneon widget data
+// ProcessSaveXeneonWidget will process POST request from a client to save XENEON widget data
 func ProcessSaveXeneonWidget(r *http.Request) *Payload {
 	req := &Payload{}
 	err := json.NewDecoder(r.Body).Decode(&req)

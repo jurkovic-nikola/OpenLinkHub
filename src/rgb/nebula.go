@@ -1,5 +1,9 @@
 package rgb
 
+// Package: rgb
+// Author: Nikola Jurkovic
+// License: GPL-3.0 or later
+
 import (
 	"math"
 	"math/rand"

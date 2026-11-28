@@ -185,7 +185,7 @@
 
             <!-- Temperature Profiles -->
             <div class="row g-4 mb-4 align-items-start">
-                <div class="col-md-2">
+                <div class="col-12 col-xl-2">
                     <div class="card system-card margin-top-20-all newTemp" data-bs-toggle="modal" data-bs-target="#newTempModal">
                         <div class="card-header">
                             {{ .Lang "txtNewProfile" }}
@@ -223,7 +223,7 @@
                                     <span class="settings-label text-ellipsis">{{ $root.Lang "txtSensor" }}</span>
                                     <span class="settings-label">{{ $value.SensorString }}</span>
                                 </div>
-                                
+
                                 <!-- Zero RPM -->
                                 <div class="settings-row">
                                     <span class="settings-label text-ellipsis">{{ $root.Lang "txtZeroRpm" }}</span>
@@ -249,28 +249,26 @@
                     {{ end }}
                     {{ end }}
                 </div>
-                <div class="col-md-5 temp-graph-container graph-window">
+                <div class="col-12 col-lg-6 col-xl-5 temp-graph-container graph-window">
                     <div class="card system-card">
+                        <div class="card-header curve-header">
+                            <span>{{ .Lang "txtPumpSpeed" }}</span>
+                            <button class="system-button btn-secondary" type="button" id="updatePump">{{ .Lang "txtSave" }}</button>
+                        </div>
                         <div class="card-body">
-                            <div class="temp-graph-canvas-container">
-                                <div style="flex: 1;">
-                                    <canvas id="graphPump" class="temp-graph-canvas"></canvas>
-                                    <button class="system-button btn-secondary" type="button" id="updatePump">{{ .Lang "txtSave" }}</button>
-                                </div>
-                            </div>
+                            <canvas id="graphPump" class="temp-graph-canvas" aria-label="{{ .Lang "txtPumpSpeed" }}"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-5 temp-graph-container graph-window">
+                <div class="col-12 col-lg-6 col-xl-5 temp-graph-container graph-window">
                     <div class="card system-card">
+                        <div class="card-header curve-header">
+                            <span>{{ .Lang "txtFanSpeed" }}</span>
+                            <button class="system-button btn-secondary" type="button" id="updateFans">{{ .Lang "txtSave" }}</button>
+                        </div>
                         <div class="card-body">
-                            <div class="temp-graph-canvas-container">
-                                <div style="flex: 1;">
-                                    <canvas id="graphFans" class="temp-graph-canvas"></canvas>
-                                    <button class="system-button btn-secondary" type="button" id="updateFans">{{ .Lang "txtSave" }}</button>
-                                </div>
-                            </div>
+                            <canvas id="graphFans" class="temp-graph-canvas" aria-label="{{ .Lang "txtFanSpeed" }}"></canvas>
                         </div>
                     </div>
                 </div>

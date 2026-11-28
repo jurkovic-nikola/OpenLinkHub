@@ -453,11 +453,7 @@ small {
 }
 
 .sidebar .nav-link.active {
-    background: linear-gradient(
-        180deg,
-        rgba(255,255,255,0.12),
-                                rgba(255,255,255,0.06)
-    );
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
     color: white;
     /*font-weight: 600;*/
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
@@ -679,7 +675,7 @@ small {
 
 #gauge circle,
 #pumpGauge {
-transition: stroke-dashoffset 0.6s ease;
+    transition: stroke-dashoffset 0.6s ease;
 }
 
 .gauge-value {
@@ -2292,17 +2288,18 @@ table.dataTable.compact tbody td {
     display:none;
 }
 
-.temp-graph-canvas-container {
+.curve-header {
     display: flex;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .temp-graph-canvas {
     width: 100%;
-    height: 500px;
+    height: clamp(260px, 40vh, 440px);
     display: block;
+    touch-action: none;
+    cursor: crosshair;
 }
 
 #temperature-probe-data {

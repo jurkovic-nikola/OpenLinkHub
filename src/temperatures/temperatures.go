@@ -309,6 +309,24 @@ func Init() {
 	if len(config.GetConfig().CpuTempFile) > 0 {
 		defaultTempFile = config.GetConfig().CpuTempFile
 	}
+
+	for key, value := range profiles {
+		if key == "Quiet" || key == "Normal" || key == "Performance" || key == "aioCriticalTemperature" {
+			continue
+		}
+
+		if !value.Internal {
+			continue
+		}
+		
+		value.Internal = false
+
+		err := saveProfileToDisk(key, value)
+		if err != nil {
+			logger.Log(logger.Fields{"error": err, "caller": "Init()"}).Error("Unable to save profile to disk")
+			continue
+		}
+	}
 }
 
 // upgradeGraphProfiles will perform initial graph calculation
